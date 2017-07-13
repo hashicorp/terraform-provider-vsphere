@@ -1,8 +1,8 @@
 package main
 
 import (
+	"bitbucket.org/crestdatasys/terraform_vsphere/vsphere"
 	"github.com/hashicorp/terraform/plugin"
-	"github.com/terraform-providers/terraform-provider-vsphere/vsphere"
 )
 
 func main() {

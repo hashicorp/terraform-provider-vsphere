@@ -557,6 +557,14 @@
 			"versionExact": "v0.15.0"
 		},
 		{
+			"checksumSHA1": "gqiwfI1jgNjANcUHiI1z5f+3zF4=",
+			"path": "github.com/vmware/govmomi/license",
+			"revision": "b63044e5f833781eb7b305bc035392480ee06a82",
+			"revisionTime": "2017-06-19T23:14:37Z",
+			"version": "v0.15.0",
+			"versionExact": "v0.15.0"
+		},
+		{
 			"checksumSHA1": "J3JrwZagGYMX6oNMkdsUFf8hHo8=",
 			"comment": "v0.15.0",
 			"path": "github.com/vmware/govmomi/list",
@@ -724,5 +732,5 @@
 			"versionExact": "v1.6.1"
 		}
 	],
-	"rootPath": "github.com/terraform-providers/terraform-provider-vsphere"
+	"rootPath": "bitbucket.org/crestdatasys/terraform_vsphere"
 }
