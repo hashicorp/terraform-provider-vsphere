@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/license"
+	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/types"
 	"golang.org/x/net/context"
 )
@@ -155,7 +156,12 @@ func resourceVSphereLicenseUpdate(d *schema.ResourceData, meta interface{}) erro
 			if err != nil {
 				return err
 			}
-			_, err = manager.Update(context.TODO(), keyC, mapdata)
+			for key, value := range mapdata {
+				err := UpdateLabel(context.TODO(), manager, keyC, key, value)
+				if err != nil {
+					return err
+				}
+			}
 			if err != nil {
 				return err
 			}
@@ -189,7 +195,7 @@ func labelsToMap(labels interface{}) (map[string]string, error) {
 	labelList := labels.([]interface{})
 	for _, label := range labelList {
 		labelMap := label.(map[string]interface{})
-		finalLabels[labelMap["key"].(string)] = finalLabels[labelMap["value"].(string)]
+		finalLabels[labelMap["key"].(string)] = labelMap["value"].(string)
 	}
 	log.Println("[G]", finalLabels)
 
@@ -217,4 +223,17 @@ func isKeyPresent(key string, manager *license.Manager) bool {
 	}
 
 	return false
+}
+
+// UpdateLabel provides a wrapper around the UpdateLabel data objects
+func UpdateLabel(ctx context.Context, m *license.Manager, licenseKey string, key string, val string) error {
+	req := types.UpdateLicenseLabel{
+		This:       m.Reference(),
+		LicenseKey: licenseKey,
+		LabelKey:   key,
+		LabelValue: val,
+	}
+
+	_, err := methods.UpdateLicenseLabel(ctx, m.Client(), &req)
+	return err
 }
