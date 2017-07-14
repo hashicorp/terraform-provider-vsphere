@@ -15,7 +15,8 @@ import (
 var (
 	// ErrNoSuchKeyFound is an error primarily thrown by the Read method of the resource.
 	// The error doesnt display the key itself for security reasons.
-	ErrNoSuchKeyFound = errors.New("The key was not found")
+	ErrNoSuchKeyFound     = errors.New("The key was not found")
+	ErrKeyCannotBeDeleted = errors.New("The key wasn't deleted")
 )
 
 func resourceVSphereLicense() *schema.Resource {
@@ -179,10 +180,20 @@ func resourceVSphereLicenseDelete(d *schema.ResourceData, meta interface{}) erro
 	manager := license.NewManager(client.Client)
 
 	if key := d.Get("license_key").(string); isKeyPresent(key, manager) {
-		d.SetId("")
+
 		err := manager.Remove(context.TODO(), key)
-		log.Println("[G] Error removing the key", err)
-		return err
+
+		if err != nil {
+			return err
+
+		}
+
+		// if the key is still present
+		if isKeyPresent(key, manager) {
+			return ErrKeyCannotBeDeleted
+		}
+		d.SetId("")
+		return nil
 	}
 	return ErrNoSuchKeyFound
 
