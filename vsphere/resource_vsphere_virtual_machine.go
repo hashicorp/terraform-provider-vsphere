@@ -992,7 +992,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 			log.Printf("[DEBUG] resourceVSphereVirtualMachineRead - Analyzing disk: %v", diskFullPath)
 
 			// Separate datastore and path
-			diskFullPathSplit := strings.Split(diskFullPath, " ")
+			diskFullPathSplit := strings.Split(diskFullPath, "] ")
 			if len(diskFullPathSplit) != 2 {
 				return fmt.Errorf("[ERROR] Failed trying to parse disk path: %v", diskFullPath)
 			}
