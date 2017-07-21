@@ -128,6 +128,13 @@ vCenter must be assigned the following privileges:
    - Inventory (all)
    - Provisioning (all)
 
+* License 
+   - Add License
+   - Remove License
+   - Update License
+   - Update Labels
+
+
 These settings were tested with [vSphere
 6.0](https://pubs.vmware.com/vsphere-60/index.jsp?topic=%2Fcom.vmware.vsphere.security.doc%2FGUID-18071E9A-EED1-4968-8D51-E0B4F526FDA3.html)
 and [vSphere
@@ -173,6 +180,7 @@ set to valid values for your VMware vSphere environment:
  * VSPHERE\_NETWORK\_LABEL\_DHCP
  * VSPHERE\_TEMPLATE
  * VSPHERE\_MAC\_ADDRESS
+ * VSPHERE_LICENSE
 
 The following environment variables depend on your vSphere environment:
 
