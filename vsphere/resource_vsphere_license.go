@@ -14,8 +14,10 @@ import (
 
 var (
 	// ErrNoSuchKeyFound is an error primarily thrown by the Read method of the resource.
-	// The error doesnt display the key itself for security reasons.
-	ErrNoSuchKeyFound     = errors.New("The key was not found")
+	// The error doesn't display the key itself for security reasons.
+	ErrNoSuchKeyFound = errors.New("The key was not found")
+	// ErrKeyCannotBeDeleted is an error which occurs when a key that is used by VMs is
+	// being removed
 	ErrKeyCannotBeDeleted = errors.New("The key wasn't deleted")
 )
 
@@ -47,8 +49,7 @@ func resourceVSphereLicense() *schema.Resource {
 						"key": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: true, // TODO: if the key changes then we have to create
-							// a new one. But this might never call Update method.
+							ForceNew: true,
 						},
 						"value": &schema.Schema{
 							Type:     schema.TypeString,

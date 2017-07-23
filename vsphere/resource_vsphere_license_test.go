@@ -36,20 +36,20 @@ var (
 	}
 )
 
-func TestAccVsphereLicenseBasic(t *testing.T) {
+func testAccVSphereLicenseBasic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccVspherePreLicenseBasicCheck(t)
+			testAccVSpherePreLicenseBasicCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccVsphereLicenseDestroy,
+		CheckDestroy: testAccVSphereLicenseDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVsphereLicenseBasicCreate(),
+				Config: testAccVSphereLicenseBasicCreate(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccVsphereLicenseExists("vsphere_license.foo"),
+					testAccVSphereLicenseExists("vsphere_license.foo"),
 				),
 			},
 		},
@@ -57,7 +57,7 @@ func TestAccVsphereLicenseBasic(t *testing.T) {
 
 }
 
-func TestAccVsphereLicenseInvalid(t *testing.T) {
+func testAccVSphereLicenseInvalid(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -66,9 +66,9 @@ func TestAccVsphereLicenseInvalid(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVsphereLicenseInvalidCreate(),
+				Config: testAccVSphereLicenseInvalidCreate(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccVsphereLicenseNotExists("vsphere_license.foo"),
+					testAccVSphereLicenseNotExists("vsphere_license.foo"),
 				),
 			},
 		},
@@ -76,19 +76,19 @@ func TestAccVsphereLicenseInvalid(t *testing.T) {
 
 }
 
-func TestAccVsphereLicenseWithLabels(t *testing.T) {
+func testAccVSphereLicenseWithLabels(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccVspherePreLicenseBasicCheck(t)
+			testAccVSpherePreLicenseBasicCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVsphereLicenseWithLabelCreate(testAccLabels),
+				Config: testAccVSphereLicenseWithLabelCreate(testAccLabels),
 				Check: resource.ComposeTestCheckFunc(
-					testAccVsphereLicenseWithLabelExists("vsphere_license.foo"),
+					testAccVSphereLicenseWithLabelExists("vsphere_license.foo"),
 				),
 			},
 		},
@@ -96,7 +96,7 @@ func TestAccVsphereLicenseWithLabels(t *testing.T) {
 
 }
 
-func testAccVsphereLicenseInvalidCreate() string {
+func testAccVSphereLicenseInvalidCreate() string {
 
 	// quite sure this key cannot be valid
 	return `resource "vsphere_license" "foo" {
@@ -104,12 +104,12 @@ func testAccVsphereLicenseInvalidCreate() string {
 			}`
 }
 
-func testAccVsphereLicenseWithLabelCreate(labels map[string]string) string {
+func testAccVSphereLicenseWithLabelCreate(labels map[string]string) string {
 
 	// precheck already checks if this is present or not
 	key := os.Getenv("VSPHERE_LICENSE")
 
-	labelString := labelToStrings(labels)
+	labelString := labelToString(labels)
 
 	return fmt.Sprintf(`resource "vsphere_license" "foo2" {
 					license_key = "%s"
@@ -118,7 +118,7 @@ func testAccVsphereLicenseWithLabelCreate(labels map[string]string) string {
 		}`, key, labelString)
 }
 
-func labelToStrings(labels map[string]string) string {
+func labelToString(labels map[string]string) string {
 	val := ""
 	for key, value := range labels {
 		val += fmt.Sprintf(`
@@ -132,7 +132,7 @@ func labelToStrings(labels map[string]string) string {
 	return val
 }
 
-func testAccVsphereLicenseBasicCreate() string {
+func testAccVSphereLicenseBasicCreate() string {
 
 	// precheck already checks if this is present or not
 	key := os.Getenv("VSPHERE_LICENSE")
@@ -144,7 +144,7 @@ func testAccVsphereLicenseBasicCreate() string {
 
 }
 
-func testAccVsphereLicenseDestroy(s *terraform.State) error {
+func testAccVSphereLicenseDestroy(s *terraform.State) error {
 
 	client := testAccProvider.Meta().(*govmomi.Client)
 
@@ -169,7 +169,7 @@ func testAccVsphereLicenseDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccVsphereLicenseExists(name string) resource.TestCheckFunc {
+func testAccVSphereLicenseExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 
@@ -188,7 +188,7 @@ func testAccVsphereLicenseExists(name string) resource.TestCheckFunc {
 	}
 }
 
-func testAccVsphereLicenseNotExists(name string) resource.TestCheckFunc {
+func testAccVSphereLicenseNotExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		_, ok := s.RootModule().Resources[name]
 
@@ -200,13 +200,13 @@ func testAccVsphereLicenseNotExists(name string) resource.TestCheckFunc {
 	}
 }
 
-func testAccVspherePreLicenseBasicCheck(t *testing.T) {
+func testAccVSpherePreLicenseBasicCheck(t *testing.T) {
 	if key := os.Getenv("VSPHERE_LICENSE"); key == "" {
 		t.Fatal("VSPHERE_LICENSE must be set for acceptance test")
 	}
 }
 
-func testAccVsphereLicenseWithLabelExists(name string) resource.TestCheckFunc {
+func testAccVSphereLicenseWithLabelExists(name string) resource.TestCheckFunc {
 
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
