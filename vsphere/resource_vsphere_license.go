@@ -81,7 +81,7 @@ func resourceVSphereLicense() *schema.Resource {
 }
 
 func resourceVSphereLicenseCreate(d *schema.ResourceData, meta interface{}) error {
-	log.Println("[G] Running the create method")
+	log.Println("[INFO] Running the create method")
 
 	client := meta.(*govmomi.Client)
 	manager := license.NewManager(client.Client)
@@ -111,7 +111,7 @@ func resourceVSphereLicenseCreate(d *schema.ResourceData, meta interface{}) erro
 
 func resourceVSphereLicenseRead(d *schema.ResourceData, meta interface{}) error {
 
-	log.Println("[G] Running the read method")
+	log.Println("[INFO] Running the read method")
 
 	client := meta.(*govmomi.Client)
 	manager := license.NewManager(client.Client)
@@ -119,12 +119,11 @@ func resourceVSphereLicenseRead(d *schema.ResourceData, meta interface{}) error 
 	// the key was never present. Should set the ID to false.
 	if _, ok := d.GetOk("license_key"); !ok {
 		d.SetId("")
-		// TODO: Should this be an error?
 		return nil
 	}
 
 	if info := getLicenseInfoFromKey(d.Get("license_key").(string), manager); info != nil {
-		log.Println("[G] Setting the values")
+		log.Println("[INFO] Setting the values")
 		d.Set("edition_key", info.EditionKey)
 		d.Set("total", info.Total)
 		d.Set("used", info.Used)
@@ -141,14 +140,14 @@ func resourceVSphereLicenseRead(d *schema.ResourceData, meta interface{}) error 
 // Change in key would remove it from
 func resourceVSphereLicenseUpdate(d *schema.ResourceData, meta interface{}) error {
 
-	log.Println("[G] Running the update method")
+	log.Println("[INFO] Running the update method")
 
 	client := meta.(*govmomi.Client)
 	manager := license.NewManager(client.Client)
 
 	if key, ok := d.GetOk("license_key"); ok {
-		keyC := key.(string)
-		if !isKeyPresent(keyC, manager) {
+		licenseKey := key.(string)
+		if !isKeyPresent(licenseKey, manager) {
 			return ErrNoSuchKeyFound
 		}
 
@@ -159,7 +158,7 @@ func resourceVSphereLicenseUpdate(d *schema.ResourceData, meta interface{}) erro
 				return err
 			}
 			for key, value := range mapdata {
-				err := UpdateLabel(context.TODO(), manager, keyC, key, value)
+				err := UpdateLabel(context.TODO(), manager, licenseKey, key, value)
 				if err != nil {
 					return err
 				}
@@ -175,7 +174,7 @@ func resourceVSphereLicenseUpdate(d *schema.ResourceData, meta interface{}) erro
 
 func resourceVSphereLicenseDelete(d *schema.ResourceData, meta interface{}) error {
 
-	log.Println("[G] Running the delete method")
+	log.Println("[INFO] Running the delete method")
 
 	client := meta.(*govmomi.Client)
 	manager := license.NewManager(client.Client)
@@ -209,7 +208,7 @@ func labelsToMap(labels interface{}) (map[string]string, error) {
 		labelMap := label.(map[string]interface{})
 		finalLabels[labelMap["key"].(string)] = labelMap["value"].(string)
 	}
-	log.Println("[G]", finalLabels)
+	log.Println("[INFO]", finalLabels)
 
 	return finalLabels, nil
 
