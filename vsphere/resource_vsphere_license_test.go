@@ -36,7 +36,7 @@ var (
 	}
 )
 
-func testAccVSphereLicenseBasic(t *testing.T) {
+func TestAccVSphereLicenseBasic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -57,7 +57,7 @@ func testAccVSphereLicenseBasic(t *testing.T) {
 
 }
 
-func testAccVSphereLicenseInvalid(t *testing.T) {
+func TestAccVSphereLicenseInvalid(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -76,7 +76,7 @@ func testAccVSphereLicenseInvalid(t *testing.T) {
 
 }
 
-func testAccVSphereLicenseWithLabels(t *testing.T) {
+func TestAccVSphereLicenseWithLabels(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -237,16 +237,16 @@ func testAccVSphereLicenseWithLabelExists(name string) resource.TestCheckFunc {
 
 }
 
-func TestLabelToMaps(t *testing.T) {
+func TestLabelToMap(t *testing.T) {
 
-	mapdata, err := labelsToMap(labelStub)
+	labelMap, err := labelsToMap(labelStub)
 
 	if err != nil {
 		t.Fatal("Error ", err)
 	}
 
-	if value, ok := mapdata["Hello"]; !ok || value != "World" {
-		t.Fatal("the map data is invalid")
+	if value, ok := labelMap["Hello"]; !ok || value != "World" {
+		t.Fatal("The label map doesn't contain labels as expected")
 	}
 
 }

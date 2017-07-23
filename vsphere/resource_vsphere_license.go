@@ -224,7 +224,6 @@ func getLicenseInfoFromKey(key string, manager *license.Manager) *types.LicenseM
 // isKeyPresent iterates over the InfoList to check if the license is present or not.
 func isKeyPresent(key string, manager *license.Manager) bool {
 
-	// TODO: Manage this error
 	infoList, _ := manager.List(context.TODO())
 
 	for _, info := range infoList {
