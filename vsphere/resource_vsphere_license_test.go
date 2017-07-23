@@ -36,12 +36,12 @@ var (
 	}
 )
 
-func TestAccVSphereLicenseBasic(t *testing.T) {
+func TestAccVsphereLicenseBasic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccPreLicenseBasicCheck(t)
+			testAccVspherePreLicenseBasicCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccVsphereLicenseDestroy,
@@ -81,7 +81,7 @@ func TestAccVsphereLicenseWithLabels(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccPreLicenseBasicCheck(t)
+			testAccVspherePreLicenseBasicCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -158,7 +158,7 @@ func testAccVsphereLicenseDestroy(s *terraform.State) error {
 
 		key := rs.Primary.ID
 		if isKeyPresent(key, manager) {
-			message += fmt.Sprintf("%s still present on the server", key)
+			message += fmt.Sprintf("%s is still present on the server", key)
 		}
 
 	}
@@ -174,14 +174,14 @@ func testAccVsphereLicenseExists(name string) resource.TestCheckFunc {
 		rs, ok := s.RootModule().Resources[name]
 
 		if !ok {
-			return fmt.Errorf("%s resource not found", name)
+			return fmt.Errorf("%s key not found on the server", name)
 		}
 
 		client := testAccProvider.Meta().(*govmomi.Client)
 		manager := license.NewManager(client.Client)
 
 		if !isKeyPresent(rs.Primary.ID, manager) {
-			return fmt.Errorf("%s key not found on the remote", rs.Primary.ID)
+			return fmt.Errorf("%s key not found on the server", rs.Primary.ID)
 		}
 
 		return nil
@@ -193,14 +193,14 @@ func testAccVsphereLicenseNotExists(name string) resource.TestCheckFunc {
 		_, ok := s.RootModule().Resources[name]
 
 		if ok {
-			return fmt.Errorf("%s resource should not exist", name)
+			return fmt.Errorf("%s key should not be present on the server", name)
 		}
 
 		return nil
 	}
 }
 
-func testAccPreLicenseBasicCheck(t *testing.T) {
+func testAccVspherePreLicenseBasicCheck(t *testing.T) {
 	if key := os.Getenv("VSPHERE_LICENSE"); key == "" {
 		t.Fatal("VSPHERE_LICENSE must be set for acceptance test")
 	}
@@ -212,14 +212,14 @@ func testAccVsphereLicenseWithLabelExists(name string) resource.TestCheckFunc {
 		rs, ok := s.RootModule().Resources[name]
 
 		if !ok {
-			return fmt.Errorf("%s resource not found", name)
+			return fmt.Errorf("%s key not found on the server", name)
 		}
 
 		client := testAccProvider.Meta().(*govmomi.Client)
 		manager := license.NewManager(client.Client)
 
 		if !isKeyPresent(rs.Primary.ID, manager) {
-			return fmt.Errorf("%s key not found on the remote", rs.Primary.ID)
+			return fmt.Errorf("%s key not found on the server", rs.Primary.ID)
 		}
 
 		info, err := manager.Decode(context.TODO(), rs.Primary.ID)
