@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"regexp"
+
 	"golang.org/x/net/context"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -43,8 +45,8 @@ func TestAccVSphereLicenseBasic(t *testing.T) {
 			testAccPreCheck(t)
 			testAccVSpherePreLicenseBasicCheck(t)
 		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccVSphereLicenseDestroy,
+		Providers: testAccProviders,
+		// CheckDestroy: testAccVSphereLicenseDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVSphereLicenseBasicCreate(),
@@ -70,6 +72,7 @@ func TestAccVSphereLicenseInvalid(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereLicenseNotExists("vsphere_license.foo"),
 				),
+				ExpectError: regexp.MustCompile("License file not found"),
 			},
 		},
 	})
@@ -100,7 +103,7 @@ func testAccVSphereLicenseInvalidCreate() string {
 
 	// quite sure this key cannot be valid
 	return `resource "vsphere_license" "foo" {
-  					license_key = "00000-00000-00000-00000-12345"
+  					license_key = "HN422-47193-58V7M-03086-0JAN2"
 			}`
 }
 
@@ -111,10 +114,10 @@ func testAccVSphereLicenseWithLabelCreate(labels map[string]string) string {
 
 	labelString := labelToString(labels)
 
-	return fmt.Sprintf(`resource "vsphere_license" "foo2" {
+	return fmt.Sprintf(`resource "vsphere_license" "foo" {
 					license_key = "%s"
 
-					%s
+					%s		 	
 		}`, key, labelString)
 }
 
@@ -227,7 +230,6 @@ func testAccVSphereLicenseWithLabelExists(name string) resource.TestCheckFunc {
 		if err != nil {
 			return err
 		}
-
 		if len(info.Labels) == 0 {
 			return fmt.Errorf("The labels were not set for the key %s", info.LicenseKey)
 		}
@@ -237,7 +239,7 @@ func testAccVSphereLicenseWithLabelExists(name string) resource.TestCheckFunc {
 
 }
 
-func TestLabelToMap(t *testing.T) {
+func TestVSphereLicenseLabelToMap(t *testing.T) {
 
 	labelMap, err := labelsToMap(labelStub)
 

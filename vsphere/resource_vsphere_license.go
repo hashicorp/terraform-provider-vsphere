@@ -32,14 +32,11 @@ func resourceVSphereLicense() *schema.Resource {
 		Update: resourceVSphereLicenseUpdate,
 		Delete: resourceVSphereLicenseDelete,
 
-		// None of the other resources have an importer method.
-		// The Id of the resource is key itself and as the operation is idempotent, the
-		// importer will behave quite similar to creation of a key resource.
-
 		Schema: map[string]*schema.Schema{
 			"license_key": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"label": &schema.Schema{
 				Type:     schema.TypeList,
@@ -103,6 +100,10 @@ func resourceVSphereLicenseCreate(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
+	if err = DecodeError(info); err != nil {
+		return err
+	}
+
 	// This can be used in the read method to set the computed parameters
 	d.SetId(info.LicenseKey)
 
@@ -152,12 +153,12 @@ func resourceVSphereLicenseUpdate(d *schema.ResourceData, meta interface{}) erro
 		}
 
 		if d.HasChange("label") {
-			mapdata, err := labelsToMap(d.Get("label"))
+			labelMap, err := labelsToMap(d.Get("label"))
 
 			if err != nil {
 				return err
 			}
-			for key, value := range mapdata {
+			for key, value := range labelMap {
 				err := UpdateLabel(context.TODO(), manager, licenseKey, key, value)
 				if err != nil {
 					return err
@@ -246,4 +247,22 @@ func UpdateLabel(ctx context.Context, m *license.Manager, licenseKey string, key
 
 	_, err := methods.UpdateLicenseLabel(ctx, m.Client(), &req)
 	return err
+}
+
+// DecodeError tries to find a specific error which occurs when an invalid key is passed
+// to the server
+func DecodeError(info types.LicenseManagerLicenseInfo) error {
+
+	for _, property := range info.Properties {
+		if property.Key == "localizedDiagnostic" {
+			if message, ok := property.Value.(types.LocalizableMessage); ok {
+				if message.Key == "com.vmware.vim.vc.license.error.decode" {
+					return errors.New(message.Message)
+				}
+			}
+		}
+	}
+
+	return nil
+
 }
