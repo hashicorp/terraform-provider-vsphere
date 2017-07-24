@@ -8,8 +8,6 @@ import (
 
 	"regexp"
 
-	"golang.org/x/net/context"
-
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/vmware/govmomi"
@@ -225,13 +223,14 @@ func testAccVSphereLicenseWithLabelExists(name string) resource.TestCheckFunc {
 			return fmt.Errorf("%s key not found on the server", rs.Primary.ID)
 		}
 
-		info, err := manager.Decode(context.TODO(), rs.Primary.ID)
+		info := getLicenseInfoFromKey(rs.Primary.ID, manager)
 
-		if err != nil {
-			return err
-		}
 		if len(info.Labels) == 0 {
 			return fmt.Errorf("The labels were not set for the key %s", info.LicenseKey)
+		}
+
+		if len(info.Labels) != 2 {
+			return fmt.Errorf("The number of labels on the server are incorrect", info.Labels)
 		}
 
 		return nil
@@ -239,7 +238,7 @@ func testAccVSphereLicenseWithLabelExists(name string) resource.TestCheckFunc {
 
 }
 
-func TestVSphereLicenseLabelToMap(t *testing.T) {
+func TestVSphereLicenseLabelsToMap(t *testing.T) {
 
 	labelMap, err := labelsToMap(labelStub)
 

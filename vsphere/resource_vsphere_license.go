@@ -129,6 +129,7 @@ func resourceVSphereLicenseRead(d *schema.ResourceData, meta interface{}) error 
 		d.Set("total", info.Total)
 		d.Set("used", info.Used)
 		d.Set("name", info.Name)
+
 	} else {
 		return ErrNoSuchKeyFound
 	}
@@ -214,11 +215,18 @@ func labelsToMap(labels interface{}) (map[string]string, error) {
 	return finalLabels, nil
 
 }
+
 func getLicenseInfoFromKey(key string, manager *license.Manager) *types.LicenseManagerLicenseInfo {
 
-	// TODO: Do we need to handle this error?
-	info, _ := manager.Decode(context.TODO(), key)
-	return &info
+	// Use of decode is not returning labels so using list instead
+	// Issue - https://github.com/vmware/govmomi/issues/797
+	infoList, _ := manager.List(context.TODO())
+	for _, info := range infoList {
+		if info.LicenseKey == key {
+			return &info
+		}
+	}
+	return nil
 
 }
 
