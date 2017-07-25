@@ -85,7 +85,7 @@ func resourceVSphereLicenseCreate(d *schema.ResourceData, meta interface{}) erro
 
 	key := d.Get("license_key").(string)
 
-	log.Println("Reading the key from the resource data")
+	log.Println(" [INFO] Reading the key from the resource data")
 	var finalLabels map[string]string
 	var err error
 	if labels, ok := d.GetOk("label"); ok {

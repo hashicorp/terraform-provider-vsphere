@@ -43,8 +43,8 @@ func TestAccVSphereLicenseBasic(t *testing.T) {
 			testAccPreCheck(t)
 			testAccVSpherePreLicenseBasicCheck(t)
 		},
-		Providers: testAccProviders,
-		// CheckDestroy: testAccVSphereLicenseDestroy,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccVSphereLicenseDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVSphereLicenseBasicCreate(),
