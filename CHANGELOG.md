@@ -1,4 +1,8 @@
 ## 0.1.1 (Unreleased)
+
+IMPROVEMENTS:
+ * r/vsphere_virtual_machine: Add annotation argument [GH-111]
+
 ## 0.1.0 (June 20, 2017)
 
 NOTES:
