@@ -1502,6 +1502,42 @@ func createAndAttachDisk(t *testing.T, vmName string, size int, datastore string
 	}
 }
 
+const testAccCheckVSphereVirtualMachineConfig_annotation = `
+resource "vsphere_virtual_machine" "car" {
+    name = "terraform-test-annotation"
+    annotation = "bar"
+`
+
+func TestAccVSphereVirtualMachine_annotation(t *testing.T) {
+
+	var vm virtualMachine
+	data := setupTemplateFuncDHCPData()
+	config := testAccCheckVSphereVirtualMachineConfig_annotation + data.parseDHCPTemplateConfigWithTemplate(testAccCheckVSphereTemplate_dhcp)
+	vmName := "vsphere_virtual_machine.car"
+	res := "terraform-test-annotation"
+
+	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+		TestFuncData{vm: vm, label: data.label, vmName: vmName, vmResource: res}.testCheckFuncBasic()
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_annotation+testAccCheckVSphereTemplate_dhcp)
+	log.Printf("[DEBUG] config= %s", config)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					resource.TestCheckResourceAttr(vmName, "annotation", "bar"),
+				),
+			},
+		},
+	})
+}
+
 func vmCleanup(dc *object.Datacenter, ds *object.Datastore, vmName string) error {
 	client := testAccProvider.Meta().(*govmomi.Client)
 	fileManager := object.NewFileManager(client.Client)
