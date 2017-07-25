@@ -82,6 +82,7 @@ The following arguments are supported:
 * `enable_disk_uuid` - (Optional) This option causes the vm to mount disks by uuid on the guest OS.
 * `custom_configuration_parameters` - (Optional) Map of values that is set as virtual machine custom configurations.
 * `skip_customization` - (Optional) skip virtual machine customization (useful if OS is not in the guest OS support matrix of VMware like "other3xLinux64Guest").
+* `annotation` - (Optional) Edit the annotation notes field
 
 The `network_interface` block supports:
 
