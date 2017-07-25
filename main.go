@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bitbucket.org/crestdatasys/terraform_vsphere/vsphere"
+	"github.com/terraform-providers/terraform-provider-vsphere"
 	"github.com/hashicorp/terraform/plugin"
 )
 

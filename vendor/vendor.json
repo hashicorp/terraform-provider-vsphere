@@ -732,5 +732,5 @@
 			"versionExact": "v1.6.1"
 		}
 	],
-	"rootPath": "bitbucket.org/crestdatasys/terraform_vsphere"
+	"rootPath": "github.com/terraform-providers/terraform-provider-vsphere"
 }

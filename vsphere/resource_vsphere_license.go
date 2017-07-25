@@ -210,7 +210,6 @@ func labelsToMap(labels interface{}) (map[string]string, error) {
 		labelMap := label.(map[string]interface{})
 		finalLabels[labelMap["key"].(string)] = labelMap["value"].(string)
 	}
-	log.Println("[INFO]", finalLabels)
 
 	return finalLabels, nil
 
