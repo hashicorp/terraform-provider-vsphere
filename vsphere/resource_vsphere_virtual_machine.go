@@ -38,6 +38,7 @@ var DiskControllerTypes = []string{
 type networkInterface struct {
 	deviceName       string
 	label            string
+	dvs              string
 	ipv4Address      string
 	ipv4PrefixLength int
 	ipv4Gateway      string
@@ -299,6 +300,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
+						},
+
+						"dvs": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "",
 						},
 
 						"ip_address": &schema.Schema{
@@ -757,6 +764,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		for i, v := range vL.([]interface{}) {
 			network := v.(map[string]interface{})
 			networks[i].label = network["label"].(string)
+			networks[i].dvs = network["dvs"].(string)
 			if v, ok := network["ip_address"].(string); ok && v != "" {
 				networks[i].ipv4Address = v
 			}
