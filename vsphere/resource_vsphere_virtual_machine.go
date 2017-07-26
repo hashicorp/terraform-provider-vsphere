@@ -38,6 +38,7 @@ var DiskControllerTypes = []string{
 type networkInterface struct {
 	deviceName       string
 	label            string
+	dvs              string
 	ipv4Address      string
 	ipv4PrefixLength int
 	ipv4Gateway      string
@@ -299,6 +300,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
+						},
+
+						"dvs": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "",
 						},
 
 						"ip_address": &schema.Schema{
@@ -757,6 +764,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		for i, v := range vL.([]interface{}) {
 			network := v.(map[string]interface{})
 			networks[i].label = network["label"].(string)
+			networks[i].dvs = network["dvs"].(string)
 			if v, ok := network["ip_address"].(string); ok && v != "" {
 				networks[i].ipv4Address = v
 			}
@@ -1501,8 +1509,17 @@ func addCdrom(client *govmomi.Client, vm *object.VirtualMachine, datacenter *obj
 }
 
 // buildNetworkDevice builds VirtualDeviceConfigSpec for Network Device.
-func buildNetworkDevice(f *find.Finder, label, adapterType string, macAddress string) (*types.VirtualDeviceConfigSpec, error) {
-	network, err := f.Network(context.TODO(), "*"+label)
+func buildNetworkDevice(f *find.Finder, label, dvs, adapterType string, macAddress string) (*types.VirtualDeviceConfigSpec, error) {
+	var path string
+
+	if dvs != "" {
+		path = "*" + dvs + "/" + label
+	} else {
+		path = "*" + label
+	}
+
+	log.Printf("[DEBUG]: searching for %s from %s/%s", path, dvs, label)
+	network, err := f.Network(context.TODO(), path)
 	if err != nil {
 		return nil, err
 	}
@@ -1869,7 +1886,9 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		} else {
 			networkDeviceType = "vmxnet3"
 		}
-		nd, err := buildNetworkDevice(finder, network.label, networkDeviceType, network.macAddress)
+		log.Printf("[DEBUG] network definition: %+v", network)
+		nd, err := buildNetworkDevice(finder, network.label, network.dvs, networkDeviceType, network.macAddress)
+
 		if err != nil {
 			return err
 		}
