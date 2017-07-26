@@ -3,14 +3,6 @@
 	"ignore": "appengine test github.com/hashicorp/nomad/",
 	"package": [
 		{
-			"path": "-tree",
-			"revision": ""
-		},
-		{
-			"path": "-v",
-			"revision": ""
-		},
-		{
 			"checksumSHA1": "FIL83loX9V9APvGQIjJpbxq53F0=",
 			"path": "github.com/apparentlymart/go-cidr/cidr",
 			"revision": "7e4b007599d4e2076d9a81be723b3912852dda2c",
@@ -549,8 +541,10 @@
 			"checksumSHA1": "xytdWGKNjPCgSZFJq1pu+3wm2Ns=",
 			"comment": "v0.15.0",
 			"path": "github.com/vmware/govmomi",
-			"revision": "a5cb0a3430b074ce54ff873197b6ec881acf82fa",
-			"revisionTime": "2017-06-20T04:56:21Z"
+			"revision": "b63044e5f833781eb7b305bc035392480ee06a82",
+			"revisionTime": "2017-06-19T23:14:37Z",
+			"version": "v0.15.0",
+			"versionExact": "v0.15.0"
 		},
 		{
 			"checksumSHA1": "xyxo9nWPro79ae/TGNZOlWKSPUk=",
