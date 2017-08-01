@@ -124,7 +124,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		Update: resourceVSphereVirtualMachineUpdate,
 		Delete: resourceVSphereVirtualMachineDelete,
 
-		SchemaVersion: 1,
+		SchemaVersion: 2,
 		MigrateState:  resourceVSphereVirtualMachineMigrateState,
 
 		Schema: map[string]*schema.Schema{
