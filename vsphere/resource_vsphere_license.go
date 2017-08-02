@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -95,7 +96,18 @@ func resourceVSphereLicenseCreate(d *schema.ResourceData, meta interface{}) erro
 			return err
 		}
 	}
-	info, err := manager.Add(context.TODO(), key, finalLabels)
+
+	var info types.LicenseManagerLicenseInfo
+
+	switch t := client.ServiceContent.About.ApiType; t {
+	case "HostAgent":
+		info, err = manager.Update(context.TODO(), key, finalLabels)
+	case "VirtualCenter":
+		info, err = manager.Add(context.TODO(), key, finalLabels)
+	default:
+		return fmt.Errorf("unsupported ApiType: %s", t)
+	}
+
 	if err != nil {
 		return err
 	}
