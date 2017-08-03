@@ -19,21 +19,6 @@ var (
 		"VpxClientLicenseLabel": "Hello World",
 		"TestTitle":             "FooBar",
 	}
-
-	labelStub = []interface{}{
-		map[string]interface{}{
-			"key":   "Hello",
-			"value": "World",
-		},
-		map[string]interface{}{
-			"key":   "Working",
-			"value": "This",
-		},
-		map[string]interface{}{
-			"key":   "Testing",
-			"value": "Labels",
-		},
-	}
 )
 
 func TestAccVSphereLicenseBasic(t *testing.T) {
@@ -47,7 +32,7 @@ func TestAccVSphereLicenseBasic(t *testing.T) {
 		CheckDestroy: testAccVSphereLicenseDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVSphereLicenseBasicCreate(),
+				Config: testAccVSphereLicenseBasicConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereLicenseExists("vsphere_license.foo"),
 				),
@@ -66,7 +51,7 @@ func TestAccVSphereLicenseInvalid(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVSphereLicenseInvalidCreate(),
+				Config: testAccVSphereLicenseInvalidConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereLicenseNotExists("vsphere_license.foo"),
 				),
@@ -87,7 +72,7 @@ func TestAccVSphereLicenseWithLabels(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVSphereLicenseWithLabelCreate(testAccLabels),
+				Config: testAccVSphereLicenseWithLabelConfig(testAccLabels),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereLicenseWithLabelExists("vsphere_license.foo"),
 				),
@@ -97,7 +82,7 @@ func TestAccVSphereLicenseWithLabels(t *testing.T) {
 
 }
 
-func testAccVSphereLicenseInvalidCreate() string {
+func testAccVSphereLicenseInvalidConfig() string {
 
 	// quite sure this key cannot be valid
 	return `resource "vsphere_license" "foo" {
@@ -105,7 +90,7 @@ func testAccVSphereLicenseInvalidCreate() string {
 			}`
 }
 
-func testAccVSphereLicenseWithLabelCreate(labels map[string]string) string {
+func testAccVSphereLicenseWithLabelConfig(labels map[string]string) string {
 
 	// precheck already checks if this is present or not
 	key := os.Getenv("VSPHERE_LICENSE")
@@ -113,27 +98,27 @@ func testAccVSphereLicenseWithLabelCreate(labels map[string]string) string {
 	labelString := labelToString(labels)
 
 	return fmt.Sprintf(`resource "vsphere_license" "foo" {
-					license_key = "%s"
+							license_key = "%s"
 
-					%s		 	
-		}`, key, labelString)
+							labels {
+								%s
+							}		 	
+						}`,
+		key, labelString)
 }
 
 func labelToString(labels map[string]string) string {
 	val := ""
 	for key, value := range labels {
 		val += fmt.Sprintf(`
-		label {
-			key = "%s"
-			value = "%s"
-		}
+			%s = "%s"
 		`, key, value)
 
 	}
 	return val
 }
 
-func testAccVSphereLicenseBasicCreate() string {
+func testAccVSphereLicenseBasicConfig() string {
 
 	// precheck already checks if this is present or not
 	key := os.Getenv("VSPHERE_LICENSE")
@@ -230,24 +215,11 @@ func testAccVSphereLicenseWithLabelExists(name string) resource.TestCheckFunc {
 		}
 
 		if len(info.Labels) != 2 {
-			return fmt.Errorf("The number of labels on the server are incorrect", info.Labels)
+			return fmt.Errorf(`The number of labels on the server are incorrect. Expected 2 Got %d`,
+				len(info.Labels))
 		}
 
 		return nil
-	}
-
-}
-
-func TestVSphereLicenseLabelsToMap(t *testing.T) {
-
-	labelMap, err := labelsToMap(labelStub)
-
-	if err != nil {
-		t.Fatal("Error ", err)
-	}
-
-	if value, ok := labelMap["Hello"]; !ok || value != "World" {
-		t.Fatal("The label map doesn't contain labels as expected")
 	}
 
 }

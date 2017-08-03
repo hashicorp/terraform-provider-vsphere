@@ -40,21 +40,9 @@ func resourceVSphereLicense() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"label": &schema.Schema{
-				Type:     schema.TypeList,
+			"labels": &schema.Schema{
+				Type:     schema.TypeMap,
 				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"key": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"value": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-						},
-					},
-				},
 			},
 
 			// computed properties returned by the API
@@ -88,18 +76,17 @@ func resourceVSphereLicenseCreate(d *schema.ResourceData, meta interface{}) erro
 	key := d.Get("license_key").(string)
 
 	log.Println(" [INFO] Reading the key from the resource data")
-	var finalLabels map[string]string
-	var err error
-	if labels, ok := d.GetOk("label"); ok {
-		finalLabels, err = labelsToMap(labels)
-		if err != nil {
-			// If errors are printed by terraform then no need to log errors here
-			return err
+	finalLabels := make(map[string]string)
+
+	if labels, ok := d.GetOk("labels"); ok {
+		labelMap := labels.(map[string]interface{})
+		for key, value := range labelMap {
+			finalLabels[key] = value.(string)
 		}
 	}
 
 	var info types.LicenseManagerLicenseInfo
-
+	var err error
 	switch t := client.ServiceContent.About.ApiType; t {
 	case "HostAgent":
 		info, err = manager.Update(context.TODO(), key, finalLabels)
@@ -159,20 +146,14 @@ func resourceVSphereLicenseUpdate(d *schema.ResourceData, meta interface{}) erro
 			return ErrNoSuchKeyFound
 		}
 
-		if d.HasChange("label") {
-			labelMap, err := labelsToMap(d.Get("label"))
+		if d.HasChange("labels") {
+			labelMap := d.Get("labels").(map[string]interface{})
 
-			if err != nil {
-				return err
-			}
 			for key, value := range labelMap {
-				err := UpdateLabel(context.TODO(), manager, licenseKey, key, value)
+				err := UpdateLabel(context.TODO(), manager, licenseKey, key, value.(string))
 				if err != nil {
 					return err
 				}
-			}
-			if err != nil {
-				return err
 			}
 		}
 	}
@@ -204,21 +185,6 @@ func resourceVSphereLicenseDelete(d *schema.ResourceData, meta interface{}) erro
 		return nil
 	}
 	return ErrNoSuchKeyFound
-
-}
-
-// labelsToMap is an adapter method that takes labels and gives a map that
-// can be used with the key creation method.
-func labelsToMap(labels interface{}) (map[string]string, error) {
-
-	finalLabels := make(map[string]string)
-	labelList := labels.([]interface{})
-	for _, label := range labelList {
-		labelMap := label.(map[string]interface{})
-		finalLabels[labelMap["key"].(string)] = labelMap["value"].(string)
-	}
-
-	return finalLabels, nil
 
 }
 
