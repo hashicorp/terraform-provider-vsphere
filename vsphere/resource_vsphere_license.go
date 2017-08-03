@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"log"
 
+	"context"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/license"
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/types"
-	"golang.org/x/net/context"
 )
 
 var (
@@ -47,7 +48,6 @@ func resourceVSphereLicense() *schema.Resource {
 						"key": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: true,
 						},
 						"value": &schema.Schema{
 							Type:     schema.TypeString,
@@ -79,6 +79,7 @@ func resourceVSphereLicense() *schema.Resource {
 }
 
 func resourceVSphereLicenseCreate(d *schema.ResourceData, meta interface{}) error {
+
 	log.Println("[INFO] Running the create method")
 
 	client := meta.(*govmomi.Client)
@@ -129,12 +130,6 @@ func resourceVSphereLicenseRead(d *schema.ResourceData, meta interface{}) error 
 	client := meta.(*govmomi.Client)
 	manager := license.NewManager(client.Client)
 
-	// the key was never present. Should set the ID to false.
-	if _, ok := d.GetOk("license_key"); !ok {
-		d.SetId("")
-		return nil
-	}
-
 	if info := getLicenseInfoFromKey(d.Get("license_key").(string), manager); info != nil {
 		log.Println("[INFO] Setting the values")
 		d.Set("edition_key", info.EditionKey)
@@ -151,7 +146,6 @@ func resourceVSphereLicenseRead(d *schema.ResourceData, meta interface{}) error 
 }
 
 // resourceVSphereLicenseUpdate check for change in labels of the key and updates them.
-// Change in key would remove it from
 func resourceVSphereLicenseUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	log.Println("[INFO] Running the update method")
@@ -216,6 +210,7 @@ func resourceVSphereLicenseDelete(d *schema.ResourceData, meta interface{}) erro
 // labelsToMap is an adapter method that takes labels and gives a map that
 // can be used with the key creation method.
 func labelsToMap(labels interface{}) (map[string]string, error) {
+
 	finalLabels := make(map[string]string)
 	labelList := labels.([]interface{})
 	for _, label := range labelList {
@@ -257,6 +252,7 @@ func isKeyPresent(key string, manager *license.Manager) bool {
 
 // UpdateLabel provides a wrapper around the UpdateLabel data objects
 func UpdateLabel(ctx context.Context, m *license.Manager, licenseKey string, key string, val string) error {
+
 	req := types.UpdateLicenseLabel{
 		This:       m.Reference(),
 		LicenseKey: licenseKey,
