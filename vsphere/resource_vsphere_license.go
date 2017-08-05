@@ -24,7 +24,6 @@ var (
 )
 
 func resourceVSphereLicense() *schema.Resource {
-
 	return &schema.Resource{
 
 		SchemaVersion: 1,
@@ -67,7 +66,6 @@ func resourceVSphereLicense() *schema.Resource {
 }
 
 func resourceVSphereLicenseCreate(d *schema.ResourceData, meta interface{}) error {
-
 	log.Println("[INFO] Running the create method")
 
 	client := meta.(*govmomi.Client)
@@ -111,7 +109,6 @@ func resourceVSphereLicenseCreate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceVSphereLicenseRead(d *schema.ResourceData, meta interface{}) error {
-
 	log.Println("[INFO] Running the read method")
 
 	client := meta.(*govmomi.Client)
@@ -123,18 +120,17 @@ func resourceVSphereLicenseRead(d *schema.ResourceData, meta interface{}) error 
 		d.Set("total", info.Total)
 		d.Set("used", info.Used)
 		d.Set("name", info.Name)
+		d.Set("labels", keyValuesToMap(info.Labels))
 
 	} else {
 		return ErrNoSuchKeyFound
 	}
 
 	return nil
-
 }
 
 // resourceVSphereLicenseUpdate check for change in labels of the key and updates them.
 func resourceVSphereLicenseUpdate(d *schema.ResourceData, meta interface{}) error {
-
 	log.Println("[INFO] Running the update method")
 
 	client := meta.(*govmomi.Client)
@@ -162,7 +158,6 @@ func resourceVSphereLicenseUpdate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceVSphereLicenseDelete(d *schema.ResourceData, meta interface{}) error {
-
 	log.Println("[INFO] Running the delete method")
 
 	client := meta.(*govmomi.Client)
@@ -185,11 +180,9 @@ func resourceVSphereLicenseDelete(d *schema.ResourceData, meta interface{}) erro
 		return nil
 	}
 	return ErrNoSuchKeyFound
-
 }
 
 func getLicenseInfoFromKey(key string, manager *license.Manager) *types.LicenseManagerLicenseInfo {
-
 	// Use of decode is not returning labels so using list instead
 	// Issue - https://github.com/vmware/govmomi/issues/797
 	infoList, _ := manager.List(context.TODO())
@@ -199,12 +192,10 @@ func getLicenseInfoFromKey(key string, manager *license.Manager) *types.LicenseM
 		}
 	}
 	return nil
-
 }
 
 // isKeyPresent iterates over the InfoList to check if the license is present or not.
 func isKeyPresent(key string, manager *license.Manager) bool {
-
 	infoList, _ := manager.List(context.TODO())
 
 	for _, info := range infoList {
@@ -218,7 +209,6 @@ func isKeyPresent(key string, manager *license.Manager) bool {
 
 // UpdateLabel provides a wrapper around the UpdateLabel data objects
 func UpdateLabel(ctx context.Context, m *license.Manager, licenseKey string, key string, val string) error {
-
 	req := types.UpdateLicenseLabel{
 		This:       m.Reference(),
 		LicenseKey: licenseKey,
@@ -233,7 +223,6 @@ func UpdateLabel(ctx context.Context, m *license.Manager, licenseKey string, key
 // DecodeError tries to find a specific error which occurs when an invalid key is passed
 // to the server
 func DecodeError(info types.LicenseManagerLicenseInfo) error {
-
 	for _, property := range info.Properties {
 		if property.Key == "localizedDiagnostic" {
 			if message, ok := property.Value.(types.LocalizableMessage); ok {
@@ -245,5 +234,12 @@ func DecodeError(info types.LicenseManagerLicenseInfo) error {
 	}
 
 	return nil
+}
 
+func keyValuesToMap(keyValues []types.KeyValue) map[string]interface{} {
+	KVMap := make(map[string]interface{})
+	for _, keyValue := range keyValues {
+		KVMap[keyValue.Key] = keyValue.Value
+	}
+	return KVMap
 }

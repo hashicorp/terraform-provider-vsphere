@@ -29,7 +29,7 @@ resource "vsphere_license" "licenseKey" {
 The following arguments are supported:
 
 * `license_key` - (Required) The license key to add.
-* `labels` - (Optional) The key value pair of labels that has to be attached to the license key. 
+* `labels` - (Optional) A map of key/value pairs to be attached as labels (tags) to the license key.
 
 
 ## Attributes Reference

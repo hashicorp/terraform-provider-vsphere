@@ -14,13 +14,6 @@ import (
 	"github.com/vmware/govmomi/license"
 )
 
-var (
-	testAccLabels = map[string]string{
-		"VpxClientLicenseLabel": "Hello World",
-		"TestTitle":             "FooBar",
-	}
-)
-
 func TestAccVSphereLicenseBasic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
@@ -72,7 +65,7 @@ func TestAccVSphereLicenseWithLabels(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVSphereLicenseWithLabelConfig(testAccLabels),
+				Config: testAccVSphereLicenseWithLabelConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereLicenseWithLabelExists("vsphere_license.foo"),
 				),
@@ -90,52 +83,31 @@ func testAccVSphereLicenseInvalidConfig() string {
 			}`
 }
 
-func testAccVSphereLicenseWithLabelConfig(labels map[string]string) string {
-
+func testAccVSphereLicenseWithLabelConfig() string {
 	// precheck already checks if this is present or not
 	key := os.Getenv("VSPHERE_LICENSE")
-
-	labelString := labelToString(labels)
-
 	return fmt.Sprintf(`resource "vsphere_license" "foo" {
 							license_key = "%s"
 
 							labels {
-								%s
+								VpxClientLicenseLabel = "Hello World"
+								TestTitle = FooBar
 							}		 	
-						}`,
-		key, labelString)
-}
-
-func labelToString(labels map[string]string) string {
-	val := ""
-	for key, value := range labels {
-		val += fmt.Sprintf(`
-			%s = "%s"
-		`, key, value)
-
-	}
-	return val
+						}`, key)
 }
 
 func testAccVSphereLicenseBasicConfig() string {
-
 	// precheck already checks if this is present or not
 	key := os.Getenv("VSPHERE_LICENSE")
-
 	return fmt.Sprintf(`resource "vsphere_license" "foo" {
-  		license_key = "%s"
-		}
-	`, key)
-
+  							license_key = "%s"
+						}
+						`, key)
 }
 
 func testAccVSphereLicenseDestroy(s *terraform.State) error {
-
 	client := testAccProvider.Meta().(*govmomi.Client)
-
 	manager := license.NewManager(client.Client)
-
 	message := ""
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "vsphere_license" {
@@ -146,12 +118,10 @@ func testAccVSphereLicenseDestroy(s *terraform.State) error {
 		if isKeyPresent(key, manager) {
 			message += fmt.Sprintf("%s is still present on the server", key)
 		}
-
 	}
 	if message != "" {
 		return errors.New(message)
 	}
-
 	return nil
 }
 
@@ -193,7 +163,6 @@ func testAccVSpherePreLicenseBasicCheck(t *testing.T) {
 }
 
 func testAccVSphereLicenseWithLabelExists(name string) resource.TestCheckFunc {
-
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 
@@ -221,5 +190,4 @@ func testAccVSphereLicenseWithLabelExists(name string) resource.TestCheckFunc {
 
 		return nil
 	}
-
 }
