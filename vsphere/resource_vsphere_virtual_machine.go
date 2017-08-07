@@ -84,7 +84,7 @@ type virtualMachine struct {
 	resourcePool          string
 	datastore             string
 	vcpu                  int32
-	vcores_per_socket     int32
+	vcoresPerSocket       int32
 	memoryMb              int64
 	memoryAllocation      memoryAllocation
 	annotation            string
@@ -145,7 +145,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				Required: true,
 			},
 
-			"vcores_per_socket": &schema.Schema{
+			"vcoresPerSocket": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  1,
@@ -511,9 +511,9 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		rebootRequired = true
 	}
 
-	if d.HasChange("vcores_per_socket") {
-		if vcores_per_socket := int32(d.Get("vcores_per_socket").(int)); configSpec.NumCPUs%vcores_per_socket == 0 {
-			configSpec.NumCoresPerSocket = vcores_per_socket
+	if d.HasChange("vcoresPerSocket") {
+		if vcoresPerSocket := int32(d.Get("vcoresPerSocket").(int)); configSpec.NumCPUs%vcoresPerSocket == 0 {
+			configSpec.NumCoresPerSocket = vcoresPerSocket
 			hasChanges = true
 			rebootRequired = true
 		} else {
@@ -700,9 +700,9 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		},
 	}
 
-	if v, ok := d.GetOk("vcores_per_socket"); ok {
-		if vcores_per_socket := int32(v.(int)); vm.vcpu%vcores_per_socket == 0 {
-			vm.vcores_per_socket = vcores_per_socket
+	if v, ok := d.GetOk("vcoresPerSocket"); ok {
+		if vcoresPerSocket := int32(v.(int)); vm.vcpu%vcoresPerSocket == 0 {
+			vm.vcoresPerSocket = vcoresPerSocket
 		} else {
 			return fmt.Errorf("The number of cores is not a factor of the number of vcpus.")
 		}
@@ -1811,7 +1811,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	configSpec := types.VirtualMachineConfigSpec{
 		Name:              vm.name,
 		NumCPUs:           vm.vcpu,
-		NumCoresPerSocket: vm.vcores_per_socket,
+		NumCoresPerSocket: vm.vcoresPerSocket,
 		MemoryMB:          vm.memoryMb,
 		MemoryAllocation: &types.ResourceAllocationInfo{
 			Reservation: vm.memoryAllocation.reservation,
