@@ -76,7 +76,6 @@ func TestAccVSphereLicenseWithLabels(t *testing.T) {
 }
 
 func testAccVSphereLicenseInvalidConfig() string {
-
 	// quite sure this key cannot be valid
 	return `resource "vsphere_license" "foo" {
   					license_key = "HN422-47193-58V7M-03086-0JAN2"
@@ -84,25 +83,20 @@ func testAccVSphereLicenseInvalidConfig() string {
 }
 
 func testAccVSphereLicenseWithLabelConfig() string {
-	// precheck already checks if this is present or not
-	key := os.Getenv("VSPHERE_LICENSE")
 	return fmt.Sprintf(`resource "vsphere_license" "foo" {
 							license_key = "%s"
-
 							labels {
 								VpxClientLicenseLabel = "Hello World"
-								TestTitle = FooBar
+								TestTitle = "FooBar"
 							}		 	
-						}`, key)
+						}`, os.Getenv("VSPHERE_LICENSE"))
 }
 
 func testAccVSphereLicenseBasicConfig() string {
-	// precheck already checks if this is present or not
-	key := os.Getenv("VSPHERE_LICENSE")
 	return fmt.Sprintf(`resource "vsphere_license" "foo" {
   							license_key = "%s"
 						}
-						`, key)
+						`, os.Getenv("VSPHERE_LICENSE"))
 }
 
 func testAccVSphereLicenseDestroy(s *terraform.State) error {
