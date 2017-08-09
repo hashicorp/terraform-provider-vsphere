@@ -1,5 +1,8 @@
 ## 0.1.1 (Unreleased)
 
+BUG FIXES:
+ * Updated [govmomi](https://github.com/vmware/govmomi) to v0.15.0 [GH-114]
+
 IMPROVEMENTS:
  * r/vsphere_virtual_machine: Add annotation argument [GH-111]
 
