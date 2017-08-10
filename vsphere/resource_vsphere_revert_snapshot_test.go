@@ -25,7 +25,7 @@ func testBasicPreCheckSnapshotRevert(t *testing.T) {
 	}
 }
 
-func TestAccVmSnanpshotRevert_Basic(t *testing.T) {
+func TestAccVmSnapshotRevert_Basic(t *testing.T) {
 	snapshot_name := "SnapshotForTestingTerraform"
 
 	resource.Test(t, resource.TestCase{
@@ -95,7 +95,8 @@ func testAccCheckVmCurrentSnapshot(n, snapshot_name string) resource.TestCheckFu
 
 const testAccCheckVmSnapshotRevertConfig_basic = `
 resource "vsphere_snapshot_revert" "Test_terraform_cases"{
- 
+ 	vm_name = "vmForTesting"
+	folder = "workspace/forTesting"
 	snapshot_name = "SnapshotForTestingTerraform"
 	suppress_power_on = "true"
 }`
