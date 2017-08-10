@@ -106,7 +106,8 @@ func testAccCheckVmSnapshotExists(n, snapshot_name string) resource.TestCheckFun
 
 const testAccCheckVmSnapshotConfig_basic = `
 resource "vsphere_snapshot" "Test_terraform_cases"{
- 
+  	vm_name = "vmForTesting"
+ 	folder = "workspace/forTesting
 	snapshot_name = "SnapshotForTestingTerraform"
 	description = "This is snpashot created for testing and will be deleted."
 	memory = "true"
