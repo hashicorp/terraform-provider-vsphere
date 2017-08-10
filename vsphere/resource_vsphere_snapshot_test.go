@@ -24,7 +24,7 @@ func testBasicPreCheckSnapshot(t *testing.T) {
 	}
 }
 
-func TestAccVmSnanpshot_Basic(t *testing.T) {
+func TestAccVmSnapshot_Basic(t *testing.T) {
 	snapshot_name := "SnapshotForTestingTerraform"
 
 	resource.Test(t, resource.TestCase{
