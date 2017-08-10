@@ -37,6 +37,6 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `edition_key` - The product edition of the license key.
-* `total` - Total number of units (example: vCPUs) contained in the license.
-* `used` - The number of units (example: vCPUs) assigned to this license.
+* `total` - Total number of units (example: CPUs) contained in the license.
+* `used` - The number of units (example: CPUs) assigned to this license.
 * `name` - The display name for the license.
