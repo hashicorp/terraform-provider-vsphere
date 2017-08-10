@@ -69,6 +69,8 @@ func TestAccVSphereLicenseWithLabels(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereLicenseWithLabelExists("vsphere_license.foo"),
 				),
+				// This error will only be thrown when run against an ESXi server.
+				ExpectError: regexp.MustCompile("Labels are not allowed in ESXi"),
 			},
 		},
 	})
