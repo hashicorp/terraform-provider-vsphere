@@ -224,12 +224,8 @@ func UpdateLabel(ctx context.Context, m *license.Manager, licenseKey string, key
 // to the server
 func DecodeError(info types.LicenseManagerLicenseInfo) error {
 	for _, property := range info.Properties {
-		if property.Key == "localizedDiagnostic" {
-			if message, ok := property.Value.(types.LocalizableMessage); ok {
-				if message.Key == "com.vmware.vim.vc.license.error.decode" {
-					return errors.New(message.Message)
-				}
-			}
+		if property.Key == "diagnostic" {
+			return errors.New(property.Value.(string))
 		}
 	}
 

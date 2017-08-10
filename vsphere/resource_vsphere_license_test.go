@@ -48,7 +48,7 @@ func TestAccVSphereLicenseInvalid(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereLicenseNotExists("vsphere_license.foo"),
 				),
-				ExpectError: regexp.MustCompile("License file not found"),
+				ExpectError: regexp.MustCompile("License is not valid for this product"),
 			},
 		},
 	})
@@ -78,25 +78,28 @@ func TestAccVSphereLicenseWithLabels(t *testing.T) {
 func testAccVSphereLicenseInvalidConfig() string {
 	// quite sure this key cannot be valid
 	return `resource "vsphere_license" "foo" {
-  					license_key = "HN422-47193-58V7M-03086-0JAN2"
+				license_key = "HN422-47193-58V7M-03086-0JAN2"
 			}`
 }
 
 func testAccVSphereLicenseWithLabelConfig() string {
-	return fmt.Sprintf(`resource "vsphere_license" "foo" {
-							license_key = "%s"
-							labels {
-								VpxClientLicenseLabel = "Hello World"
-								TestTitle = "FooBar"
-							}		 	
-						}`, os.Getenv("VSPHERE_LICENSE"))
+	return fmt.Sprintf(`
+	resource "vsphere_license" "foo" {
+		license_key = "%s"
+		labels {
+			VpxClientLicenseLabel = "Hello World"
+			TestTitle = "fooBar"
+			}
+		}
+		`, os.Getenv("VSPHERE_LICENSE"))
 }
 
 func testAccVSphereLicenseBasicConfig() string {
-	return fmt.Sprintf(`resource "vsphere_license" "foo" {
-  							license_key = "%s"
-						}
-						`, os.Getenv("VSPHERE_LICENSE"))
+	return fmt.Sprintf(`
+	resource "vsphere_license" "foo" {
+		license_key = "%s"
+		}
+		`, os.Getenv("VSPHERE_LICENSE"))
 }
 
 func testAccVSphereLicenseDestroy(s *terraform.State) error {
