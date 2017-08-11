@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 
 	"regexp"
@@ -55,12 +56,13 @@ func TestAccVSphereLicenseInvalid(t *testing.T) {
 
 }
 
-func TestAccVSphereLicenseWithLabels(t *testing.T) {
+func TestAccVSphereLicenseWithLabelsOnVCenter(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 			testAccVSpherePreLicenseBasicCheck(t)
+			testAccVspherePreLicenseESXiServerIsNotSetCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -69,12 +71,43 @@ func TestAccVSphereLicenseWithLabels(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereLicenseWithLabelExists("vsphere_license.foo"),
 				),
-				// This error will only be thrown when run against an ESXi server.
+			},
+		},
+	})
+
+}
+
+func TestAccVSphereLicenseWithLabelsOnESXiServer(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccVSpherePreLicenseBasicCheck(t)
+			testAccVspherePreLicenseESXiServerIsSetCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccVSphereLicenseWithLabelConfig(),
+				// This error will be thrown when ran against an ESXi server.
 				ExpectError: regexp.MustCompile("Labels are not allowed in ESXi"),
 			},
 		},
 	})
 
+}
+
+func testAccVspherePreLicenseESXiServerIsNotSetCheck(t *testing.T) {
+	key, err := strconv.ParseBool(os.Getenv("VSPHERE_TEST_ESXI"))
+	if err == nil && key {
+		t.Skip("VSPHERE_TEST_ESXI must not be set for this acceptance test")
+	}
+}
+func testAccVspherePreLicenseESXiServerIsSetCheck(t *testing.T) {
+	key, err := strconv.ParseBool(os.Getenv("VSPHERE_TEST_ESXI"))
+	if err != nil || !key {
+		t.Skip("VSPHERE_TEST_ESXI must be set to true for this acceptance test")
+	}
 }
 
 func testAccVSphereLicenseInvalidConfig() string {
@@ -86,22 +119,22 @@ func testAccVSphereLicenseInvalidConfig() string {
 
 func testAccVSphereLicenseWithLabelConfig() string {
 	return fmt.Sprintf(`
-	resource "vsphere_license" "foo" {
-		license_key = "%s"
-		labels {
-			VpxClientLicenseLabel = "Hello World"
-			TestTitle = "fooBar"
-			}
-		}
-		`, os.Getenv("VSPHERE_LICENSE"))
+resource "vsphere_license" "foo" {
+ license_key = "%s"
+  labels {
+   VpxClientLicenseLabel = "Hello World"
+   TestTitle = "fooBar"
+  }
+}
+`, os.Getenv("VSPHERE_LICENSE"))
 }
 
 func testAccVSphereLicenseBasicConfig() string {
 	return fmt.Sprintf(`
-	resource "vsphere_license" "foo" {
-		license_key = "%s"
-		}
-		`, os.Getenv("VSPHERE_LICENSE"))
+resource "vsphere_license" "foo" {
+ license_key = "%s"
+}
+`, os.Getenv("VSPHERE_LICENSE"))
 }
 
 func testAccVSphereLicenseDestroy(s *terraform.State) error {

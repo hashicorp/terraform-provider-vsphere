@@ -87,7 +87,6 @@ func resourceVSphereLicenseCreate(d *schema.ResourceData, meta interface{}) erro
 	var err error
 	switch t := client.ServiceContent.About.ApiType; t {
 	case "HostAgent":
-
 		// Labels are not allowed in ESXi
 		if len(finalLabels) != 0 {
 			return errors.New("Labels are not allowed in ESXi")
