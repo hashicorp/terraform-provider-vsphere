@@ -61,6 +61,7 @@ resource "vsphere_virtual_machine" "lb" {
 The following arguments are supported:
 
 * `name` - (Required) The virtual machine name (cannot contain underscores and must be less than 15 characters)
+* `folder` - (Optional) The folder to group the VM in.
 * `vcpu` - (Required) The number of virtual CPUs to allocate to the virtual machine
 * `memory` - (Required) The amount of RAM (in MB) to allocate to the virtual machine
 * `memory_reservation` - (Optional) The amount of RAM (in MB) to reserve physical memory resource; defaults to 0 (means not to reserve)
@@ -81,6 +82,7 @@ The following arguments are supported:
 * `enable_disk_uuid` - (Optional) This option causes the vm to mount disks by uuid on the guest OS.
 * `custom_configuration_parameters` - (Optional) Map of values that is set as virtual machine custom configurations.
 * `skip_customization` - (Optional) skip virtual machine customization (useful if OS is not in the guest OS support matrix of VMware like "other3xLinux64Guest").
+* `annotation` - (Optional) Edit the annotation notes field
 
 The `network_interface` block supports:
 

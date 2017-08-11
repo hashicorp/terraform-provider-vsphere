@@ -86,6 +86,7 @@ type virtualMachine struct {
 	vcpu                  int32
 	memoryMb              int64
 	memoryAllocation      memoryAllocation
+	annotation            string
 	template              string
 	networkInterfaces     []networkInterface
 	hardDisks             []hardDisk
@@ -153,6 +154,11 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				Optional: true,
 				Default:  0,
 				ForceNew: true,
+			},
+
+			"annotation": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 
 			"datacenter": &schema.Schema{
@@ -509,6 +515,11 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		rebootRequired = true
 	}
 
+	if d.HasChange("annotation") {
+		configSpec.Annotation = d.Get("annotation").(string)
+		hasChanges = true
+	}
+
 	client := meta.(*govmomi.Client)
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
@@ -699,6 +710,12 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 	if v, ok := d.GetOk("time_zone"); ok {
 		vm.timeZone = v.(string)
+	}
+
+	if v, ok := d.GetOk("annotation"); ok {
+		vm.annotation = v.(string)
+	} else {
+		vm.annotation = ""
 	}
 
 	if v, ok := d.GetOk("linked_clone"); ok {
@@ -1163,6 +1180,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	d.Set("cpu", mvm.Summary.Config.NumCpu)
 	d.Set("datastore", rootDatastore)
 	d.Set("uuid", mvm.Summary.Config.Uuid)
+	d.Set("annotation", mvm.Summary.Config.Annotation)
 
 	return nil
 }
@@ -1803,6 +1821,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		Flags: &types.VirtualMachineFlagInfo{
 			DiskUuidEnabled: &vm.enableDiskUUID,
 		},
+		Annotation: vm.annotation,
 	}
 	if vm.template == "" {
 		configSpec.GuestId = "otherLinux64Guest"

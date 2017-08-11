@@ -1,0 +1,34 @@
+# This file is designed to assist you with configuring your environment for
+# testing the vSphere provider, and also serves as a catalog of the environment
+# variables that are required to test all of the resources in this provider.
+#
+# This should be copied to ~/.tf-vsphere-devrc.mk and edited accordingly.
+#
+# Note that the use of all of this file is not required - environment variables
+# can still be completely set from the command line or your existing
+# environment. In this case, don't use this file as it may cause conflicts.
+# 
+# The essentials. None of the tests will run if you don't have these.
+export VSPHERE_SERVER   ?= vcenter.internal
+export VSPHERE_USER     ?= user@vsphere.internal
+export VSPHERE_PASSWORD ?= changeme
+
+# Enable this if you want to skip SSL verification
+export VSPHERE_ALLOW_UNVERIFIED_SSL ?= false
+
+# The following variables are shared across various tests. To ensure all tests
+# succeed, it's probably best to set all of these to valid values.
+export VSPHERE_TEMPLATE            ?= base-linux # VM template to clone
+export VSPHERE_NETWORK_LABEL       ?= vm-network # Port group label
+export VSPHERE_NETWORK_LABEL_DHCP  ?= vm-network # Port group label for DHCP
+export VSPHERE_IPV4_ADDRESS        ?= 10.0.0.100 # Customization IP address
+export VSPHERE_IPV4_PREFIX         ?= 24         # Customization netmask
+export VSPHERE_IPV4_GATEWAY        ?= 10.0.0.1   # Customization gateway
+export VSPHERE_DATACENTER          ?= vm-dc      # VM placement DC
+export VSPHERE_CLUSTER             ?= vm-clus1   # VM placement cluster
+export VSPHERE_RESOURCE_POOL       ?= vm-respool # VM resource resource pool
+export VSPHERE_DATASTORE           ?= datastore1 # VM placement datastore
+export VSPHERE_INIT_TYPE           ?= thin       # vDisk type
+export VSPHERE_ADAPTER_TYPE        ?= lsiLogic   # Virtual disk adapter type
+
+# vi: filetype=make
