@@ -1064,14 +1064,17 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 			networkInterface := make(map[string]interface{})
 			networkInterface["label"] = v.Network
 			networkInterface["mac_address"] = v.MacAddress
+			log.Printf("[DEBUG] v.Network - %#v", v.Network)
 			for _, ip := range v.IpConfig.IpAddress {
 				p := net.ParseIP(ip.IpAddress)
-				if p.To4() != nil {
+				_, ok4 := networkInterface["ipv4_address"]
+				_, ok6 := networkInterface["ipv6_address"]
+				if p.To4() != nil && !ok4 {
 					log.Printf("[DEBUG] p.String - %#v", p.String())
 					log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
 					networkInterface["ipv4_address"] = p.String()
 					networkInterface["ipv4_prefix_length"] = ip.PrefixLength
-				} else if p.To16() != nil {
+				} else if p.To16() != nil && !ok6 && !p.IsLinkLocalUnicast() {
 					log.Printf("[DEBUG] p.String - %#v", p.String())
 					log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
 					networkInterface["ipv6_address"] = p.String()
