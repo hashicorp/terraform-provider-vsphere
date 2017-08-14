@@ -15,6 +15,12 @@ import (
 	"github.com/vmware/govmomi/license"
 )
 
+const testAccVSphereLicenseInvalidConfig = `
+resource "vsphere_license" "foo" {
+ license_key = "HN422-47193-58V7M-03086-0JAN2"
+}
+`
+
 func TestAccVSphereLicenseBasic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
@@ -45,7 +51,7 @@ func TestAccVSphereLicenseInvalid(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVSphereLicenseInvalidConfig(),
+				Config: testAccVSphereLicenseInvalidConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereLicenseNotExists("vsphere_license.foo"),
 				),
@@ -108,13 +114,6 @@ func testAccVspherePreLicenseESXiServerIsSetCheck(t *testing.T) {
 	if err != nil || !key {
 		t.Skip("VSPHERE_TEST_ESXI must be set to true for this acceptance test")
 	}
-}
-
-func testAccVSphereLicenseInvalidConfig() string {
-	// quite sure this key cannot be valid
-	return `resource "vsphere_license" "foo" {
-				license_key = "HN422-47193-58V7M-03086-0JAN2"
-			}`
 }
 
 func testAccVSphereLicenseWithLabelConfig() string {
