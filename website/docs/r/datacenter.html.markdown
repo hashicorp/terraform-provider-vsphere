@@ -10,8 +10,6 @@ description: |-
 
 Provides a VMware vSphere datacenter resource. This can be used as the primary container of inventory objects such as hosts and virtual machines.
 
-No updates are possible.
-
 ## Example Usages
 
 **Create datacenter on the root folder:**
