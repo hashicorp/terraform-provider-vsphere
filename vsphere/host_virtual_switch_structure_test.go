@@ -6,6 +6,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/vmware/govmomi/vim25/types"
 )
 
 var schemaHostVirtualSwitchBeaconConfigExpected = &schema.Resource{
@@ -21,12 +22,12 @@ var schemaHostVirtualSwitchBeaconConfigExpected = &schema.Resource{
 var schemaLinkDiscoveryProtocolConfigExpected = &schema.Resource{
 	Schema: map[string]*schema.Schema{
 		"operation": &schema.Schema{
-			Type:        schema.TypeInt,
+			Type:        schema.TypeString,
 			Required:    true,
 			Description: "Whether to advertise or listen. Valid values are \"advertise\", \"both\", \"listen\", and \"none\".",
 		},
 		"protocol": &schema.Schema{
-			Type:        schema.TypeInt,
+			Type:        schema.TypeString,
 			Required:    true,
 			Description: "The discovery protocol type. Valid values are \"cdp\" and \"lldp\".",
 		},
@@ -281,5 +282,349 @@ func TestHostVirtualSwitchSchema(t *testing.T) {
 				t.Fatalf("\n\nExpected:\n\n %s\ngot:\n\n%s\n", spew.Sdump(tc.Expected), spew.Sdump(actual))
 			}
 		})
+	}
+}
+
+var resourceToHostVirtualSwitchBeaconConfigInput = map[string]interface{}{
+	"interval": 10,
+}
+
+var resourceToHostVirtualSwitchBeaconConfigExpected = &types.HostVirtualSwitchBeaconConfig{
+	Interval: 10,
+}
+
+var hostVirtualSwitchBeaconConfigToResourceExpected = schema.NewSet(
+	schema.HashResource(schemaHostVirtualSwitchBeaconConfigExpected),
+	[]interface{}{resourceToHostVirtualSwitchBeaconConfigInput},
+)
+
+var resourceToLinkDiscoveryProtocolConfigInput = map[string]interface{}{
+	"operation": "listen",
+	"protocol":  "cdp",
+}
+
+var resourceToLinkDiscoveryProtocolConfigExpected = &types.LinkDiscoveryProtocolConfig{
+	Operation: "listen",
+	Protocol:  "cdp",
+}
+
+var linkDiscoveryProtocolConfigToResourceExpected = schema.NewSet(
+	schema.HashResource(schemaLinkDiscoveryProtocolConfigExpected),
+	[]interface{}{resourceToLinkDiscoveryProtocolConfigInput},
+)
+
+var resourceToHostVirtualSwitchBondBridgeInput = map[string]interface{}{
+	"beacon":           hostVirtualSwitchBeaconConfigToResourceExpected,
+	"link_discovery":   linkDiscoveryProtocolConfigToResourceExpected,
+	"network_adapters": []interface{}{"vmnic0", "vmnic1"},
+}
+
+var resourceToHostVirtualSwitchBondBridgeExpected = &types.HostVirtualSwitchBondBridge{
+	Beacon: resourceToHostVirtualSwitchBeaconConfigExpected,
+	LinkDiscoveryProtocolConfig: resourceToLinkDiscoveryProtocolConfigExpected,
+	NicDevice:                   []string{"vmnic0", "vmnic1"},
+}
+
+var hostVirtualSwitchBondBridgeToResourceExpected = schema.NewSet(
+	schema.HashResource(schemaHostVirtualSwitchBondBridgeExpected),
+	[]interface{}{resourceToHostVirtualSwitchBondBridgeInput},
+)
+
+var resourceToHostNicFailureCriteriaInput = map[string]interface{}{
+	"check_beacon": true,
+}
+
+var resourceToHostNicFailureCriteriaExpected = &types.HostNicFailureCriteria{
+	CheckBeacon: &[]bool{true}[0],
+}
+
+var hostNicFailureCriteriaToResourceExpected = schema.NewSet(
+	schema.HashResource(schemaHostNicFailureCriteriaExpected),
+	[]interface{}{resourceToHostNicFailureCriteriaInput},
+)
+
+var resourceToHostNicOrderPolicyInput = map[string]interface{}{
+	"active_nics":  []interface{}{"vmnic0", "vmnic1"},
+	"standby_nics": []interface{}{"vmnic2", "vmnic3"},
+}
+
+var resourceToHostNicOrderPolicyExpected = &types.HostNicOrderPolicy{
+	ActiveNic:  []string{"vmnic0", "vmnic1"},
+	StandbyNic: []string{"vmnic2", "vmnic3"},
+}
+
+var hostNicOrderPolicyToResourceExpected = schema.NewSet(
+	schema.HashResource(schemaHostNicOrderPolicyExpected),
+	[]interface{}{resourceToHostNicOrderPolicyInput},
+)
+
+var resourceToHostNicTeamingPolicyInput = map[string]interface{}{
+	"failure_criteria": hostNicFailureCriteriaToResourceExpected,
+	"nic_order":        hostNicOrderPolicyToResourceExpected,
+	"policy":           "failover_explicit",
+	"failback":         true,
+}
+
+var resourceToHostNicTeamingPolicyExpected = &types.HostNicTeamingPolicy{
+	FailureCriteria: resourceToHostNicFailureCriteriaExpected,
+	NicOrder:        resourceToHostNicOrderPolicyExpected,
+	Policy:          "failover_explicit",
+	RollingOrder:    &[]bool{false}[0],
+}
+
+var hostNicTeamingPolicyToResourceExpected = schema.NewSet(
+	schema.HashResource(schemaHostNicTeamingPolicyExpected),
+	[]interface{}{resourceToHostNicTeamingPolicyInput},
+)
+
+var resourceToHostNetworkSecurityPolicyInput = map[string]interface{}{
+	"allow_promiscuous": true,
+	"forged_transmits":  true,
+	"mac_changes":       true,
+}
+
+var resourceToHostNetworkSecurityPolicyExpected = &types.HostNetworkSecurityPolicy{
+	AllowPromiscuous: &[]bool{true}[0],
+	ForgedTransmits:  &[]bool{true}[0],
+	MacChanges:       &[]bool{true}[0],
+}
+
+var hostNetworkSecurityPolicyToResourceExpected = schema.NewSet(
+	schema.HashResource(schemaHostNetworkSecurityPolicyExpected),
+	[]interface{}{resourceToHostNetworkSecurityPolicyInput},
+)
+
+var resourceToHostNetworkTrafficShapingPolicyInput = map[string]interface{}{
+	"average_bandwidth": 100000000,
+	"burst_size":        1000000000,
+	"enabled":           true,
+	"peak_bandwidth":    500000000,
+}
+
+var resourceToHostNetworkTrafficShapingPolicyExpected = &types.HostNetworkTrafficShapingPolicy{
+	AverageBandwidth: 100000000,
+	BurstSize:        1000000000,
+	Enabled:          &[]bool{true}[0],
+	PeakBandwidth:    500000000,
+}
+
+var hostNetworkTrafficShapingPolicyToResourceExpected = schema.NewSet(
+	schema.HashResource(schemaHostNetworkTrafficShapingPolicyExpected),
+	[]interface{}{resourceToHostNetworkTrafficShapingPolicyInput},
+)
+
+var resourceToHostNetworkPolicyInput = map[string]interface{}{
+	"nic_teaming":    hostNicTeamingPolicyToResourceExpected,
+	"security":       hostNetworkSecurityPolicyToResourceExpected,
+	"shaping_policy": hostNetworkTrafficShapingPolicyToResourceExpected,
+}
+
+var resourceToHostNetworkPolicyExpected = &types.HostNetworkPolicy{
+	NicTeaming:    resourceToHostNicTeamingPolicyExpected,
+	Security:      resourceToHostNetworkSecurityPolicyExpected,
+	ShapingPolicy: resourceToHostNetworkTrafficShapingPolicyExpected,
+}
+
+var hostNetworkPolicyToResourceExpected = schema.NewSet(
+	schema.HashResource(schemaHostNetworkPolicyExpected),
+	[]interface{}{resourceToHostNetworkPolicyInput},
+)
+
+var resourceToHostVirtualSwitchSpecInput = map[string]interface{}{
+	"bridge":          hostVirtualSwitchBondBridgeToResourceExpected,
+	"mtu":             9000,
+	"number_of_ports": 256,
+	"policy":          hostNetworkPolicyToResourceExpected,
+}
+
+var resourceToHostVirtualSwitchSpecExpected = &types.HostVirtualSwitchSpec{
+	Bridge:   resourceToHostVirtualSwitchBondBridgeExpected,
+	Mtu:      9000,
+	NumPorts: 256,
+	Policy:   resourceToHostNetworkPolicyExpected,
+}
+
+var hostVirtualSwitchSpecToResourceExpected = schema.NewSet(
+	schema.HashResource(schemaHostVirtualSwitchSpecExpected),
+	[]interface{}{resourceToHostVirtualSwitchSpecInput},
+)
+
+func TestResourceToHostVirtualSwitchBeaconConfig(t *testing.T) {
+	in := resourceToHostVirtualSwitchBeaconConfigInput
+	expected := resourceToHostVirtualSwitchBeaconConfigExpected
+	actual := resourceToHostVirtualSwitchBeaconConfig(in)
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestResourceToLinkDiscoveryProtocolConfig(t *testing.T) {
+	in := resourceToLinkDiscoveryProtocolConfigInput
+	expected := resourceToLinkDiscoveryProtocolConfigExpected
+	actual := resourceToLinkDiscoveryProtocolConfig(in)
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestResourceToHostVirtualSwitchBondBridge(t *testing.T) {
+	in := resourceToHostVirtualSwitchBondBridgeInput
+	expected := resourceToHostVirtualSwitchBondBridgeExpected
+	actual := resourceToHostVirtualSwitchBondBridge(in)
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestResourceToHostNicFailureCriteria(t *testing.T) {
+	in := resourceToHostNicFailureCriteriaInput
+	expected := resourceToHostNicFailureCriteriaExpected
+	actual := resourceToHostNicFailureCriteria(in)
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestResourceToHostNicOrderPolicy(t *testing.T) {
+	in := resourceToHostNicOrderPolicyInput
+	expected := resourceToHostNicOrderPolicyExpected
+	actual := resourceToHostNicOrderPolicy(in)
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestResourceToHostNicTeamingPolicy(t *testing.T) {
+	in := resourceToHostNicTeamingPolicyInput
+	expected := resourceToHostNicTeamingPolicyExpected
+	actual := resourceToHostNicTeamingPolicy(in)
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestResourceToHostNetworkSecurityPolicy(t *testing.T) {
+	in := resourceToHostNetworkSecurityPolicyInput
+	expected := resourceToHostNetworkSecurityPolicyExpected
+	actual := resourceToHostNetworkSecurityPolicy(in)
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestResourceToHostNetworkTrafficShapingPolicy(t *testing.T) {
+	in := resourceToHostNetworkTrafficShapingPolicyInput
+	expected := resourceToHostNetworkTrafficShapingPolicyExpected
+	actual := resourceToHostNetworkTrafficShapingPolicy(in)
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestResourceToHostNetworkPolicy(t *testing.T) {
+	in := resourceToHostNetworkPolicyInput
+	expected := resourceToHostNetworkPolicyExpected
+	actual := resourceToHostNetworkPolicy(in)
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestResourceToHostVirtualSwitchSpec(t *testing.T) {
+	in := resourceToHostVirtualSwitchSpecInput
+	expected := resourceToHostVirtualSwitchSpecExpected
+	actual := resourceToHostVirtualSwitchSpec(in)
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestHostVirtualSwitchBeaconConfigToResource(t *testing.T) {
+	in := resourceToHostVirtualSwitchBeaconConfigExpected
+	expected := hostVirtualSwitchBeaconConfigToResourceExpected
+	actual := hostVirtualSwitchBeaconConfigToResource(in)
+	if !expected.HashEqual(actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestLinkDiscoveryProtocolConfigToResource(t *testing.T) {
+	in := resourceToLinkDiscoveryProtocolConfigExpected
+	expected := linkDiscoveryProtocolConfigToResourceExpected
+	actual := linkDiscoveryProtocolConfigToResource(in)
+	if !expected.HashEqual(actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestHostVirtualSwitchBondBridgeToResource(t *testing.T) {
+	in := resourceToHostVirtualSwitchBondBridgeExpected
+	expected := hostVirtualSwitchBondBridgeToResourceExpected
+	actual := hostVirtualSwitchBondBridgeToResource(in)
+	if !expected.HashEqual(actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestHostNicFailureCriteriaToResource(t *testing.T) {
+	in := resourceToHostNicFailureCriteriaExpected
+	expected := hostNicFailureCriteriaToResourceExpected
+	actual := hostNicFailureCriteriaToResource(in)
+	if !expected.HashEqual(actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestHostNicOrderPolicyToResource(t *testing.T) {
+	in := resourceToHostNicOrderPolicyExpected
+	expected := hostNicOrderPolicyToResourceExpected
+	actual := hostNicOrderPolicyToResource(in)
+	if !expected.HashEqual(actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestHostNicTeamingPolicyToResource(t *testing.T) {
+	in := resourceToHostNicTeamingPolicyExpected
+	expected := hostNicTeamingPolicyToResourceExpected
+	actual := hostNicTeamingPolicyToResource(in)
+	if !expected.HashEqual(actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestHostNetworkSecurityPolicyToResource(t *testing.T) {
+	in := resourceToHostNetworkSecurityPolicyExpected
+	expected := hostNetworkSecurityPolicyToResourceExpected
+	actual := hostNetworkSecurityPolicyToResource(in)
+	if !expected.HashEqual(actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestHostNetworkTrafficShapingPolicyToResource(t *testing.T) {
+	in := resourceToHostNetworkTrafficShapingPolicyExpected
+	expected := hostNetworkTrafficShapingPolicyToResourceExpected
+	actual := hostNetworkTrafficShapingPolicyToResource(in)
+	if !expected.HashEqual(actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestHostNetworkPolicyToResource(t *testing.T) {
+	in := resourceToHostNetworkPolicyExpected
+	expected := hostNetworkPolicyToResourceExpected
+	actual := hostNetworkPolicyToResource(in)
+	if !expected.HashEqual(actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
+	}
+}
+
+func TestHostVirtualSwitchSpecToResource(t *testing.T) {
+	in := resourceToHostVirtualSwitchSpecExpected
+	expected := hostVirtualSwitchSpecToResourceExpected
+	actual := hostVirtualSwitchSpecToResource(in)
+	if !expected.HashEqual(actual) {
+		t.Fatalf("\nExpected:\n\n%s\n\ngot:\n\n%s", spew.Sdump(expected), spew.Sdump(actual))
 	}
 }

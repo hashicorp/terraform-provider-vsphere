@@ -32,7 +32,7 @@ func resourceToHostVirtualSwitchBeaconConfig(m map[string]interface{}) *types.Ho
 // HostVirtualSwitchBeaconConfig to a *schema.Set of resource data.
 func hostVirtualSwitchBeaconConfigToResource(obj *types.HostVirtualSwitchBeaconConfig) *schema.Set {
 	m := make(map[string]interface{})
-	m["interval"] = obj.Interval
+	m["interval"] = int(obj.Interval)
 	return schema.NewSet(schema.HashResource(schemaHostVirtualSwitchBeaconConfig()), []interface{}{m})
 }
 
@@ -42,12 +42,12 @@ func schemaLinkDiscoveryProtocolConfig() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"operation": &schema.Schema{
-				Type:        schema.TypeInt,
+				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Whether to advertise or listen. Valid values are \"advertise\", \"both\", \"listen\", and \"none\".",
 			},
 			"protocol": &schema.Schema{
-				Type:        schema.TypeInt,
+				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The discovery protocol type. Valid values are \"cdp\" and \"lldp\".",
 			},
@@ -120,7 +120,7 @@ func hostVirtualSwitchBondBridgeToResource(obj *types.HostVirtualSwitchBondBridg
 	m := make(map[string]interface{})
 	m["beacon"] = hostVirtualSwitchBeaconConfigToResource(obj.Beacon)
 	m["link_discovery"] = linkDiscoveryProtocolConfigToResource(obj.LinkDiscoveryProtocolConfig)
-	m["network_adapters"] = obj.NicDevice
+	m["network_adapters"] = sliceStringsToInterfaces(obj.NicDevice)
 	return schema.NewSet(schema.HashResource(schemaHostVirtualSwitchBondBridge()), []interface{}{m})
 }
 
@@ -191,8 +191,8 @@ func resourceToHostNicOrderPolicy(m map[string]interface{}) *types.HostNicOrderP
 // of resource data.
 func hostNicOrderPolicyToResource(obj *types.HostNicOrderPolicy) *schema.Set {
 	m := make(map[string]interface{})
-	m["active_nics"] = obj.ActiveNic
-	m["standby_nics"] = obj.StandbyNic
+	m["active_nics"] = sliceStringsToInterfaces(obj.ActiveNic)
+	m["standby_nics"] = sliceStringsToInterfaces(obj.StandbyNic)
 	return schema.NewSet(schema.HashResource(schemaHostNicOrderPolicy()), []interface{}{m})
 }
 
@@ -347,10 +347,10 @@ func resourceToHostNetworkTrafficShapingPolicy(m map[string]interface{}) *types.
 // of resource data.
 func hostNetworkTrafficShapingPolicyToResource(obj *types.HostNetworkTrafficShapingPolicy) *schema.Set {
 	m := make(map[string]interface{})
-	m["average_bandwidth"] = obj.AverageBandwidth
-	m["burst_size"] = obj.BurstSize
+	m["average_bandwidth"] = int(obj.AverageBandwidth)
+	m["burst_size"] = int(obj.BurstSize)
 	m["enabled"] = *obj.Enabled
-	m["peak_bandwidth"] = obj.PeakBandwidth
+	m["peak_bandwidth"] = int(obj.PeakBandwidth)
 	return schema.NewSet(schema.HashResource(schemaHostNetworkTrafficShapingPolicy()), []interface{}{m})
 }
 
@@ -457,8 +457,8 @@ func resourceToHostVirtualSwitchSpec(m map[string]interface{}) *types.HostVirtua
 func hostVirtualSwitchSpecToResource(obj *types.HostVirtualSwitchSpec) *schema.Set {
 	m := make(map[string]interface{})
 	m["bridge"] = hostVirtualSwitchBondBridgeToResource(obj.Bridge.(*types.HostVirtualSwitchBondBridge))
-	m["mtu"] = obj.Mtu
-	m["number_of_ports"] = obj.NumPorts
+	m["mtu"] = int(obj.Mtu)
+	m["number_of_ports"] = int(obj.NumPorts)
 	m["policy"] = hostNetworkPolicyToResource(obj.Policy)
 	return schema.NewSet(schema.HashResource(schemaHostVirtualSwitchSpec()), []interface{}{m})
 }

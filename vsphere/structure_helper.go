@@ -10,3 +10,12 @@ func sliceInterfacesToStrings(s []interface{}) []string {
 	}
 	return d
 }
+
+// sliceStringsToInterfaces converts a string slice to an interface slice.
+func sliceStringsToInterfaces(s []string) []interface{} {
+	var d []interface{}
+	for _, v := range s {
+		d = append(d, v)
+	}
+	return d
+}
