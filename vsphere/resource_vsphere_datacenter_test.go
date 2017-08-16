@@ -2,8 +2,8 @@ package vsphere
 
 import (
 	"fmt"
+	"os"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -14,14 +14,12 @@ import (
 
 // Create a datacenter on the root folder
 func TestAccVSphereDatacenter_createOnRootFolder(t *testing.T) {
-	name := "testDC"
-	resourceName := "vsphere_datacenter." + name
+	const resourceName = "vsphere_datacenter.testDC"
 
-	waitForCreation := func(*terraform.State) error {
-		// sleep 5 seconds to give it time to create
-		time.Sleep(5 * time.Second)
-		return nil
-	}
+	const testAccCheckVSphereDatacenterConfig = `
+    resource "vsphere_datacenter" "testDC" {
+	    name = "testDC"
+    }`
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -29,15 +27,32 @@ func TestAccVSphereDatacenter_createOnRootFolder(t *testing.T) {
 		CheckDestroy: testAccCheckVSphereDatacenterDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(
-					testAccCheckVSphereDatacenterConfig,
-					name,
-					name,
-				),
-				Check: resource.ComposeTestCheckFunc(
-					waitForCreation,
-					testAccCheckVSphereDatacenterExists(resourceName, true),
-				),
+				Config: testAccCheckVSphereDatacenterConfig,
+				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDatacenterExists(resourceName, true)),
+			},
+		},
+	})
+}
+
+// Create a datacenter on a subfolder
+func TestAccVSphereDatacenter_createOnSubfolder(t *testing.T) {
+	const resourceName = "vsphere_datacenter.testDC"
+	dcFolder := os.Getenv("VSPHERE_DC_FOLDER")
+
+	const testAccCheckVSphereDatacenterConfig = `
+    resource "vsphere_datacenter" "testDC" {
+	    name = "testDC"
+      folder = "%s"
+    }`
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereDatacenterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(testAccCheckVSphereDatacenterConfig, dcFolder),
+				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDatacenterExists(resourceName, true)),
 			},
 		},
 	})
@@ -107,9 +122,3 @@ func testAccCheckVSphereDatacenterExists(n string, exists bool) resource.TestChe
 		return nil
 	}
 }
-
-const testAccCheckVSphereDatacenterConfig = `
-resource "vsphere_datacenter" "%s" {
-	name = "%s"
-}
-`

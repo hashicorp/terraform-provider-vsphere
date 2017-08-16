@@ -3,7 +3,9 @@ package vsphere
 import (
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -59,13 +61,46 @@ func resourceVSphereDatacenterCreate(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("[ERROR] ESX host does not belong to a vCenter")
 	}
 
+	// Wait for the datacenter resource to be ready
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"InProgress"},
+		Target:     []string{"Created"},
+		Refresh:    resourceVSphereDatacenterStateRefreshFunc(d, meta),
+		Timeout:    10 * time.Minute,
+		MinTimeout: 3 * time.Second,
+		Delay:      5 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf("[ERROR] Error waiting for datacenter (%s) to become ready: %s", name, err)
+	}
+
 	d.SetId(name)
 
-	return nil
+	return resourceVSphereDatacenterRead(d, meta)
 
 }
 
-func resourceVSphereDatacenterRead(d *schema.ResourceData, meta interface{}) error {
+func resourceVSphereDatacenterStateRefreshFunc(d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		log.Print("[TRACE] Refreshing datacenter state")
+		dc, err := datacenterExists(d, meta)
+		if err != nil {
+			switch err.(type) {
+			case *find.NotFoundError:
+				log.Printf("[TRACE] Refreshing state. Datacenter not found: %s", err)
+				return nil, "InProgress", nil
+			default:
+				return nil, "Failed", err
+			}
+		}
+		log.Print("[TRACE] Refreshing state. Datacenter found")
+		return dc, "Created", nil
+	}
+}
+
+func datacenterExists(d *schema.ResourceData, meta interface{}) (*object.Datacenter, error) {
 	client := meta.(*govmomi.Client)
 	name := d.Get("name").(string)
 
@@ -75,7 +110,12 @@ func resourceVSphereDatacenterRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	finder := find.NewFinder(client.Client, true)
-	_, err := finder.Datacenter(context.TODO(), path)
+	dc, err := finder.Datacenter(context.TODO(), path)
+	return dc, err
+}
+
+func resourceVSphereDatacenterRead(d *schema.ResourceData, meta interface{}) error {
+	_, err := datacenterExists(d, meta)
 	if err != nil {
 		log.Printf("[ERROR] Couldn't find the specified datacenter: %s", err)
 		d.SetId("")
@@ -108,6 +148,21 @@ func resourceVSphereDatacenterDelete(d *schema.ResourceData, meta interface{}) e
 	_, err = methods.Destroy_Task(context.TODO(), client, req)
 	if err != nil {
 		return fmt.Errorf("[ERROR] %s", err)
+	}
+
+	// Wait for the datacenter resource to be destroyed
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"Created"},
+		Target:     []string{},
+		Refresh:    resourceVSphereDatacenterStateRefreshFunc(d, meta),
+		Timeout:    10 * time.Minute,
+		MinTimeout: 3 * time.Second,
+		Delay:      5 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf("[ERROR] Error waiting for datacenter (%s) to become ready: %s", name, err)
 	}
 
 	return nil

@@ -19,7 +19,6 @@ No updates are possible.
 ```hcl
 resource "vsphere_datacenter" "prod_datacenter" {
   name       = "my_prod_datacenter"
-  folder     = "/research/"
 }
 ```
 
@@ -38,3 +37,5 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the datacenter. This name needs to be unique within the folder.
 * `folder` - (Optional) The folder where the datacenter should be created.
+
+~> **NOTE**: Datacenters cannot be changed once they are created. Modifying any of these attributes will force a new resource!
