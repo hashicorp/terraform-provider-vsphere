@@ -74,13 +74,9 @@ func resourceVSphereLicenseCreate(d *schema.ResourceData, meta interface{}) erro
 	key := d.Get("license_key").(string)
 
 	log.Println(" [INFO] Reading the key from the resource data")
-	finalLabels := make(map[string]string)
-
+	var labelMap map[string]interface{}
 	if labels, ok := d.GetOk("labels"); ok {
-		labelMap := labels.(map[string]interface{})
-		for key, value := range labelMap {
-			finalLabels[key] = value.(string)
-		}
+		labelMap = labels.(map[string]interface{})
 	}
 
 	var info types.LicenseManagerLicenseInfo
@@ -88,13 +84,19 @@ func resourceVSphereLicenseCreate(d *schema.ResourceData, meta interface{}) erro
 	switch t := client.ServiceContent.About.ApiType; t {
 	case "HostAgent":
 		// Labels are not allowed in ESXi
-		if len(finalLabels) != 0 {
+		if len(labelMap) != 0 {
 			return errors.New("Labels are not allowed in ESXi")
 		}
+		info, err = manager.Update(context.TODO(), key, nil)
 
-		info, err = manager.Update(context.TODO(), key, finalLabels)
 	case "VirtualCenter":
-		info, err = manager.Add(context.TODO(), key, finalLabels)
+		info, err = manager.Add(context.TODO(), key, nil)
+
+		err := updateLabels(manager, key, labelMap)
+		if err != nil {
+			return err
+		}
+
 	default:
 		return fmt.Errorf("unsupported ApiType: %s", t)
 	}
@@ -150,16 +152,24 @@ func resourceVSphereLicenseUpdate(d *schema.ResourceData, meta interface{}) erro
 		if d.HasChange("labels") {
 			labelMap := d.Get("labels").(map[string]interface{})
 
-			for key, value := range labelMap {
-				err := UpdateLabel(context.TODO(), manager, licenseKey, key, value.(string))
-				if err != nil {
-					return err
-				}
+			err := updateLabels(manager, licenseKey, labelMap)
+			if err != nil {
+				return err
 			}
 		}
 	}
 
 	return resourceVSphereLicenseRead(d, meta)
+}
+
+func updateLabels(manager *license.Manager, licenseKey string, labelMap map[string]interface{}) error {
+	for key, value := range labelMap {
+		err := UpdateLabel(context.TODO(), manager, licenseKey, key, value.(string))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func resourceVSphereLicenseDelete(d *schema.ResourceData, meta interface{}) error {
