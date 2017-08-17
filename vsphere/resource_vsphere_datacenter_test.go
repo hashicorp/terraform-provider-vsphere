@@ -15,15 +15,17 @@ import (
 const resourceName = "vsphere_datacenter.testDC"
 
 const testAccCheckVSphereDatacenterConfig = `
-  resource "vsphere_datacenter" "testDC" {
-    name = "testDC"
-  }`
+resource "vsphere_datacenter" "testDC" {
+  name = "testDC"
+}
+`
 
 const testAccCheckVSphereDatacenterConfigSubfolder = `
-  resource "vsphere_datacenter" "testDC" {
-    name = "testDC"
-    folder = "%s"
-  }`
+resource "vsphere_datacenter" "testDC" {
+  name   = "testDC"
+  folder = "%s"
+}
+`
 
 // Create a datacenter on the root folder
 func TestAccVSphereDatacenter_createOnRootFolder(t *testing.T) {
