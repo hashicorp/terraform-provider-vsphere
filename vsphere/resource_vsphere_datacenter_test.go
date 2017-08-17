@@ -12,14 +12,21 @@ import (
 	"golang.org/x/net/context"
 )
 
+const resourceName = "vsphere_datacenter.testDC"
+
+const testAccCheckVSphereDatacenterConfig = `
+  resource "vsphere_datacenter" "testDC" {
+    name = "testDC"
+  }`
+
+const testAccCheckVSphereDatacenterConfigSubfolder = `
+  resource "vsphere_datacenter" "testDC" {
+    name = "testDC"
+    folder = "%s"
+  }`
+
 // Create a datacenter on the root folder
 func TestAccVSphereDatacenter_createOnRootFolder(t *testing.T) {
-	const resourceName = "vsphere_datacenter.testDC"
-
-	const testAccCheckVSphereDatacenterConfig = `
-    resource "vsphere_datacenter" "testDC" {
-	    name = "testDC"
-    }`
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -36,14 +43,7 @@ func TestAccVSphereDatacenter_createOnRootFolder(t *testing.T) {
 
 // Create a datacenter on a subfolder
 func TestAccVSphereDatacenter_createOnSubfolder(t *testing.T) {
-	const resourceName = "vsphere_datacenter.testDC"
 	dcFolder := os.Getenv("VSPHERE_DC_FOLDER")
-
-	const testAccCheckVSphereDatacenterConfig = `
-    resource "vsphere_datacenter" "testDC" {
-	    name = "testDC"
-      folder = "%s"
-    }`
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -51,7 +51,7 @@ func TestAccVSphereDatacenter_createOnSubfolder(t *testing.T) {
 		CheckDestroy: testAccCheckVSphereDatacenterDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(testAccCheckVSphereDatacenterConfig, dcFolder),
+				Config: fmt.Sprintf(testAccCheckVSphereDatacenterConfigSubfolder, dcFolder),
 				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDatacenterExists(resourceName, true)),
 			},
 		},
@@ -69,7 +69,7 @@ func testAccCheckVSphereDatacenterDestroy(s *terraform.State) error {
 
 		path := rs.Primary.Attributes["name"]
 		if _, ok := rs.Primary.Attributes["folder"]; ok {
-			path = rs.Primary.Attributes["folder"] + path
+			path = rs.Primary.Attributes["folder"] + "/" + path
 		}
 		_, err := finder.Datacenter(context.TODO(), path)
 		if err != nil {

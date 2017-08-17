@@ -46,7 +46,7 @@ func resourceVSphereDatacenterCreate(d *schema.ResourceData, meta interface{}) e
 		var err error
 		f, err = finder.Folder(context.TODO(), v.(string))
 		if err != nil {
-			return fmt.Errorf("[ERROR] Failed to find folder that will contain the datacenter: %s", err)
+			return fmt.Errorf("failed to find folder that will contain the datacenter: %s", err)
 		}
 	} else {
 		f = object.NewRootFolder(client.Client)
@@ -54,11 +54,11 @@ func resourceVSphereDatacenterCreate(d *schema.ResourceData, meta interface{}) e
 
 	dc, err := f.CreateDatacenter(context.TODO(), name)
 	if err != nil || dc == nil {
-		return fmt.Errorf("[ERROR] Failed to create datacenter: %s", err)
+		return fmt.Errorf("failed to create datacenter: %s", err)
 	}
 	// From govmomi code: "Response will be nil if this is an ESX host that does not belong to a vCenter"
 	if dc == nil {
-		return fmt.Errorf("[ERROR] ESX host does not belong to a vCenter")
+		return fmt.Errorf("ESX host does not belong to a vCenter")
 	}
 
 	// Wait for the datacenter resource to be ready
@@ -73,7 +73,7 @@ func resourceVSphereDatacenterCreate(d *schema.ResourceData, meta interface{}) e
 
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return fmt.Errorf("[ERROR] Error waiting for datacenter (%s) to become ready: %s", name, err)
+		return fmt.Errorf("error waiting for datacenter (%s) to become ready: %s", name, err)
 	}
 
 	d.SetId(name)
@@ -117,7 +117,7 @@ func datacenterExists(d *schema.ResourceData, meta interface{}) (*object.Datacen
 func resourceVSphereDatacenterRead(d *schema.ResourceData, meta interface{}) error {
 	_, err := datacenterExists(d, meta)
 	if err != nil {
-		log.Printf("[ERROR] Couldn't find the specified datacenter: %s", err)
+		log.Printf("couldn't find the specified datacenter: %s", err)
 		d.SetId("")
 	}
 
@@ -136,7 +136,7 @@ func resourceVSphereDatacenterDelete(d *schema.ResourceData, meta interface{}) e
 	finder := find.NewFinder(client.Client, true)
 	dc, err := finder.Datacenter(context.TODO(), path)
 	if err != nil {
-		log.Printf("[ERROR] Couldn't find the specified datacenter: %s", err)
+		log.Printf("couldn't find the specified datacenter: %s", err)
 		d.SetId("")
 		return nil
 	}
@@ -147,7 +147,7 @@ func resourceVSphereDatacenterDelete(d *schema.ResourceData, meta interface{}) e
 
 	_, err = methods.Destroy_Task(context.TODO(), client, req)
 	if err != nil {
-		return fmt.Errorf("[ERROR] %s", err)
+		return fmt.Errorf("%s", err)
 	}
 
 	// Wait for the datacenter resource to be destroyed
@@ -162,7 +162,7 @@ func resourceVSphereDatacenterDelete(d *schema.ResourceData, meta interface{}) e
 
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return fmt.Errorf("[ERROR] Error waiting for datacenter (%s) to become ready: %s", name, err)
+		return fmt.Errorf("error waiting for datacenter (%s) to become ready: %s", name, err)
 	}
 
 	return nil
