@@ -81,7 +81,7 @@ func testAccCheckVSphereDatacenterDestroy(s *terraform.State) error {
 				return err
 			}
 		} else {
-			return fmt.Errorf("Datacenter '%s' still exists", path)
+			return fmt.Errorf("datacenter '%s' still exists", path)
 		}
 	}
 
@@ -92,11 +92,11 @@ func testAccCheckVSphereDatacenterExists(n string, exists bool) resource.TestChe
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			return fmt.Errorf("[ERROR] Resource not found: %s", n)
+			return fmt.Errorf("resource not found: %s", n)
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("[ERROR] No ID is set")
+			return fmt.Errorf("no ID is set")
 		}
 
 		client := testAccProvider.Meta().(*govmomi.Client)
@@ -104,14 +104,14 @@ func testAccCheckVSphereDatacenterExists(n string, exists bool) resource.TestChe
 
 		path := rs.Primary.Attributes["name"]
 		if _, ok := rs.Primary.Attributes["folder"]; ok {
-			path = rs.Primary.Attributes["folder"] + path
+			path = rs.Primary.Attributes["folder"] + "/" + path
 		}
 		_, err := finder.Datacenter(context.TODO(), path)
 		if err != nil {
 			switch e := err.(type) {
 			case *find.NotFoundError:
 				if exists {
-					return fmt.Errorf("Datacenter does not exist: %s", e.Error())
+					return fmt.Errorf("datacenter does not exist: %s", e.Error())
 				}
 				fmt.Printf("Expected error received: %s\n", e.Error())
 				return nil
