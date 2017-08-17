@@ -2,6 +2,8 @@
 
 BUG FIXES:
  * Updated [govmomi](https://github.com/vmware/govmomi) to v0.15.0 [GH-114]
+ * Updated network interface discovery behaviour in refresh. [GH-129]. This
+   fixes several reported bugs - see the PR for references!
 
 IMPROVEMENTS:
  * r/vsphere_virtual_machine: Add annotation argument [GH-111]
