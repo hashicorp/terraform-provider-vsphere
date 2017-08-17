@@ -91,11 +91,10 @@ func resourceVSphereLicenseCreate(d *schema.ResourceData, meta interface{}) erro
 
 	case "VirtualCenter":
 		info, err = manager.Add(context.TODO(), key, nil)
-
-		err := updateLabels(manager, key, labelMap)
 		if err != nil {
 			return err
 		}
+		err = updateLabels(manager, key, labelMap)
 
 	default:
 		return fmt.Errorf("unsupported ApiType: %s", t)
