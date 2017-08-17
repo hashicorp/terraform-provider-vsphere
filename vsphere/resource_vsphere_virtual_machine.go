@@ -1116,6 +1116,10 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 						gatewaySetting := ""
 						if route.Network == "::" {
 							gatewaySetting = "ipv6_gateway"
+							p := net.ParseIP(route.Gateway.IpAddress)
+							if p.To16() != nil && p.IsLinkLocalUnicast() {
+								continue
+							}
 						} else if route.Network == "0.0.0.0" {
 							gatewaySetting = "ipv4_gateway"
 						}
