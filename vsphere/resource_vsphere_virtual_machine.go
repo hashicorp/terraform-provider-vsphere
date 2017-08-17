@@ -1062,28 +1062,24 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Invalid disks to set: %#v", disks)
 	}
 
-	// start
 	networkInterfaces := make([]map[string]interface{}, 0)
 
 	deviceList, err := vm.Device(context.TODO())
 	deviceList = deviceList.SelectByType((*types.VirtualEthernetCard)(nil))
-	log.Printf("Device list %+v", mvm.Config.Hardware.Device)
+	log.Printf("[DEBUG] Device list %+v", deviceList)
 	for _, device := range deviceList {
 		networkInterface := make(map[string]interface{})
-		log.Printf("device %+v", device)
 		virtualDevice := device.GetVirtualDevice()
 		nic := device.(types.BaseVirtualEthernetCard)
-		log.Printf("virtualDevice info %+v\n", virtualDevice)
 		DeviceName, _ := getNetworkName(client, vm, nic)
-		log.Printf("device name %s", DeviceName)
-
+		log.Printf("[DEBUG] device name %s", DeviceName)
 		networkInterface["label"] = DeviceName
 		networkInterface["mac_address"] = nic.GetVirtualEthernetCard().MacAddress
 		networkInterface["key"] = virtualDevice.Key
+		log.Printf("[DEBUG] networkInterface %#v", networkInterface)
 		networkInterfaces = append(networkInterfaces, networkInterface)
 	}
 	log.Printf("[DEBUG] networks: %#v", networkInterfaces)
-	// end
 
 	for _, v := range mvm.Guest.Net {
 		if v.DeviceConfigId >= 0 {
