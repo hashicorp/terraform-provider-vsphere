@@ -1,13 +1,17 @@
 package vsphere
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"regexp"
 	"testing"
+	"time"
 
 	"path/filepath"
+
+	"context"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -17,7 +21,6 @@ import (
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
-	"golang.org/x/net/context"
 )
 
 ///////
@@ -289,6 +292,39 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					TestFuncData{vm: vm, label: basic_vars.label}.testCheckFuncBasic(),
 				),
+			},
+		},
+	})
+}
+
+func TestAccVSphereVirtualMachine_noPanicShutdown(t *testing.T) {
+	var vm virtualMachine
+	basic_vars := setupTemplateBasicBodyVars()
+	config := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_really_basic)
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_really_basic)
+	log.Printf("[DEBUG] template config= %s", config)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testBasicPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					TestFuncData{vm: vm, label: basic_vars.label}.testCheckFuncBasic(),
+				),
+			},
+			resource.TestStep{
+				PreConfig: func() {
+					if err := testPowerOffVM("terraform-test"); err != nil {
+						panic(err)
+					}
+				},
+				PlanOnly:           true,
+				Config:             config,
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -1151,6 +1187,45 @@ func TestAccVSphereVirtualMachine_mac_address(t *testing.T) {
 			},
 		},
 	})
+}
+
+// testPowerOffVM does an immediate power-off of the virtual machine and is
+// used to help set up a refresh scenario where a VM is powered off, which has
+// been a source of panics.
+func testPowerOffVM(name string) error {
+	client := testAccProvider.Meta().(*govmomi.Client)
+	finder := find.NewFinder(client.Client, true)
+
+	dc, err := getDatacenter(client, os.Getenv("VSPHERE_DATACENTER"))
+	if err != nil {
+		return fmt.Errorf("error fetching datacenter: %s", err)
+	}
+
+	finder.SetDatacenter(dc)
+	if err != nil {
+		return fmt.Errorf("error finding datacenter: %s", err)
+	}
+
+	vm, err := finder.VirtualMachine(context.TODO(), name)
+	if err != nil {
+		return err
+	}
+	if vm == nil {
+		return fmt.Errorf("VM not found: %s", name)
+	}
+	task, err := vm.PowerOff(context.TODO())
+	if err != nil {
+		return fmt.Errorf("error powering off VM: %s", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
+	defer cancel()
+	if err := task.Wait(ctx); err != nil {
+		return fmt.Errorf("error waiting for poweroff: %s", err)
+	}
+	if ctx.Err() == context.Canceled {
+		return errors.New("timeout waiting for VM to shutdown")
+	}
+	return nil
 }
 
 func testAccCheckVSphereVirtualMachineDestroy(s *terraform.State) error {
