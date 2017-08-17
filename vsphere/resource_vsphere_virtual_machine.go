@@ -295,6 +295,11 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"key": &schema.Schema{
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+
 						"label": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
@@ -979,7 +984,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 
 	log.Printf("[DEBUG] Datacenter - %#v", dc)
 	log.Printf("[DEBUG] mvm.Summary.Config - %#v", mvm.Summary.Config)
-	log.Printf("[DEBUG] mvm.Summary.Config - %#v", mvm.Config)
+	log.Printf("[DEBUG] mvm.Config - %#v", mvm.Config)
 	log.Printf("[DEBUG] mvm.Guest.Net - %#v", mvm.Guest.Net)
 
 	err = d.Set("moid", mvm.Reference().Value)
@@ -1058,31 +1063,49 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	}
 
 	networkInterfaces := make([]map[string]interface{}, 0)
+
+	deviceList := object.VirtualDeviceList(mvm.Config.Hardware.Device)
+	deviceList = deviceList.SelectByType((*types.VirtualEthernetCard)(nil))
+	log.Printf("[DEBUG] Device list %+v", deviceList)
+	for _, device := range deviceList {
+		networkInterface := make(map[string]interface{})
+		virtualDevice := device.GetVirtualDevice()
+		nic := device.(types.BaseVirtualEthernetCard)
+		DeviceName, _ := getNetworkName(client, vm, nic)
+		log.Printf("[DEBUG] device name %s", DeviceName)
+		networkInterface["label"] = DeviceName
+		networkInterface["mac_address"] = nic.GetVirtualEthernetCard().MacAddress
+		networkInterface["key"] = virtualDevice.Key
+		log.Printf("[DEBUG] networkInterface %#v", networkInterface)
+		networkInterfaces = append(networkInterfaces, networkInterface)
+	}
+	log.Printf("[DEBUG] networks: %#v", networkInterfaces)
+
 	for _, v := range mvm.Guest.Net {
 		if v.DeviceConfigId >= 0 {
 			log.Printf("[DEBUG] v.Network - %#v", v.Network)
-			networkInterface := make(map[string]interface{})
-			networkInterface["label"] = v.Network
-			networkInterface["mac_address"] = v.MacAddress
-			for _, ip := range v.IpConfig.IpAddress {
-				p := net.ParseIP(ip.IpAddress)
-				if p.To4() != nil {
-					log.Printf("[DEBUG] p.String - %#v", p.String())
-					log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
-					networkInterface["ipv4_address"] = p.String()
-					networkInterface["ipv4_prefix_length"] = ip.PrefixLength
-				} else if p.To16() != nil {
-					log.Printf("[DEBUG] p.String - %#v", p.String())
-					log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
-					networkInterface["ipv6_address"] = p.String()
-					networkInterface["ipv6_prefix_length"] = ip.PrefixLength
+			for _, networkInterface := range networkInterfaces {
+				if networkInterface["key"] == v.DeviceConfigId {
+					for _, ip := range v.IpConfig.IpAddress {
+						p := net.ParseIP(ip.IpAddress)
+						if p.To4() != nil {
+							log.Printf("[DEBUG] p.String - %#v", p.String())
+							log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
+							networkInterface["ipv4_address"] = p.String()
+							networkInterface["ipv4_prefix_length"] = ip.PrefixLength
+						} else if p.To16() != nil {
+							log.Printf("[DEBUG] p.String - %#v", p.String())
+							log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
+							networkInterface["ipv6_address"] = p.String()
+							networkInterface["ipv6_prefix_length"] = ip.PrefixLength
+						}
+					}
+					log.Printf("[DEBUG] networkInterface: %#v", networkInterface)
 				}
-				log.Printf("[DEBUG] networkInterface: %#v", networkInterface)
 			}
-			log.Printf("[DEBUG] networkInterface: %#v", networkInterface)
-			networkInterfaces = append(networkInterfaces, networkInterface)
 		}
 	}
+	log.Printf("[DEBUG] networks: %#v", networkInterfaces)
 	if mvm.Guest.IpStack != nil {
 		for _, v := range mvm.Guest.IpStack {
 			if v.IpRouteConfig != nil && v.IpRouteConfig.IpRoute != nil {
@@ -2163,4 +2186,29 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		}
 	}
 	return nil
+}
+func getNetworkName(c *govmomi.Client, vm *object.VirtualMachine, nic types.BaseVirtualEthernetCard) (string, error) {
+	backingInfo := nic.GetVirtualEthernetCard().Backing
+	var deviceName string
+	switch backingInfo.(type) {
+	case *types.VirtualEthernetCardNetworkBackingInfo:
+		deviceName = backingInfo.(*types.VirtualEthernetCardNetworkBackingInfo).DeviceName
+		break
+	case *types.VirtualEthernetCardDistributedVirtualPortBackingInfo:
+		portInfo := backingInfo.(*types.VirtualEthernetCardDistributedVirtualPortBackingInfo).Port
+		log.Printf("network Port %#v", portInfo)
+		o := object.NewDistributedVirtualPortgroup(c.Client, types.ManagedObjectReference{
+			Type:  "DistributedVirtualPortgroup",
+			Value: portInfo.PortgroupKey,
+		})
+		var dvp mo.DistributedVirtualPortgroup
+		err := o.Properties(context.TODO(), o.Reference(), []string{"name", "config.distributedVirtualSwitch"}, &dvp)
+		if err != nil {
+			log.Printf("[ERROR]: Error retrieving portgroup %v", err)
+			return "", err
+		}
+		deviceName = dvp.Name
+	}
+	log.Printf("network Port DeviceName %#v", deviceName)
+	return deviceName, nil
 }
