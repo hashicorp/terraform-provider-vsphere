@@ -1064,10 +1064,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 
 	networkInterfaces := make([]map[string]interface{}, 0)
 
-	deviceList, err := vm.Device(context.TODO())
-	if err != nil {
-		return fmt.Errorf("failed to retrieve vm devices")
-	}
+	deviceList := object.VirtualDeviceList(mvm.Config.Hardware.Device)
 	deviceList = deviceList.SelectByType((*types.VirtualEthernetCard)(nil))
 	log.Printf("[DEBUG] Device list %+v", deviceList)
 	for _, device := range deviceList {
