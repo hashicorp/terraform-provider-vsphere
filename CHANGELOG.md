@@ -3,6 +3,7 @@
 FEATURES:
 
 * **New Resource:** `vsphere_datacenter` [GH-126]
+* **New Resource:** `vsphere_license` [GH-110]
 
 IMPROVEMENTS:
 
