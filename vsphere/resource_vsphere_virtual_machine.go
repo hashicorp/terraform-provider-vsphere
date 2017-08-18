@@ -1095,7 +1095,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 							log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
 							networkInterface["ipv4_address"] = p.String()
 							networkInterface["ipv4_prefix_length"] = ip.PrefixLength
-						} else if p.To16() != nil && !ok6 && !p.IsLinkLocalUnicast() {
+						} else if p.To4() == nil && p.To16() != nil && !ok6 && !p.IsLinkLocalUnicast() {
 							log.Printf("[DEBUG] p.String - %#v", p.String())
 							log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
 							networkInterface["ipv6_address"] = p.String()
