@@ -7,7 +7,10 @@
 # Note that the use of all of this file is not required - environment variables
 # can still be completely set from the command line or your existing
 # environment. In this case, don't use this file as it may cause conflicts.
-# 
+#
+# NOTE: Remove the annotations from any variables that have them inline, or
+# else make will add the whitespace to the variable as well.
+#
 # The essentials. None of the tests will run if you don't have these.
 export VSPHERE_SERVER   ?= vcenter.internal
 export VSPHERE_USER     ?= user@vsphere.internal
@@ -30,5 +33,7 @@ export VSPHERE_RESOURCE_POOL       ?= vm-respool # VM resource resource pool
 export VSPHERE_DATASTORE           ?= datastore1 # VM placement datastore
 export VSPHERE_INIT_TYPE           ?= thin       # vDisk type
 export VSPHERE_ADAPTER_TYPE        ?= lsiLogic   # Virtual disk adapter type
+export VSPHERE_LICENSE             ?= key        # License resource test key
+export VSPHERE_DC_FOLDER           ?= dc-folder  # DC resource test folder
 
 # vi: filetype=make
