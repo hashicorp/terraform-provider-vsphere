@@ -14,12 +14,12 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-func resourceVsphereHostVirtualSwitch() *schema.Resource {
+func resourceVSphereHostVirtualSwitch() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceVsphereHostVirtualSwitchCreate,
-		Read:   resourceVsphereHostVirtualSwitchRead,
-		Update: resourceVsphereHostVirtualSwitchUpdate,
-		Delete: resourceVsphereHostVirtualSwitchDelete,
+		Create: resourceVSphereHostVirtualSwitchCreate,
+		Read:   resourceVSphereHostVirtualSwitchRead,
+		Update: resourceVSphereHostVirtualSwitchUpdate,
+		Delete: resourceVSphereHostVirtualSwitchDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -34,6 +34,12 @@ func resourceVsphereHostVirtualSwitch() *schema.Resource {
 				Optional:    true,
 				ForceNew:    true,
 			},
+			"datacenter": &schema.Schema{
+				Type:        schema.TypeString,
+				Description: "The path to the datacenter the host is located in. This is ignored if connecting directly to ESXi. If not specified on vCenter, the default datacenter is used.",
+				Optional:    true,
+				ForceNew:    true,
+			},
 			"spec": &schema.Schema{
 				Type:        schema.TypeSet,
 				Description: "The specification for the virtual switch.",
@@ -45,9 +51,11 @@ func resourceVsphereHostVirtualSwitch() *schema.Resource {
 	}
 }
 
-func resourceVsphereHostVirtualSwitchCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceVSphereHostVirtualSwitchCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*govmomi.Client)
-	ns, err := hostNetworkSystemFromName(client, d.Get("host").(string))
+	host := d.Get("host").(string)
+	datacenter := d.Get("datacenter").(string)
+	ns, err := hostNetworkSystemFromName(client, host, datacenter)
 	if err != nil {
 		return fmt.Errorf("error loading network system: %s", err)
 	}
@@ -61,12 +69,15 @@ func resourceVsphereHostVirtualSwitchCreate(d *schema.ResourceData, meta interfa
 	}
 
 	d.SetId(d.Get("name").(string))
-	return resourceVsphereHostVirtualSwitchRead(d, meta)
+	return resourceVSphereHostVirtualSwitchRead(d, meta)
 }
 
-func resourceVsphereHostVirtualSwitchRead(d *schema.ResourceData, meta interface{}) error {
+func resourceVSphereHostVirtualSwitchRead(d *schema.ResourceData, meta interface{}) error {
 	timeout := time.Duration(float64(d.Timeout(schema.TimeoutCreate)) * 0.8)
-	sw, err := hostVSwitchFromName(meta.(*govmomi.Client), d.Id(), d.Get("host").(string), timeout)
+	id := d.Id()
+	host := d.Get("host").(string)
+	datacenter := d.Get("datacenter").(string)
+	sw, err := hostVSwitchFromName(meta.(*govmomi.Client), id, host, datacenter, timeout)
 	if err != nil {
 		return fmt.Errorf("error fetching virtual switch data: %s", err)
 	}
@@ -79,9 +90,11 @@ func resourceVsphereHostVirtualSwitchRead(d *schema.ResourceData, meta interface
 	return nil
 }
 
-func resourceVsphereHostVirtualSwitchUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceVSphereHostVirtualSwitchUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*govmomi.Client)
-	ns, err := hostNetworkSystemFromName(client, d.Get("host").(string))
+	host := d.Get("host").(string)
+	datacenter := d.Get("datacenter").(string)
+	ns, err := hostNetworkSystemFromName(client, host, datacenter)
 	if err != nil {
 		return fmt.Errorf("error loading network system: %s", err)
 	}
@@ -94,12 +107,12 @@ func resourceVsphereHostVirtualSwitchUpdate(d *schema.ResourceData, meta interfa
 		return fmt.Errorf("error updating host vSwitch: %s", err)
 	}
 
-	return resourceVsphereHostVirtualSwitchRead(d, meta)
+	return resourceVSphereHostVirtualSwitchRead(d, meta)
 }
 
-func resourceVsphereHostVirtualSwitchDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceVSphereHostVirtualSwitchDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*govmomi.Client)
-	ns, err := hostNetworkSystemFromName(client, d.Get("host").(string))
+	ns, err := hostNetworkSystemFromName(client, d.Get("host").(string), d.Get("datacenter").(string))
 	if err != nil {
 		return fmt.Errorf("error loading network system: %s", err)
 	}
@@ -118,29 +131,34 @@ func resourceVsphereHostVirtualSwitchDelete(d *schema.ResourceData, meta interfa
 // hostNetworkSystemFromName locates a HostNetworkSystem from a specified host
 // name. The default host system is used if the client is connected to an ESXi
 // host, versus vCenter.
-func hostNetworkSystemFromName(client *govmomi.Client, name string) (*object.HostNetworkSystem, error) {
+func hostNetworkSystemFromName(client *govmomi.Client, host, datacenter string) (*object.HostNetworkSystem, error) {
 	finder := find.NewFinder(client.Client, false)
 
-	var host *object.HostSystem
+	var hs *object.HostSystem
 	var err error
 	switch t := client.ServiceContent.About.ApiType; t {
 	case "HostAgent":
-		host, err = finder.DefaultHostSystem(context.TODO())
+		hs, err = finder.DefaultHostSystem(context.TODO())
 	case "VirtualCenter":
-		host, err = finder.HostSystem(context.TODO(), name)
+		dc, err := getDatacenter(client, datacenter)
+		if err != nil {
+			return nil, fmt.Errorf("could not get datacenter: %s", err)
+		}
+		finder.SetDatacenter(dc)
+		hs, err = finder.HostSystem(context.TODO(), host)
 	default:
 		return nil, fmt.Errorf("unsupported ApiType: %s", t)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("error loading host system: %s", err)
 	}
-	return host.ConfigManager().NetworkSystem(context.TODO())
+	return hs.ConfigManager().NetworkSystem(context.TODO())
 }
 
 // hostVSwitchFromName locates a host virtual switch from its assigned name and
 // host, using the client's default property collector.
-func hostVSwitchFromName(client *govmomi.Client, name, host string, timeout time.Duration) (*types.HostVirtualSwitch, error) {
-	ns, err := hostNetworkSystemFromName(client, host)
+func hostVSwitchFromName(client *govmomi.Client, name, host, datacenter string, timeout time.Duration) (*types.HostVirtualSwitch, error) {
+	ns, err := hostNetworkSystemFromName(client, host, datacenter)
 	if err != nil {
 		return nil, fmt.Errorf("error loading network system: %s", err)
 	}
