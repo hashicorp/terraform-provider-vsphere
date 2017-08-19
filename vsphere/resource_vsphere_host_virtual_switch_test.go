@@ -37,6 +37,50 @@ func TestAccResourceVSphereHostVirtualSwitch(t *testing.T) {
 				},
 			},
 		},
+		{
+			"standby with explicit failover order",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereHostVirtualSwitchPreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereHostVirtualSwitchConfigStandbyLink(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereHostVirtualSwitchExists(true),
+						),
+					},
+				},
+			},
+		},
+		{
+			"basic, then change to standby with failover order",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereHostVirtualSwitchPreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereHostVirtualSwitchConfig(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereHostVirtualSwitchExists(true),
+						),
+					},
+					{
+						Config: testAccResourceVSphereHostVirtualSwitchConfigStandbyLink(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereHostVirtualSwitchExists(true),
+						),
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testAccResourceVSphereHostVirtualSwitchCases {
@@ -116,6 +160,53 @@ resource "vsphere_host_virtual_switch" "switch" {
   spec {
     bridge {
       network_adapters = ["${var.host_nic0}", "${var.host_nic1}"]
+    }
+  }
+}
+`, os.Getenv("VSPHERE_ESXI_HOST"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_HOST_NIC0"), os.Getenv("VSPHERE_HOST_NIC1"))
+}
+
+func testAccResourceVSphereHostVirtualSwitchConfigStandbyLink() string {
+	return fmt.Sprintf(`
+variable "esxi_host" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "datacenter" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "host_nic0" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "host_nic1" {
+  type    = "string"
+  default = "%s"
+}
+
+resource "vsphere_host_virtual_switch" "switch" {
+  name       = "vSwitchTerraformTest"
+  host       = "${var.esxi_host}"
+  datacenter = "${var.datacenter}"
+
+  spec {
+    bridge {
+      network_adapters = ["${var.host_nic0}", "${var.host_nic1}"]
+    }
+
+    policy {
+      nic_teaming {
+        nic_order {
+          active_nics  = ["${var.host_nic0}"]
+          standby_nics = ["${var.host_nic1}"]
+        }
+
+        policy = "failover_explicit"
+      }
     }
   }
 }

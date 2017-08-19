@@ -41,7 +41,7 @@ func resourceVSphereHostVirtualSwitch() *schema.Resource {
 				ForceNew:    true,
 			},
 			"spec": &schema.Schema{
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Description: "The specification for the virtual switch.",
 				Required:    true,
 				MaxItems:    1,
@@ -63,7 +63,8 @@ func resourceVSphereHostVirtualSwitchCreate(d *schema.ResourceData, meta interfa
 	timeout := time.Duration(float64(d.Timeout(schema.TimeoutCreate)) * 0.8)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	spec := resourceToHostVirtualSwitchSpec(d.Get("spec").(*schema.Set).List()[0].(map[string]interface{}))
+	specResource := d.Get("spec").([]interface{})[0].(map[string]interface{})
+	spec := resourceToHostVirtualSwitchSpec(specResource)
 	if err := ns.AddVirtualSwitch(ctx, d.Get("name").(string), spec); err != nil {
 		return fmt.Errorf("error adding host vSwitch: %s", err)
 	}
@@ -102,7 +103,8 @@ func resourceVSphereHostVirtualSwitchUpdate(d *schema.ResourceData, meta interfa
 	timeout := time.Duration(float64(d.Timeout(schema.TimeoutCreate)) * 0.8)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	spec := resourceToHostVirtualSwitchSpec(d.Get("spec").(*schema.Set).List()[0].(map[string]interface{}))
+	specResource := d.Get("spec").([]interface{})[0].(map[string]interface{})
+	spec := resourceToHostVirtualSwitchSpec(specResource)
 	if err := ns.UpdateVirtualSwitch(ctx, d.Get("name").(string), *spec); err != nil {
 		return fmt.Errorf("error updating host vSwitch: %s", err)
 	}

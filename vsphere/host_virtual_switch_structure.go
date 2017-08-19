@@ -29,15 +29,15 @@ func resourceToHostVirtualSwitchBeaconConfig(m map[string]interface{}) *types.Ho
 }
 
 // hostVirtualSwitchBeaconConfigToResource converts a
-// HostVirtualSwitchBeaconConfig to a *schema.Set of resource data.
-func hostVirtualSwitchBeaconConfigToResource(obj *types.HostVirtualSwitchBeaconConfig) *schema.Set {
+// HostVirtualSwitchBeaconConfig to a slice of resource data.
+func hostVirtualSwitchBeaconConfigToResource(obj *types.HostVirtualSwitchBeaconConfig) []interface{} {
 	s := make([]interface{}, 0)
 	if obj != nil {
 		m := make(map[string]interface{})
 		m["interval"] = int(obj.Interval)
 		s = append(s, m)
 	}
-	return schema.NewSet(schema.HashResource(schemaHostVirtualSwitchBeaconConfig()), s)
+	return s
 }
 
 // schemaLinkDiscoveryProtocolConfig returns a *schema.Resource representing
@@ -70,8 +70,8 @@ func resourceToLinkDiscoveryProtocolConfig(m map[string]interface{}) *types.Link
 }
 
 // linkDiscoveryProtocolConfigToResource converts a LinkDiscoveryProtocolConfig
-// to a *schema.Set of resource data.
-func linkDiscoveryProtocolConfigToResource(obj *types.LinkDiscoveryProtocolConfig) *schema.Set {
+// to a slice of resource data.
+func linkDiscoveryProtocolConfigToResource(obj *types.LinkDiscoveryProtocolConfig) []interface{} {
 	s := make([]interface{}, 0)
 	if obj != nil {
 		m := make(map[string]interface{})
@@ -79,7 +79,7 @@ func linkDiscoveryProtocolConfigToResource(obj *types.LinkDiscoveryProtocolConfi
 		m["protocol"] = obj.Protocol
 		s = append(s, m)
 	}
-	return schema.NewSet(schema.HashResource(schemaLinkDiscoveryProtocolConfig()), s)
+	return s
 }
 
 // schemaHostVirtualSwitchBondBridge returns a *schema.Resource representing
@@ -88,7 +88,7 @@ func schemaHostVirtualSwitchBondBridge() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"beacon": &schema.Schema{
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
 				Description: "The beacon configuration to probe for the validity of a link. If this is set, beacon probing is configured and will be used. If this is not set, beacon probing is disabled.",
@@ -96,7 +96,7 @@ func schemaHostVirtualSwitchBondBridge() *schema.Resource {
 				Elem:        schemaHostVirtualSwitchBeaconConfig(),
 			},
 			"link_discovery": &schema.Schema{
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
 				Description: "The link discovery protocol configuration for the virtual switch.",
@@ -120,8 +120,8 @@ func resourceToHostVirtualSwitchBondBridge(m map[string]interface{}) *types.Host
 		NicDevice: sliceInterfacesToStrings(m["network_adapters"].([]interface{})),
 	}
 
-	beacon := m["beacon"].(*schema.Set).List()
-	linkDiscovery := m["link_discovery"].(*schema.Set).List()
+	beacon := m["beacon"].([]interface{})
+	linkDiscovery := m["link_discovery"].([]interface{})
 	if len(beacon) > 0 {
 		obj.Beacon = resourceToHostVirtualSwitchBeaconConfig(beacon[0].(map[string]interface{}))
 	}
@@ -133,8 +133,8 @@ func resourceToHostVirtualSwitchBondBridge(m map[string]interface{}) *types.Host
 }
 
 // hostVirtualSwitchBondBridgeToResource converts a HostVirtualSwitchBondBridge
-// to a *schema.Set of resource data.
-func hostVirtualSwitchBondBridgeToResource(obj *types.HostVirtualSwitchBondBridge) *schema.Set {
+// to a slice of resource data.
+func hostVirtualSwitchBondBridgeToResource(obj *types.HostVirtualSwitchBondBridge) []interface{} {
 	s := make([]interface{}, 0)
 	if obj != nil {
 		m := make(map[string]interface{})
@@ -143,7 +143,7 @@ func hostVirtualSwitchBondBridgeToResource(obj *types.HostVirtualSwitchBondBridg
 		m["network_adapters"] = sliceStringsToInterfaces(obj.NicDevice)
 		s = append(s, m)
 	}
-	return schema.NewSet(schema.HashResource(schemaHostVirtualSwitchBondBridge()), s)
+	return s
 }
 
 // schemaHostNicFailureCriteria returns a *schema.Resource representing the
@@ -172,15 +172,15 @@ func resourceToHostNicFailureCriteria(m map[string]interface{}) *types.HostNicFa
 }
 
 // hostNicFailureCriteriaToResource converts a HostNicFailureCriteria to a
-// *schema.Set of resource data.
-func hostNicFailureCriteriaToResource(obj *types.HostNicFailureCriteria) *schema.Set {
+// slice of resource data.
+func hostNicFailureCriteriaToResource(obj *types.HostNicFailureCriteria) []interface{} {
 	s := make([]interface{}, 0)
 	if obj != nil {
 		m := make(map[string]interface{})
 		m["check_beacon"] = *obj.CheckBeacon
 		s = append(s, m)
 	}
-	return schema.NewSet(schema.HashResource(schemaHostNicFailureCriteria()), s)
+	return s
 }
 
 // schemaHostNicOrderPolicy returns a *schema.Resource representing the layout
@@ -216,9 +216,9 @@ func resourceToHostNicOrderPolicy(m map[string]interface{}) *types.HostNicOrderP
 	return obj
 }
 
-// hostNicOrderPolicyToResource converts a HostNicOrderPolicy to a *schema.Set
-// of resource data.
-func hostNicOrderPolicyToResource(obj *types.HostNicOrderPolicy) *schema.Set {
+// hostNicOrderPolicyToResource converts a HostNicOrderPolicy to a slice of
+// resource data.
+func hostNicOrderPolicyToResource(obj *types.HostNicOrderPolicy) []interface{} {
 	s := make([]interface{}, 0)
 	if obj != nil {
 		m := make(map[string]interface{})
@@ -227,7 +227,7 @@ func hostNicOrderPolicyToResource(obj *types.HostNicOrderPolicy) *schema.Set {
 		s = append(s, m)
 	}
 
-	return schema.NewSet(schema.HashResource(schemaHostNicOrderPolicy()), s)
+	return s
 }
 
 // schemaHostNicTeamingPolicy returns a *schema.Resource representing the layout
@@ -236,7 +236,7 @@ func schemaHostNicTeamingPolicy() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"failure_criteria": &schema.Schema{
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
 				Description: "The failover detection policy for this network adapter team.",
@@ -244,7 +244,7 @@ func schemaHostNicTeamingPolicy() *schema.Resource {
 				Elem:        schemaHostNicFailureCriteria(),
 			},
 			"nic_order": &schema.Schema{
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
 				Description: "The failover order policy for network adapters on this switch.",
@@ -276,8 +276,8 @@ func resourceToHostNicTeamingPolicy(m map[string]interface{}) *types.HostNicTeam
 		RollingOrder: &rollingOrder,
 	}
 
-	failureCriteria := m["failure_criteria"].(*schema.Set).List()
-	nicOrder := m["nic_order"].(*schema.Set).List()
+	failureCriteria := m["failure_criteria"].([]interface{})
+	nicOrder := m["nic_order"].([]interface{})
 	if len(failureCriteria) > 0 {
 		obj.FailureCriteria = resourceToHostNicFailureCriteria(failureCriteria[0].(map[string]interface{}))
 	}
@@ -288,9 +288,9 @@ func resourceToHostNicTeamingPolicy(m map[string]interface{}) *types.HostNicTeam
 	return obj
 }
 
-// hostNicTeamingPolicyToResource converts a HostNicTeamingPolicy to a *schema.Set
-// of resource data.
-func hostNicTeamingPolicyToResource(obj *types.HostNicTeamingPolicy) *schema.Set {
+// hostNicTeamingPolicyToResource converts a HostNicTeamingPolicy to a list of
+// resource data.
+func hostNicTeamingPolicyToResource(obj *types.HostNicTeamingPolicy) []interface{} {
 	s := make([]interface{}, 0)
 	if obj != nil {
 		m := make(map[string]interface{})
@@ -300,7 +300,7 @@ func hostNicTeamingPolicyToResource(obj *types.HostNicTeamingPolicy) *schema.Set
 		m["failback"] = !*obj.RollingOrder
 		s = append(s, m)
 	}
-	return schema.NewSet(schema.HashResource(schemaHostNicTeamingPolicy()), s)
+	return s
 }
 
 // schemaHostNetworkSecurityPolicy returns a *schema.Resource representing the layout
@@ -344,9 +344,9 @@ func resourceToHostNetworkSecurityPolicy(m map[string]interface{}) *types.HostNe
 	return obj
 }
 
-// hostNetworkSecurityPolicyToResource converts a HostNetworkSecurityPolicy to a *schema.Set
-// of resource data.
-func hostNetworkSecurityPolicyToResource(obj *types.HostNetworkSecurityPolicy) *schema.Set {
+// hostNetworkSecurityPolicyToResource converts a HostNetworkSecurityPolicy to
+// a list of resource data.
+func hostNetworkSecurityPolicyToResource(obj *types.HostNetworkSecurityPolicy) []interface{} {
 	s := make([]interface{}, 0)
 	if obj != nil {
 		m := make(map[string]interface{})
@@ -355,7 +355,7 @@ func hostNetworkSecurityPolicyToResource(obj *types.HostNetworkSecurityPolicy) *
 		m["mac_changes"] = *obj.MacChanges
 		s = append(s, m)
 	}
-	return schema.NewSet(schema.HashResource(schemaHostNetworkSecurityPolicy()), s)
+	return s
 }
 
 // schemaHostNetworkTrafficShapingPolicy returns a *schema.Resource representing the layout
@@ -404,9 +404,9 @@ func resourceToHostNetworkTrafficShapingPolicy(m map[string]interface{}) *types.
 	return obj
 }
 
-// hostNetworkTrafficShapingPolicyToResource converts a HostNetworkTrafficShapingPolicy to a *schema.Set
-// of resource data.
-func hostNetworkTrafficShapingPolicyToResource(obj *types.HostNetworkTrafficShapingPolicy) *schema.Set {
+// hostNetworkTrafficShapingPolicyToResource converts a
+// HostNetworkTrafficShapingPolicy to a list of resource data.
+func hostNetworkTrafficShapingPolicyToResource(obj *types.HostNetworkTrafficShapingPolicy) []interface{} {
 	s := make([]interface{}, 0)
 	if obj != nil {
 		m := make(map[string]interface{})
@@ -416,7 +416,7 @@ func hostNetworkTrafficShapingPolicyToResource(obj *types.HostNetworkTrafficShap
 		m["peak_bandwidth"] = int(obj.PeakBandwidth)
 		s = append(s, m)
 	}
-	return schema.NewSet(schema.HashResource(schemaHostNetworkTrafficShapingPolicy()), s)
+	return s
 }
 
 // schemaHostNetworkPolicy returns a *schema.Resource representing the layout
@@ -425,7 +425,7 @@ func schemaHostNetworkPolicy() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"nic_teaming": &schema.Schema{
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
 				Description: "The network adapter teaming policy.",
@@ -433,7 +433,7 @@ func schemaHostNetworkPolicy() *schema.Resource {
 				Elem:        schemaHostNicTeamingPolicy(),
 			},
 			"security": &schema.Schema{
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
 				Description: "The security policy governing ports on this virtual switch.",
@@ -441,7 +441,7 @@ func schemaHostNetworkPolicy() *schema.Resource {
 				Elem:        schemaHostNetworkSecurityPolicy(),
 			},
 			"shaping_policy": &schema.Schema{
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
 				Description: "The traffic shaping policy.",
@@ -457,9 +457,9 @@ func schemaHostNetworkPolicy() *schema.Resource {
 func resourceToHostNetworkPolicy(m map[string]interface{}) *types.HostNetworkPolicy {
 	obj := &types.HostNetworkPolicy{}
 
-	nicTeaming := m["nic_teaming"].(*schema.Set).List()
-	security := m["security"].(*schema.Set).List()
-	shapingPolicy := m["shaping_policy"].(*schema.Set).List()
+	nicTeaming := m["nic_teaming"].([]interface{})
+	security := m["security"].([]interface{})
+	shapingPolicy := m["shaping_policy"].([]interface{})
 	if len(nicTeaming) > 0 {
 		obj.NicTeaming = resourceToHostNicTeamingPolicy(nicTeaming[0].(map[string]interface{}))
 	}
@@ -473,9 +473,9 @@ func resourceToHostNetworkPolicy(m map[string]interface{}) *types.HostNetworkPol
 	return obj
 }
 
-// hostNetworkPolicyToResource converts a HostNetworkPolicy to a *schema.Set
-// of resource data.
-func hostNetworkPolicyToResource(obj *types.HostNetworkPolicy) *schema.Set {
+// hostNetworkPolicyToResource converts a HostNetworkPolicy to a slice of
+// resource data.
+func hostNetworkPolicyToResource(obj *types.HostNetworkPolicy) []interface{} {
 	s := make([]interface{}, 0)
 	if obj != nil {
 		m := make(map[string]interface{})
@@ -484,7 +484,7 @@ func hostNetworkPolicyToResource(obj *types.HostNetworkPolicy) *schema.Set {
 		m["shaping_policy"] = hostNetworkTrafficShapingPolicyToResource(obj.ShapingPolicy)
 		s = append(s, m)
 	}
-	return schema.NewSet(schema.HashResource(schemaHostNetworkPolicy()), s)
+	return s
 }
 
 // schemaHostVirtualSwitchSpec returns a *schema.Resource representing the layout
@@ -493,7 +493,7 @@ func schemaHostVirtualSwitchSpec() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"bridge": &schema.Schema{
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
 				Description: "The physical network adapter specification.",
@@ -513,7 +513,7 @@ func schemaHostVirtualSwitchSpec() *schema.Resource {
 				Default:     128,
 			},
 			"policy": &schema.Schema{
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
 				Description: "The virtual switch policy specification. This has a lower precedence than any port groups you assign to this switch.",
@@ -532,8 +532,8 @@ func resourceToHostVirtualSwitchSpec(m map[string]interface{}) *types.HostVirtua
 		NumPorts: int32(m["number_of_ports"].(int)),
 	}
 
-	bridge := m["bridge"].(*schema.Set).List()
-	policy := m["policy"].(*schema.Set).List()
+	bridge := m["bridge"].([]interface{})
+	policy := m["policy"].([]interface{})
 	if len(bridge) > 0 {
 		obj.Bridge = resourceToHostVirtualSwitchBondBridge(bridge[0].(map[string]interface{}))
 	}
@@ -544,9 +544,9 @@ func resourceToHostVirtualSwitchSpec(m map[string]interface{}) *types.HostVirtua
 	return obj
 }
 
-// hostVirtualSwitchSpecToResource converts a HostVirtualSwitchSpec to a *schema.Set
+// hostVirtualSwitchSpecToResource converts a HostVirtualSwitchSpec to a slice
 // of resource data.
-func hostVirtualSwitchSpecToResource(obj *types.HostVirtualSwitchSpec) *schema.Set {
+func hostVirtualSwitchSpecToResource(obj *types.HostVirtualSwitchSpec) []interface{} {
 	s := make([]interface{}, 0)
 	if obj != nil {
 		m := make(map[string]interface{})
@@ -556,5 +556,5 @@ func hostVirtualSwitchSpecToResource(obj *types.HostVirtualSwitchSpec) *schema.S
 		m["policy"] = hostNetworkPolicyToResource(obj.Policy)
 		s = append(s, m)
 	}
-	return schema.NewSet(schema.HashResource(schemaHostVirtualSwitchSpec()), s)
+	return s
 }
