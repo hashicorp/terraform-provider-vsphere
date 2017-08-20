@@ -153,15 +153,10 @@ variable "host_nic1" {
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
-  name       = "vSwitchTerraformTest"
-  host       = "${var.esxi_host}"
-  datacenter = "${var.datacenter}"
-
-  spec {
-    bridge {
-      network_adapters = ["${var.host_nic0}", "${var.host_nic1}"]
-    }
-  }
+  name             = "vSwitchTerraformTest"
+  host             = "${var.esxi_host}"
+  datacenter       = "${var.datacenter}"
+  network_adapters = ["${var.host_nic0}", "${var.host_nic1}"]
 }
 `, os.Getenv("VSPHERE_ESXI_HOST"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_HOST_NIC0"), os.Getenv("VSPHERE_HOST_NIC1"))
 }
@@ -189,26 +184,14 @@ variable "host_nic1" {
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
-  name       = "vSwitchTerraformTest"
-  host       = "${var.esxi_host}"
-  datacenter = "${var.datacenter}"
+  name             = "vSwitchTerraformTest"
+  host             = "${var.esxi_host}"
+  datacenter       = "${var.datacenter}"
+  network_adapters = ["${var.host_nic0}", "${var.host_nic1}"]
 
-  spec {
-    bridge {
-      network_adapters = ["${var.host_nic0}", "${var.host_nic1}"]
-    }
-
-    policy {
-      nic_teaming {
-        nic_order {
-          active_nics  = ["${var.host_nic0}"]
-          standby_nics = ["${var.host_nic1}"]
-        }
-
-        policy = "failover_explicit"
-      }
-    }
-  }
+  active_nics    = ["${var.host_nic0}"]
+  standby_nics   = ["${var.host_nic1}"]
+  teaming_policy = "failover_explicit"
 }
 `, os.Getenv("VSPHERE_ESXI_HOST"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_HOST_NIC0"), os.Getenv("VSPHERE_HOST_NIC1"))
 }

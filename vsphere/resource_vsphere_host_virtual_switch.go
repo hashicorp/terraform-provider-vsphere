@@ -15,39 +15,34 @@ import (
 )
 
 func resourceVSphereHostVirtualSwitch() *schema.Resource {
+	s := map[string]*schema.Schema{
+		"name": &schema.Schema{
+			Type:        schema.TypeString,
+			Description: "Name name of the virtual switch.",
+			Required:    true,
+			ForceNew:    true,
+		},
+		"host": &schema.Schema{
+			Type:        schema.TypeString,
+			Description: "The name of the host to put this virtual switch on. This is ignored if connecting directly to ESXi, but required if not.",
+			Optional:    true,
+			ForceNew:    true,
+		},
+		"datacenter": &schema.Schema{
+			Type:        schema.TypeString,
+			Description: "The path to the datacenter the host is located in. This is ignored if connecting directly to ESXi. If not specified on vCenter, the default datacenter is used.",
+			Optional:    true,
+			ForceNew:    true,
+		},
+	}
+	mergeSchema(s, schemaHostVirtualSwitchSpec())
+
 	return &schema.Resource{
 		Create: resourceVSphereHostVirtualSwitchCreate,
 		Read:   resourceVSphereHostVirtualSwitchRead,
 		Update: resourceVSphereHostVirtualSwitchUpdate,
 		Delete: resourceVSphereHostVirtualSwitchDelete,
-
-		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
-				Type:        schema.TypeString,
-				Description: "Name name of the virtual switch.",
-				Required:    true,
-				ForceNew:    true,
-			},
-			"host": &schema.Schema{
-				Type:        schema.TypeString,
-				Description: "The name of the host to put this virtual switch on. This is ignored if connecting directly to ESXi, but required if not.",
-				Optional:    true,
-				ForceNew:    true,
-			},
-			"datacenter": &schema.Schema{
-				Type:        schema.TypeString,
-				Description: "The path to the datacenter the host is located in. This is ignored if connecting directly to ESXi. If not specified on vCenter, the default datacenter is used.",
-				Optional:    true,
-				ForceNew:    true,
-			},
-			"spec": &schema.Schema{
-				Type:        schema.TypeList,
-				Description: "The specification for the virtual switch.",
-				Required:    true,
-				MaxItems:    1,
-				Elem:        schemaHostVirtualSwitchSpec(),
-			},
-		},
+		Schema: s,
 	}
 }
 
@@ -63,8 +58,7 @@ func resourceVSphereHostVirtualSwitchCreate(d *schema.ResourceData, meta interfa
 	timeout := time.Duration(float64(d.Timeout(schema.TimeoutCreate)) * 0.8)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	specResource := d.Get("spec").([]interface{})[0].(map[string]interface{})
-	spec := resourceToHostVirtualSwitchSpec(specResource)
+	spec := expandHostVirtualSwitchSpec(d)
 	if err := ns.AddVirtualSwitch(ctx, d.Get("name").(string), spec); err != nil {
 		return fmt.Errorf("error adding host vSwitch: %s", err)
 	}
@@ -83,8 +77,7 @@ func resourceVSphereHostVirtualSwitchRead(d *schema.ResourceData, meta interface
 		return fmt.Errorf("error fetching virtual switch data: %s", err)
 	}
 
-	spec := hostVirtualSwitchSpecToResource(&sw.Spec)
-	if err := d.Set("spec", spec); err != nil {
+	if err := flattenHostVirtualSwitchSpec(d, &sw.Spec); err != nil {
 		return fmt.Errorf("error setting resource data: %s", err)
 	}
 
@@ -103,8 +96,7 @@ func resourceVSphereHostVirtualSwitchUpdate(d *schema.ResourceData, meta interfa
 	timeout := time.Duration(float64(d.Timeout(schema.TimeoutCreate)) * 0.8)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	specResource := d.Get("spec").([]interface{})[0].(map[string]interface{})
-	spec := resourceToHostVirtualSwitchSpec(specResource)
+	spec := expandHostVirtualSwitchSpec(d)
 	if err := ns.UpdateVirtualSwitch(ctx, d.Get("name").(string), *spec); err != nil {
 		return fmt.Errorf("error updating host vSwitch: %s", err)
 	}
