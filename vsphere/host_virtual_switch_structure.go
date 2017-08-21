@@ -106,13 +106,11 @@ func schemaHostNetworkPolicy() map[string]*schema.Schema {
 		// HostNicTeamingPolicy/HostNicOrderPolicy
 		"active_nics": &schema.Schema{
 			Type:        schema.TypeList,
-			Required:    true,
 			Description: "List of active network adapters used for load balancing.",
 			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
 		"standby_nics": &schema.Schema{
 			Type:        schema.TypeList,
-			Required:    true,
 			Description: "List of standby network adapters used for failover.",
 			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
@@ -210,17 +208,13 @@ func flattenHostNicFailureCriteria(d *schema.ResourceData, obj *types.HostNicFai
 
 func expandHostNicOrderPolicy(d *schema.ResourceData) *types.HostNicOrderPolicy {
 	obj := &types.HostNicOrderPolicy{}
-	activeNics, activeOk := d.GetOk("active_nics")
-	standbyNics, standbyOk := d.GetOk("standby_nics")
+	activeNics, activeOk := d.GetOkExists("active_nics")
+	standbyNics, standbyOk := d.GetOkExists("standby_nics")
 	if !activeOk && !standbyOk {
 		return nil
 	}
-	if activeOk {
-		obj.ActiveNic = sliceInterfacesToStrings(activeNics.([]interface{}))
-	}
-	if standbyOk {
-		obj.StandbyNic = sliceInterfacesToStrings(standbyNics.([]interface{}))
-	}
+	obj.ActiveNic = sliceInterfacesToStrings(activeNics.([]interface{}))
+	obj.StandbyNic = sliceInterfacesToStrings(standbyNics.([]interface{}))
 	return obj
 }
 

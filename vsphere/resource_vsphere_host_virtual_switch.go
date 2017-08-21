@@ -37,6 +37,11 @@ func resourceVSphereHostVirtualSwitch() *schema.Resource {
 	}
 	mergeSchema(s, schemaHostVirtualSwitchSpec())
 
+	// Transform any necessary fields in the schema that need to be updated
+	// specifically for this resource.
+	s["active_nics"].Required = true
+	s["standby_nics"].Required = true
+
 	return &schema.Resource{
 		Create: resourceVSphereHostVirtualSwitchCreate,
 		Read:   resourceVSphereHostVirtualSwitchRead,
