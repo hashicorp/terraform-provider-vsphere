@@ -2,26 +2,18 @@ package vsphere
 
 import (
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"golang.org/x/net/context"
-	"os"
-	"testing"
 )
 
 func testBasicPreCheckSnapshot(t *testing.T) {
-
 	testAccPreCheck(t)
-
-	if v := os.Getenv("VSPHERE_VM_NAME"); v == "" {
-		t.Fatal("env variable VSPHERE_VM_NAME must be set for acceptance tests")
-	}
-
-	if v := os.Getenv("VSPHERE_VM_FOLDER"); v == "" {
-		t.Fatal("env variable VSPHERE_VM_FOLDER must be set for acceptance tests")
-	}
 }
 
 func TestAccVmSnapshot_Basic(t *testing.T) {
@@ -35,7 +27,7 @@ func TestAccVmSnapshot_Basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccCheckVmSnapshotConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckVmSnapshotExists("vsphere_snapshot.Test_terraform_cases", snapshot_name),
+					testAccCheckVmSnapshotExists("vsphere_virtual_machine_snapshot.Test_terraform_cases", snapshot_name),
 					resource.TestCheckResourceAttr(
 						"vsphere_snapshot.Test_terraform_cases", "snapshot_name", "SnapshotForTestingTerraform"),
 				),
@@ -49,7 +41,7 @@ func testAccCheckVmSnapshotDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*govmomi.Client)
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "vsphere_snapshot" {
+		if rs.Type != "vsphere_virtual_machine_snapshot" {
 			continue
 		}
 		dc, err := getDatacenter(client, "")
@@ -105,7 +97,7 @@ func testAccCheckVmSnapshotExists(n, snapshot_name string) resource.TestCheckFun
 }
 
 const testAccCheckVmSnapshotConfig_basic = `
-resource "vsphere_snapshot" "Test_terraform_cases"{
+resource "vsphere_virtual_machine_snapshot" "Test_terraform_cases" {
   	vm_name = "vmForTesting"
  	folder = "workspace/forTesting
 	snapshot_name = "SnapshotForTestingTerraform"

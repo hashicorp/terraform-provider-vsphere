@@ -1,10 +1,11 @@
 package vsphere
 
 import (
+	"context"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
-	"golang.org/x/net/context"
 	"log"
+
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceVSphereRevertSnapshot() *schema.Resource {
@@ -20,16 +21,14 @@ func resourceVSphereRevertSnapshot() *schema.Resource {
 				ForceNew: true,
 			},
 			"vm_name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_VM_NAME", nil),
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 			"folder": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_VM_FOLDER", nil),
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 			"snapshot_name": {
 				Type:     schema.TypeString,

@@ -1,6 +1,7 @@
 package vsphere
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -9,7 +10,6 @@ import (
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
-	"golang.org/x/net/context"
 )
 
 func resourceVSphereSnapshot() *schema.Resource {
@@ -25,16 +25,14 @@ func resourceVSphereSnapshot() *schema.Resource {
 				ForceNew: true,
 			},
 			"vm_name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_VM_NAME", nil),
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 			"folder": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_VM_FOLDER", nil),
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 			"snapshot_name": {
 				Type:     schema.TypeString,

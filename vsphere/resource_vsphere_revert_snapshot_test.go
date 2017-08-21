@@ -1,28 +1,21 @@
 package vsphere
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/vim25/mo"
-	"golang.org/x/net/context"
-	"os"
-	"testing"
 )
 
 func testBasicPreCheckSnapshotRevert(t *testing.T) {
-
 	testAccPreCheck(t)
 
-	if v := os.Getenv("VSPHERE_VM_NAME"); v == "" {
-		t.Fatal("env variable VSPHERE_VM_NAME must be set for acceptance tests")
-	}
-
-	if v := os.Getenv("VSPHERE_VM_FOLDER"); v == "" {
-		t.Fatal("env variable VSPHERE_VM_FOLDER must be set for acceptance tests")
-	}
 }
 
 func TestAccVmSnapshotRevert_Basic(t *testing.T) {
@@ -36,7 +29,7 @@ func TestAccVmSnapshotRevert_Basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccCheckVmSnapshotRevertConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckVmCurrentSnapshot("vsphere_snapshot_revert.Test_terraform_cases", snapshot_name),
+					testAccCheckVmCurrentSnapshot("vsphere_virtual_machine_snapshot_revert.Test_terraform_cases", snapshot_name),
 				),
 			},
 		},
@@ -94,7 +87,7 @@ func testAccCheckVmCurrentSnapshot(n, snapshot_name string) resource.TestCheckFu
 }
 
 const testAccCheckVmSnapshotRevertConfig_basic = `
-resource "vsphere_snapshot_revert" "Test_terraform_cases"{
+resource "vsphere_virtual_machine_snapshot_revert" "Test_terraform_cases"{
  	vm_name = "vmForTesting"
 	folder = "workspace/forTesting"
 	snapshot_name = "SnapshotForTestingTerraform"
