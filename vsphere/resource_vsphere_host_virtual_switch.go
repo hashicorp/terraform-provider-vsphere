@@ -132,6 +132,11 @@ func hostNetworkSystemFromName(client *govmomi.Client, host, datacenter string) 
 	var err error
 	switch t := client.ServiceContent.About.ApiType; t {
 	case "HostAgent":
+		dc, err := getDatacenter(client, "")
+		if err != nil {
+			return nil, fmt.Errorf("could not get datacenter: %s", err)
+		}
+		finder.SetDatacenter(dc)
 		hs, err = finder.DefaultHostSystem(context.TODO())
 	case "VirtualCenter":
 		dc, err := getDatacenter(client, datacenter)
