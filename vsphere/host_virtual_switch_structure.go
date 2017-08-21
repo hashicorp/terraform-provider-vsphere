@@ -379,7 +379,7 @@ func schemaHostPortGroupSpec() map[string]*schema.Schema {
 	s := map[string]*schema.Schema{
 		// HostPortGroupSpec
 		"name": &schema.Schema{
-			Type:        schema.TypeInt,
+			Type:        schema.TypeString,
 			Required:    true,
 			Description: "The name of the port group.",
 			ForceNew:    true,
