@@ -23,7 +23,7 @@ const testAccCheckVSphereDVSConfigUplinks = `
 resource "vsphere_distributed_virtual_switch" "testDVS" {
 	datacenter = "%s"
   name   = "testDVS"
-  uplinks = { "10.2.10.57" = "vmnic1", "10.2.10.6" = "vmnic1" } 
+  uplinks = { "%s" = "%s" } 
 }
 `
 
@@ -49,6 +49,8 @@ func TestAccVSphereDVS_createWithoutUplinks(t *testing.T) {
 func TestAccVSphereDVS_createWithUplinks(t *testing.T) {
 	resourceName := "vsphere_distributed_virtual_switch.testDVS"
 	datacenter := os.Getenv("VSPHERE_DATACENTER")
+	host := os.Getenv("VSPHERE_HOST")
+	host_pnic := os.Getenv("VSPHERE_HOST_PNIC")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -56,7 +58,7 @@ func TestAccVSphereDVS_createWithUplinks(t *testing.T) {
 		CheckDestroy: testAccCheckVSphereDVSDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(testAccCheckVSphereDVSConfigUplinks, datacenter),
+				Config: fmt.Sprintf(testAccCheckVSphereDVSConfigUplinks, datacenter, host, host_pnic),
 				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, true)),
 			},
 		},
