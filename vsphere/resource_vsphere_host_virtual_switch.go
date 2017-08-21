@@ -42,6 +42,17 @@ func resourceVSphereHostVirtualSwitch() *schema.Resource {
 	s["active_nics"].Required = true
 	s["standby_nics"].Required = true
 
+	s["teaming_policy"].Default = "loadbalance_srcid"
+	s["check_beacon"].Default = false
+	s["notify_switches"].Default = true
+	s["failback"].Default = true
+
+	s["allow_promiscuous"].Default = false
+	s["forged_transmits"].Default = true
+	s["mac_changes"].Default = true
+
+	s["shaping_enabled"].Default = false
+
 	return &schema.Resource{
 		Create: resourceVSphereHostVirtualSwitchCreate,
 		Read:   resourceVSphereHostVirtualSwitchRead,

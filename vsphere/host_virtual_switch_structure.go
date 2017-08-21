@@ -1,8 +1,6 @@
 package vsphere
 
 import (
-	"log"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -100,7 +98,6 @@ func schemaHostNetworkPolicy() map[string]*schema.Schema {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "Enable beacon probing. Requires that the vSwitch has been configured to use a beacon. If disabled, link status is used only.",
-			Default:     false,
 		},
 
 		// HostNicTeamingPolicy/HostNicOrderPolicy
@@ -120,19 +117,16 @@ func schemaHostNetworkPolicy() map[string]*schema.Schema {
 			Type:        schema.TypeString,
 			Optional:    true,
 			Description: "The network adapter teaming policy. Can be one of loadbalance_ip, loadbalance_srcmac, loadbalance_srcid, or failover_explicit.",
-			Default:     "loadbalance_srcid",
 		},
 		"notify_switches": &schema.Schema{
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "If true, the teaming policy will notify the broadcast network of a NIC failover, triggering cache updates.",
-			Default:     true,
 		},
 		"failback": &schema.Schema{
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "If true, the teaming policy will re-activate failed interfaces higher in precedence when they come back up.",
-			Default:     true,
 		},
 
 		// HostNetworkSecurityPolicy
@@ -140,19 +134,16 @@ func schemaHostNetworkPolicy() map[string]*schema.Schema {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "Enable promiscuious mode on the network. This flag indicates whether or not all traffic is seen on a given port.",
-			Default:     false,
 		},
 		"forged_transmits": &schema.Schema{
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "Controls whether or not the virtual network adapter is allowed to send network traffic with a different MAC address than that of its own.",
-			Default:     true,
 		},
 		"mac_changes": &schema.Schema{
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "Controls whether or not the Media Access Control (MAC) address can be changed.",
-			Default:     true,
 		},
 
 		// HostNetworkTrafficShapingPolicy
@@ -172,7 +163,6 @@ func schemaHostNetworkPolicy() map[string]*schema.Schema {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "True if the traffic shaper is enabled on the port.",
-			Default:     false,
 		},
 		"shaping_peak_bandwidth": &schema.Schema{
 			Type:        schema.TypeInt,
@@ -184,9 +174,10 @@ func schemaHostNetworkPolicy() map[string]*schema.Schema {
 }
 
 func expandHostNicFailureCriteria(d *schema.ResourceData) *types.HostNicFailureCriteria {
-	checkBeacon := d.Get("check_beacon").(bool)
-	obj := &types.HostNicFailureCriteria{
-		CheckBeacon: &checkBeacon,
+	obj := &types.HostNicFailureCriteria{}
+
+	if v, ok := d.GetOkExists("check_beacon"); ok {
+		obj.CheckBeacon = &([]bool{v.(bool)}[0])
 	}
 
 	// These fields are deprecated and are set only to make things work. They are
@@ -202,7 +193,9 @@ func expandHostNicFailureCriteria(d *schema.ResourceData) *types.HostNicFailureC
 }
 
 func flattenHostNicFailureCriteria(d *schema.ResourceData, obj *types.HostNicFailureCriteria) error {
-	d.Set("check_beacon", obj.CheckBeacon)
+	if obj.CheckBeacon != nil {
+		d.Set("check_beacon", obj.CheckBeacon)
+	}
 	return nil
 }
 
@@ -219,7 +212,9 @@ func expandHostNicOrderPolicy(d *schema.ResourceData) *types.HostNicOrderPolicy 
 }
 
 func flattenHostNicOrderPolicy(d *schema.ResourceData, obj *types.HostNicOrderPolicy) error {
-	log.Printf("[DEBUG] HostNicOrderPolicy: %#v", obj)
+	if obj == nil {
+		return nil
+	}
 	if err := d.Set("active_nics", sliceStringsToInterfaces(obj.ActiveNic)); err != nil {
 		return err
 	}
@@ -230,12 +225,14 @@ func flattenHostNicOrderPolicy(d *schema.ResourceData, obj *types.HostNicOrderPo
 }
 
 func expandHostNicTeamingPolicy(d *schema.ResourceData) *types.HostNicTeamingPolicy {
-	rollingOrder := !d.Get("failback").(bool)
-	notifySwitches := d.Get("notify_switches").(bool)
 	obj := &types.HostNicTeamingPolicy{
-		Policy:         d.Get("teaming_policy").(string),
-		RollingOrder:   &rollingOrder,
-		NotifySwitches: &notifySwitches,
+		Policy: d.Get("teaming_policy").(string),
+	}
+	if v, ok := d.GetOkExists("failback"); ok {
+		obj.RollingOrder = &([]bool{!v.(bool)}[0])
+	}
+	if v, ok := d.GetOkExists("notify_switches"); ok {
+		obj.NotifySwitches = &([]bool{v.(bool)}[0])
 	}
 	obj.FailureCriteria = expandHostNicFailureCriteria(d)
 	obj.NicOrder = expandHostNicOrderPolicy(d)
@@ -248,8 +245,12 @@ func expandHostNicTeamingPolicy(d *schema.ResourceData) *types.HostNicTeamingPol
 }
 
 func flattenHostNicTeamingPolicy(d *schema.ResourceData, obj *types.HostNicTeamingPolicy) error {
-	d.Set("failback", !*obj.RollingOrder)
-	d.Set("notify_switches", *obj.NotifySwitches)
+	if obj.RollingOrder != nil {
+		d.Set("failback", !*obj.RollingOrder)
+	}
+	if obj.NotifySwitches != nil {
+		d.Set("notify_switches", *obj.NotifySwitches)
+	}
 	d.Set("teaming_policy", obj.Policy)
 	if err := flattenHostNicFailureCriteria(d, obj.FailureCriteria); err != nil {
 		return err
@@ -261,37 +262,48 @@ func flattenHostNicTeamingPolicy(d *schema.ResourceData, obj *types.HostNicTeami
 }
 
 func expandHostNetworkSecurityPolicy(d *schema.ResourceData) *types.HostNetworkSecurityPolicy {
-	allowPromiscuous := d.Get("allow_promiscuous").(bool)
-	forgedTransmits := d.Get("forged_transmits").(bool)
-	macChanges := d.Get("mac_changes").(bool)
-	obj := &types.HostNetworkSecurityPolicy{
-		AllowPromiscuous: &allowPromiscuous,
-		ForgedTransmits:  &forgedTransmits,
-		MacChanges:       &macChanges,
+	obj := &types.HostNetworkSecurityPolicy{}
+	if v, ok := d.GetOkExists("allow_promiscuous"); ok {
+		obj.AllowPromiscuous = &([]bool{v.(bool)}[0])
+	}
+	if v, ok := d.GetOkExists("forged_transmits"); ok {
+		obj.ForgedTransmits = &([]bool{v.(bool)}[0])
+	}
+	if v, ok := d.GetOkExists("mac_changes"); ok {
+		obj.MacChanges = &([]bool{v.(bool)}[0])
 	}
 	return obj
 }
 
 func flattenHostNetworkSecurityPolicy(d *schema.ResourceData, obj *types.HostNetworkSecurityPolicy) error {
-	d.Set("allow_promiscuous", *obj.AllowPromiscuous)
-	d.Set("forged_transmits", *obj.ForgedTransmits)
-	d.Set("mac_changes", *obj.MacChanges)
+	if obj.AllowPromiscuous != nil {
+		d.Set("allow_promiscuous", *obj.AllowPromiscuous)
+	}
+	if obj.ForgedTransmits != nil {
+		d.Set("forged_transmits", *obj.ForgedTransmits)
+	}
+	if obj.MacChanges != nil {
+		d.Set("mac_changes", *obj.MacChanges)
+	}
 	return nil
 }
 
 func expandHostNetworkTrafficShapingPolicy(d *schema.ResourceData) *types.HostNetworkTrafficShapingPolicy {
-	enabled := d.Get("shaping_enabled").(bool)
 	obj := &types.HostNetworkTrafficShapingPolicy{
 		AverageBandwidth: int64(d.Get("shaping_average_bandwidth").(int)),
 		BurstSize:        int64(d.Get("shaping_burst_size").(int)),
-		Enabled:          &enabled,
 		PeakBandwidth:    int64(d.Get("shaping_peak_bandwidth").(int)),
+	}
+	if v, ok := d.GetOkExists("shaping_enabled"); ok {
+		obj.Enabled = &([]bool{v.(bool)}[0])
 	}
 	return obj
 }
 
 func flattenHostNetworkTrafficShapingPolicy(d *schema.ResourceData, obj *types.HostNetworkTrafficShapingPolicy) error {
-	d.Set("shaping_enabled", *obj.Enabled)
+	if obj.Enabled != nil {
+		d.Set("shaping_enabled", *obj.Enabled)
+	}
 	d.Set("shaping_average_bandwidth", obj.AverageBandwidth)
 	d.Set("shaping_burst_size", obj.BurstSize)
 	d.Set("shaping_peak_bandwidth", obj.PeakBandwidth)
