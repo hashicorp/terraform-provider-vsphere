@@ -374,3 +374,47 @@ func flattenHostVirtualSwitchSpec(d *schema.ResourceData, obj *types.HostVirtual
 	}
 	return nil
 }
+
+func schemaHostPortGroupSpec() map[string]*schema.Schema {
+	s := map[string]*schema.Schema{
+		// HostPortGroupSpec
+		"name": &schema.Schema{
+			Type:        schema.TypeInt,
+			Required:    true,
+			Description: "The name of the port group.",
+			ForceNew:    true,
+		},
+		"vlan_id": &schema.Schema{
+			Type:        schema.TypeInt,
+			Optional:    true,
+			Description: "The VLAN ID/trunk mode for this port group. An ID of 0 denotes no tagging, an ID of 1-4094 tags with the specific ID, and an ID of 4095 enables trunk mode, allowing the guest to manage its own tagging.",
+			Default:     0,
+		},
+		"virtual_switch_name": &schema.Schema{
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "The name of the virtual switch to bind this port group to.",
+			ForceNew:    true,
+		},
+	}
+	mergeSchema(s, schemaHostNetworkPolicy())
+	return s
+}
+
+func expandHostPortGroupSpec(d *schema.ResourceData) *types.HostPortGroupSpec {
+	obj := &types.HostPortGroupSpec{
+		Name:        d.Get("name").(string),
+		VlanId:      int32(d.Get("vlan_id").(int)),
+		VswitchName: d.Get("virtual_switch_name").(string),
+		Policy:      *expandHostNetworkPolicy(d),
+	}
+	return obj
+}
+
+func flattenHostPortGroupSpec(d *schema.ResourceData, obj *types.HostPortGroupSpec) error {
+	d.Set("vlan_id", obj.VlanId)
+	if err := flattenHostNetworkPolicy(d, &obj.Policy); err != nil {
+		return err
+	}
+	return nil
+}

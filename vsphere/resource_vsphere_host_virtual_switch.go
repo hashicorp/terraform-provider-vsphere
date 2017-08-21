@@ -18,7 +18,7 @@ func resourceVSphereHostVirtualSwitch() *schema.Resource {
 	s := map[string]*schema.Schema{
 		"name": &schema.Schema{
 			Type:        schema.TypeString,
-			Description: "Name name of the virtual switch.",
+			Description: "The name of the virtual switch.",
 			Required:    true,
 			ForceNew:    true,
 		},
@@ -113,7 +113,7 @@ func resourceVSphereHostVirtualSwitchUpdate(d *schema.ResourceData, meta interfa
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	spec := expandHostVirtualSwitchSpec(d)
-	if err := ns.UpdateVirtualSwitch(ctx, d.Get("name").(string), *spec); err != nil {
+	if err := ns.UpdateVirtualSwitch(ctx, d.Id(), *spec); err != nil {
 		return fmt.Errorf("error updating host vSwitch: %s", err)
 	}
 
