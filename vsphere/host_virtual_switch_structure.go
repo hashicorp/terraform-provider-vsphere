@@ -37,7 +37,6 @@ func schemaHostVirtualSwitchBondBridge() map[string]*schema.Schema {
 			Required:    true,
 			Description: "The link discovery protocol configuration for the virtual switch.",
 			Elem:        &schema.Schema{Type: schema.TypeString},
-			DefaultFunc: func() (interface{}, error) { return []interface{}{}, nil },
 		},
 	}
 }
