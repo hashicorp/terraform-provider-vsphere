@@ -49,7 +49,7 @@ func schemaHostNetworkPolicy() map[string]*schema.Schema {
 		"allow_promiscuous": &schema.Schema{
 			Type:        schema.TypeBool,
 			Optional:    true,
-			Description: "Enable promiscuious mode on the network. This flag indicates whether or not all traffic is seen on a given port.",
+			Description: "Enable promiscuous mode on the network. This flag indicates whether or not all traffic is seen on a given port.",
 		},
 		"forged_transmits": &schema.Schema{
 			Type:        schema.TypeBool,
