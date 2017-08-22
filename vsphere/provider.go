@@ -64,12 +64,14 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"vsphere_datacenter":      resourceVSphereDatacenter(),
-			"vsphere_file":            resourceVSphereFile(),
-			"vsphere_folder":          resourceVSphereFolder(),
-			"vsphere_virtual_disk":    resourceVSphereVirtualDisk(),
-			"vsphere_virtual_machine": resourceVSphereVirtualMachine(),
-			"vsphere_license":         resourceVSphereLicense(),
+			"vsphere_datacenter":          resourceVSphereDatacenter(),
+			"vsphere_file":                resourceVSphereFile(),
+			"vsphere_folder":              resourceVSphereFolder(),
+			"vsphere_host_port_group":     resourceVSphereHostPortGroup(),
+			"vsphere_host_virtual_switch": resourceVSphereHostVirtualSwitch(),
+			"vsphere_virtual_disk":        resourceVSphereVirtualDisk(),
+			"vsphere_virtual_machine":     resourceVSphereVirtualMachine(),
+			"vsphere_license":             resourceVSphereLicense(),
 		},
 
 		ConfigureFunc: providerConfigure,
