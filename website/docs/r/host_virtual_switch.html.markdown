@@ -62,10 +62,10 @@ resource "vsphere_host_virtual_switch" "switch" {
 
 The following arguments are supported:
 
-* `name` - (String, required) The name of the virtual switch.
-* `host` - (String) The host the virtual switch goes on. Required when using
+* `name` - (String, required, forces new resource) The name of the virtual switch.
+* `host` - (String, forces new resource) The host the virtual switch goes on. Required when using
   vCenter, not required when using ESXi.
-* `datacenter` - (String) The name of the datacenter the host is in. Required
+* `datacenter` - (String, forces new resource) The name of the datacenter the host is in. Required
   when using vCenter, not required when using ESXi.
 * `mtu` - (Integer, optional) The maximum transmission unit (MTU) for the virtual
   switch. Default: `1500`.
