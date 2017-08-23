@@ -1,6 +1,7 @@
 package vsphere
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -9,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
-	"golang.org/x/net/context"
 )
 
 func testBasicPreCheckSnapshot(t *testing.T) {
@@ -17,7 +17,22 @@ func testBasicPreCheckSnapshot(t *testing.T) {
 }
 
 func TestAccVmSnapshot_Basic(t *testing.T) {
-	snapshot_name := "SnapshotForTestingTerraform"
+	var vmId, snapshotName, description, memory, quiesce string
+	if v := os.Getenv("VSPHERE_VM_ID"); v != "" {
+		vmId = v
+	}
+	if v := os.Getenv("VSPHERE_VM_SNAPSHOT_NAME"); v != "" {
+		snapshotName = v
+	}
+	if v := os.Getenv("VSPHERE_VM_SNAPSHOT_DESC"); v != "" {
+		description = v
+	}
+	if v := os.Getenv("VSPHERE_VM_SNAPSHOT_MEMORY"); v != "" {
+		memory = v
+	}
+	if v := os.Getenv("VSPHERE_VM_SNAPSHOT_QUIESCE"); v != "" {
+		quiesce = v
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -25,11 +40,11 @@ func TestAccVmSnapshot_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckVmSnapshotDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckVmSnapshotConfig_basic,
+				Config: testAccCheckVSphereVMSnapshotConfig_basic(vmId, snapshotName, description, memory, quiesce),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckVmSnapshotExists("vsphere_virtual_machine_snapshot.Test_terraform_cases", snapshot_name),
+					testAccCheckVmSnapshotExists("vsphere_virtual_machine_snapshot.Test_terraform_cases"),
 					resource.TestCheckResourceAttr(
-						"vsphere_snapshot.Test_terraform_cases", "snapshot_name", "SnapshotForTestingTerraform"),
+						"vsphere_virtual_machine_snapshot.Test_terraform_cases", "snapshot_name", snapshotName),
 				),
 			},
 		},
@@ -50,7 +65,7 @@ func testAccCheckVmSnapshotDestroy(s *terraform.State) error {
 		}
 		finder := find.NewFinder(client.Client, true)
 		finder = finder.SetDatacenter(dc)
-		vm, err := finder.VirtualMachine(context.TODO(), vmPath(rs.Primary.Attributes["folder"], rs.Primary.Attributes["vm_name"]))
+		vm, err := finder.VirtualMachine(context.TODO(), vmPath(rs.Primary.Attributes["folder"], rs.Primary.Attributes["vm_id"]))
 		if err != nil {
 			return fmt.Errorf("error %s", err)
 		}
@@ -64,7 +79,7 @@ func testAccCheckVmSnapshotDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckVmSnapshotExists(n, snapshot_name string) resource.TestCheckFunc {
+func testAccCheckVmSnapshotExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -83,11 +98,11 @@ func testAccCheckVmSnapshotExists(n, snapshot_name string) resource.TestCheckFun
 		}
 		finder := find.NewFinder(client.Client, true)
 		finder = finder.SetDatacenter(dc)
-		vm, err := finder.VirtualMachine(context.TODO(), vmPath(os.Getenv("VSPHERE_VM_FOLDER"), os.Getenv("VSPHERE_VM_NAME")))
+		vm, err := finder.VirtualMachine(context.TODO(), os.Getenv("VSPHERE_VM_ID"))
 		if err != nil {
 			return fmt.Errorf("error %s", err)
 		}
-		snapshot, err := vm.FindSnapshot(context.TODO(), snapshot_name)
+		snapshot, err := vm.FindSnapshot(context.TODO(), rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("Error while getting the snapshot %v", snapshot)
 		}
@@ -96,14 +111,13 @@ func testAccCheckVmSnapshotExists(n, snapshot_name string) resource.TestCheckFun
 	}
 }
 
-const testAccCheckVmSnapshotConfig_basic = `
-resource "vsphere_virtual_machine_snapshot" "Test_terraform_cases" {
-  	vm_name = "vmForTesting"
- 	folder = "workspace/forTesting
-	snapshot_name = "SnapshotForTestingTerraform"
-	description = "This is snpashot created for testing and will be deleted."
-	memory = "true"
-	quiesce = "true"
-	remove_children = "false"
-	consolidate = "true"
-}`
+func testAccCheckVSphereVMSnapshotConfig_basic(vmId, snapshotName, description, memory, quiesce string) string {
+	return fmt.Sprintf(`
+	resource "vsphere_virtual_machine_snapshot" "Test_terraform_cases" {
+	  vm_id = "%s"
+	  snapshot_name = "%s"
+	  description = "%s"
+	  memory = %s
+	  quiesce = %s
+  }`, vmId, snapshotName, description, memory, quiesce)
+}

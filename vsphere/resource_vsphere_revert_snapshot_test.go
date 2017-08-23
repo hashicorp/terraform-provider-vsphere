@@ -19,17 +19,25 @@ func testBasicPreCheckSnapshotRevert(t *testing.T) {
 }
 
 func TestAccVmSnapshotRevert_Basic(t *testing.T) {
-	snapshot_name := "SnapshotForTestingTerraform"
-
+	var vmId, snapshotId, suppressPower string
+	if v := os.Getenv("VSPHERE_VM_ID"); v != "" {
+		vmId = v
+	}
+	if v := os.Getenv("VSPHERE_VM_SNAPSHOT_ID"); v != "" {
+		snapshotId = v
+	}
+	if v := os.Getenv("VSPHERE_SUPPRESS_POWER_ON"); v != "" {
+		suppressPower = v
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVmSnapshotRevertDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckVmSnapshotRevertConfig_basic,
+				Config: testAccCheckVSphereVMSnapshotRevertConfig_basic(vmId, snapshotId, suppressPower),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckVmCurrentSnapshot("vsphere_virtual_machine_snapshot_revert.Test_terraform_cases", snapshot_name),
+					testAccCheckVmCurrentSnapshot("vsphere_virtual_machine_snapshot_revert.Test_terraform_cases", snapshotId),
 				),
 			},
 		},
@@ -60,7 +68,7 @@ func testAccCheckVmCurrentSnapshot(n, snapshot_name string) resource.TestCheckFu
 		}
 		finder := find.NewFinder(client.Client, true)
 		finder = finder.SetDatacenter(dc)
-		vm, err := finder.VirtualMachine(context.TODO(), vmPath(os.Getenv("VSPHERE_VM_FOLDER"), os.Getenv("VSPHERE_VM_NAME")))
+		vm, err := finder.VirtualMachine(context.TODO(), os.Getenv("VSPHERE_VM_ID"))
 		if err != nil {
 			return fmt.Errorf("error %s", err)
 		}
@@ -86,10 +94,11 @@ func testAccCheckVmCurrentSnapshot(n, snapshot_name string) resource.TestCheckFu
 	}
 }
 
-const testAccCheckVmSnapshotRevertConfig_basic = `
-resource "vsphere_virtual_machine_snapshot_revert" "Test_terraform_cases"{
- 	vm_name = "vmForTesting"
-	folder = "workspace/forTesting"
-	snapshot_name = "SnapshotForTestingTerraform"
-	suppress_power_on = "true"
-}`
+func testAccCheckVSphereVMSnapshotRevertConfig_basic(vmId, snapshotId, suppressPowerOn string) string {
+	return fmt.Sprintf(`
+	resource "vsphere_virtual_machine_snapshot_revert" "Test_terraform_cases"{
+		vm_id = "%s"
+		snapshot_id = "%s"
+		suppress_power_on = %s
+	}`, vmId, snapshotId, suppressPowerOn)
+}

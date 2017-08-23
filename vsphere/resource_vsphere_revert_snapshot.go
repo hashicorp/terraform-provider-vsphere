@@ -20,17 +20,12 @@ func resourceVSphereRevertSnapshot() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
-			"vm_name": {
+			"vm_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"folder": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-			"snapshot_name": {
+			"snapshot_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -49,7 +44,7 @@ func resourceVSphereSnapshotRevert(d *schema.ResourceData, meta interface{}) err
 	if err != nil {
 		return fmt.Errorf("Error while getting the VirtualMachine :%s", err)
 	}
-	task, err := vm.RevertToSnapshot(context.TODO(), d.Get("snapshot_name").(string), d.Get("suppress_power_on").(bool))
+	task, err := vm.RevertToSnapshot(context.TODO(), d.Get("snapshot_id").(string), d.Get("suppress_power_on").(bool))
 	if err != nil {
 		log.Printf("[ERROR] Error While Creating the Task for Revert Snapshot: %v", err)
 		return fmt.Errorf("Error While Creating the Task for Revert Snapshot: %s", err)
@@ -61,8 +56,8 @@ func resourceVSphereSnapshotRevert(d *schema.ResourceData, meta interface{}) err
 		log.Printf("[ERROR] Error While waiting for the Task of Revert Snapshot: %v", err)
 		return fmt.Errorf("Error While waiting for the Task of Revert Snapshot: %s", err)
 	}
-	log.Printf("[INFO] Revert Snapshot completed %v", d.Get("snapshot_name").(string))
-	d.SetId(d.Get("snapshot_name").(string))
+	log.Printf("[INFO] Revert Snapshot completed %v", d.Get("snapshot_id").(string))
+	d.SetId(d.Get("snapshot_id").(string))
 	return nil
 
 }

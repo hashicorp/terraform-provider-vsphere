@@ -10,6 +10,7 @@ import (
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/vim25/types"
 )
 
 func resourceVSphereSnapshot() *schema.Resource {
@@ -19,19 +20,14 @@ func resourceVSphereSnapshot() *schema.Resource {
 		Delete: resourceVSphereSnapshotDelete,
 
 		Schema: map[string]*schema.Schema{
+			"vm_id": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
 			"datacenter": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
-			},
-			"vm_name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-			"folder": {
-				Type:     schema.TypeString,
-				Required: true,
 				ForceNew: true,
 			},
 			"snapshot_name": {
@@ -74,33 +70,21 @@ func resourceVSphereSnapshotCreate(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error while getting the VirtualMachine :%s", err)
 	}
 	task, err := vm.CreateSnapshot(context.TODO(), d.Get("snapshot_name").(string), d.Get("description").(string), d.Get("memory").(bool), d.Get("quiesce").(bool))
+	taskInfo, err := task.WaitForResult(context.TODO(), nil)
 	if err != nil {
 		log.Printf("[ERROR] Error While Creating the Task for Create Snapshot: %v", err)
 		return fmt.Errorf(" Error While Creating the Task for Create Snapshot: %s", err)
 	}
 	log.Printf("[INFO] Task created for Create Snapshot: %v", task)
 	err = task.Wait(context.TODO())
+
 	if err != nil {
 		log.Printf("[ERROR] Error While waiting for the Task for Create Snapshot: %v", err)
 		return fmt.Errorf(" Error While waiting for the Task for Create Snapshot: %s", err)
 	}
 	log.Printf("[INFO] Create Snapshot completed %v", d.Get("snapshot_name").(string))
-	d.SetId(d.Get("snapshot_name").(string))
-	d.Set("snapshot_name", d.Get("snapshot_name").(string))
-	d.Set("vm_name", d.Get("vm_name").(string))
-	d.Set("folder", d.Get("folder").(string))
-	d.Set("description", d.Get("description").(string))
-	d.Set("memory", d.Get("memory").(bool))
-	d.Set("quiesce", d.Get("quiesce").(bool))
-
-	if v, ok := d.GetOk("consolidate"); ok {
-		d.Set("consolidate", v.(bool))
-
-	}
-	if v, ok := d.GetOk("remove_children"); ok {
-		d.Set("remove_children", v.(bool))
-	}
-
+	log.Println("[INFO] Managed Object Reference: " + taskInfo.Result.(types.ManagedObjectReference).Value)
+	d.SetId(taskInfo.Result.(types.ManagedObjectReference).Value)
 	return nil
 }
 
@@ -133,7 +117,7 @@ func resourceVSphereSnapshotDelete(d *schema.ResourceData, meta interface{}) err
 		remove_children = false
 	}
 
-	task, err := vm.RemoveSnapshot(context.TODO(), d.Get("snapshot_name").(string), remove_children, consolidate_ptr)
+	task, err := vm.RemoveSnapshot(context.TODO(), d.Id(), remove_children, consolidate_ptr)
 
 	if err != nil {
 		log.Printf("[ERROR] Error While Creating the Task for Delete Snapshot: %v", err)
@@ -156,11 +140,10 @@ func resourceVSphereSnapshotRead(d *schema.ResourceData, meta interface{}) error
 	if err != nil {
 		return fmt.Errorf("Error while getting the VirtualMachine :%s", err)
 	}
-	snapshotName := d.Get("snapshot_name").(string)
-	snapshot, err := vm.FindSnapshot(context.TODO(), snapshotName)
+	snapshot, err := vm.FindSnapshot(context.TODO(), d.Id())
 
 	if err != nil {
-		if strings.Contains(err.Error(), "No snapshots for this VM") || strings.Contains(err.Error(), "snapshot \""+snapshotName+"\" not found") {
+		if strings.Contains(err.Error(), "No snapshots for this VM") || strings.Contains(err.Error(), "snapshot \""+d.Get("snapshot_name").(string)+"\" not found") {
 			log.Printf("[ERROR] Error While finding the Snapshot: %v", err)
 			d.SetId("")
 			return nil
@@ -193,7 +176,7 @@ func findVM(d *schema.ResourceData, meta interface{}) (*object.VirtualMachine, e
 	finder = finder.SetDatacenter(dc)
 	log.Printf("[INFO] DataCenter is Set: %v", finder)
 	log.Println("[INFO] Getting VM Object: ")
-	vm, err := finder.VirtualMachine(context.TODO(), vmPath(d.Get("folder").(string), d.Get("vm_name").(string)))
+	vm, err := finder.VirtualMachine(context.TODO(), d.Get("vm_id").(string))
 	if err != nil {
 		log.Printf("[ERROR] Error While getting the Virtual machine object: %v", err)
 		return nil, err
