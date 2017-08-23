@@ -1,23 +1,24 @@
-## 0.2.0 (Unreleased)
+## 0.2.1 (Unreleased)
+## 0.2.0 (August 23, 2017)
 
 BREAKING CHANGES:
 
 * resource/vsphere_virtual_disk: Default adapter type is now `lsiLogic`,
-  changed from `ide`. [GH-94]
+  changed from `ide`. ([#94](https://github.com/terraform-providers/terraform-provider-vsphere/issues/94))
 
 FEATURES:
 
-* **New Resource:** `vsphere_datacenter` [GH-126]
-* **New Resource:** `vsphere_license` [GH-110]
+* **New Resource:** `vsphere_datacenter` ([#126](https://github.com/terraform-providers/terraform-provider-vsphere/issues/126))
+* **New Resource:** `vsphere_license` ([#110](https://github.com/terraform-providers/terraform-provider-vsphere/issues/110))
 
 IMPROVEMENTS:
 
-* resource/vsphere_virtual_machine: Add annotation argument [GH-111]
+* resource/vsphere_virtual_machine: Add annotation argument ([#111](https://github.com/terraform-providers/terraform-provider-vsphere/issues/111))
 
 BUG FIXES:
 
-* Updated [govmomi](https://github.com/vmware/govmomi) to v0.15.0 [GH-114]
-* Updated network interface discovery behaviour in refresh. [GH-129]. This fixes
+* Updated [govmomi](https://github.com/vmware/govmomi) to v0.15.0 ([#114](https://github.com/terraform-providers/terraform-provider-vsphere/issues/114))
+* Updated network interface discovery behaviour in refresh. [[#129](https://github.com/terraform-providers/terraform-provider-vsphere/issues/129)]. This fixes
   several reported bugs - see the PR for references!
 
 ## 0.1.0 (June 20, 2017)
