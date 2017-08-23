@@ -151,12 +151,11 @@ vCenter must be assigned the following privileges:
    - Remove License
    - Update License
    - Update Labels
- 
+
 * Snapshot 
    - Create snapshot of VM
    - Delete snapshot of VM
    - Revert to specified snapshot of VM
-
 
 These settings were tested with [vSphere
 6.0](https://pubs.vmware.com/vsphere-60/index.jsp?topic=%2Fcom.vmware.vsphere.security.doc%2FGUID-18071E9A-EED1-4968-8D51-E0B4F526FDA3.html)
@@ -228,4 +227,3 @@ Once all these variables are in place, the tests can be run like this:
 ```
 make testacc TEST=./builtin/providers/vsphere
 ```
-

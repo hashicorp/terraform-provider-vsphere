@@ -51,6 +51,11 @@ Click on "+" icon (Create role action), give it appropraite name and select foll
    - Inventory (all)
    - Provisioning (all)
 
+ * License 
+   - Add license
+   - Remove license
+   - Update license labels 
+
 These settings were tested with [vSphere 6.0](https://pubs.vmware.com/vsphere-60/index.jsp?topic=%2Fcom.vmware.vsphere.security.doc%2FGUID-18071E9A-EED1-4968-8D51-E0B4F526FDA3.html) and [vSphere 5.5](https://pubs.vmware.com/vsphere-55/index.jsp?topic=%2Fcom.vmware.vsphere.security.doc%2FGUID-18071E9A-EED1-4968-8D51-E0B4F526FDA3.html). For additional information on roles and permissions, please refer to official VMware documentation.
 
 This section is a work in progress and additional contributions are more than welcome.
