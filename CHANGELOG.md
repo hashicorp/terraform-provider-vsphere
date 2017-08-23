@@ -1,5 +1,10 @@
 ## 0.1.1 (Unreleased)
 
+BREAKING CHANGES:
+
+* resource/vsphere_virtual_disk: Default adapter type is now `lsiLogic`,
+  changed from `ide`. [GH-94]
+
 FEATURES:
 
 * **New Resource:** `vsphere_datacenter` [GH-126]
@@ -7,7 +12,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
-* r/vsphere_virtual_machine: Add annotation argument [GH-111]
+* resource/vsphere_virtual_machine: Add annotation argument [GH-111]
 
 BUG FIXES:
 
