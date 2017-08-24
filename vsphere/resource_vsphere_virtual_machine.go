@@ -321,9 +321,10 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						},
 
 						"ipv4_address": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:             schema.TypeString,
+							Optional:         true,
+							Computed:         true,
+							DiffSuppressFunc: suppressIpDifferences,
 						},
 
 						"ipv4_prefix_length": &schema.Schema{
@@ -333,16 +334,16 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						},
 
 						"ipv4_gateway": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
-						},
+							Type:             schema.TypeString,
+							Optional:         true,
+							Computed:         true,
+							DiffSuppressFunc: suppressIpDifferences},
 
 						"ipv6_address": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
-						},
+							Type:             schema.TypeString,
+							Optional:         true,
+							Computed:         true,
+							DiffSuppressFunc: suppressIpDifferences},
 
 						"ipv6_prefix_length": &schema.Schema{
 							Type:     schema.TypeInt,
@@ -351,10 +352,10 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						},
 
 						"ipv6_gateway": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
-						},
+							Type:             schema.TypeString,
+							Optional:         true,
+							Computed:         true,
+							DiffSuppressFunc: suppressIpDifferences},
 
 						"adapter_type": &schema.Schema{
 							Type:     schema.TypeString,
@@ -2217,4 +2218,14 @@ func getNetworkName(c *govmomi.Client, vm *object.VirtualMachine, nic types.Base
 	}
 	log.Printf("network Port DeviceName %#v", deviceName)
 	return deviceName, nil
+}
+
+// Suppress Diff on equal ip
+func suppressIpDifferences(k, old, new string, d *schema.ResourceData) bool {
+	o := net.ParseIP(old)
+	n := net.ParseIP(new)
+	if o != nil && n != nil {
+		return o.Equal(n)
+	}
+	return false
 }
