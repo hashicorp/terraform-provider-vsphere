@@ -9,7 +9,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/vmware/govmomi"
-	"github.com/vmware/govmomi/find")
+	"github.com/vmware/govmomi/find"
+)
 
 func testBasicPreCheckSnapshot(t *testing.T) {
 	testAccPreCheck(t)
