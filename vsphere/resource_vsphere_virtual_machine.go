@@ -321,9 +321,10 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						},
 
 						"ipv4_address": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:             schema.TypeString,
+							Optional:         true,
+							Computed:         true,
+							DiffSuppressFunc: suppressIpDifferences,
 						},
 
 						"ipv4_prefix_length": &schema.Schema{
@@ -333,16 +334,16 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						},
 
 						"ipv4_gateway": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
-						},
+							Type:             schema.TypeString,
+							Optional:         true,
+							Computed:         true,
+							DiffSuppressFunc: suppressIpDifferences},
 
 						"ipv6_address": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
-						},
+							Type:             schema.TypeString,
+							Optional:         true,
+							Computed:         true,
+							DiffSuppressFunc: suppressIpDifferences},
 
 						"ipv6_prefix_length": &schema.Schema{
 							Type:     schema.TypeInt,
@@ -351,10 +352,10 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						},
 
 						"ipv6_gateway": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
-						},
+							Type:             schema.TypeString,
+							Optional:         true,
+							Computed:         true,
+							DiffSuppressFunc: suppressIpDifferences},
 
 						"adapter_type": &schema.Schema{
 							Type:     schema.TypeString,
@@ -1088,12 +1089,14 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 				if networkInterface["key"] == v.DeviceConfigId {
 					for _, ip := range v.IpConfig.IpAddress {
 						p := net.ParseIP(ip.IpAddress)
-						if p.To4() != nil {
+						_, ok4 := networkInterface["ipv4_address"]
+						_, ok6 := networkInterface["ipv6_address"]
+						if p.To4() != nil && !ok4 {
 							log.Printf("[DEBUG] p.String - %#v", p.String())
 							log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
 							networkInterface["ipv4_address"] = p.String()
 							networkInterface["ipv4_prefix_length"] = ip.PrefixLength
-						} else if p.To16() != nil {
+						} else if p.To4() == nil && p.To16() != nil && !ok6 && !p.IsLinkLocalUnicast() {
 							log.Printf("[DEBUG] p.String - %#v", p.String())
 							log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
 							networkInterface["ipv6_address"] = p.String()
@@ -1114,6 +1117,10 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 						gatewaySetting := ""
 						if route.Network == "::" {
 							gatewaySetting = "ipv6_gateway"
+							p := net.ParseIP(route.Gateway.IpAddress)
+							if p.To16() != nil && p.IsLinkLocalUnicast() {
+								continue
+							}
 						} else if route.Network == "0.0.0.0" {
 							gatewaySetting = "ipv4_gateway"
 						}
@@ -2211,4 +2218,14 @@ func getNetworkName(c *govmomi.Client, vm *object.VirtualMachine, nic types.Base
 	}
 	log.Printf("network Port DeviceName %#v", deviceName)
 	return deviceName, nil
+}
+
+// Suppress Diff on equal ip
+func suppressIpDifferences(k, old, new string, d *schema.ResourceData) bool {
+	o := net.ParseIP(old)
+	n := net.ParseIP(new)
+	if o != nil && n != nil {
+		return o.Equal(n)
+	}
+	return false
 }
