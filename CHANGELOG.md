@@ -1,4 +1,11 @@
 ## 0.2.1 (Unreleased)
+
+IMPROVEMENTS:
+
+* resource/vsphere_virtual_machine: Fix IPv4 address mapping issues causing
+  spurious diffs, in addition to IPv6 normalization issues that can lead to spurious
+  diffs as well. [GH-128]
+
 ## 0.2.0 (August 23, 2017)
 
 BREAKING CHANGES:
