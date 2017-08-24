@@ -2,6 +2,10 @@
 
 IMPROVEMENTS:
 
+* resource/vsphere_virtual_machine: Allow customization of hostname [GH-79]
+
+BUG FIXES:
+
 * resource/vsphere_virtual_machine: Fix IPv4 address mapping issues causing
   spurious diffs, in addition to IPv6 normalization issues that can lead to spurious
   diffs as well. [GH-128]
