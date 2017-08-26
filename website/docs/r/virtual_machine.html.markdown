@@ -34,6 +34,7 @@ resource "vsphere_virtual_machine" "web" {
 ```hcl
 resource "vsphere_virtual_machine" "lb" {
   name          = "lb01"
+  hostname      = "lbalancer01"
   folder        = "Loadbalancers"
   vcpu          = 2
   memory        = 4096
@@ -65,6 +66,7 @@ The following arguments are supported:
 * `vcpu` - (Required) The number of virtual CPUs to allocate to the virtual machine
 * `vcoresPerSocket` - (Optional) The number of virtual CPUs for each socket; the number of virtual CPUs must be evenly divisible by the number of cores
 * `memory` - (Required) The amount of RAM (in MB) to allocate to the virtual machine
+* `hostname` - (Optional) The virtual machine hostname used during the OS customization. Defaults to the `name` attribute.
 * `memory_reservation` - (Optional) The amount of RAM (in MB) to reserve physical memory resource; defaults to 0 (means not to reserve)
 * `datacenter` - (Optional) The name of a Datacenter in which to launch the virtual machine
 * `cluster` - (Optional) Name of a Cluster in which to launch the virtual machine

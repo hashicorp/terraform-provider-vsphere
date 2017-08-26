@@ -17,6 +17,22 @@ type hclConfigurable struct {
 	Root *ast.File
 }
 
+var ReservedResourceFields = []string{
+	"connection",
+	"count",
+	"depends_on",
+	"id",
+	"lifecycle",
+	"provider",
+	"provisioner",
+}
+
+var ReservedProviderFields = []string{
+	"alias",
+	"id",
+	"version",
+}
+
 func (t *hclConfigurable) Config() (*Config, error) {
 	validKeys := map[string]struct{}{
 		"atlas":     struct{}{},
@@ -562,6 +578,7 @@ func loadProvidersHcl(list *ast.ObjectList) ([]*ProviderConfig, error) {
 		}
 
 		delete(config, "alias")
+		delete(config, "version")
 
 		rawConfig, err := NewRawConfig(config)
 		if err != nil {
@@ -583,9 +600,22 @@ func loadProvidersHcl(list *ast.ObjectList) ([]*ProviderConfig, error) {
 			}
 		}
 
+		// If we have a version field then extract it
+		var version string
+		if a := listVal.Filter("version"); len(a.Items) > 0 {
+			err := hcl.DecodeObject(&version, a.Items[0].Val)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error reading version for provider[%s]: %s",
+					n,
+					err)
+			}
+		}
+
 		result = append(result, &ProviderConfig{
 			Name:      n,
 			Alias:     alias,
+			Version:   version,
 			RawConfig: rawConfig,
 		})
 	}
