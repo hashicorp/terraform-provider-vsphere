@@ -2,10 +2,15 @@ package vsphere
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+// defaultAPITimeout is a default timeout value that is passed to functions
+// requiring contexts, and other various waiters.
+var defaultAPITimeout = time.Minute * 5
 
 // Provider returns a terraform.ResourceProvider.
 func Provider() terraform.ResourceProvider {
@@ -74,6 +79,7 @@ func Provider() terraform.ResourceProvider {
 
 		DataSourcesMap: map[string]*schema.Resource{
 			"vsphere_datacenter": dataSourceVSphereDatacenter(),
+			"vsphere_host":       dataSourceVSphereHost(),
 		},
 
 		ConfigureFunc: providerConfigure,

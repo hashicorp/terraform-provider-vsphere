@@ -6,6 +6,7 @@ import (
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/vim25/types"
 	"golang.org/x/net/context"
 )
 
@@ -27,4 +28,22 @@ func getDatacenter(c *govmomi.Client, dc string) (*object.Datacenter, error) {
 		return finder.DefaultDatacenter(context.TODO())
 	}
 	return nil, fmt.Errorf("unsupported ApiType: %s", t)
+}
+
+// datacenterFromID locates a Datacenter by its managed object reference ID.
+func datacenterFromID(client *govmomi.Client, id string) (*object.Datacenter, error) {
+	finder := find.NewFinder(client.Client, false)
+
+	ref := types.ManagedObjectReference{
+		Type:  "Datacenter",
+		Value: id,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	ds, err := finder.ObjectReference(ctx, ref)
+	if err != nil {
+		return nil, fmt.Errorf("could not find datacenter with id: %s: %s", id, err)
+	}
+	return ds.(*object.Datacenter), nil
 }
