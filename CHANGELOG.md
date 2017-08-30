@@ -1,5 +1,9 @@
 ## 0.2.1 (Unreleased)
 
+FEATURES:
+
+* **New Data Source:** `vsphere_datacenter` [GH-144]
+
 IMPROVEMENTS:
 
 * resource/vsphere_virtual_machine: Allow customization of hostname [GH-79]
