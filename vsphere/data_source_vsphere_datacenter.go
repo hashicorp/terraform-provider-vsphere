@@ -17,11 +17,6 @@ func dataSourceVSphereDatacenter() *schema.Resource {
 				Description: "The name of the datacenter. This can be a name or path.	If not provided, the default datacenter is used.",
 				Optional: true,
 			},
-			"datacenter_id": &schema.Schema{
-				Type:        schema.TypeString,
-				Description: "The managed object ID of the datacenter.",
-				Computed:    true,
-			},
 		},
 	}
 }
@@ -35,7 +30,6 @@ func dataSourceVSphereDatacenterRead(d *schema.ResourceData, meta interface{}) e
 	}
 	id := dc.Reference().Value
 	d.SetId(id)
-	d.Set("datacenter_id", id)
 
 	return nil
 }

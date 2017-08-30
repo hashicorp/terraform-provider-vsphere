@@ -34,6 +34,5 @@ The following arguments are supported:
 
 ## Attribute Reference
 
-* `id` - The managed object ID of this datacenter.
-* `datacenter_id` - (String) The managed object ID of this datacenter (same as
-  `id`).
+The only exported attribute is `id`, which is the managed object ID of this
+datacenter.

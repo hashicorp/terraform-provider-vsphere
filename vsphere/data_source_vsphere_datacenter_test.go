@@ -34,11 +34,6 @@ func TestAccDataSourceVSphereDatacenter(t *testing.T) {
 								"id",
 								testAccDataSourceVSphereDatacenterExpectedRegexp,
 							),
-							resource.TestMatchResourceAttr(
-								"data.vsphere_datacenter.dc",
-								"datacenter_id",
-								testAccDataSourceVSphereDatacenterExpectedRegexp,
-							),
 						),
 					},
 				},
@@ -59,11 +54,6 @@ func TestAccDataSourceVSphereDatacenter(t *testing.T) {
 							resource.TestMatchResourceAttr(
 								"data.vsphere_datacenter.dc",
 								"id",
-								testAccDataSourceVSphereDatacenterExpectedRegexp,
-							),
-							resource.TestMatchResourceAttr(
-								"data.vsphere_datacenter.dc",
-								"datacenter_id",
 								testAccDataSourceVSphereDatacenterExpectedRegexp,
 							),
 						),
