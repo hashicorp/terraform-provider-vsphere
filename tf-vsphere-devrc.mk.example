@@ -35,5 +35,8 @@ export VSPHERE_INIT_TYPE           ?= thin       # vDisk type
 export VSPHERE_ADAPTER_TYPE        ?= lsiLogic   # Virtual disk adapter type
 export VSPHERE_LICENSE             ?= key        # License resource test key
 export VSPHERE_DC_FOLDER           ?= dc-folder  # DC resource test folder
+export VSPHERE_ESXI_HOST           ?= esxi1      # ESXi host to work with
+export VSPHERE_HOST_NIC0           ?= vmnic0     # NIC0 for host net tests
+export VSPHERE_HOST_NIC1           ?= vmnic1     # NIC1 for host net tests
 
 # vi: filetype=make

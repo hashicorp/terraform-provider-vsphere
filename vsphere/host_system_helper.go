@@ -7,6 +7,7 @@ import (
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/vim25/types"
 )
 
 // hostSystemOrDefault returns a HostSystem from a specific host name and
@@ -29,4 +30,22 @@ func hostSystemOrDefault(client *govmomi.Client, name string, dc *object.Datacen
 		return finder.DefaultHostSystem(ctx)
 	}
 	return nil, fmt.Errorf("unsupported ApiType: %s", t)
+}
+
+// hostSystemFromID locates a HostSystem by its managed object reference ID.
+func hostSystemFromID(client *govmomi.Client, id string) (*object.HostSystem, error) {
+	finder := find.NewFinder(client.Client, false)
+
+	ref := types.ManagedObjectReference{
+		Type:  "HostSystem",
+		Value: id,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	ds, err := finder.ObjectReference(ctx, ref)
+	if err != nil {
+		return nil, fmt.Errorf("could not find host system with id: %s: %s", id, err)
+	}
+	return ds.(*object.HostSystem), nil
 }
