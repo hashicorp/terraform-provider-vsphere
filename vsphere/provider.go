@@ -72,6 +72,7 @@ func Provider() terraform.ResourceProvider {
 			"vsphere_datacenter":          resourceVSphereDatacenter(),
 			"vsphere_file":                resourceVSphereFile(),
 			"vsphere_folder":              resourceVSphereFolder(),
+			"vsphere_host_port_group":     resourceVSphereHostPortGroup(),
 			"vsphere_host_virtual_switch": resourceVSphereHostVirtualSwitch(),
 			"vsphere_license":             resourceVSphereLicense(),
 			"vsphere_virtual_disk":        resourceVSphereVirtualDisk(),

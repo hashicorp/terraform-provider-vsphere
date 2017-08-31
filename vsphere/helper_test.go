@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/vmware/govmomi"
+	"github.com/vmware/govmomi/vim25/types"
 )
 
 // testCheckVariables bundles common variables needed by various test checkers.
@@ -48,4 +49,24 @@ func testAccSkipIfNotEsxi(t *testing.T) {
 	if os.Getenv("VSPHERE_TEST_ESXI") == "" {
 		t.Skip("set VSPHERE_TEST_ESXI to run ESXi-specific acceptance tests")
 	}
+}
+
+// testGetPortGroup is a convenience method to fetch a static port group
+// resource for testing.
+func testGetPortGroup(s *terraform.State, resourceName string) (*types.HostPortGroup, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_host_port_group.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+
+	hsID, name, err := splitHostPortGroupID(tVars.resourceID)
+	if err != nil {
+		return nil, err
+	}
+	ns, err := hostNetworkSystemFromHostSystemID(tVars.client, hsID)
+	if err != nil {
+		return nil, fmt.Errorf("error loading host network system: %s", err)
+	}
+
+	return hostPortGroupFromName(tVars.client, ns, name)
 }

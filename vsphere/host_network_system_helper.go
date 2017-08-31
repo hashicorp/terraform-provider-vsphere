@@ -28,8 +28,8 @@ func hostNetworkSystemFromHostSystemID(client *govmomi.Client, hsID string) (*ob
 	return hostNetworkSystemFromHostSystem(hs)
 }
 
-// hostVSwitchFromName locates a virtual switch on the supplied HostSystem by
-// name.
+// hostVSwitchFromName locates a virtual switch on the supplied
+// HostNetworkSystem by name.
 func hostVSwitchFromName(client *govmomi.Client, ns *object.HostNetworkSystem, name string) (*types.HostVirtualSwitch, error) {
 	var mns mo.HostNetworkSystem
 	pc := client.PropertyCollector()
@@ -46,4 +46,24 @@ func hostVSwitchFromName(client *govmomi.Client, ns *object.HostNetworkSystem, n
 	}
 
 	return nil, fmt.Errorf("could not find virtual switch %s", name)
+}
+
+// hostPortGroupFromName locates a port group on the supplied HostNetworkSystem
+// by name.
+func hostPortGroupFromName(client *govmomi.Client, ns *object.HostNetworkSystem, name string) (*types.HostPortGroup, error) {
+	var mns mo.HostNetworkSystem
+	pc := client.PropertyCollector()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	if err := pc.RetrieveOne(ctx, ns.Reference(), []string{"networkInfo.portgroup"}, &mns); err != nil {
+		return nil, fmt.Errorf("error fetching host network properties: %s", err)
+	}
+
+	for _, pg := range mns.NetworkInfo.Portgroup {
+		if pg.Spec.Name == name {
+			return &pg, nil
+		}
+	}
+
+	return nil, fmt.Errorf("could not find port group %s", name)
 }
