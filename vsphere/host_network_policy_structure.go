@@ -108,16 +108,16 @@ func expandHostNicFailureCriteria(d *schema.ResourceData) *types.HostNicFailureC
 	obj := &types.HostNicFailureCriteria{}
 
 	if v, ok := d.GetOkExists("check_beacon"); ok {
-		obj.CheckBeacon = &([]bool{v.(bool)}[0])
+		obj.CheckBeacon = boolPtr(v.(bool))
 	}
 
 	// These fields are deprecated and are set only to make things work. They are
 	// not exposed to Terraform.
 	obj.CheckSpeed = "minimum"
 	obj.Speed = 10
-	obj.CheckDuplex = &([]bool{false}[0])
-	obj.FullDuplex = &([]bool{false}[0])
-	obj.CheckErrorPercent = &([]bool{false}[0])
+	obj.CheckDuplex = boolPtr(false)
+	obj.FullDuplex = boolPtr(false)
+	obj.CheckErrorPercent = boolPtr(false)
 	obj.Percentage = 0
 
 	return obj
@@ -168,17 +168,17 @@ func expandHostNicTeamingPolicy(d *schema.ResourceData) *types.HostNicTeamingPol
 		Policy: d.Get("teaming_policy").(string),
 	}
 	if v, ok := d.GetOkExists("failback"); ok {
-		obj.RollingOrder = &([]bool{!v.(bool)}[0])
+		obj.RollingOrder = boolPtr(!v.(bool))
 	}
 	if v, ok := d.GetOkExists("notify_switches"); ok {
-		obj.NotifySwitches = &([]bool{v.(bool)}[0])
+		obj.NotifySwitches = boolPtr(v.(bool))
 	}
 	obj.FailureCriteria = expandHostNicFailureCriteria(d)
 	obj.NicOrder = expandHostNicOrderPolicy(d)
 
 	// These fields are deprecated and are set only to make things work. They are
 	// not exposed to Terraform.
-	obj.ReversePolicy = &([]bool{true}[0])
+	obj.ReversePolicy = boolPtr(true)
 
 	return obj
 }
@@ -207,13 +207,13 @@ func flattenHostNicTeamingPolicy(d *schema.ResourceData, obj *types.HostNicTeami
 func expandHostNetworkSecurityPolicy(d *schema.ResourceData) *types.HostNetworkSecurityPolicy {
 	obj := &types.HostNetworkSecurityPolicy{}
 	if v, ok := d.GetOkExists("allow_promiscuous"); ok {
-		obj.AllowPromiscuous = &([]bool{v.(bool)}[0])
+		obj.AllowPromiscuous = boolPtr(v.(bool))
 	}
 	if v, ok := d.GetOkExists("allow_forged_transmits"); ok {
-		obj.ForgedTransmits = &([]bool{v.(bool)}[0])
+		obj.ForgedTransmits = boolPtr(v.(bool))
 	}
 	if v, ok := d.GetOkExists("allow_mac_changes"); ok {
-		obj.MacChanges = &([]bool{v.(bool)}[0])
+		obj.MacChanges = boolPtr(v.(bool))
 	}
 	return obj
 }
@@ -242,7 +242,7 @@ func expandHostNetworkTrafficShapingPolicy(d *schema.ResourceData) *types.HostNe
 		PeakBandwidth:    int64(d.Get("shaping_peak_bandwidth").(int)),
 	}
 	if v, ok := d.GetOkExists("shaping_enabled"); ok {
-		obj.Enabled = &([]bool{v.(bool)}[0])
+		obj.Enabled = boolPtr(v.(bool))
 	}
 	return obj
 }

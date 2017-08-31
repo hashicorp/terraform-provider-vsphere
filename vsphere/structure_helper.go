@@ -36,3 +36,11 @@ func mergeSchema(dst, src map[string]*schema.Schema) {
 		dst[k] = v
 	}
 }
+
+// boolPtr makes a *bool out of the value passed in through v.
+//
+// vSphere uses nil values in bools to omit values in the SOAP XML request, and
+// helps denote inheritance in certain cases.
+func boolPtr(v bool) *bool {
+	return &v
+}
