@@ -185,7 +185,7 @@ func saveHostVirtualSwitchID(d *schema.ResourceData, hsID, name string) {
 // name.
 func splitHostVirtualSwitchID(raw string) (string, string, error) {
 	s := strings.SplitN(raw, ":", 3)
-	if len(s) < 3 || s[0] != hostVirtualSwitchIDPrefix || s[1] == "" || s[2] == "" {
+	if len(s) != 3 || s[0] != hostVirtualSwitchIDPrefix || s[1] == "" || s[2] == "" {
 		return "", "", fmt.Errorf("corrupt ID: %s", raw)
 	}
 	return s[1], s[2], nil
