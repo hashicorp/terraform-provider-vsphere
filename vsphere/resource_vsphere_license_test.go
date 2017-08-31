@@ -89,7 +89,7 @@ func TestAccVSphereLicenseWithLabelsOnESXiServer(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 			testAccVSpherePreLicenseBasicCheck(t)
-			testAccVspherePreLicenseESXiServerIsSetCheck(t)
+			testAccSkipIfNotEsxi(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -107,12 +107,6 @@ func testAccVspherePreLicenseESXiServerIsNotSetCheck(t *testing.T) {
 	key, err := strconv.ParseBool(os.Getenv("VSPHERE_TEST_ESXI"))
 	if err == nil && key {
 		t.Skip("VSPHERE_TEST_ESXI must not be set for this acceptance test")
-	}
-}
-func testAccVspherePreLicenseESXiServerIsSetCheck(t *testing.T) {
-	key, err := strconv.ParseBool(os.Getenv("VSPHERE_TEST_ESXI"))
-	if err != nil || !key {
-		t.Skip("VSPHERE_TEST_ESXI must be set to true for this acceptance test")
 	}
 }
 
