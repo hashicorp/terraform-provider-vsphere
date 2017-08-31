@@ -27,13 +27,13 @@ data "vsphere_datacenter" "datacenter" {
 
 The following arguments are supported:
 
-* `name` - (String) The name of the datacenter. This can be a name or path.	If
-  not provided, the default datacenter is used.
+* `name` - (String) The name of the datacenter. This can be a name or path.	Can
+  be omitted if there is only one datacenter in your inventory.
 
 ~> **NOTE:** When used against ESXi, this data source _always_ fetches the
 server's "default" datacenter, which is a special datacenter unrelated to the
-default datacenter that exists in vCenter. Hence, the `name` attribute is
-completely ignored.
+datacenters that exist in any vCenter server that might be managing this host.
+Hence, the `name` attribute is completely ignored.
 
 ## Attribute Reference
 
