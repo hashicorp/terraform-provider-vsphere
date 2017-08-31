@@ -170,4 +170,7 @@ probing (configured with [`check_beacon`](#check_beacon)).
 ## Attribute Reference
 
 The only exported attribute, other than the attributes above, is the `id` of
-the resource, which is set to the name of the virtual switch.
+the resource. This is set to an ID value unique to Terraform - the convention
+is a prefix, the host system ID, and the virtual switch name. An example would
+be `tf-HostVirtualSwitch:host-10:vSwitchTerraformTest`.
+
