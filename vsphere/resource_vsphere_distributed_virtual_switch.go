@@ -56,10 +56,12 @@ func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta 
 	// Configure the host and nic cards used as uplink for the DVS
 	var host []types.DistributedVirtualSwitchHostMemberConfigSpec
 
-	if kv, ok := d.GetOk("uplinks"); ok {
-		for k, v := range kv.(map[string]interface{}) {
+	if v, ok := d.GetOk("host"); ok {
+		for _, vi := range v.([]interface{}) {
+			hi := vi.(map[string]interface{})
+			bi := hi["backing"].([]interface{})
 			// Get the HostSystem reference
-			hs, err := finder.HostSystem(context.TODO(), k)
+			hs, err := finder.HostSystem(context.TODO(), hi["host"].(string))
 			if err != nil {
 				return fmt.Errorf("%s", err)
 			}
@@ -67,7 +69,7 @@ func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta 
 			// Get the physical NIC backing
 			backing := new(types.DistributedVirtualSwitchHostMemberPnicBacking)
 			backing.PnicSpec = append(backing.PnicSpec, types.DistributedVirtualSwitchHostMemberPnicSpec{
-				PnicDevice: strings.TrimSpace(v.(string)),
+				PnicDevice: strings.TrimSpace(bi[0].(string)),
 			})
 			h := types.DistributedVirtualSwitchHostMemberConfigSpec{
 				Host:      hs.Common.Reference(),

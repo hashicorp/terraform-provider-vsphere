@@ -43,17 +43,28 @@ func schemaDVPortSetting() map[string]*schema.Schema {
 	return nil
 }
 
-func schemaDistributedVirtualSwitchHostMemberPnicBacking() map[string]*schema.Schema {
-	return nil
+func schemaDistributedVirtualSwitchHostMemberPnicBacking() *schema.Schema {
+	// TODO maybe a set will fit better to avoid the mistake of putting a nic twice?
+	return &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		Elem:     &schema.Schema{Type: schema.TypeString},
+	}
 }
 
-func schemaDistributedVirtualSwitchHostMemberConfigSpec() map[string]*schema.Schema {
-	s := map[string]*schema.Schema{
+func schemaDistributedVirtualSwitchHostMemberConfigSpec() *schema.Schema {
+	se := map[string]*schema.Schema{
 		"max_proxy_switch_ports": &schema.Schema{
 			Type:        schema.TypeInt,
 			Optional:    true,
 			Description: "Maximum number of ports allowed in the HostProxySwitch.",
 			//Validation:  validation.IntAtLeast(0),
+		},
+		// The host name should be enough to get a reference to it, which is what we need here
+		"host": &schema.Schema{
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Identifies a host member of a DistributedVirtualSwitch for a CreateDVS_Task or DistributedVirtualSwitch.ReconfigureDvs_Task operation.",
 		},
 		"operation": &schema.Schema{
 			Type:        schema.TypeInt,
@@ -61,12 +72,19 @@ func schemaDistributedVirtualSwitchHostMemberConfigSpec() map[string]*schema.Sch
 			Description: "Host member operation type.",
 			//Validation:  validation.StringInSlice(configSpecOperationAllowedValues, false),
 		},
+		// DistributedVirtualSwitchHostMemberPnicBacking extends DistributedVirtualSwitchHostMemberBacking
+		// which is a base class
+		"backing": schemaDistributedVirtualSwitchHostMemberPnicBacking(),
 	}
-	// DistributedVirtualSwitchHostMemberPnicBacking extends DistributedVirtualSwitchHostMemberBacking
-	// which is a base class
-	mergeSchema(s, schemaDistributedVirtualSwitchHostMemberPnicBacking())
-	// XXX TBD host
-	mergeSchema(s, schemaDistributedVirtualSwitchKeyedOpaqueBlob())
+	mergeSchema(se, schemaDistributedVirtualSwitchKeyedOpaqueBlob())
+
+	s := &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		Elem: &schema.Resource{
+			Schema: se,
+		},
+	}
 
 	return s
 }
@@ -131,6 +149,7 @@ func schemaDVSConfiSpec() map[string]*schema.Schema {
 			Optional:    true,
 			Description: "The key of the extension registered by a remote server that controls the switch.",
 		},
+		"host": schemaDistributedVirtualSwitchHostMemberConfigSpec(),
 		"name": &schema.Schema{
 			Type:        schema.TypeString,
 			Optional:    true,
@@ -157,7 +176,6 @@ func schemaDVSConfiSpec() map[string]*schema.Schema {
 	}
 	//mergeSchema(s, schemaDVSContactInfo())
 	mergeSchema(s, schemaDVPortSetting())
-	mergeSchema(s, schemaDistributedVirtualSwitchHostMemberConfigSpec())
 	mergeSchema(s, schemaDvsHostInfrastructureTrafficResource())
 	mergeSchema(s, schemaDVSPolicy())
 	// XXX TBD uplinkPortgroup
