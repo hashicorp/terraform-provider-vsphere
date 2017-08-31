@@ -2,6 +2,7 @@
 
 FEATURES:
 
+* **New Resource:** `vsphere_host_virtual_switch` [GH-138]
 * **New Data Source:** `vsphere_datacenter` [GH-144]
 * **New Data Source:** `vsphere_host` [GH-146]
 
