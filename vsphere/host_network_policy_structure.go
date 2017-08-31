@@ -187,7 +187,8 @@ func expandHostNicTeamingPolicy(d *schema.ResourceData) *types.HostNicTeamingPol
 // into the passed in ResourceData.
 func flattenHostNicTeamingPolicy(d *schema.ResourceData, obj *types.HostNicTeamingPolicy) error {
 	if obj.RollingOrder != nil {
-		d.Set("failback", !*obj.RollingOrder)
+		v := *obj.RollingOrder
+		d.Set("failback", !v)
 	}
 	if obj.NotifySwitches != nil {
 		d.Set("notify_switches", obj.NotifySwitches)
