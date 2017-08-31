@@ -22,8 +22,11 @@ resource "vsphere_distributed_virtual_switch" "testDVS" {
 const testAccCheckVSphereDVSConfigUplinks = `
 resource "vsphere_distributed_virtual_switch" "testDVS" {
 	datacenter = "%s"
-  name   = "testDVS"
-  uplinks = { "%s" = "%s" } 
+  name = "testDVS"
+  host = [{ 
+		host = "%s" 
+		backing = ["%s"]
+	}]
 }
 `
 
