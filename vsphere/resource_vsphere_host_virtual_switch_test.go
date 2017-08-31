@@ -144,7 +144,7 @@ func testAccResourceVSphereHostVirtualSwitchExists(expected bool) resource.TestC
 
 		_, err = hostVSwitchFromName(vars.client, ns, name)
 		if err != nil {
-			if err.Error() == fmt.Sprintf("could not find virtual switch %s", name) && !expected {
+			if err.Error() == fmt.Sprintf("could not find virtual switch %s", name) && expected == false {
 				// Expected missing
 				return nil
 			}
