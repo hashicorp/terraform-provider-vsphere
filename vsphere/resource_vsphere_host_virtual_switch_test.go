@@ -160,12 +160,10 @@ func testAccResourceVSphereHostVirtualSwitchExists(expected bool) resource.TestC
 func testAccResourceVSphereHostVirtualSwitchConfig() string {
 	return fmt.Sprintf(`
 variable "host_nic0" {
-  type    = "string"
   default = "%s"
 }
 
 variable "host_nic1" {
-  type    = "string"
   default = "%s"
 }
 
@@ -193,7 +191,6 @@ resource "vsphere_host_virtual_switch" "switch" {
 func testAccResourceVSphereHostVirtualSwitchConfigSingleNIC() string {
 	return fmt.Sprintf(`
 variable "host_nic0" {
-  type    = "string"
   default = "%s"
 }
 
@@ -221,12 +218,10 @@ resource "vsphere_host_virtual_switch" "switch" {
 func testAccResourceVSphereHostVirtualSwitchConfigStandbyLink() string {
 	return fmt.Sprintf(`
 variable "host_nic0" {
-  type    = "string"
   default = "%s"
 }
 
 variable "host_nic1" {
-  type    = "string"
   default = "%s"
 }
 
