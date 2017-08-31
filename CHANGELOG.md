@@ -1,21 +1,21 @@
-## 0.2.1 (Unreleased)
+## 0.2.1 (August 31, 2017)
 
 FEATURES:
 
-* **New Resource:** `vsphere_host_port_group` [GH-139]
-* **New Resource:** `vsphere_host_virtual_switch` [GH-138]
-* **New Data Source:** `vsphere_datacenter` [GH-144]
-* **New Data Source:** `vsphere_host` [GH-146]
+* **New Resource:** `vsphere_host_port_group` ([#139](https://github.com/terraform-providers/terraform-provider-vsphere/issues/139))
+* **New Resource:** `vsphere_host_virtual_switch` ([#138](https://github.com/terraform-providers/terraform-provider-vsphere/issues/138))
+* **New Data Source:** `vsphere_datacenter` ([#144](https://github.com/terraform-providers/terraform-provider-vsphere/issues/144))
+* **New Data Source:** `vsphere_host` ([#146](https://github.com/terraform-providers/terraform-provider-vsphere/issues/146))
 
 IMPROVEMENTS:
 
-* resource/vsphere_virtual_machine: Allow customization of hostname [GH-79]
+* resource/vsphere_virtual_machine: Allow customization of hostname ([#79](https://github.com/terraform-providers/terraform-provider-vsphere/issues/79))
 
 BUG FIXES:
 
 * resource/vsphere_virtual_machine: Fix IPv4 address mapping issues causing
   spurious diffs, in addition to IPv6 normalization issues that can lead to spurious
-  diffs as well. [GH-128]
+  diffs as well. ([#128](https://github.com/terraform-providers/terraform-provider-vsphere/issues/128))
 
 ## 0.2.0 (August 23, 2017)
 
