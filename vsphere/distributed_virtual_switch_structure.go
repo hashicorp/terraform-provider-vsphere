@@ -17,62 +17,78 @@ var configSpecOperationAllowedValues = []string{
 	string(types.VirtualDeviceConfigSpecOperationEdit),
 }
 
-func schemaDVSContactInfo() map[string]*schema.Schema {
-	return map[string]*schema.Schema{
-		"contact": &schema.Schema{
-			Type:        schema.TypeString,
-			Optional:    true,
-			Description: "The contact information for the person.",
-		},
-		"name": &schema.Schema{
-			Type:        schema.TypeString,
-			Optional:    true,
-			Description: "The name of the person who is responsible for the switch.",
+func schemaDVSContactInfo() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"contact": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "The contact information for the person.",
+				},
+				"name": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "The name of the person who is responsible for the switch.",
+				},
+			},
 		},
 	}
 }
 
 func schemaDVPortSetting() map[string]*schema.Schema {
 	// TBD
+	return nil
+}
+
+func schemaDistributedVirtualSwitchHostMemberPnicBacking() map[string]*schema.Schema {
+	return nil
 }
 
 func schemaDistributedVirtualSwitchHostMemberConfigSpec() map[string]*schema.Schema {
 	s := map[string]*schema.Schema{
-		"maxProxySwitchPorts": &schema.Schema{
+		"max_proxy_switch_ports": &schema.Schema{
 			Type:        schema.TypeInt,
 			Optional:    true,
 			Description: "Maximum number of ports allowed in the HostProxySwitch.",
-			Validation:  validation.IntAtLeast(0),
+			//Validation:  validation.IntAtLeast(0),
 		},
 		"operation": &schema.Schema{
 			Type:        schema.TypeInt,
 			Optional:    true,
 			Description: "Host member operation type.",
-			Validation:  validation.StringInSlice(configSpecOperationAllowedValues, false),
+			//Validation:  validation.StringInSlice(configSpecOperationAllowedValues, false),
 		},
 	}
-	mergeSchema(s, schemaDistributedVirtualSwitchHostMemberBacking())
+	// DistributedVirtualSwitchHostMemberPnicBacking extends DistributedVirtualSwitchHostMemberBacking
+	// which is a base class
+	mergeSchema(s, schemaDistributedVirtualSwitchHostMemberPnicBacking())
 	// XXX TBD host
 	mergeSchema(s, schemaDistributedVirtualSwitchKeyedOpaqueBlob())
+
+	return s
 }
 
 func schemaDvsHostInfrastructureTrafficResource() map[string]*schema.Schema {
 	// TBD
+	return nil
 }
 
 func schemaDVSPolicy() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
-		"autoPreInstallAllowed": &schema.Schema{
+		"auto_pre_install_allowed": &schema.Schema{
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "Whether downloading a new proxy VirtualSwitch module to the host is allowed to be automatically executed by the switch.",
 		},
-		"autoUpgradeAllowed": &schema.Schema{
+		"auto_upgrade_allowed": &schema.Schema{
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "Whether upgrading of the switch is allowed to be automatically executed by the switch.",
 		},
-		"partialUpgradeAllowed": &schema.Schema{
+		"partial_upgrade_allowed": &schema.Schema{
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "Whether to allow upgrading a switch when some of the hosts failed to install the needed module.",
@@ -82,20 +98,24 @@ func schemaDVSPolicy() map[string]*schema.Schema {
 
 func schemaDVSUplinkPortPolicy() map[string]*schema.Schema {
 	// TBD
+	return nil
 }
 
 func schemaDistributedVirtualSwitchKeyedOpaqueBlob() map[string]*schema.Schema {
 	// TBD should be a map
+	return nil
 }
 
 func schemaDVSConfiSpec() map[string]*schema.Schema {
 	s := map[string]*schema.Schema{
-		"configVersion": &schema.Schema{
+		"config_version": &schema.Schema{
 			Type:        schema.TypeString,
 			Optional:    true,
 			Description: "The version string of the configuration that this spec is trying to change. This property is ignored during switch creation.",
 		},
-		"defaultProxySwitchMaxNumPorts": &schema.Schema{
+		// nested to avoid having two "name" properties
+		"contact": schemaDVSContactInfo(),
+		"default_proxy_switch_max_num_ports": &schema.Schema{
 			Type:         schema.TypeInt,
 			Optional:     true,
 			Description:  "The default host proxy switch maximum port number.",
@@ -106,7 +126,7 @@ func schemaDVSConfiSpec() map[string]*schema.Schema {
 			Optional:    true,
 			Description: "Set the description string of the switch.",
 		},
-		"extensionKey": &schema.Schema{
+		"extension_key": &schema.Schema{
 			Type:        schema.TypeString,
 			Optional:    true,
 			Description: "The key of the extension registered by a remote server that controls the switch.",
@@ -116,26 +136,26 @@ func schemaDVSConfiSpec() map[string]*schema.Schema {
 			Optional:    true,
 			Description: "The name of the switch. Must be unique in the parent folder.",
 		},
-		"networkResourceControlVersion": &schema.Schema{
+		"network_resource_control_version": &schema.Schema{
 			Type:         schema.TypeString,
 			Optional:     true,
 			Description:  "Indicates the Network Resource Control APIs that are supported on the switch.",
 			ValidateFunc: validation.StringInSlice(distributedVirtualSwitchNetworkResourceControlVersionAllowedValues, false),
 		},
-		"numStandalonePorts": &schema.Schema{
+		"num_standalone_ports": &schema.Schema{
 			Type:         schema.TypeInt,
 			Optional:     true,
 			Description:  "The number of standalone ports in the switch. Standalone ports are ports that do not belong to any portgroup.",
 			ValidateFunc: validation.IntAtLeast(0),
 		},
-		"switchIpAddress": &schema.Schema{
+		"switch_ip_address": &schema.Schema{
 			Type:         schema.TypeString,
 			Optional:     true,
 			Description:  "IP address for the switch, specified using IPv4 dot notation. IPv6 address is not supported for this property.",
 			ValidateFunc: validation.StringInSlice(distributedVirtualSwitchNetworkResourceControlVersionAllowedValues, false),
 		},
 	}
-	mergeSchema(s, schemaDVSContactInfo())
+	//mergeSchema(s, schemaDVSContactInfo())
 	mergeSchema(s, schemaDVPortSetting())
 	mergeSchema(s, schemaDistributedVirtualSwitchHostMemberConfigSpec())
 	mergeSchema(s, schemaDvsHostInfrastructureTrafficResource())
@@ -143,4 +163,6 @@ func schemaDVSConfiSpec() map[string]*schema.Schema {
 	// XXX TBD uplinkPortgroup
 	mergeSchema(s, schemaDVSUplinkPortPolicy())
 	mergeSchema(s, schemaDistributedVirtualSwitchKeyedOpaqueBlob())
+
+	return s
 }

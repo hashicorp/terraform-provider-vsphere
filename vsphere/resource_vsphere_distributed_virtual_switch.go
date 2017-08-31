@@ -17,29 +17,21 @@ import (
 )
 
 func resourceVSphereDistributedVirtualSwitch() *schema.Resource {
+	s := map[string]*schema.Schema{
+		"datacenter": &schema.Schema{
+			Type:     schema.TypeString,
+			Required: true,
+			ForceNew: true,
+		},
+	}
+	mergeSchema(s, schemaDVSConfiSpec())
+
 	return &schema.Resource{
 		Create: resourceVSphereDistributedVirtualSwitchCreate,
 		Read:   resourceVSphereDistributedVirtualSwitchRead,
+		Update: resourceVSphereDistributedVirtualSwitchUpdate,
 		Delete: resourceVSphereDistributedVirtualSwitchDelete,
-
-		Schema: map[string]*schema.Schema{
-			"datacenter": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-			"uplinks": {
-				Type:     schema.TypeMap,
-				Optional: true,
-				ForceNew: true,
-				Elem:     schema.TypeString,
-			},
-		},
+		Schema: s,
 	}
 }
 
@@ -150,6 +142,10 @@ func resourceVSphereDVSStateRefreshFunc(d *schema.ResourceData, meta interface{}
 		log.Print("[TRACE] Refreshing state. Distributed virtual switch found")
 		return dvs, "Created", nil
 	}
+}
+
+func resourceVSphereDistributedVirtualSwitchUpdate(d *schema.ResourceData, meta interface{}) error {
+	return nil
 }
 
 func resourceVSphereDistributedVirtualSwitchDelete(d *schema.ResourceData, meta interface{}) error {
