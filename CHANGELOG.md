@@ -3,6 +3,7 @@
 FEATURES:
 
 * **New Data Source:** `vsphere_datacenter` [GH-144]
+* **New Data Source:** `vsphere_host` [GH-146]
 
 IMPROVEMENTS:
 
