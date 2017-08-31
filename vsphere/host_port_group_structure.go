@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -23,10 +24,11 @@ func schemaHostPortGroupSpec() map[string]*schema.Schema {
 			ForceNew:    true,
 		},
 		"vlan_id": &schema.Schema{
-			Type:        schema.TypeInt,
-			Optional:    true,
-			Description: "The VLAN ID/trunk mode for this port group. An ID of 0 denotes no tagging, an ID of 1-4094 tags with the specific ID, and an ID of 4095 enables trunk mode, allowing the guest to manage its own tagging.",
-			Default:     0,
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Description:  "The VLAN ID/trunk mode for this port group. An ID of 0 denotes no tagging, an ID of 1-4094 tags with the specific ID, and an ID of 4095 enables trunk mode, allowing the guest to manage its own tagging.",
+			Default:      0,
+			ValidateFunc: validation.IntBetween(0, 4095),
 		},
 		"virtual_switch_name": &schema.Schema{
 			Type:        schema.TypeString,
