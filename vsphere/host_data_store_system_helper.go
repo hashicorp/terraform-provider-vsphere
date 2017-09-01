@@ -58,7 +58,7 @@ func diskSpecForCreate(dss *object.HostDatastoreSystem, name string) (*types.Vmf
 	defer cancel()
 	options, err := dss.QueryVmfsDatastoreCreateOptions(ctx, disk.DevicePath)
 	if err != nil {
-		return nil, fmt.Errorf("could not get disk creation options for %s: %s", name, err)
+		return nil, fmt.Errorf("could not get disk creation options for %q: %s", name, err)
 	}
 	var option *types.VmfsDatastoreOption
 	for _, o := range options {
@@ -68,7 +68,7 @@ func diskSpecForCreate(dss *object.HostDatastoreSystem, name string) (*types.Vmf
 		}
 	}
 	if option == nil {
-		return nil, fmt.Errorf("cannot use entire disk on device %s for datastore", name)
+		return nil, fmt.Errorf("device %q is not available as a new whole-disk device for datastore", name)
 	}
 	return option.Spec.(*types.VmfsDatastoreCreateSpec), nil
 }
@@ -83,11 +83,16 @@ func diskSpecForExtend(dss *object.HostDatastoreSystem, ds *object.Datastore, na
 		return nil, err
 	}
 
+	props, err := datastoreProperties(ds)
+	if err != nil {
+		return nil, fmt.Errorf("error getting properties for datastore ID %q: %s", ds.Reference().Value, err)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
 	options, err := queryVmfsDatastoreExtendOptions(ctx, dss, ds, disk.DevicePath, true)
 	if err != nil {
-		return nil, fmt.Errorf("could not get disk extension options for %s: %s", name, err)
+		return nil, fmt.Errorf("could not get disk extension options for %q: %s", name, err)
 	}
 	var option *types.VmfsDatastoreOption
 	for _, o := range options {
@@ -97,7 +102,7 @@ func diskSpecForExtend(dss *object.HostDatastoreSystem, ds *object.Datastore, na
 		}
 	}
 	if option == nil {
-		return nil, fmt.Errorf("cannot use entire disk on device %s for datastore", name)
+		return nil, fmt.Errorf("device %q cannot be used as a new whole-disk device for datastore %q", name, props.Summary.Name)
 	}
 	return option.Spec.(*types.VmfsDatastoreExtendSpec), nil
 }
