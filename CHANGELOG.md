@@ -1,4 +1,9 @@
 ## 0.2.2 (Unreleased)
+
+FEATURES:
+
+* **New Data Source:** `vsphere_vmfs_disks` [GH-141]
+
 ## 0.2.1 (August 31, 2017)
 
 FEATURES:
