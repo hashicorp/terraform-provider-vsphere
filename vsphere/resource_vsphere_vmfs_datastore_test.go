@@ -97,6 +97,32 @@ func TestAccResourceVSphereVmfsDatastore(t *testing.T) {
 				},
 			},
 		},
+		{
+			"rename datastore",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVmfsDatastorePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVmfsDatastoreExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVmfsDatastoreConfigStaticSingle(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVmfsDatastoreExists(true),
+						),
+					},
+					{
+						Config: testAccResourceVSphereVmfsDatastoreConfigStaticSingleAltName(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVmfsDatastoreExists(true),
+							testAccResourceVSphereVmfsDatastoreHasName("terraform-test-renamed"),
+						),
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testAccResourceVSphereVmfsDatastoreCases {
@@ -147,6 +173,31 @@ func testAccResourceVSphereVmfsDatastoreExists(expected bool) resource.TestCheck
 	}
 }
 
+func testAccResourceVSphereVmfsDatastoreHasName(expected string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		vars, err := testClientVariablesForResource(s, "vsphere_vmfs_datastore.datastore")
+		if err != nil {
+			return err
+		}
+
+		ds, err := datastoreFromID(vars.client, vars.resourceID)
+		if err != nil {
+			return err
+		}
+
+		props, err := datastoreProperties(ds)
+		if err != nil {
+			return err
+		}
+
+		actual := props.Summary.Name
+		if expected != actual {
+			return fmt.Errorf("expected datastore name to be %s, got %s", expected, actual)
+		}
+		return nil
+	}
+}
+
 func testAccResourceVSphereVmfsDatastoreConfigStaticSingle() string {
 	return fmt.Sprintf(`
 variable "disk0" {
@@ -165,6 +216,33 @@ data "vsphere_host" "esxi_host" {
 
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "terraform-test"
+  host_system_id = "${data.vsphere_host.esxi_host.id}"
+
+  disks = [
+    "${var.disk0}",
+  ]
+}
+`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+}
+
+func testAccResourceVSphereVmfsDatastoreConfigStaticSingleAltName() string {
+	return fmt.Sprintf(`
+variable "disk0" {
+  type    = "string"
+  default = "%s"
+}
+
+data "vsphere_datacenter" "datacenter" {
+  name = "%s"
+}
+
+data "vsphere_host" "esxi_host" {
+  name          = "%s"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
+resource "vsphere_vmfs_datastore" "datastore" {
+  name           = "terraform-test-renamed"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
   disks = [

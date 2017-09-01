@@ -63,7 +63,6 @@ func resourceVSphereVmfsDatastore() *schema.Resource {
 			Type:        schema.TypeString,
 			Description: "The name of the datastore.",
 			Required:    true,
-			ForceNew:    true,
 		},
 		"host_system_id": &schema.Schema{
 			Type:        schema.TypeString,
@@ -183,6 +182,13 @@ func resourceVSphereVmfsDatastoreUpdate(d *schema.ResourceData, meta interface{}
 	ds, err := datastoreFromID(client, id)
 	if err != nil {
 		return fmt.Errorf("cannot find datastore: %s", err)
+	}
+
+	// Rename this datastore if our name has drifted.
+	if d.HasChange("name") {
+		if err := renameObject(client, ds.Reference(), d.Get("name").(string)); err != nil {
+			return err
+		}
 	}
 
 	// Veto this update if it means a disk was removed. Shrinking
