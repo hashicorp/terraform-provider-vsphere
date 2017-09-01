@@ -21,7 +21,7 @@ For general information about Terraform, visit the [official website][3] and the
 
 # Using the Provider
 
-The current version of this provider requires Terraform v0.10.0 or higher to
+The current version of this provider requires Terraform v0.10.2 or higher to
 run.
 
 Note that you need to run `terraform init` to fetch the provider before
@@ -49,13 +49,13 @@ The syntax is as follows:
 
 ```hcl
 provider "vsphere" {
-  version = "~> 0.1"
+  version = "~> 0.2"
   ...
 }
 ```
 
 Version locking uses a pessimistic operator, so this version lock would mean
-anything within the 0.1.x namespace. [Read more][6] on provider version control.
+anything within the 0.2.x namespace. [Read more][6] on provider version control.
 
 [6]: https://www.terraform.io/docs/configuration/providers.html#provider-versions
 
