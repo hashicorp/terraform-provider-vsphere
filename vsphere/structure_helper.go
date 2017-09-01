@@ -44,3 +44,17 @@ func mergeSchema(dst, src map[string]*schema.Schema) {
 func boolPtr(v bool) *bool {
 	return &v
 }
+
+// byteToMB returns n/1000000. The input must be an integer that can be divisible
+// by 1000000.
+func byteToMB(n interface{}) interface{} {
+	switch v := n.(type) {
+	case int:
+		return v / 1000000
+	case int32:
+		return v / 1000000
+	case int64:
+		return v / 1000000
+	}
+	panic(fmt.Errorf("non-integer type %T for value", n))
+}

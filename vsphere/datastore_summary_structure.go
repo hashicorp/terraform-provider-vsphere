@@ -21,12 +21,12 @@ func schemaDatastoreSummary() map[string]*schema.Schema {
 		},
 		"capacity": &schema.Schema{
 			Type:        schema.TypeInt,
-			Description: "Maximum capacity of the datastore, in bytes.",
+			Description: "Maximum capacity of the datastore, in MB.",
 			Computed:    true,
 		},
 		"free_space": &schema.Schema{
 			Type:        schema.TypeInt,
-			Description: "Available space of this datastore, in bytes.",
+			Description: "Available space of this datastore, in MB.",
 			Computed:    true,
 		},
 		"maintenance_mode": &schema.Schema{
@@ -41,7 +41,7 @@ func schemaDatastoreSummary() map[string]*schema.Schema {
 		},
 		"uncommitted_space": &schema.Schema{
 			Type:        schema.TypeInt,
-			Description: "Total additional storage space, in bytes, potentially used by all virtual machines on this datastore.",
+			Description: "Total additional storage space, in MB, potentially used by all virtual machines on this datastore.",
 			Computed:    true,
 		},
 		"url": &schema.Schema{
@@ -56,11 +56,11 @@ func schemaDatastoreSummary() map[string]*schema.Schema {
 // the passed in ResourceData.
 func flattenDatastoreSummary(d *schema.ResourceData, obj *types.DatastoreSummary) error {
 	d.Set("accessible", obj.Accessible)
-	d.Set("capacity", obj.Capacity)
-	d.Set("free_space", obj.FreeSpace)
+	d.Set("capacity", byteToMB(obj.Capacity))
+	d.Set("free_space", byteToMB(obj.FreeSpace))
 	d.Set("maintenance_mode", obj.MaintenanceMode)
 	d.Set("multiple_host_access", obj.MultipleHostAccess)
-	d.Set("uncommitted_space", obj.Uncommitted)
+	d.Set("uncommitted_space", byteToMB(obj.Uncommitted))
 	d.Set("url", obj.Url)
 
 	// Set the name attribute off of the name here - since we do not track this
