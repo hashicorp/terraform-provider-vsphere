@@ -58,7 +58,7 @@ func schemaDistributedVirtualSwitchHostMemberConfigSpec() *schema.Schema {
 			Type:        schema.TypeInt,
 			Optional:    true,
 			Description: "Maximum number of ports allowed in the HostProxySwitch.",
-			//Validation:  validation.IntAtLeast(0),
+			Validation:  validation.IntAtLeast(0),
 		},
 		// The host name should be enough to get a reference to it, which is what we need here
 		"host": &schema.Schema{
@@ -70,7 +70,7 @@ func schemaDistributedVirtualSwitchHostMemberConfigSpec() *schema.Schema {
 			Type:        schema.TypeInt,
 			Optional:    true,
 			Description: "Host member operation type.",
-			//Validation:  validation.StringInSlice(configSpecOperationAllowedValues, false),
+			Validation:  validation.StringInSlice(configSpecOperationAllowedValues, false),
 		},
 		// DistributedVirtualSwitchHostMemberPnicBacking extends DistributedVirtualSwitchHostMemberBacking
 		// which is a base class
@@ -87,6 +87,37 @@ func schemaDistributedVirtualSwitchHostMemberConfigSpec() *schema.Schema {
 	}
 
 	return s
+}
+
+func expandDistributedVirtualSwitchHostMemberConfigSpec(d *schema.ResourceData) []types.DistributedVirtualSwitchHostMemberConfigSpec {
+	// Configure the host and nic cards used as uplink for the DVS
+	var host []types.DistributedVirtualSwitchHostMemberConfigSpec
+
+	if v, ok := d.GetOk("host"); ok {
+		for _, vi := range v.([]interface{}) {
+			hi := vi.(map[string]interface{})
+			bi := hi["backing"].([]interface{})
+			// Get the HostSystem reference
+			hs, err := finder.HostSystem(context.TODO(), hi["host"].(string))
+			if err != nil {
+				return fmt.Errorf("%s", err)
+			}
+
+			// Get the physical NIC backing
+			backing := new(types.DistributedVirtualSwitchHostMemberPnicBacking)
+			backing.PnicSpec = append(backing.PnicSpec, types.DistributedVirtualSwitchHostMemberPnicSpec{
+				PnicDevice: strings.TrimSpace(bi[0].(string)),
+			})
+			h := types.DistributedVirtualSwitchHostMemberConfigSpec{
+				Host:      hs.Common.Reference(),
+				Backing:   backing,
+				Operation: "add", // Options: "add", "edit", "remove"
+			}
+			host = append(host, h)
+		}
+	}
+
+	return host
 }
 
 func schemaDvsHostInfrastructureTrafficResource() map[string]*schema.Schema {
@@ -183,4 +214,13 @@ func schemaDVSConfiSpec() map[string]*schema.Schema {
 	mergeSchema(s, schemaDistributedVirtualSwitchKeyedOpaqueBlob())
 
 	return s
+}
+
+func expandDVSConfiSpec(d *schema.ResourceData) *types.DVSConfigSpec {
+	name := d.Get("name").(string)
+
+	obj := &types.DVSConfigSpec{
+		Name: name,
+		Host: expandDistributedVirtualSwitchHostMemberConfigSpec(d),
+	}
 }

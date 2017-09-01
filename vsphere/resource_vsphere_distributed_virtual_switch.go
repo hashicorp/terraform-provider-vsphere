@@ -38,7 +38,6 @@ func resourceVSphereDistributedVirtualSwitch() *schema.Resource {
 func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*govmomi.Client)
-	name := d.Get("name").(string)
 
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
@@ -52,41 +51,10 @@ func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta 
 	if err != nil {
 		return fmt.Errorf("%s", err)
 	}
-
-	// Configure the host and nic cards used as uplink for the DVS
-	var host []types.DistributedVirtualSwitchHostMemberConfigSpec
-
-	if v, ok := d.GetOk("host"); ok {
-		for _, vi := range v.([]interface{}) {
-			hi := vi.(map[string]interface{})
-			bi := hi["backing"].([]interface{})
-			// Get the HostSystem reference
-			hs, err := finder.HostSystem(context.TODO(), hi["host"].(string))
-			if err != nil {
-				return fmt.Errorf("%s", err)
-			}
-
-			// Get the physical NIC backing
-			backing := new(types.DistributedVirtualSwitchHostMemberPnicBacking)
-			backing.PnicSpec = append(backing.PnicSpec, types.DistributedVirtualSwitchHostMemberPnicSpec{
-				PnicDevice: strings.TrimSpace(bi[0].(string)),
-			})
-			h := types.DistributedVirtualSwitchHostMemberConfigSpec{
-				Host:      hs.Common.Reference(),
-				Backing:   backing,
-				Operation: "add", // Options: "add", "edit", "remove"
-			}
-			host = append(host, h)
-		}
-	}
-
-	configSpec := types.DVSConfigSpec{
-		Name: name,
-		Host: host,
-	}
-	dvsCreateSpec := types.DVSCreateSpec{ConfigSpec: &configSpec}
-
 	f := df.NetworkFolder
+
+	spec := expandDVSConfigSpec(d)
+	dvsCreateSpec := types.DVSCreateSpec{ConfigSpec: &spec}
 
 	task, err := f.CreateDVS(context.TODO(), dvsCreateSpec)
 	if err != nil {
@@ -100,7 +68,7 @@ func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta 
 
 	d.SetId(name)
 
-	return nil
+	return resourceVSphereDistributedVirtualSwitchRead(d, meta)
 }
 
 func resourceVSphereDistributedVirtualSwitchRead(d *schema.ResourceData, meta interface{}) error {
@@ -147,7 +115,23 @@ func resourceVSphereDVSStateRefreshFunc(d *schema.ResourceData, meta interface{}
 }
 
 func resourceVSphereDistributedVirtualSwitchUpdate(d *schema.ResourceData, meta interface{}) error {
-	return nil
+	dvs, err := dvsExists(d, meta)
+	if err != nil {
+		return fmt.Errorf("%s", err)
+	}
+
+	// I might need to use something different since for example for the uplinks it's
+	// not enough to remove them from the config spec but keep them there and
+	// set the operation to "remove"
+	spec := expandDVSConfigSpec(d)
+
+	n := object.NewDistributedVirtualSwitch(client.Client, dvs.Reference())
+	req := &types.ReconfigureDvs_Task{
+		This: n.Reference(),
+		Spec: spec,
+	}
+
+	return resourceVSphereDistributedVirtualSwitchRead(d, meta)
 }
 
 func resourceVSphereDistributedVirtualSwitchDelete(d *schema.ResourceData, meta interface{}) error {
