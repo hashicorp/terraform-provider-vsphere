@@ -83,6 +83,9 @@ func resourceVSphereVmfsDatastore() *schema.Resource {
 		Read:   resourceVSphereVmfsDatastoreRead,
 		Update: resourceVSphereVmfsDatastoreUpdate,
 		Delete: resourceVSphereVmfsDatastoreDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceVSphereVmfsDatastoreImport,
+		},
 		Schema: s,
 	}
 }
@@ -327,4 +330,26 @@ func resourceVSphereVmfsDatastoreDelete(d *schema.ResourceData, meta interface{}
 	}
 
 	return nil
+}
+
+func resourceVSphereVmfsDatastoreImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	// We support importing a MoRef - so we need to load the datastore and check
+	// to make sure 1) it exists, and 2) it's a VMFS datastore. If it is, we are
+	// good to go (rest of the stuff will be handled by read on refresh).
+	client := meta.(*govmomi.Client)
+	id := d.Id()
+	ds, err := datastoreFromID(client, id)
+	if err != nil {
+		return nil, fmt.Errorf("cannot find datastore: %s", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	t, err := ds.Type(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching datastore type: %s", err)
+	}
+	if t != types.HostFileSystemVolumeFileSystemTypeVMFS {
+		return nil, fmt.Errorf("datastore ID %q is not a VMFS datastore", id)
+	}
+	return []*schema.ResourceData{d}, nil
 }

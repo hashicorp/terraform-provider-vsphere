@@ -123,6 +123,32 @@ func TestAccResourceVSphereVmfsDatastore(t *testing.T) {
 				},
 			},
 		},
+		{
+			"import",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVmfsDatastorePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVmfsDatastoreExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVmfsDatastoreConfigStaticSingle(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVmfsDatastoreExists(true),
+						),
+					},
+					{
+						Config:                  testAccResourceVSphereVmfsDatastoreConfigStaticSingle(),
+						ImportState:             true,
+						ResourceName:            "vsphere_vmfs_datastore.datastore",
+						ImportStateVerify:       true,
+						ImportStateVerifyIgnore: []string{"host_system_id"},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testAccResourceVSphereVmfsDatastoreCases {
