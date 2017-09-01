@@ -38,5 +38,7 @@ export VSPHERE_DC_FOLDER           ?= dc-folder  # DC resource test folder
 export VSPHERE_ESXI_HOST           ?= esxi1      # ESXi host to work with
 export VSPHERE_HOST_NIC0           ?= vmnic0     # NIC0 for host net tests
 export VSPHERE_HOST_NIC1           ?= vmnic1     # NIC1 for host net tests
+export VSPHERE_VMFS_EXPECTED       ?= scsi-name  # Name of expected SCSI disk
+export VSPHERE_VMFS_REGEXP         ?= expr       # Regexp for SCSI disk search
 
 # vi: filetype=make
