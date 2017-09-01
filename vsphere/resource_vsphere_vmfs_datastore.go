@@ -295,7 +295,7 @@ func resourceVSphereVmfsDatastoreDelete(d *schema.ResourceData, meta interface{}
 	waitForDeleteFunc := func() (interface{}, string, error) {
 		_, err := datastoreFromID(client, id)
 		if err != nil {
-			if datastoreIsMissing(id, err) {
+			if isManagedObjectNotFoundError(err) {
 				// Done
 				return struct{}{}, waitForDeleteCompleted, nil
 			}

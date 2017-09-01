@@ -134,7 +134,7 @@ func testAccResourceVSphereVmfsDatastoreExists(expected bool) resource.TestCheck
 
 		_, err = datastoreFromID(vars.client, vars.resourceID)
 		if err != nil {
-			if datastoreIsMissing(vars.resourceID, err) && expected == false {
+			if isManagedObjectNotFoundError(err) && expected == false {
 				// Expected missing
 				return nil
 			}

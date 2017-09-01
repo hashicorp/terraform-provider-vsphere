@@ -2,7 +2,6 @@ package vsphere
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -24,7 +23,7 @@ func datastoreFromID(client *govmomi.Client, id string) (*object.Datastore, erro
 	defer cancel()
 	ds, err := finder.ObjectReference(ctx, ref)
 	if err != nil {
-		return nil, fmt.Errorf("could not find datastore with id: %s: %s", id, err)
+		return nil, err
 	}
 	// Should be safe to return here. If our reference returned here and is not a
 	// datastore, then we have bigger problems and to be honest we should be
@@ -42,16 +41,4 @@ func datastoreProperties(ds *object.Datastore) (*mo.Datastore, error) {
 		return nil, err
 	}
 	return &props, nil
-}
-
-// datastoreIsMissing checks if the error messages returned from
-// datastoreFromID indicates that the datastore is missing. This is used in
-// various deletion checks.
-func datastoreIsMissing(id string, err error) bool {
-	msg := fmt.Sprintf("could not find datastore with id: %s: ServerFaultCode: The object 'vim.Datastore:%s' has already been deleted or has not been completely created", id, id)
-
-	if err.Error() == msg {
-		return true
-	}
-	return false
 }
