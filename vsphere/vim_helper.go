@@ -40,6 +40,17 @@ func isManagedObjectNotFoundError(err error) bool {
 	return false
 }
 
+// isResourceInUseError checks an error to see if it's of the
+// ResourceInUse type.
+func isResourceInUseError(err error) bool {
+	if f, ok := vimSoapFault(err); ok {
+		if _, ok := f.(types.ResourceInUse); ok {
+			return true
+		}
+	}
+	return false
+}
+
 // renameObject renames a MO and tracks the task to make sure it completes.
 func renameObject(client *govmomi.Client, ref types.ManagedObjectReference, new string) error {
 	req := types.Rename_Task{

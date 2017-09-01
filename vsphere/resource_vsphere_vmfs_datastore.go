@@ -3,7 +3,6 @@ package vsphere
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -26,7 +25,7 @@ const (
 // creation where rollback is not possible.
 const formatCreateRollbackErrorUpdate = `
 WARNING: Dangling resource!
-There was an error extending your datastore with disk: %s:
+There was an error extending your datastore with disk: %q:
 %s
 Additionally, there was an error removing the created datastore:
 %s
@@ -49,12 +48,13 @@ You will need to remove this datastore manually before trying again.
 // will require repair of the state before TF can continue.
 const formatUpdateInconsistentState = `
 WARNING: Inconsistent state!
-Terraform was able to add disk %s, but could not save the update to the state.
+Terraform was able to add disk %q, but could not save the update to the state.
 The error was:
 %s
 This is more than likely a bug. Please report it at:
 https://github.com/terraform-providers/terraform-provider-vsphere/issues
-You will also need to repair your state before trying again.
+Also, please try running "terraform refresh" to try to update the state before
+trying again. If this fails, you may need to repair the state manually.
 `
 
 func resourceVSphereVmfsDatastore() *schema.Resource {
@@ -123,7 +123,7 @@ func resourceVSphereVmfsDatastoreCreate(d *schema.ResourceData, meta interface{}
 				// manually.
 				return fmt.Errorf(formatCreateRollbackErrorUpdate, disk, err, remErr)
 			}
-			return fmt.Errorf("error fetching datastore extend spec for disk %s: %s", disk, err)
+			return fmt.Errorf("error fetching datastore extend spec for disk %q: %s", disk, err)
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 		defer cancel()
@@ -134,7 +134,7 @@ func resourceVSphereVmfsDatastoreCreate(d *schema.ResourceData, meta interface{}
 				// manually.
 				return fmt.Errorf(formatCreateRollbackErrorUpdate, disk, err, remErr)
 			}
-			return fmt.Errorf("error extending datastore with disk %s: %s", disk, err)
+			return fmt.Errorf("error extending datastore with disk %q: %s", disk, err)
 		}
 	}
 
@@ -270,7 +270,7 @@ func resourceVSphereVmfsDatastoreDelete(d *schema.ResourceData, meta interface{}
 	deleteRetryFunc := func() (interface{}, string, error) {
 		err := removeDatastore(dss, ds)
 		if err != nil {
-			if matched, _ := regexp.MatchString("The resource.*is in use", err.Error()); matched {
+			if isResourceInUseError(err) {
 				// Pending
 				return struct{}{}, retryDeletePending, nil
 			}
