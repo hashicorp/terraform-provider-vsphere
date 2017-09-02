@@ -43,5 +43,6 @@ export VSPHERE_VMFS_REGEXP         ?= expr       # Regexp for SCSI disk search
 export VSPHERE_DS_VMFS_DISK0       ?= scsi-name0 # 1st disk for vmfs_datastore
 export VSPHERE_DS_VMFS_DISK1       ?= scsi-name1 # 2nd disk for vmfs_datastore
 export VSPHERE_DS_VMFS_DISK2       ?= scsi-name2 # 3rd disk for vmfs_datastore
+export VSPHERE_DS_FOLDER           ?= ds-folder  # Path to a datastore folder
 
 # vi: filetype=make

@@ -3,6 +3,7 @@ package vsphere
 import (
 	"fmt"
 	"os"
+	"path"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -124,6 +125,59 @@ func TestAccResourceVSphereVmfsDatastore(t *testing.T) {
 			},
 		},
 		{
+			"with folder",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVmfsDatastorePreCheck(tp)
+					// NOTE: This test can't run on ESXi without giving a "dangling
+					// resource" error during testing - "move to folder after" hits the
+					// error on the same path of the call stack that triggers an error in
+					// both create and update and should provide adequate coverage
+					// barring manual testing.
+					testAccSkipIfEsxi(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVmfsDatastoreExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVmfsDatastoreConfigStaticSingleFolder(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVmfsDatastoreExists(true),
+							testAccResourceVSphereVmfsDatastoreMatchInventoryPath("datastore-folder"),
+						),
+					},
+				},
+			},
+		},
+		{
+			"move to folder after",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVmfsDatastorePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVmfsDatastoreExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVmfsDatastoreConfigStaticSingle(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVmfsDatastoreExists(true),
+						),
+					},
+					{
+						Config:      testAccResourceVSphereVmfsDatastoreConfigStaticSingleFolder(),
+						ExpectError: expectErrorIfNotVirtualCenter(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVmfsDatastoreExists(true),
+							testAccResourceVSphereVmfsDatastoreMatchInventoryPath("datastore-folder"),
+						),
+					},
+				},
+			},
+		},
+		{
 			"import",
 			resource.TestCase{
 				PreCheck: func() {
@@ -175,6 +229,9 @@ func testAccResourceVSphereVmfsDatastorePreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_VMFS_REGEXP") == "" {
 		t.Skip("set VSPHERE_VMFS_REGEXP to run vsphere_vmfs_datastore acceptance tests")
 	}
+	if os.Getenv("VSPHERE_DS_FOLDER") == "" {
+		t.Skip("set VSPHERE_DS_FOLDER to run vsphere_vmfs_datastore acceptance tests")
+	}
 }
 
 func testAccResourceVSphereVmfsDatastoreExists(expected bool) resource.TestCheckFunc {
@@ -219,6 +276,30 @@ func testAccResourceVSphereVmfsDatastoreHasName(expected string) resource.TestCh
 		actual := props.Summary.Name
 		if expected != actual {
 			return fmt.Errorf("expected datastore name to be %s, got %s", expected, actual)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereVmfsDatastoreMatchInventoryPath(expected string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		vars, err := testClientVariablesForResource(s, "vsphere_vmfs_datastore.datastore")
+		if err != nil {
+			return err
+		}
+
+		ds, err := datastoreFromID(vars.client, vars.resourceID)
+		if err != nil {
+			return err
+		}
+
+		expected, err := rootPathParticleDatastore.PathFromNewRoot(ds.InventoryPath, rootPathParticleDatastore, expected)
+		actual := path.Dir(ds.InventoryPath)
+		if err != nil {
+			return fmt.Errorf("bad: %s", err)
+		}
+		if expected != actual {
+			return fmt.Errorf("expected path to be %s, got %s", expected, actual)
 		}
 		return nil
 	}
@@ -346,4 +427,37 @@ resource "vsphere_vmfs_datastore" "datastore" {
   disks = ["${data.vsphere_vmfs_disks.available.disks}"]
 }
 `, os.Getenv("VSPHERE_VMFS_REGEXP"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+}
+
+func testAccResourceVSphereVmfsDatastoreConfigStaticSingleFolder() string {
+	return fmt.Sprintf(`
+variable "disk0" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "folder" {
+  type    = "string"
+  default = "%s"
+}
+
+data "vsphere_datacenter" "datacenter" {
+  name = "%s"
+}
+
+data "vsphere_host" "esxi_host" {
+  name          = "%s"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
+resource "vsphere_vmfs_datastore" "datastore" {
+  name           = "terraform-test"
+  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  folder         = "${var.folder}"
+
+  disks = [
+    "${var.disk0}",
+  ]
+}
+`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DS_FOLDER"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
 }

@@ -42,3 +42,30 @@ func datastoreProperties(ds *object.Datastore) (*mo.Datastore, error) {
 	}
 	return &props, nil
 }
+
+// moveDatastoreToFolder is a complex method that moves a datastore to a given
+// relative datastore folder path. "Relative" here means relative to a
+// datacenter, which is discovered from the current datastore path.
+func moveDatastoreToFolder(client *govmomi.Client, ds *object.Datastore, relative string) error {
+	folder, err := datastoreFolderFromObject(client, ds, relative)
+	if err != nil {
+		return err
+	}
+	return moveObjectToFolder(ds.Reference(), folder)
+}
+
+// moveDatastoreToFolderRelativeHostSystemID is a complex method that moves a
+// datastore to a given datastore path, similar to moveDatastoreToFolder,
+// except the path is relative to a HostSystem supplied by ID instead of the
+// datastore.
+func moveDatastoreToFolderRelativeHostSystemID(client *govmomi.Client, ds *object.Datastore, hsID, relative string) error {
+	hs, err := hostSystemFromID(client, hsID)
+	if err != nil {
+		return err
+	}
+	folder, err := datastoreFolderFromObject(client, hs, relative)
+	if err != nil {
+		return err
+	}
+	return moveObjectToFolder(ds.Reference(), folder)
+}

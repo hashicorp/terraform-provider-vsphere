@@ -86,7 +86,8 @@ The following example makes use of the
 [`vsphere_vmfs_disks`][data-source-vmfs-disks] data source to auto-detect
 exported iSCSI LUNS matching a certain NAA vendor ID (in this case, LUNs
 exported from a [NetApp][ext-netapp]). These discovered disks are then loaded
-into `vsphere_vmfs_datastore`.
+into `vsphere_vmfs_datastore`. The datastore is also placed in the
+`datastore-folder` folder afterwards.
 
 [ext-netapp]: https://kb.netapp.com/support/s/article/ka31A0000000rLRQAY/how-to-match-a-lun-s-naa-number-to-its-serial-number?language=en_US
 
@@ -109,6 +110,7 @@ data "vsphere_vmfs_disks" "available" {
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "terraform-test"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
+  folder         = "datastore-folder"
 
   disks = ["${data.vsphere_vmfs_disks.available.disks}"]
 }
@@ -123,6 +125,12 @@ The following arguments are supported:
   ID of the host to set the datastore up on. Note that this is not necessarily
   the only host that the datastore will be set up on - see
   [here](#auto-mounting-of-datastores-within-vcenter) for more info.
+* `folder` - (String, optional) The relative path to a folder to put this
+  datastore in. This is a path relative to the datacenter you are deploying the
+  datastore to. Example: for the `dc1` datacenter, and a provided `folder` of
+  `foo/bar`, Terraform will place a datastore named `terraform-test` in a
+  datastore folder located at `/dc1/datastore/foo/bar`, with the final
+  inventory path being `/dc1/datastore/foo/bar/terraform-test`.
 * `disks` - (List of strings, required) The disks to use with the datastore.
 
 ## Attribute Reference

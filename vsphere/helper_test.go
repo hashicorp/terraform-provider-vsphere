@@ -3,6 +3,7 @@ package vsphere
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"testing"
 	"time"
 
@@ -44,11 +45,33 @@ func testClientVariablesForResource(s *terraform.State, addr string) (testCheckV
 	}, nil
 }
 
+// testAccESXiFlagSet returns true if VSPHERE_TEST_ESXI is set.
+func testAccESXiFlagSet() bool {
+	return os.Getenv("VSPHERE_TEST_ESXI") != ""
+}
+
 // testAccSkipIfNotEsxi skips a test if VSPHERE_TEST_ESXI is not set.
 func testAccSkipIfNotEsxi(t *testing.T) {
-	if os.Getenv("VSPHERE_TEST_ESXI") == "" {
+	if !testAccESXiFlagSet() {
 		t.Skip("set VSPHERE_TEST_ESXI to run ESXi-specific acceptance tests")
 	}
+}
+
+// testAccSkipIfEsxi skips a test if VSPHERE_TEST_ESXI is set.
+func testAccSkipIfEsxi(t *testing.T) {
+	if testAccESXiFlagSet() {
+		t.Skip("test skipped as VSPHERE_TEST_ESXI is set")
+	}
+}
+
+// expectErrorIfNotVirtualCenter returns the error message that
+// validateVirtualCenter returns if VSPHERE_TEST_ESXI is set, to allow for test
+// cases that will still run on ESXi, but will expect validation failure.
+func expectErrorIfNotVirtualCenter() *regexp.Regexp {
+	if testAccESXiFlagSet() {
+		return regexp.MustCompile(errVirtualCenterOnly)
+	}
+	return nil
 }
 
 // testGetPortGroup is a convenience method to fetch a static port group

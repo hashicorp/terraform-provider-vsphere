@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"context"
+	"errors"
 
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
@@ -9,6 +10,9 @@ import (
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
 )
+
+// errVirtualCenterOnly is the error message that validateVirtualCenter returns.
+const errVirtualCenterOnly = "this operation is only supported on vCenter"
 
 // soapFault extracts the SOAP fault from an error fault, if it exists. Check
 // the returned boolean value to see if you have a SoapFault.
@@ -69,4 +73,12 @@ func renameObject(client *govmomi.Client, ref types.ManagedObjectReference, new 
 	tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer tcancel()
 	return t.Wait(tctx)
+}
+
+// validateVirtualCenter ensures that the client is connected to vCenter.
+func validateVirtualCenter(c *govmomi.Client) error {
+	if c.ServiceContent.About.ApiType != "VirtualCenter" {
+		return errors.New(errVirtualCenterOnly)
+	}
+	return nil
 }
