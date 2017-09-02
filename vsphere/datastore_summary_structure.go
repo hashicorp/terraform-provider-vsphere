@@ -36,7 +36,7 @@ func schemaDatastoreSummary() map[string]*schema.Schema {
 		},
 		"multiple_host_access": &schema.Schema{
 			Type:        schema.TypeBool,
-			Description: "If true, more than one host in the datacenter has been configured with access to the datastore",
+			Description: "If true, more than one host in the datacenter has been configured with access to the datastore.",
 			Computed:    true,
 		},
 		"uncommitted_space": &schema.Schema{
