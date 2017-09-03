@@ -3,7 +3,6 @@ package vsphere
 import (
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -36,10 +35,11 @@ func resourceVSphereDistributedVirtualSwitch() *schema.Resource {
 }
 
 func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta interface{}) error {
-
 	client := meta.(*govmomi.Client)
+	name := d.Get("name").(string)
+	datacenter := d.Get("datacenter").(string)
 
-	dc, err := getDatacenter(client, d.Get("datacenter").(string))
+	dc, err := getDatacenter(client, datacenter)
 	if err != nil {
 		return fmt.Errorf("%s", err)
 	}
@@ -53,8 +53,13 @@ func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta 
 	}
 	f := df.NetworkFolder
 
-	spec := expandDVSConfigSpec(d)
-	dvsCreateSpec := types.DVSCreateSpec{ConfigSpec: &spec}
+	hosts_mor, err := getHostSystemManagedObjectReference(d, client)
+	if err != nil {
+		return fmt.Errorf("%s", err)
+	}
+
+	spec := expandDVSConfigSpec(d, hosts_mor)
+	dvsCreateSpec := types.DVSCreateSpec{ConfigSpec: spec}
 
 	task, err := f.CreateDVS(context.TODO(), dvsCreateSpec)
 	if err != nil {
@@ -66,34 +71,30 @@ func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta 
 		return fmt.Errorf("%s", err)
 	}
 
-	d.SetId(name)
+	dvs, err := dvsFromName(client, datacenter, name)
+	if err != nil {
+		return fmt.Errorf("%s", err)
+	}
+
+	d.SetId(dvs.Uuid)
 
 	return resourceVSphereDistributedVirtualSwitchRead(d, meta)
 }
 
 func resourceVSphereDistributedVirtualSwitchRead(d *schema.ResourceData, meta interface{}) error {
-	_, err := dvsExists(d, meta)
+	client := meta.(*govmomi.Client)
+	uuid := d.Id()
+	dvs, err := dvsFromUuid(client, uuid)
 	if err != nil {
 		d.SetId("")
+		return fmt.Errorf("error reading data: %s", err)
+	}
+
+	if err := flattenDVSConfigSpec(d, dvs); err != nil {
+		return fmt.Errorf("error setting resource data: %s", err)
 	}
 
 	return nil
-}
-
-func dvsExists(d *schema.ResourceData, meta interface{}) (object.NetworkReference, error) {
-	client := meta.(*govmomi.Client)
-	name := d.Get("name").(string)
-
-	dc, err := getDatacenter(client, d.Get("datacenter").(string))
-	if err != nil {
-		return nil, err
-	}
-
-	finder := find.NewFinder(client.Client, true)
-	finder = finder.SetDatacenter(dc)
-
-	dvs, err := finder.Network(context.TODO(), name)
-	return dvs, err
 }
 
 func resourceVSphereDVSStateRefreshFunc(d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
@@ -119,16 +120,24 @@ func resourceVSphereDistributedVirtualSwitchUpdate(d *schema.ResourceData, meta 
 	if err != nil {
 		return fmt.Errorf("%s", err)
 	}
+	client := meta.(*govmomi.Client)
 
-	// I might need to use something different since for example for the uplinks it's
-	// not enough to remove them from the config spec but keep them there and
-	// set the operation to "remove"
-	spec := expandDVSConfigSpec(d)
+	hosts_refs, err := getHostSystemManagedObjectReference(d, client)
+	if err != nil {
+		return fmt.Errorf("%s", err)
+	}
+
+	spec := expandDVSConfigSpec(d, hosts_refs)
 
 	n := object.NewDistributedVirtualSwitch(client.Client, dvs.Reference())
 	req := &types.ReconfigureDvs_Task{
 		This: n.Reference(),
 		Spec: spec,
+	}
+
+	_, err = methods.ReconfigureDvs_Task(context.TODO(), client, req)
+	if err != nil {
+		return fmt.Errorf("%s", err)
 	}
 
 	return resourceVSphereDistributedVirtualSwitchRead(d, meta)

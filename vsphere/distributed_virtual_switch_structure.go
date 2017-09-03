@@ -1,8 +1,11 @@
 package vsphere
 
 import (
+	"strings"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -55,22 +58,22 @@ func schemaDistributedVirtualSwitchHostMemberPnicBacking() *schema.Schema {
 func schemaDistributedVirtualSwitchHostMemberConfigSpec() *schema.Schema {
 	se := map[string]*schema.Schema{
 		"max_proxy_switch_ports": &schema.Schema{
-			Type:        schema.TypeInt,
-			Optional:    true,
-			Description: "Maximum number of ports allowed in the HostProxySwitch.",
-			Validation:  validation.IntAtLeast(0),
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Description:  "Maximum number of ports allowed in the HostProxySwitch.",
+			ValidateFunc: validation.IntAtLeast(0),
 		},
 		// The host name should be enough to get a reference to it, which is what we need here
-		"host": &schema.Schema{
+		"host_system_id": &schema.Schema{
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "Identifies a host member of a DistributedVirtualSwitch for a CreateDVS_Task or DistributedVirtualSwitch.ReconfigureDvs_Task operation.",
+			Description: "The managed object ID of the host to search for NICs on.",
 		},
 		"operation": &schema.Schema{
-			Type:        schema.TypeInt,
-			Optional:    true,
-			Description: "Host member operation type.",
-			Validation:  validation.StringInSlice(configSpecOperationAllowedValues, false),
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Description:  "Host member operation type.",
+			ValidateFunc: validation.StringInSlice(configSpecOperationAllowedValues, false),
 		},
 		// DistributedVirtualSwitchHostMemberPnicBacking extends DistributedVirtualSwitchHostMemberBacking
 		// which is a base class
@@ -89,35 +92,31 @@ func schemaDistributedVirtualSwitchHostMemberConfigSpec() *schema.Schema {
 	return s
 }
 
-func expandDistributedVirtualSwitchHostMemberConfigSpec(d *schema.ResourceData) []types.DistributedVirtualSwitchHostMemberConfigSpec {
+func expandDistributedVirtualSwitchHostMemberConfigSpec(d *schema.ResourceData, refs []types.ManagedObjectReference) []types.DistributedVirtualSwitchHostMemberConfigSpec {
 	// Configure the host and nic cards used as uplink for the DVS
-	var host []types.DistributedVirtualSwitchHostMemberConfigSpec
+	var hmc []types.DistributedVirtualSwitchHostMemberConfigSpec
 
-	if v, ok := d.GetOk("host"); ok {
-		for _, vi := range v.([]interface{}) {
-			hi := vi.(map[string]interface{})
-			bi := hi["backing"].([]interface{})
-			// Get the HostSystem reference
-			hs, err := finder.HostSystem(context.TODO(), hi["host"].(string))
-			if err != nil {
-				return fmt.Errorf("%s", err)
-			}
+	if hosts, ok := d.GetOk("host"); ok {
+		for i, host := range hosts.([]interface{}) {
+			hi := host.(map[string]interface{})
 
-			// Get the physical NIC backing
-			backing := new(types.DistributedVirtualSwitchHostMemberPnicBacking)
-			backing.PnicSpec = append(backing.PnicSpec, types.DistributedVirtualSwitchHostMemberPnicSpec{
-				PnicDevice: strings.TrimSpace(bi[0].(string)),
-			})
-			h := types.DistributedVirtualSwitchHostMemberConfigSpec{
-				Host:      hs.Common.Reference(),
-				Backing:   backing,
-				Operation: "add", // Options: "add", "edit", "remove"
+			for _, nic := range hi["backing"].([]interface{}) {
+				// Get the physical NIC backing
+				backing := new(types.DistributedVirtualSwitchHostMemberPnicBacking)
+				backing.PnicSpec = append(backing.PnicSpec, types.DistributedVirtualSwitchHostMemberPnicSpec{
+					PnicDevice: strings.TrimSpace(nic.(string)),
+				})
+				h := types.DistributedVirtualSwitchHostMemberConfigSpec{
+					Host:      refs[i],
+					Backing:   backing,
+					Operation: "add", // Options: "add", "edit", "remove"
+				}
+				hmc = append(hmc, h)
 			}
-			host = append(host, h)
 		}
 	}
 
-	return host
+	return hmc
 }
 
 func schemaDvsHostInfrastructureTrafficResource() map[string]*schema.Schema {
@@ -216,11 +215,35 @@ func schemaDVSConfiSpec() map[string]*schema.Schema {
 	return s
 }
 
-func expandDVSConfiSpec(d *schema.ResourceData) *types.DVSConfigSpec {
+func expandDVSConfigSpec(d *schema.ResourceData, refs []types.ManagedObjectReference) *types.DVSConfigSpec {
 	name := d.Get("name").(string)
 
 	obj := &types.DVSConfigSpec{
 		Name: name,
-		Host: expandDistributedVirtualSwitchHostMemberConfigSpec(d),
+		Host: expandDistributedVirtualSwitchHostMemberConfigSpec(d, refs),
 	}
+
+	if v, ok := d.GetOkExists("description"); ok {
+		obj.Description = v.(string)
+	}
+
+	if v, ok := d.GetOkExists("num_standalone_ports"); ok {
+		obj.NumStandalonePorts = v.(int32)
+	}
+
+	//if v, ok := d.GetOkExists("default_proxy_switch_max_num_ports"); ok {
+	//obj.NumStandalonePorts = v.(int32)
+	//}
+
+	return obj
+}
+
+func flattenDVSConfigSpec(d *schema.ResourceData, obj *mo.DistributedVirtualSwitch) error {
+	config := obj.Config.GetDVSConfigInfo()
+	d.Set("name", config.Name)
+	d.Set("description", config.Description)
+	d.Set("num_standalone_ports", config.NumStandalonePorts)
+	//d.Set("default_proxy_switch_max_num_ports", config.DefaultProxySwitchMaxNumPorts)
+
+	return nil
 }
