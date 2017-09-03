@@ -19,16 +19,28 @@ resource "vsphere_distributed_virtual_switch" "testDVS" {
 }
 `
 
-const testAccCheckVSphereDVSConfigUplinks = `
+func testAccCheckVSphereDVSConfigUplinks() string {
+	return fmt.Sprintf(`
+data "vsphere_datacenter" "datacenter" {
+	  name = "%s"
+}
+
+data "vsphere_host" "esxi_host" {
+	  name = "%s"
+    datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
 resource "vsphere_distributed_virtual_switch" "testDVS" {
 	datacenter = "%s"
   name = "testDVS"
   host = [{ 
-		host = "%s" 
+		host_system_id = "${data.vsphere_host.esxi_host.id}" 
 		backing = ["%s"]
 	}]
 }
-`
+`, os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_HOST_NIC0"))
+
+}
 
 // Create a distributed virtual switch with no uplinks
 func TestAccVSphereDVS_createWithoutUplinks(t *testing.T) {
@@ -51,9 +63,6 @@ func TestAccVSphereDVS_createWithoutUplinks(t *testing.T) {
 // Create a distributed virtual switch with uplinks
 func TestAccVSphereDVS_createWithUplinks(t *testing.T) {
 	resourceName := "vsphere_distributed_virtual_switch.testDVS"
-	datacenter := os.Getenv("VSPHERE_DATACENTER")
-	host := os.Getenv("VSPHERE_HOST")
-	host_pnic := os.Getenv("VSPHERE_HOST_PNIC")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -61,7 +70,7 @@ func TestAccVSphereDVS_createWithUplinks(t *testing.T) {
 		CheckDestroy: testAccCheckVSphereDVSDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(testAccCheckVSphereDVSConfigUplinks, datacenter, host, host_pnic),
+				Config: testAccCheckVSphereDVSConfigUplinks(),
 				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, true)),
 			},
 		},
