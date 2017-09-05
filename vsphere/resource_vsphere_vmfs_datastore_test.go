@@ -144,7 +144,7 @@ func TestAccResourceVSphereVmfsDatastore(t *testing.T) {
 						Config: testAccResourceVSphereVmfsDatastoreConfigStaticSingleFolder(),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereVmfsDatastoreExists(true),
-							testAccResourceVSphereVmfsDatastoreMatchInventoryPath("datastore-folder"),
+							testAccResourceVSphereVmfsDatastoreMatchInventoryPath(os.Getenv("VSPHERE_DS_FOLDER")),
 						),
 					},
 				},
@@ -171,7 +171,7 @@ func TestAccResourceVSphereVmfsDatastore(t *testing.T) {
 						ExpectError: expectErrorIfNotVirtualCenter(),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereVmfsDatastoreExists(true),
-							testAccResourceVSphereVmfsDatastoreMatchInventoryPath("datastore-folder"),
+							testAccResourceVSphereVmfsDatastoreMatchInventoryPath(os.Getenv("VSPHERE_DS_FOLDER")),
 						),
 					},
 				},
