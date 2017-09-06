@@ -64,7 +64,7 @@ The following arguments are supported:
 * `name` - (Required) The virtual machine name (cannot contain underscores and must be less than 15 characters)
 * `folder` - (Optional) The folder to group the VM in.
 * `vcpu` - (Required) The number of virtual CPUs to allocate to the virtual machine
-* `vcoresPerSocket` - (Optional) The number of virtual CPUs for each socket; the number of virtual CPUs must be evenly divisible by the number of cores
+* `vcores_per_socket` - (Optional) The number of virtual CPUs for each socket; the number of virtual CPUs must be evenly divisible by the number of cores
 * `memory` - (Required) The amount of RAM (in MB) to allocate to the virtual machine
 * `hostname` - (Optional) The virtual machine hostname used during the OS customization. Defaults to the `name` attribute.
 * `memory_reservation` - (Optional) The amount of RAM (in MB) to reserve physical memory resource; defaults to 0 (means not to reserve)

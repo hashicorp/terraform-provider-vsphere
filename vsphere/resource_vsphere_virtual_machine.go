@@ -152,7 +152,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				Required: true,
 			},
 
-			"vcoresPerSocket": &schema.Schema{
+			"vcores_per_socket": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  1,
@@ -524,8 +524,8 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		rebootRequired = true
 	}
 
-	if d.HasChange("vcoresPerSocket") {
-		if vcoresPerSocket := int32(d.Get("vcoresPerSocket").(int)); configSpec.NumCPUs%vcoresPerSocket == 0 {
+	if d.HasChange("vcores_per_socket") {
+		if vcoresPerSocket := int32(d.Get("vcores_per_socket").(int)); configSpec.NumCPUs%vcoresPerSocket == 0 {
 			configSpec.NumCoresPerSocket = vcoresPerSocket
 			hasChanges = true
 			rebootRequired = true
@@ -713,7 +713,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		},
 	}
 
-	if v, ok := d.GetOk("vcoresPerSocket"); ok {
+	if v, ok := d.GetOk("vcores_per_socket"); ok {
 		if vcoresPerSocket := int32(v.(int)); vm.vcpu%vcoresPerSocket == 0 {
 			vm.vcoresPerSocket = vcoresPerSocket
 		} else {
