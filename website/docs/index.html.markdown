@@ -71,19 +71,13 @@ resource "vsphere_virtual_machine" "web" {
 
 #Create and delete a snapshot of virtual machine
 resource "vsphere_virtual_machine_snapshot" "demo1" {
- vm_id = "FolderName/VirtualMachine_Name"
- snapshot_name = "Snapshot Name"
- description = "This is Demo Snapshot"
- memory = "true"
- quiesce = "true"
- remove_children = "false"
- consolidate = "true"
-}
-
-#Revert virtual machine's snapshot
-resource "vsphere_virtual_machine_snapshot_revert" "demo2"{
- vm_id = "FolderName/VirtualMachine_Name"
- snapshot_id = "snapshot-180"
+  vm_uuid = "42392f34-82c2-6b34-175f-3d392afbc4f1"
+  snapshot_name = "Snapshot Name"
+  description = "This is Demo Snapshot"
+  memory = "true"
+  quiesce = "true"
+  remove_children = "false"
+  consolidate = "true"
 }
 
 ```
@@ -155,7 +149,6 @@ vCenter must be assigned the following privileges:
 * Snapshot 
    - Create snapshot of VM
    - Delete snapshot of VM
-   - Revert to specified snapshot of VM
 
 These settings were tested with [vSphere
 6.0](https://pubs.vmware.com/vsphere-60/index.jsp?topic=%2Fcom.vmware.vsphere.security.doc%2FGUID-18071E9A-EED1-4968-8D51-E0B4F526FDA3.html)

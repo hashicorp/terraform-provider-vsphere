@@ -69,16 +69,15 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"vsphere_datacenter":                      resourceVSphereDatacenter(),
-			"vsphere_file":                            resourceVSphereFile(),
-			"vsphere_folder":                          resourceVSphereFolder(),
-			"vsphere_host_port_group":                 resourceVSphereHostPortGroup(),
-			"vsphere_host_virtual_switch":             resourceVSphereHostVirtualSwitch(),
-			"vsphere_license":                         resourceVSphereLicense(),
-			"vsphere_virtual_disk":                    resourceVSphereVirtualDisk(),
-			"vsphere_virtual_machine":                 resourceVSphereVirtualMachine(),
-			"vsphere_virtual_machine_snapshot":        resourceVSphereSnapshot(),
-			"vsphere_virtual_machine_snapshot_revert": resourceVSphereRevertSnapshot(),
+			"vsphere_datacenter":               resourceVSphereDatacenter(),
+			"vsphere_file":                     resourceVSphereFile(),
+			"vsphere_folder":                   resourceVSphereFolder(),
+			"vsphere_host_port_group":          resourceVSphereHostPortGroup(),
+			"vsphere_host_virtual_switch":      resourceVSphereHostVirtualSwitch(),
+			"vsphere_license":                  resourceVSphereLicense(),
+			"vsphere_virtual_disk":             resourceVSphereVirtualDisk(),
+			"vsphere_virtual_machine":          resourceVSphereVirtualMachine(),
+			"vsphere_virtual_machine_snapshot": resourceVSphereSnapshot(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{

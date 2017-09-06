@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/vmware/govmomi"
-	"github.com/vmware/govmomi/find"
 )
 
 func testBasicPreCheckSnapshot(t *testing.T) {
@@ -18,7 +17,7 @@ func testBasicPreCheckSnapshot(t *testing.T) {
 
 func TestAccVmSnapshot_Basic(t *testing.T) {
 	var vmId, snapshotName, description, memory, quiesce string
-	if v := os.Getenv("VSPHERE_VM_ID"); v != "" {
+	if v := os.Getenv("VSPHERE_VM_UUID"); v != "" {
 		vmId = v
 	}
 	if v := os.Getenv("VSPHERE_VM_SNAPSHOT_NAME"); v != "" {
@@ -58,18 +57,14 @@ func testAccCheckVmSnapshotDestroy(s *terraform.State) error {
 		if rs.Type != "vsphere_virtual_machine_snapshot" {
 			continue
 		}
-		dc, err := getDatacenter(client, "")
-		if err != nil {
-			return fmt.Errorf("error %s", err)
-		}
-		finder := find.NewFinder(client.Client, true)
-		finder = finder.SetDatacenter(dc)
-		vm, err := finder.VirtualMachine(context.TODO(), vmPath(rs.Primary.Attributes["folder"], rs.Primary.Attributes["vm_id"]))
+		vm, err := virtualMachineFromUUID(client, rs.Primary.Attributes["vm_uuid"])
 		if err != nil {
 			return fmt.Errorf("error %s", err)
 		}
 
-		snapshot, err := vm.FindSnapshot(context.TODO(), rs.Primary.Attributes["snapshot_name"])
+		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout) // This is 5 mins
+		defer cancel()
+		snapshot, err := vm.FindSnapshot(ctx, rs.Primary.Attributes["snapshot_name"])
 		if err == nil {
 			return fmt.Errorf("Vm Snapshot still exists: %v", snapshot)
 		}
@@ -91,17 +86,13 @@ func testAccCheckVmSnapshotExists(n string) resource.TestCheckFunc {
 		}
 		client := testAccProvider.Meta().(*govmomi.Client)
 
-		dc, err := getDatacenter(client, "")
+		vm, err := virtualMachineFromUUID(client, rs.Primary.Attributes["vm_uuid"])
 		if err != nil {
 			return fmt.Errorf("error %s", err)
 		}
-		finder := find.NewFinder(client.Client, true)
-		finder = finder.SetDatacenter(dc)
-		vm, err := finder.VirtualMachine(context.TODO(), os.Getenv("VSPHERE_VM_ID"))
-		if err != nil {
-			return fmt.Errorf("error %s", err)
-		}
-		snapshot, err := vm.FindSnapshot(context.TODO(), rs.Primary.ID)
+		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout) // This is 5 mins
+		defer cancel()
+		snapshot, err := vm.FindSnapshot(ctx, rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("Error while getting the snapshot %v", snapshot)
 		}
@@ -110,13 +101,13 @@ func testAccCheckVmSnapshotExists(n string) resource.TestCheckFunc {
 	}
 }
 
-func testAccCheckVSphereVMSnapshotConfig_basic(vmId, snapshotName, description, memory, quiesce string) string {
+func testAccCheckVSphereVMSnapshotConfig_basic(vmUuid, snapshotName, description, memory, quiesce string) string {
 	return fmt.Sprintf(`
-	resource "vsphere_virtual_machine_snapshot" "Test_terraform_cases" {
-	  vm_id = "%s"
-	  snapshot_name = "%s"
-	  description = "%s"
-	  memory = %s
-	  quiesce = %s
-  }`, vmId, snapshotName, description, memory, quiesce)
+resource "vsphere_virtual_machine_snapshot" "Test_terraform_cases" {
+  vm_id = "%s"
+  snapshot_name = "%s"
+  description = "%s"
+  memory = %s
+  quiesce = %s
+}`, vmUuid, snapshotName, description, memory, quiesce)
 }
