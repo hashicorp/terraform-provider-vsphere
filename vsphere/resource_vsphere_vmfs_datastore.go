@@ -21,9 +21,9 @@ const (
 	waitForDeleteError     = "waitForDeleteError"
 )
 
-// formatCreateRollbackErrorFolder defines the verbose error for moving a
+// formatVmfsDatastoreCreateRollbackErrorFolder defines the verbose error for moving a
 // datastore to a folder on creation where rollback was not possible.
-const formatCreateRollbackErrorFolder = `
+const formatVmfsDatastoreCreateRollbackErrorFolder = `
 WARNING: Dangling resource!
 There was an error moving your datastore to the desired folder %q:
 %s
@@ -32,9 +32,9 @@ Additionally, there was an error removing the created datastore:
 You will need to remove this datastore manually before trying again.
 `
 
-// formatCreateRollbackErrorUpdate defines the verbose error for extending a
+// formatVmfsDatastoreCreateRollbackErrorUpdate defines the verbose error for extending a
 // disk on creation where rollback is not possible.
-const formatCreateRollbackErrorUpdate = `
+const formatVmfsDatastoreCreateRollbackErrorUpdate = `
 WARNING: Dangling resource!
 There was an error extending your datastore with disk: %q:
 %s
@@ -43,29 +43,15 @@ Additionally, there was an error removing the created datastore:
 You will need to remove this datastore manually before trying again.
 `
 
-// formatCreateRollbackError defines the verbose error for extending a disk on
+// formatVmfsDatastoreCreateRollbackError defines the verbose error for extending a disk on
 // creation where rollback is not possible.
-const formatCreateRollbackErrorProperties = `
+const formatVmfsDatastoreCreateRollbackErrorProperties = `
 WARNING: Dangling resource!
 After creating the datastore, there was an error fetching its properties:
 %s
 Additionally, there was an error removing the created datastore:
 %s
 You will need to remove this datastore manually before trying again.
-`
-
-// formatUpdateInconsistentState defines the verbose error when the setting
-// state failed in the middle of an update opeartion. This is an error that
-// will require repair of the state before TF can continue.
-const formatUpdateInconsistentState = `
-WARNING: Inconsistent state!
-Terraform was able to add disk %q, but could not save the update to the state.
-The error was:
-%s
-This is more than likely a bug. Please report it at:
-https://github.com/terraform-providers/terraform-provider-vsphere/issues
-Also, please try running "terraform refresh" to try to update the state before
-trying again. If this fails, you may need to repair the state manually.
 `
 
 func resourceVSphereVmfsDatastore() *schema.Resource {
@@ -140,7 +126,7 @@ func resourceVSphereVmfsDatastoreCreate(d *schema.ResourceData, meta interface{}
 				// We could not destroy the created datastore and there is now a dangling
 				// resource. We need to instruct the user to remove the datastore
 				// manually.
-				return fmt.Errorf(formatCreateRollbackErrorFolder, folder, err, remErr)
+				return fmt.Errorf(formatVmfsDatastoreCreateRollbackErrorFolder, folder, err, remErr)
 			}
 			return fmt.Errorf("could not move datastore to folder %q: %s", folder, err)
 		}
@@ -155,7 +141,7 @@ func resourceVSphereVmfsDatastoreCreate(d *schema.ResourceData, meta interface{}
 				// We could not destroy the created datastore and there is now a dangling
 				// resource. We need to instruct the user to remove the datastore
 				// manually.
-				return fmt.Errorf(formatCreateRollbackErrorUpdate, disk, err, remErr)
+				return fmt.Errorf(formatVmfsDatastoreCreateRollbackErrorUpdate, disk, err, remErr)
 			}
 			return fmt.Errorf("error fetching datastore extend spec for disk %q: %s", disk, err)
 		}
@@ -166,7 +152,7 @@ func resourceVSphereVmfsDatastoreCreate(d *schema.ResourceData, meta interface{}
 				// We could not destroy the created datastore and there is now a dangling
 				// resource. We need to instruct the user to remove the datastore
 				// manually.
-				return fmt.Errorf(formatCreateRollbackErrorUpdate, disk, err, remErr)
+				return fmt.Errorf(formatVmfsDatastoreCreateRollbackErrorUpdate, disk, err, remErr)
 			}
 			return fmt.Errorf("error extending datastore with disk %q: %s", disk, err)
 		}
@@ -256,11 +242,6 @@ func resourceVSphereVmfsDatastoreUpdate(d *schema.ResourceData, meta interface{}
 		}
 	}
 
-	// Maintain a copy of the disks that have been added just in case the update
-	// fails in the middle.
-	old2 := make([]interface{}, len(old.([]interface{})))
-	copy(old2, old.([]interface{}))
-
 	// Now we basically reverse what we did above when we were checking for
 	// removed disks, and add any new disks that have been added.
 	for _, v1 := range new.([]interface{}) {
@@ -280,13 +261,6 @@ func resourceVSphereVmfsDatastoreUpdate(d *schema.ResourceData, meta interface{}
 			defer cancel()
 			if _, err := extendVmfsDatastore(ctx, dss, ds, *spec); err != nil {
 				return err
-			}
-			// The add was successful. Since this update is not atomic, we need to at
-			// least update the disk list to make sure we don't attempt to add the
-			// same disk twice.
-			old2 = append(old2, v1)
-			if err := d.Set("disks", old2); err != nil {
-				return fmt.Errorf(formatUpdateInconsistentState, v1.(string), err)
 			}
 		}
 	}
