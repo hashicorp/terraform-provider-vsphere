@@ -207,7 +207,7 @@ func resourceVSphereNasDatastoreImport(d *schema.ResourceData, meta interface{})
 	if !isNasVolume(t) {
 		return nil, fmt.Errorf("datastore ID %q is not a NAS datastore", id)
 	}
-	// We don't support selective mount modes across multiple hosts. If
+
 	var accessMode string
 	for _, hostMount := range props.Host {
 		switch {
