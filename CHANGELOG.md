@@ -1,10 +1,10 @@
-## 0.2.2 (Unreleased)
+## 0.2.2 (September 07, 2017)
 
 FEATURES:
 
-* **New Resource:** `vsphere_nas_datastore` [GH-149]
-* **New Resource:** `vsphere_vmfs_datastore` [GH-142]
-* **New Data Source:** `vsphere_vmfs_disks` [GH-141]
+* **New Resource:** `vsphere_nas_datastore` ([#149](https://github.com/terraform-providers/terraform-provider-vsphere/issues/149))
+* **New Resource:** `vsphere_vmfs_datastore` ([#142](https://github.com/terraform-providers/terraform-provider-vsphere/issues/142))
+* **New Data Source:** `vsphere_vmfs_disks` ([#141](https://github.com/terraform-providers/terraform-provider-vsphere/issues/141))
 
 ## 0.2.1 (August 31, 2017)
 
