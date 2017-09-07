@@ -49,3 +49,24 @@ func hostSystemFromID(client *govmomi.Client, id string) (*object.HostSystem, er
 	}
 	return ds.(*object.HostSystem), nil
 }
+
+// hostSystemNameFromID returns the name of a host via its its managed object
+// reference ID.
+func hostSystemNameFromID(client *govmomi.Client, id string) (string, error) {
+	hs, err := hostSystemFromID(client, id)
+	if err != nil {
+		return "", err
+	}
+	return hs.Name(), nil
+}
+
+// hostSystemNameOrID is a convenience method mainly for helping displaying friendly
+// errors where space is important - it displays either the host name or the ID
+// if there was an error fetching it.
+func hostSystemNameOrID(client *govmomi.Client, id string) string {
+	name, err := hostSystemNameFromID(client, id)
+	if err != nil {
+		return id
+	}
+	return name
+}
