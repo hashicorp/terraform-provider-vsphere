@@ -101,8 +101,8 @@ The following attributes are exported:
 
 ## Importing
 
-An existing NAS datastore can be [imported][docs-import] into this resource via its managed
-object ID, via the following command:
+An existing NAS datastore can be [imported][docs-import] into this resource via
+its managed object ID, via the following command:
 
 [docs-import]: https://www.terraform.io/docs/import/index.html
 
