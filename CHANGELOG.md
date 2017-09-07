@@ -2,6 +2,7 @@
 
 FEATURES:
 
+* **New Resource:** `vsphere_nas_datastore` [GH-149]
 * **New Resource:** `vsphere_vmfs_datastore` [GH-142]
 * **New Data Source:** `vsphere_vmfs_disks` [GH-141]
 
