@@ -43,9 +43,9 @@ data "vsphere_host" "esxi_hosts" {
 }
 
 resource "vsphere_nas_datastore" "datastore" {
-  name           = "terraform-test"
-  host_system_ids = "${data.vsphere_host.esxi_hosts.*.id}"
-  
+  name            = "terraform-test"
+  host_system_ids = ["${data.vsphere_host.esxi_hosts.*.id}"]
+
   type         = "NFS"
   remote_hosts = ["nfs"]
   remote_path  = "/export/terraform-test"
