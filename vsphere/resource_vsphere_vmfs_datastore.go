@@ -2,7 +2,9 @@ package vsphere
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -64,6 +66,7 @@ func resourceVSphereVmfsDatastore() *schema.Resource {
 		"host_system_id": &schema.Schema{
 			Type:        schema.TypeString,
 			Description: "The managed object ID of the host to set up the datastore on.",
+			ForceNew:    true,
 			Required:    true,
 		},
 		"folder": &schema.Schema{
@@ -357,20 +360,39 @@ func resourceVSphereVmfsDatastoreImport(d *schema.ResourceData, meta interface{}
 	// We support importing a MoRef - so we need to load the datastore and check
 	// to make sure 1) it exists, and 2) it's a VMFS datastore. If it is, we are
 	// good to go (rest of the stuff will be handled by read on refresh).
+	ids := strings.SplitN(d.Id(), ":", 2)
+	if len(ids) != 2 {
+		return nil, errors.New("please supply the ID in the following format: DATASTOREID:HOSTID")
+	}
+
+	id := ids[0]
+	hsID := ids[1]
 	client := meta.(*govmomi.Client)
-	id := d.Id()
 	ds, err := datastoreFromID(client, id)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find datastore: %s", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
-	defer cancel()
-	t, err := ds.Type(ctx)
+	props, err := datastoreProperties(ds)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching datastore type: %s", err)
+		return nil, fmt.Errorf("could not get properties for datastore: %s", err)
 	}
+
+	t := types.HostFileSystemVolumeFileSystemType(props.Summary.Type)
 	if t != types.HostFileSystemVolumeFileSystemTypeVMFS {
 		return nil, fmt.Errorf("datastore ID %q is not a VMFS datastore", id)
 	}
+
+	var found bool
+	for _, mount := range props.Host {
+		if mount.Key.Value == hsID {
+			found = true
+		}
+	}
+	if !found {
+		return nil, fmt.Errorf("configured host_system_id %q not found as a mounted host on datastore", hsID)
+	}
+	d.SetId(id)
+	d.Set("host_system_id", hsID)
+
 	return []*schema.ResourceData{d}, nil
 }

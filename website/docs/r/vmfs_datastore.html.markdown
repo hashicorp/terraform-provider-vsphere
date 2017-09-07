@@ -151,13 +151,14 @@ The following attributes are exported:
 
 ## Importing
 
-An existing VMFS datastore can be [imported][docs-import] into this resource via its managed
-object ID, via the following command:
+An existing VMFS datastore can be [imported][docs-import] into this resource
+via its managed object ID, via the command below. You also need the host system
+ID.
 
 [docs-import]: https://www.terraform.io/docs/import/index.html
 
 ```
-terraform import vsphere_vmfs_datastore.datastore datastore-123
+terraform import vsphere_vmfs_datastore.datastore datastore-123:host-10
 ```
 
 You need a tool like [`govc`][ext-govc] that can display managed object IDs.
@@ -170,4 +171,15 @@ by doing the following:
 ```
 $ govc ls -i /dc/datastore/terraform-test
 Datastore:datastore-123
+```
+
+To locate host IDs, it might be a good idea to supply the `-l` flag as well so
+that you can line up the names with the IDs:
+
+```
+$ govc ls -l -i /dc/host/cluster1
+ResourcePool:resgroup-10 /dc/host/cluster1/Resources
+HostSystem:host-10 /dc/host/cluster1/esxi1
+HostSystem:host-11 /dc/host/cluster1/esxi2
+HostSystem:host-12 /dc/host/cluster1/esxi3
 ```
