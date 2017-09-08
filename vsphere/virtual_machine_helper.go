@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
@@ -18,6 +19,11 @@ func virtualMachineFromUUID(client *govmomi.Client, uuid string) (*object.Virtua
 	if err != nil {
 		return nil, err
 	}
+
+	if vm == nil {
+		return nil, fmt.Errorf("virtual machine with UUID %q not found", uuid)
+	}
+
 	// Should be safe to return here. If our reference returned here and is not a
 	// VM, then we have bigger problems and to be honest we should be panicking
 	// anyway.
