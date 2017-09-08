@@ -1,5 +1,9 @@
 ## 0.2.3 (Unreleased)
 
+FEATURES:
+
+* **New Resource:** `vsphere_virtual_machine_snapshot` [GH-107]
+
 IMPROVEMENTS:
 
 * resource/vsphere_virtual_machine: Virtual machine power state is now enforced.
