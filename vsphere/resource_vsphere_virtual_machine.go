@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -249,6 +250,13 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			"moid": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+
+			"power_state": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      string(types.VirtualMachinePowerStatePoweredOn),
+				ValidateFunc: validation.StringInSlice([]string{string(types.VirtualMachinePowerStatePoweredOn)}, false),
 			},
 
 			"custom_configuration_parameters": &schema.Schema{
@@ -636,14 +644,16 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		}
 	}
 
-	// do nothing if there are no changes
-	if !hasChanges {
-		return nil
-	}
-
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 
-	if rebootRequired {
+	// We process power state changes here in addition to VM updates. The only
+	// "at rest" power state for a VM managed by Terraform is on, but depending
+	// on if the VM was powered off or not outside of Terraform, we need to
+	// handle rebootRequired in different ways.
+	o, _ := d.GetChange("power_state")
+	powerState := types.VirtualMachinePowerState(o.(string))
+
+	if rebootRequired && powerState != types.VirtualMachinePowerStatePoweredOff {
 		log.Printf("[INFO] Shutting down virtual machine: %s", d.Id())
 
 		task, err := vm.PowerOff(context.TODO())
@@ -657,20 +667,25 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		}
 	}
 
-	log.Printf("[INFO] Reconfiguring virtual machine: %s", d.Id())
+	// Perform reconfiguration tasks if we we have them
+	if hasChanges {
+		log.Printf("[INFO] Reconfiguring virtual machine: %s", d.Id())
 
-	task, err := vm.Reconfigure(context.TODO(), configSpec)
-	if err != nil {
-		log.Printf("[ERROR] %s", err)
+		task, err := vm.Reconfigure(context.TODO(), configSpec)
+		if err != nil {
+			log.Printf("[ERROR] %s", err)
+			return err
+		}
+
+		err = task.Wait(context.TODO())
+		if err != nil {
+			log.Printf("[ERROR] %s", err)
+			return err
+		}
 	}
 
-	err = task.Wait(context.TODO())
-	if err != nil {
-		log.Printf("[ERROR] %s", err)
-	}
-
-	if rebootRequired {
-		task, err = vm.PowerOn(context.TODO())
+	if rebootRequired || powerState != types.VirtualMachinePowerStatePoweredOn {
+		task, err := vm.PowerOn(context.TODO())
 		if err != nil {
 			return err
 		}
@@ -678,6 +693,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		err = task.Wait(context.TODO())
 		if err != nil {
 			log.Printf("[ERROR] %s", err)
+			return err
 		}
 	}
 
@@ -990,7 +1006,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 
 	var mvm mo.VirtualMachine
 	collector := property.DefaultCollector(client.Client)
-	if err := collector.RetrieveOne(context.TODO(), vm.Reference(), []string{"guest", "summary", "datastore", "config"}, &mvm); err != nil {
+	if err := collector.RetrieveOne(context.TODO(), vm.Reference(), []string{"guest", "summary", "datastore", "config", "runtime"}, &mvm); err != nil {
 		return err
 	}
 
@@ -1195,6 +1211,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	d.Set("datastore", rootDatastore)
 	d.Set("uuid", mvm.Summary.Config.Uuid)
 	d.Set("annotation", mvm.Summary.Config.Annotation)
+	d.Set("power_state", mvm.Runtime.PowerState)
 
 	return nil
 }

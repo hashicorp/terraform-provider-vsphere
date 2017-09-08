@@ -151,3 +151,9 @@ The following attributes are exported:
 * `network_interface/ipv4_prefix_length` - See Argument Reference above.
 * `network_interface/ipv6_address` - Assigned static IPv6 address.
 * `network_interface/ipv6_prefix_length` - Prefix length of assigned static IPv6 address.
+* `power_state` - The power state of the virtual machine. Can be one of
+  `poweredOff`, `poweredOn`, or `suspended`.
+
+~> **NOTE:** `power_state` is a pseudo-computed value which enforces
+Terraform's expectation that managed virtual machines are either powered on, or
+destroyed. You cannot edit this value to set a different expected power state.

@@ -1,14 +1,18 @@
 package vsphere
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"regexp"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/vmware/govmomi"
+	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -19,6 +23,9 @@ type testCheckVariables struct {
 
 	// The subject resource's ID.
 	resourceID string
+
+	// The subject resource's attributes.
+	resourceAttributes map[string]string
 
 	// The ESXi host that a various API call is directed at.
 	esxiHost string
@@ -37,11 +44,12 @@ func testClientVariablesForResource(s *terraform.State, addr string) (testCheckV
 	}
 
 	return testCheckVariables{
-		client:     testAccProvider.Meta().(*govmomi.Client),
-		resourceID: rs.Primary.ID,
-		esxiHost:   os.Getenv("VSPHERE_ESXI_HOST"),
-		datacenter: os.Getenv("VSPHERE_DATACENTER"),
-		timeout:    time.Minute * 5,
+		client:             testAccProvider.Meta().(*govmomi.Client),
+		resourceID:         rs.Primary.ID,
+		resourceAttributes: rs.Primary.Attributes,
+		esxiHost:           os.Getenv("VSPHERE_ESXI_HOST"),
+		datacenter:         os.Getenv("VSPHERE_DATACENTER"),
+		timeout:            time.Minute * 5,
 	}, nil
 }
 
@@ -92,4 +100,60 @@ func testGetPortGroup(s *terraform.State, resourceName string) (*types.HostPortG
 	}
 
 	return hostPortGroupFromName(tVars.client, ns, name)
+}
+
+// testGetVirtualMachine is a convenience method to fetch a virtual machine by
+// resource name.
+func testGetVirtualMachine(s *terraform.State, resourceName string) (*object.VirtualMachine, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_virtual_machine.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+	uuid, ok := tVars.resourceAttributes["uuid"]
+	if !ok {
+		return nil, fmt.Errorf("resource %q has no UUID", resourceName)
+	}
+	return virtualMachineFromUUID(tVars.client, uuid)
+}
+
+// testGetVirtualMachineProperties is a convenience method that adds an extra
+// step to testGetVirtualMachine to get the properties of a virtual machine.
+func testGetVirtualMachineProperties(s *terraform.State, resourceName string) (*mo.VirtualMachine, error) {
+	vm, err := testGetVirtualMachine(s, resourceName)
+	if err != nil {
+		return nil, err
+	}
+	return virtualMachineProperties(vm)
+}
+
+// testPowerOffVM does an immediate power-off of the supplied virtual machine
+// resource defined by the supplied resource address name. It is used to help
+// set up a test scenarios where a VM is powered off.
+func testPowerOffVM(s *terraform.State, resourceName string) error {
+	vm, err := testGetVirtualMachine(s, resourceName)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	task, err := vm.PowerOff(ctx)
+	if err != nil {
+		return fmt.Errorf("error powering off VM: %s", err)
+	}
+	tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer tcancel()
+	if err := task.Wait(tctx); err != nil {
+		return fmt.Errorf("error waiting for poweroff: %s", err)
+	}
+	return nil
+}
+
+// copyStatePtr returns a TestCheckFunc that copies the reference to the test
+// run's state to t. This allows access to the state data in later steps where
+// it's not normally accessible (ie: in pre-config parts in another test step).
+func copyStatePtr(t **terraform.State) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		*t = s
+		return nil
+	}
 }
