@@ -23,11 +23,6 @@ func resourceVSphereVirtualMachineSnapshot() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"datacenter": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
 			"snapshot_name": {
 				Type:     schema.TypeString,
 				Required: true,
