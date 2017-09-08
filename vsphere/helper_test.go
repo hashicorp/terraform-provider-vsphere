@@ -116,8 +116,8 @@ func testGetVirtualMachine(s *terraform.State, resourceName string) (*object.Vir
 	return virtualMachineFromUUID(tVars.client, uuid)
 }
 
-// testGetVirtualMachineProperties is a convenience that adds an extra step to
-// testGetVirtualMachine to get the properties of a virtual machine.
+// testGetVirtualMachineProperties is a convenience method that adds an extra
+// step to testGetVirtualMachine to get the properties of a virtual machine.
 func testGetVirtualMachineProperties(s *terraform.State, resourceName string) (*mo.VirtualMachine, error) {
 	vm, err := testGetVirtualMachine(s, resourceName)
 	if err != nil {
