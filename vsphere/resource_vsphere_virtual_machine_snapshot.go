@@ -18,7 +18,7 @@ func resourceVSphereVirtualMachineSnapshot() *schema.Resource {
 		Delete: resourceVSphereVirtualMachineSnapshotDelete,
 
 		Schema: map[string]*schema.Schema{
-			"vm_uuid": {
+			"virtual_machine_uuid": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -59,7 +59,7 @@ func resourceVSphereVirtualMachineSnapshot() *schema.Resource {
 
 func resourceVSphereVirtualMachineSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*govmomi.Client)
-	vm, err := virtualMachineFromUUID(client, d.Get("vm_uuid").(string))
+	vm, err := virtualMachineFromUUID(client, d.Get("virtual_machine_uuid").(string))
 	if err != nil {
 		return fmt.Errorf("Error while getting the VirtualMachine :%s", err)
 	}
@@ -86,7 +86,7 @@ func resourceVSphereVirtualMachineSnapshotCreate(d *schema.ResourceData, meta in
 
 func resourceVSphereVirtualMachineSnapshotDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*govmomi.Client)
-	vm, err := virtualMachineFromUUID(client, d.Get("vm_uuid").(string))
+	vm, err := virtualMachineFromUUID(client, d.Get("virtual_machine_uuid").(string))
 	if err != nil {
 		return fmt.Errorf("Error while getting the VirtualMachine :%s", err)
 	}
@@ -96,26 +96,25 @@ func resourceVSphereVirtualMachineSnapshotDelete(d *schema.ResourceData, meta in
 		return nil
 	}
 	log.Printf("[DEBUG] Deleting snapshot with name: %v", d.Get("snapshot_name").(string))
-	var consolidate_ptr *bool
-	var remove_children bool
+	var consolidatePtr *bool
+	var removeChildren bool
 
 	if v, ok := d.GetOk("consolidate"); ok {
 		consolidate := v.(bool)
-		consolidate_ptr = &consolidate
+		consolidatePtr = &consolidate
 	} else {
 
 		consolidate := true
-		consolidate_ptr = &consolidate
+		consolidatePtr = &consolidate
 	}
 	if v, ok := d.GetOk("remove_children"); ok {
-		remove_children = v.(bool)
+		removeChildren = v.(bool)
 	} else {
-
-		remove_children = false
+		removeChildren = false
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout) // This is 5 mins
 	defer cancel()
-	task, err := vm.RemoveSnapshot(ctx, d.Id(), remove_children, consolidate_ptr)
+	task, err := vm.RemoveSnapshot(ctx, d.Id(), removeChildren, consolidatePtr)
 	if err != nil {
 		log.Printf("[DEBUG] Error While Creating the Task for Delete Snapshot: %v", err)
 		return fmt.Errorf("Error While Creating the Task for Delete Snapshot: %s", err)
@@ -134,7 +133,7 @@ func resourceVSphereVirtualMachineSnapshotDelete(d *schema.ResourceData, meta in
 
 func resourceVSphereVirtualMachineSnapshotRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*govmomi.Client)
-	vm, err := virtualMachineFromUUID(client, d.Get("vm_uuid").(string))
+	vm, err := virtualMachineFromUUID(client, d.Get("virtual_machine_uuid").(string))
 	if err != nil {
 		return fmt.Errorf("Error while getting the VirtualMachine :%s", err)
 	}

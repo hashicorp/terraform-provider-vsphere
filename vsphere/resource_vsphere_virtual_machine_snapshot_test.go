@@ -12,61 +12,59 @@ import (
 )
 
 func TestAccResourceVSphereVirtualMachineSnapshot_Basic(t *testing.T) {
-	var vmID, snapshotName, description, memory, quiesce string
-	if v := os.Getenv("VSPHERE_VM_UUID"); v != "" {
-		vmID = v
-	}
-	if v := os.Getenv("VSPHERE_VM_SNAPSHOT_NAME"); v != "" {
-		snapshotName = v
-	}
-	if v := os.Getenv("VSPHERE_VM_SNAPSHOT_DESC"); v != "" {
-		description = v
-	}
-	if v := os.Getenv("VSPHERE_VM_SNAPSHOT_MEMORY"); v != "" {
-		memory = v
-	}
-	if v := os.Getenv("VSPHERE_VM_SNAPSHOT_QUIESCE"); v != "" {
-		quiesce = v
-	}
-
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckVirtualMachineSnapshotDestroy,
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachineSnapshotPreCheck(t)
+		},
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccResourceVSphereVirtualMachineSnapshotConfig(vmID, snapshotName, description, memory, quiesce),
+				Config: testAccResourceVSphereVirtualMachineSnapshotConfig(true),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckVirtualMachineSnapshotExists("vsphere_virtual_machine_snapshot.Test_terraform_cases"),
+					testAccCheckVirtualMachineSnapshotExists("vsphere_virtual_machine_snapshot.snapshot"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine_snapshot.Test_terraform_cases", "snapshot_name", snapshotName),
+						"vsphere_virtual_machine_snapshot.snapshot", "snapshot_name", "terraform-test-snapshot"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccResourceVSphereVirtualMachineSnapshotConfig(false),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVirtualMachineHasNoSnapshots("vsphere_virtual_machine.vm"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckVirtualMachineSnapshotDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*govmomi.Client)
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "vsphere_virtual_machine_snapshot" {
-			continue
-		}
-		vm, err := virtualMachineFromUUID(client, rs.Primary.Attributes["vm_uuid"])
-		if err != nil {
-			return fmt.Errorf("error %s", err)
-		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout) // This is 5 mins
-		defer cancel()
-		snapshot, err := vm.FindSnapshot(ctx, rs.Primary.Attributes["snapshot_name"])
-		if err == nil {
-			return fmt.Errorf("Vm Snapshot still exists: %v", snapshot)
-		}
+func testAccResourceVSphereVirtualMachineSnapshotPreCheck(t *testing.T) {
+	if os.Getenv("VSPHERE_DATACENTER") == "" {
+		t.Skip("set VSPHERE_DATACENTER to run vsphere_virtual_machine_snapshot acceptance tests")
 	}
-
-	return nil
+	if os.Getenv("VSPHERE_CLUSTER") == "" {
+		t.Skip("set VSPHERE_CLUSTER to run vsphere_virtual_machine_snapshot acceptance tests")
+	}
+	if os.Getenv("VSPHERE_RESOURCE_POOL") == "" {
+		t.Skip("set VSPHERE_RESOURCE_POOL to run vsphere_virtual_machine_snapshot acceptance tests")
+	}
+	if os.Getenv("VSPHERE_NETWORK_LABEL") == "" {
+		t.Skip("set VSPHERE_NETWORK_LABEL to run vsphere_virtual_machine_snapshot acceptance tests")
+	}
+	if os.Getenv("VSPHERE_IPV4_ADDRESS") == "" {
+		t.Skip("set VSPHERE_IPV4_ADDRESS to run vsphere_virtual_machine_snapshot acceptance tests")
+	}
+	if os.Getenv("VSPHERE_IPV4_PREFIX") == "" {
+		t.Skip("set VSPHERE_IPV4_PREFIX to run vsphere_virtual_machine_snapshot acceptance tests")
+	}
+	if os.Getenv("VSPHERE_IPV4_GATEWAY") == "" {
+		t.Skip("set VSPHERE_IPV4_GATEWAY to run vsphere_virtual_machine_snapshot acceptance tests")
+	}
+	if os.Getenv("VSPHERE_DATASTORE") == "" {
+		t.Skip("set VSPHERE_DATASTORE to run vsphere_virtual_machine_snapshot acceptance tests")
+	}
+	if os.Getenv("VSPHERE_TEMPLATE") == "" {
+		t.Skip("set VSPHERE_TEMPLATE to run vsphere_virtual_machine_snapshot acceptance tests")
+	}
 }
 
 func testAccCheckVirtualMachineSnapshotExists(n string) resource.TestCheckFunc {
@@ -82,7 +80,7 @@ func testAccCheckVirtualMachineSnapshotExists(n string) resource.TestCheckFunc {
 		}
 		client := testAccProvider.Meta().(*govmomi.Client)
 
-		vm, err := virtualMachineFromUUID(client, rs.Primary.Attributes["vm_uuid"])
+		vm, err := virtualMachineFromUUID(client, rs.Primary.Attributes["virtual_machine_uuid"])
 		if err != nil {
 			return fmt.Errorf("error %s", err)
 		}
@@ -97,14 +95,120 @@ func testAccCheckVirtualMachineSnapshotExists(n string) resource.TestCheckFunc {
 	}
 }
 
-func testAccResourceVSphereVirtualMachineSnapshotConfig(vmUUID, snapshotName, description, memory, quiesce string) string {
-	return fmt.Sprintf(`
-resource "vsphere_virtual_machine_snapshot" "Test_terraform_cases" {
-  vm_id         = "%s"
-  snapshot_name = "%s"
-  description   = "%s"
-  memory        = "%s"
-  quiesce       = "%s"
+func testAccCheckVirtualMachineHasNoSnapshots(n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No VM ID is set")
+		}
+		client := testAccProvider.Meta().(*govmomi.Client)
+
+		vm, err := virtualMachineFromUUID(client, rs.Primary.Attributes["uuid"])
+		if err != nil {
+			return fmt.Errorf("error %s", err)
+		}
+		props, err := virtualMachineProperties(vm)
+		if err != nil {
+			return fmt.Errorf("cannot get properties for virtual machine: %s", err)
+		}
+		if props.Snapshot != nil {
+			return fmt.Errorf("expected VM to not have snapshots, got %#v", props.Snapshot)
+		}
+
+		return nil
+	}
 }
-`, vmUUID, snapshotName, description, memory, quiesce)
+
+func testAccResourceVSphereVirtualMachineSnapshotConfig(enabled bool) string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "cluster" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "ipv4_addr" {
+  default = "%s"
+}
+
+variable "ipv4_prefix" {
+  default = "%s"
+}
+
+variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "template" {
+  default = "%s"
+}
+
+variable "snapshot_enabled" {
+  default = "%t"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name          = "terraform-test"
+  datacenter    = "${var.datacenter}"
+  cluster       = "${var.cluster}"
+  resource_pool = "${var.resource_pool}"
+
+  vcpu   = 2
+  memory = 1024
+
+  network_interface {
+    label              = "${var.network_label}"
+    ipv4_address       = "${var.ipv4_addr}"
+    ipv4_prefix_length = "${var.ipv4_prefix}"
+    ipv4_gateway       = "${var.ipv4_gateway}"
+  }
+
+  disk {
+    datastore = "${var.datastore}"
+    template  = "${var.template}"
+    iops      = 500
+  }
+
+  linked_clone = true
+}
+
+resource "vsphere_virtual_machine_snapshot" "snapshot" {
+  count                = "${var.snapshot_enabled == "true" ? 1 : 0 }"
+  virtual_machine_uuid = "${vsphere_virtual_machine.vm.uuid}"
+  snapshot_name        = "terraform-test-snapshot"
+  description          = "Managed by Terraform"
+  memory               = true
+  quiesce              = true
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_CLUSTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL"),
+		os.Getenv("VSPHERE_IPV4_ADDRESS"),
+		os.Getenv("VSPHERE_IPV4_PREFIX"),
+		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_TEMPLATE"),
+		enabled,
+	)
 }
