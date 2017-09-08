@@ -79,7 +79,7 @@ func Provider() terraform.ResourceProvider {
 			"vsphere_virtual_machine":          resourceVSphereVirtualMachine(),
 			"vsphere_nas_datastore":            resourceVSphereNasDatastore(),
 			"vsphere_vmfs_datastore":           resourceVSphereVmfsDatastore(),
-			"vsphere_virtual_machine_snapshot": resourceVSphereSnapshot(),
+			"vsphere_virtual_machine_snapshot": resourceVSphereVirtualMachineSnapshot(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{

@@ -11,14 +11,10 @@ import (
 	"github.com/vmware/govmomi"
 )
 
-func testBasicPreCheckSnapshot(t *testing.T) {
-	testAccPreCheck(t)
-}
-
-func TestAccVmSnapshot_Basic(t *testing.T) {
-	var vmId, snapshotName, description, memory, quiesce string
+func TestAccResourceVSphereVirtualMachineSnapshot_Basic(t *testing.T) {
+	var vmID, snapshotName, description, memory, quiesce string
 	if v := os.Getenv("VSPHERE_VM_UUID"); v != "" {
-		vmId = v
+		vmID = v
 	}
 	if v := os.Getenv("VSPHERE_VM_SNAPSHOT_NAME"); v != "" {
 		snapshotName = v
@@ -36,12 +32,12 @@ func TestAccVmSnapshot_Basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckVmSnapshotDestroy,
+		CheckDestroy: testAccCheckVirtualMachineSnapshotDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckVSphereVMSnapshotConfig_basic(vmId, snapshotName, description, memory, quiesce),
+				Config: testAccResourceVSphereVirtualMachineSnapshotConfig(vmID, snapshotName, description, memory, quiesce),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckVmSnapshotExists("vsphere_virtual_machine_snapshot.Test_terraform_cases"),
+					testAccCheckVirtualMachineSnapshotExists("vsphere_virtual_machine_snapshot.Test_terraform_cases"),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine_snapshot.Test_terraform_cases", "snapshot_name", snapshotName),
 				),
@@ -50,7 +46,7 @@ func TestAccVmSnapshot_Basic(t *testing.T) {
 	})
 }
 
-func testAccCheckVmSnapshotDestroy(s *terraform.State) error {
+func testAccCheckVirtualMachineSnapshotDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*govmomi.Client)
 
 	for _, rs := range s.RootModule().Resources {
@@ -73,7 +69,7 @@ func testAccCheckVmSnapshotDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckVmSnapshotExists(n string) resource.TestCheckFunc {
+func testAccCheckVirtualMachineSnapshotExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -101,13 +97,14 @@ func testAccCheckVmSnapshotExists(n string) resource.TestCheckFunc {
 	}
 }
 
-func testAccCheckVSphereVMSnapshotConfig_basic(vmUuid, snapshotName, description, memory, quiesce string) string {
+func testAccResourceVSphereVirtualMachineSnapshotConfig(vmUUID, snapshotName, description, memory, quiesce string) string {
 	return fmt.Sprintf(`
 resource "vsphere_virtual_machine_snapshot" "Test_terraform_cases" {
-  vm_id = "%s"
+  vm_id         = "%s"
   snapshot_name = "%s"
-  description = "%s"
-  memory = %s
-  quiesce = %s
-}`, vmUuid, snapshotName, description, memory, quiesce)
+  description   = "%s"
+  memory        = "%s"
+  quiesce       = "%s"
+}
+`, vmUUID, snapshotName, description, memory, quiesce)
 }

@@ -11,11 +11,11 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-func resourceVSphereSnapshot() *schema.Resource {
+func resourceVSphereVirtualMachineSnapshot() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceVSphereSnapshotCreate,
-		Read:   resourceVSphereSnapshotRead,
-		Delete: resourceVSphereSnapshotDelete,
+		Create: resourceVSphereVirtualMachineSnapshotCreate,
+		Read:   resourceVSphereVirtualMachineSnapshotRead,
+		Delete: resourceVSphereVirtualMachineSnapshotDelete,
 
 		Schema: map[string]*schema.Schema{
 			"vm_uuid": {
@@ -62,7 +62,7 @@ func resourceVSphereSnapshot() *schema.Resource {
 	}
 }
 
-func resourceVSphereSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceVSphereVirtualMachineSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*govmomi.Client)
 	vm, err := virtualMachineFromUUID(client, d.Get("vm_uuid").(string))
 	if err != nil {
@@ -89,13 +89,13 @@ func resourceVSphereSnapshotCreate(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func resourceVSphereSnapshotDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceVSphereVirtualMachineSnapshotDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*govmomi.Client)
 	vm, err := virtualMachineFromUUID(client, d.Get("vm_uuid").(string))
 	if err != nil {
 		return fmt.Errorf("Error while getting the VirtualMachine :%s", err)
 	}
-	resourceVSphereSnapshotRead(d, meta)
+	resourceVSphereVirtualMachineSnapshotRead(d, meta)
 	if d.Id() == "" {
 		log.Printf("[DEBUG] Error While finding the Snapshot: %v", err)
 		return nil
@@ -137,7 +137,7 @@ func resourceVSphereSnapshotDelete(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func resourceVSphereSnapshotRead(d *schema.ResourceData, meta interface{}) error {
+func resourceVSphereVirtualMachineSnapshotRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*govmomi.Client)
 	vm, err := virtualMachineFromUUID(client, d.Get("vm_uuid").(string))
 	if err != nil {
