@@ -1,4 +1,11 @@
 ## 0.2.3 (Unreleased)
+
+IMPROVEMENTS:
+
+* resource/vsphere_virtual_machine: Virtual machine power state is now enforced.
+  Terraform will trigger a diff if the VM is powered off or suspended, and power
+  it back on during the next apply. [GH-152]
+
 ## 0.2.2 (September 07, 2017)
 
 FEATURES:
