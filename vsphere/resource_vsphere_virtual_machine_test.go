@@ -1,13 +1,11 @@
 package vsphere
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"os"
 	"regexp"
 	"testing"
-	"time"
 
 	"path/filepath"
 
@@ -270,6 +268,7 @@ const testAccTemplateBasicBody = `
         template = "%s"
         iops = 500
     }
+		linked_clone = true
 `
 const testAccTemplateBasicBodyWithEnd = testAccTemplateBasicBody + `
 }`
@@ -299,6 +298,7 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 
 func TestAccVSphereVirtualMachine_noPanicShutdown(t *testing.T) {
 	var vm virtualMachine
+	var state *terraform.State
 	basic_vars := setupTemplateBasicBodyVars()
 	config := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_really_basic)
 
@@ -313,18 +313,62 @@ func TestAccVSphereVirtualMachine_noPanicShutdown(t *testing.T) {
 			resource.TestStep{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					TestFuncData{vm: vm, label: basic_vars.label}.testCheckFuncBasic(),
+					copyStatePtr(&state),
+					resource.ComposeTestCheckFunc(
+						TestFuncData{vm: vm, label: basic_vars.label}.testCheckFuncBasic(),
+					),
 				),
 			},
 			resource.TestStep{
 				PreConfig: func() {
-					if err := testPowerOffVM("terraform-test"); err != nil {
+					if err := testPowerOffVM(state, "foo"); err != nil {
 						panic(err)
 					}
 				},
 				PlanOnly:           true,
 				Config:             config,
 				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestAccVSphereVirtualMachine_alwaysPoweredOn(t *testing.T) {
+	var vm virtualMachine
+	var state *terraform.State
+	basic_vars := setupTemplateBasicBodyVars()
+	config := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_really_basic)
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_really_basic)
+	log.Printf("[DEBUG] template config= %s", config)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testBasicPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					copyStatePtr(&state),
+					resource.ComposeTestCheckFunc(
+						TestFuncData{vm: vm, label: basic_vars.label}.testCheckFuncBasic(),
+					),
+				),
+			},
+			resource.TestStep{
+				PreConfig: func() {
+					if err := testPowerOffVM(state, "foo"); err != nil {
+						panic(err)
+					}
+				},
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckVirtualMachinePowerState("foo", types.VirtualMachinePowerStatePoweredOn),
+					resource.ComposeTestCheckFunc(
+						TestFuncData{vm: vm, label: basic_vars.label}.testCheckFuncBasic(),
+					),
+				),
 			},
 		},
 	})
@@ -1218,45 +1262,6 @@ func TestAccVSphereVirtualMachine_mac_address(t *testing.T) {
 	})
 }
 
-// testPowerOffVM does an immediate power-off of the virtual machine and is
-// used to help set up a refresh scenario where a VM is powered off, which has
-// been a source of panics.
-func testPowerOffVM(name string) error {
-	client := testAccProvider.Meta().(*govmomi.Client)
-	finder := find.NewFinder(client.Client, true)
-
-	dc, err := getDatacenter(client, os.Getenv("VSPHERE_DATACENTER"))
-	if err != nil {
-		return fmt.Errorf("error fetching datacenter: %s", err)
-	}
-
-	finder.SetDatacenter(dc)
-	if err != nil {
-		return fmt.Errorf("error finding datacenter: %s", err)
-	}
-
-	vm, err := finder.VirtualMachine(context.TODO(), name)
-	if err != nil {
-		return err
-	}
-	if vm == nil {
-		return fmt.Errorf("VM not found: %s", name)
-	}
-	task, err := vm.PowerOff(context.TODO())
-	if err != nil {
-		return fmt.Errorf("error powering off VM: %s", err)
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
-	defer cancel()
-	if err := task.Wait(ctx); err != nil {
-		return fmt.Errorf("error waiting for poweroff: %s", err)
-	}
-	if ctx.Err() == context.Canceled {
-		return errors.New("timeout waiting for VM to shutdown")
-	}
-	return nil
-}
-
 func testAccCheckVSphereVirtualMachineDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*govmomi.Client)
 	finder := find.NewFinder(client.Client, true)
@@ -1700,6 +1705,22 @@ func checkForDisk(datacenter string, datastore string, vmName string, path strin
 			return fmt.Errorf("[ERROR] cleanup failed: %v", err)
 		}
 
+		return nil
+	}
+}
+
+// testCheckVirtualMachinePowerState is a check to check for a VirtualMachine's
+// power state.
+func testCheckVirtualMachinePowerState(resourceName string, expected types.VirtualMachinePowerState) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVirtualMachineProperties(s, resourceName)
+		if err != nil {
+			return err
+		}
+		actual := props.Runtime.PowerState
+		if expected != actual {
+			return fmt.Errorf("expected power state to be %s, got %s", expected, actual)
+		}
 		return nil
 	}
 }
