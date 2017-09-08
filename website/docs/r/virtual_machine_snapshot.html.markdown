@@ -3,45 +3,64 @@ layout: "vsphere"
 page_title: "VMware vSphere: vsphere_virtual_machine_snapshot"
 sidebar_current: "docs-vsphere-resource-virtual-machine-snapshot"
 description: |-
-  Provides a VMware vSphere virtual machine snapshot resource. This can be used to create and delete virtual machine's snapshot.
+  Provides a VMware vSphere virtual machine snapshot resource. This can be used to create and delete virtual machine snapshots.
 ---
 
 # vsphere\_virtual\_machine\_snapshot
 
-Provides a VMware vSphere virtual machine snapshot resource. This can be used to create and
-delete.
+The `vsphere_virtual_machine_snapshot` resource can be used to manage snapshots
+for a virtual machine.
+
+For more information on managing snapshots and how they work in VMware, see
+[here][ext-vm-snapshot-management].
+
+[ext-vm-snapshot-management]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.vm_admin.doc/GUID-CA948C69-7F58-4519-AEB1-739545EA94E5.html
+
+~> **NOTE:** A snapshot in VMware differs from traditional disk snapshots in
+that the actual running state of the virtual machine can be taken with the
+snapshot as well, all non-independent disks are included in the snapshot
+(including any disks that have been attached externally but are not
+independent), and VM and disk activity post-snapshot is not included in the
+original state. Use this resource with care! VMware nor HashiCorp recommends
+retaining snapshots for a extended period of time and does NOT recommend using
+them as as backup feature. For more information on the limitation of virtual
+machine snapshots, see [here][ext-vm-snap-limitations].
+
+[ext-vm-snap-limitations]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.vm_admin.doc/GUID-53F65726-A23B-4CF0-A7D5-48E584B88613.html
 
 ## Example Usage
 
 ```hcl
 resource "vsphere_virtual_machine_snapshot" "demo1" {
-  vm_uuid = "42392f34-82c2-6b34-175f-3d392afbc4f1"
-  snapshot_name = "Snapshot Name"
-  description = "This is Demo Snapshot"
-  memory = "true"
-  quiesce = "true"
-  remove_children = "false" -  getting used during delete vm
-  consolidate = "true"
+  virtual_machine_uuid = "9aac5551-a351-4158-8c5c-15a71e8ec5c9"
+  snapshot_name        = "Snapshot Name"
+  description          = "This is Demo Snapshot"
+  memory               = "true"
+  quiesce              = "true"
+  remove_children      = "false"
+  consolidate          = "true"
 }
-
 ```
-
 
 ## Argument Reference
 
 The following arguments are supported:
 
-For resource vsphere_virtual_machine_snapshot
+* `virtual_machine_uuid` - (Required) The virtual machine UUID.
+* `snapshot_name` - (Required) The name of the snapshot.
+* `description` - (Required) A description for the snapshot.
+* `memory` - (Required) If set to `true`, a dump of the internal state of the
+  virtual machine is included in the snapshot.
+* `quiesce` - (Required) If set to `true`, and the virtual machine is powered
+  on when the snapshot is taken, VMware Tools is used to quiesce the file
+  system in the virtual machine.
+* `remove_children` - (Optional) If set to `true`, the entire snapshot subtree
+  is removed when this resource is destroyed.
+* `consolidate` - (Optional) If set to `true`, the delta disks involved in this
+  snapshot will be consolidated into the parent when this resource is
+  destroyed.
 
-* `vm_uuid` - (Required) The virtual machine uuid
-* `snapshot_name` - (Required) New name for the snapshot.
-* `description` - (Required) New description for the snapshot.
-* `memory` - (Required) If the memory flag set to true, a dump of the internal state of the virtual machine is included in the snapshot.
-* `quiesce` - (Required) If the quiesce flag set to true, and the virtual machine is powered on when the snapshot is taken, VMware Tools is used to quiesce the file system in the virtual machine.
-* `remove_children` - (Optional) Flag to specify removal of the entire snapshot subtree.
-* `consolidate` - (Optional) If set to true, the virtual disk associated with this snapshot will be merged with other disk if possible. Defaults to true.
+## Attribute Reference
 
-
-
-
-
+The only attribute this resource exports is the resource `id`, which is set to
+the managed object reference of the snapshot.
