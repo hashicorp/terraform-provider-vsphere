@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_datacenter"
-sidebar_current: "docs-vsphere-resource-datacenter"
+sidebar_current: "docs-vsphere-resource-inventory-datacenter"
 description: |-
   Provides a VMware vSphere datacenter resource. This can be used as the primary container of inventory objects such as hosts and virtual machines.
 ---

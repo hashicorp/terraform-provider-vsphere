@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_nas_datastore"
-sidebar_current: "docs-vsphere-resource-nas-datastore"
+sidebar_current: "docs-vsphere-resource-storage-nas-datastore"
 description: |-
   Provides a vSphere NAS datastore resource. This can be used to mount a NFS share as a datastore on a host.
 ---

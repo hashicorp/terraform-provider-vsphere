@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_host_virtual_switch"
-sidebar_current: "docs-vsphere-resource-host-virtual-switch"
+sidebar_current: "docs-vsphere-resource-networking-host-virtual-switch"
 description: |-
   Provides a vSphere Host Virtual Switch Resource. This can be used to configure vSwitches direct on an ESXi host.
 ---

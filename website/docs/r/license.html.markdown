@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_license"
-sidebar_current: "docs-vsphere-resource-license"
+sidebar_current: "docs-vsphere-resource-admin-license"
 description: |-
   Provides a VMware vSphere license resource. This can be used to add and remove license keys.
 ---

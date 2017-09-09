@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_folder"
-sidebar_current: "docs-vsphere-resource-folder"
+sidebar_current: "docs-vsphere-resource-inventory-folder"
 description: |-
   Provides a VMware vSphere virtual machine folder resource. This can be used to create and delete virtual machine folders.
 ---
