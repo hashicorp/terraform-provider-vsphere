@@ -20,6 +20,18 @@ var configSpecOperationAllowedValues = []string{
 	string(types.VirtualDeviceConfigSpecOperationEdit),
 }
 
+var distributedVirtualSwitchHostInfrastructureTrafficClass = []string{
+	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassManagement),
+	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassFaultTolerance),
+	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassVmotion),
+	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassVirtualMachine),
+	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassISCSI),
+	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassNfs),
+	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassHbr),
+	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassVsan),
+	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassVdp),
+}
+
 func schemaDVSContactInfo() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeSet,
@@ -92,22 +104,68 @@ func schemaDistributedVirtualSwitchHostMemberConfigSpec() *schema.Schema {
 	return s
 }
 
-func expandDistributedVirtualSwitchHostMemberConfigSpec(d *schema.ResourceData, refs []types.ManagedObjectReference) []types.DistributedVirtualSwitchHostMemberConfigSpec {
+func expandDistributedVirtualSwitchHostMemberConfigSpec(d *schema.ResourceData, dvs *mo.DistributedVirtualSwitch, refs map[string]types.ManagedObjectReference) []types.DistributedVirtualSwitchHostMemberConfigSpec {
 	// Configure the host and nic cards used as uplink for the DVS
 	var hmc []types.DistributedVirtualSwitchHostMemberConfigSpec
 
 	if hosts, ok := d.GetOk("host"); ok {
-		for i, host := range hosts.([]interface{}) {
-			hi := host.(map[string]interface{})
+		hosts := hosts.([]interface{})
+		// If the DVS exist we go through all the hosts and see which ones
+		// we have to delete or modify
+		if dvs != nil {
+			config := dvs.Config.GetDVSConfigInfo()
+			for _, h := range config.Host {
+				if host := isHostPartOfDVS(hosts, refs, h.Config.Host); host != nil {
+					// Edit
+					backing := new(types.DistributedVirtualSwitchHostMemberPnicBacking)
+					for _, nic := range host["backing"].([]interface{}) {
+						backing.PnicSpec = append(backing.PnicSpec, types.DistributedVirtualSwitchHostMemberPnicSpec{
+							PnicDevice: strings.TrimSpace(nic.(string)),
+						})
+					}
+					hcs := types.DistributedVirtualSwitchHostMemberConfigSpec{
+						Host:      *h.Config.Host,
+						Backing:   backing,
+						Operation: "edit", // Options: "add", "edit", "remove"
+					}
+					hmc = append(hmc, hcs)
 
-			for _, nic := range hi["backing"].([]interface{}) {
-				// Get the physical NIC backing
+					// We take it out from the refs, on the last pass we consider whatever
+					// is left as to be added
+					delete(refs, host["host_system_id"].(string))
+				} else {
+					// Remove
+					// XXX I'm not sure if it's necessary to mention the specific NICs when removing a host completely
+					backing := new(types.DistributedVirtualSwitchHostMemberPnicBacking)
+					cbp := h.Config.Backing.GetDistributedVirtualSwitchHostMemberBacking()
+					cb := interface{}(*cbp).(types.DistributedVirtualSwitchHostMemberPnicSpec)
+					for _, nic := range cb.PnicDevice {
+						backing.PnicSpec = append(backing.PnicSpec, types.DistributedVirtualSwitchHostMemberPnicSpec{
+							PnicDevice: string(nic),
+						})
+					}
+					hcs := types.DistributedVirtualSwitchHostMemberConfigSpec{
+						Host:      *h.Config.Host,
+						Backing:   backing,
+						Operation: "remove", // Options: "add", "edit", "remove"
+					}
+					hmc = append(hmc, hcs)
+				}
+			}
+		}
+
+		// Add whatever is left
+		for _, host := range hosts {
+			hi := host.(map[string]interface{})
+			if val, ok := refs[hi["host_system_id"].(string)]; ok {
 				backing := new(types.DistributedVirtualSwitchHostMemberPnicBacking)
-				backing.PnicSpec = append(backing.PnicSpec, types.DistributedVirtualSwitchHostMemberPnicSpec{
-					PnicDevice: strings.TrimSpace(nic.(string)),
-				})
+				for _, nic := range hi["backing"].([]interface{}) {
+					backing.PnicSpec = append(backing.PnicSpec, types.DistributedVirtualSwitchHostMemberPnicSpec{
+						PnicDevice: strings.TrimSpace(nic.(string)),
+					})
+				}
 				h := types.DistributedVirtualSwitchHostMemberConfigSpec{
-					Host:      refs[i],
+					Host:      val,
 					Backing:   backing,
 					Operation: "add", // Options: "add", "edit", "remove"
 				}
@@ -119,9 +177,27 @@ func expandDistributedVirtualSwitchHostMemberConfigSpec(d *schema.ResourceData, 
 	return hmc
 }
 
-func schemaDvsHostInfrastructureTrafficResource() map[string]*schema.Schema {
-	// TBD
-	return nil
+func schemaDvsHostInfrastructureTrafficResource() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"description": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "The description of the host infrastructure resource. This property is ignored for update operation.",
+				},
+				"key": &schema.Schema{
+					Type:         schema.TypeString,
+					Optional:     true,
+					Description:  "The key of the host infrastructure resource. Possible value can be of DistributedVirtualSwitchHostInfrastructureTrafficClass.",
+					ValidateFunc: validation.StringInSlice(distributedVirtualSwitchHostInfrastructureTrafficClass, false),
+				},
+				//"allocationInfo": TBD
+			},
+		},
+	}
 }
 
 func schemaDVSPolicy() map[string]*schema.Schema {
@@ -180,6 +256,7 @@ func schemaDVSConfiSpec() map[string]*schema.Schema {
 			Description: "The key of the extension registered by a remote server that controls the switch.",
 		},
 		"host": schemaDistributedVirtualSwitchHostMemberConfigSpec(),
+		"infrastructure_traffic_resource_config": schemaDvsHostInfrastructureTrafficResource(),
 		"name": &schema.Schema{
 			Type:        schema.TypeString,
 			Optional:    true,
@@ -206,7 +283,6 @@ func schemaDVSConfiSpec() map[string]*schema.Schema {
 	}
 	//mergeSchema(s, schemaDVSContactInfo())
 	mergeSchema(s, schemaDVPortSetting())
-	mergeSchema(s, schemaDvsHostInfrastructureTrafficResource())
 	mergeSchema(s, schemaDVSPolicy())
 	// XXX TBD uplinkPortgroup
 	mergeSchema(s, schemaDVSUplinkPortPolicy())
@@ -215,12 +291,12 @@ func schemaDVSConfiSpec() map[string]*schema.Schema {
 	return s
 }
 
-func expandDVSConfigSpec(d *schema.ResourceData, refs []types.ManagedObjectReference) *types.DVSConfigSpec {
+func expandDVSConfigSpec(d *schema.ResourceData, dvs *mo.DistributedVirtualSwitch, refs map[string]types.ManagedObjectReference) *types.DVSConfigSpec {
 	name := d.Get("name").(string)
 
 	obj := &types.DVSConfigSpec{
 		Name: name,
-		Host: expandDistributedVirtualSwitchHostMemberConfigSpec(d, refs),
+		Host: expandDistributedVirtualSwitchHostMemberConfigSpec(d, dvs, refs),
 	}
 
 	if v, ok := d.GetOkExists("description"); ok {

@@ -58,7 +58,7 @@ func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta 
 		return fmt.Errorf("%s", err)
 	}
 
-	spec := expandDVSConfigSpec(d, hosts_mor)
+	spec := expandDVSConfigSpec(d, nil, hosts_mor)
 	dvsCreateSpec := types.DVSCreateSpec{ConfigSpec: spec}
 
 	task, err := f.CreateDVS(context.TODO(), dvsCreateSpec)
@@ -71,6 +71,8 @@ func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta 
 		return fmt.Errorf("%s", err)
 	}
 
+	// Ideally from the CreateDVS opperation we should be able to access the UUID
+	// but I'm not sure how with the current operations exposed by the SDK
 	dvs, err := dvsFromName(client, datacenter, name)
 	if err != nil {
 		return fmt.Errorf("%s", err)
@@ -83,8 +85,7 @@ func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta 
 
 func resourceVSphereDistributedVirtualSwitchRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*govmomi.Client)
-	uuid := d.Id()
-	dvs, err := dvsFromUuid(client, uuid)
+	dvs, err := dvsFromUuid(client, d.Id())
 	if err != nil {
 		d.SetId("")
 		return fmt.Errorf("error reading data: %s", err)
@@ -95,6 +96,34 @@ func resourceVSphereDistributedVirtualSwitchRead(d *schema.ResourceData, meta in
 	}
 
 	return nil
+}
+
+func resourceVSphereDistributedVirtualSwitchUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*govmomi.Client)
+	dvs, err := dvsFromUuid(client, d.Id())
+	if err != nil {
+		return fmt.Errorf("%s", err)
+	}
+
+	hosts_refs, err := getHostSystemManagedObjectReference(d, client)
+	if err != nil {
+		return fmt.Errorf("%s", err)
+	}
+
+	spec := expandDVSConfigSpec(d, dvs, hosts_refs)
+
+	n := object.NewDistributedVirtualSwitch(client.Client, dvs.Reference())
+	req := &types.ReconfigureDvs_Task{
+		This: n.Reference(),
+		Spec: spec,
+	}
+
+	_, err = methods.ReconfigureDvs_Task(context.TODO(), client, req)
+	if err != nil {
+		return fmt.Errorf("%s", err)
+	}
+
+	return resourceVSphereDistributedVirtualSwitchRead(d, meta)
 }
 
 func resourceVSphereDVSStateRefreshFunc(d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
@@ -113,34 +142,6 @@ func resourceVSphereDVSStateRefreshFunc(d *schema.ResourceData, meta interface{}
 		log.Print("[TRACE] Refreshing state. Distributed virtual switch found")
 		return dvs, "Created", nil
 	}
-}
-
-func resourceVSphereDistributedVirtualSwitchUpdate(d *schema.ResourceData, meta interface{}) error {
-	dvs, err := dvsExists(d, meta)
-	if err != nil {
-		return fmt.Errorf("%s", err)
-	}
-	client := meta.(*govmomi.Client)
-
-	hosts_refs, err := getHostSystemManagedObjectReference(d, client)
-	if err != nil {
-		return fmt.Errorf("%s", err)
-	}
-
-	spec := expandDVSConfigSpec(d, hosts_refs)
-
-	n := object.NewDistributedVirtualSwitch(client.Client, dvs.Reference())
-	req := &types.ReconfigureDvs_Task{
-		This: n.Reference(),
-		Spec: spec,
-	}
-
-	_, err = methods.ReconfigureDvs_Task(context.TODO(), client, req)
-	if err != nil {
-		return fmt.Errorf("%s", err)
-	}
-
-	return resourceVSphereDistributedVirtualSwitchRead(d, meta)
 }
 
 func resourceVSphereDistributedVirtualSwitchDelete(d *schema.ResourceData, meta interface{}) error {
