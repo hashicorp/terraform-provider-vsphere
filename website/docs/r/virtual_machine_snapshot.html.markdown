@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_virtual_machine_snapshot"
-sidebar_current: "docs-vsphere-resource-virtual-machine-snapshot"
+sidebar_current: "docs-vsphere-resource-vm-virtual-machine-snapshot"
 description: |-
   Provides a VMware vSphere virtual machine snapshot resource. This can be used to create and delete virtual machine snapshots.
 ---

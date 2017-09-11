@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_vmfs_datastore"
-sidebar_current: "docs-vsphere-resource-vmfs-datastore"
+sidebar_current: "docs-vsphere-resource-storage-vmfs-datastore"
 description: |-
   Provides a vSphere VMFS datastore resource. This can be used to configure a VMFS datastore on a host or set of hosts.
 ---

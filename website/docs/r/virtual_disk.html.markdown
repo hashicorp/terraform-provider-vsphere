@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_virtual_disk"
-sidebar_current: "docs-vsphere-resource-virtual-disk"
+sidebar_current: "docs-vsphere-resource-vm-virtual-disk"
 description: |-
   Provides a VMware virtual disk resource.  This can be used to create and delete virtual disks.
 ---

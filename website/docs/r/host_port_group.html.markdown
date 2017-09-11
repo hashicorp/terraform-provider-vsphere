@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_host_port_group"
-sidebar_current: "docs-vsphere-resource-host-port-group"
+sidebar_current: "docs-vsphere-resource-networking-host-port-group"
 description: |-
   Provides a vSphere Host Port Group Resource. This can be used to configure port groups direct on an ESXi host.
 ---
