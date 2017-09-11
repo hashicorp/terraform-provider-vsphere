@@ -14,8 +14,8 @@ import (
 )
 
 // Get a list of ManagedObjectReference to HostSystem to use in creating the uplinks for the DVS
-func getHostSystemManagedObjectReference(d *schema.ResourceData, client *govmomi.Client) ([]types.ManagedObjectReference, error) {
-	var mor []types.ManagedObjectReference
+func getHostSystemManagedObjectReference(d *schema.ResourceData, client *govmomi.Client) (map[string]types.ManagedObjectReference, error) {
+	mor := make(map[string]types.ManagedObjectReference)
 
 	if v, ok := d.GetOk("host"); ok {
 		for _, vi := range v.([]interface{}) {
@@ -26,7 +26,7 @@ func getHostSystemManagedObjectReference(d *schema.ResourceData, client *govmomi
 			if err != nil {
 				return nil, err
 			}
-			mor = append(mor, h.Common.Reference())
+			mor[hsID] = h.Common.Reference()
 		}
 	}
 	return mor, nil
@@ -89,4 +89,18 @@ func dvsFromUuid(client *govmomi.Client, uuid string) (*mo.DistributedVirtualSwi
 		return nil, fmt.Errorf("error fetching distributed virtual switch: %s", err)
 	}
 	return &mdvs, nil
+}
+
+// check if host is in refs with the help of hosts
+// not very efficient, but the number of entries is usually pretty small
+func isHostPartOfDVS(hosts []interface{}, refs map[string]types.ManagedObjectReference, host *types.ManagedObjectReference) map[string]interface{} {
+	for _, h := range hosts {
+		hi := h.(map[string]interface{})
+		if val, ok := refs[hi["host_system_id"].(string)]; ok {
+			if val == *host {
+				return hi
+			}
+		}
+	}
+	return nil
 }
