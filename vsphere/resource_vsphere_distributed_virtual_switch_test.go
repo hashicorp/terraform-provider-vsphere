@@ -180,7 +180,7 @@ func testAccCheckVSphereDVSExists(name string, n int) resource.TestCheckFunc {
 			} else {
 				config := dvs.Config.GetDVSConfigInfo()
 				if len(config.Host) != n {
-					return fmt.Errorf("expected '%s' uplinks, found '%s'", n, len(config.Host))
+					return fmt.Errorf("expected '%d' uplinks, found '%d'", n, len(config.Host))
 				}
 				fmt.Println("DVS exists and has the correct number of uplinks")
 				return nil
