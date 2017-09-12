@@ -679,6 +679,14 @@
 			"versionExact": "v0.15.0"
 		},
 		{
+			"checksumSHA1": "VIc+9ot3NRbTlcw4zTFH/JsNTNM=",
+			"path": "github.com/vmware/govmomi/event",
+			"revision": "b63044e5f833781eb7b305bc035392480ee06a82",
+			"revisionTime": "2017-06-19T23:14:37Z",
+			"version": "v0.15.0",
+			"versionExact": "v0.15.0"
+		},
+		{
 			"checksumSHA1": "L/z6VeAmwdnp4Prod4EAlTcPYRY=",
 			"comment": "v0.15.0",
 			"path": "github.com/vmware/govmomi/find",
@@ -736,6 +744,14 @@
 			"checksumSHA1": "FQR3yNgiShaqUiJREkeqQCKYJ84=",
 			"comment": "v0.15.0",
 			"path": "github.com/vmware/govmomi/task",
+			"revision": "b63044e5f833781eb7b305bc035392480ee06a82",
+			"revisionTime": "2017-06-19T23:14:37Z",
+			"version": "v0.15.0",
+			"versionExact": "v0.15.0"
+		},
+		{
+			"checksumSHA1": "PBMkeLwL1wb6/KKBB4gdyA2fYp4=",
+			"path": "github.com/vmware/govmomi/view",
 			"revision": "b63044e5f833781eb7b305bc035392480ee06a82",
 			"revisionTime": "2017-06-19T23:14:37Z",
 			"version": "v0.15.0",
