@@ -32,25 +32,37 @@ var distributedVirtualSwitchHostInfrastructureTrafficClass = []string{
 	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassVdp),
 }
 
-func schemaDVSContactInfo() *schema.Schema {
-	return &schema.Schema{
-		Type:     schema.TypeSet,
-		Optional: true,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"contact": &schema.Schema{
-					Type:        schema.TypeString,
-					Optional:    true,
-					Description: "The contact information for the person.",
-				},
-				"name": &schema.Schema{
-					Type:        schema.TypeString,
-					Optional:    true,
-					Description: "The name of the person who is responsible for the switch.",
-				},
-			},
+func schemaDVSContactInfo() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"contact": &schema.Schema{
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The contact information for the person.",
+		},
+		"contact_name": &schema.Schema{
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The name of the person who is responsible for the switch.",
 		},
 	}
+}
+
+func expandDVSContactInfo(d *schema.ResourceData) *types.DVSContactInfo {
+	dci := &types.DVSContactInfo{}
+	if v, ok := d.GetOkExists("contact"); ok {
+		dci.Contact = v.(string)
+	}
+
+	if v, ok := d.GetOkExists("contact_name"); ok {
+		dci.Name = v.(string)
+	}
+	return dci
+}
+
+func flattenDVSContactInfo(d *schema.ResourceData, obj *mo.DistributedVirtualSwitch) {
+	config := obj.Config.GetDVSConfigInfo()
+	d.Set("contact", config.Contact.Contact)
+	d.Set("contact_name", config.Contact.Name)
 }
 
 func schemaDVPortSetting() map[string]*schema.Schema {
@@ -89,9 +101,9 @@ func schemaDistributedVirtualSwitchHostMemberConfigSpec() *schema.Schema {
 		},
 		// DistributedVirtualSwitchHostMemberPnicBacking extends DistributedVirtualSwitchHostMemberBacking
 		// which is a base class
-		"backing": schemaDistributedVirtualSwitchHostMemberPnicBacking(),
+		"backing":                schemaDistributedVirtualSwitchHostMemberPnicBacking(),
+		"vendor_specific_config": schemaDistributedVirtualSwitchKeyedOpaqueBlob(),
 	}
-	mergeSchema(se, schemaDistributedVirtualSwitchKeyedOpaqueBlob())
 
 	s := &schema.Schema{
 		Type:     schema.TypeList,
@@ -225,23 +237,38 @@ func schemaDVSUplinkPortPolicy() map[string]*schema.Schema {
 	return nil
 }
 
-func schemaDistributedVirtualSwitchKeyedOpaqueBlob() map[string]*schema.Schema {
-	// TBD should be a map
-	return nil
+func schemaDistributedVirtualSwitchKeyedOpaqueBlob() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"key": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "A key that identifies the opaque binary blob.",
+				},
+				"opaque_data": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "The opaque data. It is recommended that base64 encoding be used for binary data.",
+				},
+			},
+		},
+	}
 }
 
 func schemaDVSConfiSpec() map[string]*schema.Schema {
 	s := map[string]*schema.Schema{
 		"config_version": &schema.Schema{
 			Type:        schema.TypeString,
-			Optional:    true,
+			Computed:    true,
 			Description: "The version string of the configuration that this spec is trying to change. This property is ignored during switch creation.",
 		},
-		// nested to avoid having two "name" properties
-		"contact": schemaDVSContactInfo(),
 		"default_proxy_switch_max_num_ports": &schema.Schema{
 			Type:         schema.TypeInt,
 			Optional:     true,
+			Default:      512,
 			Description:  "The default host proxy switch maximum port number.",
 			ValidateFunc: validation.IntAtLeast(0),
 		},
@@ -256,7 +283,7 @@ func schemaDVSConfiSpec() map[string]*schema.Schema {
 			Description: "The key of the extension registered by a remote server that controls the switch.",
 		},
 		"host": schemaDistributedVirtualSwitchHostMemberConfigSpec(),
-		"infrastructure_traffic_resource_config": schemaDvsHostInfrastructureTrafficResource(),
+		//"infrastructure_traffic_resource_config": schemaDvsHostInfrastructureTrafficResource(),
 		"name": &schema.Schema{
 			Type:        schema.TypeString,
 			Optional:    true,
@@ -265,61 +292,88 @@ func schemaDVSConfiSpec() map[string]*schema.Schema {
 		"network_resource_control_version": &schema.Schema{
 			Type:         schema.TypeString,
 			Optional:     true,
+			Default:      "version2",
 			Description:  "Indicates the Network Resource Control APIs that are supported on the switch.",
 			ValidateFunc: validation.StringInSlice(distributedVirtualSwitchNetworkResourceControlVersionAllowedValues, false),
 		},
 		"num_standalone_ports": &schema.Schema{
 			Type:         schema.TypeInt,
 			Optional:     true,
+			Default:      512,
 			Description:  "The number of standalone ports in the switch. Standalone ports are ports that do not belong to any portgroup.",
 			ValidateFunc: validation.IntAtLeast(0),
 		},
 		"switch_ip_address": &schema.Schema{
-			Type:         schema.TypeString,
-			Optional:     true,
-			Description:  "IP address for the switch, specified using IPv4 dot notation. IPv6 address is not supported for this property.",
-			ValidateFunc: validation.StringInSlice(distributedVirtualSwitchNetworkResourceControlVersionAllowedValues, false),
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "IP address for the switch, specified using IPv4 dot notation. IPv6 address is not supported for this property.",
 		},
+		"vendor_specific_config": schemaDistributedVirtualSwitchKeyedOpaqueBlob(),
 	}
-	//mergeSchema(s, schemaDVSContactInfo())
+	mergeSchema(s, schemaDVSContactInfo())
 	mergeSchema(s, schemaDVPortSetting())
 	mergeSchema(s, schemaDVSPolicy())
 	// XXX TBD uplinkPortgroup
 	mergeSchema(s, schemaDVSUplinkPortPolicy())
-	mergeSchema(s, schemaDistributedVirtualSwitchKeyedOpaqueBlob())
 
 	return s
 }
 
 func expandDVSConfigSpec(d *schema.ResourceData, dvs *mo.DistributedVirtualSwitch, refs map[string]types.ManagedObjectReference) *types.DVSConfigSpec {
-	name := d.Get("name").(string)
+	obj := &types.DVSConfigSpec{}
 
-	obj := &types.DVSConfigSpec{
-		Name: name,
-		Host: expandDistributedVirtualSwitchHostMemberConfigSpec(d, dvs, refs),
+	obj.Name = d.Get("name").(string)
+
+	if v, ok := d.GetOkExists("network_resource_control_version"); ok {
+		obj.NetworkResourceControlVersion = v.(string)
+	}
+
+	if v, ok := d.GetOkExists("config_version"); ok {
+		obj.ConfigVersion = v.(string)
+	}
+
+	obj.Contact = expandDVSContactInfo(d)
+
+	if v, ok := d.GetOkExists("default_proxy_switch_max_num_ports"); ok {
+		obj.NumStandalonePorts = int32(v.(int))
 	}
 
 	if v, ok := d.GetOkExists("description"); ok {
 		obj.Description = v.(string)
 	}
 
-	if v, ok := d.GetOkExists("num_standalone_ports"); ok {
-		obj.NumStandalonePorts = v.(int32)
+	if v, ok := d.GetOkExists("extension_key"); ok {
+		obj.ExtensionKey = v.(string)
 	}
 
-	//if v, ok := d.GetOkExists("default_proxy_switch_max_num_ports"); ok {
-	//obj.NumStandalonePorts = v.(int32)
-	//}
+	// Always expand since even when removing we will need to mention hosts and nics
+	obj.Host = expandDistributedVirtualSwitchHostMemberConfigSpec(d, dvs, refs)
+
+	if v, ok := d.GetOkExists("num_standalone_ports"); ok {
+		obj.NumStandalonePorts = int32(v.(int))
+	}
+
+	if v, ok := d.GetOkExists("switch_ip_addess"); ok {
+		obj.NumStandalonePorts = int32(v.(int))
+	}
 
 	return obj
 }
 
 func flattenDVSConfigSpec(d *schema.ResourceData, obj *mo.DistributedVirtualSwitch) error {
 	config := obj.Config.GetDVSConfigInfo()
-	d.Set("name", config.Name)
+	d.Set("config_version", config.ConfigVersion)
 	d.Set("description", config.Description)
+	d.Set("extension_key", config.ExtensionKey)
+	d.Set("name", config.Name)
+	d.Set("network_resource_control_version", config.NetworkResourceControlVersion)
+	d.Set("description", config.Description)
+	d.Set("contact", config.Contact.Contact)
+	d.Set("contact_name", config.Contact.Name)
 	d.Set("num_standalone_ports", config.NumStandalonePorts)
-	//d.Set("default_proxy_switch_max_num_ports", config.DefaultProxySwitchMaxNumPorts)
+	d.Set("default_proxy_switch_max_num_ports", config.DefaultProxySwitchMaxNumPorts)
+	d.Set("switch_ip_address", config.SwitchIpAddress)
+	flattenDVSContactInfo(d, obj)
 
 	return nil
 }
