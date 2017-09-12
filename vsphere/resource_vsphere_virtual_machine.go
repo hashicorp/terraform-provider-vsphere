@@ -882,16 +882,12 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 				}
 
 				if v, ok := disk["size"].(int); ok && v != 0 {
-					if v, ok := disk["template"].(string); ok && v != "" {
-						return fmt.Errorf("Cannot specify size of a template")
-					}
 
 					if v, ok := disk["name"].(string); ok && v != "" {
 						newDisk.name = v
-					} else {
+					} else if v, ok := disk["template"].(string); !ok && v != "" {
 						return fmt.Errorf("[ERROR] Disk name must be provided when creating a new disk")
 					}
-
 					newDisk.size = int64(v)
 				}
 
@@ -1740,6 +1736,54 @@ func buildStoragePlacementSpecClone(c *govmomi.Client, f *object.DatacenterFolde
 	return sps
 }
 
+// buildVirtualDeviceConfigSpecResize builds VirtualDeviceConfigSpec for Resize action.
+func buildVirtualDeviceConfigSpecResize(c *govmomi.Client, vm *object.VirtualMachine, diskSize int64) types.VirtualDeviceConfigSpec {
+	vmr := vm.Reference()
+
+	var o mo.VirtualMachine
+	err := vm.Properties(context.TODO(), vmr, []string{"datastore"}, &o)
+	if err != nil {
+		return types.VirtualDeviceConfigSpec{}
+	}
+	ds := object.NewDatastore(c.Client, o.Datastore[0])
+	log.Printf("[DEBUG] findDatastore: datastore: %#v\n", ds)
+
+	devices, err := vm.Device(context.TODO())
+	if err != nil {
+		return types.VirtualDeviceConfigSpec{}
+	}
+
+	var disks []*types.VirtualDisk
+	for _, device := range devices {
+		switch md := device.(type) {
+		case *types.VirtualDisk:
+			disks = append(disks, md)
+		default:
+			continue
+		}
+	}
+
+	var editdisk *types.VirtualDisk
+	if len(disks) == 1 {
+		editdisk = disks[0]
+	} else {
+		return types.VirtualDeviceConfigSpec{}
+	}
+
+	if int64(diskSize) != 0 {
+		editdisk.CapacityInKB = int64(diskSize) * 1024 * 1024
+	}
+
+	vdcs := types.VirtualDeviceConfigSpec{
+		Device:    editdisk,
+		Operation: types.VirtualDeviceConfigSpecOperationEdit,
+	}
+
+	vdcs.FileOperation = ""
+
+	return vdcs
+}
+
 // findDatastore finds Datastore object.
 func findDatastore(c *govmomi.Client, sps types.StoragePlacementSpec) (*object.Datastore, error) {
 	var datastore *object.Datastore
@@ -1856,6 +1900,9 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	}
 	if vm.template == "" {
 		configSpec.GuestId = "otherLinux64Guest"
+	} else {
+		vdcs := buildVirtualDeviceConfigSpecResize(c, template, vm.hardDisks[0].size)
+		configSpec.DeviceChange = append(configSpec.DeviceChange, &vdcs)
 	}
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 

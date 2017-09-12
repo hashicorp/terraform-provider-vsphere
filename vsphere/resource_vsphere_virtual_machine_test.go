@@ -1580,6 +1580,72 @@ func TestAccVSphereVirtualMachine_DetachUnknownDisks(t *testing.T) {
 	})
 }
 
+const testAccCheckVSphereVirtualMachineConfig_templateResize = `
+resource "vsphere_virtual_machine" "template_resize" {
+%s
+    name = "terraform-test"
+    vcpu = 2
+    memory = 1024
+    network_interface {
+        label = "%s"
+    }
+     disk {
+%s
+        size = 10
+		template = "%s"
+	}
+	disk {
+        size = 3
+		name = "two"
+		keep_on_remove = false
+    }
+}
+`
+
+func TestAccVSphereVirtualMachine_templateResize(t *testing.T) {
+	var vm virtualMachine
+	basic_vars := setupTemplateBasicBodyVars()
+	config := fmt.Sprintf(
+		testAccCheckVSphereVirtualMachineConfig_templateResize,
+		basic_vars.locationOpt,
+		basic_vars.label,
+		basic_vars.datastoreOpt,
+		basic_vars.template,
+	)
+	var datastore string
+	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
+		datastore = v
+	}
+	var datacenter string
+	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
+		datacenter = v
+	}
+
+	vmName := "vsphere_virtual_machine.template_resize"
+
+	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+		TestFuncData{vm: vm, label: basic_vars.label, vmName: vmName, numDisks: "2"}.testCheckFuncBasic()
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_templateResize)
+	log.Printf("[DEBUG] template config= %s", config)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					checkForDisk(datacenter, datastore, "terraform-test", "two.vmdk", true, false),
+				),
+			},
+		},
+	})
+
+}
+
 func createAndAttachDisk(t *testing.T, vmName string, size int, datastore string, diskPath string, diskType string, adapterType string, datacenter string) {
 	client := testAccProvider.Meta().(*govmomi.Client)
 	finder := find.NewFinder(client.Client, true)
