@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/vmware/govmomi"
-	"github.com/vmware/govmomi/find"
-	"golang.org/x/net/context"
+	//	"github.com/vmware/govmomi/find"
+	//  "golang.org/x/net/context"
 )
 
 func testAccCheckVSphereDVSConfigNoUplinks() string {
@@ -28,9 +28,9 @@ resource "vsphere_distributed_virtual_switch" "testDVS" {
 `, os.Getenv("VSPHERE_DATACENTER"))
 }
 
-func testAccCheckVSphereDVSConfigUplinks(uplinks bool) string {
+func testAccCheckVSphereDVSConfigUplinks(uplinks bool, multiple bool) string {
 	if uplinks {
-		return fmt.Sprintf(`
+		conf := `
 data "vsphere_datacenter" "datacenter" {
 	  name = "%s"
 }
@@ -48,7 +48,13 @@ resource "vsphere_distributed_virtual_switch" "testDVS" {
 		backing = ["%s"]
 	}]
 }
-`, os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"), os.Getenv("VSPHERE_HOST_NIC0"))
+`
+		if multiple {
+			backing := fmt.Sprintf("%s\",\"%s", os.Getenv("VSPHERE_HOST_NIC0"), os.Getenv("VSPHERE_HOST_NIC1"))
+			return fmt.Sprintf(conf, os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"), backing)
+		} else {
+			return fmt.Sprintf(conf, os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"), os.Getenv("VSPHERE_HOST_NIC0"))
+		}
 	} else {
 		return fmt.Sprintf(`
 data "vsphere_datacenter" "datacenter" {
@@ -79,7 +85,7 @@ func TestAccVSphereDVS_createWithoutUplinks(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckVSphereDVSConfigNoUplinks(),
-				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, true)),
+				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, 0)),
 			},
 		},
 	})
@@ -95,8 +101,8 @@ func TestAccVSphereDVS_createWithUplinks(t *testing.T) {
 		CheckDestroy: testAccCheckVSphereDVSDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckVSphereDVSConfigUplinks(true),
-				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, true)),
+				Config: testAccCheckVSphereDVSConfigUplinks(true, false),
+				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, 1)),
 			},
 		},
 	})
@@ -112,16 +118,24 @@ func TestAccVSphereDVS_createAndUpdateWithUplinks(t *testing.T) {
 		CheckDestroy: testAccCheckVSphereDVSDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckVSphereDVSConfigUplinks(true),
-				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, true)),
-			}, // XXX checks here need to be more thorough
-			{
-				Config: testAccCheckVSphereDVSConfigUplinks(false),
-				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, true)),
+				Config: testAccCheckVSphereDVSConfigUplinks(true, false),
+				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, 1)),
 			},
 			{
-				Config: testAccCheckVSphereDVSConfigUplinks(true),
-				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, true)),
+				Config: testAccCheckVSphereDVSConfigUplinks(false, false),
+				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, 0)),
+			},
+			{
+				Config: testAccCheckVSphereDVSConfigUplinks(true, false),
+				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, 1)),
+			},
+			{
+				Config: testAccCheckVSphereDVSConfigUplinks(false, false),
+				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, 0)),
+			},
+			{
+				Config: testAccCheckVSphereDVSConfigUplinks(true, true),
+				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, 2)),
 			},
 		},
 	})
@@ -135,64 +149,41 @@ func testAccCheckVSphereDVSDestroy(s *terraform.State) error {
 			continue
 		}
 
-		datacenter := rs.Primary.Attributes["datacenter"]
-		dc, err := getDatacenter(client, datacenter)
+		id := rs.Primary.ID
+		_, err := dvsFromUuid(client, id)
 		if err != nil {
-			return err
-		}
-
-		finder := find.NewFinder(client.Client, true)
-		finder = finder.SetDatacenter(dc)
-
-		name := rs.Primary.Attributes["name"]
-		_, err = finder.NetworkList(context.TODO(), name)
-		if err != nil {
-			switch err.(type) {
-			case *find.NotFoundError:
-				fmt.Printf("Expected error received: %s\n", err)
-				return nil
-			default:
-				return err
-			}
+			fmt.Printf("Expected error received: %s\n", err)
+			return nil
 		} else {
-			return fmt.Errorf("distributed virtual switch '%s' still exists", name)
+			return fmt.Errorf("distributed virtual switch '%s' still exists", id)
 		}
 	}
-
 	return nil
 }
 
-func testAccCheckVSphereDVSExists(n string, exists bool) resource.TestCheckFunc {
+func testAccCheckVSphereDVSExists(name string, n int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("resource not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("no ID is set")
-		}
-
 		client := testAccProvider.Meta().(*govmomi.Client)
 
-		datacenter := rs.Primary.Attributes["datacenter"]
-		dc, err := getDatacenter(client, datacenter)
-		if err != nil {
-			return err
-		}
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != "vsphere_distributed_virtual_switch" {
+				continue
+			}
+			if rs.Primary.Attributes["name"] != name {
+				continue
+			}
 
-		finder := find.NewFinder(client.Client, true)
-		finder = finder.SetDatacenter(dc)
-
-		name := rs.Primary.Attributes["name"]
-		_, err = finder.NetworkList(context.TODO(), name)
-		if err != nil {
-			switch err.(type) {
-			case *find.NotFoundError:
-				fmt.Printf("Expected error received: %s\n", err)
+			id := rs.Primary.ID
+			dvs, err := dvsFromUuid(client, id)
+			if err != nil {
+				return fmt.Errorf("distributed virtual switch '%s' doesn't exists", id)
+			} else {
+				config := dvs.Config.GetDVSConfigInfo()
+				if len(config.Host) != n {
+					return fmt.Errorf("expected '%s' uplinks, found '%s'", n, len(config.Host))
+				}
+				fmt.Println("DVS exists and has the correct number of uplinks")
 				return nil
-			default:
-				return err
 			}
 		}
 		return nil
