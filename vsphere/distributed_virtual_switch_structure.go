@@ -20,7 +20,7 @@ var configSpecOperationAllowedValues = []string{
 	string(types.VirtualDeviceConfigSpecOperationEdit),
 }
 
-var distributedVirtualSwitchHostInfrastructureTrafficClass = []string{
+/*var distributedVirtualSwitchHostInfrastructureTrafficClass = []string{
 	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassManagement),
 	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassFaultTolerance),
 	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassVmotion),
@@ -30,7 +30,7 @@ var distributedVirtualSwitchHostInfrastructureTrafficClass = []string{
 	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassHbr),
 	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassVsan),
 	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassVdp),
-}
+}*/
 
 func schemaDVSContactInfo() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
@@ -65,10 +65,10 @@ func flattenDVSContactInfo(d *schema.ResourceData, obj *mo.DistributedVirtualSwi
 	d.Set("contact_name", config.Contact.Name)
 }
 
-func schemaDVPortSetting() map[string]*schema.Schema {
+/*func schemaDVPortSetting() map[string]*schema.Schema {
 	// TBD
 	return nil
-}
+}*/
 
 func schemaDistributedVirtualSwitchHostMemberPnicBacking() *schema.Schema {
 	// TODO maybe a set will fit better to avoid the mistake of putting a nic twice?
@@ -189,7 +189,11 @@ func expandDistributedVirtualSwitchHostMemberConfigSpec(d *schema.ResourceData, 
 	return hmc
 }
 
-func schemaDvsHostInfrastructureTrafficResource() *schema.Schema {
+func flattenDistributedVirtualSwitchHostMemberConfigSpec(d *schema.ResourceData, obj *mo.DistributedVirtualSwitch) {
+
+}
+
+/*func schemaDvsHostInfrastructureTrafficResource() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeList,
 		Optional: true,
@@ -210,9 +214,9 @@ func schemaDvsHostInfrastructureTrafficResource() *schema.Schema {
 			},
 		},
 	}
-}
+}*/
 
-func schemaDVSPolicy() map[string]*schema.Schema {
+/*func schemaDVSPolicy() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"auto_pre_install_allowed": &schema.Schema{
 			Type:        schema.TypeBool,
@@ -230,12 +234,12 @@ func schemaDVSPolicy() map[string]*schema.Schema {
 			Description: "Whether to allow upgrading a switch when some of the hosts failed to install the needed module.",
 		},
 	}
-}
+}*/
 
-func schemaDVSUplinkPortPolicy() map[string]*schema.Schema {
+/*func schemaDVSUplinkPortPolicy() map[string]*schema.Schema {
 	// TBD
 	return nil
-}
+}*/
 
 func schemaDistributedVirtualSwitchKeyedOpaqueBlob() *schema.Schema {
 	return &schema.Schema{
@@ -311,10 +315,10 @@ func schemaDVSConfiSpec() map[string]*schema.Schema {
 		"vendor_specific_config": schemaDistributedVirtualSwitchKeyedOpaqueBlob(),
 	}
 	mergeSchema(s, schemaDVSContactInfo())
-	mergeSchema(s, schemaDVPortSetting())
-	mergeSchema(s, schemaDVSPolicy())
+	//mergeSchema(s, schemaDVPortSetting())
+	//mergeSchema(s, schemaDVSPolicy())
 	// XXX TBD uplinkPortgroup
-	mergeSchema(s, schemaDVSUplinkPortPolicy())
+	//mergeSchema(s, schemaDVSUplinkPortPolicy())
 
 	return s
 }
@@ -374,6 +378,7 @@ func flattenDVSConfigSpec(d *schema.ResourceData, obj *mo.DistributedVirtualSwit
 	d.Set("default_proxy_switch_max_num_ports", config.DefaultProxySwitchMaxNumPorts)
 	d.Set("switch_ip_address", config.SwitchIpAddress)
 	flattenDVSContactInfo(d, obj)
+	flattenDistributedVirtualSwitchHostMemberConfigSpec(d, obj)
 
 	return nil
 }
