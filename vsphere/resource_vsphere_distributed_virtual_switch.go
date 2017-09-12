@@ -17,7 +17,7 @@ import (
 
 func resourceVSphereDistributedVirtualSwitch() *schema.Resource {
 	s := map[string]*schema.Schema{
-		"datacenter": &schema.Schema{
+		"datacenter_id": &schema.Schema{
 			Type:     schema.TypeString,
 			Required: true,
 			ForceNew: true,
@@ -37,9 +37,9 @@ func resourceVSphereDistributedVirtualSwitch() *schema.Resource {
 func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*govmomi.Client)
 	name := d.Get("name").(string)
-	datacenter := d.Get("datacenter").(string)
+	dId := d.Get("datacenter_id").(string)
 
-	dc, err := getDatacenter(client, datacenter)
+	dc, err := datacenterFromID(client, dId)
 	if err != nil {
 		return fmt.Errorf("%s", err)
 	}
@@ -73,7 +73,7 @@ func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta 
 
 	// Ideally from the CreateDVS opperation we should be able to access the UUID
 	// but I'm not sure how with the current operations exposed by the SDK
-	dvs, err := dvsFromName(client, datacenter, name)
+	dvs, err := dvsFromName(client, dId, name)
 	if err != nil {
 		return fmt.Errorf("%s", err)
 	}

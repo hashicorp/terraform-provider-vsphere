@@ -12,15 +12,25 @@ import (
 	"golang.org/x/net/context"
 )
 
-const testAccCheckVSphereDVSConfigNoUplinks = `
-resource "vsphere_distributed_virtual_switch" "testDVS" {
-	datacenter = "%s"
-  name = "testDVS"
-}
-`
-
-func testAccCheckVSphereDVSConfigUplinks() string {
+func testAccCheckVSphereDVSConfigNoUplinks() string {
 	return fmt.Sprintf(`
+data "vsphere_datacenter" "datacenter" {
+	  name = "%s"
+}
+
+resource "vsphere_distributed_virtual_switch" "testDVS" {
+	datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+  name = "testDVS"
+	contact = "dvsmanager@yourcompany.com"
+	contact_name = "John Doe"
+	description = "Test DVS"
+}
+`, os.Getenv("VSPHERE_DATACENTER"))
+}
+
+func testAccCheckVSphereDVSConfigUplinks(uplinks bool) string {
+	if uplinks {
+		return fmt.Sprintf(`
 data "vsphere_datacenter" "datacenter" {
 	  name = "%s"
 }
@@ -31,21 +41,36 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_distributed_virtual_switch" "testDVS" {
-	datacenter = "%s"
+	datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
   name = "testDVS"
   host = [{ 
 		host_system_id = "${data.vsphere_host.esxi_host.id}" 
 		backing = ["%s"]
 	}]
 }
-`, os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_HOST_NIC0"))
+`, os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"), os.Getenv("VSPHERE_HOST_NIC0"))
+	} else {
+		return fmt.Sprintf(`
+data "vsphere_datacenter" "datacenter" {
+	  name = "%s"
+}
 
+data "vsphere_host" "esxi_host" {
+	  name = "%s"
+    datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
+resource "vsphere_distributed_virtual_switch" "testDVS" {
+	datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+  name = "testDVS"
+}
+`, os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+	}
 }
 
 // Create a distributed virtual switch with no uplinks
 func TestAccVSphereDVS_createWithoutUplinks(t *testing.T) {
 	resourceName := "vsphere_distributed_virtual_switch.testDVS"
-	datacenter := os.Getenv("VSPHERE_DATACENTER")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -53,7 +78,7 @@ func TestAccVSphereDVS_createWithoutUplinks(t *testing.T) {
 		CheckDestroy: testAccCheckVSphereDVSDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(testAccCheckVSphereDVSConfigNoUplinks, datacenter),
+				Config: testAccCheckVSphereDVSConfigNoUplinks(),
 				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, true)),
 			},
 		},
@@ -70,7 +95,32 @@ func TestAccVSphereDVS_createWithUplinks(t *testing.T) {
 		CheckDestroy: testAccCheckVSphereDVSDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckVSphereDVSConfigUplinks(),
+				Config: testAccCheckVSphereDVSConfigUplinks(true),
+				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, true)),
+			},
+		},
+	})
+}
+
+// Create a distributed virtual switch with an uplink, delete it and add it again
+func TestAccVSphereDVS_createAndUpdateWithUplinks(t *testing.T) {
+	resourceName := "vsphere_distributed_virtual_switch.testDVS"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereDVSDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckVSphereDVSConfigUplinks(true),
+				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, true)),
+			}, // XXX checks here need to be more thorough
+			{
+				Config: testAccCheckVSphereDVSConfigUplinks(false),
+				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, true)),
+			},
+			{
+				Config: testAccCheckVSphereDVSConfigUplinks(true),
 				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDVSExists(resourceName, true)),
 			},
 		},

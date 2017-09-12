@@ -37,7 +37,7 @@ func dvsExists(d *schema.ResourceData, meta interface{}) (object.NetworkReferenc
 	client := meta.(*govmomi.Client)
 	name := d.Get("name").(string)
 
-	dc, err := getDatacenter(client, d.Get("datacenter").(string))
+	dc, err := datacenterFromID(client, d.Get("datacenter_id").(string))
 	if err != nil {
 		return nil, err
 	}
@@ -49,8 +49,8 @@ func dvsExists(d *schema.ResourceData, meta interface{}) (object.NetworkReferenc
 	return dvs, err
 }
 
-func dvsFromName(client *govmomi.Client, datacenter, name string) (*mo.DistributedVirtualSwitch, error) {
-	dc, err := getDatacenter(client, datacenter)
+func dvsFromName(client *govmomi.Client, dId, name string) (*mo.DistributedVirtualSwitch, error) {
+	dc, err := datacenterFromID(client, dId)
 	if err != nil {
 		return nil, err
 	}
