@@ -74,12 +74,30 @@ resource "vsphere_distributed_virtual_switch" "testDVS" {
 	}
 }
 
+func testAccResourceVSphereDistributedVirtualSwitchPreCheck(t *testing.T) {
+	if os.Getenv("VSPHERE_DATACENTER") == "" {
+		t.Skip("set VSPHERE_DATACENTER to run vsphere_distributed_virtual_switch acceptance tests")
+	}
+	if os.Getenv("VSPHERE_HOST_NIC0") == "" {
+		t.Skip("set VSPHERE_HOST_NIC0 to run vsphere_distributed_virtual_switch acceptance tests")
+	}
+	if os.Getenv("VSPHERE_HOST_NIC1") == "" {
+		t.Skip("set VSPHERE_HOST_NIC0 to run vsphere_distributed_virtual_switch acceptance tests")
+	}
+	if os.Getenv("VSPHERE_ESXI_HOST") == "" {
+		t.Skip("set VSPHERE_HOST_NIC0 to run vsphere_distributed_virtual_switch acceptance tests")
+	}
+}
+
 // Create a distributed virtual switch with no uplinks
 func TestAccVSphereDVS_createWithoutUplinks(t *testing.T) {
 	resourceName := "vsphere_distributed_virtual_switch.testDVS"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereDVSDestroy,
 		Steps: []resource.TestStep{
@@ -91,12 +109,15 @@ func TestAccVSphereDVS_createWithoutUplinks(t *testing.T) {
 	})
 }
 
-// Create a distributed virtual switch with uplinks
+// Create a distributed virtual switch with one uplink
 func TestAccVSphereDVS_createWithUplinks(t *testing.T) {
 	resourceName := "vsphere_distributed_virtual_switch.testDVS"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereDVSDestroy,
 		Steps: []resource.TestStep{
@@ -113,7 +134,10 @@ func TestAccVSphereDVS_createAndUpdateWithUplinks(t *testing.T) {
 	resourceName := "vsphere_distributed_virtual_switch.testDVS"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereDVSDestroy,
 		Steps: []resource.TestStep{
