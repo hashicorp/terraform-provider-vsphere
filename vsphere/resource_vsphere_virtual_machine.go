@@ -86,6 +86,7 @@ type virtualMachine struct {
 	resourcePool          string
 	datastore             string
 	vcpu                  int32
+	vcoresPerSocket       int32
 	memoryMb              int64
 	memoryAllocation      memoryAllocation
 	annotation            string
@@ -150,6 +151,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			"vcpu": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
+			},
+
+			"vcores_per_socket": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  1,
 			},
 
 			"memory": &schema.Schema{
@@ -525,6 +532,16 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		rebootRequired = true
 	}
 
+	if d.HasChange("vcores_per_socket") {
+		if vcoresPerSocket := int32(d.Get("vcores_per_socket").(int)); configSpec.NumCPUs%vcoresPerSocket == 0 {
+			configSpec.NumCoresPerSocket = vcoresPerSocket
+			hasChanges = true
+			rebootRequired = true
+		} else {
+			return fmt.Errorf("The number of cores is not a factor of the number of vcpus.")
+		}
+	}
+
 	if d.HasChange("memory") {
 		configSpec.MemoryMB = int64(d.Get("memory").(int))
 		hasChanges = true
@@ -710,6 +727,14 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		memoryAllocation: memoryAllocation{
 			reservation: int64(d.Get("memory_reservation").(int)),
 		},
+	}
+
+	if v, ok := d.GetOk("vcores_per_socket"); ok {
+		if vcoresPerSocket := int32(v.(int)); vm.vcpu%vcoresPerSocket == 0 {
+			vm.vcoresPerSocket = vcoresPerSocket
+		} else {
+			return fmt.Errorf("The number of cores is not a factor of the number of vcpus.")
+		}
 	}
 
 	if v, ok := d.GetOk("hostname"); ok {
@@ -1844,7 +1869,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	configSpec := types.VirtualMachineConfigSpec{
 		Name:              vm.name,
 		NumCPUs:           vm.vcpu,
-		NumCoresPerSocket: 1,
+		NumCoresPerSocket: vm.vcoresPerSocket,
 		MemoryMB:          vm.memoryMb,
 		MemoryAllocation: &types.ResourceAllocationInfo{
 			Reservation: vm.memoryAllocation.reservation,
