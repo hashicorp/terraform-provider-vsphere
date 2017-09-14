@@ -22,6 +22,7 @@ export VSPHERE_ALLOW_UNVERIFIED_SSL ?= false
 # The following variables are shared across various tests. To ensure all tests
 # succeed, it's probably best to set all of these to valid values.
 export VSPHERE_TEMPLATE            ?= base-linux # VM template to clone
+export VSPHERE_TEMPLATE_WINDOWS    ?= base-win   # Windows VM template
 export VSPHERE_NETWORK_LABEL       ?= vm-network # Port group label
 export VSPHERE_NETWORK_LABEL_DHCP  ?= vm-network # Port group label for DHCP
 export VSPHERE_IPV4_ADDRESS        ?= 10.0.0.100 # Customization IP address

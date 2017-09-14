@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -313,6 +314,32 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 				},
 			},
 		},
+		{
+			"windows template, customization events and proper IP",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigWindows(),
+						Check: resource.ComposeTestCheckFunc(
+							copyStatePtr(&state),
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckCustomizationSucceeded(),
+							testAccResourceVSphereVirtualMachineCheckNet(
+								os.Getenv("VSPHERE_IPV4_ADDRESS"),
+								os.Getenv("VSPHERE_IPV4_PREFIX"),
+								os.Getenv("VSPHERE_IPV4_GATEWAY"),
+							),
+						),
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testAccResourceVSphereVirtualMachineCases {
@@ -353,6 +380,9 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	}
 	if os.Getenv("VSPHERE_TEMPLATE") == "" {
 		t.Skip("set VSPHERE_TEMPLATE to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("VSPHERE_TEMPLATE_WINDOWS") == "" {
+		t.Skip("set VSPHERE_TEMPLATE_WINDOWS to run vsphere_virtual_machine acceptance tests")
 	}
 }
 
@@ -615,6 +645,26 @@ func testAccResourceVSphereVirtualMachineCheckAnnotation() resource.TestCheckFun
 		actual := props.Config.Annotation
 		if expected != actual {
 			return fmt.Errorf("expected annotation to be %q, got %q", expected, actual)
+		}
+		return nil
+	}
+}
+
+// testAccResourceVSphereVirtualMachineCheckCustomizationSucceeded is a check
+// to ensure that events have been received for customization success on a VM.
+func testAccResourceVSphereVirtualMachineCheckCustomizationSucceeded() resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		vm, err := testGetVirtualMachine(s, "vm")
+		if err != nil {
+			return err
+		}
+		client := testAccProvider.Meta().(*govmomi.Client)
+		actual, err := selectEventsForReference(client, vm.Reference(), []string{eventTypeCustomizationSucceeded})
+		if err != nil {
+			return err
+		}
+		if len(actual) < 1 {
+			return errors.New("customization success event was not received")
 		}
 		return nil
 	}
@@ -1498,5 +1548,89 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
 		testAccResourceVSphereVirtualMachineAnnotation,
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigWindows() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "cluster" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "ipv4_address" {
+  default = "%s"
+}
+
+variable "ipv4_prefix" {
+  default = "%s"
+}
+
+variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "template" {
+  default = "%s"
+}
+
+variable "linked_clone" {
+  default = "%s"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name          = "terraform-test"
+  datacenter    = "${var.datacenter}"
+  cluster       = "${var.cluster}"
+  resource_pool = "${var.resource_pool}"
+
+  vcpu   = 4
+  memory = 4096
+
+  network_interface {
+    label              = "${var.network_label}"
+    ipv4_address       = "${var.ipv4_address}"
+    ipv4_prefix_length = "${var.ipv4_prefix}"
+    ipv4_gateway       = "${var.ipv4_gateway}"
+  }
+
+  disk {
+    datastore = "${var.datastore}"
+    template  = "${var.template}"
+    iops      = 500
+  }
+
+  windows_opt_config {
+    admin_password = "VMw4re"
+  }
+
+  linked_clone = "${var.linked_clone != "" ? "true" : "false" }"
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_CLUSTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL"),
+		os.Getenv("VSPHERE_IPV4_ADDRESS"),
+		os.Getenv("VSPHERE_IPV4_PREFIX"),
+		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_TEMPLATE_WINDOWS"),
+		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
 	)
 }

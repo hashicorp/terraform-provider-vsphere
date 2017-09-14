@@ -11,6 +11,11 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+// A list of known event IDs that we use for querying events.
+const (
+	eventTypeCustomizationSucceeded = "CustomizationSucceeded"
+)
+
 // virtualMachineCustomizationWaiter is an object that waits for customization
 // of a VirtualMachine to complete, by watching for success or failure events.
 //
@@ -101,4 +106,24 @@ func (w *virtualMachineCustomizationWaiter) wait(client *govmomi.Client, vm *obj
 		// Pass case to break to success
 	}
 	return nil
+}
+
+// selectEventsForReference allows you to query events for a specific
+// ManagedObjectReference.
+//
+// Event types can be supplied to this function via the eventTypes parameter.
+// This is highly recommended when you expect the list of events to be large,
+// as there is no limit on returned events.
+func selectEventsForReference(client *govmomi.Client, ref types.ManagedObjectReference, eventTypes []string) ([]types.BaseEvent, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	filter := types.EventFilterSpec{
+		Entity: &types.EventFilterSpecByEntity{
+			Entity:    ref,
+			Recursion: types.EventFilterSpecRecursionOptionAll,
+		},
+		EventTypeId: eventTypes,
+	}
+	mgr := event.NewManager(client.Client)
+	return mgr.QueryEvents(ctx, filter)
 }
