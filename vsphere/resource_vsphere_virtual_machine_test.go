@@ -273,26 +273,6 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 			},
 		},
 		{
-			"ipv6 only",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigIPv6Only(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckNet("fd00::2", "32", "fd00::1"),
-						),
-					},
-				},
-			},
-		},
-		{
 			"static mac",
 			resource.TestCase{
 				PreCheck: func() {
@@ -483,10 +463,10 @@ func testAccResourceVSphereVirtualMachineCheckFolder(expected string) resource.T
 		if err != nil {
 			return fmt.Errorf("bad: %s", err)
 		}
-		expected, err = rootPathParticleVM.PathFromNewRoot(vm.InventoryPath, rootPathParticleVM, expected)
+		expected, err := rootPathParticleVM.PathFromNewRoot(vm.InventoryPath, rootPathParticleVM, expected)
 		actual := path.Dir(vm.InventoryPath)
 		if err != nil {
-			return fmt.Errorf("bad: %s - inventory path", err)
+			return fmt.Errorf("bad: %s", err)
 		}
 		if expected != actual {
 			return fmt.Errorf("expected path to be %s, got %s", expected, actual)
@@ -1343,71 +1323,6 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
-		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_TEMPLATE"),
-		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
-	)
-}
-
-func testAccResourceVSphereVirtualMachineConfigIPv6Only() string {
-	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "cluster" {
-  default = "%s"
-}
-
-variable "resource_pool" {
-  default = "%s"
-}
-
-variable "network_label" {
-  default = "%s"
-}
-
-variable "datastore" {
-  default = "%s"
-}
-
-variable "template" {
-  default = "%s"
-}
-
-variable "linked_clone" {
-  default = "%s"
-}
-
-resource "vsphere_virtual_machine" "vm" {
-  name          = "terraform-test"
-  datacenter    = "${var.datacenter}"
-  cluster       = "${var.cluster}"
-  resource_pool = "${var.resource_pool}"
-
-  vcpu   = 2
-  memory = 1024
-
-  network_interface {
-    label              = "${var.network_label}"
-    ipv6_address       = "fd00::2"
-    ipv6_prefix_length = "32"
-    ipv6_gateway       = "fd00::1"
-  }
-
-  disk {
-    datastore = "${var.datastore}"
-    template  = "${var.template}"
-    iops      = 500
-  }
-
-  linked_clone = "${var.linked_clone != "" ? "true" : "false" }"
-}
-`,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_CLUSTER"),
-		os.Getenv("VSPHERE_RESOURCE_POOL"),
-		os.Getenv("VSPHERE_NETWORK_LABEL"),
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
