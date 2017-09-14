@@ -16,6 +16,15 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+const (
+	testAccResourceVSphereVirtualMachineDiskNameEager     = "terraform-test-extra-eager"
+	testAccResourceVSphereVirtualMachineDiskNameLazy      = "terraform-test-extra-lazy"
+	testAccResourceVSphereVirtualMachineDiskNameThin      = "terraform-test-extra-thin"
+	testAccResourceVSphereVirtualMachineDiskNameExtraVmdk = "terraform-test-vm-extra-disk.vmdk"
+	testAccResourceVSphereVirtualMachineStaticMacAddr     = "06:5c:89:2b:a0:64"
+	testAccResourceVSphereVirtualMachineAnnotation        = "Managed by Terraform"
+)
+
 func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 	var tp *testing.T
 	var state *terraform.State
@@ -429,9 +438,9 @@ func testAccResourceVSphereVirtualMachineCheckExtraDisks() resource.TestCheckFun
 		}
 
 		var foundEager, foundLazy, foundThin bool
-		expectedEagerName := "terraform-test-extra-eager.vmdk"
-		expectedLazyName := "terraform-test-extra-lazy.vmdk"
-		expectedThinName := "terraform-test-extra-thin.vmdk"
+		expectedEagerName := testAccResourceVSphereVirtualMachineDiskNameEager + ".vmdk"
+		expectedLazyName := testAccResourceVSphereVirtualMachineDiskNameLazy + ".vmdk"
+		expectedThinName := testAccResourceVSphereVirtualMachineDiskNameThin + ".vmdk"
 
 		for _, dev := range props.Config.Hardware.Device {
 			if disk, ok := dev.(*types.VirtualDisk); ok {
@@ -474,10 +483,10 @@ func testAccResourceVSphereVirtualMachineCheckFolder(expected string) resource.T
 		if err != nil {
 			return fmt.Errorf("bad: %s", err)
 		}
-		expected, err := rootPathParticleVM.PathFromNewRoot(vm.InventoryPath, rootPathParticleVM, expected)
+		expected, err = rootPathParticleVM.PathFromNewRoot(vm.InventoryPath, rootPathParticleVM, expected)
 		actual := path.Dir(vm.InventoryPath)
 		if err != nil {
-			return fmt.Errorf("bad: %s", err)
+			return fmt.Errorf("bad: %s - inventory path", err)
 		}
 		if expected != actual {
 			return fmt.Errorf("expected path to be %s, got %s", expected, actual)
@@ -495,7 +504,7 @@ func testAccResourceVSphereVirtualMachineCheckExistingVmdk() resource.TestCheckF
 			return err
 		}
 
-		expected := "terraform-test-vm-extra-disk.vmdk"
+		expected := testAccResourceVSphereVirtualMachineDiskNameExtraVmdk
 
 		for _, dev := range props.Config.Hardware.Device {
 			if disk, ok := dev.(*types.VirtualDisk); ok {
@@ -606,7 +615,7 @@ func testAccResourceVSphereVirtualMachineCheckStaticMACAddr() resource.TestCheck
 			return err
 		}
 		actual := props.Guest.Net[0].MacAddress
-		expected := "06:5c:89:2b:a0:64"
+		expected := testAccResourceVSphereVirtualMachineStaticMacAddr
 		if expected != actual {
 			return fmt.Errorf("expected MAC address to be %s, got %s", expected, actual)
 		}
@@ -622,7 +631,7 @@ func testAccResourceVSphereVirtualMachineCheckAnnotation() resource.TestCheckFun
 		if err != nil {
 			return err
 		}
-		expected := "Managed by Terraform"
+		expected := testAccResourceVSphereVirtualMachineAnnotation
 		actual := props.Config.Annotation
 		if expected != actual {
 			return fmt.Errorf("expected annotation to be %q, got %q", expected, actual)
@@ -915,6 +924,18 @@ variable "linked_clone" {
   default = "%s"
 }
 
+variable "disk_name_eager" {
+  default = "%s"
+}
+
+variable "disk_name_lazy" {
+  default = "%s"
+}
+
+variable "disk_name_thin" {
+  default = "%s"
+}
+
 resource "vsphere_virtual_machine" "vm" {
   name          = "terraform-test"
   datacenter    = "${var.datacenter}"
@@ -940,19 +961,19 @@ resource "vsphere_virtual_machine" "vm" {
   disk {
     size = 1
     type = "eager_zeroed"
-    name = "terraform-test-extra-eager"
+    name = "${var.disk_name_eager}"
   }
 
   disk {
     size = 1
     type = "lazy"
-    name = "terraform-test-extra-lazy"
+    name = "${var.disk_name_lazy}"
   }
   
 	disk {
     size = 1
     type = "thin"
-    name = "terraform-test-extra-thin"
+    name = "${var.disk_name_thin}"
   }
 
   linked_clone = "${var.linked_clone != "" ? "true" : "false" }"
@@ -968,6 +989,9 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
+		testAccResourceVSphereVirtualMachineDiskNameEager,
+		testAccResourceVSphereVirtualMachineDiskNameLazy,
+		testAccResourceVSphereVirtualMachineDiskNameThin,
 	)
 }
 
@@ -1184,9 +1208,13 @@ variable "linked_clone" {
   default = "%s"
 }
 
+variable "extra_vmdk_name" {
+  default = "%s"
+}
+
 resource "vsphere_virtual_disk" "disk" {
   size         = 1
-  vmdk_path    = "terraform-test-vm-extra-disk.vmdk"
+  vmdk_path    = "${var.extra_vmdk_name}"
   datacenter   = "${var.datacenter}"
   datastore    = "${var.datastore}"
   type         = "thin"
@@ -1234,6 +1262,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
+		testAccResourceVSphereVirtualMachineDiskNameExtraVmdk,
 	)
 }
 
@@ -1427,6 +1456,10 @@ variable "linked_clone" {
   default = "%s"
 }
 
+variable "static_mac_addr" {
+  default = "%s"
+}
+
 resource "vsphere_virtual_machine" "vm" {
   name          = "terraform-test"
   datacenter    = "${var.datacenter}"
@@ -1438,7 +1471,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   network_interface {
     label              = "${var.network_label}"
-    mac_address        = "06:5c:89:2b:a0:64"
+    mac_address        = "${var.static_mac_addr}"
     ipv4_address       = "${var.ipv4_address}"
     ipv4_prefix_length = "${var.ipv4_prefix}"
     ipv4_gateway       = "${var.ipv4_gateway}"
@@ -1463,6 +1496,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
+		testAccResourceVSphereVirtualMachineStaticMacAddr,
 	)
 }
 
@@ -1508,12 +1542,16 @@ variable "linked_clone" {
   default = "%s"
 }
 
+variable "annotation" {
+	default = "%s"
+}
+
 resource "vsphere_virtual_machine" "vm" {
   name          = "terraform-test"
   datacenter    = "${var.datacenter}"
   cluster       = "${var.cluster}"
   resource_pool = "${var.resource_pool}"
-  annotation    = "Managed by Terraform"
+  annotation    = "${var.annotation}"
 
   vcpu   = 2
   memory = 1024
@@ -1544,5 +1582,6 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
+		testAccResourceVSphereVirtualMachineAnnotation,
 	)
 }
