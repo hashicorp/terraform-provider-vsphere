@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/vmware/govmomi"
+	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
 )
@@ -15,13 +16,25 @@ func virtualMachineFromUUID(client *govmomi.Client, uuid string) (*object.Virtua
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
-	vm, err := search.FindByUuid(ctx, nil, uuid, true, boolPtr(false))
+	result, err := search.FindByUuid(ctx, nil, uuid, true, boolPtr(false))
 	if err != nil {
 		return nil, err
 	}
 
-	if vm == nil {
+	if result == nil {
 		return nil, fmt.Errorf("virtual machine with UUID %q not found", uuid)
+	}
+
+	// We need to filter our object through finder to ensure that the
+	// InventoryPath field is populated, or else functions that depend on this
+	// being present will fail.
+	finder := find.NewFinder(client.Client, false)
+
+	rctx, rcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer rcancel()
+	vm, err := finder.ObjectReference(rctx, result.Reference())
+	if err != nil {
+		return nil, err
 	}
 
 	// Should be safe to return here. If our reference returned here and is not a
