@@ -340,6 +340,26 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 				},
 			},
 		},
+		{
+			"dhcp only, don't wait for guest net",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigDHCPNoWait(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckCustomizationSucceeded(),
+						),
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testAccResourceVSphereVirtualMachineCases {
@@ -1631,6 +1651,70 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE_WINDOWS"),
+		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigDHCPNoWait() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "cluster" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "template" {
+  default = "%s"
+}
+
+variable "linked_clone" {
+  default = "%s"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name          = "terraform-test"
+  datacenter    = "${var.datacenter}"
+  cluster       = "${var.cluster}"
+  resource_pool = "${var.resource_pool}"
+
+  vcpu   = 2
+  memory = 1024
+
+  network_interface {
+    label = "${var.network_label}"
+  }
+
+  wait_for_guest_net = false
+
+  disk {
+    datastore = "${var.datastore}"
+    template  = "${var.template}"
+    iops      = 500
+  }
+
+  linked_clone = "${var.linked_clone != "" ? "true" : "false" }"
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_CLUSTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
 	)
 }

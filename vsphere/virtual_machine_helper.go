@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 
@@ -40,6 +41,28 @@ func virtualMachineFromUUID(client *govmomi.Client, uuid string) (*object.Virtua
 		return nil, err
 	}
 
+	// Should be safe to return here. If our reference returned here and is not a
+	// VM, then we have bigger problems and to be honest we should be panicking
+	// anyway.
+	return vm.(*object.VirtualMachine), nil
+}
+
+// virtualMachineFromManagedObjectID locates a virtualMachine by its managed
+// object reference ID.
+func virtualMachineFromManagedObjectID(client *govmomi.Client, id string) (*object.VirtualMachine, error) {
+	finder := find.NewFinder(client.Client, false)
+
+	ref := types.ManagedObjectReference{
+		Type:  "VirtualMachine",
+		Value: id,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	vm, err := finder.ObjectReference(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
 	// Should be safe to return here. If our reference returned here and is not a
 	// VM, then we have bigger problems and to be honest we should be panicking
 	// anyway.
@@ -113,6 +136,10 @@ func waitForGuestVMNet(client *govmomi.Client, vm *object.VirtualMachine) error 
 	})
 
 	if err != nil {
+		// Provide a friendly error message if we timed out waiting for a routeable IP.
+		if ctx.Err() == context.DeadlineExceeded {
+			return errors.New("timeout waiting for a routeable interface")
+		}
 		return err
 	}
 
