@@ -235,6 +235,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				Default:  false,
 			},
 
+			"wait_for_guest_net": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
+
 			"enable_disk_uuid": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -695,6 +701,16 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 			log.Printf("[ERROR] %s", err)
 			return err
 		}
+
+		// Wait for VM guest networking before returning, so that Read can get
+		// accurate networking info for the state.
+		if d.Get("wait_for_guest_net").(bool) {
+			log.Printf("[DEBUG] Waiting for routeable guest network access")
+			if err := waitForGuestVMNet(client, vm); err != nil {
+				return err
+			}
+			log.Printf("[DEBUG] Guest has routeable network access.")
+		}
 	}
 
 	return resourceVSphereVirtualMachineRead(d, meta)
@@ -961,6 +977,24 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 	d.SetId(vm.Path())
 	log.Printf("[INFO] Created virtual machine: %s", d.Id())
 
+	newVM, err := virtualMachineFromManagedObjectID(client, vm.moid)
+	if err != nil {
+		return err
+	}
+	newProps, err := virtualMachineProperties(newVM)
+	if err != nil {
+		return err
+	}
+
+	if newProps.Runtime.PowerState == types.VirtualMachinePowerStatePoweredOn && d.Get("wait_for_guest_net").(bool) {
+		// We also need to wait for the guest networking to ensure an accurate set
+		// of information can be read into state and reported to the provisioners.
+		log.Printf("[DEBUG] Waiting for routeable guest network access")
+		if err := waitForGuestVMNet(client, newVM); err != nil {
+			return err
+		}
+		log.Printf("[DEBUG] Guest has routeable network access.")
+	}
 	return resourceVSphereVirtualMachineRead(d, meta)
 }
 
@@ -985,23 +1019,6 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Invalid moid to set: %#v", vm.Reference().Value)
 	} else {
 		log.Printf("[DEBUG] Set the moid: %#v", vm.Reference().Value)
-	}
-
-	state, err := vm.PowerState(context.TODO())
-	if err != nil {
-		return err
-	}
-
-	if state == types.VirtualMachinePowerStatePoweredOn {
-		// wait for interfaces to appear
-		log.Printf("[DEBUG] Waiting for interfaces to appear")
-
-		_, err = vm.WaitForNetIP(context.TODO(), false)
-		if err != nil {
-			return err
-		}
-
-		log.Printf("[DEBUG] Successfully waited for interfaces to appear")
 	}
 
 	var mvm mo.VirtualMachine
@@ -1775,6 +1792,7 @@ func createCdroms(client *govmomi.Client, vm *object.VirtualMachine, datacenter 
 }
 
 func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
+	var cw *virtualMachineCustomizationWaiter
 	dc, err := getDatacenter(c, vm.datacenter)
 
 	if err != nil {
@@ -2204,6 +2222,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		log.Printf("[DEBUG] custom spec: %v", customSpec)
 
 		log.Printf("[DEBUG] VM customization starting")
+		cw = newVirtualMachineCustomizationWaiter(c, newVM)
 		taskb, err := newVM.Customize(context.TODO(), customSpec)
 		if err != nil {
 			return err
@@ -2212,7 +2231,6 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("[DEBUG] VM customization finished")
 	}
 
 	if vm.hasBootableVmdk || vm.template != "" {
@@ -2228,9 +2246,22 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		if err != nil {
 			return err
 		}
+		if cw != nil {
+			// Customization is not yet done here 100%. We need to wait for the
+			// customization completion events to confirm, so start listening for those
+			// now.
+			<-cw.Done()
+			if cw.Err() != nil {
+				return cw.Err()
+			}
+			log.Printf("[DEBUG] VM customization finished")
+		}
 	}
+
+	vm.moid = newVM.Reference().Value
 	return nil
 }
+
 func getNetworkName(c *govmomi.Client, vm *object.VirtualMachine, nic types.BaseVirtualEthernetCard) (string, error) {
 	backingInfo := nic.GetVirtualEthernetCard().Backing
 	var deviceName string

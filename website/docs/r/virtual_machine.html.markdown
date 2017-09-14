@@ -61,41 +61,79 @@ resource "vsphere_virtual_machine" "lb" {
 
 The following arguments are supported:
 
-* `name` - (Required) The virtual machine name (cannot contain underscores and must be less than 15 characters)
+* `name` - (Required) The virtual machine name (cannot contain underscores and
+  must be less than 15 characters)
 * `folder` - (Optional) The folder to group the VM in.
-* `vcpu` - (Required) The number of virtual CPUs to allocate to the virtual machine
-* `memory` - (Required) The amount of RAM (in MB) to allocate to the virtual machine
-* `hostname` - (Optional) The virtual machine hostname used during the OS customization. Defaults to the `name` attribute.
-* `memory_reservation` - (Optional) The amount of RAM (in MB) to reserve physical memory resource; defaults to 0 (means not to reserve)
-* `datacenter` - (Optional) The name of a Datacenter in which to launch the virtual machine
-* `cluster` - (Optional) Name of a Cluster in which to launch the virtual machine
-* `resource_pool` (Optional) The name of a Resource Pool in which to launch the virtual machine. Requires full path (see cluster example).
-* `gateway` - __Deprecated, please use `network_interface.ipv4_gateway` instead__.
-* `domain` - (Optional) A FQDN for the virtual machine; defaults to "vsphere.local"
-* `time_zone` - (Optional) The [Linux](https://www.vmware.com/support/developer/vc-sdk/visdk41pubs/ApiReference/timezone.html) or [Windows](https://msdn.microsoft.com/en-us/library/ms912391.aspx) time zone to set on the virtual machine. Defaults to "Etc/UTC"
-* `dns_suffixes` - (Optional) List of name resolution suffixes for the virtual network adapter
-* `dns_servers` - (Optional) List of DNS servers for the virtual network adapter; defaults to 8.8.8.8, 8.8.4.4
-* `network_interface` - (Required) Configures virtual network interfaces; see [Network Interfaces](#network-interfaces) below for details.
-* `disk` - (Required) Configures virtual disks; see [Disks](#disks) below for details
-* `detach_unknown_disks_on_delete` - (Optional) will detach disks not managed by this resource on delete (avoids deletion of disks attached after resource creation outside of Terraform scope).
-* `cdrom` - (Optional) Configures a CDROM device and mounts an image as its media; see [CDROM](#cdrom) below for more details.
-* `windows_opt_config` - (Optional) Extra options for clones of Windows machines.
-* `linked_clone` - (Optional) Specifies if the new machine is a [linked clone](https://www.vmware.com/support/ws5/doc/ws_clone_overview.html#wp1036396) of another machine or not.
-* `enable_disk_uuid` - (Optional) This option causes the vm to mount disks by uuid on the guest OS.
-* `custom_configuration_parameters` - (Optional) Map of values that is set as virtual machine custom configurations.
-* `skip_customization` - (Optional) skip virtual machine customization (useful if OS is not in the guest OS support matrix of VMware like "other3xLinux64Guest").
+* `vcpu` - (Required) The number of virtual CPUs to allocate to the virtual
+  machine
+* `memory` - (Required) The amount of RAM (in MB) to allocate to the virtual
+  machine
+* `hostname` - (Optional) The virtual machine hostname used during the OS
+  customization. Defaults to the `name` attribute.
+* `memory_reservation` - (Optional) The amount of RAM (in MB) to reserve
+  physical memory resource; defaults to 0 (means not to reserve)
+* `datacenter` - (Optional) The name of a Datacenter in which to launch the
+  virtual machine
+* `cluster` - (Optional) Name of a Cluster in which to launch the virtual
+  machine
+* `resource_pool` (Optional) The name of a Resource Pool in which to launch the
+  virtual machine. Requires full path (see cluster example).
+* `gateway` - __Deprecated, please use `network_interface.ipv4_gateway`
+  instead__.
+* `domain` - (Optional) A FQDN for the virtual machine; defaults to
+  "vsphere.local"
+* `time_zone` - (Optional) The
+  [Linux](https://www.vmware.com/support/developer/vc-sdk/visdk41pubs/ApiReference/timezone.html)
+  or [Windows](https://msdn.microsoft.com/en-us/library/ms912391.aspx) time
+  zone to set on the virtual machine. Defaults to "Etc/UTC"
+* `dns_suffixes` - (Optional) List of name resolution suffixes for the virtual
+  network adapter
+* `dns_servers` - (Optional) List of DNS servers for the virtual network
+  adapter; defaults to 8.8.8.8, 8.8.4.4
+* `network_interface` - (Required) Configures virtual network interfaces; see
+  [Network Interfaces](#network-interfaces) below for details.
+* `disk` - (Required) Configures virtual disks; see [Disks](#disks) below for
+  details
+* `detach_unknown_disks_on_delete` - (Optional) will detach disks not managed
+  by this resource on delete (avoids deletion of disks attached after resource
+  creation outside of Terraform scope).
+* `cdrom` - (Optional) Configures a CDROM device and mounts an image as its
+  media; see [CDROM](#cdrom) below for more details.
+* `windows_opt_config` - (Optional) Extra options for clones of Windows
+  machines.
+* `linked_clone` - (Optional) Specifies if the new machine is a [linked
+  clone](https://www.vmware.com/support/ws5/doc/ws_clone_overview.html#wp1036396)
+  of another machine or not.
+* `enable_disk_uuid` - (Optional) This option causes the vm to mount disks by
+  uuid on the guest OS.
+* `custom_configuration_parameters` - (Optional) Map of values that is set as
+  virtual machine custom configurations.
+* `skip_customization` - (Optional) Skip virtual machine customization (useful
+  if OS is not in the guest OS support matrix of VMware like
+  "other3xLinux64Guest").
+* `wait_for_guest_net` - (Optional) Whether or not to wait for a VM to have
+  routeable network access. Should be set to `false` if none of the defined
+  `network_interface`s has a gateway assigned, or if all interfaces have been
+  left unconfigured. Default: `true`.
 * `annotation` - (Optional) Edit the annotation notes field
 
 The `network_interface` block supports:
 
 * `label` - (Required) Label to assign to this network interface
-* `ipv4_address` - (Optional) Static IPv4 to assign to this network interface. Interface will use DHCP if this is left blank.
-* `ipv4_prefix_length` - (Optional) prefix length to use when statically assigning an IPv4 address.
+* `ipv4_address` - (Optional) Static IPv4 to assign to this network interface.
+  Interface will use DHCP if this is left blank.
+* `ipv4_prefix_length` - (Optional) prefix length to use when statically
+  assigning an IPv4 address.
 * `ipv4_gateway` - (Optional) IPv4 gateway IP address to use.
-* `ipv6_address` - (Optional) Static IPv6 to assign to this network interface. Interface will use DHCPv6 if this is left blank.
-* `ipv6_prefix_length` - (Optional) prefix length to use when statically assigning an IPv6.
+* `ipv6_address` - (Optional) Static IPv6 to assign to this network interface.
+  Interface will use DHCPv6 if this is left blank.
+* `ipv6_prefix_length` - (Optional) prefix length to use when statically
+  assigning an IPv6.
 * `ipv6_gateway` - (Optional) IPv6 gateway IP address to use.
-* `mac_address` - (Optional) Manual MAC address to assign to this network interface. Will be generated by VMware if not set. ([VMware KB: Setting a static MAC address for a virtual NIC (219)](https://kb.vmware.com/selfservice/microsites/search.do?cmd=displayKC&externalId=219))
+* `mac_address` - (Optional) Manual MAC address to assign to this network
+  interface. Will be generated by VMware if not set. ([VMware KB: Setting a
+  static MAC address for a virtual NIC
+  (219)](https://kb.vmware.com/selfservice/microsites/search.do?cmd=displayKC&externalId=219))
 
 The following arguments are maintained for backwards compatibility and may be
 removed in a future version:
@@ -105,9 +143,14 @@ removed in a future version:
 
 The `windows_opt_config` block supports:
 
-* `product_key` - (Optional) Serial number for new installation of Windows. This serial number is ignored if the original guest operating system was installed using a volume-licensed CD.
-* `admin_password` - (Optional) The password for the new `administrator` account. Omit for passwordless admin (using `""` does not work).
-* `domain` - (Optional) Domain that the new machine will be placed into. If `domain`, `domain_user`, and `domain_user_password` are not all set, all three will be ignored.
+* `product_key` - (Optional) Serial number for new installation of Windows.
+  This serial number is ignored if the original guest operating system was
+  installed using a volume-licensed CD.
+* `admin_password` - (Optional) The password for the new `administrator`
+  account. Omit for passwordless admin (using `""` does not work).
+* `domain` - (Optional) Domain that the new machine will be placed into. If
+  `domain`, `domain_user`, and `domain_user_password` are not all set, all
+  three will be ignored.
 * `domain_user` - (Optional) User that is a member of the specified domain.
 * `domain_user_password` - (Optional) Password for domain user, in plain text.
 
@@ -116,15 +159,22 @@ The `windows_opt_config` block supports:
 
 The `disk` block supports:
 
-* `template` - (Required if size and bootable_vmdk_path not provided) Template for this disk.
+* `template` - (Required if size and bootable_vmdk_path not provided) Template
+  for this disk.
 * `datastore` - (Optional) Datastore for this disk
-* `size` - (Required if template and bootable_vmdks_path not provided) Size of this disk (in GB).
-* `name` - (Required if size is provided when creating a new disk) This "name" is used for the disk file name in vSphere, when the new disk is created.
+* `size` - (Required if template and bootable_vmdks_path not provided) Size of
+  this disk (in GB).
+* `name` - (Required if size is provided when creating a new disk) This "name"
+  is used for the disk file name in vSphere, when the new disk is created.
 * `iops` - (Optional) Number of virtual iops to allocate for this disk.
-* `type` - (Optional) 'eager_zeroed' (the default), 'lazy', or 'thin' are supported options.
-* `vmdk` - (Required if template and size not provided) Path to a vmdk in a vSphere datastore.
-* `bootable` - (Optional) Set to 'true' if a vmdk was given and it should attempt to boot after creation.
-* `controller_type` - (Optional) Controller type to attach the disk to.  'scsi' (the default), or 'ide' are supported options.
+* `type` - (Optional) 'eager_zeroed' (the default), 'lazy', or 'thin' are
+  supported options.
+* `vmdk` - (Required if template and size not provided) Path to a vmdk in a
+  vSphere datastore.
+* `bootable` - (Optional) Set to 'true' if a vmdk was given and it should
+  attempt to boot after creation.
+* `controller_type` - (Optional) Controller type to attach the disk to.  'scsi'
+  (the default), or 'ide' are supported options.
 * `keep_on_remove` - (Optional) Set to 'true' to not delete a disk on removal.
 
 <a id="cdrom"></a>
@@ -132,7 +182,8 @@ The `disk` block supports:
 
 The `cdrom` block supports:
 
-* `datastore` - (Required) The name of the datastore where the disk image is stored.
+* `datastore` - (Required) The name of the datastore where the disk image is
+  stored.
 * `path` - (Required) The absolute path to the image within the datastore.
 
 ## Attributes Reference
@@ -150,7 +201,8 @@ The following attributes are exported:
 * `network_interface/ipv4_address` - See Argument Reference above.
 * `network_interface/ipv4_prefix_length` - See Argument Reference above.
 * `network_interface/ipv6_address` - Assigned static IPv6 address.
-* `network_interface/ipv6_prefix_length` - Prefix length of assigned static IPv6 address.
+* `network_interface/ipv6_prefix_length` - Prefix length of assigned static
+  IPv6 address.
 * `power_state` - The power state of the virtual machine. Can be one of
   `poweredOff`, `poweredOn`, or `suspended`.
 
