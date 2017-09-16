@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"golang.org/x/net/context"
@@ -245,7 +244,7 @@ func TestAccVSphereFile_uploadAndCopyAndUpdate(t *testing.T) {
 }
 
 func testAccCheckVSphereFileDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*govmomi.Client)
+	client := testAccProvider.Meta().(*VSphereClient).vimClient
 	finder := find.NewFinder(client.Client, true)
 
 	for _, rs := range s.RootModule().Resources {
@@ -293,7 +292,7 @@ func testAccCheckVSphereFileExists(n string, df string, exists bool) resource.Te
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*govmomi.Client)
+		client := testAccProvider.Meta().(*VSphereClient).vimClient
 		finder := find.NewFinder(client.Client, true)
 
 		dc, err := finder.Datacenter(context.TODO(), rs.Primary.Attributes["datacenter"])

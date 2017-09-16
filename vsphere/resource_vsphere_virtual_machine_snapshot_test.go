@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/vmware/govmomi"
 )
 
 func TestAccResourceVSphereVirtualMachineSnapshot_Basic(t *testing.T) {
@@ -78,7 +77,7 @@ func testAccCheckVirtualMachineSnapshotExists(n string) resource.TestCheckFunc {
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("No Vm Snapshot ID is set")
 		}
-		client := testAccProvider.Meta().(*govmomi.Client)
+		client := testAccProvider.Meta().(*VSphereClient).vimClient
 
 		vm, err := virtualMachineFromUUID(client, rs.Primary.Attributes["virtual_machine_uuid"])
 		if err != nil {
@@ -106,7 +105,7 @@ func testAccCheckVirtualMachineHasNoSnapshots(n string) resource.TestCheckFunc {
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("No VM ID is set")
 		}
-		client := testAccProvider.Meta().(*govmomi.Client)
+		client := testAccProvider.Meta().(*VSphereClient).vimClient
 
 		vm, err := virtualMachineFromUUID(client, rs.Primary.Attributes["uuid"])
 		if err != nil {

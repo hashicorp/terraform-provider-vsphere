@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -97,7 +96,7 @@ func resourceVSphereVmfsDatastore() *schema.Resource {
 }
 
 func resourceVSphereVmfsDatastoreCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	hsID := d.Get("host_system_id").(string)
 	dss, err := hostDatastoreSystemFromHostSystemID(client, hsID)
 	if err != nil {
@@ -168,7 +167,7 @@ func resourceVSphereVmfsDatastoreCreate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceVSphereVmfsDatastoreRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	id := d.Id()
 	ds, err := datastoreFromID(client, id)
 	if err != nil {
@@ -202,7 +201,7 @@ func resourceVSphereVmfsDatastoreRead(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceVSphereVmfsDatastoreUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	hsID := d.Get("host_system_id").(string)
 	dss, err := hostDatastoreSystemFromHostSystemID(client, hsID)
 	if err != nil {
@@ -273,7 +272,7 @@ func resourceVSphereVmfsDatastoreUpdate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceVSphereVmfsDatastoreDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	hsID := d.Get("host_system_id").(string)
 	dss, err := hostDatastoreSystemFromHostSystemID(client, hsID)
 	if err != nil {
@@ -367,7 +366,7 @@ func resourceVSphereVmfsDatastoreImport(d *schema.ResourceData, meta interface{}
 
 	id := ids[0]
 	hsID := ids[1]
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	ds, err := datastoreFromID(client, id)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find datastore: %s", err)

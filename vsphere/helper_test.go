@@ -44,7 +44,7 @@ func testClientVariablesForResource(s *terraform.State, addr string) (testCheckV
 	}
 
 	return testCheckVariables{
-		client:             testAccProvider.Meta().(*govmomi.Client),
+		client:             testAccProvider.Meta().(*VSphereClient).vimClient,
 		resourceID:         rs.Primary.ID,
 		resourceAttributes: rs.Primary.Attributes,
 		esxiHost:           os.Getenv("VSPHERE_ESXI_HOST"),

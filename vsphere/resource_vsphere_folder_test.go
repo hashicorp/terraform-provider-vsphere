@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"golang.org/x/net/context"
@@ -117,7 +116,7 @@ func TestAccVSphereFolder_dontDeleteExisting(t *testing.T) {
 }
 
 func testAccCheckVSphereFolderDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*govmomi.Client)
+	client := testAccProvider.Meta().(*VSphereClient).vimClient
 	finder := find.NewFinder(client.Client, true)
 
 	for _, rs := range s.RootModule().Resources {
@@ -155,7 +154,7 @@ func testAccCheckVSphereFolderExists(n string, f *folder) resource.TestCheckFunc
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*govmomi.Client)
+		client := testAccProvider.Meta().(*VSphereClient).vimClient
 		finder := find.NewFinder(client.Client, true)
 
 		dc, err := finder.Datacenter(context.TODO(), rs.Primary.Attributes["datacenter"])
@@ -189,7 +188,7 @@ func testAccCheckVSphereFolderExistingPathExists(n string, f *folder) resource.T
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*govmomi.Client)
+		client := testAccProvider.Meta().(*VSphereClient).vimClient
 		finder := find.NewFinder(client.Client, true)
 
 		dc, err := finder.Datacenter(context.TODO(), rs.Primary.Attributes["datacenter"])
@@ -215,7 +214,7 @@ func testAccCheckVSphereFolderExistingPathExists(n string, f *folder) resource.T
 func assertVSphereFolderExists(datacenter string, folder_name string) resource.TestCheckFunc {
 
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*govmomi.Client)
+		client := testAccProvider.Meta().(*VSphereClient).vimClient
 		folder, err := object.NewSearchIndex(client.Client).FindByInventoryPath(
 			context.TODO(), fmt.Sprintf("%v/vm/%v", datacenter, folder_name))
 		if err != nil {
@@ -230,7 +229,7 @@ func assertVSphereFolderExists(datacenter string, folder_name string) resource.T
 
 func createVSphereFolder(datacenter string, folder_name string) error {
 
-	client := testAccProvider.Meta().(*govmomi.Client)
+	client := testAccProvider.Meta().(*VSphereClient).vimClient
 
 	f := folder{path: folder_name, datacenter: datacenter}
 
@@ -255,7 +254,7 @@ func removeVSphereFolder(datacenter string, folder_name string, existing_path st
 
 	return func(s *terraform.State) error {
 
-		client := testAccProvider.Meta().(*govmomi.Client)
+		client := testAccProvider.Meta().(*VSphereClient).vimClient
 		// finder := find.NewFinder(client.Client, true)
 
 		folder, _ := object.NewSearchIndex(client.Client).FindByInventoryPath(

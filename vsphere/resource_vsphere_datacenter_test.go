@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"golang.org/x/net/context"
 )
@@ -61,7 +60,7 @@ func TestAccVSphereDatacenter_createOnSubfolder(t *testing.T) {
 }
 
 func testAccCheckVSphereDatacenterDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*govmomi.Client)
+	client := testAccProvider.Meta().(*VSphereClient).vimClient
 	finder := find.NewFinder(client.Client, true)
 
 	for _, rs := range s.RootModule().Resources {
@@ -101,7 +100,7 @@ func testAccCheckVSphereDatacenterExists(n string, exists bool) resource.TestChe
 			return fmt.Errorf("no ID is set")
 		}
 
-		client := testAccProvider.Meta().(*govmomi.Client)
+		client := testAccProvider.Meta().(*VSphereClient).vimClient
 		finder := find.NewFinder(client.Client, true)
 
 		path := rs.Primary.Attributes["name"]

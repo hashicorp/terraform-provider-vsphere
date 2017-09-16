@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/license"
 )
 
@@ -131,7 +130,7 @@ resource "vsphere_license" "foo" {
 }
 
 func testAccVSphereLicenseDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*govmomi.Client)
+	client := testAccProvider.Meta().(*VSphereClient).vimClient
 	manager := license.NewManager(client.Client)
 	message := ""
 	for _, rs := range s.RootModule().Resources {
@@ -158,7 +157,7 @@ func testAccVSphereLicenseExists(name string) resource.TestCheckFunc {
 			return fmt.Errorf("%s key not found on the server", name)
 		}
 
-		client := testAccProvider.Meta().(*govmomi.Client)
+		client := testAccProvider.Meta().(*VSphereClient).vimClient
 		manager := license.NewManager(client.Client)
 
 		if !isKeyPresent(rs.Primary.ID, manager) {
@@ -195,7 +194,7 @@ func testAccVSphereLicenseWithLabelExists(name string) resource.TestCheckFunc {
 			return fmt.Errorf("%s key not found on the server", name)
 		}
 
-		client := testAccProvider.Meta().(*govmomi.Client)
+		client := testAccProvider.Meta().(*VSphereClient).vimClient
 		manager := license.NewManager(client.Client)
 
 		if !isKeyPresent(rs.Primary.ID, manager) {

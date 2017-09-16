@@ -23,8 +23,19 @@ type Config struct {
 	DebugPathRun  string
 }
 
+// VSphereClient is the client connection manager for the vSphere provider. It
+// holds the connections to the various API endpoints we need to interface
+// with, such as the VMODL API through govmomi, and the REST SDK through
+// alternate libraries.
+type VSphereClient struct {
+	// The VIM/govmomi client.
+	vimClient *govmomi.Client
+}
+
 // Client() returns a new client for accessing VMWare vSphere.
-func (c *Config) Client() (*govmomi.Client, error) {
+func (c *Config) Client() (*VSphereClient, error) {
+	client := new(VSphereClient)
+
 	u, err := url.Parse("https://" + c.VSphereServer + "/sdk")
 	if err != nil {
 		return nil, fmt.Errorf("Error parse url: %s", err)
@@ -37,7 +48,7 @@ func (c *Config) Client() (*govmomi.Client, error) {
 		return nil, fmt.Errorf("Error setting up client debug: %s", err)
 	}
 
-	client, err := govmomi.NewClient(context.TODO(), u, c.InsecureFlag)
+	client.vimClient, err = govmomi.NewClient(context.TODO(), u, c.InsecureFlag)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up client: %s", err)
 	}

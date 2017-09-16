@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -678,7 +677,7 @@ func testAccResourceVSphereVirtualMachineCheckCustomizationSucceeded() resource.
 		if err != nil {
 			return err
 		}
-		client := testAccProvider.Meta().(*govmomi.Client)
+		client := testAccProvider.Meta().(*VSphereClient).vimClient
 		actual, err := selectEventsForReference(client, vm.Reference(), []string{eventTypeCustomizationSucceeded})
 		if err != nil {
 			return err

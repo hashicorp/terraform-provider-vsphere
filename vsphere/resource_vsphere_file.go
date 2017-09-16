@@ -76,7 +76,7 @@ func resourceVSphereFile() *schema.Resource {
 func resourceVSphereFileCreate(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] creating file: %#v", d)
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 
 	f := file{}
 
@@ -227,7 +227,7 @@ func resourceVSphereFileRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("destination_file argument is required")
 	}
 
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	finder := find.NewFinder(client.Client, true)
 
 	dc, err := finder.Datacenter(context.TODO(), f.datacenter)
@@ -290,7 +290,7 @@ func resourceVSphereFileUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		// Get old and new dataceter and datastore
-		client := meta.(*govmomi.Client)
+		client := meta.(*VSphereClient).vimClient
 		dcOld, err := getDatacenter(client, oldDataceneter)
 		if err != nil {
 			return err
@@ -353,7 +353,7 @@ func resourceVSphereFileDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("destination_file argument is required")
 	}
 
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 
 	err := deleteFile(client, &f)
 	if err != nil {

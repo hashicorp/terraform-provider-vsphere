@@ -6,7 +6,6 @@ import (
 	"context"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/vmware/govmomi"
 )
 
 func resourceVSphereHostPortGroup() *schema.Resource {
@@ -52,7 +51,7 @@ func resourceVSphereHostPortGroup() *schema.Resource {
 }
 
 func resourceVSphereHostPortGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	name := d.Get("name").(string)
 	hsID := d.Get("host_system_id").(string)
 	ns, err := hostNetworkSystemFromHostSystemID(client, hsID)
@@ -72,7 +71,7 @@ func resourceVSphereHostPortGroupCreate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceVSphereHostPortGroupRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	hsID, name, err := portGroupIDsFromResourceID(d)
 	if err != nil {
 		return err
@@ -82,7 +81,7 @@ func resourceVSphereHostPortGroupRead(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("error loading host network system: %s", err)
 	}
 
-	pg, err := hostPortGroupFromName(meta.(*govmomi.Client), ns, name)
+	pg, err := hostPortGroupFromName(meta.(*VSphereClient).vimClient, ns, name)
 	if err != nil {
 		return fmt.Errorf("error fetching port group data: %s", err)
 	}
@@ -107,7 +106,7 @@ func resourceVSphereHostPortGroupRead(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceVSphereHostPortGroupUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	hsID, name, err := portGroupIDsFromResourceID(d)
 	if err != nil {
 		return err
@@ -128,7 +127,7 @@ func resourceVSphereHostPortGroupUpdate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceVSphereHostPortGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	hsID, name, err := portGroupIDsFromResourceID(d)
 	if err != nil {
 		return err
