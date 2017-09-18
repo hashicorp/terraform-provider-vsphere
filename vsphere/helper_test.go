@@ -14,12 +14,16 @@ import (
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/vic/pkg/vsphere/tags"
 )
 
 // testCheckVariables bundles common variables needed by various test checkers.
 type testCheckVariables struct {
 	// A client for various operations.
 	client *govmomi.Client
+
+	// The client for tagging operations.
+	tagsClient *tags.RestClient
 
 	// The subject resource's ID.
 	resourceID string
@@ -45,6 +49,7 @@ func testClientVariablesForResource(s *terraform.State, addr string) (testCheckV
 
 	return testCheckVariables{
 		client:             testAccProvider.Meta().(*VSphereClient).vimClient,
+		tagsClient:         testAccProvider.Meta().(*VSphereClient).tagsClient,
 		resourceID:         rs.Primary.ID,
 		resourceAttributes: rs.Primary.Attributes,
 		esxiHost:           os.Getenv("VSPHERE_ESXI_HOST"),
@@ -146,6 +151,22 @@ func testPowerOffVM(s *terraform.State, resourceName string) error {
 		return fmt.Errorf("error waiting for poweroff: %s", err)
 	}
 	return nil
+}
+
+// testGetTagCategory gets a tag category by name.
+func testGetTagCategory(s *terraform.State, resourceName string) (*tags.Category, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_tag_category.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	category, err := tVars.tagsClient.GetCategory(ctx, tVars.resourceID)
+	if err != nil {
+		return nil, fmt.Errorf("could not get tag category for ID %q: %s", tVars.resourceID, err)
+	}
+
+	return category, nil
 }
 
 // copyStatePtr returns a TestCheckFunc that copies the reference to the test
