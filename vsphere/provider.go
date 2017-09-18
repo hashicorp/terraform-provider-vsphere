@@ -10,7 +10,7 @@ import (
 
 // defaultAPITimeout is a default timeout value that is passed to functions
 // requiring contexts, and other various waiters.
-var defaultAPITimeout = time.Minute * 5
+var defaultAPITimeout = time.Minute * 10
 
 // Provider returns a terraform.ResourceProvider.
 func Provider() terraform.ResourceProvider {

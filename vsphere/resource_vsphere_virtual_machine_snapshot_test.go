@@ -84,7 +84,7 @@ func testAccCheckVirtualMachineSnapshotExists(n string) resource.TestCheckFunc {
 		if err != nil {
 			return fmt.Errorf("error %s", err)
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout) // This is 5 mins
+		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout) // This is 10 mins
 		defer cancel()
 		snapshot, err := vm.FindSnapshot(ctx, rs.Primary.ID)
 		if err != nil {
