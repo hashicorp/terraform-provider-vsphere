@@ -62,7 +62,7 @@ func resourceVSphereVirtualMachineSnapshotCreate(d *schema.ResourceData, meta in
 	if err != nil {
 		return fmt.Errorf("Error while getting the VirtualMachine :%s", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout) // This is 5 mins
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout) // This is 10 mins
 	defer cancel()
 	task, err := vm.CreateSnapshot(ctx, d.Get("snapshot_name").(string), d.Get("description").(string), d.Get("memory").(bool), d.Get("quiesce").(bool))
 	tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
@@ -111,7 +111,7 @@ func resourceVSphereVirtualMachineSnapshotDelete(d *schema.ResourceData, meta in
 	} else {
 		removeChildren = false
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout) // This is 5 mins
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout) // This is 10 mins
 	defer cancel()
 	task, err := vm.RemoveSnapshot(ctx, d.Id(), removeChildren, consolidatePtr)
 	if err != nil {
@@ -136,7 +136,7 @@ func resourceVSphereVirtualMachineSnapshotRead(d *schema.ResourceData, meta inte
 	if err != nil {
 		return fmt.Errorf("Error while getting the VirtualMachine :%s", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout) // This is 5 mins
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout) // This is 10 mins
 	defer cancel()
 	snapshot, err := vm.FindSnapshot(ctx, d.Id())
 	if err != nil {
