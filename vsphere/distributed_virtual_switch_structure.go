@@ -25,18 +25,6 @@ var configSpecOperationAllowedValues = []string{
 	string(types.VirtualDeviceConfigSpecOperationEdit),
 }
 
-/*var distributedVirtualSwitchHostInfrastructureTrafficClass = []string{
-	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassManagement),
-	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassFaultTolerance),
-	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassVmotion),
-	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassVirtualMachine),
-	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassISCSI),
-	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassNfs),
-	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassHbr),
-	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassVsan),
-	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassVdp),
-}*/
-
 func schemaDVSContactInfo() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"contact": &schema.Schema{
@@ -70,11 +58,6 @@ func flattenDVSContactInfo(d *schema.ResourceData, obj *mo.DistributedVirtualSwi
 	d.Set("contact_name", config.Contact.Name)
 }
 
-/*func schemaDVPortSetting() map[string]*schema.Schema {
-	// TBD
-	return nil
-}*/
-
 func schemaDistributedVirtualSwitchHostMemberPnicBacking() *schema.Schema {
 	// TODO maybe a set will fit better to avoid the mistake of putting a nic twice?
 	return &schema.Schema{
@@ -97,12 +80,6 @@ func schemaDistributedVirtualSwitchHostMemberConfigSpec() *schema.Schema {
 			Type:        schema.TypeString,
 			Optional:    true,
 			Description: "The managed object ID of the host to search for NICs on.",
-		},
-		"operation": &schema.Schema{
-			Type:         schema.TypeInt,
-			Optional:     true,
-			Description:  "Host member operation type.",
-			ValidateFunc: validation.StringInSlice(configSpecOperationAllowedValues, false),
 		},
 		// DistributedVirtualSwitchHostMemberPnicBacking extends DistributedVirtualSwitchHostMemberBacking
 		// which is a base class
@@ -257,54 +234,6 @@ func flattenDistributedVirtualSwitchHostMemberConfigSpec(client *govmomi.Client,
 	d.Set("host", hosts)
 }
 
-/*func schemaDvsHostInfrastructureTrafficResource() *schema.Schema {
-	return &schema.Schema{
-		Type:     schema.TypeList,
-		Optional: true,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"description": &schema.Schema{
-					Type:        schema.TypeString,
-					Optional:    true,
-					Description: "The description of the host infrastructure resource. This property is ignored for update operation.",
-				},
-				"key": &schema.Schema{
-					Type:         schema.TypeString,
-					Optional:     true,
-					Description:  "The key of the host infrastructure resource. Possible value can be of DistributedVirtualSwitchHostInfrastructureTrafficClass.",
-					ValidateFunc: validation.StringInSlice(distributedVirtualSwitchHostInfrastructureTrafficClass, false),
-				},
-				//"allocationInfo": TBD
-			},
-		},
-	}
-}*/
-
-/*func schemaDVSPolicy() map[string]*schema.Schema {
-	return map[string]*schema.Schema{
-		"auto_pre_install_allowed": &schema.Schema{
-			Type:        schema.TypeBool,
-			Optional:    true,
-			Description: "Whether downloading a new proxy VirtualSwitch module to the host is allowed to be automatically executed by the switch.",
-		},
-		"auto_upgrade_allowed": &schema.Schema{
-			Type:        schema.TypeBool,
-			Optional:    true,
-			Description: "Whether upgrading of the switch is allowed to be automatically executed by the switch.",
-		},
-		"partial_upgrade_allowed": &schema.Schema{
-			Type:        schema.TypeBool,
-			Optional:    true,
-			Description: "Whether to allow upgrading a switch when some of the hosts failed to install the needed module.",
-		},
-	}
-}*/
-
-/*func schemaDVSUplinkPortPolicy() map[string]*schema.Schema {
-	// TBD
-	return nil
-}*/
-
 func schemaDistributedVirtualSwitchKeyedOpaqueBlob() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeList,
@@ -351,7 +280,6 @@ func schemaDVSConfiSpec() map[string]*schema.Schema {
 			Description: "The key of the extension registered by a remote server that controls the switch.",
 		},
 		"host": schemaDistributedVirtualSwitchHostMemberConfigSpec(),
-		//"infrastructure_traffic_resource_config": schemaDvsHostInfrastructureTrafficResource(),
 		"name": &schema.Schema{
 			Type:        schema.TypeString,
 			Optional:    true,
@@ -379,10 +307,6 @@ func schemaDVSConfiSpec() map[string]*schema.Schema {
 		"vendor_specific_config": schemaDistributedVirtualSwitchKeyedOpaqueBlob(),
 	}
 	mergeSchema(s, schemaDVSContactInfo())
-	//mergeSchema(s, schemaDVPortSetting())
-	//mergeSchema(s, schemaDVSPolicy())
-	// XXX TBD uplinkPortgroup
-	//mergeSchema(s, schemaDVSUplinkPortPolicy())
 
 	return s
 }
