@@ -10,20 +10,6 @@ import (
 	"github.com/vmware/vic/pkg/vsphere/tags"
 )
 
-// resourceVSphereTagCategoryImportErrMultiple is an error message format for a
-// tag category import that returned multiple results. This is a bug and needs
-// to be reported so we can adjust the API.
-const resourceVSphereTagCategoryImportErrMultiple = `
-Category name %q returned multiple results!
-
-This is a bug - please report it at:
-https://github.com/terraform-providers/terraform-provider-vsphere/issues
-
-This version of the provider requires unique category names. To work around
-this issue, please rename your category to a name unique within your vCenter
-system.
-`
-
 // A list of valid types for cardinality and associable types are below. The
 // latter is more significant, even though they are not used in the resource
 // itself, to ensure all associable types are properly documented so we can
@@ -225,33 +211,16 @@ func resourceVSphereTagCategoryDelete(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceVSphereTagCategoryImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	// Although GetCategoriesByName does not seem to think that tag categories
-	// are unique, empirical observation via the console and API show that they
-	// are. Hence we can just import by the tag name. If for some reason the
-	// returned results includes more than one ID, we give an error.
 	client, err := meta.(*VSphereClient).TagsClient()
 	if err != nil {
 		return nil, err
 	}
 
-	name := d.Id()
-
-	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
-	defer cancel()
-	cats, err := client.GetCategoriesByName(ctx, name)
+	id, err := tagCategoryByName(client, d.Id())
 	if err != nil {
-		return nil, fmt.Errorf("could not get category for name %q: %s", name, err)
+		return nil, err
 	}
 
-	if len(cats) < 1 {
-		return nil, fmt.Errorf("category name %q not found", name)
-	}
-	if len(cats) > 1 {
-		// This should not happen but guarding just in case it does. This is a bug
-		// and needs to be reported.
-		return nil, fmt.Errorf(resourceVSphereTagCategoryImportErrMultiple, name)
-	}
-
-	d.SetId(cats[0].ID)
+	d.SetId(id)
 	return []*schema.ResourceData{d}, nil
 }

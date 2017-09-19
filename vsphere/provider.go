@@ -84,9 +84,10 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"vsphere_datacenter": dataSourceVSphereDatacenter(),
-			"vsphere_host":       dataSourceVSphereHost(),
-			"vsphere_vmfs_disks": dataSourceVSphereVmfsDisks(),
+			"vsphere_datacenter":   dataSourceVSphereDatacenter(),
+			"vsphere_host":         dataSourceVSphereHost(),
+			"vsphere_tag_category": dataSourceVSphereTagCategory(),
+			"vsphere_vmfs_disks":   dataSourceVSphereVmfsDisks(),
 		},
 
 		ConfigureFunc: providerConfigure,
