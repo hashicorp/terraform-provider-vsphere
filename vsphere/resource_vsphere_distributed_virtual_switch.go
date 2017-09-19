@@ -123,7 +123,43 @@ func resourceVSphereDistributedVirtualSwitchUpdate(d *schema.ResourceData, meta 
 		return fmt.Errorf("%s", err)
 	}
 
+	// Wait for the distributed virtual switch resource to be destroyed
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"Updating"},
+		Target:     []string{"Updated"},
+		Refresh:    resourceVSphereDVSStateUpdateRefreshFunc(d, meta),
+		Timeout:    10 * time.Minute,
+		MinTimeout: 3 * time.Second,
+		Delay:      5 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		name := d.Get("name").(string)
+		return fmt.Errorf("error waiting for distributed virtual switch (%s) to be updated: %s", name, err)
+	}
+
 	return resourceVSphereDistributedVirtualSwitchRead(d, meta)
+}
+
+func resourceVSphereDVSStateUpdateRefreshFunc(d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		log.Print("[TRACE] Refreshing distributed virtual switch state, looking for config changes")
+		client := meta.(*govmomi.Client)
+		dvs, err := dvsFromUuid(client, d.Id())
+		if err != nil {
+			return nil, "Failed", err
+		}
+		config := dvs.Config.GetDVSConfigInfo()
+		cv := d.Get("config_version").(string)
+		log.Printf("[TRACE] Current version %s. Old version %s", config.ConfigVersion, cv)
+		if config.ConfigVersion != cv {
+			log.Print("[TRACE] Distributed virtual switch config updated")
+			return dvs, "Updated", nil
+		} else {
+			return dvs, "Updating", nil
+		}
+	}
 }
 
 func resourceVSphereDVSStateRefreshFunc(d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {

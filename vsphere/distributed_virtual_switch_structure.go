@@ -186,25 +186,25 @@ func expandDistributedVirtualSwitchHostMemberConfigSpec(client *govmomi.Client, 
 				}
 			}
 		}
+	}
 
-		if hosts != nil {
-			// Add whatever is left
-			for _, host := range hosts {
-				hi := host.(map[string]interface{})
-				if val, ok := refs[hi["host_system_id"].(string)]; ok {
-					backing := new(types.DistributedVirtualSwitchHostMemberPnicBacking)
-					for _, nic := range hi["backing"].([]interface{}) {
-						backing.PnicSpec = append(backing.PnicSpec, types.DistributedVirtualSwitchHostMemberPnicSpec{
-							PnicDevice: strings.TrimSpace(nic.(string)),
-						})
-					}
-					h := types.DistributedVirtualSwitchHostMemberConfigSpec{
-						Host:      val,
-						Backing:   backing,
-						Operation: "add", // Options: "add", "edit", "remove"
-					}
-					hmc = append(hmc, h)
+	if hosts != nil {
+		// Add whatever is left
+		for _, host := range hosts {
+			hi := host.(map[string]interface{})
+			if val, ok := refs[hi["host_system_id"].(string)]; ok {
+				backing := new(types.DistributedVirtualSwitchHostMemberPnicBacking)
+				for _, nic := range hi["backing"].([]interface{}) {
+					backing.PnicSpec = append(backing.PnicSpec, types.DistributedVirtualSwitchHostMemberPnicSpec{
+						PnicDevice: strings.TrimSpace(nic.(string)),
+					})
 				}
+				h := types.DistributedVirtualSwitchHostMemberConfigSpec{
+					Host:      val,
+					Backing:   backing,
+					Operation: "add", // Options: "add", "edit", "remove"
+				}
+				hmc = append(hmc, h)
 			}
 		}
 	}
