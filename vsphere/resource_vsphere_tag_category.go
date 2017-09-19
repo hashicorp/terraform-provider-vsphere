@@ -10,6 +10,20 @@ import (
 	"github.com/vmware/vic/pkg/vsphere/tags"
 )
 
+// resourceVSphereTagCategoryImportErrMultiple is an error message format for a
+// tag category import that returned multiple results. This is a bug and needs
+// to be reported so we can adjust the API.
+const resourceVSphereTagCategoryImportErrMultiple = `
+Category name %q returned multiple results!
+
+This is a bug - please report it at:
+https://github.com/terraform-providers/terraform-provider-vsphere/issues
+
+This version of the provider requires unique category names. To work around
+this issue, please rename your category to a name unique within your vCenter
+system.
+`
+
 // A list of valid types for cardinality and associable types are below. The
 // latter is more significant, even though they are not used in the resource
 // itself, to ensure all associable types are properly documented so we can
@@ -233,8 +247,9 @@ func resourceVSphereTagCategoryImport(d *schema.ResourceData, meta interface{}) 
 		return nil, fmt.Errorf("category name %q not found", name)
 	}
 	if len(cats) > 1 {
-		// This should not happen but guarding just in case it does.
-		return nil, fmt.Errorf("category name %q returned multiple results, more specific name required", name)
+		// This should not happen but guarding just in case it does. This is a bug
+		// and needs to be reported.
+		return nil, fmt.Errorf(resourceVSphereTagCategoryImportErrMultiple, name)
 	}
 
 	d.SetId(cats[0].ID)
