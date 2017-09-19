@@ -252,7 +252,7 @@ func flattenDistributedVirtualSwitchHostMemberConfigSpec(client *govmomi.Client,
 			hm["backing"] = backing
 		}
 		hosts = append(hosts, hm)
-		log.Print("[TRACE] Host after flattening %+v", hosts)
+		log.Print("[TRACE] Host after flattening %v", hosts)
 	}
 	d.Set("host", hosts)
 }
