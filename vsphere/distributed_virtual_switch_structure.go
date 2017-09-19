@@ -1,12 +1,17 @@
 package vsphere
 
 import (
+	"log"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/vmware/govmomi"
+	"github.com/vmware/govmomi/find"
+	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+	"golang.org/x/net/context"
 )
 
 var distributedVirtualSwitchNetworkResourceControlVersionAllowedValues = []string{
@@ -116,72 +121,90 @@ func schemaDistributedVirtualSwitchHostMemberConfigSpec() *schema.Schema {
 	return s
 }
 
-func expandDistributedVirtualSwitchHostMemberConfigSpec(d *schema.ResourceData, dvs *mo.DistributedVirtualSwitch, refs map[string]types.ManagedObjectReference) []types.DistributedVirtualSwitchHostMemberConfigSpec {
+func expandDistributedVirtualSwitchHostMemberConfigSpec(client *govmomi.Client, d *schema.ResourceData, dvs *mo.DistributedVirtualSwitch, refs map[string]types.ManagedObjectReference) []types.DistributedVirtualSwitchHostMemberConfigSpec {
 	// Configure the host and nic cards used as uplink for the DVS
 	var hmc []types.DistributedVirtualSwitchHostMemberConfigSpec
 
-	if hosts, ok := d.GetOk("host"); ok {
-		hosts := hosts.([]interface{})
-		// If the DVS exist we go through all the hosts and see which ones
-		// we have to delete or modify
-		if dvs != nil {
-			config := dvs.Config.GetDVSConfigInfo()
-			for _, h := range config.Host {
-				if host := isHostPartOfDVS(hosts, refs, h.Config.Host); host != nil {
-					// Edit
-					backing := new(types.DistributedVirtualSwitchHostMemberPnicBacking)
-					for _, nic := range host["backing"].([]interface{}) {
-						backing.PnicSpec = append(backing.PnicSpec, types.DistributedVirtualSwitchHostMemberPnicSpec{
-							PnicDevice: strings.TrimSpace(nic.(string)),
-						})
-					}
-					hcs := types.DistributedVirtualSwitchHostMemberConfigSpec{
-						Host:      *h.Config.Host,
-						Backing:   backing,
-						Operation: "edit", // Options: "add", "edit", "remove"
-					}
-					hmc = append(hmc, hcs)
-
-					// We take it out from the refs, on the last pass we consider whatever
-					// is left as to be added
-					delete(refs, host["host_system_id"].(string))
-				} else {
-					// Remove
-					// XXX I'm not sure if it's necessary to mention the specific NICs when removing a host completely
-					backing := new(types.DistributedVirtualSwitchHostMemberPnicBacking)
-					cbp := h.Config.Backing.GetDistributedVirtualSwitchHostMemberBacking()
-					cb := interface{}(*cbp).(types.DistributedVirtualSwitchHostMemberPnicSpec)
-					for _, nic := range cb.PnicDevice {
-						backing.PnicSpec = append(backing.PnicSpec, types.DistributedVirtualSwitchHostMemberPnicSpec{
-							PnicDevice: string(nic),
-						})
-					}
-					hcs := types.DistributedVirtualSwitchHostMemberConfigSpec{
-						Host:      *h.Config.Host,
-						Backing:   backing,
-						Operation: "remove", // Options: "add", "edit", "remove"
-					}
-					hmc = append(hmc, hcs)
-				}
-			}
-		}
-
-		// Add whatever is left
-		for _, host := range hosts {
-			hi := host.(map[string]interface{})
-			if val, ok := refs[hi["host_system_id"].(string)]; ok {
+	var hosts []interface{}
+	if h, ok := d.GetOk("host"); ok {
+		hosts = h.([]interface{})
+	}
+	// If the DVS exist we go through all the hosts and see which ones
+	// we have to delete or modify
+	if dvs != nil {
+		config := dvs.Config.GetDVSConfigInfo()
+		for _, h := range config.Host {
+			if host := isHostPartOfDVS(hosts, refs, h.Config.Host); host != nil {
+				// Edit
 				backing := new(types.DistributedVirtualSwitchHostMemberPnicBacking)
-				for _, nic := range hi["backing"].([]interface{}) {
+				for _, nic := range host["backing"].([]interface{}) {
 					backing.PnicSpec = append(backing.PnicSpec, types.DistributedVirtualSwitchHostMemberPnicSpec{
 						PnicDevice: strings.TrimSpace(nic.(string)),
 					})
 				}
-				h := types.DistributedVirtualSwitchHostMemberConfigSpec{
-					Host:      val,
+				hcs := types.DistributedVirtualSwitchHostMemberConfigSpec{
+					Host:      *h.Config.Host,
 					Backing:   backing,
-					Operation: "add", // Options: "add", "edit", "remove"
+					Operation: "edit", // Options: "add", "edit", "remove"
 				}
-				hmc = append(hmc, h)
+				hmc = append(hmc, hcs)
+
+				// We take it out from the refs, on the last pass we consider whatever
+				// is left as to be added
+				delete(refs, host["host_system_id"].(string))
+			} else {
+				log.Print("[TRACE] Removing host from uplinks")
+				// Remove
+				backing := new(types.DistributedVirtualSwitchHostMemberPnicBacking)
+				finder := find.NewFinder(client.Client, false)
+
+				ds, err := finder.ObjectReference(context.TODO(), *h.Config.Host)
+				if err != nil {
+					continue
+				}
+				dso := ds.(*object.HostSystem)
+				var mh mo.HostSystem
+				err = dso.Properties(context.TODO(), ds.Reference(), []string{"config"}, &mh)
+				if err != nil {
+					continue
+				}
+
+				for _, ps := range mh.Config.Network.ProxySwitch {
+					if ps.DvsUuid == d.Id() {
+						for _, nic := range ps.Pnic {
+							backing.PnicSpec = append(backing.PnicSpec, types.DistributedVirtualSwitchHostMemberPnicSpec{
+								PnicDevice: string(nic),
+							})
+						}
+						hcs := types.DistributedVirtualSwitchHostMemberConfigSpec{
+							Host:      *h.Config.Host,
+							Backing:   backing,
+							Operation: "remove", // Options: "add", "edit", "remove"
+						}
+						hmc = append(hmc, hcs)
+					}
+				}
+			}
+		}
+
+		if hosts != nil {
+			// Add whatever is left
+			for _, host := range hosts {
+				hi := host.(map[string]interface{})
+				if val, ok := refs[hi["host_system_id"].(string)]; ok {
+					backing := new(types.DistributedVirtualSwitchHostMemberPnicBacking)
+					for _, nic := range hi["backing"].([]interface{}) {
+						backing.PnicSpec = append(backing.PnicSpec, types.DistributedVirtualSwitchHostMemberPnicSpec{
+							PnicDevice: strings.TrimSpace(nic.(string)),
+						})
+					}
+					h := types.DistributedVirtualSwitchHostMemberConfigSpec{
+						Host:      val,
+						Backing:   backing,
+						Operation: "add", // Options: "add", "edit", "remove"
+					}
+					hmc = append(hmc, h)
+				}
 			}
 		}
 	}
@@ -189,8 +212,49 @@ func expandDistributedVirtualSwitchHostMemberConfigSpec(d *schema.ResourceData, 
 	return hmc
 }
 
-func flattenDistributedVirtualSwitchHostMemberConfigSpec(d *schema.ResourceData, obj *mo.DistributedVirtualSwitch) {
+func flattenDistributedVirtualSwitchHostMemberConfigSpec(client *govmomi.Client, d *schema.ResourceData, obj *mo.DistributedVirtualSwitch) {
+	log.Printf("[TRACE] Flattening DistributedVirtualSwitchHostMemberConfigSpec %v", d.Get("host"))
+	config := obj.Config.GetDVSConfigInfo()
+	var hosts []interface{}
+	for _, host := range config.Host {
+		log.Print("[TRACE] One host")
+		hm := make(map[string]interface{})
 
+		hm["host_system_id"] = host.Config.Host
+
+		backing := []string{}
+
+		finder := find.NewFinder(client.Client, false)
+
+		ds, err := finder.ObjectReference(context.TODO(), *host.Config.Host)
+		if err != nil {
+			continue
+		}
+		dso := ds.(*object.HostSystem)
+		var mh mo.HostSystem
+		err = dso.Properties(context.TODO(), ds.Reference(), []string{"config"}, &mh)
+		if err != nil {
+			continue
+		}
+
+		for _, ps := range mh.Config.Network.ProxySwitch {
+			log.Print("[TRACE] One proxy switch")
+			if ps.DvsUuid == d.Id() {
+				log.Print("[TRACE] Found the proxy switch for this DVS")
+				for _, nic := range ps.Pnic {
+					log.Printf("[TRACE] Pnic %s", nic)
+					sn := strings.Split(nic, "-")
+					backing = append(backing, sn[len(sn)-1])
+				}
+			}
+		}
+		if len(backing) > 0 {
+			hm["backing"] = backing
+		}
+		hosts = append(hosts, hm)
+		log.Print("[TRACE] Host after flattening %+v", hosts)
+	}
+	d.Set("host", hosts)
 }
 
 /*func schemaDvsHostInfrastructureTrafficResource() *schema.Schema {
@@ -323,7 +387,7 @@ func schemaDVSConfiSpec() map[string]*schema.Schema {
 	return s
 }
 
-func expandDVSConfigSpec(d *schema.ResourceData, dvs *mo.DistributedVirtualSwitch, refs map[string]types.ManagedObjectReference) *types.DVSConfigSpec {
+func expandDVSConfigSpec(client *govmomi.Client, d *schema.ResourceData, dvs *mo.DistributedVirtualSwitch, refs map[string]types.ManagedObjectReference) *types.DVSConfigSpec {
 	obj := &types.DVSConfigSpec{}
 
 	obj.Name = d.Get("name").(string)
@@ -351,7 +415,7 @@ func expandDVSConfigSpec(d *schema.ResourceData, dvs *mo.DistributedVirtualSwitc
 	}
 
 	// Always expand since even when removing we will need to mention hosts and nics
-	obj.Host = expandDistributedVirtualSwitchHostMemberConfigSpec(d, dvs, refs)
+	obj.Host = expandDistributedVirtualSwitchHostMemberConfigSpec(client, d, dvs, refs)
 
 	if v, ok := d.GetOkExists("num_standalone_ports"); ok {
 		obj.NumStandalonePorts = int32(v.(int))
@@ -364,7 +428,7 @@ func expandDVSConfigSpec(d *schema.ResourceData, dvs *mo.DistributedVirtualSwitc
 	return obj
 }
 
-func flattenDVSConfigSpec(d *schema.ResourceData, obj *mo.DistributedVirtualSwitch) error {
+func flattenDVSConfigSpec(client *govmomi.Client, d *schema.ResourceData, obj *mo.DistributedVirtualSwitch) error {
 	config := obj.Config.GetDVSConfigInfo()
 	d.Set("config_version", config.ConfigVersion)
 	d.Set("description", config.Description)
@@ -378,7 +442,7 @@ func flattenDVSConfigSpec(d *schema.ResourceData, obj *mo.DistributedVirtualSwit
 	d.Set("default_proxy_switch_max_num_ports", config.DefaultProxySwitchMaxNumPorts)
 	d.Set("switch_ip_address", config.SwitchIpAddress)
 	flattenDVSContactInfo(d, obj)
-	flattenDistributedVirtualSwitchHostMemberConfigSpec(d, obj)
+	flattenDistributedVirtualSwitchHostMemberConfigSpec(client, d, obj)
 
 	return nil
 }

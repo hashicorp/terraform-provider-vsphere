@@ -58,7 +58,7 @@ func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta 
 		return fmt.Errorf("%s", err)
 	}
 
-	spec := expandDVSConfigSpec(d, nil, hosts_mor)
+	spec := expandDVSConfigSpec(client, d, nil, hosts_mor)
 	dvsCreateSpec := types.DVSCreateSpec{ConfigSpec: spec}
 
 	task, err := f.CreateDVS(context.TODO(), dvsCreateSpec)
@@ -91,7 +91,7 @@ func resourceVSphereDistributedVirtualSwitchRead(d *schema.ResourceData, meta in
 		return fmt.Errorf("error reading data: %s", err)
 	}
 
-	if err := flattenDVSConfigSpec(d, dvs); err != nil {
+	if err := flattenDVSConfigSpec(client, d, dvs); err != nil {
 		return fmt.Errorf("error setting resource data: %s", err)
 	}
 
@@ -110,7 +110,7 @@ func resourceVSphereDistributedVirtualSwitchUpdate(d *schema.ResourceData, meta 
 		return fmt.Errorf("%s", err)
 	}
 
-	spec := expandDVSConfigSpec(d, dvs, hosts_refs)
+	spec := expandDVSConfigSpec(client, d, dvs, hosts_refs)
 
 	n := object.NewDistributedVirtualSwitch(client.Client, dvs.Reference())
 	req := &types.ReconfigureDvs_Task{
