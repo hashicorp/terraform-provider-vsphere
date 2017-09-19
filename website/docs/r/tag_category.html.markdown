@@ -22,8 +22,6 @@ information about tag categories specifically, click
 ~> **NOTE:** Tagging support is unsupported on direct ESXi connections and
 requires vCenter 6.0 or higher.
 
-[resource-vmfs-datastore]: /docs/providers/vsphere/r/vmfs_datastore.html
-
 ## Example Usage
 
 This example creates a tag category named `terraform-test-category`, with
@@ -48,8 +46,8 @@ resource "vsphere_tag_category" "category" {
 
 The following arguments are supported:
 
-* `name` - (String, required) The name of the tag.
-* `description` - (String, optional) A description for the tag.
+* `name` - (String, required) The name of the category.
+* `description` - (String, optional) A description for the category.
 * `cardinality` - (String, required, forces new resource) The number of tags
   that can be assigned from this category to a single object at once. Can be
   one of `SINGLE` (object can only be assigned one tag in this category), to
