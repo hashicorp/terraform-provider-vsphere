@@ -94,6 +94,9 @@ func dvsFromUuid(client *govmomi.Client, uuid string) (*mo.DistributedVirtualSwi
 // check if host is in refs with the help of hosts
 // not very efficient, but the number of entries is usually pretty small
 func isHostPartOfDVS(hosts []interface{}, refs map[string]types.ManagedObjectReference, host *types.ManagedObjectReference) map[string]interface{} {
+	if hosts == nil {
+		return nil
+	}
 	for _, h := range hosts {
 		hi := h.(map[string]interface{})
 		if val, ok := refs[hi["host_system_id"].(string)]; ok {
