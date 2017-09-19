@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
-	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -46,7 +45,7 @@ func dataSourceVSphereVmfsDisks() *schema.Resource {
 }
 
 func dataSourceVSphereVmfsDisksRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	hsID := d.Get("host_system_id").(string)
 	ss, err := hostStorageSystemFromHostSystemID(client, hsID)
 	if err != nil {

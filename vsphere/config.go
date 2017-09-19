@@ -10,9 +10,43 @@ import (
 
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/vim25/debug"
+	"github.com/vmware/vic/pkg/vsphere/tags"
 	"golang.org/x/net/context"
 )
 
+// VSphereClient is the client connection manager for the vSphere provider. It
+// holds the connections to the various API endpoints we need to interface
+// with, such as the VMODL API through govmomi, and the REST SDK through
+// alternate libraries.
+type VSphereClient struct {
+	// The VIM/govmomi client.
+	vimClient *govmomi.Client
+
+	// The specialized tags client SDK imported from vmware/vic.
+	tagsClient *tags.RestClient
+}
+
+// TagsClient returns the embedded REST client used for tags, after determining
+// if the connection is eligible:
+//
+// * The connection information in vimClient is valid vCenter connection
+// * The provider has a connection to the CIS REST client. This is true if
+// tagsClient != nil.
+//
+// This function should be used whenever possible to return the client from the
+// provider meta variable for use, to determine if it can be used at all.
+func (c *VSphereClient) TagsClient() (*tags.RestClient, error) {
+	if err := validateVirtualCenter(c.vimClient); err != nil {
+		return nil, err
+	}
+	if c.tagsClient == nil {
+		return nil, fmt.Errorf("tags require %s or higher", tagsMinVersion)
+	}
+	return c.tagsClient, nil
+}
+
+// Config holds the provider configuration, and delivers a populated
+// VSphereClient based off the contained settings.
 type Config struct {
 	User          string
 	Password      string
@@ -23,8 +57,10 @@ type Config struct {
 	DebugPathRun  string
 }
 
-// Client() returns a new client for accessing VMWare vSphere.
-func (c *Config) Client() (*govmomi.Client, error) {
+// Client returns a new client for accessing VMWare vSphere.
+func (c *Config) Client() (*VSphereClient, error) {
+	client := new(VSphereClient)
+
 	u, err := url.Parse("https://" + c.VSphereServer + "/sdk")
 	if err != nil {
 		return nil, fmt.Errorf("Error parse url: %s", err)
@@ -37,16 +73,36 @@ func (c *Config) Client() (*govmomi.Client, error) {
 		return nil, fmt.Errorf("Error setting up client debug: %s", err)
 	}
 
-	client, err := govmomi.NewClient(context.TODO(), u, c.InsecureFlag)
+	// Set up the VIM/govmomi client connection.
+	client.vimClient, err = govmomi.NewClient(context.TODO(), u, c.InsecureFlag)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up client: %s", err)
 	}
 
 	log.Printf("[INFO] VMWare vSphere Client configured for URL: %s", c.VSphereServer)
 
+	// Skip the rest of this function if we are not setting up the tags client. This is if
+	if !isEligibleTagEndpoint(client.vimClient) {
+		log.Printf("[WARN] Connected endpoint does not support tags (%s)", parseVersionFromClient(client.vimClient))
+		return client, nil
+	}
+
+	// Otherwise, connect to the CIS REST API for tagging.
+	log.Printf("[INFO] Logging in to CIS REST API endpoint on %s", c.VSphereServer)
+	client.tagsClient = tags.NewClient(u, c.InsecureFlag, "")
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	if err := client.tagsClient.Login(ctx); err != nil {
+		return nil, fmt.Errorf("Error connecting to CIS REST endpoint: %s", err)
+	}
+	// Done
+	log.Println("[INFO] CIS REST login successful")
+
 	return client, nil
 }
 
+// EnableDebug turns on govmomi API operation logging, if appropriate settings
+// are set on the provider.
 func (c *Config) EnableDebug() error {
 	if !c.Debug {
 		return nil

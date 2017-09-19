@@ -6,7 +6,6 @@ import (
 	"context"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/vmware/govmomi"
 )
 
 func resourceVSphereHostVirtualSwitch() *schema.Resource {
@@ -52,7 +51,7 @@ func resourceVSphereHostVirtualSwitch() *schema.Resource {
 }
 
 func resourceVSphereHostVirtualSwitchCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	name := d.Get("name").(string)
 	hsID := d.Get("host_system_id").(string)
 	ns, err := hostNetworkSystemFromHostSystemID(client, hsID)
@@ -73,7 +72,7 @@ func resourceVSphereHostVirtualSwitchCreate(d *schema.ResourceData, meta interfa
 }
 
 func resourceVSphereHostVirtualSwitchRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	hsID, name, err := virtualSwitchIDsFromResourceID(d)
 	if err != nil {
 		return err
@@ -96,7 +95,7 @@ func resourceVSphereHostVirtualSwitchRead(d *schema.ResourceData, meta interface
 }
 
 func resourceVSphereHostVirtualSwitchUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	hsID, name, err := virtualSwitchIDsFromResourceID(d)
 	if err != nil {
 		return err
@@ -117,7 +116,7 @@ func resourceVSphereHostVirtualSwitchUpdate(d *schema.ResourceData, meta interfa
 }
 
 func resourceVSphereHostVirtualSwitchDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	hsID, name, err := virtualSwitchIDsFromResourceID(d)
 	if err != nil {
 		return err

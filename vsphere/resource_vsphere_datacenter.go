@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/methods"
@@ -37,7 +36,7 @@ func resourceVSphereDatacenter() *schema.Resource {
 }
 
 func resourceVSphereDatacenterCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	name := d.Get("name").(string)
 
 	var f *object.Folder
@@ -101,7 +100,7 @@ func resourceVSphereDatacenterStateRefreshFunc(d *schema.ResourceData, meta inte
 }
 
 func datacenterExists(d *schema.ResourceData, meta interface{}) (*object.Datacenter, error) {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	name := d.Get("name").(string)
 
 	path := name
@@ -125,7 +124,7 @@ func resourceVSphereDatacenterRead(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceVSphereDatacenterDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	name := d.Get("name").(string)
 
 	path := name

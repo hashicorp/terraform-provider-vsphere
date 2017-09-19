@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"golang.org/x/net/context"
 )
@@ -62,7 +61,7 @@ func testAccVSphereVirtualDiskExists(name string) resource.TestCheckFunc {
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*govmomi.Client)
+		client := testAccProvider.Meta().(*VSphereClient).vimClient
 		finder := find.NewFinder(client.Client, true)
 
 		dc, err := finder.Datacenter(context.TODO(), rs.Primary.Attributes["datacenter"])
@@ -87,7 +86,7 @@ func testAccVSphereVirtualDiskExists(name string) resource.TestCheckFunc {
 
 func testAccCheckVSphereVirtualDiskDestroy(s *terraform.State) error {
 	log.Printf("[FINDME] test Destroy")
-	client := testAccProvider.Meta().(*govmomi.Client)
+	client := testAccProvider.Meta().(*VSphereClient).vimClient
 	finder := find.NewFinder(client.Client, true)
 
 	for _, rs := range s.RootModule().Resources {

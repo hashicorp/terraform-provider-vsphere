@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/vmware/govmomi"
 )
 
 func dataSourceVSphereDatacenter() *schema.Resource {
@@ -22,7 +21,7 @@ func dataSourceVSphereDatacenter() *schema.Resource {
 }
 
 func dataSourceVSphereDatacenterRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	datacenter := d.Get("name").(string)
 	dc, err := getDatacenter(client, datacenter)
 	if err != nil {

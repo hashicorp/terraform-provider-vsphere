@@ -542,7 +542,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		hasChanges = true
 	}
 
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
 		return err
@@ -717,7 +717,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 }
 
 func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 
 	vm := virtualMachine{
 		name:     d.Get("name").(string),
@@ -1000,7 +1000,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] virtual machine resource data: %#v", d)
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
 		return err
@@ -1234,7 +1234,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 }
 
 func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
 		return err

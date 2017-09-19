@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -50,7 +49,7 @@ func resourceVSphereNasDatastore() *schema.Resource {
 }
 
 func resourceVSphereNasDatastoreCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	hosts := sliceInterfacesToStrings(d.Get("host_system_ids").(*schema.Set).List())
 	p := &nasDatastoreMountProcessor{
 		client:   client,
@@ -79,7 +78,7 @@ func resourceVSphereNasDatastoreCreate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceVSphereNasDatastoreRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	id := d.Id()
 	ds, err := datastoreFromID(client, id)
 	if err != nil {
@@ -118,7 +117,7 @@ func resourceVSphereNasDatastoreRead(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceVSphereNasDatastoreUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	id := d.Id()
 	ds, err := datastoreFromID(client, id)
 	if err != nil {
@@ -164,7 +163,7 @@ func resourceVSphereNasDatastoreUpdate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceVSphereNasDatastoreDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	dsID := d.Id()
 	ds, err := datastoreFromID(client, dsID)
 	if err != nil {
@@ -192,7 +191,7 @@ func resourceVSphereNasDatastoreImport(d *schema.ResourceData, meta interface{})
 	// We support importing a MoRef - so we need to load the datastore and check
 	// to make sure 1) it exists, and 2) it's a VMFS datastore. If it is, we are
 	// good to go (rest of the stuff will be handled by read on refresh).
-	client := meta.(*govmomi.Client)
+	client := meta.(*VSphereClient).vimClient
 	id := d.Id()
 	ds, err := datastoreFromID(client, id)
 	if err != nil {
