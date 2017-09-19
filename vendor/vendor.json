@@ -832,13 +832,6 @@
 			"versionExact": "v0.15.0"
 		},
 		{
-			"checksumSHA1": "ISm5GWVkWvJ9oSZvWBaK7nzF1cU=",
-			"origin": "github.com/vancluever/vic",
-			"path": "github.com/vmware/vic/pkg/vsphere/tags",
-			"revision": "0ca6b21ab856d28af7f7192f0b608a02306764e6",
-			"revisionTime": "2017-09-17T15:19:26Z"
-		},
-		{
 			"checksumSHA1": "vE43s37+4CJ2CDU6TlOUOYE0K9c=",
 			"path": "golang.org/x/crypto/bcrypt",
 			"revision": "9477e0b78b9ac3d0b03822fd95422e2fe07627cd",
