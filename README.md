@@ -103,7 +103,7 @@ match.
 # Developing the Provider
 
 If you wish to work on the provider, you'll first need [Go][9] installed on your
-machine (version 1.8+ is **required**). You'll also need to correctly setup a
+machine (version 1.9+ is **required**). You'll also need to correctly setup a
 [GOPATH][10], as well as adding `$GOPATH/bin` to your `$PATH`.
 
 [9]: https://golang.org/
