@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/event"
@@ -15,6 +16,10 @@ import (
 const (
 	eventTypeCustomizationSucceeded = "CustomizationSucceeded"
 )
+
+// virtualMachineCustomizationWaiterTimeout is the default time that
+// virtualMachineCustomizationWaiter waits for a success or failure event.
+const virtualMachineCustomizationWaiterTimeout = time.Minute * 10
 
 // virtualMachineCustomizationWaiter is an object that waits for customization
 // of a VirtualMachine to complete, by watching for success or failure events.
@@ -93,7 +98,7 @@ func (w *virtualMachineCustomizationWaiter) wait(client *govmomi.Client, vm *obj
 	// This is our waiter. We want to wait on all of these conditions. We also
 	// use a different context so that we can give a better error message on
 	// timeout without interfering with the subscriber's context.
-	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), virtualMachineCustomizationWaiterTimeout)
 	defer cancel()
 	select {
 	case err := <-mgrErr:
