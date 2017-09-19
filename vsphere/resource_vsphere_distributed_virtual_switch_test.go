@@ -8,8 +8,10 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/vmware/govmomi"
-	//	"github.com/vmware/govmomi/find"
-	//  "golang.org/x/net/context"
+	"github.com/vmware/govmomi/find"
+	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/vim25/mo"
+	"golang.org/x/net/context"
 )
 
 func testAccCheckVSphereDVSConfigNoUplinks() string {
@@ -91,7 +93,7 @@ func testAccResourceVSphereDistributedVirtualSwitchPreCheck(t *testing.T) {
 
 // Create a distributed virtual switch with no uplinks
 func TestAccVSphereDVS_createWithoutUplinks(t *testing.T) {
-	resourceName := "vsphere_distributed_virtual_switch.testDVS"
+	resourceName := "testDVS"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -111,7 +113,7 @@ func TestAccVSphereDVS_createWithoutUplinks(t *testing.T) {
 
 // Create a distributed virtual switch with one uplink
 func TestAccVSphereDVS_createWithUplinks(t *testing.T) {
-	resourceName := "vsphere_distributed_virtual_switch.testDVS"
+	resourceName := "testDVS"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -131,7 +133,7 @@ func TestAccVSphereDVS_createWithUplinks(t *testing.T) {
 
 // Create a distributed virtual switch with an uplink, delete it and add it again
 func TestAccVSphereDVS_createAndUpdateWithUplinks(t *testing.T) {
-	resourceName := "vsphere_distributed_virtual_switch.testDVS"
+	resourceName := "testDVS"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -189,6 +191,7 @@ func testAccCheckVSphereDVSExists(name string, n int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*govmomi.Client)
 
+		var id string
 		for _, rs := range s.RootModule().Resources {
 			if rs.Type != "vsphere_distributed_virtual_switch" {
 				continue
@@ -197,18 +200,43 @@ func testAccCheckVSphereDVSExists(name string, n int) resource.TestCheckFunc {
 				continue
 			}
 
-			id := rs.Primary.ID
+			id = rs.Primary.ID
 			dvs, err := dvsFromUuid(client, id)
 			if err != nil {
 				return fmt.Errorf("distributed virtual switch '%s' doesn't exists", id)
 			} else {
 				config := dvs.Config.GetDVSConfigInfo()
-				if len(config.Host) != n {
-					return fmt.Errorf("expected '%d' uplinks, found '%d'", n, len(config.Host))
+
+				for _, h := range config.Host {
+					finder := find.NewFinder(client.Client, false)
+
+					ds, err := finder.ObjectReference(context.TODO(), *h.Config.Host)
+					if err != nil {
+						continue
+					}
+					dso := ds.(*object.HostSystem)
+					var mh mo.HostSystem
+					err = dso.Properties(context.TODO(), ds.Reference(), []string{"config"}, &mh)
+					if err != nil {
+						continue
+					}
+
+					var j int
+					for _, ps := range mh.Config.Network.ProxySwitch {
+						if ps.DvsName == name {
+							j = len(ps.Pnic)
+						}
+					}
+					if j != n {
+						return fmt.Errorf("expected '%d' uplinks, found '%d'", n, j)
+					}
+					fmt.Println("DVS exists and has the correct number of uplinks")
+					return nil
 				}
-				fmt.Println("DVS exists and has the correct number of uplinks")
-				return nil
 			}
+		}
+		if id == "" {
+			return fmt.Errorf("DVS not found")
 		}
 		return nil
 	}
