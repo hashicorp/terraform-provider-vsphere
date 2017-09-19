@@ -2,6 +2,7 @@
 
 FEATURES:
 
+* **New Data Source:** `vsphere_tag_category` [GH-167]
 * **New Resoruce:** `vsphere_tag_category` [GH-164]
 
 ## 0.3.0 (September 14, 2017)
