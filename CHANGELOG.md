@@ -5,6 +5,11 @@ FEATURES:
 * **New Data Source:** `vsphere_tag_category` [GH-167]
 * **New Resoruce:** `vsphere_tag_category` [GH-164]
 
+IMPROVEMENTS:
+
+* resource/vsphere_virtual_machine: Adjusted the customization timeout to 10
+  minutes [GH-168]
+
 ## 0.3.0 (September 14, 2017)
 
 BREAKING CHANGES:
