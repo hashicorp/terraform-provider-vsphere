@@ -1,4 +1,9 @@
 ## 0.3.1 (Unreleased)
+
+FEATURES:
+
+* **New Resoruce:** `vsphere_tag_category` [GH-164]
+
 ## 0.3.0 (September 14, 2017)
 
 BREAKING CHANGES:
