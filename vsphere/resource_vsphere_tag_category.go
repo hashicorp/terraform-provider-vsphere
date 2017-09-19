@@ -99,12 +99,6 @@ func resourceVSphereTagCategory() *schema.Resource {
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				Required:    true,
 			},
-			"used_by": {
-				Type:        schema.TypeList,
-				Computed:    true,
-				Description: "The set of users that can use this category.",
-				Elem:        &schema.Schema{Type: schema.TypeString},
-			},
 		},
 	}
 }
@@ -158,9 +152,6 @@ func resourceVSphereTagCategoryRead(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("could not set associable type data for category: %s", err)
 	}
 
-	if err := d.Set("used_by", category.UsedBy); err != nil {
-		return fmt.Errorf("could not set user access info for category: %s", err)
-	}
 	return nil
 }
 

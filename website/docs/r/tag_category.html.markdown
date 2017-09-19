@@ -90,10 +90,8 @@ will permanently allow all objects.
 
 ## Attribute Reference
 
-The following attributes are exported:
-
-* `id` - The uniform resource name (URN) of this tag category.
-* `used_by` - The set of users that can use this category.
+The only attribute that is exported for this resource is the `id`, which is the
+uniform resource name (URN) of this tag category.
 
 ## Importing
 
