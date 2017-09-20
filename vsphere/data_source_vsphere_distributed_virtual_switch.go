@@ -14,7 +14,7 @@ func dataSourceVSphereDistributedVirtualSwitch() *schema.Resource {
 			"name": &schema.Schema{
 				Type:        schema.TypeString,
 				Description: "The name of the distributed virtual switch. This can be a name or path.",
-				Optional:    true,
+				Required:    true,
 			},
 			"datacenter_id": &schema.Schema{
 				Type:        schema.TypeString,
