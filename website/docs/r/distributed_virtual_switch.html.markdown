@@ -18,19 +18,44 @@ Provides a VMware vSphere distributed virtual switch resource. A distributed swi
 **Create a distributed virtual switch without specifying uplink port groups (need to be defined manually later):**
 
 ```hcl
+data "vsphere_datacenter" "datacenter" {
+  name = "myDC"
+}
+
 resource "vsphere_distributed_virtual_switch" "myDistributedSwitch" {
-  datacenter = "myDC"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
   name = "myDistributedSwitch"
 }
 ```
 
-**Create a distributed virtual switch specifying uplink port groups):**
+**Create a distributed virtual switch with connected hosts and their NICs as part of the uplink port group:**
 
 ```hcl
+data "vsphere_datacenter" "datacenter" {
+  name = "myDC"
+}
+
+data "vsphere_host" "esxi_host1" {
+  name = "node1"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
+data "vsphere_host" "esxi_host2" {
+  name = "node2"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
 resource "vsphere_distributed_virtual_switch" "myDistributedSwitch" {
-  datacenter = "myDC"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
   name   = "myDistributedSwitch"
-  uplinks = { "10.0.30.25" = "vmnic1", "host100.mydomain.net" = "vmnic1"  }
+
+  host = [{
+    host_system_id = "${data.vsphere_host.esxi_host1.id}"
+    backing = ["vmnic1","vmnic2"]
+  },{
+    host_system_id = "${data.vsphere_host.esxi_host2.id}"
+    backing = ["vmnic0"]
+  }]
 }
 ```
 
@@ -39,7 +64,5 @@ resource "vsphere_distributed_virtual_switch" "myDistributedSwitch" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the distributed virtual switch.
-* `datacenter` - (Required) The name of the datacenter containing the distributed virtual switch.
-* `uplinks` - (Optional) A map of hosts and physical NICs to attach to the uplink port group.
-
-~> **NOTE**: Distributed virtual switches cannot be changed once they are created. Modifying any of these attributes will force a new resource!
+* `datacenter_id` - (Required) The ID of the datacenter where the distributed virtual switch will be created.
+* `host` - (Optional) A map of hosts and physical NICs to attach to the uplink port group.
