@@ -36,7 +36,8 @@ func isEligibleTagEndpoint(client *govmomi.Client) bool {
 	if err := validateVirtualCenter(client); err != nil {
 		return false
 	}
-	if parseVersionFromClient(client).Older(tagsMinVersion) {
+	clientVer := parseVersionFromClient(client)
+	if !clientVer.ProductEqual(tagsMinVersion) || clientVer.Older(tagsMinVersion) {
 		return false
 	}
 	return true
