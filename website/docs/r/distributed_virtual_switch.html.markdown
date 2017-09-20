@@ -64,5 +64,19 @@ resource "vsphere_distributed_virtual_switch" "myDistributedSwitch" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the distributed virtual switch.
+* `description` - (Optional) The description string of the distributed virtual switch.
+* `default_proxy_switch_max_num_ports` - (Optional) The default host proxy switch maximum port number.
+* `extension_key` - (Optional) The key of the extension registered by a remote server that controls the switch.
+* `network_resource_control_version` - (Optional) Indicates the Network Resource Control APIs that are supported on the switch.
+* `num_standalone_ports` - (Optional) The number of standalone ports in the switch. Standalone ports are ports that do not belong to any portgroup.
+* `switch_ip_address` - (Optional) IP address for the switch, specified using IPv4 dot notation. IPv6 address is not supported for this property.
 * `datacenter_id` - (Required) The ID of the datacenter where the distributed virtual switch will be created.
-* `host` - (Optional) A map of hosts and physical NICs to attach to the uplink port group.
+* `host` - (Optional) A list of hosts and physical NICs to attach to the uplink port group.
+  * max_proxy_switch_ports - (Optional) Maximum number of ports allowed in the HostProxySwitch.
+  * host_system_id - (Required) The managed object ID of the host to search for NICs on.
+  * backing - (Optional) 
+  * vendor_specific_config - (Optional) A list of key/blob vendor specific config. 
+    * key - (Optional) A key that identifies the opaque binary blob.
+    * opaque_data - (Optional) The opaque data. It is recommended that base64 encoding be used for binary data.
+* `contact` - (Optional) The contact information for the person.
+* `contact_name` - (Optional) The name of the person who is responsible for the switch.
