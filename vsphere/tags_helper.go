@@ -21,6 +21,19 @@ This version of the provider requires unique category names. To work around
 this issue, please use a category name unique within your vCenter system.
 `
 
+// vSphereTagSearchErrMultiple is an error message format for a tag search that
+// returned multiple results. This is a bug and needs to be reported so we can
+// adjust the API.
+const vSphereTagSearchErrMultiple = `
+Tag name %q returned multiple results!
+
+This is a bug - please report it at:
+https://github.com/terraform-providers/terraform-provider-vsphere/issues
+
+This version of the provider requires unique tag names. To work around
+this issue, please use a tag name unique within your vCenter system.
+`
+
 // tagsMinVersion is the minimum vSphere version required for tags.
 var tagsMinVersion = vSphereVersion{
 	product: "VMware vCenter Server",
@@ -66,4 +79,28 @@ func tagCategoryByName(client *tags.RestClient, name string) (string, error) {
 	}
 
 	return cats[0].ID, nil
+}
+
+// tagByName locates a tag by it supplied name and category ID. Use
+// tagCategoryByName to get the tag category ID if require the category ID as
+// well.
+func tagByName(client *tags.RestClient, name, categoryID string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	tags, err := client.GetTagByNameForCategory(ctx, name, categoryID)
+	if err != nil {
+		return "", fmt.Errorf("could not get tag for name %q: %s", name, err)
+	}
+
+	if len(tags) < 1 {
+		return "", fmt.Errorf("tag name %q not found in category ID %q", name, categoryID)
+	}
+	if len(tags) > 1 {
+		// This situation is very similar to the one in tagCategoryByName. The API
+		// docs even say that tags need to be unique in categories, yet
+		// GetTagByNameForCategory still returns multiple results.
+		return "", fmt.Errorf(vSphereTagSearchErrMultiple, name)
+	}
+
+	return tags[0].ID, nil
 }
