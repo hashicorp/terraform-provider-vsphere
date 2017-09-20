@@ -18,12 +18,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -32,29 +32,38 @@ import (
 
 const (
 	RestPrefix = "/rest"
+	loginURL   = "/com/vmware/cis/session"
 )
 
 type RestClient struct {
+	mu       sync.Mutex
 	host     string
 	scheme   string
 	endpoint *url.URL
+	user     *url.Userinfo
 	HTTP     *http.Client
 	cookies  []*http.Cookie
 }
 
 func NewClient(u *url.URL, insecure bool, thumbprint string) *RestClient {
+	endpoint := &url.URL{}
+	*endpoint = *u
 	Logger.Debugf("Create rest client")
-	u.Path = RestPrefix
+	endpoint.Path = RestPrefix
 
-	sc := soap.NewClient(u, insecure)
+	sc := soap.NewClient(endpoint, insecure)
 	if thumbprint != "" {
-		sc.SetThumbprint(u.Host, thumbprint)
+		sc.SetThumbprint(endpoint.Host, thumbprint)
 	}
 
+	user := endpoint.User
+	endpoint.User = nil
+
 	return &RestClient{
-		endpoint: u,
-		host:     u.Host,
-		scheme:   u.Scheme,
+		endpoint: endpoint,
+		user:     user,
+		host:     endpoint.Host,
+		scheme:   endpoint.Scheme,
 		HTTP:     &sc.Client,
 	}
 }
@@ -99,17 +108,17 @@ func (c *RestClient) clientRequest(ctx context.Context, method, path string, in 
 		in = bytes.NewReader([]byte{})
 	}
 
-	req, err := http.NewRequest(method, fmt.Sprintf("%s%s", RestPrefix, path), in)
+	req, err := c.newRequest(method, path, in)
 	if err != nil {
 		return nil, nil, -1, errors.Wrap(err, "failed to create request")
 	}
 
 	req = req.WithContext(ctx)
-	req.URL.Host = c.host
-	req.URL.Scheme = c.scheme
+	c.mu.Lock()
 	if c.cookies != nil {
 		req.AddCookie(c.cookies[0])
 	}
+	c.mu.Unlock()
 
 	if headers != nil {
 		for k, v := range headers {
@@ -155,17 +164,15 @@ func (c *RestClient) handleResponse(resp *http.Response, err error) (io.ReadClos
 }
 
 func (c *RestClient) Login(ctx context.Context) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	Logger.Debugf("Login to %s through rest API.", c.host)
 
-	targetURL := c.endpoint.String() + "/com/vmware/cis/session"
-
-	request, err := http.NewRequest("POST", targetURL, nil)
+	request, err := c.newRequest("POST", loginURL, nil)
 	if err != nil {
 		return errors.Wrap(err, "login failed")
 	}
-	request = request.WithContext(ctx)
-	password, _ := c.endpoint.User.Password()
-	request.SetBasicAuth(c.endpoint.User.Username(), password)
 	resp, err := c.HTTP.Do(request)
 	if err != nil {
 		return errors.Wrap(err, "login failed")
@@ -184,4 +191,18 @@ func (c *RestClient) Login(ctx context.Context) error {
 
 	Logger.Debugf("Login succeeded")
 	return nil
+}
+
+func (c *RestClient) newRequest(method, urlStr string, body io.Reader) (*http.Request, error) {
+	req, err := http.NewRequest(method, c.endpoint.String()+urlStr, body)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.user != nil {
+		password, _ := c.user.Password()
+		req.SetBasicAuth(c.user.Username(), password)
+	}
+
+	return req, nil
 }
