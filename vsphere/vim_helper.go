@@ -112,7 +112,9 @@ type vSphereVersion struct {
 // parseVersion creates a new vSphereVersion from a parsed version string and
 // build number.
 func parseVersion(name, version, build string) (vSphereVersion, error) {
-	v := vSphereVersion{}
+	v := vSphereVersion{
+		product: name,
+	}
 	s := strings.Split(version, ".")
 	if len(s) > 3 {
 		return v, fmt.Errorf("version string %q has more than 3 components", version)
@@ -169,13 +171,10 @@ func (v vSphereVersion) ProductEqual(other vSphereVersion) bool {
 	return v.product == other.product
 }
 
-// Newer returns true if this version's product is the same, and composite of
-// the version and build numbers, are newer than the supplied version's
-// information.
-func (v vSphereVersion) Newer(other vSphereVersion) bool {
-	if !v.ProductEqual(other) {
-		return false
-	}
+// newerVersion checks the major/minor/patch part of the version to see it's
+// higher than the version supplied in other. This is broken off from the main
+// test so that it can be checked in Older before the build number is compared.
+func (v vSphereVersion) newerVersion(other vSphereVersion) bool {
 	if v.major > other.major {
 		return true
 	}
@@ -185,7 +184,43 @@ func (v vSphereVersion) Newer(other vSphereVersion) bool {
 	if v.patch > other.patch {
 		return true
 	}
+	return false
+}
+
+// Newer returns true if this version's product is the same, and composite of
+// the version and build numbers, are newer than the supplied version's
+// information.
+func (v vSphereVersion) Newer(other vSphereVersion) bool {
+	if !v.ProductEqual(other) {
+		return false
+	}
+	if v.newerVersion(other) {
+		return true
+	}
+
+	// Double check this version is not actually older by version number before
+	// moving on to the build number
+	if v.olderVersion(other) {
+		return false
+	}
+
 	if v.build > other.build {
+		return true
+	}
+	return false
+}
+
+// olderVersion checks the major/minor/patch part of the version to see it's
+// older than the version supplied in other. This is broken off from the main
+// test so that it can be checked in Newer before the build number is compared.
+func (v vSphereVersion) olderVersion(other vSphereVersion) bool {
+	if v.major < other.major {
+		return true
+	}
+	if v.minor < other.minor {
+		return true
+	}
+	if v.patch < other.patch {
 		return true
 	}
 	return false
@@ -198,15 +233,16 @@ func (v vSphereVersion) Older(other vSphereVersion) bool {
 	if !v.ProductEqual(other) {
 		return false
 	}
-	if v.major < other.major {
+	if v.olderVersion(other) {
 		return true
 	}
-	if v.minor < other.minor {
-		return true
+
+	// Double check this version is not actually newer by version number before
+	// moving on to the build number
+	if v.newerVersion(other) {
+		return false
 	}
-	if v.patch < other.patch {
-		return true
-	}
+
 	if v.build < other.build {
 		return true
 	}
