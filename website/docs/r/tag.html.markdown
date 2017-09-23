@@ -49,6 +49,52 @@ resource "vsphere_tag" "tag" {
 }
 ```
 
+## Using Tags in a Supported Resource
+
+Tags can be applied to vSphere resources in Terraform via the `tags` argument
+in any supported resource.
+
+The following example builds on the above example by creating a
+[`vsphere_virtual_machine`][docs-virtual-machine-resource] and applying the
+created tag to it:
+
+[docs-virtual-machine-resource]: /docs/providers/vsphere/r/virtual_machine.html
+
+```hcl
+resource "vsphere_tag_category" "category" {
+  name        = "terraform-test-category"
+  description = "Managed by Terraform"
+  cardinality = "SINGLE"
+
+  associable_types = [
+    "VirtualMachine",
+    "Datastore",
+  ]
+}
+
+resource "vsphere_tag" "tag" {
+  name        = "terraform-test-tag"
+  description = "Managed by Terraform"
+  category_id = "${vsphere_tag_category.category.id}"
+}
+
+resource "vsphere_virtual_machine" "web" {
+  name   = "terraform-web"
+  vcpu   = 2
+  memory = 4096
+
+  network_interface {
+    label = "VM Network"
+  }
+
+  disk {
+    template = "centos-7"
+  }
+
+  tags = ["${vsphere_tag.tag.id}"]
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:

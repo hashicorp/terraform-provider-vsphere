@@ -71,7 +71,7 @@ func TestAccDataSourceVSphereTagCategory(t *testing.T) {
 const testAccDataSourceVSphereTagCategoryConfigName = "terraform-test-category"
 const testAccDataSourceVSphereTagCategoryConfigDescription = "Managed by Terraform"
 const testAccDataSourceVSphereTagCategoryConfigCardinality = vSphereTagCategoryCardinalitySingle
-const testAccDataSourceVSphereTagCategoryConfigAssociableType = vSphereTagCategoryAssociableTypeVirtualMachine
+const testAccDataSourceVSphereTagCategoryConfigAssociableType = vSphereTagTypeVirtualMachine
 
 func testAccDataSourceVSphereTagCategoryConfig() string {
 	return fmt.Sprintf(`

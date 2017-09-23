@@ -35,6 +35,18 @@ type VSphereClient struct {
 //
 // This function should be used whenever possible to return the client from the
 // provider meta variable for use, to determine if it can be used at all.
+//
+// The nil value that is returned on an unsupported connection can be
+// considered stable behavior for read purposes on resources that need to be
+// able to read tags if they are present. You can use the snippet below in a
+// Read call to determine if tags are supported on this connection, and if they
+// are, read them from the object and save them in the resource:
+//
+//   if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
+//     if err := readTagsForResoruce(tagsClient, obj, d); err != nil {
+//       return err
+//     }
+//   }
 func (c *VSphereClient) TagsClient() (*tags.RestClient, error) {
 	if err := validateVirtualCenter(c.vimClient); err != nil {
 		return nil, err

@@ -359,6 +359,73 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 				},
 			},
 		},
+		{
+			"single tag",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigWithTag(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckTags("terraform-test-tag"),
+						),
+					},
+				},
+			},
+		},
+		{
+			"multiple tags",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigWithMultiTags(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckTags("terraform-test-tags-alt"),
+						),
+					},
+				},
+			},
+		},
+		{
+			"switch tags",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigWithTag(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckTags("terraform-test-tag"),
+						),
+					},
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigWithMultiTags(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckTags("terraform-test-tags-alt"),
+						),
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testAccResourceVSphereVirtualMachineCases {
@@ -686,6 +753,23 @@ func testAccResourceVSphereVirtualMachineCheckCustomizationSucceeded() resource.
 			return errors.New("customization success event was not received")
 		}
 		return nil
+	}
+}
+
+// testAccResourceVSphereVirtualMachineCheckTags is a check to ensure that any
+// tags that have been created with supplied resource name have been attached
+// to the virtual machine.
+func testAccResourceVSphereVirtualMachineCheckTags(tagResName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		vm, err := testGetVirtualMachine(s, "vm")
+		if err != nil {
+			return err
+		}
+		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsClient()
+		if err != nil {
+			return err
+		}
+		return testObjectHasTags(s, tagsClient, vm, tagResName)
 	}
 }
 
@@ -1712,6 +1796,213 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_CLUSTER"),
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_TEMPLATE"),
+		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigWithTag() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "cluster" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "ipv4_address" {
+  default = "%s"
+}
+
+variable "ipv4_prefix" {
+  default = "%s"
+}
+
+variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "template" {
+  default = "%s"
+}
+
+variable "linked_clone" {
+  default = "%s"
+}
+
+resource "vsphere_tag_category" "terraform-test-category" {
+  name        = "terraform-test-tag-category"
+  cardinality = "MULTIPLE"
+
+  associable_types = [
+    "VirtualMachine",
+  ]
+}
+
+resource "vsphere_tag" "terraform-test-tag" {
+  name        = "terraform-test-tag"
+  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name          = "terraform-test"
+  datacenter    = "${var.datacenter}"
+  cluster       = "${var.cluster}"
+  resource_pool = "${var.resource_pool}"
+
+  vcpu   = 2
+  memory = 1024
+
+  network_interface {
+    label              = "${var.network_label}"
+    ipv4_address       = "${var.ipv4_address}"
+    ipv4_prefix_length = "${var.ipv4_prefix}"
+    ipv4_gateway       = "${var.ipv4_gateway}"
+  }
+
+  disk {
+    datastore = "${var.datastore}"
+    template  = "${var.template}"
+    iops      = 500
+  }
+
+  linked_clone = "${var.linked_clone != "" ? "true" : "false" }"
+
+  tags = [
+    "${vsphere_tag.terraform-test-tag.id}",
+  ]
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_CLUSTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL"),
+		os.Getenv("VSPHERE_IPV4_ADDRESS"),
+		os.Getenv("VSPHERE_IPV4_PREFIX"),
+		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_TEMPLATE"),
+		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigWithMultiTags() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "cluster" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "ipv4_address" {
+  default = "%s"
+}
+
+variable "ipv4_prefix" {
+  default = "%s"
+}
+
+variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "template" {
+  default = "%s"
+}
+
+variable "linked_clone" {
+  default = "%s"
+}
+
+variable "extra_tags" {
+  default = [
+    "terraform-test-thing1",
+    "terraform-test-thing2",
+  ]
+}
+
+resource "vsphere_tag_category" "terraform-test-category" {
+  name        = "terraform-test-tag-category"
+  cardinality = "MULTIPLE"
+
+  associable_types = [
+    "VirtualMachine",
+  ]
+}
+
+resource "vsphere_tag" "terraform-test-tag" {
+  name        = "terraform-test-tag"
+  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+}
+
+resource "vsphere_tag" "terraform-test-tags-alt" {
+  count       = "${length(var.extra_tags)}"
+  name        = "${var.extra_tags[count.index]}"
+  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name          = "terraform-test"
+  datacenter    = "${var.datacenter}"
+  cluster       = "${var.cluster}"
+  resource_pool = "${var.resource_pool}"
+
+  vcpu   = 2
+  memory = 1024
+
+  network_interface {
+    label              = "${var.network_label}"
+    ipv4_address       = "${var.ipv4_address}"
+    ipv4_prefix_length = "${var.ipv4_prefix}"
+    ipv4_gateway       = "${var.ipv4_gateway}"
+  }
+
+  disk {
+    datastore = "${var.datastore}"
+    template  = "${var.template}"
+    iops      = 500
+  }
+
+  linked_clone = "${var.linked_clone != "" ? "true" : "false" }"
+
+  tags = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_CLUSTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL"),
+		os.Getenv("VSPHERE_IPV4_ADDRESS"),
+		os.Getenv("VSPHERE_IPV4_PREFIX"),
+		os.Getenv("VSPHERE_IPV4_GATEWAY"),
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
