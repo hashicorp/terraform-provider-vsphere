@@ -11,7 +11,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-const resourceName = "vsphere_datacenter.testDC"
+const testAccCheckVSphereDatacenterResourceName = "vsphere_datacenter.testDC"
 
 const testAccCheckVSphereDatacenterConfig = `
 resource "vsphere_datacenter" "testDC" {
@@ -26,6 +26,61 @@ resource "vsphere_datacenter" "testDC" {
 }
 `
 
+const testAccCheckVSphereDatacenterConfigTags = `
+resource "vsphere_tag_category" "terraform-test-category" {
+  name        = "terraform-test-tag-category"
+  cardinality = "MULTIPLE"
+
+  associable_types = [
+    "Datacenter",
+  ]
+}
+
+resource "vsphere_tag" "terraform-test-tag" {
+  name        = "terraform-test-tag"
+  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+}
+
+resource "vsphere_datacenter" "testDC" {
+  name = "testDC"
+  tags = ["${vsphere_tag.terraform-test-tag.id}"]
+}
+`
+
+const testAccCheckVSphereDatacenterConfigMultiTags = `
+variable "extra_tags" {
+  default = [
+    "terraform-test-thing1",
+    "terraform-test-thing2",
+  ]
+}
+
+resource "vsphere_tag_category" "terraform-test-category" {
+  name        = "terraform-test-tag-category"
+  cardinality = "MULTIPLE"
+
+  associable_types = [
+    "Datacenter",
+  ]
+}
+
+resource "vsphere_tag" "terraform-test-tag" {
+  name        = "terraform-test-tag"
+  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+}
+
+resource "vsphere_tag" "terraform-test-tags-alt" {
+  count       = "${length(var.extra_tags)}"
+  name        = "${var.extra_tags[count.index]}"
+  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+}
+
+resource "vsphere_datacenter" "testDC" {
+  name = "testDC"
+  tags = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
+}
+`
+
 // Create a datacenter on the root folder
 func TestAccVSphereDatacenter_createOnRootFolder(t *testing.T) {
 
@@ -36,7 +91,7 @@ func TestAccVSphereDatacenter_createOnRootFolder(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckVSphereDatacenterConfig,
-				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDatacenterExists(resourceName, true)),
+				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDatacenterExists(testAccCheckVSphereDatacenterResourceName, true)),
 			},
 		},
 	})
@@ -53,12 +108,86 @@ func TestAccVSphereDatacenter_createOnSubfolder(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(testAccCheckVSphereDatacenterConfigSubfolder, dcFolder),
-				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDatacenterExists(resourceName, true)),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereDatacenterExists(
+						testAccCheckVSphereDatacenterResourceName,
+						true,
+					),
+				),
 			},
 		},
 	})
 }
 
+func TestAccVSphereDatacenterTags(t *testing.T) {
+	var tp *testing.T
+	testAccResourceVSphereNasDatastoreCases := []struct {
+		name     string
+		testCase resource.TestCase
+	}{
+		{
+			"single tag",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccCheckVSphereDatacenterDestroy,
+				Steps: []resource.TestStep{
+					{
+						Config: testAccCheckVSphereDatacenterConfigTags,
+						Check: resource.ComposeTestCheckFunc(
+							testAccCheckVSphereDatacenterExists(
+								testAccCheckVSphereDatacenterResourceName,
+								true,
+							),
+							testAccResourceVSphereDatacenterCheckTags("terraform-test-tag"),
+						),
+					},
+				},
+			},
+		},
+		{
+			"modify tags",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccCheckVSphereDatacenterDestroy,
+				Steps: []resource.TestStep{
+					{
+						Config: testAccCheckVSphereDatacenterConfigTags,
+						Check: resource.ComposeTestCheckFunc(
+							testAccCheckVSphereDatacenterExists(
+								testAccCheckVSphereDatacenterResourceName,
+								true,
+							),
+							testAccResourceVSphereDatacenterCheckTags("terraform-test-tag"),
+						),
+					},
+					{
+						Config: testAccCheckVSphereDatacenterConfigMultiTags,
+						Check: resource.ComposeTestCheckFunc(
+							testAccCheckVSphereDatacenterExists(
+								testAccCheckVSphereDatacenterResourceName,
+								true,
+							),
+							testAccResourceVSphereDatacenterCheckTags("terraform-test-tags-alt"),
+						),
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testAccResourceVSphereNasDatastoreCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tp = t
+			resource.Test(t, tc.testCase)
+		})
+	}
+}
 func testAccCheckVSphereDatacenterDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*VSphereClient).vimClient
 	finder := find.NewFinder(client.Client, true)
@@ -121,5 +250,37 @@ func testAccCheckVSphereDatacenterExists(n string, exists bool) resource.TestChe
 			}
 		}
 		return nil
+	}
+}
+
+// testAccResourceVSphereDatacenterCheckTags is a check to ensure that any tags
+// that have been created with supplied resource name have been attached to the
+// datacenter.
+func testAccResourceVSphereDatacenterCheckTags(tagResName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		vars, err := testClientVariablesForResource(s, "vsphere_datacenter.testDC")
+		if err != nil {
+			return err
+		}
+		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsClient()
+		if err != nil {
+			return err
+		}
+
+		finder := find.NewFinder(vars.client.Client, true)
+
+		path := vars.resourceAttributes["name"]
+		if _, ok := vars.resourceAttributes["folder"]; ok {
+			path = vars.resourceAttributes["folder"] + "/" + path
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+		defer cancel()
+		dc, err := finder.Datacenter(ctx, path)
+		if err != nil {
+			return err
+		}
+
+		return testObjectHasTags(s, tagsClient, dc, tagResName)
 	}
 }

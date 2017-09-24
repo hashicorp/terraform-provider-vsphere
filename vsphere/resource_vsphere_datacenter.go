@@ -18,6 +18,7 @@ func resourceVSphereDatacenter() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVSphereDatacenterCreate,
 		Read:   resourceVSphereDatacenterRead,
+		Update: resourceVSphereDatacenterUpdate,
 		Delete: resourceVSphereDatacenterDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -31,12 +32,23 @@ func resourceVSphereDatacenter() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+
+			// Add tags schema
+			vSphereTagAttributeKey: tagsSchema(),
 		},
 	}
 }
 
 func resourceVSphereDatacenterCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
+
+	// Load up the tags client, which will validate a proper vCenter before
+	// attempting to proceed if we have tags defined.
+	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+
 	name := d.Get("name").(string)
 
 	var f *object.Folder
@@ -73,6 +85,13 @@ func resourceVSphereDatacenterCreate(d *schema.ResourceData, meta interface{}) e
 	_, err = stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf("error waiting for datacenter (%s) to become ready: %s", name, err)
+	}
+
+	// Apply any pending tags now
+	if tagsClient != nil {
+		if err := processTagDiff(tagsClient, d, dc); err != nil {
+			return err
+		}
 	}
 
 	d.SetId(name)
@@ -114,10 +133,41 @@ func datacenterExists(d *schema.ResourceData, meta interface{}) (*object.Datacen
 }
 
 func resourceVSphereDatacenterRead(d *schema.ResourceData, meta interface{}) error {
-	_, err := datacenterExists(d, meta)
+	dc, err := datacenterExists(d, meta)
 	if err != nil {
 		log.Printf("couldn't find the specified datacenter: %s", err)
 		d.SetId("")
+		return nil
+	}
+
+	// Read tags if we have the ability to do so
+	if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
+		if err := readTagsForResoruce(tagsClient, dc, d); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func resourceVSphereDatacenterUpdate(d *schema.ResourceData, meta interface{}) error {
+	// Load up the tags client, which will validate a proper vCenter before
+	// attempting to proceed if we have tags defined.
+	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+
+	dc, err := datacenterExists(d, meta)
+	if err != nil {
+		return fmt.Errorf("couldn't find the specified datacenter: %s", err)
+	}
+
+	// Apply any pending tags now
+	if tagsClient != nil {
+		if err := processTagDiff(tagsClient, d, dc); err != nil {
+			return err
+		}
 	}
 
 	return nil
