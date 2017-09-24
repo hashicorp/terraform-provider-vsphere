@@ -132,6 +132,15 @@ The following arguments are supported:
   datastore folder located at `/dc1/datastore/foo/bar`, with the final
   inventory path being `/dc1/datastore/foo/bar/terraform-test`.
 * `disks` - (List of strings, required) The disks to use with the datastore.
+* `tags` - (List of strings, optional) The IDs of any tags to attach to this
+  resource. See [here][docs-applying-tags] for a reference on how to apply
+  tags.
+
+[docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
+
+~> **NOTE:** Tagging support is unsupported on direct ESXi connections and
+requires vCenter 6.0 or higher.
+
 
 ## Attribute Reference
 

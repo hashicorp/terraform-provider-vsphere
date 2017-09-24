@@ -242,3 +242,35 @@ func testObjectHasTags(s *terraform.State, client *tags.RestClient, obj object.R
 
 	return nil
 }
+
+// testGetDatastore gets the datastore at the supplied full address. This
+// function works for multiple datastore resources (example:
+// vsphere_nas_datastore and vsphere_vmfs_datastore), hence the need for the
+// full resource address including the resource type.
+func testGetDatastore(s *terraform.State, resAddr string) (*object.Datastore, error) {
+	vars, err := testClientVariablesForResource(s, resAddr)
+	if err != nil {
+		return nil, err
+	}
+	return datastoreFromID(vars.client, vars.resourceID)
+}
+
+// testAccResourceVSphereDatastoreCheckTags is a check to ensure that the
+// supplied datastore has had the tags that have been created with the supplied
+// tag resource name attached.
+//
+// The full datastore resource address is needed as this functions across
+// multiple datastore resource types.
+func testAccResourceVSphereDatastoreCheckTags(dsResAddr, tagResName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		ds, err := testGetDatastore(s, dsResAddr)
+		if err != nil {
+			return err
+		}
+		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsClient()
+		if err != nil {
+			return err
+		}
+		return testObjectHasTags(s, tagsClient, ds, tagResName)
+	}
+}

@@ -36,6 +36,9 @@ func resourceVSphereNasDatastore() *schema.Resource {
 	mergeSchema(s, schemaHostNasVolumeSpec())
 	mergeSchema(s, schemaDatastoreSummary())
 
+	// Add tags schema
+	s[vSphereTagAttributeKey] = tagsSchema()
+
 	return &schema.Resource{
 		Create: resourceVSphereNasDatastoreCreate,
 		Read:   resourceVSphereNasDatastoreRead,
@@ -50,6 +53,14 @@ func resourceVSphereNasDatastore() *schema.Resource {
 
 func resourceVSphereNasDatastoreCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
+
+	// Load up the tags client, which will validate a proper vCenter before
+	// attempting to proceed if we have tags defined.
+	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+
 	hosts := sliceInterfacesToStrings(d.Get("host_system_ids").(*schema.Set).List())
 	p := &nasDatastoreMountProcessor{
 		client:   client,
@@ -70,6 +81,13 @@ func resourceVSphereNasDatastoreCreate(d *schema.ResourceData, meta interface{})
 	if !pathIsEmpty(folder) {
 		if err := moveDatastoreToFolderRelativeHostSystemID(client, ds, hosts[0], folder); err != nil {
 			return fmt.Errorf("error moving datastore to folder: %s", err)
+		}
+	}
+
+	// Apply any pending tags now
+	if tagsClient != nil {
+		if err := processTagDiff(tagsClient, d, ds); err != nil {
+			return err
 		}
 	}
 
@@ -113,11 +131,26 @@ func resourceVSphereNasDatastoreRead(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
+	// Read tags if we have the ability to do so
+	if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
+		if err := readTagsForResoruce(tagsClient, ds, d); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 func resourceVSphereNasDatastoreUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
+
+	// Load up the tags client, which will validate a proper vCenter before
+	// attempting to proceed if we have tags defined.
+	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+
 	id := d.Id()
 	ds, err := datastoreFromID(client, id)
 	if err != nil {
@@ -136,6 +169,13 @@ func resourceVSphereNasDatastoreUpdate(d *schema.ResourceData, meta interface{})
 		folder := d.Get("folder").(string)
 		if err := moveDatastoreToFolder(client, ds, folder); err != nil {
 			return fmt.Errorf("could not move datastore to folder %q: %s", folder, err)
+		}
+	}
+
+	// Apply any pending tags now
+	if tagsClient != nil {
+		if err := processTagDiff(tagsClient, d, ds); err != nil {
+			return err
 		}
 	}
 

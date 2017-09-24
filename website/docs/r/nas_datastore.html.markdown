@@ -80,6 +80,14 @@ The following arguments are supported:
 * `security_type` - (String, optional, forces new resource) The security type
   to use when using NFS v4.1. Can be one of `AUTH_SYS`, `SEC_KRB5`, or
   `SEC_KRB5I`.
+* `tags` - (List of strings, optional) The IDs of any tags to attach to this
+  resource. See [here][docs-applying-tags] for a reference on how to apply
+  tags.
+
+[docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
+
+~> **NOTE:** Tagging support is unsupported on direct ESXi connections and
+requires vCenter 6.0 or higher.
 
 ## Attribute Reference
 

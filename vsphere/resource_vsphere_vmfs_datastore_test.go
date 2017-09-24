@@ -177,32 +177,86 @@ func TestAccResourceVSphereVmfsDatastore(t *testing.T) {
 				},
 			},
 		},
-		// TODO: Re-enable this after ImportStateIdFunc is merged and we can vendor it cleanly.
-		// {
-		// 	"import",
-		// 	resource.TestCase{
-		// 		PreCheck: func() {
-		// 			testAccPreCheck(tp)
-		// 			testAccResourceVSphereVmfsDatastorePreCheck(tp)
-		// 		},
-		// 		Providers:    testAccProviders,
-		// 		CheckDestroy: testAccResourceVSphereVmfsDatastoreExists(false),
-		// 		Steps: []resource.TestStep{
-		// 			{
-		// 				Config: testAccResourceVSphereVmfsDatastoreConfigStaticSingle(),
-		// 				Check: resource.ComposeTestCheckFunc(
-		// 					testAccResourceVSphereVmfsDatastoreExists(true),
-		// 				),
-		// 			},
-		// 			{
-		// 				Config:                  testAccResourceVSphereVmfsDatastoreConfigStaticSingle(),
-		// 				ImportState:             true,
-		// 				ResourceName:            "vsphere_vmfs_datastore.datastore",
-		// 				ImportStateVerify:       true,
-		// 			},
-		// 		},
-		// 	},
-		// },
+		{
+			"single tag",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVmfsDatastorePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVmfsDatastoreExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVmfsDatastoreConfigTags(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVmfsDatastoreExists(true),
+							testAccResourceVSphereDatastoreCheckTags("vsphere_vmfs_datastore.datastore", "terraform-test-tag"),
+						),
+					},
+				},
+			},
+		},
+		{
+			"modify tags",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVmfsDatastorePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVmfsDatastoreExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVmfsDatastoreConfigTags(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVmfsDatastoreExists(true),
+							testAccResourceVSphereDatastoreCheckTags("vsphere_vmfs_datastore.datastore", "terraform-test-tag"),
+						),
+					},
+					{
+						Config: testAccResourceVSphereVmfsDatastoreConfigMultiTags(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVmfsDatastoreExists(true),
+							testAccResourceVSphereDatastoreCheckTags("vsphere_vmfs_datastore.datastore", "terraform-test-tags-alt"),
+						),
+					},
+				},
+			},
+		},
+		{
+			"import",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVmfsDatastorePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVmfsDatastoreExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVmfsDatastoreConfigStaticSingle(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVmfsDatastoreExists(true),
+						),
+					},
+					{
+						Config:      testAccResourceVSphereVmfsDatastoreConfigStaticSingle(),
+						ImportState: true,
+						ImportStateIdFunc: func(s *terraform.State) (string, error) {
+							vars, err := testClientVariablesForResource(s, "vsphere_vmfs_datastore.datastore")
+							if err != nil {
+								return "", err
+							}
+
+							return fmt.Sprintf("%s:%s", vars.resourceID, vars.resourceAttributes["host_system_id"]), nil
+						},
+						ResourceName:      "vsphere_vmfs_datastore.datastore",
+						ImportStateVerify: true,
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testAccResourceVSphereVmfsDatastoreCases {
@@ -236,12 +290,7 @@ func testAccResourceVSphereVmfsDatastorePreCheck(t *testing.T) {
 
 func testAccResourceVSphereVmfsDatastoreExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		vars, err := testClientVariablesForResource(s, "vsphere_vmfs_datastore.datastore")
-		if err != nil {
-			return err
-		}
-
-		_, err = datastoreFromID(vars.client, vars.resourceID)
+		ds, err := testGetDatastore(s, "vsphere_vmfs_datastore.datastore")
 		if err != nil {
 			if isManagedObjectNotFoundError(err) && expected == false {
 				// Expected missing
@@ -250,7 +299,7 @@ func testAccResourceVSphereVmfsDatastoreExists(expected bool) resource.TestCheck
 			return err
 		}
 		if !expected {
-			return fmt.Errorf("expected datastore %s to be missing", vars.resourceID)
+			return fmt.Errorf("expected datastore %q to be missing", ds.Reference().Value)
 		}
 		return nil
 	}
@@ -258,12 +307,7 @@ func testAccResourceVSphereVmfsDatastoreExists(expected bool) resource.TestCheck
 
 func testAccResourceVSphereVmfsDatastoreHasName(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		vars, err := testClientVariablesForResource(s, "vsphere_vmfs_datastore.datastore")
-		if err != nil {
-			return err
-		}
-
-		ds, err := datastoreFromID(vars.client, vars.resourceID)
+		ds, err := testGetDatastore(s, "vsphere_vmfs_datastore.datastore")
 		if err != nil {
 			return err
 		}
@@ -283,12 +327,7 @@ func testAccResourceVSphereVmfsDatastoreHasName(expected string) resource.TestCh
 
 func testAccResourceVSphereVmfsDatastoreMatchInventoryPath(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		vars, err := testClientVariablesForResource(s, "vsphere_vmfs_datastore.datastore")
-		if err != nil {
-			return err
-		}
-
-		ds, err := datastoreFromID(vars.client, vars.resourceID)
+		ds, err := testGetDatastore(s, "vsphere_vmfs_datastore.datastore")
 		if err != nil {
 			return err
 		}
@@ -460,4 +499,103 @@ resource "vsphere_vmfs_datastore" "datastore" {
   ]
 }
 `, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DS_FOLDER"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+}
+
+func testAccResourceVSphereVmfsDatastoreConfigTags() string {
+	return fmt.Sprintf(`
+variable "disk0" {
+  type    = "string"
+  default = "%s"
+}
+
+data "vsphere_datacenter" "datacenter" {
+  name = "%s"
+}
+
+data "vsphere_host" "esxi_host" {
+  name          = "%s"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
+resource "vsphere_tag_category" "terraform-test-category" {
+  name        = "terraform-test-tag-category"
+  cardinality = "MULTIPLE"
+
+  associable_types = [
+    "Datastore",
+  ]
+}
+
+resource "vsphere_tag" "terraform-test-tag" {
+  name        = "terraform-test-tag"
+  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+}
+
+resource "vsphere_vmfs_datastore" "datastore" {
+  name           = "terraform-test"
+  host_system_id = "${data.vsphere_host.esxi_host.id}"
+
+  disks = [
+    "${var.disk0}",
+  ]
+
+  tags = ["${vsphere_tag.terraform-test-tag.id}"]
+}
+`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+}
+
+func testAccResourceVSphereVmfsDatastoreConfigMultiTags() string {
+	return fmt.Sprintf(`
+variable "disk0" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "extra_tags" {
+  default = [
+    "terraform-test-thing1",
+    "terraform-test-thing2",
+  ]
+}
+
+data "vsphere_datacenter" "datacenter" {
+  name = "%s"
+}
+
+data "vsphere_host" "esxi_host" {
+  name          = "%s"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
+resource "vsphere_tag_category" "terraform-test-category" {
+  name        = "terraform-test-tag-category"
+  cardinality = "MULTIPLE"
+
+  associable_types = [
+    "Datastore",
+  ]
+}
+
+resource "vsphere_tag" "terraform-test-tag" {
+  name        = "terraform-test-tag"
+  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+}
+
+resource "vsphere_tag" "terraform-test-tags-alt" {
+  count       = "${length(var.extra_tags)}"
+  name        = "${var.extra_tags[count.index]}"
+  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+}
+
+resource "vsphere_vmfs_datastore" "datastore" {
+  name           = "terraform-test"
+  host_system_id = "${data.vsphere_host.esxi_host.id}"
+
+  disks = [
+    "${var.disk0}",
+  ]
+
+  tags = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
+}
+`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
 }
