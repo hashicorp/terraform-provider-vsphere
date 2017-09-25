@@ -9,6 +9,10 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* resource/vsphere_nas_datastore: Tags can now be applied to NAS datastores.
+  [GH-176]
+* resource/vsphere_vmfs_datastore: Tags can now be applied to VMFS datastores.
+  [GH-176]
 * resource/vsphere_virtual_machine: Tags can now be applied to virtual machines.
   [GH-175]
 * resource/vsphere_virtual_machine: Adjusted the customization timeout to 10
