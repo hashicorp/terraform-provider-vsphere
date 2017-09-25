@@ -63,8 +63,8 @@ created tag to it:
 ```hcl
 resource "vsphere_tag_category" "category" {
   name        = "terraform-test-category"
-  description = "Managed by Terraform"
   cardinality = "SINGLE"
+  description = "Managed by Terraform"
 
   associable_types = [
     "VirtualMachine",
@@ -74,8 +74,8 @@ resource "vsphere_tag_category" "category" {
 
 resource "vsphere_tag" "tag" {
   name        = "terraform-test-tag"
-  description = "Managed by Terraform"
   category_id = "${vsphere_tag_category.category.id}"
+  description = "Managed by Terraform"
 }
 
 resource "vsphere_virtual_machine" "web" {
