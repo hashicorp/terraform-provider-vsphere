@@ -43,7 +43,7 @@ type VSphereClient struct {
 // are, read them from the object and save them in the resource:
 //
 //   if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
-//     if err := readTagsForResoruce(tagsClient, obj, d); err != nil {
+//     if err := readTagsForResource(tagsClient, obj, d); err != nil {
 //       return err
 //     }
 //   }

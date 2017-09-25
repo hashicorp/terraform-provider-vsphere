@@ -133,7 +133,7 @@ func resourceVSphereNasDatastoreRead(d *schema.ResourceData, meta interface{}) e
 
 	// Read tags if we have the ability to do so
 	if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
-		if err := readTagsForResoruce(tagsClient, ds, d); err != nil {
+		if err := readTagsForResource(tagsClient, ds, d); err != nil {
 			return err
 		}
 	}

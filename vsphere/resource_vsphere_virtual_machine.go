@@ -1262,7 +1262,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 
 	// Read tags if we have the ability to do so
 	if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
-		if err := readTagsForResoruce(tagsClient, vm, d); err != nil {
+		if err := readTagsForResource(tagsClient, vm, d); err != nil {
 			return err
 		}
 	}
