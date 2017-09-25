@@ -512,6 +512,9 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 					},
 				},
 			},
+
+			// Tagging
+			vSphereTagAttributeKey: tagsSchema(),
 		},
 	}
 }
@@ -543,6 +546,14 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	client := meta.(*VSphereClient).vimClient
+
+	// Load up the tags client, which will validate a proper vCenter before
+	// attempting to proceed if we have tags defined.
+	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
 		return err
@@ -553,6 +564,13 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	vm, err := finder.VirtualMachine(context.TODO(), vmPath(d.Get("folder").(string), d.Get("name").(string)))
 	if err != nil {
 		return err
+	}
+
+	// Apply any pending tags now, before proceeding with any expensive VM updates
+	if tagsClient != nil {
+		if err := processTagDiff(tagsClient, d, vm); err != nil {
+			return err
+		}
 	}
 
 	if d.HasChange("disk") {
@@ -718,6 +736,12 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 
 func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
+	// Load up the tags client, which will validate a proper vCenter before
+	// attempting to proceed if we have tags defined.
+	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
 
 	vm := virtualMachine{
 		name:     d.Get("name").(string),
@@ -969,8 +993,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		log.Printf("[DEBUG] cdrom init: %v", cdroms)
 	}
 
-	err := vm.setupVirtualMachine(client)
-	if err != nil {
+	if err := vm.setupVirtualMachine(client); err != nil {
 		return err
 	}
 
@@ -984,6 +1007,13 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 	newProps, err := virtualMachineProperties(newVM)
 	if err != nil {
 		return err
+	}
+
+	// Apply any pending tags now
+	if tagsClient != nil {
+		if err := processTagDiff(tagsClient, d, newVM); err != nil {
+			return err
+		}
 	}
 
 	if newProps.Runtime.PowerState == types.VirtualMachinePowerStatePoweredOn && d.Get("wait_for_guest_net").(bool) {
@@ -1229,6 +1259,13 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	d.Set("uuid", mvm.Summary.Config.Uuid)
 	d.Set("annotation", mvm.Summary.Config.Annotation)
 	d.Set("power_state", mvm.Runtime.PowerState)
+
+	// Read tags if we have the ability to do so
+	if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
+		if err := readTagsForResoruce(tagsClient, vm, d); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

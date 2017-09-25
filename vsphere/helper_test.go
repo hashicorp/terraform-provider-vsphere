@@ -87,6 +87,16 @@ func expectErrorIfNotVirtualCenter() *regexp.Regexp {
 	return nil
 }
 
+// copyStatePtr returns a TestCheckFunc that copies the reference to the test
+// run's state to t. This allows access to the state data in later steps where
+// it's not normally accessible (ie: in pre-config parts in another test step).
+func copyStatePtr(t **terraform.State) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		*t = s
+		return nil
+	}
+}
+
 // testGetPortGroup is a convenience method to fetch a static port group
 // resource for testing.
 func testGetPortGroup(s *terraform.State, resourceName string) (*types.HostPortGroup, error) {
@@ -185,12 +195,50 @@ func testGetTag(s *terraform.State, resourceName string) (*tags.Tag, error) {
 	return tag, nil
 }
 
-// copyStatePtr returns a TestCheckFunc that copies the reference to the test
-// run's state to t. This allows access to the state data in later steps where
-// it's not normally accessible (ie: in pre-config parts in another test step).
-func copyStatePtr(t **terraform.State) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		*t = s
-		return nil
+// testObjectHasTags checks an object to see if it has the tags that currently
+// exist in the Terrafrom state under the resource with the supplied name.
+func testObjectHasTags(s *terraform.State, client *tags.RestClient, obj object.Reference, tagResName string) error {
+	var expectedIDs []string
+	if tagRS, ok := s.RootModule().Resources[fmt.Sprintf("vsphere_tag.%s", tagResName)]; ok {
+		expectedIDs = append(expectedIDs, tagRS.Primary.ID)
+	} else {
+		var n int
+		for {
+			multiTagRS, ok := s.RootModule().Resources[fmt.Sprintf("vsphere_tag.%s.%d", tagResName, n)]
+			if !ok {
+				break
+			}
+			expectedIDs = append(expectedIDs, multiTagRS.Primary.ID)
+			n++
+		}
 	}
+	if len(expectedIDs) < 1 {
+		return fmt.Errorf("could not find state for vsphere_tag.%s or vsphere_tag.%s.*", tagResName, tagResName)
+	}
+
+	objID := obj.Reference().Value
+	objType, err := tagTypeForObject(obj)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	actualIDs, err := client.ListAttachedTags(ctx, objID, objType)
+	if err != nil {
+		return err
+	}
+
+	for _, expectedID := range expectedIDs {
+		var found bool
+		for _, actualID := range actualIDs {
+			if expectedID == actualID {
+				found = true
+			}
+		}
+		if !found {
+			return fmt.Errorf("could not find expected tag ID %q attached to object %q", expectedID, obj.Reference().Value)
+		}
+	}
+
+	return nil
 }

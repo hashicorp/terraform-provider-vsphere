@@ -116,6 +116,13 @@ The following arguments are supported:
   `network_interface`s has a gateway assigned, or if all interfaces have been
   left unconfigured. Default: `true`.
 * `annotation` - (Optional) Edit the annotation notes field
+* `tags` - (Optional) The IDs of any tags to attach to this resource. See
+  [here][docs-applying-tags] for a reference on how to apply tags.
+
+[docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
+
+~> **NOTE:** Tagging support is unsupported on direct ESXi connections and
+requires vCenter 6.0 or higher.
 
 The `network_interface` block supports:
 
