@@ -9,6 +9,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* resource/vsphere_datacenter: Tags can now be applied to datacenters. [GH-177]
 * resource/vsphere_nas_datastore: Tags can now be applied to NAS datastores.
   [GH-176]
 * resource/vsphere_vmfs_datastore: Tags can now be applied to VMFS datastores.
