@@ -33,8 +33,8 @@ category.
 ```hcl
 resource "vsphere_tag_category" "category" {
   name        = "terraform-test-category"
-  description = "Managed by Terraform"
   cardinality = "SINGLE"
+  description = "Managed by Terraform"
 
   associable_types = [
     "VirtualMachine",
@@ -44,8 +44,8 @@ resource "vsphere_tag_category" "category" {
 
 resource "vsphere_tag" "tag" {
   name        = "terraform-test-tag"
-  description = "Managed by Terraform"
   category_id = "${vsphere_tag_category.category.id}"
+  description = "Managed by Terraform"
 }
 ```
 
@@ -55,9 +55,9 @@ The following arguments are supported:
 
 * `name` - (String, required) The display name of the tag. The name must be
   unique within its category.
-* `description` - (String, optional) A description for the tag.
 * `category_id` - (String, required, forces new resource) The unique identifier
   of the parent category in which this tag will be created.
+* `description` - (String, optional) A description for the tag.
 
 ## Attribute Reference
 
