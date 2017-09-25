@@ -169,6 +169,22 @@ func testGetTagCategory(s *terraform.State, resourceName string) (*tags.Category
 	return category, nil
 }
 
+// testGetTag gets a tag by name.
+func testGetTag(s *terraform.State, resourceName string) (*tags.Tag, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_tag.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	tag, err := tVars.tagsClient.GetTag(ctx, tVars.resourceID)
+	if err != nil {
+		return nil, fmt.Errorf("could not get tag for ID %q: %s", tVars.resourceID, err)
+	}
+
+	return tag, nil
+}
+
 // copyStatePtr returns a TestCheckFunc that copies the reference to the test
 // run's state to t. This allows access to the state data in later steps where
 // it's not normally accessible (ie: in pre-config parts in another test step).
