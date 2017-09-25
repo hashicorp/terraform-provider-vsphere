@@ -9,6 +9,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* resource/vsphere_virtual_machine: Tags can now be applied to virtual machines.
+  [GH-175]
 * resource/vsphere_virtual_machine: Adjusted the customization timeout to 10
   minutes [GH-168]
 
