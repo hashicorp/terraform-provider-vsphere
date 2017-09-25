@@ -2,7 +2,9 @@
 
 FEATURES:
 
+* **New Data Source:** `vsphere_tag` [GH-171]
 * **New Data Source:** `vsphere_tag_category` [GH-167]
+* **New Resoruce:** `vsphere_tag` [GH-171]
 * **New Resoruce:** `vsphere_tag_category` [GH-164]
 
 IMPROVEMENTS:
