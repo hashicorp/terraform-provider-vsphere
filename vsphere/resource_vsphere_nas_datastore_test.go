@@ -184,6 +184,53 @@ func TestAccResourceVSphereNasDatastore(t *testing.T) {
 			},
 		},
 		{
+			"single tag",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereNasDatastorePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereNasDatastoreConfigBasicTags(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereNasDatastoreExists(true),
+							testAccResourceVSphereDatastoreCheckTags("vsphere_nas_datastore.datastore", "terraform-test-tag"),
+						),
+					},
+				},
+			},
+		},
+		{
+			"modify tags",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereNasDatastorePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereNasDatastoreConfigBasicTags(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereNasDatastoreExists(true),
+							testAccResourceVSphereDatastoreCheckTags("vsphere_nas_datastore.datastore", "terraform-test-tag"),
+						),
+					},
+					{
+						Config: testAccResourceVSphereNasDatastoreConfigMultiTags(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereNasDatastoreExists(true),
+							testAccResourceVSphereDatastoreCheckTags("vsphere_nas_datastore.datastore", "terraform-test-tags-alt"),
+						),
+					},
+				},
+			},
+		},
+		{
 			"import",
 			resource.TestCase{
 				PreCheck: func() {
@@ -241,12 +288,7 @@ func testAccResourceVSphereNasDatastorePreCheck(t *testing.T) {
 
 func testAccResourceVSphereNasDatastoreExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		vars, err := testClientVariablesForResource(s, "vsphere_nas_datastore.datastore")
-		if err != nil {
-			return err
-		}
-
-		_, err = datastoreFromID(vars.client, vars.resourceID)
+		ds, err := testGetDatastore(s, "vsphere_nas_datastore.datastore")
 		if err != nil {
 			if isManagedObjectNotFoundError(err) && expected == false {
 				// Expected missing
@@ -255,7 +297,7 @@ func testAccResourceVSphereNasDatastoreExists(expected bool) resource.TestCheckF
 			return err
 		}
 		if !expected {
-			return fmt.Errorf("expected datastore %s to be missing", vars.resourceID)
+			return fmt.Errorf("expected datastore %q to be missing", ds.Reference().Value)
 		}
 		return nil
 	}
@@ -263,12 +305,7 @@ func testAccResourceVSphereNasDatastoreExists(expected bool) resource.TestCheckF
 
 func testAccResourceVSphereNasDatastoreHasName(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		vars, err := testClientVariablesForResource(s, "vsphere_nas_datastore.datastore")
-		if err != nil {
-			return err
-		}
-
-		ds, err := datastoreFromID(vars.client, vars.resourceID)
+		ds, err := testGetDatastore(s, "vsphere_nas_datastore.datastore")
 		if err != nil {
 			return err
 		}
@@ -288,12 +325,7 @@ func testAccResourceVSphereNasDatastoreHasName(expected string) resource.TestChe
 
 func testAccResourceVSphereNasDatastoreMatchInventoryPath(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		vars, err := testClientVariablesForResource(s, "vsphere_nas_datastore.datastore")
-		if err != nil {
-			return err
-		}
-
-		ds, err := datastoreFromID(vars.client, vars.resourceID)
+		ds, err := testGetDatastore(s, "vsphere_nas_datastore.datastore")
 		if err != nil {
 			return err
 		}
@@ -451,4 +483,113 @@ resource "vsphere_nas_datastore" "datastore" {
   remote_path  = "${var.nfs_path}"
 }
 `, os.Getenv("VSPHERE_NAS_HOST"), os.Getenv("VSPHERE_NFS_PATH"), os.Getenv("VSPHERE_DS_FOLDER"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+}
+
+func testAccResourceVSphereNasDatastoreConfigBasicTags() string {
+	return fmt.Sprintf(`
+variable "nfs_host" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "nfs_path" {
+  type    = "string"
+  default = "%s"
+}
+
+data "vsphere_datacenter" "datacenter" {
+  name = "%s"
+}
+
+data "vsphere_host" "esxi_host" {
+  name          = "%s"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
+resource "vsphere_tag_category" "terraform-test-category" {
+  name        = "terraform-test-tag-category"
+  cardinality = "MULTIPLE"
+
+  associable_types = [
+    "Datastore",
+  ]
+}
+
+resource "vsphere_tag" "terraform-test-tag" {
+  name        = "terraform-test-tag"
+  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+}
+
+resource "vsphere_nas_datastore" "datastore" {
+  name            = "terraform-test-nas"
+  host_system_ids = ["${data.vsphere_host.esxi_host.id}"]
+
+  type         = "NFS"
+  remote_hosts = ["${var.nfs_host}"]
+  remote_path  = "${var.nfs_path}"
+
+  tags = ["${vsphere_tag.terraform-test-tag.id}"]
+}
+`, os.Getenv("VSPHERE_NAS_HOST"), os.Getenv("VSPHERE_NFS_PATH"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+}
+
+func testAccResourceVSphereNasDatastoreConfigMultiTags() string {
+	return fmt.Sprintf(`
+variable "nfs_host" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "nfs_path" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "extra_tags" {
+  default = [
+    "terraform-test-thing1",
+    "terraform-test-thing2",
+  ]
+}
+
+data "vsphere_datacenter" "datacenter" {
+  name = "%s"
+}
+
+data "vsphere_host" "esxi_host" {
+  name          = "%s"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
+resource "vsphere_tag_category" "terraform-test-category" {
+  name        = "terraform-test-tag-category"
+  cardinality = "MULTIPLE"
+
+  associable_types = [
+    "Datastore",
+  ]
+}
+
+resource "vsphere_tag" "terraform-test-tag" {
+  name        = "terraform-test-tag"
+  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+}
+
+resource "vsphere_tag" "terraform-test-tags-alt" {
+  count       = "${length(var.extra_tags)}"
+  name        = "${var.extra_tags[count.index]}"
+  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+}
+
+resource "vsphere_nas_datastore" "datastore" {
+  name            = "terraform-test-nas"
+  host_system_ids = ["${data.vsphere_host.esxi_host.id}"]
+
+  type         = "NFS"
+  remote_hosts = ["${var.nfs_host}"]
+  remote_path  = "${var.nfs_path}"
+
+  tags = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
+}
+`, os.Getenv("VSPHERE_NAS_HOST"), os.Getenv("VSPHERE_NFS_PATH"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
 }

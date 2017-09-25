@@ -206,7 +206,7 @@ func tagTypeForObject(obj object.Reference) (string, error) {
 // readTagsForResource reads the tags for a given reference and saves the list
 // in the supplied ResourceData. It returns an error if there was an issue
 // reading the tags.
-func readTagsForResoruce(client *tags.RestClient, obj object.Reference, d *schema.ResourceData) error {
+func readTagsForResource(client *tags.RestClient, obj object.Reference, d *schema.ResourceData) error {
 	objID := obj.Reference().Value
 	objType, err := tagTypeForObject(obj)
 	if err != nil {
