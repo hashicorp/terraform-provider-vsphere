@@ -1255,9 +1255,14 @@ variable "linked_clone" {
   default = "%s"
 }
 
+data "vsphere_datacenter" "datacenter" {
+  name = "${var.datacenter}"
+}
+
 resource "vsphere_folder" "folder" {
-  datacenter = "${var.datacenter}"
-  path       = "terraform-test-vms"
+  path          = "terraform-test-vms"
+  type          = "vm"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
 }
 
 resource "vsphere_virtual_machine" "vm" {
