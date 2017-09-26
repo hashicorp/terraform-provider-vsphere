@@ -1,4 +1,11 @@
-## 0.3.1 (Unreleased)
+## 0.4.0 (Unreleased)
+
+BREAKING CHANGES:
+
+* The `vsphere_folder` resource has been re-written, and its configuration is
+  significantly different. See the [resource
+  documentation](https://www.terraform.io/docs/providers/vsphere/r/folder.html)
+  for more details. Existing state will be migrated. [GH-179]
 
 FEATURES:
 
@@ -9,6 +16,10 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* resource/vsphere_folder: You can now create any kind of folder with this
+  resource, not just virtual machine folders. [GH-179]
+* resource/vsphere_folder: Now supports tags. [GH-179]
+* resource/vsphere_folder: Now supports import. [GH-179]
 * resource/vsphere_datacenter: Tags can now be applied to datacenters. [GH-177]
 * resource/vsphere_nas_datastore: Tags can now be applied to NAS datastores.
   [GH-176]
