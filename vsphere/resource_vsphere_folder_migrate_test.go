@@ -19,8 +19,8 @@ func testAccResourceVSphereFolderMigrateStatePreCheck(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolderMigrateState(t *testing.T) {
-	testAccPreCheck(t)
 	testAccResourceVSphereFolderMigrateStatePreCheck(t)
+	testAccPreCheck(t)
 
 	is := &terraform.InstanceState{
 		ID: fmt.Sprintf("%v/%v", os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_FOLDER_V0_PATH")),
@@ -47,6 +47,9 @@ func TestAccResourceVSphereFolderMigrateState(t *testing.T) {
 func TestAccResourceVSphereFolderMigrateState_empty(t *testing.T) {
 	var is *terraform.InstanceState
 	var meta interface{}
+
+	testAccResourceVSphereFolderMigrateStatePreCheck(t)
+	testAccPreCheck(t)
 
 	// should handle nil
 	is, err := resourceVSphereFolderMigrateState(0, is, meta)
