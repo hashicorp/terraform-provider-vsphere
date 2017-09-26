@@ -1,20 +1,25 @@
 package vsphere
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/vmware/govmomi/object"
 )
 
 const testAccResourceVSphereFolderConfigExpectedName = "terraform-test-folder"
 const testAccResourceVSphereFolderConfigExpectedAltName = "terraform-renamed-folder"
 const testAccResourceVSphereFolderConfigExpectedParentName = "terraform-test-parent"
+const testAccResourceVSphereFolderConfigOOBName = "terraform-test-oob"
 
 func TestAccResourceVSphereFolder(t *testing.T) {
 	var tp *testing.T
+	var s *terraform.State
 	testAccResourceVSphereFolderCases := []struct {
 		name     string
 		testCase resource.TestCase
@@ -280,6 +285,54 @@ func TestAccResourceVSphereFolder(t *testing.T) {
 			},
 		},
 		{
+			"prevent delete if not empty",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereFolderExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereFolderConfigBasic(
+							testAccResourceVSphereFolderConfigExpectedName,
+							vSphereFolderTypeVM,
+						),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereFolderExists(true),
+							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
+							testAccResourceVSphereFolderHasType(vSphereFolderTypeVM),
+							copyStatePtr(&s),
+						),
+					},
+					{
+						PreConfig: func() {
+							if err := testAccResourceVSphereFolderCreateOOB(s); err != nil {
+								panic(err)
+							}
+						},
+						Config: testAccResourceVSphereFolderConfigBasic(
+							testAccResourceVSphereFolderConfigExpectedName,
+							vSphereFolderTypeVM,
+						),
+						Destroy:     true,
+						ExpectError: regexp.MustCompile("folder is not empty, please remove all items before deleting"),
+					},
+					{
+						PreConfig: func() {
+							if err := testAccResourceVSphereFolderDeleteOOB(s); err != nil {
+								panic(err)
+							}
+						},
+						Config: testAccResourceVSphereFolderConfigBasic(
+							testAccResourceVSphereFolderConfigExpectedName,
+							vSphereFolderTypeVM,
+						),
+					},
+				},
+			},
+		},
+		{
 			"import",
 			resource.TestCase{
 				PreCheck: func() {
@@ -421,6 +474,54 @@ func testAccResourceVSphereFolderCheckTags(tagResName string) resource.TestCheck
 		}
 		return testObjectHasTags(s, tagsClient, folder, tagResName)
 	}
+}
+
+// testAccResourceVSphereFolderCreateOOB creates an out-of-band folder that is
+// not tracked by TF. This is used in deletion checks to make sure we don't
+// perform unsafe recursive deletions.
+func testAccResourceVSphereFolderCreateOOB(s *terraform.State) error {
+	folder, err := testGetFolder(s, "folder")
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	if _, err := folder.CreateFolder(ctx, testAccResourceVSphereFolderConfigOOBName); err != nil {
+		return err
+	}
+	return nil
+}
+
+// testAccResourceVSphereFolderDeleteOOB wipes any child items in the test
+// folder resource. This is used to reverse the actions of
+// testAccResourceVSphereFolderCreateOOB so we can properly clean up the test.
+func testAccResourceVSphereFolderDeleteOOB(s *terraform.State) error {
+	client := testAccProvider.Meta().(*VSphereClient).vimClient
+	folder, err := testGetFolder(s, "folder")
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	refs, err := folder.Children(ctx)
+	if err != nil {
+		return err
+	}
+	for _, ref := range refs {
+		me := object.NewCommon(client.Client, ref.Reference())
+		dctx, dcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+		defer dcancel()
+		task, err := me.Destroy(dctx)
+		if err != nil {
+			return err
+		}
+		tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+		defer tcancel()
+		if err := task.Wait(tctx); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func testAccResourceVSphereFolderConfigBasic(name string, ft vSphereFolderType) string {

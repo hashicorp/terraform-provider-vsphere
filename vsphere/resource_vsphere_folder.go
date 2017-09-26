@@ -239,6 +239,17 @@ func resourceVSphereFolderDelete(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("cannot locate folder: %s", err)
 	}
 
+	// We don't destroy if the folder has children. This might be flaggable in
+	// the future, but I don't think it's necessary at this point in time -
+	// better to have hardcoded safe behavior than hardcoded unsafe behavior.
+	ne, err := folderHasChildren(folder)
+	if err != nil {
+		return fmt.Errorf("error checking for folder contents: %s", err)
+	}
+	if ne {
+		return errors.New("folder is not empty, please remove all items before deleting")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
 	task, err := folder.Destroy(ctx)

@@ -314,3 +314,18 @@ func findFolderType(folder *object.Folder) (vSphereFolderType, error) {
 
 	return ft, nil
 }
+
+// folderHasChildren checks to see if a folder has any child items and returns
+// true if that is the case. This is useful when checking to see if a folder is
+// safe to delete - destroying a folder in vSphere destroys *all* children if
+// at all possible (including removing virtual machines), so extra verification
+// is necessary to prevent accidental removal.
+func folderHasChildren(f *object.Folder) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	children, err := f.Children(ctx)
+	if err != nil {
+		return false, err
+	}
+	return len(children) > 0, nil
+}
