@@ -1199,16 +1199,39 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 							gatewaySetting = "ipv4_gateway"
 						}
 						if gatewaySetting != "" {
-							deviceID, err := strconv.Atoi(route.Gateway.Device)
-							if len(networkInterfaces) == 1 {
-								deviceID = 0
-							}
+							// We need to get the correct device index which is not always
+							// aligned with what we have saved in Terraform state.
+							//
+							// The index in Device corresponds with the device index in
+							// Guest.Net, which we can use to discover the key.
+							did := route.Gateway.Device
+							nidx, err := strconv.Atoi(did)
 							if err != nil {
-								log.Printf("[WARN] error at processing %s of device id %#v: %#v", gatewaySetting, route.Gateway.Device, err)
-							} else {
-								log.Printf("[DEBUG] %s of device id %d: %s", gatewaySetting, deviceID, route.Gateway.IpAddress)
-								networkInterfaces[deviceID][gatewaySetting] = route.Gateway.IpAddress
+								// "device" for some reason is a string, even though its result
+								// has always been observed to be an int. This should never
+								// happen, but we warn just in case.
+								log.Printf("[WARN] error at processing %s of device id %#v: %#v", gatewaySetting, did, err)
+								continue
 							}
+							key := mvm.Guest.Net[nidx].DeviceConfigId
+							if key < 0 {
+								// Gateway is not set to any hardware device, ignore.
+								continue
+							}
+							didx := -1
+							for n, dev := range networkInterfaces {
+								if dev["key"] == key {
+									didx = n
+									break
+								}
+							}
+							if didx < 0 {
+								// We are not tracking the device that the gateway is going to
+								// in state, so just skip the gateway.
+								continue
+							}
+							log.Printf("[DEBUG] %s of device id %d: %s", gatewaySetting, didx, route.Gateway.IpAddress)
+							networkInterfaces[didx][gatewaySetting] = route.Gateway.IpAddress
 						}
 					}
 				}
