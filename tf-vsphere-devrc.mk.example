@@ -49,5 +49,6 @@ export VSPHERE_DS_VMFS_DISK2       ?= scsi-name2 # 3rd disk for vmfs_datastore
 export VSPHERE_DS_FOLDER           ?= ds-folder  # Path to a datastore folder
 export VSPHERE_NAS_HOST            ?= nas-host   # Hostname for nas_datastore
 export VSPHERE_NFS_PATH            ?= nfs-path   # NFS path for nas_datastore
+export VSPHERE_FOLDER_V0_PATH      ?= old-folder # vsphere_folder state test
 
 # vi: filetype=make

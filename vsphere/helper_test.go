@@ -274,3 +274,22 @@ func testAccResourceVSphereDatastoreCheckTags(dsResAddr, tagResName string) reso
 		return testObjectHasTags(s, tagsClient, ds, tagResName)
 	}
 }
+
+// testGetFolder is a convenience method to fetch a folder by resource name.
+func testGetFolder(s *terraform.State, resourceName string) (*object.Folder, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_folder.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+	return folderFromID(tVars.client, tVars.resourceID)
+}
+
+// testGetFolderProperties is a convenience method that adds an extra step to
+// testGetFolder to get the properties of a folder.
+func testGetFolderProperties(s *terraform.State, resourceName string) (*mo.Folder, error) {
+	folder, err := testGetFolder(s, resourceName)
+	if err != nil {
+		return nil, err
+	}
+	return folderProperties(folder)
+}
