@@ -30,6 +30,12 @@ IMPROVEMENTS:
 * resource/vsphere_virtual_machine: Adjusted the customization timeout to 10
   minutes [GH-168]
 
+BUG FIXES:
+
+* resource/vsphere_virtual_machine: Fixed crashes and spurious diffs that were
+  caused by errors in the code that associates the default gateway with its
+  correct network device during refresh. [GH-180]
+
 ## 0.3.0 (September 14, 2017)
 
 BREAKING CHANGES:
