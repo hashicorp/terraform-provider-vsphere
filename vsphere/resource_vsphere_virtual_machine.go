@@ -1512,7 +1512,7 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 		disk.CapacityInKB = int64(size * 1024 * 1024)
 		if iops != 0 {
 			disk.StorageIOAllocation = &types.StorageIOAllocationInfo{
-				Limit: iops,
+				Limit: &iops,
 			}
 		}
 		backing := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
@@ -1637,7 +1637,7 @@ func addCdrom(client *govmomi.Client, vm *object.VirtualMachine, datacenter *obj
 
 // buildNetworkDevice builds VirtualDeviceConfigSpec for Network Device.
 func buildNetworkDevice(f *find.Finder, label, adapterType string, macAddress string) (*types.VirtualDeviceConfigSpec, error) {
-	network, err := f.Network(context.TODO(), "*"+label)
+	network, err := f.Network(context.TODO(), label)
 	if err != nil {
 		return nil, err
 	}
@@ -1925,7 +1925,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		NumCoresPerSocket: 1,
 		MemoryMB:          vm.memoryMb,
 		MemoryAllocation: &types.ResourceAllocationInfo{
-			Reservation: vm.memoryAllocation.reservation,
+			Reservation: &vm.memoryAllocation.reservation,
 		},
 		Flags: &types.VirtualMachineFlagInfo{
 			DiskUuidEnabled: &vm.enableDiskUUID,
