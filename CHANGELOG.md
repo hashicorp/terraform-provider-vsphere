@@ -32,6 +32,10 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* resource/vsphere_virtual_machine: This resource can now be used with networks
+  with unescaped slashes in its network name. [GH-181]
+* resource/vsphere_virtual_machine: Fixed a crash where virtual NICs were
+  created with networks backed by a 3rd party hardware VDS. [GH-181]
 * resource/vsphere_virtual_machine: Fixed crashes and spurious diffs that were
   caused by errors in the code that associates the default gateway with its
   correct network device during refresh. [GH-180]
