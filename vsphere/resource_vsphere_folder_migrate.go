@@ -1,6 +1,10 @@
 package vsphere
 
-import "github.com/hashicorp/terraform/terraform"
+import (
+	"log"
+
+	"github.com/hashicorp/terraform/terraform"
+)
 
 // resourceVSphereFolderMigrateState is the master state migration function for
 // the vsphere_folder resource.
@@ -15,20 +19,22 @@ func resourceVSphereFolderMigrateState(version int, os *terraform.InstanceState,
 		return os, nil
 	}
 
-	ns := os.DeepCopy()
 	var migrateFunc func(*terraform.InstanceState, interface{}) error
 	switch version {
 	case 0:
+		log.Printf("[DEBUG] Migrating vsphere_folder state: old v%d state: %#v", version, os)
 		migrateFunc = resourceVSphereFolderMigrateStateV1
 	default:
 		// Migration is complete
-		return ns, nil
+		log.Printf("[DEBUG] Migrating vsphere_folder state: completed v%d state: %#v", version, os)
+		return os, nil
 	}
-	if err := migrateFunc(ns, meta); err != nil {
+	if err := migrateFunc(os, meta); err != nil {
 		return nil, err
 	}
 	version++
-	return resourceVSphereFolderMigrateState(version, ns, meta)
+	log.Printf("[DEBUG] Migrating vsphere_folder state: new v%d state: %#v", version, os)
+	return resourceVSphereFolderMigrateState(version, os, meta)
 }
 
 // resourceVSphereFolderMigrateStateV1 migrates the state of the vsphere_folder
