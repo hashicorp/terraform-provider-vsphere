@@ -1,4 +1,10 @@
 ## 0.4.1 (Unreleased)
+
+BUG FIXES:
+
+* resource/vsphere_folder: Migration of state from a version of this resource
+  before v0.4.0 now works correctly. [GH-187]
+
 ## 0.4.0 (September 29, 2017)
 
 BREAKING CHANGES:
