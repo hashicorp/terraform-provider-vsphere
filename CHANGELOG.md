@@ -1,3 +1,4 @@
+## 0.4.2 (Unreleased)
 ## 0.4.1 (October 02, 2017)
 
 BUG FIXES:
