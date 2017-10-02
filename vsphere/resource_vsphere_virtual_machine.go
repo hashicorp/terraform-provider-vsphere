@@ -779,7 +779,11 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			vm.dnsSuffixes = append(vm.dnsSuffixes, v.(string))
 		}
 	} else {
-		vm.dnsSuffixes = DefaultDNSSuffixes
+		if v, ok := d.GetOk("domain"); ok {
+			vm.dnsSuffixes = append(vm.dnsSuffixes, v.(string))
+		} else {
+			vm.dnsSuffixes = DefaultDNSSuffixes
+		}
 	}
 
 	if raw, ok := d.GetOk("dns_servers"); ok {
