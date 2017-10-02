@@ -1,9 +1,10 @@
-## 0.4.1 (Unreleased)
+## 0.4.2 (Unreleased)
+## 0.4.1 (October 02, 2017)
 
 BUG FIXES:
 
 * resource/vsphere_folder: Migration of state from a version of this resource
-  before v0.4.0 now works correctly. [GH-187]
+  before v0.4.0 now works correctly. ([#187](https://github.com/terraform-providers/terraform-provider-vsphere/issues/187))
 
 ## 0.4.0 (September 29, 2017)
 
