@@ -170,9 +170,11 @@ func folderFromObject(client *govmomi.Client, obj interface{}, folderType rootPa
 	var p string
 	var err error
 	switch o := obj.(type) {
-	case (*object.Datastore):
+	case *object.VmwareDistributedVirtualSwitch:
+		p, err = rootPathParticleNetwork.PathFromNewRoot(o.InventoryPath, folderType, relative)
+	case *object.Datastore:
 		p, err = rootPathParticleDatastore.PathFromNewRoot(o.InventoryPath, folderType, relative)
-	case (*object.HostSystem):
+	case *object.HostSystem:
 		p, err = rootPathParticleHost.PathFromNewRoot(o.InventoryPath, folderType, relative)
 	default:
 		return nil, fmt.Errorf("unsupported object type %T", o)
@@ -195,8 +197,20 @@ func datastoreFolderFromObject(client *govmomi.Client, obj interface{}, relative
 	return validateDatastoreFolder(folder)
 }
 
+// networkFolderFromObject returns an *object.Folder from a given object,
+// and relative network folder path. If no such folder is found, of if it is
+// not a network folder, an appropriate error will be returned.
+func networkFolderFromObject(client *govmomi.Client, obj interface{}, relative string) (*object.Folder, error) {
+	folder, err := folderFromObject(client, obj, rootPathParticleNetwork, relative)
+	if err != nil {
+		return nil, err
+	}
+
+	return validateNetworkFolder(folder)
+}
+
 // validateDatastoreFolder checks to make sure the folder is a datastore
-// folder, and returns it if it is not, or an error if it isn't.
+// folder, and returns it if it is, or an error if it isn't.
 func validateDatastoreFolder(folder *object.Folder) (*object.Folder, error) {
 	ft, err := findFolderType(folder)
 	if err != nil {
@@ -204,6 +218,19 @@ func validateDatastoreFolder(folder *object.Folder) (*object.Folder, error) {
 	}
 	if ft != vSphereFolderTypeDatastore {
 		return nil, fmt.Errorf("%q is not a datastore folder", folder.InventoryPath)
+	}
+	return folder, nil
+}
+
+// validateNetworkFolder checks to make sure the folder is a network folder,
+// and returns it if it is, or an error if it isn't.
+func validateNetworkFolder(folder *object.Folder) (*object.Folder, error) {
+	ft, err := findFolderType(folder)
+	if err != nil {
+		return nil, err
+	}
+	if ft != vSphereFolderTypeNetwork {
+		return nil, fmt.Errorf("%q is not a network folder", folder.InventoryPath)
 	}
 	return folder, nil
 }
@@ -236,13 +263,12 @@ func moveObjectToFolder(ref types.ManagedObjectReference, folder *object.Folder)
 	return task.Wait(tctx)
 }
 
-// parentFolderFromPath takes a relative object path (usually a folder), an
-// object type, and an optional supplied datacenter, and returns the parent
-// *object.Folder if it exists.
+// folderFromPath takes a relative folder path, an object type, and an optional
+// supplied datacenter, and returns the respective *object.Folder if it exists.
 //
 // The datacenter supplied in dc cannot be nil if the folder type supplied by
 // ft is something else other than vSphereFolderTypeDatacenter.
-func parentFolderFromPath(c *govmomi.Client, p string, ft vSphereFolderType, dc *object.Datacenter) (*object.Folder, error) {
+func folderFromPath(c *govmomi.Client, p string, ft vSphereFolderType, dc *object.Datacenter) (*object.Folder, error) {
 	var fp string
 	if ft == vSphereFolderTypeDatacenter {
 		fp = "/" + p
@@ -250,7 +276,17 @@ func parentFolderFromPath(c *govmomi.Client, p string, ft vSphereFolderType, dc 
 		pt := rootPathParticle(ft)
 		fp = pt.PathFromDatacenter(dc, p)
 	}
-	return folderFromAbsolutePath(c, path.Dir(fp))
+	return folderFromAbsolutePath(c, fp)
+}
+
+// parentFolderFromPath takes a relative object path (usually a folder), an
+// object type, and an optional supplied datacenter, and returns the parent
+// *object.Folder if it exists.
+//
+// The datacenter supplied in dc cannot be nil if the folder type supplied by
+// ft is something else other than vSphereFolderTypeDatacenter.
+func parentFolderFromPath(c *govmomi.Client, p string, ft vSphereFolderType, dc *object.Datacenter) (*object.Folder, error) {
+	return folderFromPath(c, path.Dir(p), ft, dc)
 }
 
 // folderFromID locates a Folder by its managed object reference ID.
