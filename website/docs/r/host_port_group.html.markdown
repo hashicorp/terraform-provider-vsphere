@@ -121,7 +121,7 @@ The following attributes are exported:
 * `id` - An ID unique to Terraform for this port group. The convention is a
   prefix, the host system ID, and the port group name. An example would be
   `tf-HostPortGroup:host-10:PGTerraformTest`.
-* `comptued_policy` - A map with a full set of the [policy
+* `computed_policy` - A map with a full set of the [policy
   options][host-vswitch-policy-options] computed from defaults and overrides,
   explaining the effective policy for this port group.
 * `key` - The key for this port group as returned from the vSphere API.
