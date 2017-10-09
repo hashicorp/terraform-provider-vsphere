@@ -1,6 +1,8 @@
 package vsphere
 
 import (
+	"log"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/vmware/govmomi/vim25/types"
@@ -21,27 +23,13 @@ var vmwareUplinkPortTeamingPolicyModeAllowedValues = []string{
 
 // schemaVMwareDVSPortSetting returns schema items for resources that
 // need to work with a VMwareDVSPortSetting.
-//
-// Some sub-fields/features have been explicitly omitted from this
-// configuration for now, and may be added in future versions if required:
-//
-// * Duplex, speed, and error checking for failover: These are not exposed in
-// either vSphere console and may be seldom used. (Part of
-// VmwareUplinkPortTeamingPolicy/DVSFailureCriteria)
-// * FilterPolicy - complex configuration for network filters
-// * NetworkResourcePoolKey - may be included when we add network resource
-// pools
-// * VendorSpecificConfig - applies to 3rd party DVS switches which TF does not
-// support.
-// * VmDirectPathGen2Allowed - directpath I/O option which we are not
-// necessarily supporting modification of in other resources - leaving this
-// until we have a need for it.
 func schemaVMwareDVSPortSetting() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		// VmwareDistributedVirtualSwitchVlanIdSpec
 		"vlan_id": {
 			Type:          schema.TypeInt,
 			Optional:      true,
+			Computed:      true,
 			Description:   "The VLAN ID for single VLAN mode. 0 denotes no VLAN.",
 			ConflictsWith: []string{"vlan_range", "port_private_secondary_vlan_id"},
 			ValidateFunc:  validation.IntBetween(0, 4094),
@@ -49,11 +37,11 @@ func schemaVMwareDVSPortSetting() map[string]*schema.Schema {
 
 		// VmwareDistributedVirtualSwitchTrunkVlanSpec
 		"vlan_range": {
-			Type:          schema.TypeList,
+			Type:          schema.TypeSet,
 			Optional:      true,
+			Computed:      true,
 			Description:   "The VLAN ID for single VLAN mode. 0 denotes no VLAN.",
 			ConflictsWith: []string{"vlan_id", "port_private_secondary_vlan_id"},
-			MinItems:      1,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"min_vlan": {
@@ -76,6 +64,7 @@ func schemaVMwareDVSPortSetting() map[string]*schema.Schema {
 		"port_private_secondary_vlan_id": {
 			Type:          schema.TypeInt,
 			Optional:      true,
+			Computed:      true,
 			Description:   "The secondary VLAN ID for this port.",
 			ConflictsWith: []string{"vlan_id", "vlan_range"},
 			ValidateFunc:  validation.IntBetween(1, 4094),
@@ -85,6 +74,7 @@ func schemaVMwareDVSPortSetting() map[string]*schema.Schema {
 		"check_beacon": {
 			Type:        schema.TypeBool,
 			Optional:    true,
+			Computed:    true,
 			Description: "Enable beacon probing on the ports this policy applies to.",
 		},
 
@@ -92,12 +82,14 @@ func schemaVMwareDVSPortSetting() map[string]*schema.Schema {
 		"active_uplinks": {
 			Type:        schema.TypeList,
 			Optional:    true,
+			Computed:    true,
 			Description: "List of active uplinks used for load balancing, matching the names of the uplinks assigned in the DVS.",
 			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
 		"standby_uplinks": {
 			Type:        schema.TypeList,
 			Optional:    true,
+			Computed:    true,
 			Description: "List of active uplinks used for load balancing, matching the names of the uplinks assigned in the DVS.",
 			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
@@ -106,17 +98,20 @@ func schemaVMwareDVSPortSetting() map[string]*schema.Schema {
 		"teaming_policy": {
 			Type:         schema.TypeString,
 			Optional:     true,
+			Computed:     true,
 			Description:  "The network adapter teaming policy. Can be one of loadbalance_ip, loadbalance_srcmac, loadbalance_srcid, failover_explicit, or loadbalance_loadbased.",
 			ValidateFunc: validation.StringInSlice(vmwareUplinkPortTeamingPolicyModeAllowedValues, false),
 		},
 		"notify_switches": {
 			Type:        schema.TypeBool,
 			Optional:    true,
+			Computed:    true,
 			Description: "If true, the teaming policy will notify the broadcast network of a NIC failover, triggering cache updates.",
 		},
 		"failback": {
 			Type:        schema.TypeBool,
 			Optional:    true,
+			Computed:    true,
 			Description: "If true, the teaming policy will re-activate failed interfaces higher in precedence when they come back up.",
 		},
 
@@ -124,16 +119,19 @@ func schemaVMwareDVSPortSetting() map[string]*schema.Schema {
 		"allow_promiscuous": &schema.Schema{
 			Type:        schema.TypeBool,
 			Optional:    true,
+			Computed:    true,
 			Description: "Enable promiscuous mode on the network. This flag indicates whether or not all traffic is seen on a given port.",
 		},
 		"allow_forged_transmits": &schema.Schema{
 			Type:        schema.TypeBool,
 			Optional:    true,
+			Computed:    true,
 			Description: "Controls whether or not the virtual network adapter is allowed to send network traffic with a different MAC address than that of its own.",
 		},
 		"allow_mac_changes": &schema.Schema{
 			Type:        schema.TypeBool,
 			Optional:    true,
+			Computed:    true,
 			Description: "Controls whether or not the Media Access Control (MAC) address can be changed.",
 		},
 
@@ -141,11 +139,13 @@ func schemaVMwareDVSPortSetting() map[string]*schema.Schema {
 		"lacp_enabled": {
 			Type:        schema.TypeBool,
 			Optional:    true,
+			Computed:    true,
 			Description: "Whether or not to enable LACP on all uplink ports.",
 		},
 		"lacp_mode": {
 			Type:         schema.TypeString,
 			Optional:     true,
+			Computed:     true,
 			Description:  "The uplink LACP mode to use. Can be one of active or passive.",
 			ValidateFunc: validation.StringInSlice(vmwareUplinkLacpPolicyModeAllowedValues, false),
 		},
@@ -154,21 +154,25 @@ func schemaVMwareDVSPortSetting() map[string]*schema.Schema {
 		"ingress_shaping_average_bandwidth": {
 			Type:        schema.TypeInt,
 			Optional:    true,
+			Computed:    true,
 			Description: "The average ingress bandwidth in bits per second if ingress shaping is enabled on the port.",
 		},
 		"ingress_shaping_burst_size": {
 			Type:        schema.TypeInt,
 			Optional:    true,
+			Computed:    true,
 			Description: "The maximum ingress burst size allowed in bytes if ingress shaping is enabled on the port.",
 		},
 		"ingress_shaping_enabled": {
 			Type:        schema.TypeBool,
 			Optional:    true,
+			Computed:    true,
 			Description: "True if the traffic shaper is enabled for ingress traffic on the port.",
 		},
 		"ingress_shaping_peak_bandwidth": {
 			Type:        schema.TypeInt,
 			Optional:    true,
+			Computed:    true,
 			Description: "The peak ingress bandwidth during bursts in bits per second if ingress traffic shaping is enabled on the port.",
 		},
 
@@ -176,21 +180,25 @@ func schemaVMwareDVSPortSetting() map[string]*schema.Schema {
 		"egress_shaping_average_bandwidth": {
 			Type:        schema.TypeInt,
 			Optional:    true,
+			Computed:    true,
 			Description: "The average egress bandwidth in bits per second if egress shaping is enabled on the port.",
 		},
 		"egress_shaping_burst_size": {
 			Type:        schema.TypeInt,
 			Optional:    true,
+			Computed:    true,
 			Description: "The maximum egress burst size allowed in bytes if egress shaping is enabled on the port.",
 		},
 		"egress_shaping_enabled": {
 			Type:        schema.TypeBool,
 			Optional:    true,
+			Computed:    true,
 			Description: "True if the traffic shaper is enabled for egress traffic on the port.",
 		},
 		"egress_shaping_peak_bandwidth": {
 			Type:        schema.TypeInt,
 			Optional:    true,
+			Computed:    true,
 			Description: "The peak egress bandwidth during bursts in bits per second if egress traffic shaping is enabled on the port.",
 		},
 
@@ -198,17 +206,26 @@ func schemaVMwareDVSPortSetting() map[string]*schema.Schema {
 		"block_all_ports": {
 			Type:        schema.TypeBool,
 			Optional:    true,
+			Computed:    true,
 			Description: "Indicates whether to block all ports by default.",
 		},
 		"netflow_enabled": {
 			Type:        schema.TypeBool,
 			Optional:    true,
+			Computed:    true,
 			Description: "Indicates whether to enable netflow on all ports.",
 		},
 		"tx_uplink": {
 			Type:        schema.TypeBool,
 			Optional:    true,
+			Computed:    true,
 			Description: "If true, a copy of packets sent to the switch will always be forwarded to an uplink in addition to the regular packet forwarded done by the switch.",
+		},
+		"directpath_gen2_allowed": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Computed:    true,
+			Description: "Allow VMDirectPath Gen2 on the ports this policy applies to.",
 		},
 	}
 }
@@ -233,8 +250,9 @@ func flattenVmwareDistributedVirtualSwitchVlanIDSpec(d *schema.ResourceData, obj
 // returns a VmwareDistributedVirtualSwitchTrunkVlanSpec.
 func expandVmwareDistributedVirtualSwitchTrunkVlanSpec(d *schema.ResourceData) *types.VmwareDistributedVirtualSwitchTrunkVlanSpec {
 	var ranges []types.NumericRange
-	data := d.Get("vlan_range").([]interface{})
+	data := d.Get("vlan_range").(*schema.Set).List()
 	for _, v := range data {
+		log.Printf("[DEBUG] processing range: %#v", v)
 		r := v.(map[string]interface{})
 		min := r["min_vlan"].(int)
 		max := r["max_vlan"].(int)
@@ -244,6 +262,11 @@ func expandVmwareDistributedVirtualSwitchTrunkVlanSpec(d *schema.ResourceData) *
 		}
 		ranges = append(ranges, rng)
 	}
+
+	if len(ranges) < 1 {
+		return nil
+	}
+
 	obj := &types.VmwareDistributedVirtualSwitchTrunkVlanSpec{
 		VlanId: ranges,
 	}
@@ -288,8 +311,9 @@ func expandBaseVmwareDistributedVirtualSwitchVlanSpec(d *schema.ResourceData) ty
 	var obj types.BaseVmwareDistributedVirtualSwitchVlanSpec
 
 	_, ide := d.GetOkExists("vlan_id")
-	_, vte := d.GetOkExists("vlan_range")
 	_, pvid := d.GetOkExists("port_private_secondary_vlan_id")
+	vteList, vteOK := d.GetOkExists("vlan_range")
+	vte := vteOK && len(vteList.(*schema.Set).List()) > 0
 	switch {
 	case vte:
 		obj = expandVmwareDistributedVirtualSwitchTrunkVlanSpec(d)
@@ -534,9 +558,10 @@ func flattenDVSTrafficShapingPolicyEgress(d *schema.ResourceData, obj *types.DVS
 func expandVMwareDVSPortSetting(d *schema.ResourceData) *types.VMwareDVSPortSetting {
 	obj := &types.VMwareDVSPortSetting{
 		DVPortSetting: types.DVPortSetting{
-			Blocked:          getBoolPolicy(d, "block_all_ports"),
-			InShapingPolicy:  expandDVSTrafficShapingPolicyIngress(d),
-			OutShapingPolicy: expandDVSTrafficShapingPolicyEgress(d),
+			Blocked:                 getBoolPolicy(d, "block_all_ports"),
+			InShapingPolicy:         expandDVSTrafficShapingPolicyIngress(d),
+			OutShapingPolicy:        expandDVSTrafficShapingPolicyEgress(d),
+			VmDirectPathGen2Allowed: getBoolPolicy(d, "directpath_gen2_allowed"),
 		},
 		Vlan:                expandBaseVmwareDistributedVirtualSwitchVlanSpec(d),
 		UplinkTeamingPolicy: expandVmwareUplinkPortTeamingPolicy(d),
@@ -562,6 +587,7 @@ func flattenVMwareDVSPortSetting(d *schema.ResourceData, obj *types.VMwareDVSPor
 	setBoolPolicy(d, "block_all_ports", obj.Blocked)
 	setBoolPolicy(d, "netflow_enabled", obj.IpfixEnabled)
 	setBoolPolicy(d, "tx_uplink", obj.TxUplink)
+	setBoolPolicy(d, "directpath_gen2_allowed", obj.VmDirectPathGen2Allowed)
 
 	if err := flattenDVSTrafficShapingPolicyIngress(d, obj.InShapingPolicy); err != nil {
 		return err

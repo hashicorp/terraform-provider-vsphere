@@ -312,3 +312,23 @@ func testGetDVSProperties(s *terraform.State, resourceName string) (*mo.VmwareDi
 	}
 	return dvsProperties(dvs)
 }
+
+// testGetDVPortgroup is a convenience method to fetch a DV portgroup by resource name.
+func testGetDVPortgroup(s *terraform.State, resourceName string) (*object.DistributedVirtualPortgroup, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_distributed_port_group.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+	dvsID := tVars.resourceAttributes["distributed_virtual_switch_uuid"]
+	return dvPortgroupFromUUID(tVars.client, dvsID, tVars.resourceID)
+}
+
+// testGetDVPortgroupProperties is a convenience method that adds an extra step to
+// testGetDVPortgroup to get the properties of a DV portgroup.
+func testGetDVPortgroupProperties(s *terraform.State, resourceName string) (*mo.DistributedVirtualPortgroup, error) {
+	dvs, err := testGetDVPortgroup(s, resourceName)
+	if err != nil {
+		return nil, err
+	}
+	return dvPortgroupProperties(dvs)
+}
