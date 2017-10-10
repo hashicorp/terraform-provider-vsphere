@@ -2,6 +2,7 @@
 
 FEATURES:
 
+* **New Resource:** `vsphere_distributed_port_group` [GH-189]
 * **New Resource:** `vsphere_distributed_virtual_switch` [GH-188]
 
 ## 0.4.1 (October 02, 2017)
