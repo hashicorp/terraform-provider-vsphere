@@ -384,11 +384,11 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							DiffSuppressFunc: suppressIpDifferences},
 
 						"adapter_type": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-							Default: "vmxnet3",
-                            ValidateFunc: validation.StringInSlice(virtualMachineNetworkAdapterTypeAllowedValues, false),
+							Type:         schema.TypeString,
+							Optional:     true,
+							ForceNew:     true,
+							Default:      "vmxnet3",
+							ValidateFunc: validation.StringInSlice(virtualMachineNetworkAdapterTypeAllowedValues, false),
 						},
 
 						"mac_address": &schema.Schema{
@@ -1154,11 +1154,11 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	log.Printf("[DEBUG] Device list %+v", deviceList)
 	for _, device := range deviceList {
 		networkInterface := make(map[string]interface{})
-        if _, ok := device.(*types.VirtualE1000); ok {
-            networkInterface["adapter_type"] = "e1000"
-        } else {
-            networkInterface["adapter_type"] = "vmxnet3"
-        }
+		if _, ok := device.(*types.VirtualE1000); ok {
+			networkInterface["adapter_type"] = "e1000"
+		} else {
+			networkInterface["adapter_type"] = "vmxnet3"
+		}
 		virtualDevice := device.GetVirtualDevice()
 		nic := device.(types.BaseVirtualEthernetCard)
 		DeviceName, _ := getNetworkName(client, vm, nic)
