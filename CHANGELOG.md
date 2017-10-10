@@ -1,4 +1,9 @@
 ## 0.4.2 (Unreleased)
+
+FEATURES:
+
+* **New Resource:** `vsphere_distributed_virtual_switch` [GH-188]
+
 ## 0.4.1 (October 02, 2017)
 
 BUG FIXES:
