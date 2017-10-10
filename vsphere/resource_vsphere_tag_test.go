@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -83,6 +84,31 @@ func TestAccResourceVSphereTag(t *testing.T) {
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereTagExists(true),
 							testAccResourceVSphereTagHasDescription("Still managed by Terraform"),
+						),
+					},
+				},
+			},
+		},
+		{
+			"detach all tags",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereTagExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereTagConfigOnFolderAttached(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereTagExists(true),
+						),
+					},
+					{
+						Config: testAccResourceVSphereTagConfigOnFolderNotAttached(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereTagExists(true),
+							testAccResourceVSphereFolderCheckNoTags(),
 						),
 					},
 				},
@@ -259,3 +285,67 @@ resource "vsphere_tag" "terraform-test-tag" {
   category_id = "${vsphere_tag_category.terraform-test-category.id}"
 }
 `
+
+func testAccResourceVSphereTagConfigOnFolderAttached() string {
+	return fmt.Sprintf(`
+data "vsphere_datacenter" "dc" {
+  name = "%s"
+}
+
+resource "vsphere_tag_category" "terraform-test-category" {
+  name        = "terraform-test-category"
+  cardinality = "SINGLE"
+
+  associable_types = [
+    "Folder",
+  ]
+}
+
+resource "vsphere_tag" "terraform-test-tag" {
+  name        = "terraform-test-tag"
+  description = "Managed by Terraform"
+  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+}
+
+resource "vsphere_folder" "folder" {
+  path          = "terraform-test-folder"
+  type          = "vm"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+
+  tags = ["${vsphere_tag.terraform-test-tag.id}"]
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+	)
+}
+
+func testAccResourceVSphereTagConfigOnFolderNotAttached() string {
+	return fmt.Sprintf(`
+data "vsphere_datacenter" "dc" {
+  name = "%s"
+}
+
+resource "vsphere_tag_category" "terraform-test-category" {
+  name        = "terraform-test-category"
+  cardinality = "SINGLE"
+
+  associable_types = [
+    "Folder",
+  ]
+}
+
+resource "vsphere_tag" "terraform-test-tag" {
+  name        = "terraform-test-tag"
+  description = "Managed by Terraform"
+  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+}
+
+resource "vsphere_folder" "folder" {
+  path          = "terraform-test-folder"
+  type          = "vm"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+	)
+}

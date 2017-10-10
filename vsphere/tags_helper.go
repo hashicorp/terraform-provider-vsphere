@@ -323,7 +323,8 @@ func (p *tagDiffProcessor) processDetachOperations() error {
 // make sure it's worth proceeding with most of the operation. The returned
 // client should be checked for nil before passing it to processTagDiff.
 func tagsClientIfDefined(d *schema.ResourceData, meta interface{}) (*tags.RestClient, error) {
-	if _, ok := d.GetOk(vSphereTagAttributeKey); ok {
+	old, new := d.GetChange(vSphereTagAttributeKey)
+	if len(old.(*schema.Set).List()) > 0 || len(new.(*schema.Set).List()) > 0 {
 		client, err := meta.(*VSphereClient).TagsClient()
 		if err != nil {
 			return nil, err
