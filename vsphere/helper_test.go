@@ -293,3 +293,22 @@ func testGetFolderProperties(s *terraform.State, resourceName string) (*mo.Folde
 	}
 	return folderProperties(folder)
 }
+
+// testGetDVS is a convenience method to fetch a DVS by resource name.
+func testGetDVS(s *terraform.State, resourceName string) (*object.VmwareDistributedVirtualSwitch, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_distributed_virtual_switch.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+	return dvsFromUUID(tVars.client, tVars.resourceID)
+}
+
+// testGetDVSProperties is a convenience method that adds an extra step to
+// testGetDVS to get the properties of a DVS.
+func testGetDVSProperties(s *terraform.State, resourceName string) (*mo.VmwareDistributedVirtualSwitch, error) {
+	dvs, err := testGetDVS(s, resourceName)
+	if err != nil {
+		return nil, err
+	}
+	return dvsProperties(dvs)
+}

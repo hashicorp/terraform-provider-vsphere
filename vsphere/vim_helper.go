@@ -9,6 +9,7 @@ import (
 
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/task"
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
@@ -26,12 +27,22 @@ func soapFault(err error) (*soap.Fault, bool) {
 	return nil, false
 }
 
-// vimSoapFault extracts the VIM fault Check the returned boolean value to see
+// vimSoapFault extracts the VIM fault. Check the returned boolean value to see
 // if you have a fault, which will need to be further asserted into the error
 // that you are looking for.
 func vimSoapFault(err error) (types.AnyType, bool) {
 	if sf, ok := soapFault(err); ok {
 		return sf.VimFault(), true
+	}
+	return nil, false
+}
+
+// taskFault extracts the task fault from a supplied task.Error. Check the
+// returned boolean value to see if the fault was extracted correctly, after
+// which you will need to do further checking.
+func taskFault(err error) (types.BaseMethodFault, bool) {
+	if te, ok := err.(task.Error); ok {
+		return te.Fault(), true
 	}
 	return nil, false
 }
@@ -47,11 +58,57 @@ func isManagedObjectNotFoundError(err error) bool {
 	return false
 }
 
+// isNotFoundError checks an error to see if it's of the NotFoundError type.
+//
+// Note this is different from the other "not found" faults and is an error
+// type in its own right. Use isAnyNotFoundError to check for any "not found"
+// type.
+func isNotFoundError(err error) bool {
+	if f, ok := vimSoapFault(err); ok {
+		if _, ok := f.(types.NotFound); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// isAnyNotFoundError checks to see if the fault is of any not found error type
+// that we track.
+func isAnyNotFoundError(err error) bool {
+	switch {
+	case isManagedObjectNotFoundError(err):
+		fallthrough
+	case isNotFoundError(err):
+		return true
+	}
+	return false
+}
+
 // isResourceInUseError checks an error to see if it's of the
 // ResourceInUse type.
 func isResourceInUseError(err error) bool {
 	if f, ok := vimSoapFault(err); ok {
 		if _, ok := f.(types.ResourceInUse); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// isConcurrentAccessError checks an error to see if it's of the
+// ConcurrentAccess type.
+func isConcurrentAccessError(err error) bool {
+	// ConcurrentAccess comes from a task more than it usually does from a direct
+	// SOAP call, so we need to handle both here.
+	var f types.AnyType
+	var ok bool
+	f, ok = vimSoapFault(err)
+	if !ok {
+		f, ok = taskFault(err)
+	}
+	if ok {
+		switch f.(type) {
+		case types.ConcurrentAccess, *types.ConcurrentAccess:
 			return true
 		}
 	}
