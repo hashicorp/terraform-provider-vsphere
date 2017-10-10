@@ -9,12 +9,6 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-const (
-	retryDVSUpdatePending   = "retryDVSUpdatePending"
-	retryDVSUpdateCompleted = "retryDVSUpdateCompleted"
-	retryDVSUpdateError     = "retryDVSUpdateError"
-)
-
 func resourceVSphereDistributedVirtualSwitch() *schema.Resource {
 	s := map[string]*schema.Schema{
 		"datacenter_id": {
@@ -38,26 +32,6 @@ func resourceVSphereDistributedVirtualSwitch() *schema.Resource {
 		vSphereTagAttributeKey: tagsSchema(),
 	}
 	mergeSchema(s, schemaDVSCreateSpec())
-
-	// Some keys end up taking on defaults and need to be computed as a result -
-	// these are mainly in the default port setting policies.
-	csk := []string{
-		"egress_shaping_average_bandwidth",
-		"egress_shaping_burst_size",
-		"egress_shaping_peak_bandwidth",
-		"failback",
-		"ingress_shaping_average_bandwidth",
-		"ingress_shaping_burst_size",
-		"ingress_shaping_peak_bandwidth",
-		"lacp_mode",
-		"notify_switches",
-		"teaming_policy",
-		"active_uplinks",
-		"standby_uplinks",
-	}
-	for _, k := range csk {
-		s[k].Computed = true
-	}
 
 	return &schema.Resource{
 		Create: resourceVSphereDistributedVirtualSwitchCreate,

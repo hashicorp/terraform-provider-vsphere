@@ -392,6 +392,8 @@ applies to:
   applies to.
 * `tx_uplink` - (Optional) Forward all traffic transmitted by ports for which
   this policy applies to its DVS uplinks.
+* `directpath_gen2_allowed` - (Optional) Allow VMDirectPath Gen2 for the ports
+  for which this policy applies to.
 
 ## Attribute Reference
 

@@ -193,6 +193,8 @@ func tagTypeForObject(obj object.Reference) (string, error) {
 		return vSphereTagTypeVmwareDistributedVirtualSwitch, nil
 	case *object.DistributedVirtualSwitch:
 		return vSphereTagTypeDistributedVirtualSwitch, nil
+	case *object.DistributedVirtualPortgroup:
+		return vSphereTagTypeDistributedVirtualPortgroup, nil
 	case *object.Datacenter:
 		return vSphereTagTypeDatacenter, nil
 	case *object.ClusterComputeResource:
