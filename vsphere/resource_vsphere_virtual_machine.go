@@ -36,7 +36,7 @@ var DiskControllerTypes = []string{
 	"ide",
 }
 
-var NetworkAdapterTypes = []string{
+var virtualMachineNetworkAdapterTypeAllowedValues = []string{
 	"vmxnet3",
 	"e1000",
 }
@@ -388,20 +388,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 							Default: "vmxnet3",
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-                                                                value := v.(string)
-                                                                found := false
-                                                                for _, t := range NetworkAdapterTypes {
-                                                                        if t == value {
-                                                                                found = true
-                                                                        }
-                                                                }
-                                                                if !found {
-                                                                        errors = append(errors, fmt.Errorf(
-                                                                                "Supported values for 'adapter_type' are %v", strings.Join(NetworkAdapterTypes, ", ")))
-                                                                }
-                                                                return
-                                                        },
+                            ValidateFunc: validation.StringInSlice(virtualMachineNetworkAdapterTypeAllowedValues, false),
 						},
 
 						"mac_address": &schema.Schema{
@@ -1167,12 +1154,11 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	log.Printf("[DEBUG] Device list %+v", deviceList)
 	for _, device := range deviceList {
 		networkInterface := make(map[string]interface{})
-		adapter_type_string := fmt.Sprintf("%T", device)
-		if adapter_type_string == "*types.VirtualE1000" {
-			networkInterface["adapter_type"] = "e1000"
-		} else {
-			networkInterface["adapter_type"] = "vmxnet3"
-		}
+        if _, ok := device.(*types.VirtualE1000); ok {
+            networkInterface["adapter_type"] = "e1000"
+        } else {
+            networkInterface["adapter_type"] = "vmxnet3"
+        }
 		virtualDevice := device.GetVirtualDevice()
 		nic := device.(types.BaseVirtualEthernetCard)
 		DeviceName, _ := getNetworkName(client, vm, nic)
