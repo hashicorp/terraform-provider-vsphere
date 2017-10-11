@@ -36,6 +36,11 @@ var DiskControllerTypes = []string{
 	"ide",
 }
 
+var virtualMachineNetworkAdapterTypeAllowedValues = []string{
+	"vmxnet3",
+	"e1000",
+}
+
 type networkInterface struct {
 	deviceName       string
 	label            string
@@ -45,7 +50,7 @@ type networkInterface struct {
 	ipv6Address      string
 	ipv6PrefixLength int
 	ipv6Gateway      string
-	adapterType      string // TODO: Make "adapter_type" argument
+	adapterType      string
 	macAddress       string
 }
 
@@ -379,9 +384,11 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							DiffSuppressFunc: suppressIpDifferences},
 
 						"adapter_type": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
+							Type:         schema.TypeString,
+							Optional:     true,
+							ForceNew:     true,
+							Default:      "vmxnet3",
+							ValidateFunc: validation.StringInSlice(virtualMachineNetworkAdapterTypeAllowedValues, false),
 						},
 
 						"mac_address": &schema.Schema{
@@ -867,6 +874,9 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			if v, ok := network["mac_address"].(string); ok && v != "" {
 				networks[i].macAddress = v
 			}
+			if v, ok := network["adapter_type"].(string); ok && v != "" {
+				networks[i].adapterType = v
+			}
 		}
 		vm.networkInterfaces = networks
 		log.Printf("[DEBUG] network_interface init: %v", networks)
@@ -1144,6 +1154,11 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	log.Printf("[DEBUG] Device list %+v", deviceList)
 	for _, device := range deviceList {
 		networkInterface := make(map[string]interface{})
+		if _, ok := device.(*types.VirtualE1000); ok {
+			networkInterface["adapter_type"] = "e1000"
+		} else {
+			networkInterface["adapter_type"] = "vmxnet3"
+		}
 		virtualDevice := device.GetVirtualDevice()
 		nic := device.(types.BaseVirtualEthernetCard)
 		DeviceName, _ := getNetworkName(client, vm, nic)
@@ -1999,13 +2014,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	networkConfigs := []types.CustomizationAdapterMapping{}
 	for _, network := range vm.networkInterfaces {
 		// network device
-		var networkDeviceType string
-		if vm.template == "" {
-			networkDeviceType = "e1000"
-		} else {
-			networkDeviceType = "vmxnet3"
-		}
-		nd, err := buildNetworkDevice(finder, network.label, networkDeviceType, network.macAddress)
+		nd, err := buildNetworkDevice(finder, network.label, network.adapterType, network.macAddress)
 		if err != nil {
 			return err
 		}
