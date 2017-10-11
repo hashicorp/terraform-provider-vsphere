@@ -41,6 +41,15 @@ type TagCreate struct {
 	Name        string `json:"name"`
 }
 
+type TagUpdateSpec struct {
+	UpdateSpec TagUpdate `json:"update_spec"`
+}
+
+type TagUpdate struct {
+	Description string `json:"description"`
+	Name        string `json:"name"`
+}
+
 type Tag struct {
 	ID          string   `json:"id"`
 	Description string   `json:"description"`
@@ -130,6 +139,19 @@ func (c *RestClient) GetTag(ctx context.Context, id string) (*Tag, error) {
 		return nil, errors.Wrapf(err, "failed to get tag %s", id)
 	}
 	return &(pTag.Value), nil
+}
+
+func (c *RestClient) UpdateTag(ctx context.Context, id string, spec *TagUpdateSpec) error {
+	Logger.Debugf("Update tag %v", spec)
+	_, _, status, err := c.call(ctx, "PATCH", fmt.Sprintf("%s/id:%s", TagURL, id), spec, nil)
+
+	Logger.Debugf("Get status code: %d", status)
+	if status != http.StatusOK || err != nil {
+		Logger.Debugf("Update tag failed with status code: %d, error message: %s", status, errors.WithStack(err))
+		return errors.Wrapf(err, "Status code: %d", status)
+	}
+
+	return nil
 }
 
 func (c *RestClient) DeleteTag(ctx context.Context, id string) error {

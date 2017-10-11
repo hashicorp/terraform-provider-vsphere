@@ -128,6 +128,9 @@ vCenter must be assigned the following privileges:
    - Inventory (all)
    - Provisioning (all)
 
+* vCenter Inventory Service
+   - vCenter Inventory Service Tagging (all)
+
 * License 
    - Add License
    - Remove License

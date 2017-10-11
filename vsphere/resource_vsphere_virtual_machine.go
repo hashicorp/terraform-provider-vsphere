@@ -36,6 +36,11 @@ var DiskControllerTypes = []string{
 	"ide",
 }
 
+var virtualMachineNetworkAdapterTypeAllowedValues = []string{
+	"vmxnet3",
+	"e1000",
+}
+
 type networkInterface struct {
 	deviceName       string
 	label            string
@@ -45,7 +50,7 @@ type networkInterface struct {
 	ipv6Address      string
 	ipv6PrefixLength int
 	ipv6Gateway      string
-	adapterType      string // TODO: Make "adapter_type" argument
+	adapterType      string
 	macAddress       string
 }
 
@@ -78,32 +83,33 @@ type memoryAllocation struct {
 }
 
 type virtualMachine struct {
-	name                  string
-	hostname              string
-	folder                string
-	datacenter            string
-	cluster               string
-	resourcePool          string
-	datastore             string
-	vcpu                  int32
-	memoryMb              int64
-	memoryAllocation      memoryAllocation
-	annotation            string
-	template              string
-	networkInterfaces     []networkInterface
-	hardDisks             []hardDisk
-	cdroms                []cdrom
-	domain                string
-	timeZone              string
-	dnsSuffixes           []string
-	dnsServers            []string
-	hasBootableVmdk       bool
-	linkedClone           bool
-	skipCustomization     bool
-	enableDiskUUID        bool
-	moid                  string
-	windowsOptionalConfig windowsOptConfig
-	customConfigurations  map[string](types.AnyType)
+	name                     string
+	hostname                 string
+	folder                   string
+	datacenter               string
+	cluster                  string
+	resourcePool             string
+	datastore                string
+	vcpu                     int32
+	memoryMb                 int64
+	memoryAllocation         memoryAllocation
+	annotation               string
+	template                 string
+	networkInterfaces        []networkInterface
+	hardDisks                []hardDisk
+	cdroms                   []cdrom
+	domain                   string
+	timeZone                 string
+	dnsSuffixes              []string
+	dnsServers               []string
+	hasBootableVmdk          bool
+	linkedClone              bool
+	skipCustomization        bool
+	enableDiskUUID           bool
+	moid                     string
+	windowsOptionalConfig    windowsOptConfig
+	customConfigurations     map[string](types.AnyType)
+	customizationWaitTimeout int
 }
 
 func (v virtualMachine) Path() string {
@@ -233,6 +239,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Default:  false,
+			},
+
+			"wait_for_customization_timeout": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  10,
 			},
 
 			"wait_for_guest_net": &schema.Schema{
@@ -379,9 +391,11 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							DiffSuppressFunc: suppressIpDifferences},
 
 						"adapter_type": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
+							Type:         schema.TypeString,
+							Optional:     true,
+							ForceNew:     true,
+							Default:      "vmxnet3",
+							ValidateFunc: validation.StringInSlice(virtualMachineNetworkAdapterTypeAllowedValues, false),
 						},
 
 						"mac_address": &schema.Schema{
@@ -512,6 +526,9 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 					},
 				},
 			},
+
+			// Tagging
+			vSphereTagAttributeKey: tagsSchema(),
 		},
 	}
 }
@@ -543,6 +560,14 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	client := meta.(*VSphereClient).vimClient
+
+	// Load up the tags client, which will validate a proper vCenter before
+	// attempting to proceed if we have tags defined.
+	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
 		return err
@@ -553,6 +578,13 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	vm, err := finder.VirtualMachine(context.TODO(), vmPath(d.Get("folder").(string), d.Get("name").(string)))
 	if err != nil {
 		return err
+	}
+
+	// Apply any pending tags now, before proceeding with any expensive VM updates
+	if tagsClient != nil {
+		if err := processTagDiff(tagsClient, d, vm); err != nil {
+			return err
+		}
 	}
 
 	if d.HasChange("disk") {
@@ -718,6 +750,12 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 
 func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
+	// Load up the tags client, which will validate a proper vCenter before
+	// attempting to proceed if we have tags defined.
+	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
 
 	vm := virtualMachine{
 		name:     d.Get("name").(string),
@@ -726,6 +764,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		memoryAllocation: memoryAllocation{
 			reservation: int64(d.Get("memory_reservation").(int)),
 		},
+		customizationWaitTimeout: d.Get("wait_for_customization_timeout").(int),
 	}
 
 	if v, ok := d.GetOk("hostname"); ok {
@@ -779,7 +818,11 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			vm.dnsSuffixes = append(vm.dnsSuffixes, v.(string))
 		}
 	} else {
-		vm.dnsSuffixes = DefaultDNSSuffixes
+		if v, ok := d.GetOk("domain"); ok {
+			vm.dnsSuffixes = append(vm.dnsSuffixes, v.(string))
+		} else {
+			vm.dnsSuffixes = DefaultDNSSuffixes
+		}
 	}
 
 	if raw, ok := d.GetOk("dns_servers"); ok {
@@ -842,6 +885,9 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			}
 			if v, ok := network["mac_address"].(string); ok && v != "" {
 				networks[i].macAddress = v
+			}
+			if v, ok := network["adapter_type"].(string); ok && v != "" {
+				networks[i].adapterType = v
 			}
 		}
 		vm.networkInterfaces = networks
@@ -969,8 +1015,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		log.Printf("[DEBUG] cdrom init: %v", cdroms)
 	}
 
-	err := vm.setupVirtualMachine(client)
-	if err != nil {
+	if err := vm.setupVirtualMachine(client); err != nil {
 		return err
 	}
 
@@ -984,6 +1029,13 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 	newProps, err := virtualMachineProperties(newVM)
 	if err != nil {
 		return err
+	}
+
+	// Apply any pending tags now
+	if tagsClient != nil {
+		if err := processTagDiff(tagsClient, d, newVM); err != nil {
+			return err
+		}
 	}
 
 	if newProps.Runtime.PowerState == types.VirtualMachinePowerStatePoweredOn && d.Get("wait_for_guest_net").(bool) {
@@ -1114,6 +1166,11 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	log.Printf("[DEBUG] Device list %+v", deviceList)
 	for _, device := range deviceList {
 		networkInterface := make(map[string]interface{})
+		if _, ok := device.(*types.VirtualE1000); ok {
+			networkInterface["adapter_type"] = "e1000"
+		} else {
+			networkInterface["adapter_type"] = "vmxnet3"
+		}
 		virtualDevice := device.GetVirtualDevice()
 		nic := device.(types.BaseVirtualEthernetCard)
 		DeviceName, _ := getNetworkName(client, vm, nic)
@@ -1153,7 +1210,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		}
 	}
 	log.Printf("[DEBUG] networks: %#v", networkInterfaces)
-	if mvm.Guest.IpStack != nil {
+	if mvm.Guest.IpStack != nil && len(mvm.Guest.Net) > 0 {
 		for _, v := range mvm.Guest.IpStack {
 			if v.IpRouteConfig != nil && v.IpRouteConfig.IpRoute != nil {
 				for _, route := range v.IpRouteConfig.IpRoute {
@@ -1169,16 +1226,39 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 							gatewaySetting = "ipv4_gateway"
 						}
 						if gatewaySetting != "" {
-							deviceID, err := strconv.Atoi(route.Gateway.Device)
-							if len(networkInterfaces) == 1 {
-								deviceID = 0
-							}
+							// We need to get the correct device index which is not always
+							// aligned with what we have saved in Terraform state.
+							//
+							// The index in Device corresponds with the device index in
+							// Guest.Net, which we can use to discover the key.
+							did := route.Gateway.Device
+							nidx, err := strconv.Atoi(did)
 							if err != nil {
-								log.Printf("[WARN] error at processing %s of device id %#v: %#v", gatewaySetting, route.Gateway.Device, err)
-							} else {
-								log.Printf("[DEBUG] %s of device id %d: %s", gatewaySetting, deviceID, route.Gateway.IpAddress)
-								networkInterfaces[deviceID][gatewaySetting] = route.Gateway.IpAddress
+								// "device" for some reason is a string, even though its result
+								// has always been observed to be an int. This should never
+								// happen, but we warn just in case.
+								log.Printf("[WARN] error at processing %s of device id %#v: %#v", gatewaySetting, did, err)
+								continue
 							}
+							key := mvm.Guest.Net[nidx].DeviceConfigId
+							if key < 0 {
+								// Gateway is not set to any hardware device, ignore.
+								continue
+							}
+							didx := -1
+							for n, dev := range networkInterfaces {
+								if dev["key"] == key {
+									didx = n
+									break
+								}
+							}
+							if didx < 0 {
+								// We are not tracking the device that the gateway is going to
+								// in state, so just skip the gateway.
+								continue
+							}
+							log.Printf("[DEBUG] %s of device id %d: %s", gatewaySetting, didx, route.Gateway.IpAddress)
+							networkInterfaces[didx][gatewaySetting] = route.Gateway.IpAddress
 						}
 					}
 				}
@@ -1229,6 +1309,13 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	d.Set("uuid", mvm.Summary.Config.Uuid)
 	d.Set("annotation", mvm.Summary.Config.Annotation)
 	d.Set("power_state", mvm.Runtime.PowerState)
+
+	// Read tags if we have the ability to do so
+	if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
+		if err := readTagsForResource(tagsClient, vm, d); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -1452,7 +1539,7 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 		disk.CapacityInKB = int64(size * 1024 * 1024)
 		if iops != 0 {
 			disk.StorageIOAllocation = &types.StorageIOAllocationInfo{
-				Limit: iops,
+				Limit: &iops,
 			}
 		}
 		backing := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
@@ -1577,7 +1664,7 @@ func addCdrom(client *govmomi.Client, vm *object.VirtualMachine, datacenter *obj
 
 // buildNetworkDevice builds VirtualDeviceConfigSpec for Network Device.
 func buildNetworkDevice(f *find.Finder, label, adapterType string, macAddress string) (*types.VirtualDeviceConfigSpec, error) {
-	network, err := f.Network(context.TODO(), "*"+label)
+	network, err := f.Network(context.TODO(), label)
 	if err != nil {
 		return nil, err
 	}
@@ -1865,7 +1952,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		NumCoresPerSocket: 1,
 		MemoryMB:          vm.memoryMb,
 		MemoryAllocation: &types.ResourceAllocationInfo{
-			Reservation: vm.memoryAllocation.reservation,
+			Reservation: &vm.memoryAllocation.reservation,
 		},
 		Flags: &types.VirtualMachineFlagInfo{
 			DiskUuidEnabled: &vm.enableDiskUUID,
@@ -1939,13 +2026,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	networkConfigs := []types.CustomizationAdapterMapping{}
 	for _, network := range vm.networkInterfaces {
 		// network device
-		var networkDeviceType string
-		if vm.template == "" {
-			networkDeviceType = "e1000"
-		} else {
-			networkDeviceType = "vmxnet3"
-		}
-		nd, err := buildNetworkDevice(finder, network.label, networkDeviceType, network.macAddress)
+		nd, err := buildNetworkDevice(finder, network.label, network.adapterType, network.macAddress)
 		if err != nil {
 			return err
 		}
@@ -2222,7 +2303,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		log.Printf("[DEBUG] custom spec: %v", customSpec)
 
 		log.Printf("[DEBUG] VM customization starting")
-		cw = newVirtualMachineCustomizationWaiter(c, newVM)
+		cw = newVirtualMachineCustomizationWaiter(c, newVM, vm.customizationWaitTimeout)
 		taskb, err := newVM.Customize(context.TODO(), customSpec)
 		if err != nil {
 			return err

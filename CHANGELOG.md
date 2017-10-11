@@ -1,14 +1,82 @@
-## 0.3.1 (Unreleased)
+## 0.4.2 (Unreleased)
 
 FEATURES:
 
-* **New Data Source:** `vsphere_tag_category` [GH-167]
-* **New Resoruce:** `vsphere_tag_category` [GH-164]
+* **New Resource:** `vsphere_distributed_port_group` [GH-189]
+* **New Resource:** `vsphere_distributed_virtual_switch` [GH-188]
 
 IMPROVEMENTS:
 
+* resource/vsphere_virtual_machine: The customization waiter is now tunable
+  through the `wait_for_customization_timeout` argument. The timeout can be
+  adjusted or the waiter can be disabled altogether. [GH-199]
+* resource/vsphere_virtual_machine: `domain` now acts as a default for
+  `dns_suffixes` if the latter is not defined, setting the value in `domain` as
+  a search domain in the customization specification. `vsphere.local` is not
+  used as a last resort only. [GH-185]
+* resource/vsphere_virtual_machine: Expose the `adapter_type` parameter to allow
+  the control of the network interface type. This is currently restricted to
+  `vmxnet3` and `e1000` but offers more control than what was available before,
+  and more interface types will follow in later versions of the provider.
+  [GH-193]
+
+BUG FIXES:
+
+* resource/vsphere_virtual_machine: Fixed a regression with newtork discovery
+  that was causing Terraform to crash while the VM was in a powered off state.
+  [GH-198]
+* All resources that can use tags will now properly remove their tags completely
+  (or remove any out-of-band added tags) when the `tags` argument is not present
+  in configuration. [GH-196]
+
+## 0.4.1 (October 02, 2017)
+
+BUG FIXES:
+
+* resource/vsphere_folder: Migration of state from a version of this resource
+  before v0.4.0 now works correctly. ([#187](https://github.com/terraform-providers/terraform-provider-vsphere/issues/187))
+
+## 0.4.0 (September 29, 2017)
+
+BREAKING CHANGES:
+
+* The `vsphere_folder` resource has been re-written, and its configuration is
+  significantly different. See the [resource
+  documentation](https://www.terraform.io/docs/providers/vsphere/r/folder.html)
+  for more details. Existing state will be migrated. ([#179](https://github.com/terraform-providers/terraform-provider-vsphere/issues/179))
+
+FEATURES:
+
+* **New Data Source:** `vsphere_tag` ([#171](https://github.com/terraform-providers/terraform-provider-vsphere/issues/171))
+* **New Data Source:** `vsphere_tag_category` ([#167](https://github.com/terraform-providers/terraform-provider-vsphere/issues/167))
+* **New Resoruce:** `vsphere_tag` ([#171](https://github.com/terraform-providers/terraform-provider-vsphere/issues/171))
+* **New Resoruce:** `vsphere_tag_category` ([#164](https://github.com/terraform-providers/terraform-provider-vsphere/issues/164))
+
+IMPROVEMENTS:
+
+* resource/vsphere_folder: You can now create any kind of folder with this
+  resource, not just virtual machine folders. ([#179](https://github.com/terraform-providers/terraform-provider-vsphere/issues/179))
+* resource/vsphere_folder: Now supports tags. ([#179](https://github.com/terraform-providers/terraform-provider-vsphere/issues/179))
+* resource/vsphere_folder: Now supports import. ([#179](https://github.com/terraform-providers/terraform-provider-vsphere/issues/179))
+* resource/vsphere_datacenter: Tags can now be applied to datacenters. ([#177](https://github.com/terraform-providers/terraform-provider-vsphere/issues/177))
+* resource/vsphere_nas_datastore: Tags can now be applied to NAS datastores.
+  ([#176](https://github.com/terraform-providers/terraform-provider-vsphere/issues/176))
+* resource/vsphere_vmfs_datastore: Tags can now be applied to VMFS datastores.
+  ([#176](https://github.com/terraform-providers/terraform-provider-vsphere/issues/176))
+* resource/vsphere_virtual_machine: Tags can now be applied to virtual machines.
+  ([#175](https://github.com/terraform-providers/terraform-provider-vsphere/issues/175))
 * resource/vsphere_virtual_machine: Adjusted the customization timeout to 10
-  minutes [GH-168]
+  minutes ([#168](https://github.com/terraform-providers/terraform-provider-vsphere/issues/168))
+
+BUG FIXES:
+
+* resource/vsphere_virtual_machine: This resource can now be used with networks
+  with unescaped slashes in its network name. ([#181](https://github.com/terraform-providers/terraform-provider-vsphere/issues/181))
+* resource/vsphere_virtual_machine: Fixed a crash where virtual NICs were
+  created with networks backed by a 3rd party hardware VDS. ([#181](https://github.com/terraform-providers/terraform-provider-vsphere/issues/181))
+* resource/vsphere_virtual_machine: Fixed crashes and spurious diffs that were
+  caused by errors in the code that associates the default gateway with its
+  correct network device during refresh. ([#180](https://github.com/terraform-providers/terraform-provider-vsphere/issues/180))
 
 ## 0.3.0 (September 14, 2017)
 

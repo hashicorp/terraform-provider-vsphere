@@ -35,7 +35,7 @@ func TestAccResourceVSphereTagCategory(t *testing.T) {
 							testAccResourceVSphereTagCategoryHasName("terraform-test-category"),
 							testAccResourceVSphereTagCategoryHasCardinality(vSphereTagCategoryCardinalitySingle),
 							testAccResourceVSphereTagCategoryHasTypes([]string{
-								vSphereTagCategoryAssociableTypeVirtualMachine,
+								vSphereTagTypeVirtualMachine,
 							}),
 						),
 					},
@@ -56,7 +56,7 @@ func TestAccResourceVSphereTagCategory(t *testing.T) {
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereTagCategoryExists(true),
 							testAccResourceVSphereTagCategoryHasTypes([]string{
-								vSphereTagCategoryAssociableTypeVirtualMachine,
+								vSphereTagTypeVirtualMachine,
 							}),
 						),
 					},
@@ -65,8 +65,8 @@ func TestAccResourceVSphereTagCategory(t *testing.T) {
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereTagCategoryExists(true),
 							testAccResourceVSphereTagCategoryHasTypes([]string{
-								vSphereTagCategoryAssociableTypeVirtualMachine,
-								vSphereTagCategoryAssociableTypeDatastore,
+								vSphereTagTypeVirtualMachine,
+								vSphereTagTypeDatastore,
 							}),
 						),
 					},

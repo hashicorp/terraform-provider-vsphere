@@ -10,53 +10,14 @@ import (
 	"github.com/vmware/vic/pkg/vsphere/tags"
 )
 
-// A list of valid types for cardinality and associable types are below. The
-// latter is more significant, even though they are not used in the resource
-// itself, to ensure all associable types are properly documented so we can
-// reference it later, in addition to providing the list for future validation
-// if we add the ability to validate lists and sets in core.
 const (
-	vSphereTagCategoryCardinalitySingle   = "SINGLE"
+	// vSphereTagCategoryCardinalitySingle defines the API type for single
+	// cardinality.
+	vSphereTagCategoryCardinalitySingle = "SINGLE"
+
+	// vSphereTagCategoryCardinalityMultiple defines the API type for multiple
+	// cardinality.
 	vSphereTagCategoryCardinalityMultiple = "MULTIPLE"
-
-	vSphereTagCategoryAssociableTypeFolder                         = "Folder"
-	vSphereTagCategoryAssociableTypeClusterComputeResource         = "ClusterComputeResource"
-	vSphereTagCategoryAssociableTypeDatacenter                     = "Datacenter"
-	vSphereTagCategoryAssociableTypeDatastore                      = "Datastore"
-	vSphereTagCategoryAssociableTypeStoragePod                     = "StoragePod"
-	vSphereTagCategoryAssociableTypeDistributedVirtualPortgroup    = "DistributedVirtualPortgroup"
-	vSphereTagCategoryAssociableTypeDistributedVirtualSwitch       = "DistributedVirtualSwitch"
-	vSphereTagCategoryAssociableTypeVmwareDistributedVirtualSwitch = "VmwareDistributedVirtualSwitch"
-	vSphereTagCategoryAssociableTypeHostSystem                     = "HostSystem"
-	vSphereTagCategoryAssociableTypeContentLibrary                 = "com.vmware.content.Library"
-	vSphereTagCategoryAssociableTypeContentLibraryItem             = "com.vmware.content.library.Item"
-	vSphereTagCategoryAssociableTypeHostNetwork                    = "HostNetwork"
-	vSphereTagCategoryAssociableTypeNetwork                        = "Network"
-	vSphereTagCategoryAssociableTypeOpaqueNetwork                  = "OpaqueNetwork"
-	vSphereTagCategoryAssociableTypeResourcePool                   = "ResourcePool"
-	vSphereTagCategoryAssociableTypeVirtualApp                     = "VirtualApp"
-	vSphereTagCategoryAssociableTypeVirtualMachine                 = "VirtualMachine"
-
-	vSphereTagCategoryAssociableTypeAll = "All"
-)
-
-// The following groups are type groups that are associated with the same type
-// selection in the vSphere Client tag category UI.
-var (
-	// vSphereTagCategoryAssociableTypesForDistributedVirtualSwitch represents
-	// types for virtual switches.
-	vSphereTagCategoryAssociableTypesForDistributedVirtualSwitch = []string{
-		vSphereTagCategoryAssociableTypeDistributedVirtualSwitch,
-		vSphereTagCategoryAssociableTypeVmwareDistributedVirtualSwitch,
-	}
-
-	// vSphereTagCategoryAssociableTypesForNetwork represents the types for
-	// networks.
-	vSphereTagCategoryAssociableTypesForNetwork = []string{
-		vSphereTagCategoryAssociableTypeHostNetwork,
-		vSphereTagCategoryAssociableTypeNetwork,
-		vSphereTagCategoryAssociableTypeOpaqueNetwork,
-	}
 )
 
 func resourceVSphereTagCategory() *schema.Resource {

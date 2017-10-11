@@ -9,6 +9,7 @@ import (
 
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/task"
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
@@ -26,12 +27,22 @@ func soapFault(err error) (*soap.Fault, bool) {
 	return nil, false
 }
 
-// vimSoapFault extracts the VIM fault Check the returned boolean value to see
+// vimSoapFault extracts the VIM fault. Check the returned boolean value to see
 // if you have a fault, which will need to be further asserted into the error
 // that you are looking for.
 func vimSoapFault(err error) (types.AnyType, bool) {
 	if sf, ok := soapFault(err); ok {
 		return sf.VimFault(), true
+	}
+	return nil, false
+}
+
+// taskFault extracts the task fault from a supplied task.Error. Check the
+// returned boolean value to see if the fault was extracted correctly, after
+// which you will need to do further checking.
+func taskFault(err error) (types.BaseMethodFault, bool) {
+	if te, ok := err.(task.Error); ok {
+		return te.Fault(), true
 	}
 	return nil, false
 }
@@ -47,11 +58,57 @@ func isManagedObjectNotFoundError(err error) bool {
 	return false
 }
 
+// isNotFoundError checks an error to see if it's of the NotFoundError type.
+//
+// Note this is different from the other "not found" faults and is an error
+// type in its own right. Use isAnyNotFoundError to check for any "not found"
+// type.
+func isNotFoundError(err error) bool {
+	if f, ok := vimSoapFault(err); ok {
+		if _, ok := f.(types.NotFound); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// isAnyNotFoundError checks to see if the fault is of any not found error type
+// that we track.
+func isAnyNotFoundError(err error) bool {
+	switch {
+	case isManagedObjectNotFoundError(err):
+		fallthrough
+	case isNotFoundError(err):
+		return true
+	}
+	return false
+}
+
 // isResourceInUseError checks an error to see if it's of the
 // ResourceInUse type.
 func isResourceInUseError(err error) bool {
 	if f, ok := vimSoapFault(err); ok {
 		if _, ok := f.(types.ResourceInUse); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// isConcurrentAccessError checks an error to see if it's of the
+// ConcurrentAccess type.
+func isConcurrentAccessError(err error) bool {
+	// ConcurrentAccess comes from a task more than it usually does from a direct
+	// SOAP call, so we need to handle both here.
+	var f types.AnyType
+	var ok bool
+	f, ok = vimSoapFault(err)
+	if !ok {
+		f, ok = taskFault(err)
+	}
+	if ok {
+		switch f.(type) {
+		case types.ConcurrentAccess, *types.ConcurrentAccess:
 			return true
 		}
 	}
@@ -112,7 +169,9 @@ type vSphereVersion struct {
 // parseVersion creates a new vSphereVersion from a parsed version string and
 // build number.
 func parseVersion(name, version, build string) (vSphereVersion, error) {
-	v := vSphereVersion{}
+	v := vSphereVersion{
+		product: name,
+	}
 	s := strings.Split(version, ".")
 	if len(s) > 3 {
 		return v, fmt.Errorf("version string %q has more than 3 components", version)
@@ -169,13 +228,10 @@ func (v vSphereVersion) ProductEqual(other vSphereVersion) bool {
 	return v.product == other.product
 }
 
-// Newer returns true if this version's product is the same, and composite of
-// the version and build numbers, are newer than the supplied version's
-// information.
-func (v vSphereVersion) Newer(other vSphereVersion) bool {
-	if !v.ProductEqual(other) {
-		return false
-	}
+// newerVersion checks the major/minor/patch part of the version to see it's
+// higher than the version supplied in other. This is broken off from the main
+// test so that it can be checked in Older before the build number is compared.
+func (v vSphereVersion) newerVersion(other vSphereVersion) bool {
 	if v.major > other.major {
 		return true
 	}
@@ -185,7 +241,43 @@ func (v vSphereVersion) Newer(other vSphereVersion) bool {
 	if v.patch > other.patch {
 		return true
 	}
+	return false
+}
+
+// Newer returns true if this version's product is the same, and composite of
+// the version and build numbers, are newer than the supplied version's
+// information.
+func (v vSphereVersion) Newer(other vSphereVersion) bool {
+	if !v.ProductEqual(other) {
+		return false
+	}
+	if v.newerVersion(other) {
+		return true
+	}
+
+	// Double check this version is not actually older by version number before
+	// moving on to the build number
+	if v.olderVersion(other) {
+		return false
+	}
+
 	if v.build > other.build {
+		return true
+	}
+	return false
+}
+
+// olderVersion checks the major/minor/patch part of the version to see it's
+// older than the version supplied in other. This is broken off from the main
+// test so that it can be checked in Newer before the build number is compared.
+func (v vSphereVersion) olderVersion(other vSphereVersion) bool {
+	if v.major < other.major {
+		return true
+	}
+	if v.minor < other.minor {
+		return true
+	}
+	if v.patch < other.patch {
 		return true
 	}
 	return false
@@ -198,15 +290,16 @@ func (v vSphereVersion) Older(other vSphereVersion) bool {
 	if !v.ProductEqual(other) {
 		return false
 	}
-	if v.major < other.major {
+	if v.olderVersion(other) {
 		return true
 	}
-	if v.minor < other.minor {
-		return true
+
+	// Double check this version is not actually newer by version number before
+	// moving on to the build number
+	if v.newerVersion(other) {
+		return false
 	}
-	if v.patch < other.patch {
-		return true
-	}
+
 	if v.build < other.build {
 		return true
 	}

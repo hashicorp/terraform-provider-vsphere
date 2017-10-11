@@ -87,7 +87,8 @@ The following arguments are supported:
   or [Windows](https://msdn.microsoft.com/en-us/library/ms912391.aspx) time
   zone to set on the virtual machine. Defaults to "Etc/UTC"
 * `dns_suffixes` - (Optional) List of name resolution suffixes for the virtual
-  network adapter
+  network adapter. Default: The value of `domain` if defined, otherwise
+  `vsphere.local`.
 * `dns_servers` - (Optional) List of DNS servers for the virtual network
   adapter; defaults to 8.8.8.8, 8.8.4.4
 * `network_interface` - (Required) Configures virtual network interfaces; see
@@ -111,15 +112,33 @@ The following arguments are supported:
 * `skip_customization` - (Optional) Skip virtual machine customization (useful
   if OS is not in the guest OS support matrix of VMware like
   "other3xLinux64Guest").
+* `wait_for_customization_timeout` - (Optional) The amount of time, in minutes,
+  to wait for guest OS customization to complete before returning with an
+  error. Setting this value to `0` or a negative value skips the waiter.
+  Default: `10` (10 minutes).
+
+~> **NOTE:** Disabling the customization waiter may require you to set
+`wait_for_guest_net` to `false` if the VM will not be available with a
+routeable network interface within 5 minutes.
+
 * `wait_for_guest_net` - (Optional) Whether or not to wait for a VM to have
   routeable network access. Should be set to `false` if none of the defined
   `network_interface`s has a gateway assigned, or if all interfaces have been
   left unconfigured. Default: `true`.
 * `annotation` - (Optional) Edit the annotation notes field
+* `tags` - (Optional) The IDs of any tags to attach to this resource. See
+  [here][docs-applying-tags] for a reference on how to apply tags.
+
+[docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
+
+~> **NOTE:** Tagging support is unsupported on direct ESXi connections and
+requires vCenter 6.0 or higher.
 
 The `network_interface` block supports:
 
 * `label` - (Required) Label to assign to this network interface
+* `adapter_type` - (Optional) The adapter type on the network interface. Can be
+  one of `vmxnet3` or `e1000`. Default: `vmxnet3`.
 * `ipv4_address` - (Optional) Static IPv4 to assign to this network interface.
   Interface will use DHCP if this is left blank.
 * `ipv4_prefix_length` - (Optional) prefix length to use when statically
