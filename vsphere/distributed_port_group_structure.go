@@ -69,7 +69,7 @@ func schemaDVPortgroupConfigSpec() map[string]*schema.Schema {
 
 		// DVPortgroupConfigSpec
 		"auto_expand": {
-			Type:        schema.TypeString,
+			Type:        schema.TypeBool,
 			Optional:    true,
 			Default:     true,
 			Description: "Auto-expands the port group beyond the port count configured in number_of_ports when necessary.",
