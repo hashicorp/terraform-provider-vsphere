@@ -5,6 +5,14 @@ FEATURES:
 * **New Resource:** `vsphere_distributed_port_group` [GH-189]
 * **New Resource:** `vsphere_distributed_virtual_switch` [GH-188]
 
+IMPROVEMENTS:
+
+* resource/vsphere_virtual_machine: Expose the `adapter_type` parameter to allow
+  the control of the network interface type. This is currently restricted to
+  `vmxnet3` and `e1000` but offers more control than what was available before,
+  and more interface types will follow in later versions of the provider.
+  [GH-193]
+
 ## 0.4.1 (October 02, 2017)
 
 BUG FIXES:
