@@ -8,7 +8,7 @@ description: |-
 
 # vsphere\_distributed\_virtual\_switch
 
-The `vsphere_distributed_virtual_switch` can be used to manage VMware
+The `vsphere_distributed_virtual_switch` resource can be used to manage VMware
 Distributed Virtual Switches.
 
 An essential component of a distributed, scalable VMware datacenter, the
