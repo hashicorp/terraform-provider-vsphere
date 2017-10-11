@@ -7,6 +7,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* resource/vsphere_virtual_machine: `domain` now sets the DNS domain properly in
+  the VM customization specification. [GH-185]
 * resource/vsphere_virtual_machine: Expose the `adapter_type` parameter to allow
   the control of the network interface type. This is currently restricted to
   `vmxnet3` and `e1000` but offers more control than what was available before,
