@@ -25,9 +25,9 @@ BUG FIXES:
 * resource/vsphere_virtual_machine: Fixed a regression with newtork discovery
   that was causing Terraform to crash while the VM was in a powered off state.
   [GH-198]
-* All resources that can use tags will now completely remove their tags
-  completely (or remove any out-of-band added tags) when the `tags` argument is
-  not present in configuration. [GH-196]
+* All resources that can use tags will now properly remove their tags completely
+  (or remove any out-of-band added tags) when the `tags` argument is not present
+  in configuration. [GH-196]
 
 ## 0.4.1 (October 02, 2017)
 
