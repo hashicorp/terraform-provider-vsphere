@@ -26,7 +26,7 @@ data "vsphere_tag_category" "category" {
   name = "terraform-test-category"
 }
 
-data "vsphere_tag" "tag" 
+data "vsphere_tag" "tag" {
   name        = "terraform-test-tag"
   category_id = "${data.vsphere_tag_category.category.id}"
 }
