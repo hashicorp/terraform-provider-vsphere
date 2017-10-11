@@ -8,7 +8,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * resource/vsphere_virtual_machine: The customization waiter is now tunable
-  through the `wait_for_customization_timeout` parameter. The timeout can be
+  through the `wait_for_customization_timeout` argument. The timeout can be
   adjusted or the waiter can be disabled altogether. [GH-199]
 * resource/vsphere_virtual_machine: `domain` now acts as a default for
   `dns_suffixes` if the latter is not defined, setting the value in `domain` as
@@ -19,6 +19,12 @@ IMPROVEMENTS:
   `vmxnet3` and `e1000` but offers more control than what was available before,
   and more interface types will follow in later versions of the provider.
   [GH-193]
+
+BUG FIXES:
+
+* All resources that can use tags will now completely remove their tags
+  completely (or remove any out-of-band added tags) when the `tags` argument is
+  not present in configuration. [GH-196]
 
 ## 0.4.1 (October 02, 2017)
 
