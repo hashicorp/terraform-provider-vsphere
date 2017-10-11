@@ -112,6 +112,15 @@ The following arguments are supported:
 * `skip_customization` - (Optional) Skip virtual machine customization (useful
   if OS is not in the guest OS support matrix of VMware like
   "other3xLinux64Guest").
+* `wait_for_customization_timeout` - (Optional) The amount of time, in minutes,
+  to wait for guest OS customization to complete before returning with an
+  error. Setting this value to `0` or a negative value skips the waiter.
+  Default: `10` (10 minutes).
+
+~> **NOTE:** Disabling the customization waiter may require you to set
+`wait_for_guest_net` to `false` if the VM will not be available with a
+routeable network interface within 5 minutes.
+
 * `wait_for_guest_net` - (Optional) Whether or not to wait for a VM to have
   routeable network access. Should be set to `false` if none of the defined
   `network_interface`s has a gateway assigned, or if all interfaces have been
