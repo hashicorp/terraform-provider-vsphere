@@ -1183,7 +1183,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		}
 	}
 	log.Printf("[DEBUG] networks: %#v", networkInterfaces)
-	if mvm.Guest.IpStack != nil {
+	if mvm.Guest.IpStack != nil && len(mvm.Guest.Net) > 0 {
 		for _, v := range mvm.Guest.IpStack {
 			if v.IpRouteConfig != nil && v.IpRouteConfig.IpRoute != nil {
 				for _, route := range v.IpRouteConfig.IpRoute {
