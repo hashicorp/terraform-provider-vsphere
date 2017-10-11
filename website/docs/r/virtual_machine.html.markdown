@@ -87,7 +87,8 @@ The following arguments are supported:
   or [Windows](https://msdn.microsoft.com/en-us/library/ms912391.aspx) time
   zone to set on the virtual machine. Defaults to "Etc/UTC"
 * `dns_suffixes` - (Optional) List of name resolution suffixes for the virtual
-  network adapter
+  network adapter. Default: The value of `domain` if defined, otherwise
+  `vsphere.local`.
 * `dns_servers` - (Optional) List of DNS servers for the virtual network
   adapter; defaults to 8.8.8.8, 8.8.4.4
 * `network_interface` - (Required) Configures virtual network interfaces; see
