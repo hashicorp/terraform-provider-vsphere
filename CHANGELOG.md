@@ -7,6 +7,9 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* resource/vsphere_virtual_machine: The customization waiter is now tunable
+  through the `wait_for_customization_timeout` parameter. The timeout can be
+  adjusted or the waiter can be disabled altogether. [GH-199]
 * resource/vsphere_virtual_machine: `domain` now acts as a default for
   `dns_suffixes` if the latter is not defined, setting the value in `domain` as
   a search domain in the customization specification. `vsphere.local` is not
