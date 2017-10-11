@@ -83,32 +83,33 @@ type memoryAllocation struct {
 }
 
 type virtualMachine struct {
-	name                  string
-	hostname              string
-	folder                string
-	datacenter            string
-	cluster               string
-	resourcePool          string
-	datastore             string
-	vcpu                  int32
-	memoryMb              int64
-	memoryAllocation      memoryAllocation
-	annotation            string
-	template              string
-	networkInterfaces     []networkInterface
-	hardDisks             []hardDisk
-	cdroms                []cdrom
-	domain                string
-	timeZone              string
-	dnsSuffixes           []string
-	dnsServers            []string
-	hasBootableVmdk       bool
-	linkedClone           bool
-	skipCustomization     bool
-	enableDiskUUID        bool
-	moid                  string
-	windowsOptionalConfig windowsOptConfig
-	customConfigurations  map[string](types.AnyType)
+	name                     string
+	hostname                 string
+	folder                   string
+	datacenter               string
+	cluster                  string
+	resourcePool             string
+	datastore                string
+	vcpu                     int32
+	memoryMb                 int64
+	memoryAllocation         memoryAllocation
+	annotation               string
+	template                 string
+	networkInterfaces        []networkInterface
+	hardDisks                []hardDisk
+	cdroms                   []cdrom
+	domain                   string
+	timeZone                 string
+	dnsSuffixes              []string
+	dnsServers               []string
+	hasBootableVmdk          bool
+	linkedClone              bool
+	skipCustomization        bool
+	enableDiskUUID           bool
+	moid                     string
+	windowsOptionalConfig    windowsOptConfig
+	customConfigurations     map[string](types.AnyType)
+	customizationWaitTimeout int
 }
 
 func (v virtualMachine) Path() string {
@@ -238,6 +239,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Default:  false,
+			},
+
+			"wait_for_customization_timeout": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  10,
 			},
 
 			"wait_for_guest_net": &schema.Schema{
@@ -757,6 +764,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		memoryAllocation: memoryAllocation{
 			reservation: int64(d.Get("memory_reservation").(int)),
 		},
+		customizationWaitTimeout: d.Get("wait_for_customization_timeout").(int),
 	}
 
 	if v, ok := d.GetOk("hostname"); ok {
@@ -2291,7 +2299,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		log.Printf("[DEBUG] custom spec: %v", customSpec)
 
 		log.Printf("[DEBUG] VM customization starting")
-		cw = newVirtualMachineCustomizationWaiter(c, newVM)
+		cw = newVirtualMachineCustomizationWaiter(c, newVM, vm.customizationWaitTimeout)
 		taskb, err := newVM.Customize(context.TODO(), customSpec)
 		if err != nil {
 			return err
