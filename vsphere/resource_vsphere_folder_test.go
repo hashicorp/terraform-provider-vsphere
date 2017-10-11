@@ -476,6 +476,24 @@ func testAccResourceVSphereFolderCheckTags(tagResName string) resource.TestCheck
 	}
 }
 
+// testAccResourceVSphereFolderCheckNoTags is a check to ensure that a folder
+// has no tags on it. This is used by the vsphere_tag tests specifically to
+// test to make sure that complete tag removal is explicitly working without
+// having to rely on the simple empty diff test after the final step.
+func testAccResourceVSphereFolderCheckNoTags() resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		folder, err := testGetFolder(s, "folder")
+		if err != nil {
+			return err
+		}
+		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsClient()
+		if err != nil {
+			return err
+		}
+		return testObjectHasNoTags(s, tagsClient, folder)
+	}
+}
+
 // testAccResourceVSphereFolderCreateOOB creates an out-of-band folder that is
 // not tracked by TF. This is used in deletion checks to make sure we don't
 // perform unsafe recursive deletions.

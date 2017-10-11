@@ -243,6 +243,27 @@ func testObjectHasTags(s *terraform.State, client *tags.RestClient, obj object.R
 	return nil
 }
 
+// testObjectHasNoTags checks to make sure that an object has no tags attached
+// to it. The parameters are the same as testObjectHasTags, but no tag resource
+// needs to be supplied.
+func testObjectHasNoTags(s *terraform.State, client *tags.RestClient, obj object.Reference) error {
+	objID := obj.Reference().Value
+	objType, err := tagTypeForObject(obj)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	actualIDs, err := client.ListAttachedTags(ctx, objID, objType)
+	if err != nil {
+		return err
+	}
+	if len(actualIDs) > 0 {
+		return fmt.Errorf("object %q still has tags (%#v)", obj.Reference().Value, actualIDs)
+	}
+	return nil
+}
+
 // testGetDatastore gets the datastore at the supplied full address. This
 // function works for multiple datastore resources (example:
 // vsphere_nas_datastore and vsphere_vmfs_datastore), hence the need for the
