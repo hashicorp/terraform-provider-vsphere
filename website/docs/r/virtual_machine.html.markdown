@@ -127,6 +127,8 @@ requires vCenter 6.0 or higher.
 The `network_interface` block supports:
 
 * `label` - (Required) Label to assign to this network interface
+* `adapter_type` - (Optional) The adapter type on the network interface. Can be
+  one of `vmxnet3` or `e1000`. Default: `vmxnet3`.
 * `ipv4_address` - (Optional) Static IPv4 to assign to this network interface.
   Interface will use DHCP if this is left blank.
 * `ipv4_prefix_length` - (Optional) prefix length to use when statically
