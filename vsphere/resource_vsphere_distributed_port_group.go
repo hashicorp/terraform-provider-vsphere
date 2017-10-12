@@ -12,9 +12,15 @@ import (
 func resourceVSphereDistributedPortGroup() *schema.Resource {
 	s := map[string]*schema.Schema{
 		"distributed_virtual_switch_uuid": {
-			Type:     schema.TypeString,
-			Required: true,
-			ForceNew: true,
+			Type:        schema.TypeString,
+			Description: "The UUID of the DVS to attach this port group to.",
+			Required:    true,
+			ForceNew:    true,
+		},
+		"key": {
+			Type:        schema.TypeString,
+			Description: "The generated UUID of the portgroup.",
+			Computed:    true,
 		},
 		// Tagging
 		vSphereTagAttributeKey: tagsSchema(),
@@ -69,7 +75,8 @@ func resourceVSphereDistributedPortGroupCreate(d *schema.ResourceData, meta inte
 		return fmt.Errorf("error fetching portgroup properties after creation: %s", err)
 	}
 
-	d.SetId(props.Key)
+	d.SetId(pg.Reference().Value)
+	d.Set("key", props.Key)
 
 	// Apply any pending tags now
 	if tagsClient != nil {
@@ -85,16 +92,17 @@ func resourceVSphereDistributedPortGroupRead(d *schema.ResourceData, meta interf
 	if err := validateVirtualCenter(client); err != nil {
 		return err
 	}
-	dvsID := d.Get("distributed_virtual_switch_uuid").(string)
 	pgID := d.Id()
-	pg, err := dvPortgroupFromUUID(client, dvsID, pgID)
+	pg, err := dvPortgroupFromMOID(client, pgID)
 	if err != nil {
-		return fmt.Errorf("could not find portgroup %q on DVS %q: %s", pgID, dvsID, err)
+		return fmt.Errorf("could not find portgroup %q: %s", pgID, err)
 	}
 	props, err := dvPortgroupProperties(pg)
 	if err != nil {
 		return fmt.Errorf("error fetching portgroup properties: %s", err)
 	}
+
+	d.Set("key", props.Key)
 
 	if err := flattenDVPortgroupConfigInfo(d, props.Config); err != nil {
 		return err
@@ -117,11 +125,10 @@ func resourceVSphereDistributedPortGroupUpdate(d *schema.ResourceData, meta inte
 	if err != nil {
 		return err
 	}
-	dvsID := d.Get("distributed_virtual_switch_uuid").(string)
 	pgID := d.Id()
-	pg, err := dvPortgroupFromUUID(client, dvsID, pgID)
+	pg, err := dvPortgroupFromMOID(client, pgID)
 	if err != nil {
-		return fmt.Errorf("could not find portgroup %q on DVS %q: %s", pgID, dvsID, err)
+		return fmt.Errorf("could not find portgroup %q: %s", pgID, err)
 	}
 	spec := expandDVPortgroupConfigSpec(d)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
@@ -150,11 +157,10 @@ func resourceVSphereDistributedPortGroupDelete(d *schema.ResourceData, meta inte
 	if err := validateVirtualCenter(client); err != nil {
 		return err
 	}
-	dvsID := d.Get("distributed_virtual_switch_uuid").(string)
 	pgID := d.Id()
-	pg, err := dvPortgroupFromUUID(client, dvsID, pgID)
+	pg, err := dvPortgroupFromMOID(client, pgID)
 	if err != nil {
-		return fmt.Errorf("could not find portgroup %q on DVS %q: %s", pgID, dvsID, err)
+		return fmt.Errorf("could not find portgroup %q: %s", pgID, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
