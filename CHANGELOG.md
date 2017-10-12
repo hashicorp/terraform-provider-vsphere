@@ -2,6 +2,7 @@
 
 FEATURES:
 
+* **New Data Source:** `vsphere_network` [GH-201]
 * **New Data Source:** `vsphere_distributed_virtual_switch` [GH-170]
 * **New Resource:** `vsphere_distributed_port_group` [GH-189]
 * **New Resource:** `vsphere_distributed_virtual_switch` [GH-188]
