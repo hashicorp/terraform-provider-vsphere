@@ -58,14 +58,7 @@ func dvsFromMOID(client *govmomi.Client, id string) (*object.VmwareDistributedVi
 
 // dvsFromPath gets a DVS object from its path.
 func dvsFromPath(client *govmomi.Client, name string, dc *object.Datacenter) (*object.VmwareDistributedVirtualSwitch, error) {
-	finder := find.NewFinder(client.Client, false)
-	if dc != nil {
-		finder.SetDatacenter(dc)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
-	defer cancel()
-	net, err := finder.Network(ctx, name)
+	net, err := networkFromPath(client, name, dc)
 	if err != nil {
 		return nil, err
 	}

@@ -69,25 +69,6 @@ func hostPortGroupFromName(client *govmomi.Client, ns *object.HostNetworkSystem,
 	return nil, fmt.Errorf("could not find port group %s", name)
 }
 
-// networkProperties gets the properties for a specific Network.
-//
-// The Network type usually represents a standard port group in vCenter - it
-// has been set up on a host or a set of hosts, and is usually configured via
-// through an appropriate HostNetworkSystem. vCenter, however, groups up these
-// networks and displays them as a single network that VM can use across hosts,
-// facilitating HA and vMotion for VMs that use standard port groups versus DVS
-// port groups. Hence the "Network" object is mainly a read-only MO and is only
-// useful for checking some very base level attributes.
-func networkProperties(net *object.Network) (*mo.Network, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
-	defer cancel()
-	var props mo.Network
-	if err := net.Properties(ctx, net.Reference(), nil, &props); err != nil {
-		return nil, err
-	}
-	return &props, nil
-}
-
 // networkObjectFromHostSystem locates the network object in vCenter for a
 // specific HostSystem and network name.
 //
