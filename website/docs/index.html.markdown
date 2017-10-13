@@ -36,6 +36,7 @@ provider "vsphere" {
 # Create a folder
 resource "vsphere_folder" "frontend" {
   path = "frontend"
+  type = "vm"
 }
 
 # Create a file
