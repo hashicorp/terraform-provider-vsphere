@@ -1,35 +1,35 @@
-## 0.4.2 (Unreleased)
+## 0.4.2 (October 13, 2017)
 
 FEATURES:
 
-* **New Data Source:** `vsphere_network` [GH-201]
-* **New Data Source:** `vsphere_distributed_virtual_switch` [GH-170]
-* **New Resource:** `vsphere_distributed_port_group` [GH-189]
-* **New Resource:** `vsphere_distributed_virtual_switch` [GH-188]
+* **New Data Source:** `vsphere_network` ([#201](https://github.com/terraform-providers/terraform-provider-vsphere/issues/201))
+* **New Data Source:** `vsphere_distributed_virtual_switch` ([#170](https://github.com/terraform-providers/terraform-provider-vsphere/issues/170))
+* **New Resource:** `vsphere_distributed_port_group` ([#189](https://github.com/terraform-providers/terraform-provider-vsphere/issues/189))
+* **New Resource:** `vsphere_distributed_virtual_switch` ([#188](https://github.com/terraform-providers/terraform-provider-vsphere/issues/188))
 
 IMPROVEMENTS:
 
 * resource/vsphere_virtual_machine: The customization waiter is now tunable
   through the `wait_for_customization_timeout` argument. The timeout can be
-  adjusted or the waiter can be disabled altogether. [GH-199]
+  adjusted or the waiter can be disabled altogether. ([#199](https://github.com/terraform-providers/terraform-provider-vsphere/issues/199))
 * resource/vsphere_virtual_machine: `domain` now acts as a default for
   `dns_suffixes` if the latter is not defined, setting the value in `domain` as
   a search domain in the customization specification. `vsphere.local` is not
-  used as a last resort only. [GH-185]
+  used as a last resort only. ([#185](https://github.com/terraform-providers/terraform-provider-vsphere/issues/185))
 * resource/vsphere_virtual_machine: Expose the `adapter_type` parameter to allow
   the control of the network interface type. This is currently restricted to
   `vmxnet3` and `e1000` but offers more control than what was available before,
   and more interface types will follow in later versions of the provider.
-  [GH-193]
+  ([#193](https://github.com/terraform-providers/terraform-provider-vsphere/issues/193))
 
 BUG FIXES:
 
 * resource/vsphere_virtual_machine: Fixed a regression with newtork discovery
   that was causing Terraform to crash while the VM was in a powered off state.
-  [GH-198]
+  ([#198](https://github.com/terraform-providers/terraform-provider-vsphere/issues/198))
 * All resources that can use tags will now properly remove their tags completely
   (or remove any out-of-band added tags) when the `tags` argument is not present
-  in configuration. [GH-196]
+  in configuration. ([#196](https://github.com/terraform-providers/terraform-provider-vsphere/issues/196))
 
 ## 0.4.1 (October 02, 2017)
 
