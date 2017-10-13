@@ -37,6 +37,28 @@ func TestAccDataSourceVSphereNetwork(t *testing.T) {
 			},
 		},
 		{
+			"absolute path - no datacenter",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccDataSourceVSphereNetworkPreCheck(tp)
+				},
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: testAccDataSourceVSphereNetworkConfigDVSPortgroupAbsolute(),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr("data.vsphere_network.net", "type", "DistributedVirtualPortgroup"),
+							resource.TestCheckResourceAttrPair(
+								"data.vsphere_network.net", "id",
+								"vsphere_distributed_port_group.pg", "id",
+							),
+						),
+					},
+				},
+			},
+		},
+		{
 			"host portgroups",
 			resource.TestCase{
 				PreCheck: func() {
@@ -54,6 +76,27 @@ func TestAccDataSourceVSphereNetwork(t *testing.T) {
 				},
 			},
 		},
+		{
+			"absolute path ending in the same name - govmomi #875",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccDataSourceVSphereNetworkPreCheck(tp)
+				},
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: testAccDataSourceVSphereNetworkConfigSimilarNet(),
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttrPair(
+								"data.vsphere_network.net", "id",
+								"vsphere_distributed_port_group.pg1", "id",
+							),
+						),
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testAccDataSourceVSphereNetworkCases {
@@ -66,13 +109,19 @@ func TestAccDataSourceVSphereNetwork(t *testing.T) {
 
 func testAccDataSourceVSphereNetworkPreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_HOST_NIC0") == "" {
-		t.Skip("set VSPHERE_HOST_NIC0 to run vsphere_host_port_group acceptance tests")
+		t.Skip("set VSPHERE_HOST_NIC0 to run vsphere_network acceptance tests")
 	}
 	if os.Getenv("VSPHERE_HOST_NIC1") == "" {
-		t.Skip("set VSPHERE_HOST_NIC1 to run vsphere_host_port_group acceptance tests")
+		t.Skip("set VSPHERE_HOST_NIC1 to run vsphere_network acceptance tests")
 	}
 	if os.Getenv("VSPHERE_ESXI_HOST") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST to run vsphere_host_port_group acceptance tests")
+		t.Skip("set VSPHERE_ESXI_HOST to run vsphere_network acceptance tests")
+	}
+	if os.Getenv("VSPHERE_ESXI_HOST2") == "" {
+		t.Skip("set VSPHERE_ESXI_HOST2 to run vsphere_network acceptance tests")
+	}
+	if os.Getenv("VSPHERE_ESXI_HOST3") == "" {
+		t.Skip("set VSPHERE_ESXI_HOST3 to run vsphere_network acceptance tests")
 	}
 }
 
@@ -99,6 +148,34 @@ resource "vsphere_distributed_port_group" "pg" {
 data "vsphere_network" "net" {
   name          = "${vsphere_distributed_port_group.pg.name}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+	)
+}
+
+func testAccDataSourceVSphereNetworkConfigDVSPortgroupAbsolute() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+resource "vsphere_distributed_virtual_switch" "dvs" {
+  name          = "terraform-test-dvs"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_distributed_port_group" "pg" {
+  name                            = "terraform-test-pg"
+  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
+}
+
+data "vsphere_network" "net" {
+  name          = "/${var.datacenter}/network/${vsphere_distributed_port_group.pg.name}"
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
@@ -148,5 +225,79 @@ data "vsphere_network" "net" {
 		os.Getenv("VSPHERE_HOST_NIC1"),
 		os.Getenv("VSPHERE_DATACENTER"),
 		os.Getenv("VSPHERE_ESXI_HOST"),
+	)
+}
+
+func testAccDataSourceVSphereNetworkConfigSimilarNet() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "esxi_hosts" {
+  default = [
+    "%s",
+    "%s",
+    "%s",
+  ]
+}
+
+variable "network_interfaces" {
+  default = [
+    "%s",
+    "%s",
+  ]
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_host" "host" {
+  count         = "${length(var.esxi_hosts)}"
+  name          = "${var.esxi_hosts[count.index]}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_distributed_virtual_switch" "dvs" {
+  name          = "terraform-test-dvs"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+
+  host {
+    host_system_id = "${data.vsphere_host.host.0.id}"
+    devices        = ["${var.network_interfaces}"]
+  }
+
+  host {
+    host_system_id = "${data.vsphere_host.host.1.id}"
+    devices        = ["${var.network_interfaces}"]
+  }
+
+  host {
+    host_system_id = "${data.vsphere_host.host.2.id}"
+    devices        = ["${var.network_interfaces}"]
+  }
+}
+
+resource "vsphere_distributed_port_group" "pg1" {
+  name                            = "tftestpg"
+  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
+}
+
+resource "vsphere_distributed_port_group" "pg2" {
+  name                            = "anothertftestpg"
+  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
+}
+
+data "vsphere_network" "net" {
+  name          = "/${var.datacenter}/network/${vsphere_distributed_port_group.pg1.name}"
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_ESXI_HOST"),
+		os.Getenv("VSPHERE_ESXI_HOST2"),
+		os.Getenv("VSPHERE_ESXI_HOST3"),
+		os.Getenv("VSPHERE_HOST_NIC0"),
+		os.Getenv("VSPHERE_HOST_NIC1"),
 	)
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/vmware/govmomi/object"
 )
 
 func dataSourceVSphereNetwork() *schema.Resource {
@@ -37,9 +38,13 @@ func dataSourceVSphereNetworkRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	name := d.Get("name").(string)
-	dc, err := datacenterFromID(client, d.Get("datacenter_id").(string))
-	if err != nil {
-		return fmt.Errorf("cannot locate datacenter: %s", err)
+	var dc *object.Datacenter
+	if dcID, ok := d.GetOk("datacenter_id"); ok {
+		var err error
+		dc, err = datacenterFromID(client, dcID.(string))
+		if err != nil {
+			return fmt.Errorf("cannot locate datacenter: %s", err)
+		}
 	}
 	net, err := networkFromPath(client, name, dc)
 	if err != nil {
