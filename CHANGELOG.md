@@ -25,7 +25,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-* resource/vsphere_virtual_machine: Fixed a regression with newtork discovery
+* resource/vsphere_virtual_machine: Fixed a regression with network discovery
   that was causing Terraform to crash while the VM was in a powered off state.
   ([#198](https://github.com/terraform-providers/terraform-provider-vsphere/issues/198))
 * All resources that can use tags will now properly remove their tags completely
