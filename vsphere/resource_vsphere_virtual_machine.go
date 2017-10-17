@@ -75,6 +75,7 @@ type windowsOptConfig struct {
 	domainUserPassword string
 	fullName           string
 	orgName            string
+	runOnce            []string
 }
 
 type cdrom struct {
@@ -349,6 +350,13 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 							Default:  "terraform",
+						},
+
+						"run_once": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							ForceNew: true,
 						},
 					},
 				},
@@ -955,6 +963,11 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		}
 		if v, ok := custom_configs["org_name"].(string); ok && v != "" {
 			winOpt.orgName = v
+		}
+		if raw, ok := custom_configs["run_once"]; ok {
+			for _, v := range raw.([]interface{}) {
+				winOpt.runOnce = append(winOpt.runOnce, v.(string))
+			}
 		}
 		vm.windowsOptionalConfig = winOpt
 		log.Printf("[DEBUG] windows config init: %v", winOpt)
@@ -2268,6 +2281,10 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	} else {
 		var identity_options types.BaseCustomizationIdentitySettings
 		if strings.HasPrefix(template_mo.Config.GuestId, "win") {
+			guiRunOnce := &types.CustomizationGuiRunOnce{
+				CommandList: vm.windowsOptionalConfig.runOnce,
+			}
+
 			var timeZone int
 			if vm.timeZone == "Etc/UTC" {
 				vm.timeZone = "085"
@@ -2320,10 +2337,19 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 				}
 			}
 
-			identity_options = &types.CustomizationSysprep{
-				GuiUnattended:  guiUnattended,
-				Identification: customIdentification,
-				UserData:       userData,
+			if len(vm.windowsOptionalConfig.runOnce) > 0 {
+				identity_options = &types.CustomizationSysprep{
+					GuiRunOnce:     guiRunOnce,
+					GuiUnattended:  guiUnattended,
+					Identification: customIdentification,
+					UserData:       userData,
+				}
+			} else {
+				identity_options = &types.CustomizationSysprep{
+					GuiUnattended:  guiUnattended,
+					Identification: customIdentification,
+					UserData:       userData,
+				}
 			}
 		} else {
 
