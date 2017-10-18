@@ -1140,7 +1140,7 @@ resource "vsphere_virtual_machine" "vm" {
     type = "lazy"
     name = "${var.disk_name_lazy}"
   }
-  
+
 	disk {
     size = 1
     type = "thin"
@@ -1762,7 +1762,14 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   windows_opt_config {
-    admin_password = "VMw4re"
+    admin_password     = "VMw4re"
+    auto_logon_enabled = true
+    auto_logon_count   = 100
+    full_name          = "terraform1"
+    org_name           = "terraform1"
+    run_once           = [
+      "date /T",
+    ]
   }
 
   linked_clone = "${var.linked_clone != "" ? "true" : "false" }"
