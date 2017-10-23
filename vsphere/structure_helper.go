@@ -57,16 +57,20 @@ func getBoolPtr(d *schema.ResourceData, key string) *bool {
 	return nil
 }
 
+// getBool reads a ResourceData and returns a *bool. This differs from
+// getBoolPtr in that a nil value is never returned.
+func getBool(d *schema.ResourceData, key string) *bool {
+	return boolPtr(d.Get(key).(bool))
+}
+
 // setBoolPtr sets a ResourceData field depending on if a *bool exists or not.
 // The field is not set if it's nil.
 func setBoolPtr(d *schema.ResourceData, key string, val *bool) error {
 	if val == nil {
 		return nil
 	}
-	if err := d.Set(key, val); err != nil {
-		return err
-	}
-	return nil
+	err := d.Set(key, val)
+	return err
 }
 
 // int64Ptr makes an *int64 out of the value passed in through v.
@@ -90,10 +94,8 @@ func setInt64Ptr(d *schema.ResourceData, key string, val *int64) error {
 	if val == nil {
 		return nil
 	}
-	if err := d.Set(key, val); err != nil {
-		return err
-	}
-	return nil
+	err := d.Set(key, val)
+	return err
 }
 
 // byteToMB returns n/1000000. The input must be an integer that can be divisible
@@ -134,10 +136,8 @@ func setBoolPolicy(d *schema.ResourceData, key string, val *types.BoolPolicy) er
 	if val == nil {
 		return nil
 	}
-	if err := d.Set(key, val.Value); err != nil {
-		return err
-	}
-	return nil
+	err := d.Set(key, val.Value)
+	return err
 }
 
 // getBoolPolicyReverse acts like getBoolPolicy, but the value is inverted.
@@ -154,10 +154,8 @@ func setBoolPolicyReverse(d *schema.ResourceData, key string, val *types.BoolPol
 	if val == nil {
 		return nil
 	}
-	if err := d.Set(key, !*val.Value); err != nil {
-		return err
-	}
-	return nil
+	err := d.Set(key, !*val.Value)
+	return err
 }
 
 // stringPolicy converts a string into a VMware StringPolicy value.
@@ -184,10 +182,8 @@ func setStringPolicy(d *schema.ResourceData, key string, val *types.StringPolicy
 	if val == nil {
 		return nil
 	}
-	if err := d.Set(key, val.Value); err != nil {
-		return err
-	}
-	return nil
+	err := d.Set(key, val.Value)
+	return err
 }
 
 // longPolicy converts a supported number into a VMware LongPolicy value. This
@@ -235,10 +231,8 @@ func setLongPolicy(d *schema.ResourceData, key string, val *types.LongPolicy) er
 	if val == nil {
 		return nil
 	}
-	if err := d.Set(key, val.Value); err != nil {
-		return err
-	}
-	return nil
+	err := d.Set(key, val.Value)
+	return err
 }
 
 // allFieldsEmpty checks to see if all fields in a given struct are zero
