@@ -316,3 +316,17 @@ func allFieldsEmpty(v interface{}) bool {
 
 	return true
 }
+
+// deRef returns the value pointed to by the interface if the interface is a
+// pointer and is not nil, otherwise returns nil, or the direct value if it's
+// not a pointer.
+func deRef(v interface{}) interface{} {
+	if v == nil {
+		return nil
+	}
+	k := reflect.TypeOf(v).Kind()
+	if k != reflect.Ptr {
+		return v
+	}
+	return reflect.ValueOf(v).Elem().Interface()
+}

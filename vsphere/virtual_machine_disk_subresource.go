@@ -161,6 +161,11 @@ func resourceVSphereVirtualMachineDiskSchema() map[string]*schema.Schema {
 			Description:  "The SCSI controller type. Can be one of pvscsi or lsilogic-sas.",
 			ValidateFunc: validation.StringInSlice(resourceVSphereVirtualMachineDiskSCSITypeAllowedValues, false),
 		},
+		"keep_on_remove": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Set to true to keep the underlying VMDK file when removing this virtual disk from configuration.",
+		},
 		"controller_bus_number": {
 			Type:        schema.TypeInt,
 			Computed:    true,
@@ -227,7 +232,7 @@ func (r *resourceVSphereVirtualMachineDisk) get(key string) interface{} {
 
 // set sets the field in the newData set.
 func (r *resourceVSphereVirtualMachineDisk) set(key string, value interface{}) {
-	r.newData[key] = value
+	r.newData[key] = deRef(value)
 }
 
 // hasChange checks to see if a field has been modified and returns true if it
@@ -264,7 +269,8 @@ func (r *resourceVSphereVirtualMachineDisk) getWithVeto(key string) (interface{}
 	return r.get(key), nil
 }
 
-// saveID saves the resource ID to internal_id.
+// saveID saves the resource ID to internal_id. It also sets the computed
+// values that it tracks.
 //
 // This is an ID internal to Terraform that helps us locate the resource later,
 // as device keys are unfortunately volatile and can only really be relied on
@@ -279,9 +285,122 @@ func (r *resourceVSphereVirtualMachineDisk) saveID(disk *types.VirtualDisk, ctlr
 	parts := []string{
 		r.get("controller_type").(string),
 		strconv.Itoa(int(vc.BusNumber)),
-		strconv.Itoa(int(*disk.UnitNumber)),
+		strconv.Itoa(int(deRef(disk.UnitNumber).(int32))),
 	}
+	r.set("controller_bus_number", vc.BusNumber)
+	r.set("controller_key", vc.Key)
+	r.set("unit_number", disk.UnitNumber)
 	r.set("internal_id", strings.Join(parts, ":"))
+}
+
+// id returns the internal_id attribute in the subresource. This function
+// exists mainly as a functional counterpart to saveID.
+func (r *resourceVSphereVirtualMachineDisk) id() string {
+	return r.get("internal_id").(string)
+}
+
+// splitVirtualMachineDiskID splits an ID into its inparticular parts and
+// asserts that we have all the correct data.
+func splitVirtualMachineDiskID(id string) (string, int, int, error) {
+	parts := strings.Split(id, ":")
+	if len(parts) < 3 {
+		return "", 0, 0, fmt.Errorf("invalid controller type %q found in ID", id)
+	}
+	ct, cbs, dus := parts[0], parts[1], parts[2]
+	cb, cbe := strconv.Atoi(cbs)
+	du, due := strconv.Atoi(dus)
+	var found bool
+	for _, v := range resourceVSphereVirtualMachineDiskControllerTypeAllowedValues {
+		if v == ct {
+			found = true
+		}
+	}
+	if !found {
+		return ct, cb, du, fmt.Errorf("invalid controller type %q found in ID", ct)
+	}
+	if cbe != nil {
+		return ct, cb, du, fmt.Errorf("invalid bus number %q found in ID", cbs)
+	}
+	if due != nil {
+		return ct, cb, du, fmt.Errorf("invalid disk unit number %q found in ID", dus)
+	}
+	return ct, cb, du, nil
+}
+
+// findVirtualMachineDiskInListControllerSelectFunc returns a function that can
+// be used with VirtualDeviceList.Select to locate a controller device based on
+// the criteria that we have laid out.
+func findVirtualMachineDiskInListControllerSelectFunc(ct string, cb int) func(types.BaseVirtualDevice) bool {
+	return func(device types.BaseVirtualDevice) bool {
+		var ctlr types.BaseVirtualController
+		switch ct {
+		case resourceVSphereVirtualMachineDiskControllerTypeIDE:
+			if v, ok := device.(*types.VirtualIDEController); ok {
+				ctlr = v
+				goto controllerFound
+			}
+			return false
+		case resourceVSphereVirtualMachineDiskControllerTypeSCSI:
+			switch v := device.(type) {
+			case *types.ParaVirtualSCSIController:
+				ctlr = v
+				goto controllerFound
+			case *types.VirtualLsiLogicSASController:
+				ctlr = v
+				goto controllerFound
+			}
+			return false
+		}
+	controllerFound:
+		vc := ctlr.GetVirtualController()
+		if vc.BusNumber == int32(cb) {
+			return true
+		}
+		return false
+	}
+}
+
+// findVirtualMachineDiskInListDiskSelectFunc returns a function that can be
+// used with VirtualDeviceList.Select to locate a disk device based on its
+// controller device key, and the disk number on the device.
+func findVirtualMachineDiskInListDiskSelectFunc(ckey int32, du int) func(types.BaseVirtualDevice) bool {
+	return func(device types.BaseVirtualDevice) bool {
+		disk, ok := device.(*types.VirtualDisk)
+		if !ok {
+			return false
+		}
+		if disk.ControllerKey == ckey && disk.UnitNumber != nil && *disk.UnitNumber == int32(du) {
+			return true
+		}
+		return false
+	}
+}
+
+// findVirtualMachineDiskInList looks for a specific device in the device list given a
+// specific disk device key. nil is returned if no device is found.
+func findVirtualMachineDiskInList(l object.VirtualDeviceList, id string) (*types.VirtualDisk, error) {
+	ct, cb, du, err := splitVirtualMachineDiskID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	// find the controller
+	csf := findVirtualMachineDiskInListControllerSelectFunc(ct, cb)
+	ctlrs := l.Select(csf)
+	if len(ctlrs) != 1 {
+		return nil, fmt.Errorf("invalid controller result - %d results returned (expected 1): type %q, bus number: %d", len(ctlrs), ct, cb)
+	}
+	ctlr := ctlrs[0]
+
+	// find the disk
+	ckey := ctlr.GetVirtualDevice().Key
+	dsf := findVirtualMachineDiskInListDiskSelectFunc(ckey, du)
+	disks := l.Select(dsf)
+	if len(disks) != 1 {
+		return nil, fmt.Errorf("invalid disk result - %d results returned (expected 1): controller key %q, disk number: %d", len(disks), ckey, du)
+	}
+	disk := disks[0]
+	return disk.(*types.VirtualDisk), nil
 }
 
 // expandDiskSettings sets appropriate fields on an existing disk - this is
@@ -290,7 +409,6 @@ func (r *resourceVSphereVirtualMachineDisk) saveID(disk *types.VirtualDisk, ctlr
 func (r *resourceVSphereVirtualMachineDisk) expandDiskSettings(disk *types.VirtualDisk) error {
 	// Backing settings
 	b := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
-	b.Sharing = r.getWithRestart("disk_mode").(string)
 	b.DiskMode = r.getWithRestart("disk_mode").(string)
 	b.WriteThrough = boolPtr(r.getWithRestart("write_through").(bool))
 	b.Sharing = r.getWithRestart("disk_sharing").(string)
@@ -332,14 +450,47 @@ func (r *resourceVSphereVirtualMachineDisk) expandDiskSettings(disk *types.Virtu
 	return nil
 }
 
-// Create creates a vsphere_virtual_machine disk sub-resource.
-func (r *resourceVSphereVirtualMachineDisk) Create(l object.VirtualDeviceList) error {
-	// Depending on if the controller is already present or not, we need to do one or two things:
-	// * Create the controller if it does not exist already
-	// * Get an available slot on the newly created or currently present controller
-	// This is handled by pickOrCreateController, but we need to check what kind
-	// of controller we are working with first.
+// flattenDiskSettings sets appropriate attributes on a disk resource from the
+// passed in VirtualDisk.
+//
+// Some computed attributes that generally have to do with device workflow are
+// not set here, and are up to the caller to set.
+func (r *resourceVSphereVirtualMachineDisk) flattenDiskSettings(disk *types.VirtualDisk) error {
+	// Backing settings
+	b := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+	r.set("disk_mode", b.DiskMode)
+	r.set("write_through", b.WriteThrough)
+	r.set("sharing", b.Sharing)
+	r.set("thin_provisioned", b.ThinProvisioned)
+	r.set("eagerly_scrub", b.EagerlyScrub)
+	r.set("path", b.FileName)
+
+	// Disk settings
+	r.set("size", byteToGB(disk.CapacityInBytes))
+
+	if disk.StorageIOAllocation != nil {
+		r.set("io_limit", disk.StorageIOAllocation.Limit)
+		r.set("io_reservation", disk.StorageIOAllocation.Reservation)
+		if disk.StorageIOAllocation.Shares != nil {
+			r.set("io_share_count", disk.StorageIOAllocation.Shares.Shares)
+			r.set("io_share_level", disk.StorageIOAllocation.Shares.Level)
+		}
+	}
+
+	// Device key
+	r.set("key", disk.Key)
+	return nil
+}
+
+// controllerForCreateUpdate wraps the controller selection logic mainly used
+// for creation so that we can re-use it in Update.
+//
+// If the controller is new, it's returned as the second return value, as a
+// VirtualDeviceList, for easy appending to outbound devices and the working
+// set.
+func (r *resourceVSphereVirtualMachineDisk) controllerForCreateUpdate(l object.VirtualDeviceList) (types.BaseVirtualController, object.VirtualDeviceList, error) {
 	var ctlr types.BaseVirtualController
+	var newDevices object.VirtualDeviceList
 	var err error
 	ct := r.get("controller_type").(string)
 	sct := r.get("scsi_controller_type").(string)
@@ -355,8 +506,44 @@ func (r *resourceVSphereVirtualMachineDisk) Create(l object.VirtualDeviceList) e
 		}
 	}
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
+
+	// Is this a new controller? If so, we need to push this to our working
+	// device set so that its device key is accounted for, in addition to the
+	// list of new devices that we are returning as part of the device creation,
+	// so that they can be added to the ConfigSpec properly.
+	if ctlr.GetVirtualController().Key < 0 {
+		switch ct := ctlr.(type) {
+		case *types.VirtualIDEController:
+			newDevices = append(newDevices, ct)
+		case *types.ParaVirtualSCSIController:
+			newDevices = append(newDevices, ct)
+		case *types.VirtualLsiLogicSASController:
+			newDevices = append(newDevices, ct)
+		default:
+			panic(fmt.Errorf("unhandled controller type %T", ctlr))
+		}
+	}
+	return ctlr, newDevices, nil
+}
+
+// Create creates a vsphere_virtual_machine disk sub-resource.
+func (r *resourceVSphereVirtualMachineDisk) Create(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	// Depending on if the controller is already present or not, we need to do
+	// one or two things:
+	// * Create the controller if it does not exist already
+	// * Get an available slot on the newly created or currently present
+	// controller This is handled by pickOrCreateController, but we need to check
+	// what kind of controller we are working with first.
+	var newDevices object.VirtualDeviceList
+	var ctlr types.BaseVirtualController
+	ctlr, ncl, err := r.controllerForCreateUpdate(l)
+	if err != nil {
+		return nil, err
+	}
+	l = append(l, ncl...)
+	newDevices = append(newDevices, ncl...)
 
 	// We now have the controller on which we can create our device on.
 	var dsRef types.ManagedObjectReference
@@ -372,40 +559,93 @@ func (r *resourceVSphereVirtualMachineDisk) Create(l object.VirtualDeviceList) e
 		// currently, so we have to nil out the value after the fact.
 		disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).Datastore = nil
 	}
+	// Set a new device key for this device as CreateDisk does not do it for us
+	// right now.
+	disk.Key = l.NewKey()
 
 	if err := r.expandDiskSettings(disk); err != nil {
-		return err
+		return nil, err
 	}
 
-	// Good to go. Set the ID, add the controllers to the device list, and we are done.
+	// Done here. Save ID, push the device to the new device list and return.
 	r.saveID(disk, ctlr)
-
-	switch ct := ctlr.(type) {
-	case *types.VirtualIDEController:
-		l = append(l, ct)
-	case *types.ParaVirtualSCSIController:
-		l = append(l, ct)
-	case *types.VirtualLsiLogicSASController:
-		l = append(l, ct)
-	default:
-		panic(fmt.Errorf("unhandled type %T", ctlr))
-	}
-	l = append(l, disk)
-
-	return nil
+	newDevices = append(newDevices, disk)
+	return newDevices.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
 }
 
-// Read reads a vsphere_virtual_machine disk sub-resource and commits the data to the newData layer.
+// Read reads a vsphere_virtual_machine disk sub-resource and commits the data
+// to the newData layer.
 func (r *resourceVSphereVirtualMachineDisk) Read(l object.VirtualDeviceList) error {
-	return nil
+	id := r.id()
+	disk, err := findVirtualMachineDiskInList(l, id)
+	if err != nil {
+		return fmt.Errorf("cannot find disk device: %s", err)
+	}
+	return r.flattenDiskSettings(disk)
 }
 
 // Update updates a vsphere_virtual_machine disk sub-resource.
-func (r *resourceVSphereVirtualMachineDisk) Update(l object.VirtualDeviceList) error {
-	return nil
+func (r *resourceVSphereVirtualMachineDisk) Update(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	id := r.id()
+	disk, err := findVirtualMachineDiskInList(l, id)
+	if err != nil {
+		return nil, fmt.Errorf("cannot find disk device: %s", err)
+	}
+
+	var updateList object.VirtualDeviceList
+
+	// There's 2 main update operations:
+	//
+	// * Controller modification: A modification where we are changing the
+	// controller type (ie: IDE to SCSI, different SCSI device type)
+	// * Everything else, really.
+	//
+	// The former requires us to essentially detach this disk from one controller
+	// and attach it to another. This is still just an edit operation, but it's
+	// still a little more complex than just expanding the options into the disk
+	// device.
+	if r.hasChange("controller_type") || r.hasChange("scsi_controller_type") {
+		var ctlr types.BaseVirtualController
+		ctlr, ncl, err := r.controllerForCreateUpdate(l)
+		if err != nil {
+			return nil, err
+		}
+		l = append(l, ncl...)
+		updateList = append(updateList, ncl...)
+		// This operation also requires a restart, so flag that now.
+		r.restart = true
+		// Finally, our device needs a new ID (not key, but the internal ID we use
+		// to track things in lieu of keys). This ultimately means that the new
+		// resource data that comes out of this function should be either be set
+		// post-update operation (in the parent resource), or set with partial mode
+		// on, which should be turned off when the update operation is successful
+		// (probably pretty much right after ReconfigureVM_Task).
+		r.saveID(disk, ctlr)
+	}
+
+	// We can now expand the rest of the settings.
+	if err := r.expandDiskSettings(disk); err != nil {
+		return nil, err
+	}
+
+	updateList = append(updateList, disk)
+	return updateList.ConfigSpec(types.VirtualDeviceConfigSpecOperationEdit)
 }
 
 // Delete deletes a vsphere_virtual_machine disk sub-resource.
-func (r *resourceVSphereVirtualMachineDisk) Delete(l object.VirtualDeviceList) error {
-	return nil
+func (r *resourceVSphereVirtualMachineDisk) Delete(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	id := r.id()
+	disk, err := findVirtualMachineDiskInList(l, id)
+	if err != nil {
+		return nil, fmt.Errorf("cannot find disk device: %s", err)
+	}
+	deleteSpec, err := object.VirtualDeviceList{disk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationRemove)
+	if err != nil {
+		return nil, err
+	}
+	if r.get("keep_on_remove").(bool) {
+		// Clear file operation so that the disk is kept on remove.
+		deleteSpec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
+	}
+	return deleteSpec, nil
 }
