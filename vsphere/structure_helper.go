@@ -78,6 +78,11 @@ func int64Ptr(v int64) *int64 {
 	return &v
 }
 
+// int32Ptr makes an *int32 out of the value passed in through v.
+func int32Ptr(v int32) *int32 {
+	return &v
+}
+
 // getInt64Ptr reads a ResourceData and returns an appropriate *int64 for the
 // state of the definition. nil is returned if it does not exist.
 func getInt64Ptr(d *schema.ResourceData, key string) *int64 {
@@ -108,6 +113,39 @@ func byteToMB(n interface{}) interface{} {
 		return v / 1000000
 	case int64:
 		return v / 1000000
+	}
+	panic(fmt.Errorf("non-integer type %T for value", n))
+}
+
+// byteToGB returns n/1000000000. The input must be an integer that can be
+// divisible by 1000000000.
+//
+// Remember that int32 overflows at 2GB, so any values higher than that will
+// produce an inaccurate result.
+func byteToGB(n interface{}) interface{} {
+	switch v := n.(type) {
+	case int:
+		return v / 1000000000
+	case int32:
+		return v / 1000000000
+	case int64:
+		return v / 1000000000
+	}
+	panic(fmt.Errorf("non-integer type %T for value", n))
+}
+
+// gbToByte returns n*1000000000.
+//
+// The output is returned as int64 - if another type is needed, it needs to be
+// cast. Remember that int32 overflows at 2GB and uint32 will overflow at 4GB.
+func gbToByte(n interface{}) int64 {
+	switch v := n.(type) {
+	case int:
+		return int64(v * 1000000000)
+	case int32:
+		return int64(v * 1000000000)
+	case int64:
+		return v * 1000000000
 	}
 	panic(fmt.Errorf("non-integer type %T for value", n))
 }
