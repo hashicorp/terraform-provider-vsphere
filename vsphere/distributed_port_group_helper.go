@@ -12,13 +12,13 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-// dvPortgroupFromUUID gets a portgroup object from its UUID.
-func dvPortgroupFromUUID(client *govmomi.Client, dvsUUID, pgUUID string) (*object.DistributedVirtualPortgroup, error) {
+// dvPortgroupFromKey gets a portgroup object from its key.
+func dvPortgroupFromKey(client *govmomi.Client, dvsUUID, pgKey string) (*object.DistributedVirtualPortgroup, error) {
 	dvsm := types.ManagedObjectReference{Type: "DistributedVirtualSwitchManager", Value: "DVSManager"}
 	req := &types.DVSManagerLookupDvPortGroup{
 		This:         dvsm,
 		SwitchUuid:   dvsUUID,
-		PortgroupKey: pgUUID,
+		PortgroupKey: pgKey,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()

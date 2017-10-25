@@ -57,7 +57,7 @@ type resourceVSphereVirtualMachineDisk struct {
 	// The new resource data.
 	newData map[string]interface{}
 
-	// This is flagged if anything in the CRUD process required a VM restart. The
+	// This is flagged if anything in the CRUD process requires a VM restart. The
 	// parent CRUD is responsible for flagging the appropriate information and
 	// doing the necessary restart before applying the resulting ConfigSpec.
 	restart bool
@@ -194,13 +194,13 @@ func resourceVSphereVirtualMachineDiskSchema() map[string]*schema.Schema {
 	}
 }
 
-// pickOrCreateController either finds a device of a specific time with an
+// pickOrCreateDiskController either finds a device of a specific type with an
 // available slot, or creates a new one. An error is returned if there is a
 // problem anywhere in this process or not possible.
 //
 // Note that this does not push the controller to the device list - this is
 // done outside of this function, to keep things atomic at the end.
-func pickOrCreateController(l object.VirtualDeviceList, kind types.BaseVirtualController) (types.BaseVirtualController, error) {
+func pickOrCreateDiskController(l object.VirtualDeviceList, kind types.BaseVirtualController) (types.BaseVirtualController, error) {
 	ctlr := l.PickController(kind)
 	if ctlr == nil {
 		var nc types.BaseVirtualDevice
@@ -304,7 +304,7 @@ func (r *resourceVSphereVirtualMachineDisk) id() string {
 func splitVirtualMachineDiskID(id string) (string, int, int, error) {
 	parts := strings.Split(id, ":")
 	if len(parts) < 3 {
-		return "", 0, 0, fmt.Errorf("invalid controller type %q found in ID", id)
+		return "", 0, 0, fmt.Errorf("invalid ID %q", id)
 	}
 	ct, cbs, dus := parts[0], parts[1], parts[2]
 	cb, cbe := strconv.Atoi(cbs)
@@ -496,13 +496,13 @@ func (r *resourceVSphereVirtualMachineDisk) controllerForCreateUpdate(l object.V
 	sct := r.get("scsi_controller_type").(string)
 	switch ct {
 	case resourceVSphereVirtualMachineDiskControllerTypeIDE:
-		ctlr, err = pickOrCreateController(l, &types.VirtualIDEController{})
+		ctlr, err = pickOrCreateDiskController(l, &types.VirtualIDEController{})
 	case resourceVSphereVirtualMachineDiskControllerTypeSCSI:
 		switch sct {
 		case resourceVSphereVirtualMachineDiskSCSITypeParaVirtual:
-			ctlr, err = pickOrCreateController(l, &types.ParaVirtualSCSIController{})
+			ctlr, err = pickOrCreateDiskController(l, &types.ParaVirtualSCSIController{})
 		case resourceVSphereVirtualMachineDiskSCSITypeLsiLogicSAS:
-			ctlr, err = pickOrCreateController(l, &types.VirtualLsiLogicSASController{})
+			ctlr, err = pickOrCreateDiskController(l, &types.VirtualLsiLogicSASController{})
 		}
 	}
 	if err != nil {
@@ -562,6 +562,8 @@ func (r *resourceVSphereVirtualMachineDisk) Create(l object.VirtualDeviceList) (
 	// Set a new device key for this device as CreateDisk does not do it for us
 	// right now.
 	disk.Key = l.NewKey()
+	// Ensure the device starts connected
+	l.Connect(disk)
 
 	if err := r.expandDiskSettings(disk); err != nil {
 		return nil, err
@@ -592,7 +594,9 @@ func (r *resourceVSphereVirtualMachineDisk) Update(l object.VirtualDeviceList) (
 		return nil, fmt.Errorf("cannot find disk device: %s", err)
 	}
 
-	var updateList object.VirtualDeviceList
+	// We maintain the final update spec in place, versus just the simple device
+	// list, as we are possibly creating controllers here.
+	var updateSpec []types.BaseVirtualDeviceConfigSpec
 
 	// There's 2 main update operations:
 	//
@@ -611,7 +615,11 @@ func (r *resourceVSphereVirtualMachineDisk) Update(l object.VirtualDeviceList) (
 			return nil, err
 		}
 		l = append(l, ncl...)
-		updateList = append(updateList, ncl...)
+		spec, err := ncl.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
+		if err != nil {
+			return nil, err
+		}
+		updateSpec = append(updateSpec, spec...)
 		// This operation also requires a restart, so flag that now.
 		r.restart = true
 		// Finally, our device needs a new ID (not key, but the internal ID we use
@@ -628,8 +636,12 @@ func (r *resourceVSphereVirtualMachineDisk) Update(l object.VirtualDeviceList) (
 		return nil, err
 	}
 
-	updateList = append(updateList, disk)
-	return updateList.ConfigSpec(types.VirtualDeviceConfigSpecOperationEdit)
+	spec, err := object.VirtualDeviceList{disk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationEdit)
+	if err != nil {
+		return nil, err
+	}
+	updateSpec = append(updateSpec, spec...)
+	return updateSpec, nil
 }
 
 // Delete deletes a vsphere_virtual_machine disk sub-resource.

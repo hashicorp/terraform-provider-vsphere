@@ -2,10 +2,12 @@ package vsphere
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/view"
 	"github.com/vmware/govmomi/vim25/mo"
 )
 
@@ -27,6 +29,52 @@ func networkFromPath(client *govmomi.Client, name string, dc *object.Datacenter)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
 	return finder.Network(ctx, name)
+}
+
+// networkFromID loads a network via its managed object reference ID.
+func networkFromID(client *govmomi.Client, id string) (object.NetworkReference, error) {
+	// I'm not too sure if a more efficient method to do this exists, but if this
+	// becomes a pain point we might want to change this logic a bit.
+	//
+	// This is pretty much the direct example from
+	// github.com/vmware/govmomi/examples/networks/main.go.
+	m := view.NewManager(client.Client)
+
+	vctx, vcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer vcancel()
+	v, err := m.CreateContainerView(vctx, client.ServiceContent.RootFolder, []string{"Network"}, true)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		dctx, dcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+		defer dcancel()
+		v.Destroy(dctx)
+	}()
+
+	var networks []mo.Network
+	err = v.Retrieve(vctx, []string{"Network"}, nil, &networks)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, net := range networks {
+		ref := net.Reference()
+		if ref.Value == id {
+			finder := find.NewFinder(client.Client, false)
+			fctx, fcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+			defer fcancel()
+			nref, err := finder.ObjectReference(fctx, ref)
+			if err != nil {
+				return nil, err
+			}
+			// Should be safe to return here, as we have already asserted that this type
+			// should be a NetworkReference by using ContainerView.
+			return nref.(object.NetworkReference), nil
+		}
+	}
+	return nil, fmt.Errorf("could not find network with ID %q", id)
 }
 
 // networkReferenceProperties is a convenience method that wraps fetching the

@@ -341,7 +341,7 @@ func testGetDVPortgroup(s *terraform.State, resourceName string) (*object.Distri
 		return nil, err
 	}
 	dvsID := tVars.resourceAttributes["distributed_virtual_switch_uuid"]
-	return dvPortgroupFromUUID(tVars.client, dvsID, tVars.resourceID)
+	return dvPortgroupFromKey(tVars.client, dvsID, tVars.resourceID)
 }
 
 // testGetDVPortgroupProperties is a convenience method that adds an extra step to
