@@ -2109,11 +2109,13 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		task, err = folder.CreateVM(context.TODO(), configSpec, resourcePool, nil)
 		if err != nil {
 			log.Printf("[ERROR] %s", err)
+			return err
 		}
 
 		err = task.Wait(context.TODO())
 		if err != nil {
 			log.Printf("[ERROR] %s", err)
+			return err
 		}
 
 	} else {
@@ -2149,6 +2151,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	err = task.Wait(context.TODO())
 	if err != nil {
 		log.Printf("[ERROR] %s", err)
+		return err
 	}
 
 	newVM, err := finder.VirtualMachine(context.TODO(), vm.Path())
