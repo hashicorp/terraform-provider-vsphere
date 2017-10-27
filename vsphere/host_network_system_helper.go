@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/network"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -23,7 +25,7 @@ func hostNetworkSystemFromHostSystem(hs *object.HostSystem) (*object.HostNetwork
 // hostNetworkSystemFromHostSystemID locates a HostNetworkSystem from a
 // specified HostSystem managed object ID.
 func hostNetworkSystemFromHostSystemID(client *govmomi.Client, hsID string) (*object.HostNetworkSystem, error) {
-	hs, err := hostSystemFromID(client, hsID)
+	hs, err := hostsystem.FromID(client, hsID)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +80,7 @@ func hostPortGroupFromName(client *govmomi.Client, ns *object.HostNetworkSystem,
 // ID. This match is returned - if nothing is found, an error is given.
 func networkObjectFromHostSystem(client *govmomi.Client, hs *object.HostSystem, name string) (*object.Network, error) {
 	// Validate vCenter as this function is only relevant there
-	if err := validateVirtualCenter(client); err != nil {
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return nil, err
 	}
 	finder := find.NewFinder(client.Client, false)

@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -48,7 +50,7 @@ func resourceVSphereDistributedVirtualSwitch() *schema.Resource {
 
 func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	if err := validateVirtualCenter(client); err != nil {
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return err
 	}
 	tagsClient, err := tagsClientIfDefined(d, meta)
@@ -60,7 +62,7 @@ func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta 
 	if err != nil {
 		return fmt.Errorf("cannot locate datacenter: %s", err)
 	}
-	folder, err := folderFromPath(client, d.Get("folder").(string), vSphereFolderTypeNetwork, dc)
+	folder, err := folder.FromPath(client, d.Get("folder").(string), folder.VSphereFolderTypeNetwork, dc)
 	if err != nil {
 		return fmt.Errorf("cannot locate folder: %s", err)
 	}
@@ -107,7 +109,7 @@ func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta 
 
 func resourceVSphereDistributedVirtualSwitchRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	if err := validateVirtualCenter(client); err != nil {
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return err
 	}
 	id := d.Id()
@@ -121,7 +123,7 @@ func resourceVSphereDistributedVirtualSwitchRead(d *schema.ResourceData, meta in
 	}
 
 	// Set the datacenter ID, for completion's sake when importing
-	dcp, err := rootPathParticleNetwork.SplitDatacenter(dvs.InventoryPath)
+	dcp, err := folder.RootPathParticleNetwork.SplitDatacenter(dvs.InventoryPath)
 	if err != nil {
 		return fmt.Errorf("error parsing datacenter from inventory path: %s", err)
 	}
@@ -132,11 +134,11 @@ func resourceVSphereDistributedVirtualSwitchRead(d *schema.ResourceData, meta in
 	d.Set("datacenter_id", dc.Reference().Value)
 
 	// Set the folder
-	folder, err := rootPathParticleNetwork.SplitRelativeFolder(dvs.InventoryPath)
+	f, err := folder.RootPathParticleNetwork.SplitRelativeFolder(dvs.InventoryPath)
 	if err != nil {
 		return fmt.Errorf("error parsing DVS path %q: %s", dvs.InventoryPath, err)
 	}
-	d.Set("folder", normalizeFolderPath(folder))
+	d.Set("folder", folder.NormalizePath(f))
 
 	// Read in config info
 	if err := flattenVMwareDVSConfigInfo(d, props.Config.(*types.VMwareDVSConfigInfo)); err != nil {
@@ -155,7 +157,7 @@ func resourceVSphereDistributedVirtualSwitchRead(d *schema.ResourceData, meta in
 
 func resourceVSphereDistributedVirtualSwitchUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	if err := validateVirtualCenter(client); err != nil {
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return err
 	}
 	tagsClient, err := tagsClientIfDefined(d, meta)
@@ -218,7 +220,7 @@ func resourceVSphereDistributedVirtualSwitchUpdate(d *schema.ResourceData, meta 
 
 func resourceVSphereDistributedVirtualSwitchDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	if err := validateVirtualCenter(client); err != nil {
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return err
 	}
 	id := d.Id()
@@ -247,7 +249,7 @@ func resourceVSphereDistributedVirtualSwitchImport(d *schema.ResourceData, meta 
 	// inventory path to the DVS instead, and just run it through finder. A full
 	// path is required unless the default datacenter can be utilized.
 	client := meta.(*VSphereClient).vimClient
-	if err := validateVirtualCenter(client); err != nil {
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return nil, err
 	}
 	p := d.Id()

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/vim25/debug"
 	"github.com/vmware/vic/pkg/vsphere/tags"
@@ -48,7 +49,7 @@ type VSphereClient struct {
 //     }
 //   }
 func (c *VSphereClient) TagsClient() (*tags.RestClient, error) {
-	if err := validateVirtualCenter(c.vimClient); err != nil {
+	if err := viapi.ValidateVirtualCenter(c.vimClient); err != nil {
 		return nil, err
 	}
 	if c.tagsClient == nil {
@@ -95,7 +96,7 @@ func (c *Config) Client() (*VSphereClient, error) {
 
 	// Skip the rest of this function if we are not setting up the tags client. This is if
 	if !isEligibleTagEndpoint(client.vimClient) {
-		log.Printf("[WARN] Connected endpoint does not support tags (%s)", parseVersionFromClient(client.vimClient))
+		log.Printf("[WARN] Connected endpoint does not support tags (%s)", viapi.ParseVersionFromClient(client.vimClient))
 		return client, nil
 	}
 

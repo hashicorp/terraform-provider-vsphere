@@ -292,7 +292,7 @@ func testAccResourceVSphereVmfsDatastoreExists(expected bool) resource.TestCheck
 	return func(s *terraform.State) error {
 		ds, err := testGetDatastore(s, "vsphere_vmfs_datastore.datastore")
 		if err != nil {
-			if isManagedObjectNotFoundError(err) && expected == false {
+			if viapi.IsManagedObjectNotFoundError(err) && expected == false {
 				// Expected missing
 				return nil
 			}
@@ -312,7 +312,7 @@ func testAccResourceVSphereVmfsDatastoreHasName(expected string) resource.TestCh
 			return err
 		}
 
-		props, err := datastoreProperties(ds)
+		props, err := datastore.Properties(ds)
 		if err != nil {
 			return err
 		}
@@ -332,7 +332,7 @@ func testAccResourceVSphereVmfsDatastoreMatchInventoryPath(expected string) reso
 			return err
 		}
 
-		expected, err := rootPathParticleDatastore.PathFromNewRoot(ds.InventoryPath, rootPathParticleDatastore, expected)
+		expected, err := folder.RootPathParticleDatastore.PathFromNewRoot(ds.InventoryPath, folder.RootPathParticleDatastore, expected)
 		actual := path.Dir(ds.InventoryPath)
 		if err != nil {
 			return fmt.Errorf("bad: %s", err)

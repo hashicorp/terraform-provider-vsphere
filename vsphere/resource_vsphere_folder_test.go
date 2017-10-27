@@ -36,12 +36,12 @@ func TestAccResourceVSphereFolder(t *testing.T) {
 					{
 						Config: testAccResourceVSphereFolderConfigBasic(
 							testAccResourceVSphereFolderConfigExpectedName,
-							vSphereFolderTypeVM,
+							folder.VSphereFolderTypeVM,
 						),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereFolderExists(true),
 							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
-							testAccResourceVSphereFolderHasType(vSphereFolderTypeVM),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
 						),
 					},
 				},
@@ -59,12 +59,12 @@ func TestAccResourceVSphereFolder(t *testing.T) {
 					{
 						Config: testAccResourceVSphereFolderConfigBasic(
 							testAccResourceVSphereFolderConfigExpectedName,
-							vSphereFolderTypeDatastore,
+							folder.VSphereFolderTypeDatastore,
 						),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereFolderExists(true),
 							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
-							testAccResourceVSphereFolderHasType(vSphereFolderTypeDatastore),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeDatastore),
 						),
 					},
 				},
@@ -82,12 +82,12 @@ func TestAccResourceVSphereFolder(t *testing.T) {
 					{
 						Config: testAccResourceVSphereFolderConfigBasic(
 							testAccResourceVSphereFolderConfigExpectedName,
-							vSphereFolderTypeNetwork,
+							folder.VSphereFolderTypeNetwork,
 						),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereFolderExists(true),
 							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
-							testAccResourceVSphereFolderHasType(vSphereFolderTypeNetwork),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeNetwork),
 						),
 					},
 				},
@@ -105,12 +105,12 @@ func TestAccResourceVSphereFolder(t *testing.T) {
 					{
 						Config: testAccResourceVSphereFolderConfigBasic(
 							testAccResourceVSphereFolderConfigExpectedName,
-							vSphereFolderTypeHost,
+							folder.VSphereFolderTypeHost,
 						),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereFolderExists(true),
 							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
-							testAccResourceVSphereFolderHasType(vSphereFolderTypeHost),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeHost),
 						),
 					},
 				},
@@ -128,12 +128,12 @@ func TestAccResourceVSphereFolder(t *testing.T) {
 					{
 						Config: testAccResourceVSphereFolderConfigBasic(
 							testAccResourceVSphereFolderConfigExpectedName,
-							vSphereFolderTypeDatacenter,
+							folder.VSphereFolderTypeDatacenter,
 						),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereFolderExists(true),
 							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
-							testAccResourceVSphereFolderHasType(vSphereFolderTypeDatacenter),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeDatacenter),
 						),
 					},
 				},
@@ -151,23 +151,23 @@ func TestAccResourceVSphereFolder(t *testing.T) {
 					{
 						Config: testAccResourceVSphereFolderConfigBasic(
 							testAccResourceVSphereFolderConfigExpectedName,
-							vSphereFolderTypeVM,
+							folder.VSphereFolderTypeVM,
 						),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereFolderExists(true),
 							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
-							testAccResourceVSphereFolderHasType(vSphereFolderTypeVM),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
 						),
 					},
 					{
 						Config: testAccResourceVSphereFolderConfigBasic(
 							testAccResourceVSphereFolderConfigExpectedAltName,
-							vSphereFolderTypeVM,
+							folder.VSphereFolderTypeVM,
 						),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereFolderExists(true),
 							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedAltName),
-							testAccResourceVSphereFolderHasType(vSphereFolderTypeVM),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
 						),
 					},
 				},
@@ -185,12 +185,12 @@ func TestAccResourceVSphereFolder(t *testing.T) {
 					{
 						Config: testAccResourceVSphereFolderConfigSubFolder(
 							testAccResourceVSphereFolderConfigExpectedName,
-							vSphereFolderTypeVM,
+							folder.VSphereFolderTypeVM,
 						),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereFolderExists(true),
 							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
-							testAccResourceVSphereFolderHasType(vSphereFolderTypeVM),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
 							testAccResourceVSphereFolderHasParent(false, testAccResourceVSphereFolderConfigExpectedParentName),
 						),
 					},
@@ -209,24 +209,24 @@ func TestAccResourceVSphereFolder(t *testing.T) {
 					{
 						Config: testAccResourceVSphereFolderConfigBasic(
 							testAccResourceVSphereFolderConfigExpectedName,
-							vSphereFolderTypeVM,
+							folder.VSphereFolderTypeVM,
 						),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereFolderExists(true),
 							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
-							testAccResourceVSphereFolderHasType(vSphereFolderTypeVM),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
 							testAccResourceVSphereFolderHasParent(true, "vm"),
 						),
 					},
 					{
 						Config: testAccResourceVSphereFolderConfigSubFolder(
 							testAccResourceVSphereFolderConfigExpectedName,
-							vSphereFolderTypeVM,
+							folder.VSphereFolderTypeVM,
 						),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereFolderExists(true),
 							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
-							testAccResourceVSphereFolderHasType(vSphereFolderTypeVM),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
 							testAccResourceVSphereFolderHasParent(false, testAccResourceVSphereFolderConfigExpectedParentName),
 						),
 					},
@@ -247,7 +247,7 @@ func TestAccResourceVSphereFolder(t *testing.T) {
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereFolderExists(true),
 							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
-							testAccResourceVSphereFolderHasType(vSphereFolderTypeVM),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
 							testAccResourceVSphereFolderCheckTags("terraform-test-tag"),
 						),
 					},
@@ -268,7 +268,7 @@ func TestAccResourceVSphereFolder(t *testing.T) {
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereFolderExists(true),
 							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
-							testAccResourceVSphereFolderHasType(vSphereFolderTypeVM),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
 							testAccResourceVSphereFolderCheckTags("terraform-test-tag"),
 						),
 					},
@@ -277,7 +277,7 @@ func TestAccResourceVSphereFolder(t *testing.T) {
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereFolderExists(true),
 							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
-							testAccResourceVSphereFolderHasType(vSphereFolderTypeVM),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
 							testAccResourceVSphereFolderCheckTags("terraform-test-tags-alt"),
 						),
 					},
@@ -296,12 +296,12 @@ func TestAccResourceVSphereFolder(t *testing.T) {
 					{
 						Config: testAccResourceVSphereFolderConfigBasic(
 							testAccResourceVSphereFolderConfigExpectedName,
-							vSphereFolderTypeVM,
+							folder.VSphereFolderTypeVM,
 						),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereFolderExists(true),
 							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
-							testAccResourceVSphereFolderHasType(vSphereFolderTypeVM),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
 							copyStatePtr(&s),
 						),
 					},
@@ -313,7 +313,7 @@ func TestAccResourceVSphereFolder(t *testing.T) {
 						},
 						Config: testAccResourceVSphereFolderConfigBasic(
 							testAccResourceVSphereFolderConfigExpectedName,
-							vSphereFolderTypeVM,
+							folder.VSphereFolderTypeVM,
 						),
 						Destroy:     true,
 						ExpectError: regexp.MustCompile("folder is not empty, please remove all items before deleting"),
@@ -326,7 +326,7 @@ func TestAccResourceVSphereFolder(t *testing.T) {
 						},
 						Config: testAccResourceVSphereFolderConfigBasic(
 							testAccResourceVSphereFolderConfigExpectedName,
-							vSphereFolderTypeVM,
+							folder.VSphereFolderTypeVM,
 						),
 					},
 				},
@@ -344,7 +344,7 @@ func TestAccResourceVSphereFolder(t *testing.T) {
 					{
 						Config: testAccResourceVSphereFolderConfigBasic(
 							testAccResourceVSphereFolderConfigExpectedName,
-							vSphereFolderTypeVM,
+							folder.VSphereFolderTypeVM,
 						),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereFolderExists(true),
@@ -363,12 +363,12 @@ func TestAccResourceVSphereFolder(t *testing.T) {
 						},
 						Config: testAccResourceVSphereFolderConfigBasic(
 							testAccResourceVSphereFolderConfigExpectedName,
-							vSphereFolderTypeVM,
+							folder.VSphereFolderTypeVM,
 						),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereFolderExists(true),
 							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
-							testAccResourceVSphereFolderHasType(vSphereFolderTypeVM),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
 						),
 					},
 				},
@@ -388,7 +388,7 @@ func testAccResourceVSphereFolderExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		folder, err := testGetFolder(s, "folder")
 		if err != nil {
-			if isManagedObjectNotFoundError(err) && expected == false {
+			if viapi.IsManagedObjectNotFoundError(err) && expected == false {
 				// Expected missing
 				return nil
 			}
@@ -415,13 +415,13 @@ func testAccResourceVSphereFolderHasName(expected string) resource.TestCheckFunc
 	}
 }
 
-func testAccResourceVSphereFolderHasType(expected vSphereFolderType) resource.TestCheckFunc {
+func testAccResourceVSphereFolderHasType(expected folder.VSphereFolderType) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		folder, err := testGetFolder(s, "folder")
 		if err != nil {
 			return err
 		}
-		actual, err := findFolderType(folder)
+		actual, err := folder.FindType(folder)
 		if err != nil {
 			return err
 		}
@@ -442,7 +442,7 @@ func testAccResourceVSphereFolderHasParent(expectedRoot bool, expectedName strin
 			return fmt.Errorf("folder %q is a root folder", props.Name)
 		}
 		client := testAccProvider.Meta().(*VSphereClient).vimClient
-		pfolder, err := folderFromID(client, props.Parent.Value)
+		pfolder, err := folder.FromID(client, props.Parent.Value)
 		if err != nil {
 			return err
 		}
@@ -542,7 +542,7 @@ func testAccResourceVSphereFolderDeleteOOB(s *terraform.State) error {
 	return nil
 }
 
-func testAccResourceVSphereFolderConfigBasic(name string, ft vSphereFolderType) string {
+func testAccResourceVSphereFolderConfigBasic(name string, ft folder.VSphereFolderType) string {
 	return fmt.Sprintf(`
 variable "datacenter" {
   default = "%s"
@@ -572,7 +572,7 @@ resource "vsphere_folder" "folder" {
 	)
 }
 
-func testAccResourceVSphereFolderConfigSubFolder(name string, ft vSphereFolderType) string {
+func testAccResourceVSphereFolderConfigSubFolder(name string, ft folder.VSphereFolderType) string {
 	return fmt.Sprintf(`
 variable "datacenter" {
   default = "%s"
@@ -629,7 +629,7 @@ resource "vsphere_folder" "folder" {
 }
 `,
 		testAccResourceVSphereFolderConfigExpectedName,
-		vSphereFolderTypeDatacenter,
+		folder.VSphereFolderTypeDatacenter,
 	)
 }
 
@@ -674,7 +674,7 @@ resource "vsphere_folder" "folder" {
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
 		testAccResourceVSphereFolderConfigExpectedName,
-		vSphereFolderTypeVM,
+		folder.VSphereFolderTypeVM,
 	)
 }
 
@@ -732,6 +732,6 @@ resource "vsphere_folder" "folder" {
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
 		testAccResourceVSphereFolderConfigExpectedName,
-		vSphereFolderTypeVM,
+		folder.VSphereFolderTypeVM,
 	)
 }

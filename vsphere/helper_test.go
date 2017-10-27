@@ -79,7 +79,7 @@ func testAccSkipIfEsxi(t *testing.T) {
 }
 
 // expectErrorIfNotVirtualCenter returns the error message that
-// validateVirtualCenter returns if VSPHERE_TEST_ESXI is set, to allow for test
+// viapi.ValidateVirtualCenter returns if VSPHERE_TEST_ESXI is set, to allow for test
 // cases that will still run on ESXi, but will expect validation failure.
 func expectErrorIfNotVirtualCenter() *regexp.Regexp {
 	if testAccESXiFlagSet() {
@@ -274,7 +274,7 @@ func testGetDatastore(s *terraform.State, resAddr string) (*object.Datastore, er
 	if err != nil {
 		return nil, err
 	}
-	return datastoreFromID(vars.client, vars.resourceID)
+	return datastore.FromID(vars.client, vars.resourceID)
 }
 
 // testAccResourceVSphereDatastoreCheckTags is a check to ensure that the
@@ -303,7 +303,7 @@ func testGetFolder(s *terraform.State, resourceName string) (*object.Folder, err
 	if err != nil {
 		return nil, err
 	}
-	return folderFromID(tVars.client, tVars.resourceID)
+	return folder.FromID(tVars.client, tVars.resourceID)
 }
 
 // testGetFolderProperties is a convenience method that adds an extra step to

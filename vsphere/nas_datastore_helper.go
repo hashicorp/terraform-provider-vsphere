@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
@@ -71,23 +73,23 @@ func (p *nasDatastoreMountProcessor) processMountOperations() (*object.Datastore
 	}
 	// Validate we are vCenter if we are working with multiple hosts
 	if len(hosts) > 1 {
-		if err := validateVirtualCenter(p.client); err != nil {
+		if err := viapi.ValidateVirtualCenter(p.client); err != nil {
 			return p.ds, fmt.Errorf("cannot mount on multiple hosts: %s", err)
 		}
 	}
 	for _, hsID := range hosts {
 		dss, err := hostDatastoreSystemFromHostSystemID(p.client, hsID)
 		if err != nil {
-			return p.ds, fmt.Errorf("host %q: %s", hostSystemNameOrID(p.client, hsID), err)
+			return p.ds, fmt.Errorf("host %q: %s", hostsystem.NameOrID(p.client, hsID), err)
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 		defer cancel()
 		ds, err := dss.CreateNasDatastore(ctx, *p.volSpec)
 		if err != nil {
-			return p.ds, fmt.Errorf("host %q: %s", hostSystemNameOrID(p.client, hsID), err)
+			return p.ds, fmt.Errorf("host %q: %s", hostsystem.NameOrID(p.client, hsID), err)
 		}
 		if err := p.validateDatastore(ds); err != nil {
-			return p.ds, fmt.Errorf("datastore validation error on host %q: %s", hostSystemNameOrID(p.client, hsID), err)
+			return p.ds, fmt.Errorf("datastore validation error on host %q: %s", hostsystem.NameOrID(p.client, hsID), err)
 		}
 	}
 	return p.ds, nil
@@ -105,10 +107,10 @@ func (p *nasDatastoreMountProcessor) processUnmountOperations() error {
 	for _, hsID := range hosts {
 		dss, err := hostDatastoreSystemFromHostSystemID(p.client, hsID)
 		if err != nil {
-			return fmt.Errorf("host %q: %s", hostSystemNameOrID(p.client, hsID), err)
+			return fmt.Errorf("host %q: %s", hostsystem.NameOrID(p.client, hsID), err)
 		}
 		if err := removeDatastore(dss, p.ds); err != nil {
-			return fmt.Errorf("host %q: %s", hostSystemNameOrID(p.client, hsID), err)
+			return fmt.Errorf("host %q: %s", hostsystem.NameOrID(p.client, hsID), err)
 		}
 	}
 	return nil

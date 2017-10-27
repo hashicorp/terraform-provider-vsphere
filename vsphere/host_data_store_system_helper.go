@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/methods"
@@ -13,7 +15,7 @@ import (
 // hostDatastoreSystemFromHostSystemID locates a HostDatastoreSystem from a
 // specified HostSystem managed object ID.
 func hostDatastoreSystemFromHostSystemID(client *govmomi.Client, hsID string) (*object.HostDatastoreSystem, error) {
-	hs, err := hostSystemFromID(client, hsID)
+	hs, err := hostsystem.FromID(client, hsID)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +85,7 @@ func diskSpecForExtend(dss *object.HostDatastoreSystem, ds *object.Datastore, na
 		return nil, err
 	}
 
-	props, err := datastoreProperties(ds)
+	props, err := datastore.Properties(ds)
 	if err != nil {
 		return nil, fmt.Errorf("error getting properties for datastore ID %q: %s", ds.Reference().Value, err)
 	}

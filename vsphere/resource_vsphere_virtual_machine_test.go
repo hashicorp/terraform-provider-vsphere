@@ -617,7 +617,7 @@ func testAccResourceVSphereVirtualMachineCheckFolder(expected string) resource.T
 		if err != nil {
 			return fmt.Errorf("bad: %s", err)
 		}
-		expected, err := rootPathParticleVM.PathFromNewRoot(vm.InventoryPath, rootPathParticleVM, expected)
+		expected, err := folder.RootPathParticleVM.PathFromNewRoot(vm.InventoryPath, folder.RootPathParticleVM, expected)
 		actual := path.Dir(vm.InventoryPath)
 		if err != nil {
 			return fmt.Errorf("bad: %s", err)

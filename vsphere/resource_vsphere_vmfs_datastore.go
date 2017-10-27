@@ -9,7 +9,10 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -73,7 +76,7 @@ func resourceVSphereVmfsDatastore() *schema.Resource {
 			Type:        schema.TypeString,
 			Description: "The path to the datastore folder to put the datastore in.",
 			Optional:    true,
-			StateFunc:   normalizeFolderPath,
+			StateFunc:   folder.NormalizePath,
 		},
 		"disks": &schema.Schema{
 			Type:        schema.TypeList,
@@ -134,16 +137,16 @@ func resourceVSphereVmfsDatastoreCreate(d *schema.ResourceData, meta interface{}
 	}
 
 	// Move the datastore to the correct folder first, if specified.
-	folder := d.Get("folder").(string)
-	if !pathIsEmpty(folder) {
-		if err := moveDatastoreToFolderRelativeHostSystemID(client, ds, hsID, folder); err != nil {
+	f := d.Get("folder").(string)
+	if !folder.PathIsEmpty(f) {
+		if err := datastore.MoveToFolderRelativeHostSystemID(client, ds, hsID, f); err != nil {
 			if remErr := removeDatastore(dss, ds); remErr != nil {
 				// We could not destroy the created datastore and there is now a dangling
 				// resource. We need to instruct the user to remove the datastore
 				// manually.
-				return fmt.Errorf(formatVmfsDatastoreCreateRollbackErrorFolder, folder, err, remErr)
+				return fmt.Errorf(formatVmfsDatastoreCreateRollbackErrorFolder, f, err, remErr)
 			}
-			return fmt.Errorf("could not move datastore to folder %q: %s", folder, err)
+			return fmt.Errorf("could not move datastore to folder %q: %s", f, err)
 		}
 	}
 
@@ -189,11 +192,11 @@ func resourceVSphereVmfsDatastoreCreate(d *schema.ResourceData, meta interface{}
 func resourceVSphereVmfsDatastoreRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
 	id := d.Id()
-	ds, err := datastoreFromID(client, id)
+	ds, err := datastore.FromID(client, id)
 	if err != nil {
 		return fmt.Errorf("cannot find datastore: %s", err)
 	}
-	props, err := datastoreProperties(ds)
+	props, err := datastore.Properties(ds)
 	if err != nil {
 		return fmt.Errorf("could not get properties for datastore: %s", err)
 	}
@@ -202,11 +205,11 @@ func resourceVSphereVmfsDatastoreRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	// Set the folder
-	folder, err := rootPathParticleDatastore.SplitRelativeFolder(ds.InventoryPath)
+	f, err := folder.RootPathParticleDatastore.SplitRelativeFolder(ds.InventoryPath)
 	if err != nil {
 		return fmt.Errorf("error parsing datastore path %q: %s", ds.InventoryPath, err)
 	}
-	d.Set("folder", normalizeFolderPath(folder))
+	d.Set("folder", folder.NormalizePath(f))
 
 	// We also need to update the disk list from the summary.
 	var disks []string
@@ -244,14 +247,14 @@ func resourceVSphereVmfsDatastoreUpdate(d *schema.ResourceData, meta interface{}
 	}
 
 	id := d.Id()
-	ds, err := datastoreFromID(client, id)
+	ds, err := datastore.FromID(client, id)
 	if err != nil {
 		return fmt.Errorf("cannot find datastore: %s", err)
 	}
 
 	// Rename this datastore if our name has drifted.
 	if d.HasChange("name") {
-		if err := renameObject(client, ds.Reference(), d.Get("name").(string)); err != nil {
+		if err := viapi.RenameObject(client, ds.Reference(), d.Get("name").(string)); err != nil {
 			return err
 		}
 	}
@@ -259,7 +262,7 @@ func resourceVSphereVmfsDatastoreUpdate(d *schema.ResourceData, meta interface{}
 	// Update folder if necessary
 	if d.HasChange("folder") {
 		folder := d.Get("folder").(string)
-		if err := moveDatastoreToFolder(client, ds, folder); err != nil {
+		if err := datastore.MoveToFolder(client, ds, folder); err != nil {
 			return fmt.Errorf("Could not move datastore to folder %q: %s", folder, err)
 		}
 	}
@@ -322,7 +325,7 @@ func resourceVSphereVmfsDatastoreDelete(d *schema.ResourceData, meta interface{}
 	}
 
 	id := d.Id()
-	ds, err := datastoreFromID(client, id)
+	ds, err := datastore.FromID(client, id)
 	if err != nil {
 		return fmt.Errorf("cannot find datastore: %s", err)
 	}
@@ -338,7 +341,7 @@ func resourceVSphereVmfsDatastoreDelete(d *schema.ResourceData, meta interface{}
 	deleteRetryFunc := func() (interface{}, string, error) {
 		err := removeDatastore(dss, ds)
 		if err != nil {
-			if isResourceInUseError(err) {
+			if viapi.IsResourceInUseError(err) {
 				// Pending
 				return struct{}{}, retryDeletePending, nil
 			}
@@ -367,9 +370,9 @@ func resourceVSphereVmfsDatastoreDelete(d *schema.ResourceData, meta interface{}
 	// be a bit of a delay sometimes on vCenter, and it causes issues in tests,
 	// which means it could cause issues somewhere else too.
 	waitForDeleteFunc := func() (interface{}, string, error) {
-		_, err := datastoreFromID(client, id)
+		_, err := datastore.FromID(client, id)
 		if err != nil {
-			if isManagedObjectNotFoundError(err) {
+			if viapi.IsManagedObjectNotFoundError(err) {
 				// Done
 				return struct{}{}, waitForDeleteCompleted, nil
 			}
@@ -409,11 +412,11 @@ func resourceVSphereVmfsDatastoreImport(d *schema.ResourceData, meta interface{}
 	id := ids[0]
 	hsID := ids[1]
 	client := meta.(*VSphereClient).vimClient
-	ds, err := datastoreFromID(client, id)
+	ds, err := datastore.FromID(client, id)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find datastore: %s", err)
 	}
-	props, err := datastoreProperties(ds)
+	props, err := datastore.Properties(ds)
 	if err != nil {
 		return nil, fmt.Errorf("could not get properties for datastore: %s", err)
 	}

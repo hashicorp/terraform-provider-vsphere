@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/vic/pkg/vsphere/tags"
@@ -93,21 +94,21 @@ this issue, please use a tag name unique within your vCenter system.
 const vSphereTagAttributeKey = "tags"
 
 // tagsMinVersion is the minimum vSphere version required for tags.
-var tagsMinVersion = vSphereVersion{
-	product: "VMware vCenter Server",
-	major:   6,
-	minor:   0,
-	patch:   0,
-	build:   2559268,
+var tagsMinVersion = viapi.VSphereVersion{
+	Product: "VMware vCenter Server",
+	Major:   6,
+	Minor:   0,
+	Patch:   0,
+	Build:   2559268,
 }
 
 // isEligibleTagEndpoint is a meta-validation that is used on login to see if
 // the connected endpoint supports the CIS REST API, which we use for tags.
 func isEligibleTagEndpoint(client *govmomi.Client) bool {
-	if err := validateVirtualCenter(client); err != nil {
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return false
 	}
-	clientVer := parseVersionFromClient(client)
+	clientVer := viapi.ParseVersionFromClient(client)
 	if !clientVer.ProductEqual(tagsMinVersion) || clientVer.Older(tagsMinVersion) {
 		return false
 	}
