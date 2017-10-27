@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -52,7 +53,7 @@ func getBoolWithRestart(d *schema.ResourceData, key string) *bool {
 	if d.HasChange(key) {
 		d.Set("reboot_required", true)
 	}
-	return getBool(d, key)
+	return structure.GetBool(d, key)
 }
 
 // schemaVirtualMachineConfigSpec returns schema items for resources that
@@ -242,7 +243,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Description: "Value internal to Terraform used to determine if a configuration set change requires a reboot.",
 		},
 	}
-	mergeSchema(s, schemaVirtualMachineResourceAllocation())
+	structure.MergeSchema(s, schemaVirtualMachineResourceAllocation())
 	return s
 }
 
@@ -251,8 +252,8 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 func expandVirtualMachineBootOptions(d *schema.ResourceData) *types.VirtualMachineBootOptions {
 	obj := &types.VirtualMachineBootOptions{
 		BootDelay:            int64(d.Get("boot_delay").(int)),
-		EfiSecureBootEnabled: getBool(d, "efi_secure_boot_enabled"),
-		BootRetryEnabled:     getBool(d, "boot_retry_enabled"),
+		EfiSecureBootEnabled: structure.GetBool(d, "efi_secure_boot_enabled"),
+		BootRetryEnabled:     structure.GetBool(d, "boot_retry_enabled"),
 		BootRetryDelay:       int64(d.Get("boot_retry_delay").(int)),
 	}
 	return obj
@@ -262,8 +263,8 @@ func expandVirtualMachineBootOptions(d *schema.ResourceData) *types.VirtualMachi
 // VirtualMachineBootOptions into the passed in ResourceData.
 func flattenVirtualMachineBootOptions(d *schema.ResourceData, obj *types.VirtualMachineBootOptions) error {
 	d.Set("boot_delay", obj.BootDelay)
-	setBoolPtr(d, "efi_secure_boot_enabled", obj.EfiSecureBootEnabled)
-	setBoolPtr(d, "boot_retry_enabled", obj.BootRetryEnabled)
+	structure.SetBoolPtr(d, "efi_secure_boot_enabled", obj.EfiSecureBootEnabled)
+	structure.SetBoolPtr(d, "boot_retry_enabled", obj.BootRetryEnabled)
 	d.Set("boot_retry_delay", obj.BootRetryDelay)
 	return nil
 }
@@ -294,7 +295,7 @@ func flattenVirtualMachineFlagInfo(d *schema.ResourceData, obj *types.VirtualMac
 // returns a ToolsConfigInfo.
 func expandToolsConfigInfo(d *schema.ResourceData) *types.ToolsConfigInfo {
 	obj := &types.ToolsConfigInfo{
-		SyncTimeWithHost:    getBool(d, "sync_time_with_host"),
+		SyncTimeWithHost:    structure.GetBool(d, "sync_time_with_host"),
 		AfterPowerOn:        getBoolWithRestart(d, "run_tools_scripts_after_power_on"),
 		AfterResume:         getBoolWithRestart(d, "run_tools_scripts_after_resume"),
 		BeforeGuestStandby:  getBoolWithRestart(d, "run_tools_scripts_before_guest_standby"),
@@ -376,8 +377,8 @@ func expandVirtualMachineResourceAllocation(d *schema.ResourceData, key string) 
 	reservationKey := fmt.Sprintf("%s_reservation", key)
 
 	obj := &types.ResourceAllocationInfo{
-		Limit:       getInt64Ptr(d, limitKey),
-		Reservation: getInt64Ptr(d, reservationKey),
+		Limit:       structure.GetInt64Ptr(d, limitKey),
+		Reservation: structure.GetInt64Ptr(d, reservationKey),
 	}
 	shares := &types.SharesInfo{
 		Level:  types.SharesLevel(d.Get(shareLevelKey).(string)),
@@ -396,8 +397,8 @@ func flattenVirtualMachineResourceAllocation(d *schema.ResourceData, obj *types.
 	limitKey := fmt.Sprintf("%s_limit", key)
 	reservationKey := fmt.Sprintf("%s_reservation", key)
 
-	setInt64Ptr(d, limitKey, obj.Limit)
-	setInt64Ptr(d, reservationKey, obj.Reservation)
+	structure.SetInt64Ptr(d, limitKey, obj.Limit)
+	structure.SetInt64Ptr(d, reservationKey, obj.Reservation)
 	if obj.Shares != nil {
 		d.Set(shareLevelKey, obj.Shares.Level)
 		d.Set(shareCountKey, obj.Shares.Shares)

@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 )
 
 func resourceVSphereHostPortGroup() *schema.Resource {
@@ -34,7 +35,7 @@ func resourceVSphereHostPortGroup() *schema.Resource {
 			Elem:        portGroupPortSchema(),
 		},
 	}
-	mergeSchema(s, schemaHostPortGroupSpec())
+	structure.MergeSchema(s, schemaHostPortGroupSpec())
 
 	// Transform any necessary fields in the schema that need to be updated
 	// specifically for this resource.

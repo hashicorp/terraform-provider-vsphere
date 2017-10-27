@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/vic/pkg/vsphere/tags"
@@ -341,8 +342,8 @@ func processTagDiff(client *tags.RestClient, d *schema.ResourceData, obj object.
 	tdp := &tagDiffProcessor{
 		client:    client,
 		subject:   obj,
-		oldTagIDs: sliceInterfacesToStrings(old.(*schema.Set).List()),
-		newTagIDs: sliceInterfacesToStrings(new.(*schema.Set).List()),
+		oldTagIDs: structure.SliceInterfacesToStrings(old.(*schema.Set).List()),
+		newTagIDs: structure.SliceInterfacesToStrings(new.(*schema.Set).List()),
 	}
 	if err := tdp.processDetachOperations(); err != nil {
 		return fmt.Errorf("error detaching tags to object ID %q: %s", obj.Reference().Value, err)

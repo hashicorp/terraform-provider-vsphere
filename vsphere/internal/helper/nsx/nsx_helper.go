@@ -1,9 +1,10 @@
-package vsphere
+package nsx
 
 import (
 	"context"
 	"fmt"
 
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -12,7 +13,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-// opaqueNetworkFromNetworkID looks for an opaque network via its opaque network ID.
+// OpaqueNetworkFromNetworkID looks for an opaque network via its opaque network ID.
 //
 // As NSX support in the Terraform provider is not 100% as of the time of this
 // writing (October 2017), this function may require some extra love in order
@@ -20,12 +21,12 @@ import (
 // vsphere_virtual_machine resource, as there is no direct path from an opaque
 // network backing to the managed object reference that represents the opaque
 // network in vCenter.
-func opaqueNetworkFromNetworkID(client *govmomi.Client, id string) (*object.OpaqueNetwork, error) {
+func OpaqueNetworkFromNetworkID(client *govmomi.Client, id string) (*object.OpaqueNetwork, error) {
 	// We use the same ContainerView logic that we use with networkFromID, but we
 	// go a step further and limit it to opaque networks only.
 	m := view.NewManager(client.Client)
 
-	vctx, vcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	vctx, vcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer vcancel()
 	v, err := m.CreateContainerView(vctx, client.ServiceContent.RootFolder, []string{"OpaqueNetwork"}, true)
 	if err != nil {
@@ -33,7 +34,7 @@ func opaqueNetworkFromNetworkID(client *govmomi.Client, id string) (*object.Opaq
 	}
 
 	defer func() {
-		dctx, dcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+		dctx, dcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 		defer dcancel()
 		v.Destroy(dctx)
 	}()
@@ -48,7 +49,7 @@ func opaqueNetworkFromNetworkID(client *govmomi.Client, id string) (*object.Opaq
 		if net.Summary.(*types.OpaqueNetworkSummary).OpaqueNetworkId == id {
 			ref := net.Reference()
 			finder := find.NewFinder(client.Client, false)
-			fctx, fcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+			fctx, fcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 			defer fcancel()
 			nref, err := finder.ObjectReference(fctx, ref)
 			if err != nil {

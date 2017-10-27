@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -82,7 +83,7 @@ func resourceVSphereVmfsDatastore() *schema.Resource {
 			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
 	}
-	mergeSchema(s, schemaDatastoreSummary())
+	structure.MergeSchema(s, schemaDatastoreSummary())
 
 	// Add tags schema
 	s[vSphereTagAttributeKey] = tagsSchema()

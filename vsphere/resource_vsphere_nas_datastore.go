@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -33,8 +34,8 @@ func resourceVSphereNasDatastore() *schema.Resource {
 			StateFunc:   normalizeFolderPath,
 		},
 	}
-	mergeSchema(s, schemaHostNasVolumeSpec())
-	mergeSchema(s, schemaDatastoreSummary())
+	structure.MergeSchema(s, schemaHostNasVolumeSpec())
+	structure.MergeSchema(s, schemaDatastoreSummary())
 
 	// Add tags schema
 	s[vSphereTagAttributeKey] = tagsSchema()
@@ -61,7 +62,7 @@ func resourceVSphereNasDatastoreCreate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	hosts := sliceInterfacesToStrings(d.Get("host_system_ids").(*schema.Set).List())
+	hosts := structure.SliceInterfacesToStrings(d.Get("host_system_ids").(*schema.Set).List())
 	p := &nasDatastoreMountProcessor{
 		client:   client,
 		oldHSIDs: nil,
@@ -184,8 +185,8 @@ func resourceVSphereNasDatastoreUpdate(d *schema.ResourceData, meta interface{})
 
 	p := &nasDatastoreMountProcessor{
 		client:   client,
-		oldHSIDs: sliceInterfacesToStrings(o.(*schema.Set).List()),
-		newHSIDs: sliceInterfacesToStrings(n.(*schema.Set).List()),
+		oldHSIDs: structure.SliceInterfacesToStrings(o.(*schema.Set).List()),
+		newHSIDs: structure.SliceInterfacesToStrings(n.(*schema.Set).List()),
 		volSpec:  expandHostNasVolumeSpec(d),
 		ds:       ds,
 	}
@@ -212,7 +213,7 @@ func resourceVSphereNasDatastoreDelete(d *schema.ResourceData, meta interface{})
 
 	// Unmount the datastore from every host. Once the last host is unmounted we
 	// are done and the datastore will delete itself.
-	hosts := sliceInterfacesToStrings(d.Get("host_system_ids").(*schema.Set).List())
+	hosts := structure.SliceInterfacesToStrings(d.Get("host_system_ids").(*schema.Set).List())
 	p := &nasDatastoreMountProcessor{
 		client:   client,
 		oldHSIDs: hosts,

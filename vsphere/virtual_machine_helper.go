@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -20,7 +21,7 @@ func virtualMachineFromUUID(client *govmomi.Client, uuid string) (*object.Virtua
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
-	result, err := search.FindByUuid(ctx, nil, uuid, true, boolPtr(false))
+	result, err := search.FindByUuid(ctx, nil, uuid, true, structure.BoolPtr(false))
 	if err != nil {
 		return nil, err
 	}

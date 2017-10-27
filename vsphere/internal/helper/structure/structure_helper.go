@@ -1,4 +1,4 @@
-package vsphere
+package structure
 
 import (
 	"fmt"
@@ -8,10 +8,10 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-// sliceInterfacesToStrings converts an interface slice to a string slice. The
+// SliceInterfacesToStrings converts an interface slice to a string slice. The
 // function does not attempt to do any sanity checking and will panic if one of
 // the items in the slice is not a string.
-func sliceInterfacesToStrings(s []interface{}) []string {
+func SliceInterfacesToStrings(s []interface{}) []string {
 	var d []string
 	for _, v := range s {
 		d = append(d, v.(string))
@@ -19,8 +19,8 @@ func sliceInterfacesToStrings(s []interface{}) []string {
 	return d
 }
 
-// sliceStringsToInterfaces converts a string slice to an interface slice.
-func sliceStringsToInterfaces(s []string) []interface{} {
+// SliceStringsToInterfaces converts a string slice to an interface slice.
+func SliceStringsToInterfaces(s []string) []interface{} {
 	var d []interface{}
 	for _, v := range s {
 		d = append(d, v)
@@ -28,9 +28,9 @@ func sliceStringsToInterfaces(s []string) []interface{} {
 	return d
 }
 
-// mergeSchema merges the map[string]*schema.Schema from src into dst. Safety
+// MergeSchema merges the map[string]*schema.Schema from src into dst. Safety
 // against conflicts is enforced by panicing.
-func mergeSchema(dst, src map[string]*schema.Schema) {
+func MergeSchema(dst, src map[string]*schema.Schema) {
 	for k, v := range src {
 		if _, ok := dst[k]; ok {
 			panic(fmt.Errorf("conflicting schema key: %s", k))
@@ -39,33 +39,33 @@ func mergeSchema(dst, src map[string]*schema.Schema) {
 	}
 }
 
-// boolPtr makes a *bool out of the value passed in through v.
+// BoolPtr makes a *bool out of the value passed in through v.
 //
 // vSphere uses nil values in bools to omit values in the SOAP XML request, and
 // helps denote inheritance in certain cases.
-func boolPtr(v bool) *bool {
+func BoolPtr(v bool) *bool {
 	return &v
 }
 
-// getBoolPtr reads a ResourceData and returns an appropriate *bool for the
+// GetBoolPtr reads a ResourceData and returns an appropriate *bool for the
 // state of the definition. nil is returned if it does not exist.
-func getBoolPtr(d *schema.ResourceData, key string) *bool {
+func GetBoolPtr(d *schema.ResourceData, key string) *bool {
 	v, e := d.GetOkExists(key)
 	if e {
-		return boolPtr(v.(bool))
+		return BoolPtr(v.(bool))
 	}
 	return nil
 }
 
-// getBool reads a ResourceData and returns a *bool. This differs from
-// getBoolPtr in that a nil value is never returned.
-func getBool(d *schema.ResourceData, key string) *bool {
-	return boolPtr(d.Get(key).(bool))
+// GetBool reads a ResourceData and returns a *bool. This differs from
+// GetBoolPtr in that a nil value is never returned.
+func GetBool(d *schema.ResourceData, key string) *bool {
+	return BoolPtr(d.Get(key).(bool))
 }
 
-// setBoolPtr sets a ResourceData field depending on if a *bool exists or not.
+// SetBoolPtr sets a ResourceData field depending on if a *bool exists or not.
 // The field is not set if it's nil.
-func setBoolPtr(d *schema.ResourceData, key string, val *bool) error {
+func SetBoolPtr(d *schema.ResourceData, key string, val *bool) error {
 	if val == nil {
 		return nil
 	}
@@ -73,29 +73,29 @@ func setBoolPtr(d *schema.ResourceData, key string, val *bool) error {
 	return err
 }
 
-// int64Ptr makes an *int64 out of the value passed in through v.
-func int64Ptr(v int64) *int64 {
+// Int64Ptr makes an *int64 out of the value passed in through v.
+func Int64Ptr(v int64) *int64 {
 	return &v
 }
 
-// int32Ptr makes an *int32 out of the value passed in through v.
-func int32Ptr(v int32) *int32 {
+// Int32Ptr makes an *int32 out of the value passed in through v.
+func Int32Ptr(v int32) *int32 {
 	return &v
 }
 
-// getInt64Ptr reads a ResourceData and returns an appropriate *int64 for the
+// GetInt64Ptr reads a ResourceData and returns an appropriate *int64 for the
 // state of the definition. nil is returned if it does not exist.
-func getInt64Ptr(d *schema.ResourceData, key string) *int64 {
+func GetInt64Ptr(d *schema.ResourceData, key string) *int64 {
 	v, e := d.GetOkExists(key)
 	if e {
-		return int64Ptr(int64(v.(int)))
+		return Int64Ptr(int64(v.(int)))
 	}
 	return nil
 }
 
-// setInt64Ptr sets a ResourceData field depending on if an *int64 exists or
+// SetInt64Ptr sets a ResourceData field depending on if an *int64 exists or
 // not.  The field is not set if it's nil.
-func setInt64Ptr(d *schema.ResourceData, key string, val *int64) error {
+func SetInt64Ptr(d *schema.ResourceData, key string, val *int64) error {
 	if val == nil {
 		return nil
 	}
@@ -103,9 +103,9 @@ func setInt64Ptr(d *schema.ResourceData, key string, val *int64) error {
 	return err
 }
 
-// byteToMB returns n/1000000. The input must be an integer that can be divisible
+// ByteToMB returns n/1000000. The input must be an integer that can be divisible
 // by 1000000.
-func byteToMB(n interface{}) interface{} {
+func ByteToMB(n interface{}) interface{} {
 	switch v := n.(type) {
 	case int:
 		return v / 1000000
@@ -117,12 +117,12 @@ func byteToMB(n interface{}) interface{} {
 	panic(fmt.Errorf("non-integer type %T for value", n))
 }
 
-// byteToGB returns n/1000000000. The input must be an integer that can be
+// ByteToGB returns n/1000000000. The input must be an integer that can be
 // divisible by 1000000000.
 //
 // Remember that int32 overflows at 2GB, so any values higher than that will
 // produce an inaccurate result.
-func byteToGB(n interface{}) interface{} {
+func ByteToGB(n interface{}) interface{} {
 	switch v := n.(type) {
 	case int:
 		return v / 1000000000
@@ -134,11 +134,11 @@ func byteToGB(n interface{}) interface{} {
 	panic(fmt.Errorf("non-integer type %T for value", n))
 }
 
-// gbToByte returns n*1000000000.
+// GbToByte returns n*1000000000.
 //
 // The output is returned as int64 - if another type is needed, it needs to be
 // cast. Remember that int32 overflows at 2GB and uint32 will overflow at 4GB.
-func gbToByte(n interface{}) int64 {
+func GbToByte(n interface{}) int64 {
 	switch v := n.(type) {
 	case int:
 		return int64(v * 1000000000)
@@ -150,27 +150,27 @@ func gbToByte(n interface{}) int64 {
 	panic(fmt.Errorf("non-integer type %T for value", n))
 }
 
-// boolPolicy converts a bool into a VMware BoolPolicy value.
-func boolPolicy(b bool) *types.BoolPolicy {
+// BoolPolicy converts a bool into a VMware BoolPolicy value.
+func BoolPolicy(b bool) *types.BoolPolicy {
 	bp := &types.BoolPolicy{
-		Value: boolPtr(b),
+		Value: BoolPtr(b),
 	}
 	return bp
 }
 
-// getBoolPolicy reads a ResourceData and returns an appropriate BoolPolicy for
+// GetBoolPolicy reads a ResourceData and returns an appropriate BoolPolicy for
 // the state of the definition. nil is returned if it does not exist.
-func getBoolPolicy(d *schema.ResourceData, key string) *types.BoolPolicy {
+func GetBoolPolicy(d *schema.ResourceData, key string) *types.BoolPolicy {
 	v, e := d.GetOkExists(key)
 	if e {
-		return boolPolicy(v.(bool))
+		return BoolPolicy(v.(bool))
 	}
 	return nil
 }
 
-// setBoolPolicy sets a ResourceData field depending on if a BoolPolicy exists
+// SetBoolPolicy sets a ResourceData field depending on if a BoolPolicy exists
 // or not. The field is not set if it's nil.
-func setBoolPolicy(d *schema.ResourceData, key string, val *types.BoolPolicy) error {
+func SetBoolPolicy(d *schema.ResourceData, key string, val *types.BoolPolicy) error {
 	if val == nil {
 		return nil
 	}
@@ -178,17 +178,17 @@ func setBoolPolicy(d *schema.ResourceData, key string, val *types.BoolPolicy) er
 	return err
 }
 
-// getBoolPolicyReverse acts like getBoolPolicy, but the value is inverted.
-func getBoolPolicyReverse(d *schema.ResourceData, key string) *types.BoolPolicy {
+// GetBoolPolicyReverse acts like GetBoolPolicy, but the value is inverted.
+func GetBoolPolicyReverse(d *schema.ResourceData, key string) *types.BoolPolicy {
 	v, e := d.GetOkExists(key)
 	if e {
-		return boolPolicy(!v.(bool))
+		return BoolPolicy(!v.(bool))
 	}
 	return nil
 }
 
-// setBoolPolicyReverse acts like setBoolPolicy, but the value is inverted.
-func setBoolPolicyReverse(d *schema.ResourceData, key string, val *types.BoolPolicy) error {
+// SetBoolPolicyReverse acts like SetBoolPolicy, but the value is inverted.
+func SetBoolPolicyReverse(d *schema.ResourceData, key string, val *types.BoolPolicy) error {
 	if val == nil {
 		return nil
 	}
@@ -196,27 +196,27 @@ func setBoolPolicyReverse(d *schema.ResourceData, key string, val *types.BoolPol
 	return err
 }
 
-// stringPolicy converts a string into a VMware StringPolicy value.
-func stringPolicy(s string) *types.StringPolicy {
+// StringPolicy converts a string into a VMware StringPolicy value.
+func StringPolicy(s string) *types.StringPolicy {
 	sp := &types.StringPolicy{
 		Value: s,
 	}
 	return sp
 }
 
-// getStringPolicy reads a ResourceData and returns an appropriate StringPolicy
+// GetStringPolicy reads a ResourceData and returns an appropriate StringPolicy
 // for the state of the definition. nil is returned if it does not exist.
-func getStringPolicy(d *schema.ResourceData, key string) *types.StringPolicy {
+func GetStringPolicy(d *schema.ResourceData, key string) *types.StringPolicy {
 	v, e := d.GetOkExists(key)
 	if e {
-		return stringPolicy(v.(string))
+		return StringPolicy(v.(string))
 	}
 	return nil
 }
 
-// setStringPolicy sets a ResourceData field depending on if a StringPolicy
+// SetStringPolicy sets a ResourceData field depending on if a StringPolicy
 // exists or not. The field is not set if it's nil.
-func setStringPolicy(d *schema.ResourceData, key string, val *types.StringPolicy) error {
+func SetStringPolicy(d *schema.ResourceData, key string, val *types.StringPolicy) error {
 	if val == nil {
 		return nil
 	}
@@ -224,9 +224,9 @@ func setStringPolicy(d *schema.ResourceData, key string, val *types.StringPolicy
 	return err
 }
 
-// longPolicy converts a supported number into a VMware LongPolicy value. This
+// LongPolicy converts a supported number into a VMware LongPolicy value. This
 // will panic if there is no implicit conversion of the value into an int64.
-func longPolicy(n interface{}) *types.LongPolicy {
+func LongPolicy(n interface{}) *types.LongPolicy {
 	lp := &types.LongPolicy{}
 	switch v := n.(type) {
 	case int:
@@ -253,19 +253,19 @@ func longPolicy(n interface{}) *types.LongPolicy {
 	return lp
 }
 
-// getLongPolicy reads a ResourceData and returns an appropriate LongPolicy
+// GetLongPolicy reads a ResourceData and returns an appropriate LongPolicy
 // for the state of the definition. nil is returned if it does not exist.
-func getLongPolicy(d *schema.ResourceData, key string) *types.LongPolicy {
+func GetLongPolicy(d *schema.ResourceData, key string) *types.LongPolicy {
 	v, e := d.GetOkExists(key)
 	if e {
-		return longPolicy(v)
+		return LongPolicy(v)
 	}
 	return nil
 }
 
-// setLongPolicy sets a ResourceData field depending on if a LongPolicy
+// SetLongPolicy sets a ResourceData field depending on if a LongPolicy
 // exists or not. The field is not set if it's nil.
-func setLongPolicy(d *schema.ResourceData, key string, val *types.LongPolicy) error {
+func SetLongPolicy(d *schema.ResourceData, key string, val *types.LongPolicy) error {
 	if val == nil {
 		return nil
 	}
@@ -273,11 +273,11 @@ func setLongPolicy(d *schema.ResourceData, key string, val *types.LongPolicy) er
 	return err
 }
 
-// allFieldsEmpty checks to see if all fields in a given struct are zero
+// AllFieldsEmpty checks to see if all fields in a given struct are zero
 // values. It does not recurse, so finer-grained checking should be done for
 // deep accuracy when necessary. It also does not dereference pointers, except
 // if the value itself is a pointer and is not nil.
-func allFieldsEmpty(v interface{}) bool {
+func AllFieldsEmpty(v interface{}) bool {
 	if v == nil {
 		return true
 	}
@@ -317,10 +317,10 @@ func allFieldsEmpty(v interface{}) bool {
 	return true
 }
 
-// deRef returns the value pointed to by the interface if the interface is a
+// DeRef returns the value pointed to by the interface if the interface is a
 // pointer and is not nil, otherwise returns nil, or the direct value if it's
 // not a pointer.
-func deRef(v interface{}) interface{} {
+func DeRef(v interface{}) interface{} {
 	if v == nil {
 		return nil
 	}

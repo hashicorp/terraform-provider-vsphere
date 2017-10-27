@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -26,7 +27,7 @@ func resourceVSphereDistributedPortGroup() *schema.Resource {
 		vSphereTagAttributeKey: tagsSchema(),
 	}
 
-	mergeSchema(s, schemaDVPortgroupConfigSpec())
+	structure.MergeSchema(s, schemaDVPortgroupConfigSpec())
 
 	return &schema.Resource{
 		Create: resourceVSphereDistributedPortGroupCreate,

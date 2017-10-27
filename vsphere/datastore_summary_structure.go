@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -56,11 +57,11 @@ func schemaDatastoreSummary() map[string]*schema.Schema {
 // the passed in ResourceData.
 func flattenDatastoreSummary(d *schema.ResourceData, obj *types.DatastoreSummary) error {
 	d.Set("accessible", obj.Accessible)
-	d.Set("capacity", byteToMB(obj.Capacity))
-	d.Set("free_space", byteToMB(obj.FreeSpace))
+	d.Set("capacity", structure.ByteToMB(obj.Capacity))
+	d.Set("free_space", structure.ByteToMB(obj.FreeSpace))
 	d.Set("maintenance_mode", obj.MaintenanceMode)
 	d.Set("multiple_host_access", obj.MultipleHostAccess)
-	d.Set("uncommitted_space", byteToMB(obj.Uncommitted))
+	d.Set("uncommitted_space", structure.ByteToMB(obj.Uncommitted))
 	d.Set("url", obj.Url)
 
 	// Set the name attribute off of the name here - since we do not track this
