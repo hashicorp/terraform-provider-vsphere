@@ -140,7 +140,7 @@ type DiskSubresource struct {
 
 // NewDiskSubresource returns a subresource populated with all of the necessary
 // fields.
-func NewDiskSubresource(client *govmomi.Client, index int, d *schema.ResourceData) *DiskSubresource {
+func NewDiskSubresource(client *govmomi.Client, index int, d *schema.ResourceData) SubresourceInstance {
 	sr := &DiskSubresource{
 		Subresource: &Subresource{
 			schema: diskSubresourceSchema,
@@ -162,7 +162,16 @@ func NewDiskSubresource(client *govmomi.Client, index int, d *schema.ResourceDat
 // updated, VirtualDeviceList, and the complete list of changes returned as a
 // slice of BaseVirtualDeviceConfigSpec.
 func DiskApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
-	return deviceApplyOperation(d, c, l, subresourceTypeDisk)
+	return deviceApplyOperation(d, c, l, subresourceTypeDisk, NewDiskSubresource)
+}
+
+// DiskRefreshOperation processes a refresh operation for all of the disks in
+// the resource.
+//
+// This functions similar to DiskApplyOperation, but nothing to change is
+// returned, all necessary values are just set and committed to state.
+func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) error {
+	return deviceRefreshOperation(d, c, l, subresourceTypeDisk, NewDiskSubresource)
 }
 
 // Create creates a vsphere_virtual_machine disk sub-resource.

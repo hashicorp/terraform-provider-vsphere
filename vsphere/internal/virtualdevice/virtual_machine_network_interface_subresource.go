@@ -102,6 +102,43 @@ type NetworkInterfaceSubresource struct {
 	*Subresource
 }
 
+// NewNetworkInterfaceSubresource returns a network_interface subresource
+// populated with all of the necessary fields.
+func NewNetworkInterfaceSubresource(client *govmomi.Client, index int, d *schema.ResourceData) SubresourceInstance {
+	sr := &NetworkInterfaceSubresource{
+		Subresource: &Subresource{
+			schema: diskSubresourceSchema,
+			client: client,
+			srtype: subresourceTypeNetworkInterface,
+			index:  index,
+			data:   d,
+		},
+	}
+	return sr
+}
+
+// NetworkInterfaceApplyOperation processes an apply operation for all
+// network_interfaces in the resource.
+//
+// The function takes the root resource's ResourceData, the provider
+// connection, and the device list as known to vSphere at the start of this
+// operation. All network_interface operations are carried out, with both the
+// complete, updated, VirtualDeviceList, and the complete list of changes
+// returned as a slice of BaseVirtualDeviceConfigSpec.
+func NetworkInterfaceApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+	return deviceApplyOperation(d, c, l, subresourceTypeNetworkInterface, NewNetworkInterfaceSubresource)
+}
+
+// NetworkInterfaceRefreshOperation processes a refresh operation for all of
+// the disks in the resource.
+//
+// This functions similar to NetworkInterfaceApplyOperation, but nothing to
+// change is returned, all necessary values are just set and committed to
+// state.
+func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) error {
+	return deviceRefreshOperation(d, c, l, subresourceTypeNetworkInterface, NewNetworkInterfaceSubresource)
+}
+
 // baseVirtualEthernetCardToBaseVirtualDevice converts a
 // BaseVirtualEthernetCard value into a BaseVirtualDevice.
 func baseVirtualEthernetCardToBaseVirtualDevice(v types.BaseVirtualEthernetCard) types.BaseVirtualDevice {
@@ -213,7 +250,7 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 }
 
 // Read reads a vsphere_virtual_machine network_interface sub-resource.
-func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList, client *govmomi.Client) error {
+func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
 	vd, err := r.FindVirtualDevice(l)
 	if err != nil {
 		return fmt.Errorf("cannot find network device: %s", err)
@@ -250,13 +287,13 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList, client *g
 		}
 		netID = backing.Network.Value
 	case *types.VirtualEthernetCardOpaqueNetworkBackingInfo:
-		onet, err := nsx.OpaqueNetworkFromNetworkID(client, backing.OpaqueNetworkId)
+		onet, err := nsx.OpaqueNetworkFromNetworkID(r.client, backing.OpaqueNetworkId)
 		if err != nil {
 			return err
 		}
 		netID = onet.Reference().Value
 	case *types.VirtualEthernetCardDistributedVirtualPortBackingInfo:
-		pg, err := dvportgroup.FromKey(client, backing.Port.SwitchUuid, backing.Port.PortgroupKey)
+		pg, err := dvportgroup.FromKey(r.client, backing.Port.SwitchUuid, backing.Port.PortgroupKey)
 		if err != nil {
 			return err
 		}
@@ -286,7 +323,7 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList, client *g
 }
 
 // Update updates a vsphere_virtual_machine network_interface sub-resource.
-func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList, client *govmomi.Client) ([]types.BaseVirtualDeviceConfigSpec, error) {
+func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	vd, err := r.FindVirtualDevice(l)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find network device: %s", err)
@@ -347,7 +384,7 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList, client 
 		} else {
 			// If we've gone from a static MAC address to a auto-generated one, we need
 			// to check what address type we need to set things to.
-			if client.ServiceContent.About.ApiType != "VirtualCenter" {
+			if r.client.ServiceContent.About.ApiType != "VirtualCenter" {
 				// ESXi - type is "generated"
 				card.AddressType = string(types.VirtualEthernetCardMacTypeGenerated)
 			} else {

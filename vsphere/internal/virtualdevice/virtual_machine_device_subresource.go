@@ -2,10 +2,12 @@ package virtualdevice
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
@@ -17,6 +19,10 @@ const (
 	subresourceTypeNetworkInterface = "network_interface"
 	subresourceTypeCdrom            = "cdrom"
 )
+
+// orpahnedDeviceMinIndex is the index that we start adding orphaned devices
+// at.
+const orpahnedDeviceMinIndex = 1000
 
 const (
 	// SubresourceControllerTypeIDE is a string representation of IDE controller
@@ -54,6 +60,33 @@ var sharesLevelAllowedValues = []string{
 	string(types.SharesLevelNormal),
 	string(types.SharesLevelHigh),
 	string(types.SharesLevelCustom),
+}
+
+// newSubresourceFunc is a method signature for the wrapper methods that create
+// a new instance of a specific subresource  that is derived from the base
+// subresoruce object. It's used in the general apply and read operation
+// methods, which themselves are called usually from higher-level apply
+// functions for virtual devices.
+type newSubresourceFunc func(*govmomi.Client, int, *schema.ResourceData) SubresourceInstance
+
+// SubresourceInstance is an interface for derivative objects of Subresoruce.
+// It's used on the general apply and read operation methods, and contains both
+// exported methods of the base Subresource type and the CRUD methods that
+// should be supplied by derivative objects.
+//
+// Note that this interface should be used sparingly - as such, only the
+// methods that are needed by inparticular functions external to most virtual
+// device workflows are exported into this interface.
+type SubresourceInstance interface {
+	Create(object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error)
+	Read(object.VirtualDeviceList) error
+	Update(object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error)
+	Delete(object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error)
+
+	ID() string
+	Addr() string
+	Set(string, interface{}) error
+	Schema() map[string]*schema.Schema
 }
 
 // controllerTypeToClass converts a controller type to a specific short-form
@@ -117,9 +150,10 @@ var subresourceSchema = map[string]*schema.Schema{
 		Description: "A unique index for this device within its class. This ID cannot be recycled until it has been unused for at least one Terraform run.",
 	},
 	"internal_id": {
-		Type:        schema.TypeInt,
-		Computed:    true,
-		Description: "The internally-computed ID of this resource, local to Terraform - this is controller_type:controller_bus_number:unit_number.",
+		Type:         schema.TypeInt,
+		Computed:     true,
+		Description:  "The internally-computed ID of this resource, local to Terraform - this is controller_type:controller_bus_number:unit_number.",
+		ValidateFunc: validation.IntBetween(0, orpahnedDeviceMinIndex-1),
 	},
 }
 
@@ -183,9 +217,26 @@ func (r *Subresource) Get(key string) interface{} {
 	return r.data.Get(r.keyAddr(key))
 }
 
-// Set hands off to r.data.Set, with an address relative to this subresource.
+// Set sets the specified key/value pair in the subresource.
+//
+// Only full lists or sets can be set in ResourceData right now - so we can't
+// actually do something like set "disk.10.key" directly. However, to simulate
+// this, we just simply read the set, set the key we need, and then write it
+// back out. This allows us to abstract this away from the consumer.
+//
+// Note that right now this probably only works with primitives in the root
+// of the sub-resource, which is fine as there are no implementations planned
+// that would require nested fields in the sub-resources, however if in the
+// future this changes this will need to be reviewed.
 func (r *Subresource) Set(key string, value interface{}) error {
-	return r.data.Set(r.keyAddr(key), value)
+	s := r.data.Get(r.srtype).(*schema.Set)
+	for _, v := range s.List() {
+		m := v.(map[string]interface{})
+		if m["index"].(int) == r.index {
+			m[key] = v
+		}
+	}
+	return r.data.Set(r.srtype, s)
 }
 
 // HasChange hands off to r.data.HasChange, with an address relative to this
@@ -228,6 +279,20 @@ func (r *Subresource) SetRestart() error {
 	return r.data.Set("reboot_required", true)
 }
 
+// computeID handles the logic for saveID and allows it to be used outside of a
+// subresource.
+func computeID(device types.BaseVirtualDevice, ctlr types.BaseVirtualController) string {
+	vd := device.GetVirtualDevice()
+	vc := ctlr.GetVirtualController()
+	ctype := controllerTypeToClass(ctlr)
+	parts := []string{
+		ctype,
+		strconv.Itoa(int(vc.BusNumber)),
+		strconv.Itoa(int(structure.DeRef(vd.UnitNumber).(int32))),
+	}
+	return strings.Join(parts, ":")
+}
+
 // SaveID saves the resource ID of the subresource to internal_id. This is a
 // computed schema field that contains the controller type, the controller's
 // bus number, and the device's unit number on that controller.
@@ -237,15 +302,7 @@ func (r *Subresource) SetRestart() error {
 // for a single operation, as such they are unsuitable for use to check a
 // resource later on.
 func (r *Subresource) SaveID(device types.BaseVirtualDevice, ctlr types.BaseVirtualController) {
-	vd := device.GetVirtualDevice()
-	vc := ctlr.GetVirtualController()
-	ctype := controllerTypeToClass(ctlr)
-	parts := []string{
-		ctype,
-		strconv.Itoa(int(vc.BusNumber)),
-		strconv.Itoa(int(structure.DeRef(vd.UnitNumber).(int32))),
-	}
-	r.Set("internal_id", strings.Join(parts, ":"))
+	r.Set("internal_id", computeID(device, ctlr))
 }
 
 // ID returns the internal_id attribute in the subresource. This function
@@ -493,13 +550,13 @@ func applyDeviceChange(l object.VirtualDeviceList, cs []types.BaseVirtualDeviceC
 // slice of BaseVirtualDeviceConfigSpec.
 //
 // This is a helper that should be exposed via a higher-level resource type.
-func deviceApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, srtype string) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+func deviceApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, srtype string, newResourceFunc newSubresourceFunc) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	// Fetch the ID registry for the device's resources. This should be a
 	// map[int]string, but since TypeMap only supports map[string]string and
 	// shows up as a map[string]interface{}. We make do.
 	registry := d.Get(fmt.Sprintf("%s_internal_ids", srtype)).(map[string]interface{})
 	if registry == nil {
-		// Possibly dealing with a new resource.
+		// Possibly dealing with a new VM resource.
 		registry = make(map[string]interface{})
 	}
 	o, n := d.GetChange(srtype)
@@ -524,32 +581,39 @@ func deviceApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 	// have been added or removed. Look for removed devices first.
 	for _, oe := range ods.List() {
 		m := oe.(map[string]interface{})
-		r := NewDiskSubresource(c, m["index"].(int), d)
+		r := newResourceFunc(c, m["index"].(int), d)
 		dspec, err := r.Delete(l)
 		if err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
 		}
 		applyDeviceChange(l, dspec)
 		spec = append(spec, dspec...)
+		// Delete the item from the registry if it exists.
+		idx := strconv.Itoa(m["index"].(int))
+		delete(registry, idx)
 	}
 
 	// Now create
 	for _, ne := range nds.List() {
 		m := ne.(map[string]interface{})
-		r := NewDiskSubresource(c, m["index"].(int), d)
+		r := newResourceFunc(c, m["index"].(int), d)
 		cspec, err := r.Create(l)
 		if err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
 		}
 		applyDeviceChange(l, cspec)
 		spec = append(spec, cspec...)
+		// Add the item to the registry with its ID, which will have been set as
+		// part of the create process.
+		idx := strconv.Itoa(m["index"].(int))
+		registry[idx] = r.ID()
 	}
 
 	// Finally process any pending updates. We actually do a HasChange on the
 	// direct address here to make sure we need to update in the first place.
 	for _, ie := range ids.List() {
 		m := ie.(map[string]interface{})
-		r := NewDiskSubresource(c, m["index"].(int), d)
+		r := newResourceFunc(c, m["index"].(int), d)
 		if d.HasChange(r.Addr()) {
 			uspec, err := r.Update(l)
 			if err != nil {
@@ -557,9 +621,103 @@ func deviceApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 			}
 			applyDeviceChange(l, uspec)
 			spec = append(spec, uspec...)
+			// The ID may have changed as part of this process, so save the ID just
+			// in case.
+			idx := strconv.Itoa(m["index"].(int))
+			registry[idx] = r.ID()
 		}
+	}
+
+	// Save the registry now, as there will have been changes to IDs that we
+	// don't keep track of during read necessarily.
+	if err := d.Set(fmt.Sprintf("%s_internal_ids", srtype), registry); err != nil {
+		return nil, nil, fmt.Errorf("error committing ID registry: %s", err)
 	}
 
 	// We are now done! Return the updated device list and config spec.
 	return l, spec, nil
+}
+
+// isVirtualDisk returns true if the type in question is a virtual disk.
+func isVirtualDisk(a interface{}) bool {
+	_, ok := a.(*types.VirtualDisk)
+	return ok
+}
+
+// isNetworkInterface returns true if the type in question is a network
+// interface.
+func isNetworkInterface(a interface{}) bool {
+	return reflect.TypeOf(a).Implements(reflect.TypeOf((*types.VirtualEthernetCard)(nil)).Elem())
+}
+
+// deviceRefreshOperation handles refreshes of device sub-resources. It also
+// gathers any device of a specific class that is not accounted for and creates
+// sub-resource instances for them in state - these will be naturally culled by
+// the next apply operation.
+//
+// As this is purely a read-only operation except for relation to state, only
+// errors are returned.
+func deviceRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, srtype string, newResourceFunc newSubresourceFunc) error {
+	// Start the orphaned device counter at the minimum index value so that we
+	// can add orphaned devices and OOB devices to state if need be.
+	orphanedIndex := orpahnedDeviceMinIndex
+
+	// Go over the device list, looking for devices we support. We use srtype to
+	// determine what kind of type we are looking for.
+	var eligibleDevice func(interface{}) bool
+	switch srtype {
+	case subresourceTypeDisk:
+		eligibleDevice = isVirtualDisk
+	case subresourceTypeNetworkInterface:
+		eligibleDevice = isNetworkInterface
+	default:
+		return fmt.Errorf("invalid subresource type %s. This is bug with Terraform and should be reported", srtype)
+	}
+nextDevice:
+	for _, bvd := range l {
+		if !eligibleDevice(bvd) {
+			// Quick guard to just skip devices that we aren't looking for this run
+			continue
+		}
+		// Check to see if this is a device we are tracking in the ID registry.
+		vd := bvd.GetVirtualDevice()
+		var bvc types.BaseVirtualController
+		for _, bvd := range l {
+			if vd.ControllerKey == bvd.GetVirtualDevice().Key {
+				bvc = reflect.ValueOf(bvd).Interface().(types.BaseVirtualController)
+			}
+		}
+		ida := computeID(bvd, bvc)
+		for k, v := range d.Get(fmt.Sprintf("%s_internal_ids", srtype)).(map[string]interface{}) {
+			idb := v.(string)
+			if ida == idb {
+				// We have a match of a device we are tracking in configuration. Read
+				// the state for this resource and move on to the next device.
+				idx, err := strconv.Atoi(k)
+				if err != nil {
+					return fmt.Errorf("bad index %q found in %s_internal_ids. This is a bug in Terraform and should be reported", k, srtype)
+				}
+				r := newResourceFunc(c, idx, d)
+				if err := r.Read(l); err != nil {
+					return fmt.Errorf("%s: %s", r.Addr(), err)
+				}
+				continue nextDevice
+			}
+		}
+		// If we have searched the entire ID registry and have not found the device
+		// we are looking for, then the device was more than likely added out of
+		// band. We save this device to state at an index in a keyspace outside of
+		// our normal resources, and save the internal ID and index to state as
+		// well (things that don't happen in read).
+		r := newResourceFunc(c, orphanedIndex, d)
+		// Index needs to be the first thing that is set so that the proper hash is
+		// saved.
+		r.Set("index", orphanedIndex)
+		r.Set("internal_id", ida)
+		if err := r.Read(l); err != nil {
+			return fmt.Errorf("%s error reading orphaned device: %s", r.Addr(), err)
+		}
+		// Should be done here.
+	}
+	return nil
 }
