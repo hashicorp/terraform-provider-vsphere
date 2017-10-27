@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/network"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -94,7 +95,7 @@ func networkObjectFromHostSystem(client *govmomi.Client, hs *object.HostSystem, 
 			// Not a standard port group (possibly DVS, etc), pass
 			continue
 		}
-		props, err := networkProperties(net)
+		props, err := network.Properties(net)
 		if err != nil {
 			return nil, err
 		}

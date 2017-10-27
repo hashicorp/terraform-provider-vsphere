@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
@@ -341,7 +342,7 @@ func testGetDVPortgroup(s *terraform.State, resourceName string) (*object.Distri
 		return nil, err
 	}
 	dvsID := tVars.resourceAttributes["distributed_virtual_switch_uuid"]
-	return dvPortgroupFromKey(tVars.client, dvsID, tVars.resourceID)
+	return dvportgroup.FromKey(tVars.client, dvsID, tVars.resourceID)
 }
 
 // testGetDVPortgroupProperties is a convenience method that adds an extra step to
@@ -351,5 +352,5 @@ func testGetDVPortgroupProperties(s *terraform.State, resourceName string) (*mo.
 	if err != nil {
 		return nil, err
 	}
-	return dvPortgroupProperties(dvs)
+	return dvportgroup.Properties(dvs)
 }
