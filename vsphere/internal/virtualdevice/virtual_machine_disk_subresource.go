@@ -232,6 +232,12 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	if !ok {
 		return fmt.Errorf("device at %q is not a virtual disk", r.ID())
 	}
+	// Is this disk not managed by Terraform? If not, we want to flag
+	// keep_on_remove, just to make sure that that we don't blow this disk away
+	// when we remove it on the next TF run.
+	if r.index >= orpahnedDeviceMinIndex {
+		r.Set("keep_on_remove", true)
+	}
 	return r.flattenDiskSettings(disk)
 }
 
