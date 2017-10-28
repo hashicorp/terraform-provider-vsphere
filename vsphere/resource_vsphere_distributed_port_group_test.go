@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -202,7 +203,7 @@ func testAccResourceVSphereDistributedPortGroupExists(expected bool) resource.Te
 	return func(s *terraform.State) error {
 		dvs, err := testGetDVPortgroup(s, "pg")
 		if err != nil {
-			if isAnyNotFoundError(err) && expected == false {
+			if viapi.IsAnyNotFoundError(err) && expected == false {
 				// Expected missing
 				return nil
 			}

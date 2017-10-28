@@ -320,9 +320,9 @@ func FromID(client *govmomi.Client, id string) (*object.Folder, error) {
 	return folder.(*object.Folder), nil
 }
 
-// folderProperties is a convenience method that wraps fetching the
+// Properties is a convenience method that wraps fetching the
 // Folder MO from its higher-level object.
-func folderProperties(folder *object.Folder) (*mo.Folder, error) {
+func Properties(folder *object.Folder) (*mo.Folder, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	var props mo.Folder
@@ -336,7 +336,7 @@ func folderProperties(folder *object.Folder) (*mo.Folder, error) {
 func FindType(folder *object.Folder) (VSphereFolderType, error) {
 	var ft VSphereFolderType
 
-	props, err := folderProperties(folder)
+	props, err := Properties(folder)
 	if err != nil {
 		return ft, err
 	}

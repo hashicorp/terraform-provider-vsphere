@@ -9,6 +9,8 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/object"
 )
 
@@ -417,11 +419,11 @@ func testAccResourceVSphereFolderHasName(expected string) resource.TestCheckFunc
 
 func testAccResourceVSphereFolderHasType(expected folder.VSphereFolderType) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		folder, err := testGetFolder(s, "folder")
+		f, err := testGetFolder(s, "folder")
 		if err != nil {
 			return err
 		}
-		actual, err := folder.FindType(folder)
+		actual, err := folder.FindType(f)
 		if err != nil {
 			return err
 		}
@@ -446,7 +448,7 @@ func testAccResourceVSphereFolderHasParent(expectedRoot bool, expectedName strin
 		if err != nil {
 			return err
 		}
-		pprops, err := folderProperties(pfolder)
+		pprops, err := folder.Properties(pfolder)
 		if err != nil {
 			return err
 		}

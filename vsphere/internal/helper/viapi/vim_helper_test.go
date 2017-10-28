@@ -41,11 +41,11 @@ func (tc *testParseVersion) Test(t *testing.T) {
 }
 
 var testParseVersionExpected = VSphereVersion{
-	product: "VMware vCenter Server",
-	major:   6,
-	minor:   2,
-	patch:   1,
-	build:   1000000,
+	Product: "VMware vCenter Server",
+	Major:   6,
+	Minor:   2,
+	Patch:   1,
+	Build:   1000000,
 }
 
 func TestParseVersion(t *testing.T) {

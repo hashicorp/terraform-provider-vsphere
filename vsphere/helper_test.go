@@ -10,7 +10,10 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
@@ -83,7 +86,7 @@ func testAccSkipIfEsxi(t *testing.T) {
 // cases that will still run on ESXi, but will expect validation failure.
 func expectErrorIfNotVirtualCenter() *regexp.Regexp {
 	if testAccESXiFlagSet() {
-		return regexp.MustCompile(errVirtualCenterOnly)
+		return regexp.MustCompile(viapi.ErrVirtualCenterOnly)
 	}
 	return nil
 }
@@ -309,11 +312,11 @@ func testGetFolder(s *terraform.State, resourceName string) (*object.Folder, err
 // testGetFolderProperties is a convenience method that adds an extra step to
 // testGetFolder to get the properties of a folder.
 func testGetFolderProperties(s *terraform.State, resourceName string) (*mo.Folder, error) {
-	folder, err := testGetFolder(s, resourceName)
+	f, err := testGetFolder(s, resourceName)
 	if err != nil {
 		return nil, err
 	}
-	return folderProperties(folder)
+	return folder.Properties(f)
 }
 
 // testGetDVS is a convenience method to fetch a DVS by resource name.

@@ -16,8 +16,8 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-// errVirtualCenterOnly is the error message that validateVirtualCenter returns.
-const errVirtualCenterOnly = "this operation is only supported on vCenter"
+// ErrVirtualCenterOnly is the error message that validateVirtualCenter returns.
+const ErrVirtualCenterOnly = "this operation is only supported on vCenter"
 
 // soapFault extracts the SOAP fault from an error fault, if it exists. Check
 // the returned boolean value to see if you have a SoapFault.
@@ -62,7 +62,7 @@ func IsManagedObjectNotFoundError(err error) bool {
 // isNotFoundError checks an error to see if it's of the NotFoundError type.
 //
 // Note this is different from the other "not found" faults and is an error
-// type in its own right. Use isAnyNotFoundError to check for any "not found"
+// type in its own right. Use IsAnyNotFoundError to check for any "not found"
 // type.
 func isNotFoundError(err error) bool {
 	if f, ok := vimSoapFault(err); ok {
@@ -73,9 +73,9 @@ func isNotFoundError(err error) bool {
 	return false
 }
 
-// isAnyNotFoundError checks to see if the fault is of any not found error type
+// IsAnyNotFoundError checks to see if the fault is of any not found error type
 // that we track.
-func isAnyNotFoundError(err error) bool {
+func IsAnyNotFoundError(err error) bool {
 	switch {
 	case IsManagedObjectNotFoundError(err):
 		fallthrough
@@ -139,7 +139,7 @@ func RenameObject(client *govmomi.Client, ref types.ManagedObjectReference, new 
 // ValidateVirtualCenter ensures that the client is connected to vCenter.
 func ValidateVirtualCenter(c *govmomi.Client) error {
 	if c.ServiceContent.About.ApiType != "VirtualCenter" {
-		return errors.New(errVirtualCenterOnly)
+		return errors.New(ErrVirtualCenterOnly)
 	}
 	return nil
 }
