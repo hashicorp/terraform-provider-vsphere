@@ -62,7 +62,7 @@ func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta 
 	if err != nil {
 		return fmt.Errorf("cannot locate datacenter: %s", err)
 	}
-	folder, err := folder.FromPath(client, d.Get("folder").(string), folder.VSphereFolderTypeNetwork, dc)
+	fo, err := folder.FromPath(client, d.Get("folder").(string), folder.VSphereFolderTypeNetwork, dc)
 	if err != nil {
 		return fmt.Errorf("cannot locate folder: %s", err)
 	}
@@ -70,7 +70,7 @@ func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
 	spec := expandDVSCreateSpec(d)
-	task, err := folder.CreateDVS(ctx, spec)
+	task, err := fo.CreateDVS(ctx, spec)
 	if err != nil {
 		return fmt.Errorf("error creating DVS: %s", err)
 	}
