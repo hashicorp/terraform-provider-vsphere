@@ -91,6 +91,7 @@ func Provider() terraform.ResourceProvider {
 			"vsphere_distributed_virtual_switch": dataSourceVSphereDistributedVirtualSwitch(),
 			"vsphere_host":                       dataSourceVSphereHost(),
 			"vsphere_network":                    dataSourceVSphereNetwork(),
+			"vsphere_resource_pool":              dataSourceVSphereResourcePool(),
 			"vsphere_tag":                        dataSourceVSphereTag(),
 			"vsphere_tag_category":               dataSourceVSphereTagCategory(),
 			"vsphere_vmfs_disks":                 dataSourceVSphereVmfsDisks(),
