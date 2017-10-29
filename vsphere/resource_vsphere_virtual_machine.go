@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -738,7 +739,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		// accurate networking info for the state.
 		if d.Get("wait_for_guest_net").(bool) {
 			log.Printf("[DEBUG] Waiting for routeable guest network access")
-			if err := waitForGuestVMNet(client, vm); err != nil {
+			if err := virtualmachine.WaitForGuestNet(client, vm, 5); err != nil {
 				return err
 			}
 			log.Printf("[DEBUG] Guest has routeable network access.")
@@ -1022,11 +1023,11 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 	d.SetId(vm.Path())
 	log.Printf("[INFO] Created virtual machine: %s", d.Id())
 
-	newVM, err := virtualMachineFromManagedObjectID(client, vm.moid)
+	newVM, err := virtualmachine.FromMOID(client, vm.moid)
 	if err != nil {
 		return err
 	}
-	newProps, err := virtualMachineProperties(newVM)
+	newProps, err := virtualmachine.Properties(newVM)
 	if err != nil {
 		return err
 	}
@@ -1042,7 +1043,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		// We also need to wait for the guest networking to ensure an accurate set
 		// of information can be read into state and reported to the provisioners.
 		log.Printf("[DEBUG] Waiting for routeable guest network access")
-		if err := waitForGuestVMNet(client, newVM); err != nil {
+		if err := virtualmachine.WaitForGuestNet(client, newVM, 5); err != nil {
 			return err
 		}
 		log.Printf("[DEBUG] Guest has routeable network access.")

@@ -14,6 +14,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
@@ -132,7 +133,7 @@ func testGetVirtualMachine(s *terraform.State, resourceName string) (*object.Vir
 	if !ok {
 		return nil, fmt.Errorf("resource %q has no UUID", resourceName)
 	}
-	return virtualMachineFromUUID(tVars.client, uuid)
+	return virtualmachine.FromUUID(tVars.client, uuid)
 }
 
 // testGetVirtualMachineProperties is a convenience method that adds an extra
@@ -142,7 +143,7 @@ func testGetVirtualMachineProperties(s *terraform.State, resourceName string) (*
 	if err != nil {
 		return nil, err
 	}
-	return virtualMachineProperties(vm)
+	return virtualmachine.Properties(vm)
 }
 
 // testPowerOffVM does an immediate power-off of the supplied virtual machine

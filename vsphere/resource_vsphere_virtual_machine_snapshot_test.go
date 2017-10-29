@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 )
 
 func TestAccResourceVSphereVirtualMachineSnapshot_Basic(t *testing.T) {
@@ -79,7 +80,7 @@ func testAccCheckVirtualMachineSnapshotExists(n string) resource.TestCheckFunc {
 		}
 		client := testAccProvider.Meta().(*VSphereClient).vimClient
 
-		vm, err := virtualMachineFromUUID(client, rs.Primary.Attributes["virtual_machine_uuid"])
+		vm, err := virtualmachine.FromUUID(client, rs.Primary.Attributes["virtual_machine_uuid"])
 		if err != nil {
 			return fmt.Errorf("error %s", err)
 		}
@@ -107,11 +108,11 @@ func testAccCheckVirtualMachineHasNoSnapshots(n string) resource.TestCheckFunc {
 		}
 		client := testAccProvider.Meta().(*VSphereClient).vimClient
 
-		vm, err := virtualMachineFromUUID(client, rs.Primary.Attributes["uuid"])
+		vm, err := virtualmachine.FromUUID(client, rs.Primary.Attributes["uuid"])
 		if err != nil {
 			return fmt.Errorf("error %s", err)
 		}
-		props, err := virtualMachineProperties(vm)
+		props, err := virtualmachine.Properties(vm)
 		if err != nil {
 			return fmt.Errorf("cannot get properties for virtual machine: %s", err)
 		}

@@ -189,6 +189,8 @@ func folderFromObject(client *govmomi.Client, obj interface{}, folderType RootPa
 		p, err = RootPathParticleDatastore.PathFromNewRoot(o.InventoryPath, folderType, relative)
 	case *object.HostSystem:
 		p, err = RootPathParticleHost.PathFromNewRoot(o.InventoryPath, folderType, relative)
+	case *object.ResourcePool:
+		p, err = RootPathParticleHost.PathFromNewRoot(o.InventoryPath, folderType, relative)
 	default:
 		return nil, fmt.Errorf("unsupported object type %T", o)
 	}
@@ -208,6 +210,18 @@ func DatastoreFolderFromObject(client *govmomi.Client, obj interface{}, relative
 	}
 
 	return validateDatastoreFolder(folder)
+}
+
+// VirtualMachineFolderFromObject returns an *object.Folder from a given
+// object, and relative datastore folder path. If no such folder is found, of
+// if it is not a VM folder, an appropriate error will be returned.
+func VirtualMachineFolderFromObject(client *govmomi.Client, obj interface{}, relative string) (*object.Folder, error) {
+	folder, err := folderFromObject(client, obj, RootPathParticleVM, relative)
+	if err != nil {
+		return nil, err
+	}
+
+	return validateVirtualMachineFolder(folder)
 }
 
 // networkFolderFromObject returns an *object.Folder from a given object,
@@ -231,6 +245,19 @@ func validateDatastoreFolder(folder *object.Folder) (*object.Folder, error) {
 	}
 	if ft != VSphereFolderTypeDatastore {
 		return nil, fmt.Errorf("%q is not a datastore folder", folder.InventoryPath)
+	}
+	return folder, nil
+}
+
+// validateVirtualMachineFolder checks to make sure the folder is a VM folder,
+// and returns it if it is, or an error if it isn't.
+func validateVirtualMachineFolder(folder *object.Folder) (*object.Folder, error) {
+	ft, err := FindType(folder)
+	if err != nil {
+		return nil, err
+	}
+	if ft != VSphereFolderTypeVM {
+		return nil, fmt.Errorf("%q is not a VM folder", folder.InventoryPath)
 	}
 	return folder, nil
 }

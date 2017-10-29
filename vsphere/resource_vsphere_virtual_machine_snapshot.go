@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -58,7 +59,7 @@ func resourceVSphereVirtualMachineSnapshot() *schema.Resource {
 
 func resourceVSphereVirtualMachineSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	vm, err := virtualMachineFromUUID(client, d.Get("virtual_machine_uuid").(string))
+	vm, err := virtualmachine.FromUUID(client, d.Get("virtual_machine_uuid").(string))
 	if err != nil {
 		return fmt.Errorf("Error while getting the VirtualMachine :%s", err)
 	}
@@ -85,7 +86,7 @@ func resourceVSphereVirtualMachineSnapshotCreate(d *schema.ResourceData, meta in
 
 func resourceVSphereVirtualMachineSnapshotDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	vm, err := virtualMachineFromUUID(client, d.Get("virtual_machine_uuid").(string))
+	vm, err := virtualmachine.FromUUID(client, d.Get("virtual_machine_uuid").(string))
 	if err != nil {
 		return fmt.Errorf("Error while getting the VirtualMachine :%s", err)
 	}
@@ -132,7 +133,7 @@ func resourceVSphereVirtualMachineSnapshotDelete(d *schema.ResourceData, meta in
 
 func resourceVSphereVirtualMachineSnapshotRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	vm, err := virtualMachineFromUUID(client, d.Get("virtual_machine_uuid").(string))
+	vm, err := virtualmachine.FromUUID(client, d.Get("virtual_machine_uuid").(string))
 	if err != nil {
 		return fmt.Errorf("Error while getting the VirtualMachine :%s", err)
 	}

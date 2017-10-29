@@ -1,4 +1,4 @@
-package vsphere
+package virtualmachine
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -15,11 +16,11 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-// virtualMachineFromUUID locates a virtualMachine by its UUID.
-func virtualMachineFromUUID(client *govmomi.Client, uuid string) (*object.VirtualMachine, error) {
+// FromUUID locates a virtualMachine by its UUID.
+func FromUUID(client *govmomi.Client, uuid string) (*object.VirtualMachine, error) {
 	search := object.NewSearchIndex(client.Client)
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	result, err := search.FindByUuid(ctx, nil, uuid, true, structure.BoolPtr(false))
 	if err != nil {
@@ -35,7 +36,7 @@ func virtualMachineFromUUID(client *govmomi.Client, uuid string) (*object.Virtua
 	// being present will fail.
 	finder := find.NewFinder(client.Client, false)
 
-	rctx, rcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	rctx, rcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer rcancel()
 	vm, err := finder.ObjectReference(rctx, result.Reference())
 	if err != nil {
@@ -48,9 +49,9 @@ func virtualMachineFromUUID(client *govmomi.Client, uuid string) (*object.Virtua
 	return vm.(*object.VirtualMachine), nil
 }
 
-// virtualMachineFromManagedObjectID locates a virtualMachine by its managed
+// FromMOID locates a virtualMachine by its managed
 // object reference ID.
-func virtualMachineFromManagedObjectID(client *govmomi.Client, id string) (*object.VirtualMachine, error) {
+func FromMOID(client *govmomi.Client, id string) (*object.VirtualMachine, error) {
 	finder := find.NewFinder(client.Client, false)
 
 	ref := types.ManagedObjectReference{
@@ -58,7 +59,7 @@ func virtualMachineFromManagedObjectID(client *govmomi.Client, id string) (*obje
 		Value: id,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	vm, err := finder.ObjectReference(ctx, ref)
 	if err != nil {
@@ -70,10 +71,10 @@ func virtualMachineFromManagedObjectID(client *govmomi.Client, id string) (*obje
 	return vm.(*object.VirtualMachine), nil
 }
 
-// virtualMachineProperties is a convenience method that wraps fetching the
+// Properties is a convenience method that wraps fetching the
 // VirtualMachine MO from its higher-level object.
-func virtualMachineProperties(vm *object.VirtualMachine) (*mo.VirtualMachine, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+func Properties(vm *object.VirtualMachine) (*mo.VirtualMachine, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	var props mo.VirtualMachine
 	if err := vm.Properties(ctx, vm.Reference(), nil, &props); err != nil {
@@ -82,15 +83,21 @@ func virtualMachineProperties(vm *object.VirtualMachine) (*mo.VirtualMachine, er
 	return &props, nil
 }
 
-// waitForGuestVMNet waits for a virtual machine to have routeable network
+// WaitForGuestNet waits for a virtual machine to have routeable network
 // access. This is denoted as a gateway, and at least one IP address that can
 // reach that gateway. This function supports both IPv4 and IPv6, and returns
 // the moment either stack is routeable - it doesn't wait for both.
-func waitForGuestVMNet(client *govmomi.Client, vm *object.VirtualMachine) error {
+//
+// The timeout is specified in minutes. If zero or a negative value is passed,
+// the waiter returns without error immediately.
+func WaitForGuestNet(client *govmomi.Client, vm *object.VirtualMachine, timeout int) error {
+	if timeout < 1 {
+		return nil
+	}
 	var v4gw, v6gw net.IP
 
 	p := client.PropertyCollector()
-	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 
 	err := property.Wait(ctx, p, vm.Reference(), []string{"guest.net", "guest.ipStack"}, func(pc []types.PropertyChange) bool {
@@ -145,4 +152,48 @@ func waitForGuestVMNet(client *govmomi.Client, vm *object.VirtualMachine) error 
 	}
 
 	return nil
+}
+
+// Create wraps the creation of a virtual machine and the subsequent waiting of
+// the task. A higher-level virtual machine object is returned.
+func Create(c *govmomi.Client, f *object.Folder, s types.VirtualMachineConfigSpec, p *object.ResourcePool, h *object.HostSystem) (*object.VirtualMachine, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	task, err := f.CreateVM(ctx, s, p, h)
+	if err != nil {
+		return nil, err
+	}
+	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer tcancel()
+	result, err := task.WaitForResult(tctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	return FromMOID(c, result.Result.(types.ManagedObjectReference).Value)
+}
+
+// PowerOn wraps powering on a VM and the waiting for the subsequent task.
+func PowerOn(vm *object.VirtualMachine) error {
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	task, err := vm.PowerOn(ctx)
+	if err != nil {
+		return err
+	}
+	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer tcancel()
+	return task.Wait(tctx)
+}
+
+// PowerOff wraps powering off a VM and the waiting for the subsequent task.
+func PowerOff(vm *object.VirtualMachine) error {
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	task, err := vm.PowerOff(ctx)
+	if err != nil {
+		return err
+	}
+	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer tcancel()
+	return task.Wait(tctx)
 }
