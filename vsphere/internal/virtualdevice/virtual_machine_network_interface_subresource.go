@@ -33,67 +33,69 @@ var networkInterfaceSubresourceMACAddressTypeAllowedValues = []string{
 
 // NetworkInterfaceSubresourceSchema returns the schema for the disk
 // sub-resource.
-var networkInterfaceSubresourceSchema = map[string]*schema.Schema{
-	// VirtualEthernetCardResourceAllocation
-	"bandwidth_limit": {
-		Type:         schema.TypeInt,
-		Optional:     true,
-		Default:      -1,
-		Description:  "The upper bandwidth limit of this network interface, in Mbits/sec.",
-		ValidateFunc: validation.IntAtLeast(-1),
-	},
-	"bandwidth_reservation": {
-		Type:         schema.TypeInt,
-		Optional:     true,
-		Default:      0,
-		Description:  "The bandwidth reservation of this network interface, in Mbits/sec.",
-		ValidateFunc: validation.IntAtLeast(0),
-	},
-	"bandwidth_share_level": {
-		Type:         schema.TypeString,
-		Optional:     true,
-		Default:      string(types.SharesLevelNormal),
-		Description:  "The bandwidth share allocation level for this interface. Can be one of low, normal, high, or custom.",
-		ValidateFunc: validation.StringInSlice(sharesLevelAllowedValues, false),
-	},
-	"bandwidth_share_count": {
-		Type:         schema.TypeInt,
-		Optional:     true,
-		Computed:     true,
-		Description:  "The share count for this network interface when the share level is custom.",
-		ValidateFunc: validation.IntAtLeast(0),
-	},
+func networkInterfaceSubresourceSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		// VirtualEthernetCardResourceAllocation
+		"bandwidth_limit": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Default:      -1,
+			Description:  "The upper bandwidth limit of this network interface, in Mbits/sec.",
+			ValidateFunc: validation.IntAtLeast(-1),
+		},
+		"bandwidth_reservation": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Default:      0,
+			Description:  "The bandwidth reservation of this network interface, in Mbits/sec.",
+			ValidateFunc: validation.IntAtLeast(0),
+		},
+		"bandwidth_share_level": {
+			Type:         schema.TypeString,
+			Optional:     true,
+			Default:      string(types.SharesLevelNormal),
+			Description:  "The bandwidth share allocation level for this interface. Can be one of low, normal, high, or custom.",
+			ValidateFunc: validation.StringInSlice(sharesLevelAllowedValues, false),
+		},
+		"bandwidth_share_count": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Computed:     true,
+			Description:  "The share count for this network interface when the share level is custom.",
+			ValidateFunc: validation.IntAtLeast(0),
+		},
 
-	// VirtualEthernetCard and friends
-	"network_id": {
-		Type:         schema.TypeString,
-		Required:     true,
-		Description:  "The ID of the network to connect this network interface to.",
-		ValidateFunc: validation.NoZeroValues,
-	},
-	"adapter_type": {
-		Type:         schema.TypeString,
-		Optional:     true,
-		Default:      networkInterfaceSubresourceTypeE1000,
-		Description:  "The controller type. Can be one of e1000 or vmxnet3.",
-		ValidateFunc: validation.StringInSlice(networkInterfaceSubresourceTypeAllowedValues, false),
-	},
-	"use_static_mac": {
-		Type:        schema.TypeBool,
-		Optional:    true,
-		Description: "If true, the mac_address field is treated as a static MAC address and set accordingly.",
-	},
-	"mac_address": {
-		Type:        schema.TypeString,
-		Optional:    true,
-		Computed:    true,
-		Description: "The MAC address of this network interface. Can be manually set if use_static_mac is true.",
-	},
-	"key": {
-		Type:        schema.TypeInt,
-		Computed:    true,
-		Description: "The unique device ID for this device within the virtual machine configuration.",
-	},
+		// VirtualEthernetCard and friends
+		"network_id": {
+			Type:         schema.TypeString,
+			Required:     true,
+			Description:  "The ID of the network to connect this network interface to.",
+			ValidateFunc: validation.NoZeroValues,
+		},
+		"adapter_type": {
+			Type:         schema.TypeString,
+			Optional:     true,
+			Default:      networkInterfaceSubresourceTypeE1000,
+			Description:  "The controller type. Can be one of e1000 or vmxnet3.",
+			ValidateFunc: validation.StringInSlice(networkInterfaceSubresourceTypeAllowedValues, false),
+		},
+		"use_static_mac": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "If true, the mac_address field is treated as a static MAC address and set accordingly.",
+		},
+		"mac_address": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Computed:    true,
+			Description: "The MAC address of this network interface. Can be manually set if use_static_mac is true.",
+		},
+		"key": {
+			Type:        schema.TypeInt,
+			Computed:    true,
+			Description: "The unique device ID for this device within the virtual machine configuration.",
+		},
+	}
 }
 
 // NetworkInterfaceSubresource represents a vsphere_virtual_machine
@@ -107,7 +109,7 @@ type NetworkInterfaceSubresource struct {
 func NewNetworkInterfaceSubresource(client *govmomi.Client, index int, d *schema.ResourceData) SubresourceInstance {
 	sr := &NetworkInterfaceSubresource{
 		Subresource: &Subresource{
-			schema: networkInterfaceSubresourceSchema,
+			schema: networkInterfaceSubresourceSchema(),
 			client: client,
 			srtype: subresourceTypeNetworkInterface,
 			index:  index,

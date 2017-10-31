@@ -11,24 +11,26 @@ import (
 )
 
 // cdromSubresourceSchema represents the schema for the cdrom sub-resource.
-var cdromSubresourceSchema = map[string]*schema.Schema{
-	// VirtualDeviceFileBackingInfo
-	"datastore_id": {
-		Type:        schema.TypeString,
-		Required:    true,
-		Description: "The datastore ID the ISO is located on.",
-	},
-	"path": {
-		Type:        schema.TypeString,
-		Required:    true,
-		Description: "The path to the ISO file on the datastore.",
-	},
+func cdromSubresourceSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		// VirtualDeviceFileBackingInfo
+		"datastore_id": {
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "The datastore ID the ISO is located on.",
+		},
+		"path": {
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "The path to the ISO file on the datastore.",
+		},
 
-	"key": {
-		Type:        schema.TypeInt,
-		Computed:    true,
-		Description: "The unique device ID for this device within the virtual machine configuration.",
-	},
+		"key": {
+			Type:        schema.TypeInt,
+			Computed:    true,
+			Description: "The unique device ID for this device within the virtual machine configuration.",
+		},
+	}
 }
 
 // CdromSubresource represents a vsphere_virtual_machine cdrom sub-resource,
@@ -42,7 +44,7 @@ type CdromSubresource struct {
 func NewCdromSubresource(client *govmomi.Client, index int, d *schema.ResourceData) SubresourceInstance {
 	sr := &CdromSubresource{
 		Subresource: &Subresource{
-			schema: cdromSubresourceSchema,
+			schema: cdromSubresourceSchema(),
 			client: client,
 			srtype: subresourceTypeCdrom,
 			index:  index,

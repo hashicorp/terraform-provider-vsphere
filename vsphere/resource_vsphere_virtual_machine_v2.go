@@ -2,7 +2,6 @@ package vsphere
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -205,7 +204,6 @@ func resourceVSphereVirtualMachineV2Create(d *schema.ResourceData, meta interfac
 	}
 
 	// All done!
-	log.Printf("[DEBUG] Created resource state going into read: VM uuid: %s - id: %s - state: %s", vprops.Config.Uuid, d.Id(), d.State())
 	return resourceVSphereVirtualMachineV2Read(d, meta)
 }
 

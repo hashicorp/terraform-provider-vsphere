@@ -145,18 +145,20 @@ type Subresource struct {
 // subresourceSchema is a map[string]*schema.Schema of common schema fields.
 // This includes the internal_id field, which is used as a unique ID for the
 // lifecycle of this resource.
-var subresourceSchema = map[string]*schema.Schema{
-	"index": {
-		Type:         schema.TypeInt,
-		Required:     true,
-		Description:  "A unique index for this device within its class. This ID cannot be recycled until it has been unused for at least one Terraform run.",
-		ValidateFunc: validation.IntBetween(0, orpahnedDeviceMinIndex-1),
-	},
-	"internal_id": {
-		Type:        schema.TypeString,
-		Computed:    true,
-		Description: "The internally-computed ID of this resource, local to Terraform - this is controller_type:controller_bus_number:unit_number.",
-	},
+func subresourceSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"index": {
+			Type:         schema.TypeInt,
+			Required:     true,
+			Description:  "A unique index for this device within its class. This ID cannot be recycled until it has been unused for at least one Terraform run.",
+			ValidateFunc: validation.IntBetween(0, orpahnedDeviceMinIndex-1),
+		},
+		"internal_id": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The internally-computed ID of this resource, local to Terraform - this is controller_type:controller_bus_number:unit_number.",
+		},
+	}
 }
 
 // SubresourceHashFunc returns the value of index as the ID for an inparticular
@@ -199,7 +201,7 @@ func ValidateRegistry(registry map[string]interface{}, set *schema.Set) error {
 // used as a unique ID for the lifecycle of this resource.
 func (r *Subresource) Schema() map[string]*schema.Schema {
 	s := r.schema
-	structure.MergeSchema(s, subresourceSchema)
+	structure.MergeSchema(s, subresourceSchema())
 	return s
 }
 
@@ -705,6 +707,7 @@ func deviceRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 	default:
 		return fmt.Errorf("invalid subresource type %s. This is bug with Terraform and should be reported", srtype)
 	}
+	iids := d.Get(fmt.Sprintf("%s_internal_ids", srtype)).(map[string]interface{})
 nextDevice:
 	for _, bvd := range l {
 		if !eligibleDevice(bvd) {
@@ -720,7 +723,7 @@ nextDevice:
 			}
 		}
 		ida := computeID(bvd, bvc)
-		for k, v := range d.Get(fmt.Sprintf("%s_internal_ids", srtype)).(map[string]interface{}) {
+		for k, v := range iids {
 			idb := v.(string)
 			if ida == idb {
 				// We have a match of a device we are tracking in configuration. Read
@@ -733,6 +736,9 @@ nextDevice:
 				if err := r.Read(l); err != nil {
 					return fmt.Errorf("%s: %s", r.Addr(), err)
 				}
+				// Remove this ID from our working set of diffs. We use the remainder
+				// as a list of set items to cull later.
+				delete(iids, k)
 				continue nextDevice
 			}
 		}
@@ -748,5 +754,27 @@ nextDevice:
 		}
 		// Should be done here.
 	}
-	return nil
+	// If there were any items that have disappeared for any reason, we want to
+	// make every effort to remove those items from our state, so that the next
+	// diff is as accurate as possible as to what needs to happen to fix it.
+	//
+	// We do this by checking the remainder of our internal ID map and removing
+	// items from our set and internal ID registry respectively.
+	devsOld := d.Get(srtype).(*schema.Set)
+	devsNew := d.Get(srtype).(*schema.Set)
+	niids := d.Get(fmt.Sprintf("%s_internal_ids", srtype)).(map[string]interface{})
+	for k := range iids {
+		for _, v := range devsOld.List() {
+			m := v.(map[string]interface{})
+			if strconv.Itoa(m["index"].(int)) == k {
+				log.Printf("[DEBUG] Removing unknown device state key %s.%s", srtype, k)
+				devsNew.Remove(m)
+				delete(niids, k)
+			}
+		}
+	}
+	if err := d.Set(fmt.Sprintf("%s_internal_ids", srtype), niids); err != nil {
+		return fmt.Errorf("error saving new %s_internal_ids on refresh: %s", srtype, err)
+	}
+	return d.Set(srtype, devsNew)
 }

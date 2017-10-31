@@ -32,104 +32,106 @@ var diskSubresourceSharingAllowedValues = []string{
 }
 
 // diskSubresourceSchema represents the schema for the disk sub-resource.
-var diskSubresourceSchema = map[string]*schema.Schema{
-	// VirtualDiskFlatVer2BackingInfo
-	"datastore_id": {
-		Type:        schema.TypeString,
-		Optional:    true,
-		Computed:    true,
-		Description: "The datastore ID for this virtual disk, if different than the virtual machine.",
-	},
-	"path": {
-		Type:        schema.TypeString,
-		Optional:    true,
-		Computed:    true,
-		Description: "An optional path for the disk. If this disk exists already, the disk is attached rather than created. Any folders in the path need to exist when disk is added.",
-	},
-	"disk_mode": {
-		Type:         schema.TypeString,
-		Optional:     true,
-		Default:      string(types.VirtualDiskModePersistent),
-		Description:  "The mode of this this virtual disk for purposes of writes and snapshotting. Can be one of append, independent_nonpersistent, independent_persistent, nonpersistent, persistent, or undoable.",
-		ValidateFunc: validation.StringInSlice(diskSubresourceModeAllowedValues, false),
-	},
-	"eagerly_scrub": {
-		Type:        schema.TypeBool,
-		Optional:    true,
-		Description: "The virtual disk file zeroing policy when thin_provision is not true. The default is false, which lazily-zeros the disk, speeding up thick-provisioned disk creation time.",
-	},
-	"disk_sharing": {
-		Type:         schema.TypeString,
-		Optional:     true,
-		Default:      string(types.VirtualDiskSharingSharingNone),
-		Description:  "The sharing mode of this virtual disk. Can be one of sharingMultiWriter or sharingNone.",
-		ValidateFunc: validation.StringInSlice(diskSubresourceSharingAllowedValues, false),
-	},
-	"thin_provisioned": {
-		Type:        schema.TypeBool,
-		Optional:    true,
-		Description: "If true, this disk is thin provisioned, with space for the file being allocated on an as-needed basis.",
-	},
-	"write_through": {
-		Type:        schema.TypeBool,
-		Optional:    true,
-		Description: "If true, writes for this disk are sent directly to the filesystem immediately instead of being buffered.",
-	},
+func diskSubresourceSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		// VirtualDiskFlatVer2BackingInfo
+		"datastore_id": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Computed:    true,
+			Description: "The datastore ID for this virtual disk, if different than the virtual machine.",
+		},
+		"path": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Computed:    true,
+			Description: "An optional path for the disk. If this disk exists already, the disk is attached rather than created. Any folders in the path need to exist when disk is added.",
+		},
+		"disk_mode": {
+			Type:         schema.TypeString,
+			Optional:     true,
+			Default:      string(types.VirtualDiskModePersistent),
+			Description:  "The mode of this this virtual disk for purposes of writes and snapshotting. Can be one of append, independent_nonpersistent, independent_persistent, nonpersistent, persistent, or undoable.",
+			ValidateFunc: validation.StringInSlice(diskSubresourceModeAllowedValues, false),
+		},
+		"eagerly_scrub": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "The virtual disk file zeroing policy when thin_provision is not true. The default is false, which lazily-zeros the disk, speeding up thick-provisioned disk creation time.",
+		},
+		"disk_sharing": {
+			Type:         schema.TypeString,
+			Optional:     true,
+			Default:      string(types.VirtualDiskSharingSharingNone),
+			Description:  "The sharing mode of this virtual disk. Can be one of sharingMultiWriter or sharingNone.",
+			ValidateFunc: validation.StringInSlice(diskSubresourceSharingAllowedValues, false),
+		},
+		"thin_provisioned": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "If true, this disk is thin provisioned, with space for the file being allocated on an as-needed basis.",
+		},
+		"write_through": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "If true, writes for this disk are sent directly to the filesystem immediately instead of being buffered.",
+		},
 
-	// StorageIOAllocationInfo
-	"io_limit": {
-		Type:         schema.TypeInt,
-		Optional:     true,
-		Default:      -1,
-		Description:  "The upper limit of IOPS that this disk can use.",
-		ValidateFunc: validation.IntAtLeast(-1),
-	},
-	"io_reservation": {
-		Type:         schema.TypeInt,
-		Optional:     true,
-		Default:      0,
-		Description:  "The I/O guarantee that this disk has, in IOPS.",
-		ValidateFunc: validation.IntAtLeast(0),
-	},
-	"io_share_level": {
-		Type:         schema.TypeString,
-		Optional:     true,
-		Default:      string(types.SharesLevelNormal),
-		Description:  "The share allocation level for this disk. Can be one of low, normal, high, or custom.",
-		ValidateFunc: validation.StringInSlice(sharesLevelAllowedValues, false),
-	},
-	"io_share_count": {
-		Type:         schema.TypeInt,
-		Optional:     true,
-		Computed:     true,
-		Description:  "The share count for this disk when the share level is custom.",
-		ValidateFunc: validation.IntAtLeast(0),
-	},
+		// StorageIOAllocationInfo
+		"io_limit": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Default:      -1,
+			Description:  "The upper limit of IOPS that this disk can use.",
+			ValidateFunc: validation.IntAtLeast(-1),
+		},
+		"io_reservation": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Default:      0,
+			Description:  "The I/O guarantee that this disk has, in IOPS.",
+			ValidateFunc: validation.IntAtLeast(0),
+		},
+		"io_share_level": {
+			Type:         schema.TypeString,
+			Optional:     true,
+			Default:      string(types.SharesLevelNormal),
+			Description:  "The share allocation level for this disk. Can be one of low, normal, high, or custom.",
+			ValidateFunc: validation.StringInSlice(sharesLevelAllowedValues, false),
+		},
+		"io_share_count": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Computed:     true,
+			Description:  "The share count for this disk when the share level is custom.",
+			ValidateFunc: validation.IntAtLeast(0),
+		},
 
-	// VirtualDisk/Other complex stuff
-	"size": {
-		Type:         schema.TypeInt,
-		Required:     true,
-		Description:  "The size of the disk, in GB.",
-		ValidateFunc: validation.IntAtLeast(1),
-	},
-	"controller_type": {
-		Type:         schema.TypeString,
-		Optional:     true,
-		Default:      SubresourceControllerTypeLsiLogicSAS,
-		Description:  "The controller type. Can be one of ide, pvscsi, or lsilogic-sas.",
-		ValidateFunc: validation.StringInSlice(diskSubresourceControllerTypeAllowedValues, false),
-	},
-	"keep_on_remove": {
-		Type:        schema.TypeBool,
-		Optional:    true,
-		Description: "Set to true to keep the underlying VMDK file when removing this virtual disk from configuration.",
-	},
-	"key": {
-		Type:        schema.TypeInt,
-		Computed:    true,
-		Description: "The unique device ID for this device within the virtual machine configuration.",
-	},
+		// VirtualDisk/Other complex stuff
+		"size": {
+			Type:         schema.TypeInt,
+			Required:     true,
+			Description:  "The size of the disk, in GB.",
+			ValidateFunc: validation.IntAtLeast(1),
+		},
+		"controller_type": {
+			Type:         schema.TypeString,
+			Optional:     true,
+			Default:      SubresourceControllerTypeLsiLogicSAS,
+			Description:  "The controller type. Can be one of ide, pvscsi, or lsilogic-sas.",
+			ValidateFunc: validation.StringInSlice(diskSubresourceControllerTypeAllowedValues, false),
+		},
+		"keep_on_remove": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Set to true to keep the underlying VMDK file when removing this virtual disk from configuration.",
+		},
+		"key": {
+			Type:        schema.TypeInt,
+			Computed:    true,
+			Description: "The unique device ID for this device within the virtual machine configuration.",
+		},
+	}
 }
 
 // DiskSubresource represents a vsphere_virtual_machine disk sub-resource, with
@@ -143,7 +145,7 @@ type DiskSubresource struct {
 func NewDiskSubresource(client *govmomi.Client, index int, d *schema.ResourceData) SubresourceInstance {
 	sr := &DiskSubresource{
 		Subresource: &Subresource{
-			schema: diskSubresourceSchema,
+			schema: diskSubresourceSchema(),
 			client: client,
 			srtype: subresourceTypeDisk,
 			index:  index,
