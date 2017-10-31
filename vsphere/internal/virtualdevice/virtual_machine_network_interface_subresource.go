@@ -2,6 +2,7 @@ package virtualdevice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -218,7 +219,9 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 	// only one PCI device per virtual machine and their tools don't really care
 	// about state. Terraform does though, so we need to not only set but also
 	// track that stuff.
-	l.AssignController(device, ctlr)
+	if err := assignEthernetCard(l, device, ctlr); err != nil {
+		return nil, err
+	}
 	// Ensure the device starts connected
 	l.Connect(device)
 
@@ -439,4 +442,49 @@ func (r *NetworkInterfaceSubresource) Delete(l object.VirtualDeviceList) ([]type
 		return nil, err
 	}
 	return spec, nil
+}
+
+// assignEthernetCard is a subset of the logic that goes into AssignController
+// right now but with an unit offset of 7. This is based on what we have
+// observed on vSphere in terms of reserved PCI unit numbers (the first NIC
+// automatically gets re-assigned to unit number 7 if it's not that already.)
+func assignEthernetCard(l object.VirtualDeviceList, device types.BaseVirtualDevice, c types.BaseVirtualController) error {
+	// The PCI device offset. This seems to be where vSphere starts assigning
+	// virtual NICs on the PCI controller.
+	pciDeviceOffset := int32(7)
+
+	// The first part of this is basically the private newUnitNumber function
+	// from VirtualDeviceList, with a maximum unit count of 10. This basically
+	// means that no more than 10 virtual NICs can be assigned right now, which
+	// hopefully should be plenty.
+	units := make([]bool, 10)
+
+	ckey := c.GetVirtualController().Key
+
+	for _, device := range l {
+		d := device.GetVirtualDevice()
+		if d.ControllerKey != ckey || d.UnitNumber == nil || *d.UnitNumber < pciDeviceOffset || *d.UnitNumber >= pciDeviceOffset+10 {
+			continue
+		}
+		units[*d.UnitNumber-pciDeviceOffset] = true
+	}
+
+	// Now that we know which units are used, we can pick one
+	newUnit := int32(-1)
+	for unit, used := range units {
+		if !used {
+			newUnit = int32(unit) + pciDeviceOffset
+		}
+	}
+	if newUnit < 0 {
+		return errors.New("there are no more available slots on the PCI bus")
+	}
+
+	d := device.GetVirtualDevice()
+	d.ControllerKey = c.GetVirtualController().Key
+	d.UnitNumber = &newUnit
+	if d.Key == 0 {
+		d.Key = -1
+	}
+	return nil
 }

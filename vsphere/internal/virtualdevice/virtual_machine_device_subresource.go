@@ -767,7 +767,6 @@ nextDevice:
 		for _, v := range devsOld.List() {
 			m := v.(map[string]interface{})
 			if strconv.Itoa(m["index"].(int)) == k {
-				log.Printf("[DEBUG] Removing unknown device state key %s.%s", srtype, k)
 				devsNew.Remove(m)
 				delete(niids, k)
 			}

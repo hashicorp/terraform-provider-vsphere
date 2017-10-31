@@ -336,6 +336,11 @@ func resourceVSphereVirtualMachineV2Update(d *schema.ResourceData, meta interfac
 	}
 	// Now safe to turn off partial mode
 	d.Partial(false)
+	// Re-fetch properties
+	vprops, err = virtualmachine.Properties(vm)
+	if err != nil {
+		return fmt.Errorf("error re-fetching VM properties after update: %s", err)
+	}
 	// Power back on the VM, and wait for network if necessary.
 	if vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOn {
 		if err := virtualmachine.PowerOn(vm); err != nil {
