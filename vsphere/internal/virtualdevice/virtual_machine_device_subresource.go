@@ -1,7 +1,9 @@
 package virtualdevice
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -145,15 +147,15 @@ type Subresource struct {
 // lifecycle of this resource.
 var subresourceSchema = map[string]*schema.Schema{
 	"index": {
-		Type:        schema.TypeInt,
-		Required:    true,
-		Description: "A unique index for this device within its class. This ID cannot be recycled until it has been unused for at least one Terraform run.",
+		Type:         schema.TypeInt,
+		Required:     true,
+		Description:  "A unique index for this device within its class. This ID cannot be recycled until it has been unused for at least one Terraform run.",
+		ValidateFunc: validation.IntBetween(0, orpahnedDeviceMinIndex-1),
 	},
 	"internal_id": {
-		Type:         schema.TypeInt,
-		Computed:     true,
-		Description:  "The internally-computed ID of this resource, local to Terraform - this is controller_type:controller_bus_number:unit_number.",
-		ValidateFunc: validation.IntBetween(0, orpahnedDeviceMinIndex-1),
+		Type:        schema.TypeString,
+		Computed:    true,
+		Description: "The internally-computed ID of this resource, local to Terraform - this is controller_type:controller_bus_number:unit_number.",
 	},
 }
 
@@ -229,14 +231,36 @@ func (r *Subresource) Get(key string) interface{} {
 // that would require nested fields in the sub-resources, however if in the
 // future this changes this will need to be reviewed.
 func (r *Subresource) Set(key string, value interface{}) error {
+	// Block setting of the index value through this function.
+	if key == "index" {
+		errstr := fmt.Sprintf("%s.%d.%s: Setting of index key not allowed", r.srtype, r.index, key)
+		log.Printf("[DEBUG] %s", errstr)
+		return errors.New(errstr)
+	}
+	log.Printf("[TRACE] r.Set(): %s.%d.%s: %#v", r.srtype, r.index, key, value)
 	s := r.data.Get(r.srtype).(*schema.Set)
+	var found bool
 	for _, v := range s.List() {
 		m := v.(map[string]interface{})
 		if m["index"].(int) == r.index {
-			m[key] = v
+			m[key] = structure.DeRef(value)
+			found = true
 		}
 	}
-	return r.data.Set(r.srtype, s)
+	if !found {
+		// We don't have data for this resource, so we need to add a brand new
+		// element.
+		m := map[string]interface{}{
+			"index": r.index,
+			key:     value,
+		}
+		s.Add(m)
+	}
+	err := r.data.Set(r.srtype, s)
+	if err != nil {
+		log.Printf("[DEBUG] Error updating parent subresource set for %s.%d.%s: %s", r.srtype, r.index, key, err)
+	}
+	return err
 }
 
 // HasChange hands off to r.data.HasChange, with an address relative to this
@@ -577,7 +601,7 @@ func deviceApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 
 	var spec []types.BaseVirtualDeviceConfigSpec
 
-	// Our old and new sets now have an accurate description of hosts that may
+	// Our old and new sets now have an accurate description of devices that may
 	// have been added or removed. Look for removed devices first.
 	for _, oe := range ods.List() {
 		m := oe.(map[string]interface{})
@@ -647,7 +671,13 @@ func isVirtualDisk(a interface{}) bool {
 // isNetworkInterface returns true if the type in question is a network
 // interface.
 func isNetworkInterface(a interface{}) bool {
-	return reflect.TypeOf(a).Implements(reflect.TypeOf((*types.VirtualEthernetCard)(nil)).Elem())
+	return reflect.TypeOf(a).Implements(reflect.TypeOf((*types.BaseVirtualEthernetCard)(nil)).Elem())
+}
+
+// isVirtualCdrom returns true if the type in question is a virtual disk.
+func isVirtualCdrom(a interface{}) bool {
+	_, ok := a.(*types.VirtualCdrom)
+	return ok
 }
 
 // deviceRefreshOperation handles refreshes of device sub-resources. It also
@@ -670,6 +700,8 @@ func deviceRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 		eligibleDevice = isVirtualDisk
 	case subresourceTypeNetworkInterface:
 		eligibleDevice = isNetworkInterface
+	case subresourceTypeCdrom:
+		eligibleDevice = isVirtualCdrom
 	default:
 		return fmt.Errorf("invalid subresource type %s. This is bug with Terraform and should be reported", srtype)
 	}
@@ -710,9 +742,6 @@ nextDevice:
 		// our normal resources, and save the internal ID and index to state as
 		// well (things that don't happen in read).
 		r := newResourceFunc(c, orphanedIndex, d)
-		// Index needs to be the first thing that is set so that the proper hash is
-		// saved.
-		r.Set("index", orphanedIndex)
 		r.Set("internal_id", ida)
 		if err := r.Read(l); err != nil {
 			return fmt.Errorf("%s error reading orphaned device: %s", r.Addr(), err)

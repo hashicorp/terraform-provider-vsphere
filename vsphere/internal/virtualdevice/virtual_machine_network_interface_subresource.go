@@ -107,7 +107,7 @@ type NetworkInterfaceSubresource struct {
 func NewNetworkInterfaceSubresource(client *govmomi.Client, index int, d *schema.ResourceData) SubresourceInstance {
 	sr := &NetworkInterfaceSubresource{
 		Subresource: &Subresource{
-			schema: diskSubresourceSchema,
+			schema: networkInterfaceSubresourceSchema,
 			client: client,
 			srtype: subresourceTypeNetworkInterface,
 			index:  index,

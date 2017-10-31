@@ -328,5 +328,9 @@ func DeRef(v interface{}) interface{} {
 	if k != reflect.Ptr {
 		return v
 	}
+	if reflect.ValueOf(v) == reflect.Zero(reflect.TypeOf(v)) {
+		// All zero-value pointers are nil
+		return nil
+	}
 	return reflect.ValueOf(v).Elem().Interface()
 }

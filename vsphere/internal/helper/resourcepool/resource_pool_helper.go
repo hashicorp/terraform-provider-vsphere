@@ -74,6 +74,10 @@ func Properties(obj *object.ResourcePool) (*mo.ResourcePool, error) {
 // This is used as an extra validation before a VM creation happens, or vMotion
 // to a specific host is attempted.
 func ValidateHost(client *govmomi.Client, pool *object.ResourcePool, host *object.HostSystem) error {
+	if host == nil {
+		// Nothing to validate here, move along
+		return nil
+	}
 	pprops, err := Properties(pool)
 	if err != nil {
 		return err

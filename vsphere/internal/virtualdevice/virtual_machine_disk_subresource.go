@@ -174,6 +174,38 @@ func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 	return deviceRefreshOperation(d, c, l, subresourceTypeDisk, NewDiskSubresource)
 }
 
+// DiskDestroyOperation process the destroy operation for virtual disks.
+//
+// Disks are the only real operation that require special destroy logic, and
+// that's because we want to check to make sure that we detach any disks that
+// need to be simply detached (not deleted) before we destroy the entire
+// virtual machine, as that would take those disks with it.
+func DiskDestroyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	// All we are doing here is getting a config spec for detaching the disks
+	// that we need to detach, so we don't need the vast majority of the stateful
+	// logic that is in deviceApplyOperation.
+	ds := d.Get(subresourceTypeDisk).(*schema.Set)
+
+	var spec []types.BaseVirtualDeviceConfigSpec
+
+	for _, oe := range ds.List() {
+		m := oe.(map[string]interface{})
+		if !m["keep_on_remove"].(bool) {
+			// We don't care about disks we haven't set to keep
+			continue
+		}
+		r := NewDiskSubresource(c, m["index"].(int), d)
+		dspec, err := r.Delete(l)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %s", r.Addr(), err)
+		}
+		applyDeviceChange(l, dspec)
+		spec = append(spec, dspec...)
+	}
+
+	return spec, nil
+}
+
 // Create creates a vsphere_virtual_machine disk sub-resource.
 func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	var spec []types.BaseVirtualDeviceConfigSpec
@@ -356,6 +388,7 @@ func (r *DiskSubresource) expandDiskSettings(disk *types.VirtualDisk) error {
 		return fmt.Errorf("virtual disks cannot be shrunk")
 	}
 	disk.CapacityInBytes = structure.GbToByte(ns.(int))
+	disk.CapacityInKB = disk.CapacityInBytes / 1024
 
 	alloc := &types.StorageIOAllocationInfo{
 		Limit:       structure.Int64Ptr(int64(r.Get("io_limit").(int))),
@@ -380,7 +413,7 @@ func (r *DiskSubresource) flattenDiskSettings(disk *types.VirtualDisk) error {
 	b := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
 	r.Set("disk_mode", b.DiskMode)
 	r.Set("write_through", b.WriteThrough)
-	r.Set("sharing", b.Sharing)
+	r.Set("disk_sharing", b.Sharing)
 	r.Set("thin_provisioned", b.ThinProvisioned)
 	r.Set("eagerly_scrub", b.EagerlyScrub)
 	r.Set("path", b.FileName)

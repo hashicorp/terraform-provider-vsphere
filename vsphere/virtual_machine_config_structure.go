@@ -77,7 +77,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Description: "The number of milliseconds to wait before retrying the boot sequence. This only valid if boot_retry_enabled is true.",
 		},
 		"boot_retry_enabled": {
-			Type:        schema.TypeInt,
+			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "If set to true, a virtual machine that fails to boot will try again after the delay defined in boot_retry_delay.",
 		},
@@ -236,11 +236,6 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Type:        schema.TypeString,
 			Computed:    true,
 			Description: "A unique identifier for a given version of the last configuration applied, such the timestamp of the last update to the configuration.",
-		},
-		"reboot_required": {
-			Type:        schema.TypeBool,
-			Computed:    true,
-			Description: "Value internal to Terraform used to determine if a configuration set change requires a reboot.",
 		},
 	}
 	structure.MergeSchema(s, schemaVirtualMachineResourceAllocation())

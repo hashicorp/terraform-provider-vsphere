@@ -2,8 +2,11 @@ package vsphere
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
@@ -19,8 +22,13 @@ func resourceVSphereVirtualMachineV2() *schema.Resource {
 	s := map[string]*schema.Schema{
 		"resource_pool_id": {
 			Type:        schema.TypeString,
-			Optional:    true,
+			Required:    true,
 			Description: "The ID of a resource pool to put the virtual machine in.",
+		},
+		"datastore_id": {
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "The ID of the virtual machine's datastore. The virtual machine configuration is placed here, along with any virtual disks that are created without datastores.",
 		},
 		"folder": {
 			Type:        schema.TypeString,
@@ -40,6 +48,19 @@ func resourceVSphereVirtualMachineV2() *schema.Resource {
 			Default:     5,
 			Description: "The amount of time, in minutes, to wait for a routeable IP address on this virtual machine. A value less than 1 disables the waiter.",
 		},
+		"shutdown_wait_timeout": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Default:      3,
+			Description:  "The amount of time, in minutes, to wait for shutdown when making necessary updates to the virtual machine.",
+			ValidateFunc: validation.IntBetween(1, 10),
+		},
+		"force_power_off": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Default:     true,
+			Description: "Set to true to force power-off a virtual machine if a graceful guest shutdown failed for a necessary operation.",
+		},
 		"disk": {
 			Type:        schema.TypeSet,
 			Required:    true,
@@ -56,10 +77,30 @@ func resourceVSphereVirtualMachineV2() *schema.Resource {
 		},
 		"cdrom": {
 			Type:        schema.TypeSet,
-			Required:    true,
+			Optional:    true,
 			Description: "A specification for a CDROM device on this virtual machine.",
 			Set:         virtualdevice.SubresourceHashFunc,
 			Elem:        &schema.Resource{Schema: virtualdevice.NewCdromSubresource(nil, 0, nil).Schema()},
+		},
+		"reboot_required": {
+			Type:        schema.TypeBool,
+			Computed:    true,
+			Description: "Value internal to Terraform used to determine if a configuration set change requires a reboot.",
+		},
+		"disk_internal_ids": {
+			Type:        schema.TypeMap,
+			Computed:    true,
+			Description: "A computed set of disk device IDs that Terraform is keeping track of.",
+		},
+		"network_interface_internal_ids": {
+			Type:        schema.TypeMap,
+			Computed:    true,
+			Description: "A computed set of network_interface device IDs that Terraform is keeping track of.",
+		},
+		"cdrom_internal_ids": {
+			Type:        schema.TypeMap,
+			Computed:    true,
+			Description: "A computed set of cdrom device IDs that Terraform is keeping track of.",
 		},
 		vSphereTagAttributeKey: tagsSchema(),
 	}
@@ -92,7 +133,7 @@ func resourceVSphereVirtualMachineV2Create(d *schema.ResourceData, meta interfac
 	// are saying here is that the VM folder that we are placing this VM in needs
 	// to be in the same hierarchy as the resource pool - so in other words, the
 	// same datacenter.
-	fo, err := folder.VirtualMachineFolderFromObject(client, pool, d.Get("path").(string))
+	fo, err := folder.VirtualMachineFolderFromObject(client, pool, d.Get("folder").(string))
 	if err != nil {
 		return err
 	}
@@ -110,8 +151,17 @@ func resourceVSphereVirtualMachineV2Create(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	// Ready to start making the here. First expand our main config spec.
+	// Ready to start making the VM here. First expand our main config spec.
 	spec := expandVirtualMachineConfigSpec(d)
+
+	// Set the datastore for the VM.
+	ds, err := datastore.FromID(client, d.Get("datastore_id").(string))
+	if err != nil {
+		return fmt.Errorf("error locating datastore for VM: %s", err)
+	}
+	spec.Files = &types.VirtualMachineFileInfo{
+		VmPathName: fmt.Sprintf("[%s]", ds.Name()),
+	}
 
 	// Now we need to get the defualt device set - this is available in the
 	// environment info in the resource pool, which we can then filter through
@@ -137,7 +187,7 @@ func resourceVSphereVirtualMachineV2Create(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return fmt.Errorf("cannot fetch properties of created virtual machine: %s", err)
 	}
-	d.SetId(vprops.Config.InstanceUuid)
+	d.SetId(vprops.Config.Uuid)
 	// Tag the VM before we go any further if we need to.
 	if tagsClient != nil {
 		if err := processTagDiff(tagsClient, d, vm); err != nil {
@@ -155,6 +205,7 @@ func resourceVSphereVirtualMachineV2Create(d *schema.ResourceData, meta interfac
 	}
 
 	// All done!
+	log.Printf("[DEBUG] Created resource state going into read: VM uuid: %s - id: %s - state: %s", vprops.Config.Uuid, d.Id(), d.State())
 	return resourceVSphereVirtualMachineV2Read(d, meta)
 }
 
@@ -174,7 +225,7 @@ func resourceVSphereVirtualMachineV2Read(d *schema.ResourceData, meta interface{
 		d.Set("resource_pool_id", vprops.ResourcePool.Value)
 	}
 	// Set the folder
-	f, err := folder.RootPathParticleDatastore.SplitRelativeFolder(vm.InventoryPath)
+	f, err := folder.RootPathParticleVM.SplitRelativeFolder(vm.InventoryPath)
 	if err != nil {
 		return fmt.Errorf("error parsing virtual machine path %q: %s", vm.InventoryPath, err)
 	}
@@ -224,11 +275,117 @@ func resourceVSphereVirtualMachineV2Read(d *schema.ResourceData, meta interface{
 }
 
 func resourceVSphereVirtualMachineV2Update(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*VSphereClient).vimClient
+	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+	id := d.Id()
+	vm, err := virtualmachine.FromUUID(client, id)
+	if err != nil {
+		return fmt.Errorf("cannot locate virtual machine with UUID %q: %s", id, err)
+	}
+
+	// TODO: Block changes to host_system_id or resource_pool_id until we have
+	// support for vMotion.
+	if d.HasChange("resource_pool_id") || d.HasChange("host_system_id") {
+		return fmt.Errorf("[TODO] vMotion is currently not supported on this resource, so resource pool or host system cannot be modified")
+	}
+
+	// Update folder if necessary
+	if d.HasChange("folder") {
+		folder := d.Get("folder").(string)
+		if err := virtualmachine.MoveToFolder(client, vm, folder); err != nil {
+			return fmt.Errorf("could not move virtual machine to folder %q: %s", folder, err)
+		}
+	}
+
+	// Apply any pending tags
+	if tagsClient != nil {
+		if err := processTagDiff(tagsClient, d, vm); err != nil {
+			return err
+		}
+	}
+
+	// Ready to start the VM update. All changes from here, until the update
+	// operation finishes successfully, need to be done in partial mode.
+	d.Partial(true)
+	spec := expandVirtualMachineConfigSpec(d)
+
+	// To apply device changes, we need the current devicespec from the config
+	// info. We then filter this list through the same apply process we did for
+	// create, which will apply the changes in an incremental fashion.
+	vprops, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return fmt.Errorf("error fetching VM properties: %s", err)
+	}
+	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
+	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
+		return err
+	}
+	// Ready to do the update. Check to see if we need to shutdown the VM for this process.
+	if d.Get("reboot_required").(bool) && vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOff {
+		// Attempt a graceful shutdown of this process. We wrap this in a VM helper.
+		timeout := d.Get("shutdown_wait_timeout").(int)
+		force := d.Get("force_power_off").(bool)
+		if err := virtualmachine.GracefulPowerOff(client, vm, timeout, force); err != nil {
+			return fmt.Errorf("error shutting down virtual machine: %s", err)
+		}
+	}
+	// Perform updates
+	if err := virtualmachine.Reconfigure(vm, *spec); err != nil {
+		return fmt.Errorf("error reconfiguring virtual machine: %s", err)
+	}
+	// Now safe to turn off partial mode
+	d.Partial(false)
+	// Power back on the VM, and wait for network if necessary.
+	if vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOn {
+		if err := virtualmachine.PowerOn(vm); err != nil {
+			return fmt.Errorf("error powering on virtual machine: %s", err)
+		}
+		if err := virtualmachine.WaitForGuestNet(client, vm, d.Get("wait_for_guest_net_timeout").(int)); err != nil {
+			return err
+		}
+	}
+
+	// All done with updates.
 	return resourceVSphereVirtualMachineV2Read(d, meta)
 }
 
 func resourceVSphereVirtualMachineV2Delete(d *schema.ResourceData, meta interface{}) error {
-	return nil
+	client := meta.(*VSphereClient).vimClient
+	id := d.Id()
+	vm, err := virtualmachine.FromUUID(client, id)
+	if err != nil {
+		return fmt.Errorf("cannot locate virtual machine with UUID %q: %s", id, err)
+	}
+	vprops, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return fmt.Errorf("error fetching VM properties: %s", err)
+	}
+	// Shutdown the VM first. We do attempt a graceful shutdown for the purpose
+	// of catching any edge data issues with associated virtual disks that we may
+	// need to retain on delete. However, we ignore the user-set force shutdown
+	// flag.
+	timeout := d.Get("shutdown_wait_timeout").(int)
+	if err := virtualmachine.GracefulPowerOff(client, vm, timeout, true); err != nil {
+		return fmt.Errorf("error shutting down virtual machine: %s", err)
+	}
+	// Now attempt to detach any virtual disks that may need to be preserved.
+	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
+	spec := types.VirtualMachineConfigSpec{}
+	if spec.DeviceChange, err = virtualdevice.DiskDestroyOperation(d, client, devices); err != nil {
+		return err
+	}
+	// Only run the reconfigure operation if there's actually disks in the spec.
+	if len(spec.DeviceChange) > 0 {
+		if err := virtualmachine.Reconfigure(vm, spec); err != nil {
+			return fmt.Errorf("error detaching virtual disks: %s", err)
+		}
+	}
+
+	// The final operation here is to destroy the VM.
+	return virtualmachine.Destroy(vm)
 }
 
 // applyVirtualDevices is used by Create and Update to build a list of virtual

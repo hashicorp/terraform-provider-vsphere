@@ -136,6 +136,19 @@ func testGetVirtualMachine(s *terraform.State, resourceName string) (*object.Vir
 	return virtualmachine.FromUUID(tVars.client, uuid)
 }
 
+// testGetVirtualMachineV2 is a convenience method to fetch a virtual machine by
+// resource name.
+//
+// TODO: Remove this and roll the switch of UUID from an attribute to actual resource ID.
+func testGetVirtualMachineV2(s *terraform.State, resourceName string) (*object.VirtualMachine, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_virtual_machine_v2.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+
+	return virtualmachine.FromUUID(tVars.client, tVars.resourceID)
+}
+
 // testGetVirtualMachineProperties is a convenience method that adds an extra
 // step to testGetVirtualMachine to get the properties of a virtual machine.
 func testGetVirtualMachineProperties(s *terraform.State, resourceName string) (*mo.VirtualMachine, error) {

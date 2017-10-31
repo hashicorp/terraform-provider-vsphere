@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"time"
 
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi"
@@ -15,6 +17,8 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
+
+var errGuestShutdownTimeout = errors.New("the VM did not power off within the specified amount of time")
 
 // FromUUID locates a virtualMachine by its UUID.
 func FromUUID(client *govmomi.Client, uuid string) (*object.VirtualMachine, error) {
@@ -97,7 +101,7 @@ func WaitForGuestNet(client *govmomi.Client, vm *object.VirtualMachine, timeout 
 	var v4gw, v6gw net.IP
 
 	p := client.PropertyCollector()
-	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*time.Duration(timeout))
 	defer cancel()
 
 	err := property.Wait(ctx, p, vm.Reference(), []string{"guest.net", "guest.ipStack"}, func(pc []types.PropertyChange) bool {
@@ -190,6 +194,119 @@ func PowerOff(vm *object.VirtualMachine) error {
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	task, err := vm.PowerOff(ctx)
+	if err != nil {
+		return err
+	}
+	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer tcancel()
+	return task.Wait(tctx)
+}
+
+// ShutdownGuest wraps the graceful shutdown of a guest VM, and then waiting an
+// appropriate amount of time for the guest power state to go to powered off.
+// If the VM does not power off in the shutdown period specified by timeout (in
+// minutes), an error is returned.
+//
+// The minimum value for timeout is 1 minute - setting to a 0 or negative value
+// is not allowed and will just reset the timeout to the minimum.
+func ShutdownGuest(client *govmomi.Client, vm *object.VirtualMachine, timeout int) error {
+	sctx, scancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer scancel()
+	if err := vm.ShutdownGuest(sctx); err != nil {
+		return err
+	}
+
+	// We now wait on VM power state to be powerOff, via a property collector that waits on power state.
+	p := client.PropertyCollector()
+	if timeout < 1 {
+		timeout = 1
+	}
+	pctx, pcancel := context.WithTimeout(context.Background(), time.Minute*time.Duration(timeout))
+	defer pcancel()
+
+	err := property.Wait(pctx, p, vm.Reference(), []string{"runtime.powerState"}, func(pc []types.PropertyChange) bool {
+		for _, c := range pc {
+			if c.Op != types.PropertyChangeOpAssign {
+				continue
+			}
+
+			switch v := c.Val.(type) {
+			case types.VirtualMachinePowerState:
+				if v == types.VirtualMachinePowerStatePoweredOff {
+					return true
+				}
+			}
+		}
+
+		return false
+	})
+
+	if err != nil {
+		// Provide a friendly error message if we timed out waiting for a shutdown.
+		if pctx.Err() == context.DeadlineExceeded {
+			return errGuestShutdownTimeout
+		}
+		return err
+	}
+	return nil
+}
+
+// GracefulPowerOff is a meta-operation that handles powering down of virtual
+// machines. A graceful shutdown is attempted first if possible (VMware tools
+// is installed, and the guest state is not suspended), and then, if allowed, a
+// power-off is forced if that fails.
+func GracefulPowerOff(client *govmomi.Client, vm *object.VirtualMachine, timeout int, force bool) error {
+	vprops, err := Properties(vm)
+	if err != nil {
+		return fmt.Errorf("cannot fetch properties of virtual machine: %s", err)
+	}
+	// First we attempt a guest shutdown if we have VMware tools and if the VM is
+	// actually powered on (we don't expect that a graceful shutdown would
+	// complete on a suspended VM, so there's really no point in trying).
+	if vprops.Runtime.PowerState == types.VirtualMachinePowerStatePoweredOn && vprops.Guest != nil && vprops.Guest.ToolsRunningStatus == string(types.VirtualMachineToolsRunningStatusGuestToolsRunning) {
+		if err := ShutdownGuest(client, vm, timeout); err != nil {
+			if err == errGuestShutdownTimeout && !force {
+				return err
+			}
+		} else {
+			return nil
+		}
+	}
+	// If the guest shutdown failed (and we were allowed to proceed), or
+	// conditions did not satisfy the criteria for a graceful shutdown, do a full
+	// power-off of the VM.
+	return PowerOff(vm)
+}
+
+// MoveToFolder moves a virtual machine to the specified folder.
+func MoveToFolder(client *govmomi.Client, vm *object.VirtualMachine, relative string) error {
+	f, err := folder.VirtualMachineFolderFromObject(client, vm, relative)
+	if err != nil {
+		return err
+	}
+	return folder.MoveObjectTo(vm.Reference(), f)
+}
+
+// Reconfigure wraps the Reconfigure task and the subsequent waiting for
+// the task to complete.
+func Reconfigure(vm *object.VirtualMachine, spec types.VirtualMachineConfigSpec) error {
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	task, err := vm.Reconfigure(ctx, spec)
+	if err != nil {
+		return err
+	}
+	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer tcancel()
+	return task.Wait(tctx)
+}
+
+// Destroy wraps the Destroy task and the subsequent waiting for the task to
+// complete.
+func Destroy(vm *object.VirtualMachine) error {
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	task, err := vm.Destroy(ctx)
 	if err != nil {
 		return err
 	}

@@ -81,6 +81,7 @@ func Provider() terraform.ResourceProvider {
 			"vsphere_tag_category":               resourceVSphereTagCategory(),
 			"vsphere_virtual_disk":               resourceVSphereVirtualDisk(),
 			"vsphere_virtual_machine":            resourceVSphereVirtualMachine(),
+			"vsphere_virtual_machine_v2":         resourceVSphereVirtualMachineV2(),
 			"vsphere_nas_datastore":              resourceVSphereNasDatastore(),
 			"vsphere_vmfs_datastore":             resourceVSphereVmfsDatastore(),
 			"vsphere_virtual_machine_snapshot":   resourceVSphereVirtualMachineSnapshot(),
