@@ -4,30 +4,30 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/vmware/govmomi/object"
 )
 
-func dataSourceVSphereResourcePool() *schema.Resource {
+func dataSourceVSphereDatastore() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceVSphereResourcePoolRead,
+		Read: dataSourceVSphereDatastoreRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
-				Description: "The name or path of the resource pool.",
+				Description: "The name or path of the datastore.",
 				Required:    true,
 			},
 			"datacenter_id": {
 				Type:        schema.TypeString,
-				Description: "The managed object ID of the datacenter the resource pool is in. This is not required when using ESXi directly, or if there is only one datacenter in your infrastructure.",
+				Description: "The managed object ID of the datacenter the datastore is in. This is not required when using ESXi directly, or if there is only one datacenter in your infrastructure.",
 				Optional:    true,
 			},
 		},
 	}
 }
 
-func dataSourceVSphereResourcePoolRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceVSphereDatastoreRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
 
 	name := d.Get("name").(string)
@@ -39,11 +39,11 @@ func dataSourceVSphereResourcePoolRead(d *schema.ResourceData, meta interface{})
 			return fmt.Errorf("cannot locate datacenter: %s", err)
 		}
 	}
-	rp, err := resourcepool.FromPathOrDefault(client, name, dc)
+	ds, err := datastore.FromPath(client, name, dc)
 	if err != nil {
-		return fmt.Errorf("error fetching resource pool: %s", err)
+		return fmt.Errorf("error fetching datastore: %s", err)
 	}
 
-	d.SetId(rp.Reference().Value)
+	d.SetId(ds.Reference().Value)
 	return nil
 }

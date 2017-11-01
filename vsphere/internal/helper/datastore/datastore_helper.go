@@ -34,6 +34,19 @@ func FromID(client *govmomi.Client, id string) (*object.Datastore, error) {
 	return ds.(*object.Datastore), nil
 }
 
+// FromPath loads a datastore from its path. The datacenter is optional if the
+// path is specific enough to not require it.
+func FromPath(client *govmomi.Client, name string, dc *object.Datacenter) (*object.Datastore, error) {
+	finder := find.NewFinder(client.Client, false)
+	if dc != nil {
+		finder.SetDatacenter(dc)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	return finder.Datastore(ctx, name)
+}
+
 // Properties is a convenience method that wraps fetching the
 // Datastore MO from its higher-level object.
 func Properties(ds *object.Datastore) (*mo.Datastore, error) {
