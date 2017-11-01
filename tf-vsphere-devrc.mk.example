@@ -25,6 +25,7 @@ export VSPHERE_TEMPLATE            ?= base-linux # VM template to clone
 export VSPHERE_TEMPLATE_WINDOWS    ?= base-win   # Windows VM template
 export VSPHERE_NETWORK_LABEL       ?= vm-network # Port group label
 export VSPHERE_NETWORK_LABEL_DHCP  ?= vm-network # Port group label for DHCP
+export VSPHERE_NETWORK_LABEL_PXE   ?= vm-network # Port group label for PXE
 export VSPHERE_IPV4_ADDRESS        ?= 10.0.0.100 # Customization IP address
 export VSPHERE_IPV4_PREFIX         ?= 24         # Customization netmask
 export VSPHERE_IPV4_GATEWAY        ?= 10.0.0.1   # Customization gateway

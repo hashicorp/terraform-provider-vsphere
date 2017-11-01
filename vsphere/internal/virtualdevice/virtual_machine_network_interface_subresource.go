@@ -474,6 +474,7 @@ func assignEthernetCard(l object.VirtualDeviceList, device types.BaseVirtualDevi
 	for unit, used := range units {
 		if !used {
 			newUnit = int32(unit) + pciDeviceOffset
+			break
 		}
 	}
 	if newUnit < 0 {

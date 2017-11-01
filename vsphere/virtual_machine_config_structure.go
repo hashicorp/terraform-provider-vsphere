@@ -74,6 +74,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 		"boot_retry_delay": {
 			Type:        schema.TypeInt,
 			Optional:    true,
+			Default:     10000,
 			Description: "The number of milliseconds to wait before retrying the boot sequence. This only valid if boot_retry_enabled is true.",
 		},
 		"boot_retry_enabled": {
@@ -131,7 +132,6 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 		"run_tools_scripts_before_guest_reboot": {
 			Type:        schema.TypeBool,
 			Optional:    true,
-			Default:     true,
 			Description: "Enable the execution of pre-reboot scripts when VMware tools is installed.",
 		},
 		"run_tools_scripts_before_guest_shutdown": {

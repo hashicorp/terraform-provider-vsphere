@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
@@ -222,19 +223,17 @@ func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtua
 	}
 
 	// We now have the controller on which we can create our device on.
-	var dsRef types.ManagedObjectReference
 	dsID := r.Get("datastore_id").(string)
-	path := r.Get("path").(string)
-	if dsID != "" {
-		dsRef.Type = "Datastore"
-		dsRef.Value = dsID
-	}
-	disk := l.CreateDisk(ctlr, dsRef, path)
 	if dsID == "" {
-		// CreateDisk does not allow you to pass nil as a datastore reference
-		// currently, so we have to nil out the value after the fact.
-		disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).Datastore = nil
+		// Default to the default datastore
+		dsID = r.data.Get("datastore_id").(string)
 	}
+	ds, err := datastore.FromID(r.client, dsID)
+	if err != nil {
+		return nil, fmt.Errorf("could not locate datastore: %s", err)
+	}
+	path := ds.Path(r.Get("path").(string))
+	disk := l.CreateDisk(ctlr, ds.Reference(), path)
 	// Set a new device key for this device as CreateDisk does not do it for us
 	// right now.
 	disk.Key = l.NewKey()
@@ -389,7 +388,7 @@ func (r *DiskSubresource) expandDiskSettings(disk *types.VirtualDisk) error {
 	if os.(int) > ns.(int) {
 		return fmt.Errorf("virtual disks cannot be shrunk")
 	}
-	disk.CapacityInBytes = structure.GbToByte(ns.(int))
+	disk.CapacityInBytes = structure.GiBToByte(ns.(int))
 	disk.CapacityInKB = disk.CapacityInBytes / 1024
 
 	alloc := &types.StorageIOAllocationInfo{
@@ -418,10 +417,16 @@ func (r *DiskSubresource) flattenDiskSettings(disk *types.VirtualDisk) error {
 	r.Set("disk_sharing", b.Sharing)
 	r.Set("thin_provisioned", b.ThinProvisioned)
 	r.Set("eagerly_scrub", b.EagerlyScrub)
-	r.Set("path", b.FileName)
+	r.Set("datastore_id", b.Datastore.Value)
+	// Save path properly
+	dp := &object.DatastorePath{}
+	if ok := dp.FromString(b.FileName); !ok {
+		return fmt.Errorf("could not parse path from filename: %s", b.FileName)
+	}
+	r.Set("path", dp.Path)
 
 	// Disk settings
-	r.Set("size", structure.ByteToGB(disk.CapacityInBytes))
+	r.Set("size", structure.ByteToGiB(disk.CapacityInBytes))
 
 	if disk.StorageIOAllocation != nil {
 		r.Set("io_limit", disk.StorageIOAllocation.Limit)

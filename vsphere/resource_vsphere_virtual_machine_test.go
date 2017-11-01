@@ -479,6 +479,9 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_NETWORK_LABEL") == "" {
 		t.Skip("set VSPHERE_NETWORK_LABEL to run vsphere_virtual_machine acceptance tests")
 	}
+	if os.Getenv("VSPHERE_NETWORK_LABEL_PXE") == "" {
+		t.Skip("set VSPHERE_NETWORK_LABEL_PXE to run vsphere_virtual_machine acceptance tests")
+	}
 	if os.Getenv("VSPHERE_IPV4_ADDRESS") == "" {
 		t.Skip("set VSPHERE_IPV4_ADDRESS to run vsphere_virtual_machine acceptance tests")
 	}
