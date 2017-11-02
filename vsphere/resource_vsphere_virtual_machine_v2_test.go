@@ -389,7 +389,7 @@ data "vsphere_datacenter" "dc" {
 }
 
 data "vsphere_datastore" "datastore" {
-  name = "${var.datastore}"
+  name          = "${var.datastore}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
@@ -413,13 +413,12 @@ resource "vsphere_virtual_machine_v2" "vm" {
   guest_id = "other3xLinux64Guest"
 
   network_interface {
-    index      = 0
     network_id = "${data.vsphere_network.network.id}"
   }
 
   disk {
-    index = 0
-    size  = 20
+    unit_number = 0
+    size        = 20
   }
 }
 `,

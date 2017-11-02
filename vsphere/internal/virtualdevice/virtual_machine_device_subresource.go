@@ -1,7 +1,6 @@
 package virtualdevice
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"reflect"
@@ -9,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
@@ -43,12 +41,17 @@ const (
 	SubresourceControllerTypeParaVirtual = "pvscsi"
 
 	// SubresourceControllerTypeLsiLogicSAS is a string representation of the
-	// VMware
+	// LSI Logic virtual SCSI controller type.
 	SubresourceControllerTypeLsiLogicSAS = "lsilogic-sas"
 
 	// SubresourceControllerTypePCI is a string representation of PCI controller
 	// classes.
 	SubresourceControllerTypePCI = "pci"
+)
+
+const (
+	subresourceControllerTypeMixed   = "mixed"
+	subresourceControllerTypeUnknown = "unknown"
 )
 
 var subresourceIDControllerTypeAllowedValues = []string{
@@ -64,12 +67,21 @@ var sharesLevelAllowedValues = []string{
 	string(types.SharesLevelCustom),
 }
 
+// SCSIBusTypeAllowedValues exports the currently list of SCSI controller types
+// that we support in the resource. The user is only allowed to select a type
+// in this list, which should be used in a ValidateFunc on the appropriate
+// field.
+var SCSIBusTypeAllowedValues = []string{
+	SubresourceControllerTypeParaVirtual,
+	SubresourceControllerTypeLsiLogicSAS,
+}
+
 // newSubresourceFunc is a method signature for the wrapper methods that create
 // a new instance of a specific subresource  that is derived from the base
 // subresoruce object. It's used in the general apply and read operation
 // methods, which themselves are called usually from higher-level apply
 // functions for virtual devices.
-type newSubresourceFunc func(*govmomi.Client, int, *schema.ResourceData) SubresourceInstance
+type newSubresourceFunc func(*govmomi.Client, int, int, *schema.ResourceData) SubresourceInstance
 
 // SubresourceInstance is an interface for derivative objects of Subresoruce.
 // It's used on the general apply and read operation methods, and contains both
@@ -85,10 +97,11 @@ type SubresourceInstance interface {
 	Update(object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error)
 	Delete(object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error)
 
-	ID() string
+	DevAddr() string
 	Addr() string
 	Set(string, interface{}) error
 	Schema() map[string]*schema.Schema
+	State() map[string]interface{}
 }
 
 // controllerTypeToClass converts a controller type to a specific short-form
@@ -137,6 +150,14 @@ type Subresource struct {
 	// The subresource index.
 	index int
 
+	// The old subresource index in the event of sets - this allows us to give
+	// accurate figures to HasChange and GetChange.
+	oldindex int
+
+	// A layer of keys set by this subresource during its apply or refresh run,
+	// used in the event of sets.
+	setdata map[string]interface{}
+
 	// An instance pointing to the entire live resource's ResourceData. We use
 	// the type and index data to extrapolate the sub-resource's data.
 	data *schema.ResourceData
@@ -147,53 +168,17 @@ type Subresource struct {
 // lifecycle of this resource.
 func subresourceSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
-		"index": {
-			Type:         schema.TypeInt,
-			Required:     true,
-			Description:  "A unique index for this device within its class. This ID cannot be recycled until it has been unused for at least one Terraform run.",
-			ValidateFunc: validation.IntBetween(0, orpahnedDeviceMinIndex-1),
+		"key": {
+			Type:        schema.TypeInt,
+			Computed:    true,
+			Description: "The unique device ID for this device within its virtual machine.",
 		},
-		"internal_id": {
+		"device_address": {
 			Type:        schema.TypeString,
 			Computed:    true,
-			Description: "The internally-computed ID of this resource, local to Terraform - this is controller_type:controller_bus_number:unit_number.",
+			Description: "The internally-computed address of this device, such as scsi:0:1, denoting scsi bus #0 and device unit 1.",
 		},
 	}
-}
-
-// SubresourceHashFunc returns the value of index as the ID for an inparticular
-// resource in its set.
-//
-// A Subresource is designed to be implemented as a *schema.Set to minimize the
-// risk that configuration drift has against its values. Using a simple index
-// value, while not protecting 100% against drift (this value could still be
-// modified) or other problems (it's possible for someone to use duplicate
-// values here, causing additional declarations to be ignored), it's better
-// than most options available.
-func SubresourceHashFunc(v interface{}) int {
-	m := v.(map[string]interface{})
-	return m["index"].(int)
-}
-
-// ValidateRegistry takes a map[string]interface{} designed to be a index ->
-// internal_id key/value store. This is an extra safeguard against config drift
-// - it enforces that index reuse doesn't happen over a single run, requiring
-// the user do at least one run with a index removed before re-using it.
-//
-// An error is returned if there a set element has an index that does not match
-// its internal_id.
-func ValidateRegistry(registry map[string]interface{}, set *schema.Set) error {
-	for _, v := range set.List() {
-		m := v.(map[string]interface{})
-		idx := strconv.Itoa(m["index"].(int))
-		iid := m["internal_id"].(string)
-		if rid, ok := registry[idx]; ok {
-			if iid != rid {
-				return fmt.Errorf("ID mismatch at index %s - old: %q new: %q. Please apply with index removed before re-using", idx, rid, iid)
-			}
-		}
-	}
-	return nil
 }
 
 // Schema returns the schema for this subresource. The internal schema is
@@ -207,18 +192,30 @@ func (r *Subresource) Schema() map[string]*schema.Schema {
 
 // Addr returns the address of this specific subresource.
 func (r *Subresource) Addr() string {
-	return fmt.Sprintf("%s.%d", r.srtype, r.index)
+	addr, _ := r.addrs()
+	return addr
 }
 
-// keyAddr computes the relative address of this specific subresource in the
+func (r *Subresource) addrs() (string, string) {
+	return fmt.Sprintf("%s.%d", r.srtype, r.index), fmt.Sprintf("%s.%d", r.srtype, r.oldindex)
+}
+
+// keyAddrs computes the relative address of this specific subresource in the
 // full ResourceData set.
-func (r *Subresource) keyAddr(k string) string {
-	return fmt.Sprintf("%s.%s", r.Addr(), k)
+func (r *Subresource) keyAddrs(k string) (string, string) {
+	old, new := r.addrs()
+	return fmt.Sprintf("%s.%s", old, k), fmt.Sprintf("%s.%s", new, k)
 }
 
 // Get hands off to r.data.Get, with an address relative to this subresource.
 func (r *Subresource) Get(key string) interface{} {
-	return r.data.Get(r.keyAddr(key))
+	if r.setdata != nil {
+		if v, ok := r.setdata[key]; ok {
+			return v
+		}
+	}
+	addr, _ := r.keyAddrs(key)
+	return r.data.Get(addr)
 }
 
 // Set sets the specified key/value pair in the subresource.
@@ -233,48 +230,45 @@ func (r *Subresource) Get(key string) interface{} {
 // that would require nested fields in the sub-resources, however if in the
 // future this changes this will need to be reviewed.
 func (r *Subresource) Set(key string, value interface{}) error {
-	// Block setting of the index value through this function.
-	if key == "index" {
-		errstr := fmt.Sprintf("%s.%d.%s: Setting of index key not allowed", r.srtype, r.index, key)
-		log.Printf("[DEBUG] %s", errstr)
-		return errors.New(errstr)
-	}
 	log.Printf("[TRACE] r.Set(): %s.%d.%s: %#v", r.srtype, r.index, key, value)
-	s := r.data.Get(r.srtype).(*schema.Set)
-	var found bool
-	for _, v := range s.List() {
-		m := v.(map[string]interface{})
-		if m["index"].(int) == r.index {
-			m[key] = structure.DeRef(value)
-			found = true
+	switch s := r.data.Get(r.srtype).(type) {
+	case *schema.Set:
+		log.Printf("[TRACE] r.Set(): %s.%d.%s: Resource is a set, must set in temporary layer", r.srtype, r.index, key)
+		// Dealing with a set here, we need to keep track of this data separate.
+		if r.setdata == nil {
+			r.setdata = make(map[string]interface{})
 		}
-	}
-	if !found {
-		// We don't have data for this resource, so we need to add a brand new
-		// element.
-		m := map[string]interface{}{
-			"index": r.index,
-			key:     value,
+		r.setdata[key] = structure.DeRef(value)
+		return nil
+	case []interface{}:
+		m := s[r.index].(map[string]interface{})
+		m[key] = structure.DeRef(value)
+		err := r.data.Set(r.srtype, s)
+		if err != nil {
+			log.Printf("[DEBUG] Error updating parent subresource set for %s.%d.%s: %s", r.srtype, r.index, key, err)
 		}
-		s.Add(m)
+		return err
 	}
-	err := r.data.Set(r.srtype, s)
-	if err != nil {
-		log.Printf("[DEBUG] Error updating parent subresource set for %s.%d.%s: %s", r.srtype, r.index, key, err)
-	}
-	return err
+	log.Printf("[DEBUG] %s: invalid sub-resource type", r.srtype)
+	return fmt.Errorf("%s: invalid sub-resource type", r.srtype)
 }
 
-// HasChange hands off to r.data.HasChange, with an address relative to this
-// subresource.
+// HasChange checks to see if there has been a change in the resource data
+// since the last update.
 func (r *Subresource) HasChange(key string) bool {
-	return r.data.HasChange(r.keyAddr(key))
+	o, n := r.GetChange(key)
+	return !reflect.DeepEqual(o, n)
 }
 
-// GetChange hands off to r.data.GetChange, with an address relative to this
-// subresource.
+// GetChange gets the old and new values for the value specified by key.
 func (r *Subresource) GetChange(key string) (interface{}, interface{}) {
-	return r.data.GetChange(r.keyAddr(key))
+	oa, na := r.keyAddrs(key)
+	if r.index == r.oldindex {
+		return r.data.GetChange(na)
+	}
+	od := r.data.Get(oa)
+	nd := r.Get(key)
+	return od, nd
 }
 
 // GetWithRestart checks to see if a field has been modified, returns the new
@@ -283,7 +277,7 @@ func (r *Subresource) GetWithRestart(key string) interface{} {
 	if r.HasChange(key) {
 		// VMware supports hot-add of virtual devices, so if this is a new
 		// sub-resource, don't worry about rebooting.
-		if r.Get("internal_id") != "" {
+		if r.Get("device_address") != "" {
 			r.SetRestart()
 		}
 	}
@@ -297,7 +291,7 @@ func (r *Subresource) GetWithVeto(key string) (interface{}, error) {
 	if r.HasChange(key) {
 		// Only veto updates, if internal_id is not set yet, this is a create
 		// operation and should be allowed to go through.
-		if r.Get("internal_id") != "" {
+		if r.Get("device_address") != "" {
 			return r.Get(key), fmt.Errorf("cannot change the value of %q - must delete and re-create device", key)
 		}
 	}
@@ -309,9 +303,31 @@ func (r *Subresource) SetRestart() error {
 	return r.data.Set("reboot_required", true)
 }
 
-// computeID handles the logic for saveID and allows it to be used outside of a
-// subresource.
-func computeID(device types.BaseVirtualDevice, ctlr types.BaseVirtualController) string {
+// State returns a map[string]interface{} data object for the subresource,
+// rolling in any data set during the run.
+func (r *Subresource) State() map[string]interface{} {
+	d := r.data.Get(r.srtype)
+	var m map[string]interface{}
+	switch s := d.(type) {
+	case []interface{}:
+		m = s[r.index].(map[string]interface{})
+	case *schema.Set:
+		for _, v := range s.List() {
+			hf := schema.HashResource(&schema.Resource{Schema: r.Schema()})
+			if hf(v) == r.index {
+				m = v.(map[string]interface{})
+				for k, v := range r.setdata {
+					m[k] = v
+				}
+			}
+		}
+	}
+	return m
+}
+
+// computeDevAddr handles the logic for saveAddr and allows it to be used
+// outside of a subresource.
+func computeDevAddr(device types.BaseVirtualDevice, ctlr types.BaseVirtualController) string {
 	vd := device.GetVirtualDevice()
 	vc := ctlr.GetVirtualController()
 	ctype := controllerTypeToClass(ctlr)
@@ -323,27 +339,27 @@ func computeID(device types.BaseVirtualDevice, ctlr types.BaseVirtualController)
 	return strings.Join(parts, ":")
 }
 
-// SaveID saves the resource ID of the subresource to internal_id. This is a
-// computed schema field that contains the controller type, the controller's
-// bus number, and the device's unit number on that controller.
+// SaveDevIDs saves the resource ID of the subresource to device_address. This
+// is a computed schema field that contains the controller type, the
+// controller's bus number, and the device's unit number on that controller.
 //
 // This is an ID internal to Terraform that helps us locate the resource later,
 // as device keys are unfortunately volatile and can only really be relied on
 // for a single operation, as such they are unsuitable for use to check a
 // resource later on.
-func (r *Subresource) SaveID(device types.BaseVirtualDevice, ctlr types.BaseVirtualController) {
-	r.Set("internal_id", computeID(device, ctlr))
+func (r *Subresource) SaveDevIDs(device types.BaseVirtualDevice, ctlr types.BaseVirtualController) {
+	r.Set("device_address", computeDevAddr(device, ctlr))
 }
 
-// ID returns the internal_id attribute in the subresource. This function
-// exists mainly as a functional counterpart to SaveID.
-func (r *Subresource) ID() string {
-	return r.Get("internal_id").(string)
+// DevAddr returns the device_address attribute in the subresource. This
+// function exists mainly as a functional counterpart to SaveDevIDs.
+func (r *Subresource) DevAddr() string {
+	return r.Get("device_address").(string)
 }
 
-// splitInternalID splits an ID into its inparticular parts and asserts that we
-// have all the correct data.
-func splitInternalID(id string) (string, int, int, error) {
+// splitDevAddr splits an device addres into its inparticular parts and asserts
+// that we have all the correct data.
+func splitDevAddr(id string) (string, int, int, error) {
 	parts := strings.Split(id, ":")
 	if len(parts) < 3 {
 		return "", 0, 0, fmt.Errorf("invalid ID %q", id)
@@ -421,10 +437,10 @@ func findVirtualDeviceInListDeviceSelectFunc(ckey int32, du int) func(types.Base
 	}
 }
 
-// FindVirtualDevice locates the subresource's virtual device in the supplied
-// VirtualDeviceList, working off of the resource's internal_id attribute.
-func (r *Subresource) FindVirtualDevice(l object.VirtualDeviceList) (types.BaseVirtualDevice, error) {
-	ct, cb, du, err := splitInternalID(r.ID())
+// FindVirtualDeviceByAddr locates the subresource's virtual device in the
+// supplied VirtualDeviceList by its device address.
+func (r *Subresource) FindVirtualDeviceByAddr(l object.VirtualDeviceList) (types.BaseVirtualDevice, error) {
+	ct, cb, du, err := splitDevAddr(r.DevAddr())
 	if err != nil {
 		return nil, err
 	}
@@ -448,103 +464,168 @@ func (r *Subresource) FindVirtualDevice(l object.VirtualDeviceList) (types.BaseV
 	return device, nil
 }
 
-// pickOrCreateDiskController either finds a device of a specific type with an
-// available slot, or creates a new one. An error is returned if there is a
-// problem anywhere in this process or not possible.
-//
-// Note that this does not push the controller to the device list - this is
-// done outside of this function, to keep things atomic at the end.
-func pickOrCreateDiskController(l object.VirtualDeviceList, kind types.BaseVirtualController) (types.BaseVirtualController, error) {
-	ctlr := l.PickController(kind)
-	if ctlr == nil {
-		var nc types.BaseVirtualDevice
-		var err error
-		switch kind.(type) {
-		case *types.VirtualIDEController:
-			nc, err = l.CreateIDEController()
-			ctlr = nc.(*types.VirtualIDEController)
-		case *types.ParaVirtualSCSIController:
-			nc, err = l.CreateSCSIController(SubresourceControllerTypeParaVirtual)
-			ctlr = nc.(*types.ParaVirtualSCSIController)
-		case *types.VirtualLsiLogicSASController:
-			nc, err = l.CreateSCSIController(SubresourceControllerTypeLsiLogicSAS)
-			ctlr = nc.(*types.VirtualLsiLogicSASController)
-		default:
-			return nil, fmt.Errorf("cannot create new controller of type: %T", kind)
+// FindVirtualDevice will attempt to find an address by its device key if it is
+// > 0, otherwise it will attempt to locate it by its device address.
+func (r *Subresource) FindVirtualDevice(l object.VirtualDeviceList) (types.BaseVirtualDevice, error) {
+	if key := r.Get("key").(int); key > 0 {
+		if dev := l.FindByKey(int32(key)); dev != nil {
+			return dev, nil
 		}
-		if err != nil {
-			return nil, err
+		return nil, fmt.Errorf("could not find device with key %d", key)
+	}
+	return r.FindVirtualDeviceByAddr(l)
+}
+
+// swapSCSIDevice swaps out the supplied controller for a new one of the
+// supplied controller type. Any connected devices are re-connected at the same
+// device units on the new device. A list of changes is returned.
+func swapSCSIDevice(l object.VirtualDeviceList, device types.BaseVirtualSCSIController, ct string) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	var spec []types.BaseVirtualDeviceConfigSpec
+	nsd, err := l.CreateSCSIController(ct)
+	if err != nil {
+		return nil, err
+	}
+	cspec, err := object.VirtualDeviceList{nsd}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
+	if err != nil {
+		return nil, err
+	}
+	spec = append(spec, cspec...)
+	ockey := device.GetVirtualSCSIController().Key
+	nckey := nsd.GetVirtualDevice().Key
+	for _, vd := range l {
+		if vd.GetVirtualDevice().Key == ockey {
+			vd.GetVirtualDevice().Key = nckey
+			cspec, err := object.VirtualDeviceList{vd}.ConfigSpec(types.VirtualDeviceConfigSpecOperationEdit)
+			if err != nil {
+				return nil, err
+			}
+			spec = append(spec, cspec...)
 		}
 	}
-	return ctlr, nil
+	// Put the deletion of the old device at the end of the list as I'm not too
+	// sure how vSphere applies these changes. Better safe than sorry.
+	bvd := device.(types.BaseVirtualDevice)
+	cspec, err = object.VirtualDeviceList{bvd}.ConfigSpec(types.VirtualDeviceConfigSpecOperationRemove)
+	if err != nil {
+		return nil, err
+	}
+	spec = append(spec, cspec...)
+	return spec, nil
+}
+
+// NormalizeSCSIBus checks the SCSI controllers on the virtual machine and
+// either creates them if they don't exist, or migrates them to the specified
+// controller type. Devices are migrated to the new controller appropriately. A
+// spec slice is returned with the changes.
+//
+// All 4 slots on the SCSI bus are normalized to the appropriate device.
+func NormalizeSCSIBus(l object.VirtualDeviceList, ct string) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+	var spec []types.BaseVirtualDeviceConfigSpec
+	ctlrs := make([]types.BaseVirtualSCSIController, 4)
+	// Don't worry about doing any fancy select stuff here, just go thru the
+	// VirtualDeviceList and populate the controllers.
+	for _, dev := range l {
+		if sc, ok := dev.(types.BaseVirtualSCSIController); ok {
+			ctlrs[sc.GetVirtualSCSIController().BusNumber] = sc
+		}
+	}
+	// Now iterate over the controllers
+	for _, ctlr := range ctlrs {
+		if ctlr == nil {
+			nc, err := l.CreateSCSIController(ct)
+			if err != nil {
+				return nil, nil, err
+			}
+			cspec, err := object.VirtualDeviceList{nc}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
+			if err != nil {
+				return nil, nil, err
+			}
+			spec = append(spec, cspec...)
+			l = applyDeviceChange(l, cspec)
+			continue
+		}
+		if l.Name(ctlr.(types.BaseVirtualDevice)) == ct {
+			continue
+		}
+		cspec, err := swapSCSIDevice(l, ctlr, ct)
+		if err != nil {
+			return nil, nil, err
+		}
+		spec = append(spec, cspec...)
+		l = applyDeviceChange(l, cspec)
+		continue
+	}
+	return l, spec, nil
+}
+
+// ReadSCSIBusState checks the SCSI bus state and returns a device type
+// depending on if all controllers are one specific kind or not.
+func ReadSCSIBusState(l object.VirtualDeviceList) string {
+	ctlrs := make([]types.BaseVirtualSCSIController, 4)
+	for _, dev := range l {
+		if sc, ok := dev.(types.BaseVirtualSCSIController); ok {
+			ctlrs[sc.GetVirtualSCSIController().BusNumber] = sc
+		}
+	}
+	if ctlrs[0] == nil {
+		return subresourceControllerTypeUnknown
+	}
+	last := l.Type(ctlrs[0].(types.BaseVirtualDevice))
+	for _, ctlr := range ctlrs[1:] {
+		if ctlr == nil || l.Type(ctlr.(types.BaseVirtualDevice)) != last {
+			return subresourceControllerTypeMixed
+		}
+	}
+	return last
+}
+
+// getSCSIController picks a SCSI controller at the specific bus number supplied.
+func pickSCSIController(l object.VirtualDeviceList, bus int) (types.BaseVirtualController, error) {
+	l = l.Select(func(device types.BaseVirtualDevice) bool {
+		switch d := device.(type) {
+		case types.BaseVirtualSCSIController:
+			return d.GetVirtualSCSIController().BusNumber == int32(bus)
+		}
+		return false
+	})
+
+	if len(l) == 0 {
+		return nil, fmt.Errorf("could not find scsi controller at bus number %d", bus)
+	}
+
+	return l[0].(types.BaseVirtualController), nil
 }
 
 // ControllerForCreateUpdate wraps the controller selection logic to make it
-// easier to use in create or update operations.
-//
-// If the controller is new, it's returned as the second return value, as a Add
-// device change operation, for easy appending to outbound devices and the
-// working set. Otherwise the device list is empty.
-func (r *Subresource) ControllerForCreateUpdate(l object.VirtualDeviceList, ct string) (types.BaseVirtualController, []types.BaseVirtualDeviceConfigSpec, error) {
+// easier to use in create or update operations. If the controller type is a
+// SCSI device, the bus number is searched as well.
+func (r *Subresource) ControllerForCreateUpdate(l object.VirtualDeviceList, ct string, bus int) (types.BaseVirtualController, error) {
 	var ctlr types.BaseVirtualController
 	var err error
 	switch ct {
 	case SubresourceControllerTypeIDE:
-		ctlr, err = pickOrCreateDiskController(l, &types.VirtualIDEController{})
-	case SubresourceControllerTypeParaVirtual:
-		ctlr, err = pickOrCreateDiskController(l, &types.ParaVirtualSCSIController{})
-	case SubresourceControllerTypeLsiLogicSAS:
-		ctlr, err = pickOrCreateDiskController(l, &types.VirtualLsiLogicSASController{})
+		ctlr = l.PickController(&types.VirtualIDEController{})
+	case SubresourceControllerTypeSCSI:
+		ctlr, err = pickSCSIController(l, bus)
 	case SubresourceControllerTypePCI:
-		ctlr, err = pickOrCreateDiskController(l, &types.VirtualPCIController{})
+		ctlr = l.PickController(&types.VirtualPCIController{})
 	default:
-		return nil, nil, fmt.Errorf("invalid controller type %T", ct)
+		return nil, fmt.Errorf("invalid controller type %T", ct)
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, err
+	}
+	if ctlr == nil {
+		return nil, fmt.Errorf("could not find an available %s controller", ct)
 	}
 
-	// Is this a new controller? If so, we need to push this to our working
-	// device set so that its device key is accounted for, in addition to the
-	// list of new devices that we are returning as part of the device creation,
-	// so that they can be added to the ConfigSpec properly.
-	//
-	// New controllers will have a negative device key and will *not* be in our
-	// current device list. The former is more important to vSphere, but the
-	// latter means we have already added a deviceChange spec for the controller
-	// more than likely.
-	var dl object.VirtualDeviceList
-	var cs []types.BaseVirtualDeviceConfigSpec
-	var inl bool
-	for _, d := range l {
-		if d.GetVirtualDevice().Key == ctlr.GetVirtualController().Key {
-			inl = true
-		}
+	// Assert that we are on bus 0 when we aren't looking for a SCSI controller.
+	// We currently do not support attaching devices to multiple non-SCSI buses.
+	if ctlr.GetVirtualController().BusNumber != 0 && ct != SubresourceControllerTypeSCSI {
+		return nil, fmt.Errorf("there are no available slots on the primary %s controller", ct)
 	}
-	if ctlr.GetVirtualController().Key < 0 && !inl {
-		switch ct := ctlr.(type) {
-		case *types.VirtualIDEController:
-			dl = append(dl, ct)
-		case *types.ParaVirtualSCSIController:
-			dl = append(dl, ct)
-		case *types.VirtualLsiLogicSASController:
-			dl = append(dl, ct)
-		default:
-			// This should never happen, as if we don't support the controller for
-			// creation, then a graceful error will be returned earlier in the logic
-			// chain, so panic here.
-			panic(fmt.Errorf("unhandled new controller type %T", ctlr))
-		}
-		var err error
-		cs, err = dl.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
-		if err != nil {
-			// If there was some sort of issue generating the ConfigSpec I don't
-			// think there's anything that the user can do to really rectify this.
-			// Just panic here, as there is probably something really wrong.
-			panic(err)
-		}
-	}
-	return ctlr, cs, nil
+
+	return ctlr, nil
 }
 
 // applyDeviceChange applies a pending types.BaseVirtualDeviceConfigSpec to a
@@ -559,7 +640,7 @@ func applyDeviceChange(l object.VirtualDeviceList, cs []types.BaseVirtualDeviceC
 		case types.VirtualDeviceConfigSpecOperationEdit:
 			// Edit operations may not be 100% necessary to apply. This is because
 			// more often than not, the device will probably be edited in place off
-			// or the original reference, meaning that the slice should actually
+			// of the original reference, meaning that the slice should actually
 			// point to the updated item. However, the safer of the two options is to
 			// assume that this may *not* be happening as we are not enforcing that
 			// in implementation anywhere.
@@ -581,6 +662,45 @@ func applyDeviceChange(l object.VirtualDeviceList, cs []types.BaseVirtualDeviceC
 	return l
 }
 
+// getDeviceChangeSet returns an old and new set for the device subresource
+// type based on the subresource schema type, as we allow both sets and lists
+// to be subresource types. For sets, the intersection is discarded so that
+// no-ops are not unnecessarily checked.
+func getDeviceChangeSet(d *schema.ResourceData, srtype string) ([]interface{}, []interface{}) {
+	o, n := d.GetChange(srtype)
+	switch n.(type) {
+	case []interface{}:
+		return o.([]interface{}), n.([]interface{})
+	case *schema.Set:
+		// Make an intersection set. Any device in the intersection is a device
+		// that is not changing, so we ignore those.
+		ids := o.(*schema.Set).Intersection(n.(*schema.Set))
+		ods := o.(*schema.Set).Difference(ids)
+		nds := n.(*schema.Set).Difference(ids)
+		return ods.List(), nds.List()
+	}
+	panic(fmt.Errorf("unsupported sub-resource type %T", n))
+}
+
+// indexOrHash either returns the index passed into it, or a set hash,
+// depending on the subresource type schema.
+func indexOrHash(d *schema.ResourceData, srtype string, f newSubresourceFunc, idx int, current, old interface{}) (int, int) {
+	switch d.Get(srtype).(type) {
+	case []interface{}:
+		// Noop pretty much
+		return idx, idx
+	case *schema.Set:
+		hf := schema.HashResource(&schema.Resource{Schema: f(nil, 0, 0, nil).Schema()})
+		ch := hf(current)
+		oh := ch
+		if old != nil {
+			oh = hf(old)
+		}
+		return ch, oh
+	}
+	panic(fmt.Errorf("unsupported sub-resource type %T", d.Get(srtype)))
+}
+
 // deviceApplyOperation processes an apply operation for a specific device
 // class.
 //
@@ -592,90 +712,71 @@ func applyDeviceChange(l object.VirtualDeviceList, cs []types.BaseVirtualDeviceC
 //
 // This is a helper that should be exposed via a higher-level resource type.
 func deviceApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, srtype string, newResourceFunc newSubresourceFunc) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
-	// Fetch the ID registry for the device's resources. This should be a
-	// map[int]string, but since TypeMap only supports map[string]string and
-	// shows up as a map[string]interface{}. We make do.
-	registry := d.Get(fmt.Sprintf("%s_internal_ids", srtype)).(map[string]interface{})
-	if registry == nil {
-		// Possibly dealing with a new VM resource.
-		registry = make(map[string]interface{})
-	}
-	o, n := d.GetChange(srtype)
-	ods := o.(*schema.Set)
-	nds := n.(*schema.Set)
-	// Validate against our new disk set, to make sure that there isn't any index
-	// drift.
-	if err := ValidateRegistry(registry, nds); err != nil {
-		return nil, nil, err
-	}
-
-	// Make an intersection set. These are disks that we need to check for
-	// changes later, but ones that are not in the intersection are either being
-	// created or deleted.
-	ids := ods.Intersection(nds)
-	ods = ods.Difference(ids)
-	nds = nds.Difference(ids)
+	ods, nds := getDeviceChangeSet(d, srtype)
 
 	var spec []types.BaseVirtualDeviceConfigSpec
 
 	// Our old and new sets now have an accurate description of devices that may
-	// have been added or removed. Look for removed devices first.
-	for _, oe := range ods.List() {
-		m := oe.(map[string]interface{})
-		r := newResourceFunc(c, m["index"].(int), d)
+	// have been added, removed, or changed. Look for removed devices first.
+nextOld:
+	for n, oe := range ods {
+		om := oe.(map[string]interface{})
+		for _, ne := range nds {
+			nm := ne.(map[string]interface{})
+			if om["key"] == nm["key"] {
+				continue nextOld
+			}
+		}
+		// The device was not found in the new set, which means this is a destroy.
+		idx, _ := indexOrHash(d, srtype, newResourceFunc, n, om, nil)
+		r := newResourceFunc(c, idx, idx, d)
 		dspec, err := r.Delete(l)
 		if err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
 		}
 		l = applyDeviceChange(l, dspec)
 		spec = append(spec, dspec...)
-		// Delete the item from the registry if it exists.
-		idx := strconv.Itoa(m["index"].(int))
-		delete(registry, idx)
 	}
 
-	// Now create
-	for _, ne := range nds.List() {
-		m := ne.(map[string]interface{})
-		r := newResourceFunc(c, m["index"].(int), d)
+	// Now check for creates and updates.
+	// The results of this operation are committed to state after the operation
+	// completes.
+	var updates []interface{}
+nextNew:
+	for n, ne := range nds {
+		nm := ne.(map[string]interface{})
+		for _, oe := range ods {
+			om := oe.(map[string]interface{})
+			if nm["key"] == om["key"] {
+				// This is an update
+				idx, oidx := indexOrHash(d, srtype, newResourceFunc, n, nm, om)
+				r := newResourceFunc(c, idx, oidx, d)
+				uspec, err := r.Update(l)
+				if err != nil {
+					return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+				}
+				l = applyDeviceChange(l, uspec)
+				spec = append(spec, uspec...)
+				updates = append(updates, r.State())
+				continue nextNew
+			}
+		}
+		// Device not found in old set, this is a new subresource.
+		idx, _ := indexOrHash(d, srtype, newResourceFunc, n, nm, nil)
+		r := newResourceFunc(c, idx, idx, d)
 		cspec, err := r.Create(l)
 		if err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
 		}
 		l = applyDeviceChange(l, cspec)
 		spec = append(spec, cspec...)
-		// Add the item to the registry with its ID, which will have been set as
-		// part of the create process.
-		idx := strconv.Itoa(m["index"].(int))
-		registry[idx] = r.ID()
+		updates = append(updates, r.State())
 	}
 
-	// Finally process any pending updates. We actually do a HasChange on the
-	// direct address here to make sure we need to update in the first place.
-	for _, ie := range ids.List() {
-		m := ie.(map[string]interface{})
-		r := newResourceFunc(c, m["index"].(int), d)
-		if d.HasChange(r.Addr()) {
-			uspec, err := r.Update(l)
-			if err != nil {
-				return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
-			}
-			l = applyDeviceChange(l, uspec)
-			spec = append(spec, uspec...)
-			// The ID may have changed as part of this process, so save the ID just
-			// in case.
-			idx := strconv.Itoa(m["index"].(int))
-			registry[idx] = r.ID()
-		}
+	// We are now done! Return the updated device list and config spec. Save updates as well.
+	if err := d.Set(srtype, updates); err != nil {
+		return nil, nil, err
 	}
-
-	// Save the registry now, as there will have been changes to IDs that we
-	// don't keep track of during read necessarily.
-	if err := d.Set(fmt.Sprintf("%s_internal_ids", srtype), registry); err != nil {
-		return nil, nil, fmt.Errorf("error committing ID registry: %s", err)
-	}
-
-	// We are now done! Return the updated device list and config spec.
 	return l, spec, nil
 }
 
@@ -705,10 +806,6 @@ func isVirtualCdrom(a interface{}) bool {
 // As this is purely a read-only operation except for relation to state, only
 // errors are returned.
 func deviceRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, srtype string, newResourceFunc newSubresourceFunc) error {
-	// Start the orphaned device counter at the minimum index value so that we
-	// can add orphaned devices and OOB devices to state if need be.
-	orphanedIndex := orpahnedDeviceMinIndex
-
 	// Go over the device list, looking for devices we support. We use srtype to
 	// determine what kind of type we are looking for.
 	var eligibleDevice func(interface{}) bool
@@ -722,73 +819,85 @@ func deviceRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 	default:
 		return fmt.Errorf("invalid subresource type %s. This is bug with Terraform and should be reported", srtype)
 	}
-	iids := d.Get(fmt.Sprintf("%s_internal_ids", srtype)).(map[string]interface{})
-nextDevice:
-	for _, bvd := range l {
-		if !eligibleDevice(bvd) {
-			// Quick guard to just skip devices that we aren't looking for this run
-			continue
+	devices := l.Select(func(device types.BaseVirtualDevice) bool {
+		if eligibleDevice(device) {
+			return true
 		}
-		// Check to see if this is a device we are tracking in the ID registry.
-		vd := bvd.GetVirtualDevice()
-		var bvc types.BaseVirtualController
-		for _, bvd := range l {
-			if vd.ControllerKey == bvd.GetVirtualDevice().Key {
-				bvc = reflect.ValueOf(bvd).Interface().(types.BaseVirtualController)
+		return false
+	})
+	curSet, _ := getDeviceChangeSet(d, srtype)
+	var newSet []interface{}
+	// First check for negative keys. These are freshly added devices that are
+	// usually coming into read post-create.
+	for n, item := range curSet {
+		m := item.(map[string]interface{})
+		if m["key"].(int) < 1 {
+			idx, _ := indexOrHash(d, srtype, newResourceFunc, n, m, nil)
+			r := newResourceFunc(c, idx, idx, d)
+			if err := r.Read(l); err != nil {
+				return fmt.Errorf("%s: %s", r.Addr(), err)
+			}
+			newM := r.State()
+			if newM["key"].(int) < 1 {
+				// This should not have happened - if it did, our device
+				// creation/update logic failed somehow that we were not able to track.
+				return fmt.Errorf("device %v with address %v still unaccounted for after update/read", newM["key"], newM["device_address"])
+			}
+			newSet = append(newSet, r.State())
+			for i := 0; i < len(devices); i++ {
+				device := devices[i]
+				if device.GetVirtualDevice().Key == int32(newM["key"].(int)) {
+					devices = append(devices[:i], devices[i+1:]...)
+				}
 			}
 		}
-		ida := computeID(bvd, bvc)
-		for k, v := range iids {
-			idb := v.(string)
-			if ida == idb {
-				// We have a match of a device we are tracking in configuration. Read
-				// the state for this resource and move on to the next device.
-				idx, err := strconv.Atoi(k)
-				if err != nil {
-					return fmt.Errorf("bad index %q found in %s_internal_ids. This is a bug in Terraform and should be reported", k, srtype)
-				}
-				r := newResourceFunc(c, idx, d)
-				if err := r.Read(l); err != nil {
-					return fmt.Errorf("%s: %s", r.Addr(), err)
-				}
-				// Remove this ID from our working set of diffs. We use the remainder
-				// as a list of set items to cull later.
-				delete(iids, k)
-				continue nextDevice
+	}
+
+	// Go over the remaining devices, refresh via key, and then remove their entries as well.
+	for i := 0; i < len(devices); i++ {
+		device := devices[i]
+		for n, item := range curSet {
+			m := item.(map[string]interface{})
+			if m["key"].(int) < 0 {
+				// Skip any of these keys as we won't be matching any of those anyway here
+				continue
 			}
+			if device.GetVirtualDevice().Key != int32(m["key"].(int)) {
+				// Skip any device that doesn't match key as well
+				continue
+			}
+			// We should have our device -> resource match, so read now.
+			idx, _ := indexOrHash(d, srtype, newResourceFunc, n, m, nil)
+			r := newResourceFunc(c, idx, idx, d)
+			if err := r.Read(l); err != nil {
+				return fmt.Errorf("%s: %s", r.Addr(), err)
+			}
+			// Done reading, push this onto our new set and remove the device from the list
+			newSet = append(newSet, r.State())
+			devices = append(devices[:i], devices[i+1:]...)
 		}
-		// If we have searched the entire ID registry and have not found the device
-		// we are looking for, then the device was more than likely added out of
-		// band. We save this device to state at an index in a keyspace outside of
-		// our normal resources, and save the internal ID and index to state as
-		// well (things that don't happen in read).
-		r := newResourceFunc(c, orphanedIndex, d)
-		r.Set("internal_id", ida)
+	}
+
+	// Finally, any device that is still here is orphaned. They should be added
+	// as new devices.
+	for n, device := range devices {
+		m := make(map[string]interface{})
+		vd := device.GetVirtualDevice()
+		ctlr := l.FindByKey(vd.ControllerKey)
+		if ctlr == nil {
+			return fmt.Errorf("could not find controller with key %d", vd.Key)
+		}
+		m["key"] = int(vd.Key)
+		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		idx, _ := indexOrHash(d, srtype, newResourceFunc, orpahnedDeviceMinIndex+n, m, nil)
+		r := newResourceFunc(c, idx, idx, d)
+		r.Set("key", m["key"])
+		r.Set("device_address", m["device_address"])
 		if err := r.Read(l); err != nil {
-			return fmt.Errorf("%s error reading orphaned device: %s", r.Addr(), err)
+			return fmt.Errorf("%s: %s", r.Addr(), err)
 		}
-		// Should be done here.
+		newSet = append(newSet, r.State())
 	}
-	// If there were any items that have disappeared for any reason, we want to
-	// make every effort to remove those items from our state, so that the next
-	// diff is as accurate as possible as to what needs to happen to fix it.
-	//
-	// We do this by checking the remainder of our internal ID map and removing
-	// items from our set and internal ID registry respectively.
-	devsOld := d.Get(srtype).(*schema.Set)
-	devsNew := d.Get(srtype).(*schema.Set)
-	niids := d.Get(fmt.Sprintf("%s_internal_ids", srtype)).(map[string]interface{})
-	for k := range iids {
-		for _, v := range devsOld.List() {
-			m := v.(map[string]interface{})
-			if strconv.Itoa(m["index"].(int)) == k {
-				devsNew.Remove(m)
-				delete(niids, k)
-			}
-		}
-	}
-	if err := d.Set(fmt.Sprintf("%s_internal_ids", srtype), niids); err != nil {
-		return fmt.Errorf("error saving new %s_internal_ids on refresh: %s", srtype, err)
-	}
-	return d.Set(srtype, devsNew)
+
+	return d.Set(srtype, newSet)
 }

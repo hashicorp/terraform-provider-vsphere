@@ -2,6 +2,7 @@ package virtualdevice
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -11,12 +12,6 @@ import (
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 )
-
-var diskSubresourceControllerTypeAllowedValues = []string{
-	SubresourceControllerTypeIDE,
-	SubresourceControllerTypeParaVirtual,
-	SubresourceControllerTypeLsiLogicSAS,
-}
 
 var diskSubresourceModeAllowedValues = []string{
 	string(types.VirtualDiskModePersistent),
@@ -116,22 +111,16 @@ func diskSubresourceSchema() map[string]*schema.Schema {
 			Description:  "The size of the disk, in GB.",
 			ValidateFunc: validation.IntAtLeast(1),
 		},
-		"controller_type": {
-			Type:         schema.TypeString,
-			Optional:     true,
-			Default:      SubresourceControllerTypeLsiLogicSAS,
-			Description:  "The controller type. Can be one of ide, pvscsi, or lsilogic-sas.",
-			ValidateFunc: validation.StringInSlice(diskSubresourceControllerTypeAllowedValues, false),
+		"unit_number": {
+			Type:         schema.TypeInt,
+			Required:     true,
+			Description:  "The unique device number for this disk. This number determines where on the SCSI bus this device will be attached.",
+			ValidateFunc: validation.IntBetween(0, 29),
 		},
 		"keep_on_remove": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "Set to true to keep the underlying VMDK file when removing this virtual disk from configuration.",
-		},
-		"key": {
-			Type:        schema.TypeInt,
-			Computed:    true,
-			Description: "The unique device ID for this device within the virtual machine configuration.",
 		},
 	}
 }
@@ -144,14 +133,15 @@ type DiskSubresource struct {
 
 // NewDiskSubresource returns a subresource populated with all of the necessary
 // fields.
-func NewDiskSubresource(client *govmomi.Client, index int, d *schema.ResourceData) SubresourceInstance {
+func NewDiskSubresource(client *govmomi.Client, index, oldindex int, d *schema.ResourceData) SubresourceInstance {
 	sr := &DiskSubresource{
 		Subresource: &Subresource{
-			schema: diskSubresourceSchema(),
-			client: client,
-			srtype: subresourceTypeDisk,
-			index:  index,
-			data:   d,
+			schema:   diskSubresourceSchema(),
+			client:   client,
+			srtype:   subresourceTypeDisk,
+			index:    index,
+			oldindex: oldindex,
+			data:     d,
 		},
 	}
 	return sr
@@ -192,13 +182,14 @@ func DiskDestroyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 
 	var spec []types.BaseVirtualDeviceConfigSpec
 
-	for _, oe := range ds.List() {
+	for n, oe := range ds.List() {
 		m := oe.(map[string]interface{})
 		if !m["keep_on_remove"].(bool) {
 			// We don't care about disks we haven't set to keep
 			continue
 		}
-		r := NewDiskSubresource(c, m["index"].(int), d)
+		idx, _ := indexOrHash(d, subresourceTypeDisk, NewDiskSubresource, n, m, nil)
+		r := NewDiskSubresource(c, idx, idx, d)
 		dspec, err := r.Delete(l)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -213,42 +204,24 @@ func DiskDestroyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 // Create creates a vsphere_virtual_machine disk sub-resource.
 func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	var spec []types.BaseVirtualDeviceConfigSpec
-	var ctlr types.BaseVirtualController
-	ctlr, cspec, err := r.ControllerForCreateUpdate(l, r.Get("controller_type").(string))
-	if err != nil {
-		return nil, err
-	}
-	if len(cspec) > 0 {
-		l = append(l, cspec[0].GetVirtualDeviceConfigSpec().Device)
-		spec = append(spec, cspec...)
-	}
 
-	// We now have the controller on which we can create our device on.
-	dsID := r.Get("datastore_id").(string)
-	if dsID == "" {
-		// Default to the default datastore
-		dsID = r.data.Get("datastore_id").(string)
-	}
-	ds, err := datastore.FromID(r.client, dsID)
+	disk, err := r.createDisk(l)
 	if err != nil {
-		return nil, fmt.Errorf("could not locate datastore: %s", err)
+		return nil, fmt.Errorf("error creating disk: %s", err)
 	}
-	disk := l.CreateDisk(ctlr, ds.Reference(), "")
-	// We need to set the backing path manually as CreateDisk currently breaks
-	// FileNames with just datastores in them.
-	disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).FileName = ds.Path(r.Get("path").(string))
-	// Set a new device key for this device as CreateDisk does not do it for us
-	// right now.
-	disk.Key = l.NewKey()
-	// Ensure the device starts connected
-	l.Connect(disk)
+	// We now have the controller on which we can create our device on.
+	// Assign the disk to a controller.
+	ctlr, err := r.assignDisk(l, disk)
+	if err != nil {
+		return nil, fmt.Errorf("cannot assign disk: %s", err)
+	}
 
 	if err := r.expandDiskSettings(disk); err != nil {
 		return nil, err
 	}
 
 	// Done here. Save ID, push the device to the new device list and return.
-	r.SaveID(disk, ctlr)
+	r.SaveDevIDs(disk, ctlr)
 	dspec, err := object.VirtualDeviceList{disk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
 	if err != nil {
 		return nil, err
@@ -266,8 +239,13 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	}
 	disk, ok := device.(*types.VirtualDisk)
 	if !ok {
-		return fmt.Errorf("device at %q is not a virtual disk", r.ID())
+		return fmt.Errorf("device at %q is not a virtual disk", l.Name(device))
 	}
+	unit, err := r.findUnitNumber(l, disk)
+	if err != nil {
+		return err
+	}
+	r.Set("unit_number", unit)
 	// Is this disk not managed by Terraform? If not, we want to flag
 	// keep_on_remove, just to make sure that that we don't blow this disk away
 	// when we remove it on the next TF run.
@@ -285,44 +263,16 @@ func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtua
 	}
 	disk, ok := device.(*types.VirtualDisk)
 	if !ok {
-		return nil, fmt.Errorf("device at %q is not a virtual disk", r.ID())
+		return nil, fmt.Errorf("device at %q is not a virtual disk", l.Name(device))
 	}
 
-	// We maintain the final update spec in place, versus just the simple device
-	// list, as we are possibly creating controllers here.
-	var spec []types.BaseVirtualDeviceConfigSpec
-
-	// There's 2 main update operations:
-	//
-	// * Controller modification: A modification where we are changing the
-	// controller type (ie: IDE to SCSI, different SCSI device type)
-	// * Everything else, really.
-	//
-	// The former requires us to essentially detach this disk from one controller
-	// and attach it to another. This is still just an edit operation, but it's
-	// still a little more complex than just expanding the options into the disk
-	// device.
-	if r.HasChange("controller_type") {
-		var ctlr types.BaseVirtualController
-		ctlr, cspec, err := r.ControllerForCreateUpdate(l, r.Get("controller_type").(string))
+	// Has the unit number changed?
+	if r.HasChange("unit_number") {
+		ctlr, err := r.assignDisk(l, disk)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("cannot assign disk: %s", err)
 		}
-		if len(cspec) > 0 {
-			// VirtaulDeviceList.ConfigSpec never returns anything else other than
-			// VirtualDeviceConfigSpec at this point, so it's safe to assert here.
-			l = append(l, cspec[0].(*types.VirtualDeviceConfigSpec).Device)
-			spec = append(spec, cspec...)
-		}
-		// This operation also requires a restart, so flag that now.
-		r.SetRestart()
-		// Finally, our device needs a new ID (not key, but the internal ID we use
-		// to track things in lieu of keys). This ultimately means that the new
-		// resource data that comes out of this function should be either be set
-		// post-update operation (in the parent resource), or set with partial mode
-		// on, which should be turned off when the update operation is successful
-		// (probably pretty much right after ReconfigureVM_Task).
-		r.SaveID(disk, ctlr)
+		r.SaveDevIDs(disk, ctlr)
 	}
 
 	// We can now expand the rest of the settings.
@@ -334,8 +284,7 @@ func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtua
 	if err != nil {
 		return nil, err
 	}
-	spec = append(spec, dspec...)
-	return spec, nil
+	return dspec, nil
 }
 
 // Delete deletes a vsphere_virtual_machine disk sub-resource.
@@ -346,7 +295,7 @@ func (r *DiskSubresource) Delete(l object.VirtualDeviceList) ([]types.BaseVirtua
 	}
 	disk, ok := device.(*types.VirtualDisk)
 	if !ok {
-		return nil, fmt.Errorf("device at %q is not a virtual disk", r.ID())
+		return nil, fmt.Errorf("device at %q is not a virtual disk", l.Name(device))
 	}
 	deleteSpec, err := object.VirtualDeviceList{disk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationRemove)
 	if err != nil {
@@ -438,4 +387,98 @@ func (r *DiskSubresource) flattenDiskSettings(disk *types.VirtualDisk) error {
 	// Device key
 	r.Set("key", disk.Key)
 	return nil
+}
+
+// createDisk performs all of the logic for a base virtual disk creation.
+func (r *DiskSubresource) createDisk(l object.VirtualDeviceList) (*types.VirtualDisk, error) {
+	dsID := r.Get("datastore_id").(string)
+	if dsID == "" {
+		// Default to the default datastore
+		dsID = r.data.Get("datastore_id").(string)
+	}
+	ds, err := datastore.FromID(r.client, dsID)
+	if err != nil {
+		return nil, err
+	}
+	dsref := ds.Reference()
+
+	disk := &types.VirtualDisk{
+		VirtualDevice: types.VirtualDevice{
+			Backing: &types.VirtualDiskFlatVer2BackingInfo{
+				VirtualDeviceFileBackingInfo: types.VirtualDeviceFileBackingInfo{
+					FileName:  ds.Path(r.Get("path").(string)),
+					Datastore: &dsref,
+				},
+			},
+		},
+	}
+	// Set a new device key for this device
+	disk.Key = l.NewKey()
+	return disk, nil
+}
+
+// assignDisk takes a unit number and assigns it correctly to a controller on
+// the SCSI bus. An error is returned if the assigned unit number is taken.
+func (r *DiskSubresource) assignDisk(l object.VirtualDeviceList, disk *types.VirtualDisk) (types.BaseVirtualController, error) {
+	number := r.Get("unit_number").(int)
+	// Figure out the bus number, and look up the SCSI controller that matches
+	// that. You can attach 15 disks to a SCSI controller, and we allow a maximum
+	// of 30 devices.
+	bus := number / 15
+	// Also determine the unit number on that controller.
+	unit := int32(math.Mod(float64(number), 15))
+
+	// Find the controller.
+	ctlr, err := r.ControllerForCreateUpdate(l, SubresourceControllerTypeSCSI, bus)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build the unit list.
+	units := make([]bool, 16)
+	// Reserve the SCSI unit number
+	scsiUnit := ctlr.(types.BaseVirtualSCSIController).GetVirtualSCSIController().ScsiCtlrUnitNumber
+	units[scsiUnit] = true
+
+	ckey := ctlr.GetVirtualController().Key
+
+	for _, device := range l {
+		d := device.GetVirtualDevice()
+		if d.ControllerKey != ckey || d.UnitNumber == nil {
+			continue
+		}
+		units[*d.UnitNumber] = true
+	}
+
+	// We now have a valid list of units. If we need to, shift up the desired
+	// unit number so it's not taking the unit of the controller itself.
+	if unit >= scsiUnit {
+		unit++
+	}
+
+	if units[unit] {
+		return nil, fmt.Errorf("unit number %d on SCSI bus %d is in use", unit, bus)
+	}
+
+	// If we made it this far, we are good to go!
+	disk.ControllerKey = ctlr.GetVirtualController().Key
+	disk.UnitNumber = &unit
+	return ctlr, nil
+}
+
+// findUnitNumber determines the normalized unit number for the disk device
+// based on the SCSI controller and unit number it's connected to.
+func (r *Subresource) findUnitNumber(l object.VirtualDeviceList, disk *types.VirtualDisk) (int, error) {
+	ctlr := l.FindByKey(disk.ControllerKey)
+	if ctlr == nil {
+		return -1, fmt.Errorf("could not find disk controller with key %d for disk key %d", disk.ControllerKey, disk.Key)
+	}
+	if disk.UnitNumber == nil {
+		return -1, fmt.Errorf("unit number on disk key %d is unset", disk.Key)
+	}
+	unit := *disk.UnitNumber
+	if unit > ctlr.(types.BaseVirtualSCSIController).GetVirtualSCSIController().ScsiCtlrUnitNumber {
+		unit--
+	}
+	return int(unit), nil
 }

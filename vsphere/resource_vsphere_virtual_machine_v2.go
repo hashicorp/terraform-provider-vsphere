@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -60,46 +61,37 @@ func resourceVSphereVirtualMachineV2() *schema.Resource {
 			Default:     true,
 			Description: "Set to true to force power-off a virtual machine if a graceful guest shutdown failed for a necessary operation.",
 		},
+		"scsi_type": {
+			Type:         schema.TypeString,
+			Optional:     true,
+			Description:  "The type of SCSI bus this virtual machine will have. Can be one of lsilogic-sas or pvscsi.",
+			ValidateFunc: validation.StringInSlice(virtualdevice.SCSIBusTypeAllowedValues, false),
+		},
 		"disk": {
 			Type:        schema.TypeSet,
 			Required:    true,
 			Description: "A specification for a virtual disk device on this virtual machine.",
-			Set:         virtualdevice.SubresourceHashFunc,
-			Elem:        &schema.Resource{Schema: virtualdevice.NewDiskSubresource(nil, 0, nil).Schema()},
+			MaxItems:    30,
+			Elem:        &schema.Resource{Schema: virtualdevice.NewDiskSubresource(nil, 0, 0, nil).Schema()},
 		},
 		"network_interface": {
-			Type:        schema.TypeSet,
+			Type:        schema.TypeList,
 			Required:    true,
 			Description: "A specification for a virtual NIC on this virtual machine.",
-			Set:         virtualdevice.SubresourceHashFunc,
-			Elem:        &schema.Resource{Schema: virtualdevice.NewNetworkInterfaceSubresource(nil, 0, nil).Schema()},
+			MaxItems:    10,
+			Elem:        &schema.Resource{Schema: virtualdevice.NewNetworkInterfaceSubresource(nil, 0, 0, nil).Schema()},
 		},
 		"cdrom": {
-			Type:        schema.TypeSet,
+			Type:        schema.TypeList,
 			Optional:    true,
 			Description: "A specification for a CDROM device on this virtual machine.",
-			Set:         virtualdevice.SubresourceHashFunc,
-			Elem:        &schema.Resource{Schema: virtualdevice.NewCdromSubresource(nil, 0, nil).Schema()},
+			MaxItems:    1,
+			Elem:        &schema.Resource{Schema: virtualdevice.NewCdromSubresource(nil, 0, 0, nil).Schema()},
 		},
 		"reboot_required": {
 			Type:        schema.TypeBool,
 			Computed:    true,
 			Description: "Value internal to Terraform used to determine if a configuration set change requires a reboot.",
-		},
-		"disk_internal_ids": {
-			Type:        schema.TypeMap,
-			Computed:    true,
-			Description: "A computed set of disk device IDs that Terraform is keeping track of.",
-		},
-		"network_interface_internal_ids": {
-			Type:        schema.TypeMap,
-			Computed:    true,
-			Description: "A computed set of network_interface device IDs that Terraform is keeping track of.",
-		},
-		"cdrom_internal_ids": {
-			Type:        schema.TypeMap,
-			Computed:    true,
-			Description: "A computed set of cdrom device IDs that Terraform is keeping track of.",
 		},
 		vSphereTagAttributeKey: tagsSchema(),
 	}
@@ -243,6 +235,8 @@ func resourceVSphereVirtualMachineV2Read(d *schema.ResourceData, meta interface{
 
 	// Perform pending device read operations.
 	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
+	// Read the state of the SCSI bus.
+	d.Set("scsi_type", virtualdevice.ReadSCSIBusState(devices))
 	// Disks first
 	if err := virtualdevice.DiskRefreshOperation(d, client, devices); err != nil {
 		return err
@@ -402,7 +396,14 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 	// deviceChange attribute.
 	var spec, delta []types.BaseVirtualDeviceConfigSpec
 	var err error
-	// Disks first
+	// First check the state of our SCSI bus. Normalize it if we need to.
+	log.Printf("[DEBUG] normalizing SCSI bus")
+	l, delta, err = virtualdevice.NormalizeSCSIBus(l, d.Get("scsi_type").(string))
+	if err != nil {
+		return nil, err
+	}
+	spec = append(spec, delta...)
+	// Disks
 	l, delta, err = virtualdevice.DiskApplyOperation(d, c, l)
 	if err != nil {
 		return nil, err

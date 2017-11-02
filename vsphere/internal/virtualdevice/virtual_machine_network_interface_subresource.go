@@ -2,7 +2,6 @@ package virtualdevice
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -91,11 +90,6 @@ func networkInterfaceSubresourceSchema() map[string]*schema.Schema {
 			Computed:    true,
 			Description: "The MAC address of this network interface. Can be manually set if use_static_mac is true.",
 		},
-		"key": {
-			Type:        schema.TypeInt,
-			Computed:    true,
-			Description: "The unique device ID for this device within the virtual machine configuration.",
-		},
 	}
 }
 
@@ -107,14 +101,15 @@ type NetworkInterfaceSubresource struct {
 
 // NewNetworkInterfaceSubresource returns a network_interface subresource
 // populated with all of the necessary fields.
-func NewNetworkInterfaceSubresource(client *govmomi.Client, index int, d *schema.ResourceData) SubresourceInstance {
+func NewNetworkInterfaceSubresource(client *govmomi.Client, index, oldindex int, d *schema.ResourceData) SubresourceInstance {
 	sr := &NetworkInterfaceSubresource{
 		Subresource: &Subresource{
-			schema: networkInterfaceSubresourceSchema(),
-			client: client,
-			srtype: subresourceTypeNetworkInterface,
-			index:  index,
-			data:   d,
+			schema:   networkInterfaceSubresourceSchema(),
+			client:   client,
+			srtype:   subresourceTypeNetworkInterface,
+			index:    index,
+			oldindex: oldindex,
+			data:     d,
 		},
 	}
 	return sr
@@ -185,15 +180,9 @@ func baseVirtualDeviceToBaseVirtualEthernetCard(v types.BaseVirtualDevice) (type
 // Create creates a vsphere_virtual_machine network_interface sub-resource.
 func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	var spec []types.BaseVirtualDeviceConfigSpec
-	ctlr, cspec, err := r.ControllerForCreateUpdate(l, SubresourceControllerTypePCI)
+	ctlr, err := r.ControllerForCreateUpdate(l, SubresourceControllerTypePCI, 0)
 	if err != nil {
 		return nil, err
-	}
-	if len(cspec) > 0 {
-		// We don't support adding new PCI devices right now, but this is here just
-		// in case, and for consistency with other resources.
-		l = append(l, cspec[0].GetVirtualDeviceConfigSpec().Device)
-		spec = append(spec, cspec...)
 	}
 
 	// govmomi has helpers that allow the easy fetching of a network's backing
@@ -219,7 +208,7 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 	// only one PCI device per virtual machine and their tools don't really care
 	// about state. Terraform does though, so we need to not only set but also
 	// track that stuff.
-	if err := assignEthernetCard(l, device, ctlr); err != nil {
+	if err := r.assignEthernetCard(l, device, ctlr); err != nil {
 		return nil, err
 	}
 	// Ensure the device starts connected
@@ -245,7 +234,7 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 	card.ResourceAllocation = alloc
 
 	// Done here. Save ID, push the device to the new device list and return.
-	r.SaveID(device, ctlr)
+	r.SaveDevIDs(device, ctlr)
 	dspec, err := object.VirtualDeviceList{device}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
 	if err != nil {
 		return nil, err
@@ -448,7 +437,7 @@ func (r *NetworkInterfaceSubresource) Delete(l object.VirtualDeviceList) ([]type
 // right now but with an unit offset of 7. This is based on what we have
 // observed on vSphere in terms of reserved PCI unit numbers (the first NIC
 // automatically gets re-assigned to unit number 7 if it's not that already.)
-func assignEthernetCard(l object.VirtualDeviceList, device types.BaseVirtualDevice, c types.BaseVirtualController) error {
+func (r *NetworkInterfaceSubresource) assignEthernetCard(l object.VirtualDeviceList, device types.BaseVirtualDevice, c types.BaseVirtualController) error {
 	// The PCI device offset. This seems to be where vSphere starts assigning
 	// virtual NICs on the PCI controller.
 	pciDeviceOffset := int32(7)
@@ -470,15 +459,9 @@ func assignEthernetCard(l object.VirtualDeviceList, device types.BaseVirtualDevi
 	}
 
 	// Now that we know which units are used, we can pick one
-	newUnit := int32(-1)
-	for unit, used := range units {
-		if !used {
-			newUnit = int32(unit) + pciDeviceOffset
-			break
-		}
-	}
-	if newUnit < 0 {
-		return errors.New("there are no more available slots on the PCI bus")
+	newUnit := int32(r.index) + pciDeviceOffset
+	if units[newUnit] {
+		return fmt.Errorf("device unit at %d is currently in use on the PCI bus", newUnit)
 	}
 
 	d := device.GetVirtualDevice()

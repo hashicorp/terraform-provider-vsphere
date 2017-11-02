@@ -24,12 +24,6 @@ func cdromSubresourceSchema() map[string]*schema.Schema {
 			Required:    true,
 			Description: "The path to the ISO file on the datastore.",
 		},
-
-		"key": {
-			Type:        schema.TypeInt,
-			Computed:    true,
-			Description: "The unique device ID for this device within the virtual machine configuration.",
-		},
 	}
 }
 
@@ -41,14 +35,15 @@ type CdromSubresource struct {
 
 // NewCdromSubresource returns a subresource populated with all of the necessary
 // fields.
-func NewCdromSubresource(client *govmomi.Client, index int, d *schema.ResourceData) SubresourceInstance {
+func NewCdromSubresource(client *govmomi.Client, index, oldindex int, d *schema.ResourceData) SubresourceInstance {
 	sr := &CdromSubresource{
 		Subresource: &Subresource{
-			schema: cdromSubresourceSchema(),
-			client: client,
-			srtype: subresourceTypeCdrom,
-			index:  index,
-			data:   d,
+			schema:   cdromSubresourceSchema(),
+			client:   client,
+			srtype:   subresourceTypeCdrom,
+			index:    index,
+			oldindex: oldindex,
+			data:     d,
 		},
 	}
 	return sr
@@ -79,13 +74,9 @@ func CdromRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.V
 func (r *CdromSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	var spec []types.BaseVirtualDeviceConfigSpec
 	var ctlr types.BaseVirtualController
-	ctlr, cspec, err := r.ControllerForCreateUpdate(l, SubresourceControllerTypeIDE)
+	ctlr, err := r.ControllerForCreateUpdate(l, SubresourceControllerTypeIDE, 0)
 	if err != nil {
 		return nil, err
-	}
-	if len(cspec) > 0 {
-		l = append(l, cspec[0].GetVirtualDeviceConfigSpec().Device)
-		spec = append(spec, cspec...)
 	}
 
 	// We now have the controller on which we can create our device on.
@@ -112,8 +103,8 @@ func (r *CdromSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtu
 	}
 	device = l.InsertIso(device, dsPath.String())
 
-	// Done here. Save ID, push the device to the new device list and return.
-	r.SaveID(device, ctlr)
+	// Done here. Save IDs, push the device to the new device list and return.
+	r.SaveDevIDs(device, ctlr)
 	dspec, err := object.VirtualDeviceList{device}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
 	if err != nil {
 		return nil, err
@@ -131,7 +122,7 @@ func (r *CdromSubresource) Read(l object.VirtualDeviceList) error {
 	}
 	device, ok := d.(*types.VirtualCdrom)
 	if !ok {
-		return fmt.Errorf("device at %q is not a virtual CDROM device", r.ID())
+		return fmt.Errorf("device at %q is not a virtual CDROM device", l.Name(d))
 	}
 	backing := device.Backing.(*types.VirtualCdromIsoBackingInfo)
 	dp := &object.DatastorePath{}
@@ -151,7 +142,7 @@ func (r *CdromSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtu
 	}
 	device, ok := d.(*types.VirtualCdrom)
 	if !ok {
-		return nil, fmt.Errorf("device at %q is not a virtual CDROM device", r.ID())
+		return nil, fmt.Errorf("device at %q is not a virtual CDROM device", l.Name(d))
 	}
 
 	// To update, we just re-insert the ISO as per create, and send it as an edit.
@@ -190,7 +181,7 @@ func (r *CdromSubresource) Delete(l object.VirtualDeviceList) ([]types.BaseVirtu
 	}
 	device, ok := d.(*types.VirtualCdrom)
 	if !ok {
-		return nil, fmt.Errorf("device at %q is not a virtual CDROM device", r.ID())
+		return nil, fmt.Errorf("device at %q is not a virtual CDROM device", l.Name(d))
 	}
 	deleteSpec, err := object.VirtualDeviceList{device}.ConfigSpec(types.VirtualDeviceConfigSpecOperationRemove)
 	if err != nil {
