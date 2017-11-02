@@ -125,7 +125,17 @@ func testGetPortGroup(s *terraform.State, resourceName string) (*types.HostPortG
 // testGetVirtualMachine is a convenience method to fetch a virtual machine by
 // resource name.
 func testGetVirtualMachine(s *terraform.State, resourceName string) (*object.VirtualMachine, error) {
-	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_virtual_machine.%s", resourceName))
+	// To help facilitate testing and remove helper code duplication while we are
+	// are refactoring, we check to see if we have a v2 resource at the specified
+	// address first, before checking for a v1 resource.
+	//
+	// TODO: Remove this selector after we are done with the refactor of the VM
+	// resource.
+	addr := fmt.Sprintf("vsphere_virtual_machine_v2.%s", resourceName)
+	if _, ok := s.RootModule().Resources[addr]; !ok {
+		addr = fmt.Sprintf("vsphere_virtual_machine.%s", resourceName)
+	}
+	tVars, err := testClientVariablesForResource(s, addr)
 	if err != nil {
 		return nil, err
 	}
@@ -134,19 +144,6 @@ func testGetVirtualMachine(s *terraform.State, resourceName string) (*object.Vir
 		return nil, fmt.Errorf("resource %q has no UUID", resourceName)
 	}
 	return virtualmachine.FromUUID(tVars.client, uuid)
-}
-
-// testGetVirtualMachineV2 is a convenience method to fetch a virtual machine by
-// resource name.
-//
-// TODO: Remove this and roll the switch of UUID from an attribute to actual resource ID.
-func testGetVirtualMachineV2(s *terraform.State, resourceName string) (*object.VirtualMachine, error) {
-	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_virtual_machine_v2.%s", resourceName))
-	if err != nil {
-		return nil, err
-	}
-
-	return virtualmachine.FromUUID(tVars.client, tVars.resourceID)
 }
 
 // testGetVirtualMachineProperties is a convenience method that adds an extra

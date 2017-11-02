@@ -78,9 +78,9 @@ func buildAndSelectGuestIPs(d *schema.ResourceData, guest types.GuestInfo) error
 	addrs = append(addrs, v6addrs...)
 	if len(addrs) < 1 {
 		// No IP addresses were discovered. This more than likely means that the VM
-		// is powered off, or VMware tools is not installed. Don't set anything, or
-		// try to do anything else.
-		return nil
+		// is powered off, or VMware tools is not installed. We can return here,
+		// setting the empty set of addresses to avoid spurious diffs.
+		return d.Set("guest_ip_addresses", addrs)
 	}
 	var primary string
 	switch {

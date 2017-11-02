@@ -237,6 +237,11 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Computed:    true,
 			Description: "A unique identifier for a given version of the last configuration applied, such the timestamp of the last update to the configuration.",
 		},
+		"uuid": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The UUID of the virtual machine. Also exposed as the ID of the resource.",
+		},
 	}
 	structure.MergeSchema(s, schemaVirtualMachineResourceAllocation())
 	return s
@@ -597,6 +602,7 @@ func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualM
 	d.Set("nested_hv_enabled", obj.NestedHVEnabled)
 	d.Set("cpu_performance_counters_enabled", obj.VPMCEnabled)
 	d.Set("change_version", obj.ChangeVersion)
+	d.Set("uuid", obj.Uuid)
 
 	if err := flattenToolsConfigInfo(d, obj.Tools); err != nil {
 		return err

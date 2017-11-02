@@ -70,6 +70,7 @@ func diskSubresourceSchema() map[string]*schema.Schema {
 		"thin_provisioned": {
 			Type:        schema.TypeBool,
 			Optional:    true,
+			Default:     true,
 			Description: "If true, this disk is thin provisioned, with space for the file being allocated on an as-needed basis.",
 		},
 		"write_through": {
@@ -232,8 +233,10 @@ func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtua
 	if err != nil {
 		return nil, fmt.Errorf("could not locate datastore: %s", err)
 	}
-	path := ds.Path(r.Get("path").(string))
-	disk := l.CreateDisk(ctlr, ds.Reference(), path)
+	disk := l.CreateDisk(ctlr, ds.Reference(), "")
+	// We need to set the backing path manually as CreateDisk currently breaks
+	// FileNames with just datastores in them.
+	disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).FileName = ds.Path(r.Get("path").(string))
 	// Set a new device key for this device as CreateDisk does not do it for us
 	// right now.
 	disk.Key = l.NewKey()
@@ -377,11 +380,6 @@ func (r *DiskSubresource) expandDiskSettings(disk *types.VirtualDisk) error {
 		return err
 	}
 	b.EagerlyScrub = structure.BoolPtr(v.(bool))
-
-	if v, err = r.GetWithVeto("path"); err != nil {
-		return err
-	}
-	b.FileName = v.(string)
 
 	// Disk settings
 	os, ns := r.GetChange("size")

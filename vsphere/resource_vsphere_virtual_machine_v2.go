@@ -218,6 +218,9 @@ func resourceVSphereVirtualMachineV2Read(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return fmt.Errorf("error fetching VM properties: %s", err)
 	}
+	// Reset reboot_required. This is an update only variable and should not be
+	// set across TF runs.
+	d.Set("reboot_required", false)
 	// Resource pool
 	if vprops.ResourcePool != nil {
 		d.Set("resource_pool_id", vprops.ResourcePool.Value)
@@ -334,7 +337,7 @@ func resourceVSphereVirtualMachineV2Update(d *schema.ResourceData, meta interfac
 	if err := virtualmachine.Reconfigure(vm, *spec); err != nil {
 		return fmt.Errorf("error reconfiguring virtual machine: %s", err)
 	}
-	// Now safe to turn off partial mode
+	// Now safe to turn off partial mode.
 	d.Partial(false)
 	// Re-fetch properties
 	vprops, err = virtualmachine.Properties(vm)

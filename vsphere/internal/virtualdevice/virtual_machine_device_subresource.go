@@ -281,7 +281,11 @@ func (r *Subresource) GetChange(key string) (interface{}, interface{}) {
 // value, and sets restart if it has changed.
 func (r *Subresource) GetWithRestart(key string) interface{} {
 	if r.HasChange(key) {
-		r.SetRestart()
+		// VMware supports hot-add of virtual devices, so if this is a new
+		// sub-resource, don't worry about rebooting.
+		if r.Get("internal_id") != "" {
+			r.SetRestart()
+		}
 	}
 	return r.Get(key)
 }
@@ -291,7 +295,7 @@ func (r *Subresource) GetWithRestart(key string) interface{} {
 // fashion that would otherwise result in forcing a new resource.
 func (r *Subresource) GetWithVeto(key string) (interface{}, error) {
 	if r.HasChange(key) {
-		// only veto updates, if internal_id is not set yet, this is a create
+		// Only veto updates, if internal_id is not set yet, this is a create
 		// operation and should be allowed to go through.
 		if r.Get("internal_id") != "" {
 			return r.Get(key), fmt.Errorf("cannot change the value of %q - must delete and re-create device", key)
@@ -504,9 +508,20 @@ func (r *Subresource) ControllerForCreateUpdate(l object.VirtualDeviceList, ct s
 	// device set so that its device key is accounted for, in addition to the
 	// list of new devices that we are returning as part of the device creation,
 	// so that they can be added to the ConfigSpec properly.
+	//
+	// New controllers will have a negative device key and will *not* be in our
+	// current device list. The former is more important to vSphere, but the
+	// latter means we have already added a deviceChange spec for the controller
+	// more than likely.
 	var dl object.VirtualDeviceList
 	var cs []types.BaseVirtualDeviceConfigSpec
-	if ctlr.GetVirtualController().Key < 0 {
+	var inl bool
+	for _, d := range l {
+		if d.GetVirtualDevice().Key == ctlr.GetVirtualController().Key {
+			inl = true
+		}
+	}
+	if ctlr.GetVirtualController().Key < 0 && !inl {
 		switch ct := ctlr.(type) {
 		case *types.VirtualIDEController:
 			dl = append(dl, ct)
@@ -612,7 +627,7 @@ func deviceApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 		if err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
 		}
-		applyDeviceChange(l, dspec)
+		l = applyDeviceChange(l, dspec)
 		spec = append(spec, dspec...)
 		// Delete the item from the registry if it exists.
 		idx := strconv.Itoa(m["index"].(int))
@@ -627,7 +642,7 @@ func deviceApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 		if err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
 		}
-		applyDeviceChange(l, cspec)
+		l = applyDeviceChange(l, cspec)
 		spec = append(spec, cspec...)
 		// Add the item to the registry with its ID, which will have been set as
 		// part of the create process.
@@ -645,7 +660,7 @@ func deviceApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 			if err != nil {
 				return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
 			}
-			applyDeviceChange(l, uspec)
+			l = applyDeviceChange(l, uspec)
 			spec = append(spec, uspec...)
 			// The ID may have changed as part of this process, so save the ID just
 			// in case.

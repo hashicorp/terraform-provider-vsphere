@@ -14,6 +14,7 @@ import (
 
 // A list of known event IDs that we use for querying events.
 const (
+	eventTypeVmPoweredOffEvent      = "VmPoweredOffEvent"
 	eventTypeCustomizationSucceeded = "CustomizationSucceeded"
 )
 
