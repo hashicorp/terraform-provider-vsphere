@@ -64,6 +64,7 @@ func resourceVSphereVirtualMachineV2() *schema.Resource {
 		"scsi_type": {
 			Type:         schema.TypeString,
 			Optional:     true,
+			Default:      virtualdevice.SubresourceControllerTypeLsiLogicSAS,
 			Description:  "The type of SCSI bus this virtual machine will have. Can be one of lsilogic-sas or pvscsi.",
 			ValidateFunc: validation.StringInSlice(virtualdevice.SCSIBusTypeAllowedValues, false),
 		},
@@ -72,21 +73,21 @@ func resourceVSphereVirtualMachineV2() *schema.Resource {
 			Required:    true,
 			Description: "A specification for a virtual disk device on this virtual machine.",
 			MaxItems:    30,
-			Elem:        &schema.Resource{Schema: virtualdevice.NewDiskSubresource(nil, 0, 0, nil).Schema()},
+			Elem:        &schema.Resource{Schema: virtualdevice.DiskSubresourceSchema()},
 		},
 		"network_interface": {
 			Type:        schema.TypeList,
 			Required:    true,
 			Description: "A specification for a virtual NIC on this virtual machine.",
 			MaxItems:    10,
-			Elem:        &schema.Resource{Schema: virtualdevice.NewNetworkInterfaceSubresource(nil, 0, 0, nil).Schema()},
+			Elem:        &schema.Resource{Schema: virtualdevice.NetworkInterfaceSubresourceSchema()},
 		},
 		"cdrom": {
 			Type:        schema.TypeList,
 			Optional:    true,
 			Description: "A specification for a CDROM device on this virtual machine.",
 			MaxItems:    1,
-			Elem:        &schema.Resource{Schema: virtualdevice.NewCdromSubresource(nil, 0, 0, nil).Schema()},
+			Elem:        &schema.Resource{Schema: virtualdevice.CdromSubresourceSchema()},
 		},
 		"reboot_required": {
 			Type:        schema.TypeBool,

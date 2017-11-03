@@ -3,6 +3,7 @@ package virtualdevice
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -33,8 +34,8 @@ var networkInterfaceSubresourceMACAddressTypeAllowedValues = []string{
 
 // NetworkInterfaceSubresourceSchema returns the schema for the disk
 // sub-resource.
-func networkInterfaceSubresourceSchema() map[string]*schema.Schema {
-	return map[string]*schema.Schema{
+func NetworkInterfaceSubresourceSchema() map[string]*schema.Schema {
+	s := map[string]*schema.Schema{
 		// VirtualEthernetCardResourceAllocation
 		"bandwidth_limit": {
 			Type:         schema.TypeInt,
@@ -91,6 +92,8 @@ func networkInterfaceSubresourceSchema() map[string]*schema.Schema {
 			Description: "The MAC address of this network interface. Can be manually set if use_static_mac is true.",
 		},
 	}
+	structure.MergeSchema(s, subresourceSchema())
+	return s
 }
 
 // NetworkInterfaceSubresource represents a vsphere_virtual_machine
@@ -101,17 +104,18 @@ type NetworkInterfaceSubresource struct {
 
 // NewNetworkInterfaceSubresource returns a network_interface subresource
 // populated with all of the necessary fields.
-func NewNetworkInterfaceSubresource(client *govmomi.Client, index, oldindex int, d *schema.ResourceData) SubresourceInstance {
+func NewNetworkInterfaceSubresource(client *govmomi.Client, rd *schema.ResourceData, d, old map[string]interface{}, idx int) *NetworkInterfaceSubresource {
 	sr := &NetworkInterfaceSubresource{
 		Subresource: &Subresource{
-			schema:   networkInterfaceSubresourceSchema(),
-			client:   client,
-			srtype:   subresourceTypeNetworkInterface,
-			index:    index,
-			oldindex: oldindex,
-			data:     d,
+			schema:       NetworkInterfaceSubresourceSchema(),
+			client:       client,
+			srtype:       subresourceTypeNetworkInterface,
+			data:         d,
+			olddata:      old,
+			resourceData: rd,
 		},
 	}
+	sr.Index = idx
 	return sr
 }
 
@@ -124,7 +128,72 @@ func NewNetworkInterfaceSubresource(client *govmomi.Client, index, oldindex int,
 // complete, updated, VirtualDeviceList, and the complete list of changes
 // returned as a slice of BaseVirtualDeviceConfigSpec.
 func NetworkInterfaceApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
-	return deviceApplyOperation(d, c, l, subresourceTypeNetworkInterface, NewNetworkInterfaceSubresource)
+	o, n := d.GetChange(subresourceTypeNetworkInterface)
+	ods := o.([]interface{})
+	nds := n.([]interface{})
+
+	var spec []types.BaseVirtualDeviceConfigSpec
+
+	// Our old and new sets now have an accurate description of devices that may
+	// have been added, removed, or changed. Look for removed devices first.
+nextOld:
+	for n, oe := range ods {
+		om := oe.(map[string]interface{})
+		for _, ne := range nds {
+			nm := ne.(map[string]interface{})
+			if om["key"] == nm["key"] {
+				continue nextOld
+			}
+		}
+		r := NewNetworkInterfaceSubresource(c, d, om, nil, n)
+		dspec, err := r.Delete(l)
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+		}
+		l = applyDeviceChange(l, dspec)
+		spec = append(spec, dspec...)
+	}
+
+	// Now check for creates and updates. The results of this operation are
+	// committed to state after the operation completes.
+	var updates []interface{}
+nextNew:
+	for n, ne := range nds {
+		nm := ne.(map[string]interface{})
+		for _, oe := range ods {
+			om := oe.(map[string]interface{})
+			if nm["key"] == om["key"] {
+				// This is an update
+				if reflect.DeepEqual(nm, om) {
+					// no change is a no-op
+					continue nextNew
+				}
+				r := NewNetworkInterfaceSubresource(c, d, nm, om, n)
+				uspec, err := r.Update(l)
+				if err != nil {
+					return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+				}
+				l = applyDeviceChange(l, uspec)
+				spec = append(spec, uspec...)
+				updates = append(updates, r.Data())
+				continue nextNew
+			}
+		}
+		r := NewNetworkInterfaceSubresource(c, d, nm, nil, n)
+		cspec, err := r.Create(l)
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+		}
+		l = applyDeviceChange(l, cspec)
+		spec = append(spec, cspec...)
+		updates = append(updates, r.Data())
+	}
+
+	// We are now done! Return the updated device list and config spec. Save updates as well.
+	if err := d.Set(subresourceTypeNetworkInterface, updates); err != nil {
+		return nil, nil, err
+	}
+	return l, spec, nil
 }
 
 // NetworkInterfaceRefreshOperation processes a refresh operation for all of
@@ -134,7 +203,87 @@ func NetworkInterfaceApplyOperation(d *schema.ResourceData, c *govmomi.Client, l
 // change is returned, all necessary values are just set and committed to
 // state.
 func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) error {
-	return deviceRefreshOperation(d, c, l, subresourceTypeNetworkInterface, NewNetworkInterfaceSubresource)
+	devices := l.Select(func(device types.BaseVirtualDevice) bool {
+		if _, ok := device.(types.BaseVirtualEthernetCard); ok {
+			return true
+		}
+		return false
+	})
+	curSet := d.Get(subresourceTypeNetworkInterface).([]interface{})
+	var newSet []interface{}
+	// First check for negative keys. These are freshly added devices that are
+	// usually coming into read post-create.
+	//
+	// If we find what we are looking for, we remove the device from the working
+	// set so that we don't try and process it in the next few passes.
+	for n, item := range curSet {
+		m := item.(map[string]interface{})
+		if m["key"].(int) < 1 {
+			r := NewNetworkInterfaceSubresource(c, d, m, nil, n)
+			if err := r.Read(l); err != nil {
+				return fmt.Errorf("%s: %s", r.Addr(), err)
+			}
+			newM := r.Data()
+			if newM["key"].(int) < 1 {
+				// This should not have happened - if it did, our device
+				// creation/update logic failed somehow that we were not able to track.
+				return fmt.Errorf("device %v with address %v still unaccounted for after update/read", newM["key"], newM["device_address"])
+			}
+			newSet = append(newSet, r.Data())
+			for i := 0; i < len(devices); i++ {
+				device := devices[i]
+				if device.GetVirtualDevice().Key == int32(newM["key"].(int)) {
+					devices = append(devices[:i], devices[i+1:]...)
+				}
+			}
+		}
+	}
+
+	// Go over the remaining devices, refresh via key, and then remove their
+	// entries as well.
+	for i := 0; i < len(devices); i++ {
+		device := devices[i]
+		for n, item := range curSet {
+			m := item.(map[string]interface{})
+			if m["key"].(int) < 0 {
+				// Skip any of these keys as we won't be matching any of those anyway here
+				continue
+			}
+			if device.GetVirtualDevice().Key != int32(m["key"].(int)) {
+				// Skip any device that doesn't match key as well
+				continue
+			}
+			// We should have our device -> resource match, so read now.
+			r := NewNetworkInterfaceSubresource(c, d, m, nil, n)
+			if err := r.Read(l); err != nil {
+				return fmt.Errorf("%s: %s", r.Addr(), err)
+			}
+			// Done reading, push this onto our new set and remove the device from
+			// the list
+			newSet = append(newSet, r.Data())
+			devices = append(devices[:i], devices[i+1:]...)
+		}
+	}
+
+	// Finally, any device that is still here is orphaned. They should be added
+	// as new devices.
+	for n, device := range devices {
+		m := make(map[string]interface{})
+		vd := device.GetVirtualDevice()
+		ctlr := l.FindByKey(vd.ControllerKey)
+		if ctlr == nil {
+			return fmt.Errorf("could not find controller with key %d", vd.Key)
+		}
+		m["key"] = int(vd.Key)
+		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		r := NewNetworkInterfaceSubresource(c, d, m, nil, n)
+		if err := r.Read(l); err != nil {
+			return fmt.Errorf("%s: %s", r.Addr(), err)
+		}
+		newSet = append(newSet, r.Data())
+	}
+
+	return d.Set(subresourceTypeNetworkInterface, newSet)
 }
 
 // baseVirtualEthernetCardToBaseVirtualDevice converts a
@@ -311,8 +460,12 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
 		r.Set("bandwidth_share_level", card.ResourceAllocation.Share.Level)
 	}
 
-	// Save the device key
-	r.Set("key", card.Key)
+	// Save the device key and address data
+	ctlr, err := findControllerForDevice(l, vd)
+	if err != nil {
+		return err
+	}
+	r.SaveDevIDs(vd, ctlr)
 	return nil
 }
 
@@ -459,7 +612,7 @@ func (r *NetworkInterfaceSubresource) assignEthernetCard(l object.VirtualDeviceL
 	}
 
 	// Now that we know which units are used, we can pick one
-	newUnit := int32(r.index) + pciDeviceOffset
+	newUnit := int32(r.Index) + pciDeviceOffset
 	if units[newUnit] {
 		return fmt.Errorf("device unit at %d is currently in use on the PCI bus", newUnit)
 	}

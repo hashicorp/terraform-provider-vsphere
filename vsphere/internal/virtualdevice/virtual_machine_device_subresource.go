@@ -136,6 +136,10 @@ func controllerTypeToClass(c types.BaseVirtualController) string {
 // it, much like how a resource creates itself by creating an instance of
 // schema.Resource.
 type Subresource struct {
+	// The index of this subresource - should either be an index or hash. It's up
+	// to the upstream object to set this to something useful.
+	Index int
+
 	// The resource schema. This is an internal field as we build on this field
 	// later on with common keys for all subresources, namely the internal ID.
 	schema map[string]*schema.Schema
@@ -147,20 +151,16 @@ type Subresource struct {
 	// named in the schema, such as "disk" or "network_interface".
 	srtype string
 
-	// The subresource index.
-	index int
+	// The resource data - this should be loaded when the resource is created.
+	data map[string]interface{}
 
-	// The old subresource index in the event of sets - this allows us to give
-	// accurate figures to HasChange and GetChange.
-	oldindex int
+	// The old resource data, if it exists.
+	olddata map[string]interface{}
 
-	// A layer of keys set by this subresource during its apply or refresh run,
-	// used in the event of sets.
-	setdata map[string]interface{}
-
-	// An instance pointing to the entire live resource's ResourceData. We use
-	// the type and index data to extrapolate the sub-resource's data.
-	data *schema.ResourceData
+	// The root-level ResourceData for this resource. This should be used
+	// sparingly. All ResourceData-style calls in this object do not use this
+	// data, save for flagging reboot.
+	resourceData *schema.ResourceData
 }
 
 // subresourceSchema is a map[string]*schema.Schema of common schema fields.
@@ -181,80 +181,26 @@ func subresourceSchema() map[string]*schema.Schema {
 	}
 }
 
-// Schema returns the schema for this subresource. The internal schema is
-// merged with some common keys, which includes the internal_id field which is
-// used as a unique ID for the lifecycle of this resource.
-func (r *Subresource) Schema() map[string]*schema.Schema {
-	s := r.schema
-	structure.MergeSchema(s, subresourceSchema())
-	return s
-}
-
-// Addr returns the address of this specific subresource.
+// Addr returns the resource address for this subresource.
 func (r *Subresource) Addr() string {
-	addr, _ := r.addrs()
-	return addr
-}
-
-func (r *Subresource) addrs() (string, string) {
-	return fmt.Sprintf("%s.%d", r.srtype, r.index), fmt.Sprintf("%s.%d", r.srtype, r.oldindex)
-}
-
-// keyAddrs computes the relative address of this specific subresource in the
-// full ResourceData set.
-func (r *Subresource) keyAddrs(k string) (string, string) {
-	old, new := r.addrs()
-	return fmt.Sprintf("%s.%s", old, k), fmt.Sprintf("%s.%s", new, k)
+	return fmt.Sprintf("%s.%d", r.srtype, r.Index)
 }
 
 // Get hands off to r.data.Get, with an address relative to this subresource.
 func (r *Subresource) Get(key string) interface{} {
-	if r.setdata != nil {
-		if v, ok := r.setdata[key]; ok {
-			return v
-		}
-	}
-	addr, _ := r.keyAddrs(key)
-	return r.data.Get(addr)
+	return r.data[key]
 }
 
 // Set sets the specified key/value pair in the subresource.
-//
-// Only full lists or sets can be set in ResourceData right now - so we can't
-// actually do something like set "disk.10.key" directly. However, to simulate
-// this, we just simply read the set, set the key we need, and then write it
-// back out. This allows us to abstract this away from the consumer.
-//
-// Note that right now this probably only works with primitives in the root
-// of the sub-resource, which is fine as there are no implementations planned
-// that would require nested fields in the sub-resources, however if in the
-// future this changes this will need to be reviewed.
-func (r *Subresource) Set(key string, value interface{}) error {
-	log.Printf("[TRACE] r.Set(): %s.%d.%s: %#v", r.srtype, r.index, key, value)
-	switch s := r.data.Get(r.srtype).(type) {
-	case *schema.Set:
-		log.Printf("[TRACE] r.Set(): %s.%d.%s: Resource is a set, must set in temporary layer", r.srtype, r.index, key)
-		// Dealing with a set here, we need to keep track of this data separate.
-		if r.setdata == nil {
-			r.setdata = make(map[string]interface{})
-		}
-		r.setdata[key] = structure.DeRef(value)
-		return nil
-	case []interface{}:
-		m := s[r.index].(map[string]interface{})
-		m[key] = structure.DeRef(value)
-		err := r.data.Set(r.srtype, s)
-		if err != nil {
-			log.Printf("[DEBUG] Error updating parent subresource set for %s.%d.%s: %s", r.srtype, r.index, key, err)
-		}
-		return err
-	}
-	log.Printf("[DEBUG] %s: invalid sub-resource type", r.srtype)
-	return fmt.Errorf("%s: invalid sub-resource type", r.srtype)
+func (r *Subresource) Set(key string, value interface{}) {
+	r.data[key] = structure.NormalizeValue(value)
 }
 
 // HasChange checks to see if there has been a change in the resource data
 // since the last update.
+//
+// Note that this operation may only be useful during update operations,
+// depending on subresource-specific workflow.
 func (r *Subresource) HasChange(key string) bool {
 	o, n := r.GetChange(key)
 	return !reflect.DeepEqual(o, n)
@@ -262,24 +208,20 @@ func (r *Subresource) HasChange(key string) bool {
 
 // GetChange gets the old and new values for the value specified by key.
 func (r *Subresource) GetChange(key string) (interface{}, interface{}) {
-	oa, na := r.keyAddrs(key)
-	if r.index == r.oldindex {
-		return r.data.GetChange(na)
+	new := r.data[key]
+	// No old data means no change,  so we use the new value as a placeholder.
+	old := r.data[key]
+	if r.olddata != nil {
+		old = r.olddata[key]
 	}
-	od := r.data.Get(oa)
-	nd := r.Get(key)
-	return od, nd
+	return old, new
 }
 
 // GetWithRestart checks to see if a field has been modified, returns the new
 // value, and sets restart if it has changed.
 func (r *Subresource) GetWithRestart(key string) interface{} {
 	if r.HasChange(key) {
-		// VMware supports hot-add of virtual devices, so if this is a new
-		// sub-resource, don't worry about rebooting.
-		if r.Get("device_address") != "" {
-			r.SetRestart()
-		}
+		r.SetRestart()
 	}
 	return r.Get(key)
 }
@@ -289,40 +231,28 @@ func (r *Subresource) GetWithRestart(key string) interface{} {
 // fashion that would otherwise result in forcing a new resource.
 func (r *Subresource) GetWithVeto(key string) (interface{}, error) {
 	if r.HasChange(key) {
-		// Only veto updates, if internal_id is not set yet, this is a create
-		// operation and should be allowed to go through.
-		if r.Get("device_address") != "" {
-			return r.Get(key), fmt.Errorf("cannot change the value of %q - must delete and re-create device", key)
-		}
+		return r.Get(key), fmt.Errorf("cannot change the value of %q - must delete and re-create device", key)
 	}
 	return r.Get(key), nil
 }
 
 // SetRestart sets reboot_required in the global ResourceData.
-func (r *Subresource) SetRestart() error {
-	return r.data.Set("reboot_required", true)
+func (r *Subresource) SetRestart() {
+	r.resourceData.Set("reboot_required", true)
 }
 
-// State returns a map[string]interface{} data object for the subresource,
-// rolling in any data set during the run.
-func (r *Subresource) State() map[string]interface{} {
-	d := r.data.Get(r.srtype)
-	var m map[string]interface{}
-	switch s := d.(type) {
-	case []interface{}:
-		m = s[r.index].(map[string]interface{})
-	case *schema.Set:
-		for _, v := range s.List() {
-			hf := schema.HashResource(&schema.Resource{Schema: r.Schema()})
-			if hf(v) == r.index {
-				m = v.(map[string]interface{})
-				for k, v := range r.setdata {
-					m[k] = v
-				}
-			}
-		}
-	}
-	return m
+// Data returns the underlying data map.
+func (r *Subresource) Data() map[string]interface{} {
+	return r.data
+}
+
+// Hash calculates a set hash for the current data. If you want a hash for
+// error reporting a device address, it's probably a good idea to run this at
+// the beginning of a run as any set calls will change the value this
+// ultimately calculates.
+func (r *Subresource) Hash() int {
+	hf := schema.HashResource(&schema.Resource{Schema: r.schema})
+	return hf(r.data)
 }
 
 // computeDevAddr handles the logic for saveAddr and allows it to be used
@@ -339,15 +269,13 @@ func computeDevAddr(device types.BaseVirtualDevice, ctlr types.BaseVirtualContro
 	return strings.Join(parts, ":")
 }
 
-// SaveDevIDs saves the resource ID of the subresource to device_address. This
-// is a computed schema field that contains the controller type, the
+// SaveDevIDs saves the device's current key, and also the device_address. The
+// latter is a computed schema field that contains the controller type, the
 // controller's bus number, and the device's unit number on that controller.
-//
-// This is an ID internal to Terraform that helps us locate the resource later,
-// as device keys are unfortunately volatile and can only really be relied on
-// for a single operation, as such they are unsuitable for use to check a
-// resource later on.
+// This helps locate the device when the key is in flux (such as when devices
+// are just being created).
 func (r *Subresource) SaveDevIDs(device types.BaseVirtualDevice, ctlr types.BaseVirtualController) {
+	r.Set("key", device.GetVirtualDevice().Key)
 	r.Set("device_address", computeDevAddr(device, ctlr))
 }
 
@@ -390,6 +318,7 @@ func splitDevAddr(id string) (string, int, int, error) {
 // the criteria that we have laid out.
 func findVirtualDeviceInListControllerSelectFunc(ct string, cb int) func(types.BaseVirtualDevice) bool {
 	return func(device types.BaseVirtualDevice) bool {
+		log.Printf("[DEBUG] findVirtualDeviceInListControllerSelectFunc: checking device %#v", device)
 		var ctlr types.BaseVirtualController
 		switch ct {
 		case SubresourceControllerTypeIDE:
@@ -416,6 +345,7 @@ func findVirtualDeviceInListControllerSelectFunc(ct string, cb int) func(types.B
 			return false
 		}
 	controllerFound:
+		log.Printf("[DEBUG] findVirtualDeviceInListControllerSelectFunc: found SCSI controller %#v - bus number %d", ctlr, ctlr.GetVirtualController().BusNumber)
 		vc := ctlr.GetVirtualController()
 		if vc.BusNumber == int32(cb) {
 			return true
@@ -437,9 +367,22 @@ func findVirtualDeviceInListDeviceSelectFunc(ckey int32, du int) func(types.Base
 	}
 }
 
+// findControllerForDevice locates a controller via its virtual device.
+func findControllerForDevice(l object.VirtualDeviceList, bvd types.BaseVirtualDevice) (types.BaseVirtualController, error) {
+	vd := bvd.GetVirtualDevice()
+	ctlr := l.FindByKey(vd.ControllerKey)
+
+	if ctlr == nil {
+		return nil, fmt.Errorf("could not find controller key %d for device %d", vd.ControllerKey, vd.Key)
+	}
+
+	return ctlr.(types.BaseVirtualController), nil
+}
+
 // FindVirtualDeviceByAddr locates the subresource's virtual device in the
 // supplied VirtualDeviceList by its device address.
 func (r *Subresource) FindVirtualDeviceByAddr(l object.VirtualDeviceList) (types.BaseVirtualDevice, error) {
+	log.Printf("[DEBUG] FindVirtualDeviceByAddr: passed in device list: %#v", l)
 	ct, cb, du, err := splitDevAddr(r.DevAddr())
 	if err != nil {
 		return nil, err
@@ -660,244 +603,4 @@ func applyDeviceChange(l object.VirtualDeviceList, cs []types.BaseVirtualDeviceC
 		}
 	}
 	return l
-}
-
-// getDeviceChangeSet returns an old and new set for the device subresource
-// type based on the subresource schema type, as we allow both sets and lists
-// to be subresource types. For sets, the intersection is discarded so that
-// no-ops are not unnecessarily checked.
-func getDeviceChangeSet(d *schema.ResourceData, srtype string) ([]interface{}, []interface{}) {
-	o, n := d.GetChange(srtype)
-	switch n.(type) {
-	case []interface{}:
-		return o.([]interface{}), n.([]interface{})
-	case *schema.Set:
-		// Make an intersection set. Any device in the intersection is a device
-		// that is not changing, so we ignore those.
-		ids := o.(*schema.Set).Intersection(n.(*schema.Set))
-		ods := o.(*schema.Set).Difference(ids)
-		nds := n.(*schema.Set).Difference(ids)
-		return ods.List(), nds.List()
-	}
-	panic(fmt.Errorf("unsupported sub-resource type %T", n))
-}
-
-// indexOrHash either returns the index passed into it, or a set hash,
-// depending on the subresource type schema.
-func indexOrHash(d *schema.ResourceData, srtype string, f newSubresourceFunc, idx int, current, old interface{}) (int, int) {
-	switch d.Get(srtype).(type) {
-	case []interface{}:
-		// Noop pretty much
-		return idx, idx
-	case *schema.Set:
-		hf := schema.HashResource(&schema.Resource{Schema: f(nil, 0, 0, nil).Schema()})
-		ch := hf(current)
-		oh := ch
-		if old != nil {
-			oh = hf(old)
-		}
-		return ch, oh
-	}
-	panic(fmt.Errorf("unsupported sub-resource type %T", d.Get(srtype)))
-}
-
-// deviceApplyOperation processes an apply operation for a specific device
-// class.
-//
-// The function takes the root resource's ResourceData, the provider
-// connection, and the device list as known to vSphere at the start of this
-// operation. All disk operations are carried out, with both the complete,
-// updated, VirtualDeviceList, and the complete list of changes returned as a
-// slice of BaseVirtualDeviceConfigSpec.
-//
-// This is a helper that should be exposed via a higher-level resource type.
-func deviceApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, srtype string, newResourceFunc newSubresourceFunc) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
-	ods, nds := getDeviceChangeSet(d, srtype)
-
-	var spec []types.BaseVirtualDeviceConfigSpec
-
-	// Our old and new sets now have an accurate description of devices that may
-	// have been added, removed, or changed. Look for removed devices first.
-nextOld:
-	for n, oe := range ods {
-		om := oe.(map[string]interface{})
-		for _, ne := range nds {
-			nm := ne.(map[string]interface{})
-			if om["key"] == nm["key"] {
-				continue nextOld
-			}
-		}
-		// The device was not found in the new set, which means this is a destroy.
-		idx, _ := indexOrHash(d, srtype, newResourceFunc, n, om, nil)
-		r := newResourceFunc(c, idx, idx, d)
-		dspec, err := r.Delete(l)
-		if err != nil {
-			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
-		}
-		l = applyDeviceChange(l, dspec)
-		spec = append(spec, dspec...)
-	}
-
-	// Now check for creates and updates.
-	// The results of this operation are committed to state after the operation
-	// completes.
-	var updates []interface{}
-nextNew:
-	for n, ne := range nds {
-		nm := ne.(map[string]interface{})
-		for _, oe := range ods {
-			om := oe.(map[string]interface{})
-			if nm["key"] == om["key"] {
-				// This is an update
-				idx, oidx := indexOrHash(d, srtype, newResourceFunc, n, nm, om)
-				r := newResourceFunc(c, idx, oidx, d)
-				uspec, err := r.Update(l)
-				if err != nil {
-					return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
-				}
-				l = applyDeviceChange(l, uspec)
-				spec = append(spec, uspec...)
-				updates = append(updates, r.State())
-				continue nextNew
-			}
-		}
-		// Device not found in old set, this is a new subresource.
-		idx, _ := indexOrHash(d, srtype, newResourceFunc, n, nm, nil)
-		r := newResourceFunc(c, idx, idx, d)
-		cspec, err := r.Create(l)
-		if err != nil {
-			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
-		}
-		l = applyDeviceChange(l, cspec)
-		spec = append(spec, cspec...)
-		updates = append(updates, r.State())
-	}
-
-	// We are now done! Return the updated device list and config spec. Save updates as well.
-	if err := d.Set(srtype, updates); err != nil {
-		return nil, nil, err
-	}
-	return l, spec, nil
-}
-
-// isVirtualDisk returns true if the type in question is a virtual disk.
-func isVirtualDisk(a interface{}) bool {
-	_, ok := a.(*types.VirtualDisk)
-	return ok
-}
-
-// isNetworkInterface returns true if the type in question is a network
-// interface.
-func isNetworkInterface(a interface{}) bool {
-	return reflect.TypeOf(a).Implements(reflect.TypeOf((*types.BaseVirtualEthernetCard)(nil)).Elem())
-}
-
-// isVirtualCdrom returns true if the type in question is a virtual disk.
-func isVirtualCdrom(a interface{}) bool {
-	_, ok := a.(*types.VirtualCdrom)
-	return ok
-}
-
-// deviceRefreshOperation handles refreshes of device sub-resources. It also
-// gathers any device of a specific class that is not accounted for and creates
-// sub-resource instances for them in state - these will be naturally culled by
-// the next apply operation.
-//
-// As this is purely a read-only operation except for relation to state, only
-// errors are returned.
-func deviceRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, srtype string, newResourceFunc newSubresourceFunc) error {
-	// Go over the device list, looking for devices we support. We use srtype to
-	// determine what kind of type we are looking for.
-	var eligibleDevice func(interface{}) bool
-	switch srtype {
-	case subresourceTypeDisk:
-		eligibleDevice = isVirtualDisk
-	case subresourceTypeNetworkInterface:
-		eligibleDevice = isNetworkInterface
-	case subresourceTypeCdrom:
-		eligibleDevice = isVirtualCdrom
-	default:
-		return fmt.Errorf("invalid subresource type %s. This is bug with Terraform and should be reported", srtype)
-	}
-	devices := l.Select(func(device types.BaseVirtualDevice) bool {
-		if eligibleDevice(device) {
-			return true
-		}
-		return false
-	})
-	curSet, _ := getDeviceChangeSet(d, srtype)
-	var newSet []interface{}
-	// First check for negative keys. These are freshly added devices that are
-	// usually coming into read post-create.
-	for n, item := range curSet {
-		m := item.(map[string]interface{})
-		if m["key"].(int) < 1 {
-			idx, _ := indexOrHash(d, srtype, newResourceFunc, n, m, nil)
-			r := newResourceFunc(c, idx, idx, d)
-			if err := r.Read(l); err != nil {
-				return fmt.Errorf("%s: %s", r.Addr(), err)
-			}
-			newM := r.State()
-			if newM["key"].(int) < 1 {
-				// This should not have happened - if it did, our device
-				// creation/update logic failed somehow that we were not able to track.
-				return fmt.Errorf("device %v with address %v still unaccounted for after update/read", newM["key"], newM["device_address"])
-			}
-			newSet = append(newSet, r.State())
-			for i := 0; i < len(devices); i++ {
-				device := devices[i]
-				if device.GetVirtualDevice().Key == int32(newM["key"].(int)) {
-					devices = append(devices[:i], devices[i+1:]...)
-				}
-			}
-		}
-	}
-
-	// Go over the remaining devices, refresh via key, and then remove their entries as well.
-	for i := 0; i < len(devices); i++ {
-		device := devices[i]
-		for n, item := range curSet {
-			m := item.(map[string]interface{})
-			if m["key"].(int) < 0 {
-				// Skip any of these keys as we won't be matching any of those anyway here
-				continue
-			}
-			if device.GetVirtualDevice().Key != int32(m["key"].(int)) {
-				// Skip any device that doesn't match key as well
-				continue
-			}
-			// We should have our device -> resource match, so read now.
-			idx, _ := indexOrHash(d, srtype, newResourceFunc, n, m, nil)
-			r := newResourceFunc(c, idx, idx, d)
-			if err := r.Read(l); err != nil {
-				return fmt.Errorf("%s: %s", r.Addr(), err)
-			}
-			// Done reading, push this onto our new set and remove the device from the list
-			newSet = append(newSet, r.State())
-			devices = append(devices[:i], devices[i+1:]...)
-		}
-	}
-
-	// Finally, any device that is still here is orphaned. They should be added
-	// as new devices.
-	for n, device := range devices {
-		m := make(map[string]interface{})
-		vd := device.GetVirtualDevice()
-		ctlr := l.FindByKey(vd.ControllerKey)
-		if ctlr == nil {
-			return fmt.Errorf("could not find controller with key %d", vd.Key)
-		}
-		m["key"] = int(vd.Key)
-		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
-		idx, _ := indexOrHash(d, srtype, newResourceFunc, orpahnedDeviceMinIndex+n, m, nil)
-		r := newResourceFunc(c, idx, idx, d)
-		r.Set("key", m["key"])
-		r.Set("device_address", m["device_address"])
-		if err := r.Read(l); err != nil {
-			return fmt.Errorf("%s: %s", r.Addr(), err)
-		}
-		newSet = append(newSet, r.State())
-	}
-
-	return d.Set(srtype, newSet)
 }
