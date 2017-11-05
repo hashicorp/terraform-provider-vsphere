@@ -68,9 +68,14 @@ type hardDisk struct {
 type windowsOptConfig struct {
 	productKey         string
 	adminPassword      string
+	autoLogonEnabled   bool
+	autoLogonCount     int32
 	domainUser         string
 	domain             string
 	domainUserPassword string
+	fullName           string
+	orgName            string
+	runOnce            []string
 }
 
 type cdrom struct {
@@ -301,6 +306,20 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							ForceNew: true,
 						},
 
+						"auto_logon_enabled": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+							Default:  false,
+						},
+
+						"auto_logon_count": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							ForceNew: true,
+							Default:  1,
+						},
+
 						"domain_user": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
@@ -316,6 +335,27 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						"domain_user_password": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
+						},
+
+						"full_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							Default:  "terraform",
+						},
+
+						"org_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							Default:  "terraform",
+						},
+
+						"run_once": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
 							ForceNew: true,
 						},
 					},
@@ -900,6 +940,12 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		if v, ok := custom_configs["admin_password"].(string); ok && v != "" {
 			winOpt.adminPassword = v
 		}
+		if v, ok := custom_configs["auto_logon_enabled"].(bool); ok {
+			winOpt.autoLogonEnabled = v
+		}
+		if v, ok := custom_configs["auto_logon_count"].(int); ok && v != 0 {
+			winOpt.autoLogonCount = int32(v)
+		}
 		if v, ok := custom_configs["domain"].(string); ok && v != "" {
 			winOpt.domain = v
 		}
@@ -911,6 +957,17 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		}
 		if v, ok := custom_configs["domain_user_password"].(string); ok && v != "" {
 			winOpt.domainUserPassword = v
+		}
+		if v, ok := custom_configs["full_name"].(string); ok && v != "" {
+			winOpt.fullName = v
+		}
+		if v, ok := custom_configs["org_name"].(string); ok && v != "" {
+			winOpt.orgName = v
+		}
+		if raw, ok := custom_configs["run_once"]; ok {
+			for _, v := range raw.([]interface{}) {
+				winOpt.runOnce = append(winOpt.runOnce, v.(string))
+			}
 		}
 		vm.windowsOptionalConfig = winOpt
 		log.Printf("[DEBUG] windows config init: %v", winOpt)
@@ -2224,6 +2281,10 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	} else {
 		var identity_options types.BaseCustomizationIdentitySettings
 		if strings.HasPrefix(template_mo.Config.GuestId, "win") {
+			guiRunOnce := &types.CustomizationGuiRunOnce{
+				CommandList: vm.windowsOptionalConfig.runOnce,
+			}
+
 			var timeZone int
 			if vm.timeZone == "Etc/UTC" {
 				vm.timeZone = "085"
@@ -2234,9 +2295,15 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 			}
 
 			guiUnattended := types.CustomizationGuiUnattended{
-				AutoLogon:      false,
-				AutoLogonCount: 1,
+				AutoLogon:      vm.windowsOptionalConfig.autoLogonEnabled,
+				AutoLogonCount: vm.windowsOptionalConfig.autoLogonCount,
 				TimeZone:       int32(timeZone),
+			}
+			if vm.windowsOptionalConfig.autoLogonEnabled == true {
+				guiUnattended.Password = &types.CustomizationPassword{
+					PlainText: true,
+					Value:     vm.windowsOptionalConfig.adminPassword,
+				}
 			}
 
 			customIdentification := types.CustomizationIdentification{}
@@ -2250,8 +2317,8 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 					Name: strings.Split(vm.hostname, ".")[0],
 				},
 				ProductId: vm.windowsOptionalConfig.productKey,
-				FullName:  "terraform",
-				OrgName:   "terraform",
+				FullName:  vm.windowsOptionalConfig.fullName,
+				OrgName:   vm.windowsOptionalConfig.orgName,
 			}
 
 			if vm.windowsOptionalConfig.domainUserPassword != "" && vm.windowsOptionalConfig.domainUser != "" && vm.windowsOptionalConfig.domain != "" {
@@ -2270,10 +2337,19 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 				}
 			}
 
-			identity_options = &types.CustomizationSysprep{
-				GuiUnattended:  guiUnattended,
-				Identification: customIdentification,
-				UserData:       userData,
+			if len(vm.windowsOptionalConfig.runOnce) > 0 {
+				identity_options = &types.CustomizationSysprep{
+					GuiRunOnce:     guiRunOnce,
+					GuiUnattended:  guiUnattended,
+					Identification: customIdentification,
+					UserData:       userData,
+				}
+			} else {
+				identity_options = &types.CustomizationSysprep{
+					GuiUnattended:  guiUnattended,
+					Identification: customIdentification,
+					UserData:       userData,
+				}
 			}
 		} else {
 

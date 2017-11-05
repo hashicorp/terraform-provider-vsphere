@@ -167,11 +167,20 @@ The `windows_opt_config` block supports:
   installed using a volume-licensed CD.
 * `admin_password` - (Optional) The password for the new `administrator`
   account. Omit for passwordless admin (using `""` does not work).
+* `auto_logon_count` - (Optional) The number of times to auto-logon as local
+  administrator, if enabled. Defaults to "1"
+* `auto_logon_enabled` - (Optional) Set to 'true' to make windows auto-logon
+  using the local administrator. Defaults to "false"
 * `domain` - (Optional) Domain that the new machine will be placed into. If
   `domain`, `domain_user`, and `domain_user_password` are not all set, all
   three will be ignored.
 * `domain_user` - (Optional) User that is a member of the specified domain.
 * `domain_user_password` - (Optional) Password for domain user, in plain text.
+* `fullname` - (Optional) Registered owner name for machine. Defaults to
+  "terraform"
+* `org_name` - (Optional) Registered organization name for machine. Defaults
+  to "terraform"
+* `run_once` - (Optional) List of command-line commands to run on first logon.
 
 <a id="disks"></a>
 ## Disks
