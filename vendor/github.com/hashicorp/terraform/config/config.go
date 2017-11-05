@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/helper/hilmapstructure"
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -56,6 +55,8 @@ type AtlasConfig struct {
 type Module struct {
 	Name      string
 	Source    string
+	Version   string
+	Providers map[string]string
 	RawConfig *RawConfig
 }
 
@@ -68,6 +69,15 @@ type ProviderConfig struct {
 	Alias     string
 	Version   string
 	RawConfig *RawConfig
+
+	// Path records where the Provider was declared in a module tree, so that
+	// it can be copied into child module providers yet still interpolated in
+	// the correct scope.
+	Path []string
+
+	// Inherited is used to skip validation of this config, since any
+	// interpolated variables won't be declared at this level.
+	Inherited bool
 }
 
 // A resource represents a single Terraform resource in the configuration.
@@ -566,22 +576,7 @@ func (c *Config) Validate() error {
 			}
 		}
 
-		// Interpolate with a fixed number to verify that its a number.
-		r.RawCount.interpolate(func(root ast.Node) (interface{}, error) {
-			// Execute the node but transform the AST so that it returns
-			// a fixed value of "5" for all interpolations.
-			result, err := hil.Eval(
-				hil.FixedValueTransform(
-					root, &ast.LiteralNode{Value: "5", Typex: ast.TypeString}),
-				nil)
-			if err != nil {
-				return "", err
-			}
-
-			return result.Value, nil
-		})
-		_, err := strconv.ParseInt(r.RawCount.Value().(string), 0, 0)
-		if err != nil {
+		if !r.RawCount.couldBeInteger() {
 			errs = append(errs, fmt.Errorf(
 				"%s: resource count must be an integer",
 				n))
@@ -822,6 +817,10 @@ func (c *Config) rawConfigs() map[string]*RawConfig {
 	}
 
 	for _, pc := range c.ProviderConfigs {
+		// this was an inherited config, so we don't validate it at this level.
+		if pc.Inherited {
+			continue
+		}
 		source := fmt.Sprintf("provider config '%s'", pc.Name)
 		result[source] = pc.RawConfig
 	}

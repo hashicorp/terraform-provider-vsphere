@@ -87,12 +87,8 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
 
-		// Create all the providers
-		&MissingProviderTransformer{Providers: b.Providers, Concrete: concreteProvider},
-		&ProviderTransformer{},
-		&DisableProviderTransformer{},
-		&ParentProviderTransformer{},
-		&AttachProviderConfigTransformer{Module: b.Module},
+		// add providers
+		TransformProviders(b.Providers, concreteProvider, b.Module),
 
 		// Destruction ordering
 		&DestroyEdgeTransformer{Module: b.Module, State: b.State},
@@ -119,6 +115,13 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
+
+		// Reverse the edges to outputs and locals, so that
+		// interpolations don't fail during destroy.
+		GraphTransformIf(
+			func() bool { return b.Destroy },
+			&DestroyValueReferenceTransformer{},
+		),
 
 		// Add the node to fix the state count boundaries
 		&CountBoundaryTransformer{},
