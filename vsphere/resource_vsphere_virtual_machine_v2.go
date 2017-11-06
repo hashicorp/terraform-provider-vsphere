@@ -68,9 +68,14 @@ func resourceVSphereVirtualMachineV2() *schema.Resource {
 			Description:  "The type of SCSI bus this virtual machine will have. Can be one of lsilogic-sas or pvscsi.",
 			ValidateFunc: validation.StringInSlice(virtualdevice.SCSIBusTypeAllowedValues, false),
 		},
+		// NOTE: disk is only optional so that we can flag it as computed and use
+		// it in ResourceDiff. We validate this field in ResourceDiff to enforce it
+		// having a minimum count of 1 for now - but may support diskless VMs
+		// later.
 		"disk": {
 			Type:        schema.TypeSet,
-			Required:    true,
+			Optional:    true,
+			Computed:    true,
 			Description: "A specification for a virtual disk device on this virtual machine.",
 			MaxItems:    30,
 			Elem:        &schema.Resource{Schema: virtualdevice.DiskSubresourceSchema()},
@@ -94,21 +99,28 @@ func resourceVSphereVirtualMachineV2() *schema.Resource {
 			Computed:    true,
 			Description: "Value internal to Terraform used to determine if a configuration set change requires a reboot.",
 		},
+		"vmx_path": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The path of the virtual machine's configuration file in the VM's datastore.",
+		},
 		vSphereTagAttributeKey: tagsSchema(),
 	}
 	structure.MergeSchema(s, schemaVirtualMachineConfigSpec())
 	structure.MergeSchema(s, schemaVirtualMachineGuestInfo())
 
 	return &schema.Resource{
-		Create: resourceVSphereVirtualMachineV2Create,
-		Read:   resourceVSphereVirtualMachineV2Read,
-		Update: resourceVSphereVirtualMachineV2Update,
-		Delete: resourceVSphereVirtualMachineV2Delete,
-		Schema: s,
+		Create:        resourceVSphereVirtualMachineV2Create,
+		Read:          resourceVSphereVirtualMachineV2Read,
+		Update:        resourceVSphereVirtualMachineV2Update,
+		Delete:        resourceVSphereVirtualMachineV2Delete,
+		CustomizeDiff: resourceVSphereVirtualMachineV2CustomizeDiff,
+		Schema:        s,
 	}
 }
 
 func resourceVSphereVirtualMachineV2Create(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning create", resourceVSphereVirtualMachineV2IDString(d))
 	client := meta.(*VSphereClient).vimClient
 	tagsClient, err := tagsClientIfDefined(d, meta)
 	if err != nil {
@@ -155,7 +167,7 @@ func resourceVSphereVirtualMachineV2Create(d *schema.ResourceData, meta interfac
 		VmPathName: fmt.Sprintf("[%s]", ds.Name()),
 	}
 
-	// Now we need to get the defualt device set - this is available in the
+	// Now we need to get the default device set - this is available in the
 	// environment info in the resource pool, which we can then filter through
 	// our device CRUD lifecycles to get a full deviceChange attribute for our
 	// configspec.
@@ -163,6 +175,7 @@ func resourceVSphereVirtualMachineV2Create(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return fmt.Errorf("error loading default device list: %s", err)
 	}
+	log.Printf("[DEBUG] Default devices: %s", virtualdevice.DeviceListString(devices))
 
 	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
 		return err
@@ -179,6 +192,7 @@ func resourceVSphereVirtualMachineV2Create(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return fmt.Errorf("cannot fetch properties of created virtual machine: %s", err)
 	}
+	log.Printf("[DEBUG] VM %q - UUID is %q", vm.InventoryPath, vprops.Config.Uuid)
 	d.SetId(vprops.Config.Uuid)
 	// Tag the VM before we go any further if we need to.
 	if tagsClient != nil {
@@ -197,10 +211,12 @@ func resourceVSphereVirtualMachineV2Create(d *schema.ResourceData, meta interfac
 	}
 
 	// All done!
+	log.Printf("[DEBUG] %s: Create complete", resourceVSphereVirtualMachineV2IDString(d))
 	return resourceVSphereVirtualMachineV2Read(d, meta)
 }
 
 func resourceVSphereVirtualMachineV2Read(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Reading state", resourceVSphereVirtualMachineV2IDString(d))
 	client := meta.(*VSphereClient).vimClient
 	id := d.Id()
 	vm, err := virtualmachine.FromUUID(client, id)
@@ -228,6 +244,36 @@ func resourceVSphereVirtualMachineV2Read(d *schema.ResourceData, meta interface{
 	if vprops.Runtime.Host != nil {
 		d.Set("host_system_id", vprops.Runtime.Host.Value)
 	}
+
+	// Set the VMX path and default datastore
+	dp := &object.DatastorePath{}
+	if ok := dp.FromString(vprops.Config.Files.VmPathName); !ok {
+		return fmt.Errorf("could not parse VMX file path: %s", vprops.Config.Files.VmPathName)
+	}
+	// The easiest path for us to get an exact match on the datastore in use is
+	// to look for the datastore name in the list of used datastores. This is
+	// something we have access to from the VM's properties. This allows us to
+	// get away with not having to have the datastore unnecessarily supplied to
+	// the resource when it's not used by anything else.
+	var ds *object.Datastore
+	for _, dsRef := range vprops.Datastore {
+		dsx, err := datastore.FromID(client, dsRef.Value)
+		if err != nil {
+			return fmt.Errorf("error locating VMX datastore: %s", err)
+		}
+		dsxProps, err := datastore.Properties(dsx)
+		if err != nil {
+			return fmt.Errorf("error fetching VMX datastore properties: %s", err)
+		}
+		if dsxProps.Summary.Name == dp.Datastore {
+			ds = dsx
+		}
+	}
+	if ds == nil {
+		return fmt.Errorf("VMX datastore %s not found", dp.Datastore)
+	}
+	d.Set("datastore_id", ds.Reference().Value)
+	d.Set("vmx_path", dp.Path)
 
 	// Read general VM config info
 	if err := flattenVirtualMachineConfigInfo(d, vprops.Config); err != nil {
@@ -267,10 +313,12 @@ func resourceVSphereVirtualMachineV2Read(d *schema.ResourceData, meta interface{
 		}
 	}
 
+	log.Printf("[DEBUG] %s: Read complete", resourceVSphereVirtualMachineV2IDString(d))
 	return nil
 }
 
 func resourceVSphereVirtualMachineV2Update(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Performing update", resourceVSphereVirtualMachineV2IDString(d))
 	client := meta.(*VSphereClient).vimClient
 	tagsClient, err := tagsClientIfDefined(d, meta)
 	if err != nil {
@@ -350,10 +398,12 @@ func resourceVSphereVirtualMachineV2Update(d *schema.ResourceData, meta interfac
 	}
 
 	// All done with updates.
+	log.Printf("[DEBUG] %s: Update complete", resourceVSphereVirtualMachineV2IDString(d))
 	return resourceVSphereVirtualMachineV2Read(d, meta)
 }
 
 func resourceVSphereVirtualMachineV2Delete(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Performing delete", resourceVSphereVirtualMachineV2IDString(d))
 	client := meta.(*VSphereClient).vimClient
 	id := d.Id()
 	vm, err := virtualmachine.FromUUID(client, id)
@@ -386,7 +436,18 @@ func resourceVSphereVirtualMachineV2Delete(d *schema.ResourceData, meta interfac
 	}
 
 	// The final operation here is to destroy the VM.
-	return virtualmachine.Destroy(vm)
+	if err := virtualmachine.Destroy(vm); err != nil {
+		return fmt.Errorf("error destroying virtual machine: %s", err)
+	}
+	log.Printf("[DEBUG] %s: Delete complete", resourceVSphereVirtualMachineV2IDString(d))
+	return nil
+}
+
+func resourceVSphereVirtualMachineV2CustomizeDiff(d *schema.ResourceDiff, meta interface{}) error {
+	client := meta.(*VSphereClient).vimClient
+	// The only diff customization we are doing in this resource right now is
+	// disk-related, so just pass off to that.
+	return virtualdevice.DiskDiffOperation(d, client)
 }
 
 // applyVirtualDevices is used by Create and Update to build a list of virtual
@@ -398,7 +459,6 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 	var spec, delta []types.BaseVirtualDeviceConfigSpec
 	var err error
 	// First check the state of our SCSI bus. Normalize it if we need to.
-	log.Printf("[DEBUG] normalizing SCSI bus")
 	l, delta, err = virtualdevice.NormalizeSCSIBus(l, d.Get("scsi_type").(string))
 	if err != nil {
 		return nil, err
@@ -422,5 +482,17 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 		return nil, err
 	}
 	spec = append(spec, delta...)
+	log.Printf("[DEBUG] %s: Final device list: %s", resourceVSphereVirtualMachineV2IDString(d), virtualdevice.DeviceListString(l))
+	log.Printf("[DEBUG] %s: Final device change spec: %s", resourceVSphereVirtualMachineV2IDString(d), virtualdevice.DeviceChangeString(spec))
 	return spec, nil
+}
+
+// resourceVSphereVirtualMachineV2IDString prints a friendly string for the
+// vsphere_virtual_machine resource.
+func resourceVSphereVirtualMachineV2IDString(d *schema.ResourceData) string {
+	id := d.Id()
+	if id == "" {
+		id = "<new resource>"
+	}
+	return fmt.Sprintf("vsphere_virtual_machine (ID = %s)", id)
 }

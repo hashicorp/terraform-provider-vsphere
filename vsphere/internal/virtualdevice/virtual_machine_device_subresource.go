@@ -20,10 +20,6 @@ const (
 	subresourceTypeCdrom            = "cdrom"
 )
 
-// orpahnedDeviceMinIndex is the index that we start adding orphaned devices
-// at.
-const orpahnedDeviceMinIndex = 1000
-
 const (
 	// SubresourceControllerTypeIDE is a string representation of IDE controller
 	// classes.
@@ -161,6 +157,12 @@ type Subresource struct {
 	// sparingly. All ResourceData-style calls in this object do not use this
 	// data, save for flagging reboot.
 	resourceData *schema.ResourceData
+
+	// The root-level ResourceDiff for this resource. Like resourceDiff, this
+	// should be used sparingly and is not available in any calls save those that
+	// come in through CustomizeDiff paths. Customization of actual sub-resource
+	// diffs should happen against the entire set in higher-level functions.
+	resourceDiff *schema.ResourceDiff
 }
 
 // subresourceSchema is a map[string]*schema.Schema of common schema fields.
@@ -193,7 +195,9 @@ func (r *Subresource) Get(key string) interface{} {
 
 // Set sets the specified key/value pair in the subresource.
 func (r *Subresource) Set(key string, value interface{}) {
-	r.data[key] = structure.NormalizeValue(value)
+	if v := structure.NormalizeValue(value); v != nil {
+		r.data[key] = v
+	}
 }
 
 // HasChange checks to see if there has been a change in the resource data
@@ -221,7 +225,7 @@ func (r *Subresource) GetChange(key string) (interface{}, interface{}) {
 // value, and sets restart if it has changed.
 func (r *Subresource) GetWithRestart(key string) interface{} {
 	if r.HasChange(key) {
-		r.SetRestart()
+		r.SetRestart(key)
 	}
 	return r.Get(key)
 }
@@ -236,8 +240,10 @@ func (r *Subresource) GetWithVeto(key string) (interface{}, error) {
 	return r.Get(key), nil
 }
 
-// SetRestart sets reboot_required in the global ResourceData.
-func (r *Subresource) SetRestart() {
+// SetRestart sets reboot_required in the global ResourceData. The key is only
+// required for logging.
+func (r *Subresource) SetRestart(key string) {
+	log.Printf("[DEBUG] %s: Resource argument %q requires a VM restart", r, key)
 	r.resourceData.Set("reboot_required", true)
 }
 
@@ -318,7 +324,6 @@ func splitDevAddr(id string) (string, int, int, error) {
 // the criteria that we have laid out.
 func findVirtualDeviceInListControllerSelectFunc(ct string, cb int) func(types.BaseVirtualDevice) bool {
 	return func(device types.BaseVirtualDevice) bool {
-		log.Printf("[DEBUG] findVirtualDeviceInListControllerSelectFunc: checking device %#v", device)
 		var ctlr types.BaseVirtualController
 		switch ct {
 		case SubresourceControllerTypeIDE:
@@ -345,7 +350,6 @@ func findVirtualDeviceInListControllerSelectFunc(ct string, cb int) func(types.B
 			return false
 		}
 	controllerFound:
-		log.Printf("[DEBUG] findVirtualDeviceInListControllerSelectFunc: found SCSI controller %#v - bus number %d", ctlr, ctlr.GetVirtualController().BusNumber)
 		vc := ctlr.GetVirtualController()
 		if vc.BusNumber == int32(cb) {
 			return true
@@ -382,7 +386,7 @@ func findControllerForDevice(l object.VirtualDeviceList, bvd types.BaseVirtualDe
 // FindVirtualDeviceByAddr locates the subresource's virtual device in the
 // supplied VirtualDeviceList by its device address.
 func (r *Subresource) FindVirtualDeviceByAddr(l object.VirtualDeviceList) (types.BaseVirtualDevice, error) {
-	log.Printf("[DEBUG] FindVirtualDeviceByAddr: passed in device list: %#v", l)
+	log.Printf("[DEBUG] FindVirtualDevice: Looking for device with address %s", r.DevAddr())
 	ct, cb, du, err := splitDevAddr(r.DevAddr())
 	if err != nil {
 		return nil, err
@@ -404,6 +408,7 @@ func (r *Subresource) FindVirtualDeviceByAddr(l object.VirtualDeviceList) (types
 		return nil, fmt.Errorf("invalid device result - %d results returned (expected 1): controller key %q, disk number: %d", len(devices), ckey, du)
 	}
 	device := devices[0]
+	log.Printf("[DEBUG] FindVirtualDevice: Device found: %s", l.Name(device))
 	return device, nil
 }
 
@@ -411,7 +416,9 @@ func (r *Subresource) FindVirtualDeviceByAddr(l object.VirtualDeviceList) (types
 // > 0, otherwise it will attempt to locate it by its device address.
 func (r *Subresource) FindVirtualDevice(l object.VirtualDeviceList) (types.BaseVirtualDevice, error) {
 	if key := r.Get("key").(int); key > 0 {
+		log.Printf("[DEBUG] FindVirtualDevice: Looking for device with key %d", key)
 		if dev := l.FindByKey(int32(key)); dev != nil {
+			log.Printf("[DEBUG] FindVirtualDevice: Device found: %s", l.Name(dev))
 			return dev, nil
 		}
 		return nil, fmt.Errorf("could not find device with key %d", key)
@@ -419,16 +426,35 @@ func (r *Subresource) FindVirtualDevice(l object.VirtualDeviceList) (types.BaseV
 	return r.FindVirtualDeviceByAddr(l)
 }
 
+// String prints out the device sub-resource's information including the ID at
+// time of instantiation, the short name of the disk, and the current device
+// key and address.
+func (r *Subresource) String() string {
+	devaddr := r.Get("device_address").(string)
+	if devaddr == "" {
+		devaddr = "<new device>"
+	}
+	return fmt.Sprintf("%s (key %d at %s)", r.Addr(), r.Get("key").(int), devaddr)
+}
+
 // swapSCSIDevice swaps out the supplied controller for a new one of the
 // supplied controller type. Any connected devices are re-connected at the same
 // device units on the new device. A list of changes is returned.
 func swapSCSIDevice(l object.VirtualDeviceList, device types.BaseVirtualSCSIController, ct string) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("[DEBUG] swapSCSIDevice: Swapping SCSI device for one of controller type %s: %s", ct, l.Name(device.(types.BaseVirtualDevice)))
 	var spec []types.BaseVirtualDeviceConfigSpec
+	bvd := device.(types.BaseVirtualDevice)
+	cspec, err := object.VirtualDeviceList{bvd}.ConfigSpec(types.VirtualDeviceConfigSpecOperationRemove)
+	if err != nil {
+		return nil, err
+	}
+	spec = append(spec, cspec...)
+
 	nsd, err := l.CreateSCSIController(ct)
 	if err != nil {
 		return nil, err
 	}
-	cspec, err := object.VirtualDeviceList{nsd}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
+	cspec, err = object.VirtualDeviceList{nsd}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
 	if err != nil {
 		return nil, err
 	}
@@ -445,14 +471,7 @@ func swapSCSIDevice(l object.VirtualDeviceList, device types.BaseVirtualSCSICont
 			spec = append(spec, cspec...)
 		}
 	}
-	// Put the deletion of the old device at the end of the list as I'm not too
-	// sure how vSphere applies these changes. Better safe than sorry.
-	bvd := device.(types.BaseVirtualDevice)
-	cspec, err = object.VirtualDeviceList{bvd}.ConfigSpec(types.VirtualDeviceConfigSpecOperationRemove)
-	if err != nil {
-		return nil, err
-	}
-	spec = append(spec, cspec...)
+	log.Printf("[DEBUG] swapSCSIDevice: Outgoing device config spec: %s", DeviceChangeString(spec))
 	return spec, nil
 }
 
@@ -463,6 +482,7 @@ func swapSCSIDevice(l object.VirtualDeviceList, device types.BaseVirtualSCSICont
 //
 // All 4 slots on the SCSI bus are normalized to the appropriate device.
 func NormalizeSCSIBus(l object.VirtualDeviceList, ct string) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("[DEBUG] NormalizeSCSIBus: Normalizing SCSI bus to device type %s", ct)
 	var spec []types.BaseVirtualDeviceConfigSpec
 	ctlrs := make([]types.BaseVirtualSCSIController, 4)
 	// Don't worry about doing any fancy select stuff here, just go thru the
@@ -472,9 +492,11 @@ func NormalizeSCSIBus(l object.VirtualDeviceList, ct string) (object.VirtualDevi
 			ctlrs[sc.GetVirtualSCSIController().BusNumber] = sc
 		}
 	}
+	log.Printf("[DEBUG] NormalizeSCSIBus: Current SCSI bus contents: %s", scsiControllerListString(ctlrs))
 	// Now iterate over the controllers
-	for _, ctlr := range ctlrs {
+	for n, ctlr := range ctlrs {
 		if ctlr == nil {
+			log.Printf("[DEBUG] NormalizeSCSIBus: Creating SCSI controller of type %s at bus number %d", ct, n)
 			nc, err := l.CreateSCSIController(ct)
 			if err != nil {
 				return nil, nil, err
@@ -487,7 +509,7 @@ func NormalizeSCSIBus(l object.VirtualDeviceList, ct string) (object.VirtualDevi
 			l = applyDeviceChange(l, cspec)
 			continue
 		}
-		if l.Name(ctlr.(types.BaseVirtualDevice)) == ct {
+		if l.Type(ctlr.(types.BaseVirtualDevice)) == ct {
 			continue
 		}
 		cspec, err := swapSCSIDevice(l, ctlr, ct)
@@ -498,6 +520,8 @@ func NormalizeSCSIBus(l object.VirtualDeviceList, ct string) (object.VirtualDevi
 		l = applyDeviceChange(l, cspec)
 		continue
 	}
+	log.Printf("[DEBUG] NormalizeSCSIBus: Outgoing device list: %s", DeviceListString(l))
+	log.Printf("[DEBUG] NormalizeSCSIBus: Outgoing device config spec: %s", DeviceChangeString(spec))
 	return l, spec, nil
 }
 
@@ -510,6 +534,7 @@ func ReadSCSIBusState(l object.VirtualDeviceList) string {
 			ctlrs[sc.GetVirtualSCSIController().BusNumber] = sc
 		}
 	}
+	log.Printf("[DEBUG] ReadSCSIBusState: SCSI controller layout: %s", scsiControllerListString(ctlrs))
 	if ctlrs[0] == nil {
 		return subresourceControllerTypeUnknown
 	}
@@ -524,6 +549,7 @@ func ReadSCSIBusState(l object.VirtualDeviceList) string {
 
 // getSCSIController picks a SCSI controller at the specific bus number supplied.
 func pickSCSIController(l object.VirtualDeviceList, bus int) (types.BaseVirtualController, error) {
+	log.Printf("[DEBUG] pickSCSIController: Looking for SCSI controller at bus number %d", bus)
 	l = l.Select(func(device types.BaseVirtualDevice) bool {
 		switch d := device.(type) {
 		case types.BaseVirtualSCSIController:
@@ -536,6 +562,7 @@ func pickSCSIController(l object.VirtualDeviceList, bus int) (types.BaseVirtualC
 		return nil, fmt.Errorf("could not find scsi controller at bus number %d", bus)
 	}
 
+	log.Printf("[DEBUG] pickSCSIController: Found SCSI controller: %s", l.Name(l[0]))
 	return l[0].(types.BaseVirtualController), nil
 }
 
@@ -543,6 +570,7 @@ func pickSCSIController(l object.VirtualDeviceList, bus int) (types.BaseVirtualC
 // easier to use in create or update operations. If the controller type is a
 // SCSI device, the bus number is searched as well.
 func (r *Subresource) ControllerForCreateUpdate(l object.VirtualDeviceList, ct string, bus int) (types.BaseVirtualController, error) {
+	log.Printf("[DEBUG] ControllerForCreateUpdate: Looking for controller type %s", ct)
 	var ctlr types.BaseVirtualController
 	var err error
 	switch ct {
@@ -567,6 +595,7 @@ func (r *Subresource) ControllerForCreateUpdate(l object.VirtualDeviceList, ct s
 	if ctlr.GetVirtualController().BusNumber != 0 && ct != SubresourceControllerTypeSCSI {
 		return nil, fmt.Errorf("there are no available slots on the primary %s controller", ct)
 	}
+	log.Printf("[DEBUG] ControllerForCreateUpdate: Found controller: %s", l.Name(ctlr.(types.BaseVirtualDevice)))
 
 	return ctlr, nil
 }
@@ -575,6 +604,8 @@ func (r *Subresource) ControllerForCreateUpdate(l object.VirtualDeviceList, ct s
 // working set to either add, remove, or update devices so that the working
 // VirtualDeviceList is as up to date as possible.
 func applyDeviceChange(l object.VirtualDeviceList, cs []types.BaseVirtualDeviceConfigSpec) object.VirtualDeviceList {
+	log.Printf("[DEBUG] applyDeviceChange: Applying changes: %s", DeviceChangeString(cs))
+	log.Printf("[DEBUG] applyDeviceChange: Device list before changes: %s", DeviceListString(l))
 	for _, s := range cs {
 		spec := s.GetVirtualDeviceConfigSpec()
 		switch spec.Operation {
@@ -593,14 +624,69 @@ func applyDeviceChange(l object.VirtualDeviceList, cs []types.BaseVirtualDeviceC
 				}
 			}
 		case types.VirtualDeviceConfigSpecOperationRemove:
-			for n, dev := range l {
+			for i := 0; i < len(l); i++ {
+				dev := l[i]
 				if dev.GetVirtualDevice().Key == spec.Device.GetVirtualDevice().Key {
-					l = append(l[:n], l[n+1:]...)
+					l = append(l[:i], l[i+1:]...)
+					i--
 				}
 			}
 		default:
 			panic("unknown op")
 		}
 	}
+	log.Printf("[DEBUG] applyDeviceChange: Device list after changes: %s", DeviceListString(l))
 	return l
+}
+
+// DeviceListString pretty-prints each device in a virtual device list, used
+// for logging purposes and what not.
+func DeviceListString(l object.VirtualDeviceList) string {
+	var names []string
+	for _, d := range l {
+		if d == nil {
+			names = append(names, "<nil>")
+		} else {
+			names = append(names, l.Name(d))
+		}
+	}
+	return strings.Join(names, ",")
+}
+
+// DeviceChangeString pretty-prints a slice of VirtualDeviceConfigSpec.
+func DeviceChangeString(specs []types.BaseVirtualDeviceConfigSpec) string {
+	var strs []string
+	for _, v := range specs {
+		spec := v.GetVirtualDeviceConfigSpec()
+		strs = append(strs, fmt.Sprintf("(%s: %T at key %d)", string(spec.Operation), spec.Device, spec.Device.GetVirtualDevice().Key))
+	}
+	return strings.Join(strs, ",")
+}
+
+// subresourceListString takes a list of sub-resources and pretty-prints the
+// key and device address.
+func subresourceListString(data []interface{}) string {
+	var strs []string
+	for _, v := range data {
+		m := v.(map[string]interface{})
+		devaddr := m["device_address"].(string)
+		if devaddr == "" {
+			devaddr = "<new device>"
+		}
+		strs = append(strs, fmt.Sprintf("(key %d at %s)", m["key"].(int), devaddr))
+	}
+	return strings.Join(strs, ",")
+}
+
+// scsiControllerListString pretty-prints a slice of SCSI controllers.
+func scsiControllerListString(ctlrs []types.BaseVirtualSCSIController) string {
+	var l object.VirtualDeviceList
+	for _, ctlr := range ctlrs {
+		if ctlr == nil {
+			l = append(l, types.BaseVirtualDevice(nil))
+		} else {
+			l = append(l, ctlr.(types.BaseVirtualDevice))
+		}
+	}
+	return DeviceListString(l)
 }

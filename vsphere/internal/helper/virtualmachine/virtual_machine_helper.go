@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"time"
 
@@ -22,6 +23,7 @@ var errGuestShutdownTimeout = errors.New("the VM did not power off within the sp
 
 // FromUUID locates a virtualMachine by its UUID.
 func FromUUID(client *govmomi.Client, uuid string) (*object.VirtualMachine, error) {
+	log.Printf("[DEBUG] Locating virtual machine with UUID %q", uuid)
 	search := object.NewSearchIndex(client.Client)
 
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
@@ -50,6 +52,7 @@ func FromUUID(client *govmomi.Client, uuid string) (*object.VirtualMachine, erro
 	// Should be safe to return here. If our reference returned here and is not a
 	// VM, then we have bigger problems and to be honest we should be panicking
 	// anyway.
+	log.Printf("[DEBUG] VM %q found for UUID %q", vm.(*object.VirtualMachine).InventoryPath, uuid)
 	return vm.(*object.VirtualMachine), nil
 }
 
@@ -78,6 +81,7 @@ func FromMOID(client *govmomi.Client, id string) (*object.VirtualMachine, error)
 // Properties is a convenience method that wraps fetching the
 // VirtualMachine MO from its higher-level object.
 func Properties(vm *object.VirtualMachine) (*mo.VirtualMachine, error) {
+	log.Printf("[DEBUG] Fetching properties for VM %q", vm.InventoryPath)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	var props mo.VirtualMachine
@@ -96,8 +100,10 @@ func Properties(vm *object.VirtualMachine) (*mo.VirtualMachine, error) {
 // the waiter returns without error immediately.
 func WaitForGuestNet(client *govmomi.Client, vm *object.VirtualMachine, timeout int) error {
 	if timeout < 1 {
+		log.Printf("[DEBUG] Skipping network waiter for VM %q", vm.InventoryPath)
 		return nil
 	}
+	log.Printf("[DEBUG] Waiting for routeable address on VM %q (timeout = %dm)", vm.InventoryPath, timeout)
 	var v4gw, v6gw net.IP
 
 	p := client.PropertyCollector()
@@ -155,12 +161,14 @@ func WaitForGuestNet(client *govmomi.Client, vm *object.VirtualMachine, timeout 
 		return err
 	}
 
+	log.Printf("[DEBUG] Routeable address available for VM %q", vm.InventoryPath)
 	return nil
 }
 
 // Create wraps the creation of a virtual machine and the subsequent waiting of
 // the task. A higher-level virtual machine object is returned.
 func Create(c *govmomi.Client, f *object.Folder, s types.VirtualMachineConfigSpec, p *object.ResourcePool, h *object.HostSystem) (*object.VirtualMachine, error) {
+	log.Printf("[DEBUG] Creating virtual machine %q", fmt.Sprintf("%s/%s", f.InventoryPath, s.Name))
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	task, err := f.CreateVM(ctx, s, p, h)
@@ -173,11 +181,13 @@ func Create(c *govmomi.Client, f *object.Folder, s types.VirtualMachineConfigSpe
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("[DEBUG] Virtual machine %q: creation complete (MOID: %q)", fmt.Sprintf("%s/%s", f.InventoryPath, s.Name), result.Result.(types.ManagedObjectReference).Value)
 	return FromMOID(c, result.Result.(types.ManagedObjectReference).Value)
 }
 
 // PowerOn wraps powering on a VM and the waiting for the subsequent task.
 func PowerOn(vm *object.VirtualMachine) error {
+	log.Printf("[DEBUG] Powering on virtual machine %q", vm.InventoryPath)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	task, err := vm.PowerOn(ctx)
@@ -191,6 +201,7 @@ func PowerOn(vm *object.VirtualMachine) error {
 
 // PowerOff wraps powering off a VM and the waiting for the subsequent task.
 func PowerOff(vm *object.VirtualMachine) error {
+	log.Printf("[DEBUG] Forcing power off of virtual machine of %q", vm.InventoryPath)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	task, err := vm.PowerOff(ctx)
@@ -210,6 +221,7 @@ func PowerOff(vm *object.VirtualMachine) error {
 // The minimum value for timeout is 1 minute - setting to a 0 or negative value
 // is not allowed and will just reset the timeout to the minimum.
 func ShutdownGuest(client *govmomi.Client, vm *object.VirtualMachine, timeout int) error {
+	log.Printf("[DEBUG] Attempting guest shutdown of virtual machine %q", vm.InventoryPath)
 	sctx, scancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer scancel()
 	if err := vm.ShutdownGuest(sctx); err != nil {
@@ -280,6 +292,7 @@ func GracefulPowerOff(client *govmomi.Client, vm *object.VirtualMachine, timeout
 
 // MoveToFolder moves a virtual machine to the specified folder.
 func MoveToFolder(client *govmomi.Client, vm *object.VirtualMachine, relative string) error {
+	log.Printf("[DEBUG] Moving virtual %q to VM path %q", vm.InventoryPath, relative)
 	f, err := folder.VirtualMachineFolderFromObject(client, vm, relative)
 	if err != nil {
 		return err
@@ -290,6 +303,7 @@ func MoveToFolder(client *govmomi.Client, vm *object.VirtualMachine, relative st
 // Reconfigure wraps the Reconfigure task and the subsequent waiting for
 // the task to complete.
 func Reconfigure(vm *object.VirtualMachine, spec types.VirtualMachineConfigSpec) error {
+	log.Printf("[DEBUG] Reconfiguring virtual machine %q", vm.InventoryPath)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	task, err := vm.Reconfigure(ctx, spec)
@@ -304,6 +318,7 @@ func Reconfigure(vm *object.VirtualMachine, spec types.VirtualMachineConfigSpec)
 // Destroy wraps the Destroy task and the subsequent waiting for the task to
 // complete.
 func Destroy(vm *object.VirtualMachine) error {
+	log.Printf("[DEBUG] Deleting virtual machine %q", vm.InventoryPath)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	task, err := vm.Destroy(ctx)

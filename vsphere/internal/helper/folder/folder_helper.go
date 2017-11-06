@@ -3,6 +3,7 @@ package folder
 import (
 	"context"
 	"fmt"
+	"log"
 	"path"
 	"strings"
 
@@ -216,6 +217,7 @@ func DatastoreFolderFromObject(client *govmomi.Client, obj interface{}, relative
 // object, and relative datastore folder path. If no such folder is found, of
 // if it is not a VM folder, an appropriate error will be returned.
 func VirtualMachineFolderFromObject(client *govmomi.Client, obj interface{}, relative string) (*object.Folder, error) {
+	log.Printf("[DEBUG] Locating folder at path %q relative to virtual machine root", relative)
 	folder, err := folderFromObject(client, obj, RootPathParticleVM, relative)
 	if err != nil {
 		return nil, err
@@ -259,6 +261,7 @@ func validateVirtualMachineFolder(folder *object.Folder) (*object.Folder, error)
 	if ft != VSphereFolderTypeVM {
 		return nil, fmt.Errorf("%q is not a VM folder", folder.InventoryPath)
 	}
+	log.Printf("[DEBUG] Folder located: %q", folder.InventoryPath)
 	return folder, nil
 }
 

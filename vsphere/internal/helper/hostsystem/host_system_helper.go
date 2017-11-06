@@ -3,6 +3,7 @@ package hostsystem
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/vmware/govmomi"
@@ -35,6 +36,7 @@ func SystemOrDefault(client *govmomi.Client, name string, dc *object.Datacenter)
 
 // FromID locates a HostSystem by its managed object reference ID.
 func FromID(client *govmomi.Client, id string) (*object.HostSystem, error) {
+	log.Printf("[DEBUG] Locating host system ID %s", id)
 	finder := find.NewFinder(client.Client, false)
 
 	ref := types.ManagedObjectReference{
@@ -44,11 +46,12 @@ func FromID(client *govmomi.Client, id string) (*object.HostSystem, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
-	ds, err := finder.ObjectReference(ctx, ref)
+	hs, err := finder.ObjectReference(ctx, ref)
 	if err != nil {
 		return nil, fmt.Errorf("could not find host system with id: %s: %s", id, err)
 	}
-	return ds.(*object.HostSystem), nil
+	log.Printf("[DEBUG] Host system found: %s", hs.Reference().Value)
+	return hs.(*object.HostSystem), nil
 }
 
 // hostSystemNameFromID returns the name of a host via its its managed object

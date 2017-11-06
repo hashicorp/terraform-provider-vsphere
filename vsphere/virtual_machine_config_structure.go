@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -39,6 +40,7 @@ var virtualMachineFirmwareAllowedValues = []string{
 // reboot_required to true.
 func getWithRestart(d *schema.ResourceData, key string) interface{} {
 	if d.HasChange(key) {
+		log.Printf("[DEBUG] %s: Resource argument %q requires a VM restart", resourceVSphereVirtualMachineV2IDString(d), key)
 		d.Set("reboot_required", true)
 	}
 	return d.Get(key)
@@ -556,6 +558,7 @@ func expandMemorySizeConfig(d *schema.ResourceData) int64 {
 // expandVirtualMachineConfigSpec reads certain ResourceData keys and
 // returns a VirtualMachineConfigSpec.
 func expandVirtualMachineConfigSpec(d *schema.ResourceData) *types.VirtualMachineConfigSpec {
+	log.Printf("[DEBUG] %s: Building config spec", resourceVSphereVirtualMachineV2IDString(d))
 	obj := &types.VirtualMachineConfigSpec{
 		Name:                d.Get("name").(string),
 		GuestId:             getWithRestart(d, "guest_id").(string),

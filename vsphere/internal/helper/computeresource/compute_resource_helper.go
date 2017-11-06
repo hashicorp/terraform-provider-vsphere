@@ -3,6 +3,7 @@ package computeresource
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/envbrowse"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
@@ -118,6 +119,7 @@ func BasePropertiesFromReference(client *govmomi.Client, ref types.ManagedObject
 // guest ID set. This ensures that the VirtaulDeviceList returned matches a
 // default set best suited for the guest type that is being created.
 func DefaultDevicesFromReference(client *govmomi.Client, ref types.ManagedObjectReference, guest string) (object.VirtualDeviceList, error) {
+	log.Printf("[DEBUG] Fetching default device list for object reference %q for OS type %q", ref.Value, guest)
 	props, err := BasePropertiesFromReference(client, ref)
 	if err != nil {
 		return nil, err

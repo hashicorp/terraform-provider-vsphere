@@ -1,7 +1,9 @@
 package vsphere
 
 import (
+	"log"
 	"net"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi/vim25/types"
@@ -32,6 +34,7 @@ func schemaVirtualMachineGuestInfo() map[string]*schema.Schema {
 // used for provisioning. The full list of IP addresses is saved to
 // guest_ip_addresses.
 func buildAndSelectGuestIPs(d *schema.ResourceData, guest types.GuestInfo) error {
+	log.Printf("[DEBUG] %s: Checking guest networking state", resourceVSphereVirtualMachineV2IDString(d))
 	var v4primary, v6primary, v4gw, v6gw net.IP
 	var v4addrs, v6addrs []string
 
@@ -80,6 +83,7 @@ func buildAndSelectGuestIPs(d *schema.ResourceData, guest types.GuestInfo) error
 		// No IP addresses were discovered. This more than likely means that the VM
 		// is powered off, or VMware tools is not installed. We can return here,
 		// setting the empty set of addresses to avoid spurious diffs.
+		log.Printf("[DEBUG] %s: No IP addresses found in guest state", resourceVSphereVirtualMachineV2IDString(d))
 		return d.Set("guest_ip_addresses", addrs)
 	}
 	var primary string
@@ -91,7 +95,9 @@ func buildAndSelectGuestIPs(d *schema.ResourceData, guest types.GuestInfo) error
 	default:
 		primary = addrs[0]
 	}
+	log.Printf("[DEBUG] %s: Primary IP address: %s", resourceVSphereVirtualMachineV2IDString(d), primary)
 	d.Set("default_ip_address", primary)
+	log.Printf("[DEBUG] %s: All IP addresses: %s", resourceVSphereVirtualMachineV2IDString(d), strings.Join(addrs, ","))
 	if err := d.Set("guest_ip_addresses", addrs); err != nil {
 		return err
 	}

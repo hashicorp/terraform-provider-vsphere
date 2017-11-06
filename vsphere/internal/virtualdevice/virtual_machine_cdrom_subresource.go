@@ -2,6 +2,7 @@ package virtualdevice
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -63,6 +64,7 @@ func NewCdromSubresource(client *govmomi.Client, rd *schema.ResourceData, d, old
 // updated, VirtualDeviceList, and the complete list of changes returned as a
 // slice of BaseVirtualDeviceConfigSpec.
 func CdromApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("[DEBUG] CdromApplyOperation: Beginning apply operation")
 	// While we are currently only restricting CD devices to one device, we have
 	// to actually account for the fact that someone could add multiple CD drives
 	// out of band. So this workflow is similar to the multi-device workflow that
@@ -75,6 +77,7 @@ func CdromApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 
 	// Our old and new sets now have an accurate description of devices that may
 	// have been added, removed, or changed. Look for removed devices first.
+	log.Printf("[DEBUG] CdromApplyOperation: Looking for resources to delete")
 nextOld:
 	for n, oe := range ods {
 		om := oe.(map[string]interface{})
@@ -96,28 +99,33 @@ nextOld:
 	// Now check for creates and updates. The results of this operation are
 	// committed to state after the operation completes.
 	var updates []interface{}
-nextNew:
+	log.Printf("[DEBUG] CdromApplyOperation: Looking for resources to create or update")
 	for n, ne := range nds {
 		nm := ne.(map[string]interface{})
-		for _, oe := range ods {
+		if n < len(ods) {
+			// This is an update
+			oe := ods[n]
 			om := oe.(map[string]interface{})
-			if nm["key"] == om["key"] {
-				// This is an update
-				if reflect.DeepEqual(nm, om) {
-					// no change is a no-op
-					continue nextNew
-				}
-				r := NewCdromSubresource(c, d, nm, om, n)
-				uspec, err := r.Update(l)
-				if err != nil {
-					return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
-				}
-				l = applyDeviceChange(l, uspec)
-				spec = append(spec, uspec...)
-				updates = append(updates, r.Data())
-				continue nextNew
+			if nm["key"] != om["key"] {
+				return nil, nil, fmt.Errorf("key mismatch on %s.%d (old: %d, new: %d). This is a bug with Terraform, please report it", subresourceTypeCdrom, n, nm["key"].(int), om["key"].(int))
 			}
+			if reflect.DeepEqual(nm, om) {
+				// no change is a no-op
+				updates = append(updates, nm)
+				log.Printf("[DEBUG] CdromApplyOperation: No-op resource: key %d", nm["key"].(int))
+				continue
+			}
+			r := NewCdromSubresource(c, d, nm, om, n)
+			uspec, err := r.Update(l)
+			if err != nil {
+				return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+			}
+			l = applyDeviceChange(l, uspec)
+			spec = append(spec, uspec...)
+			updates = append(updates, r.Data())
+			continue
 		}
+		// New device
 		r := NewCdromSubresource(c, d, nm, nil, n)
 		cspec, err := r.Create(l)
 		if err != nil {
@@ -128,10 +136,14 @@ nextNew:
 		updates = append(updates, r.Data())
 	}
 
+	log.Printf("[DEBUG] CdromApplyOperation: Post-apply final resource list: %s", subresourceListString(updates))
 	// We are now done! Return the updated device list and config spec. Save updates as well.
 	if err := d.Set(subresourceTypeCdrom, updates); err != nil {
 		return nil, nil, err
 	}
+	log.Printf("[DEBUG] CdromApplyOperation: Device list at end of operation: %s", DeviceListString(l))
+	log.Printf("[DEBUG] CdromApplyOperation: Device config operations from apply: %s", DeviceChangeString(spec))
+	log.Printf("[DEBUG] CdromApplyOperation: Apply complete, returning updated spec")
 	return l, spec, nil
 }
 
@@ -141,6 +153,7 @@ nextNew:
 // This functions similar to CdromApplyOperation, but nothing to change is
 // returned, all necessary values are just set and committed to state.
 func CdromRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) error {
+	log.Printf("[DEBUG] CdromRefreshOperation: Beginning refresh")
 	// While we are currently only restricting CD devices to one device, we have
 	// to actually account for the fact that someone could add multiple CD drives
 	// out of band. So this workflow is similar to the multi-device workflow that
@@ -151,13 +164,16 @@ func CdromRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.V
 		}
 		return false
 	})
+	log.Printf("[DEBUG] CdromRefreshOperation: CDROM devices located: %s", DeviceListString(devices))
 	curSet := d.Get(subresourceTypeCdrom).([]interface{})
+	log.Printf("[DEBUG] CdromRefreshOperation: Current resource set from state: %s", subresourceListString(curSet))
 	var newSet []interface{}
 	// First check for negative keys. These are freshly added devices that are
 	// usually coming into read post-create.
 	//
 	// If we find what we are looking for, we remove the device from the working
 	// set so that we don't try and process it in the next few passes.
+	log.Printf("[DEBUG] CdromRefreshOperation: Looking for freshly-created resources to read in")
 	for n, item := range curSet {
 		m := item.(map[string]interface{})
 		if m["key"].(int) < 1 {
@@ -169,20 +185,24 @@ func CdromRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.V
 			if newM["key"].(int) < 1 {
 				// This should not have happened - if it did, our device
 				// creation/update logic failed somehow that we were not able to track.
-				return fmt.Errorf("device %v with address %v still unaccounted for after update/read", newM["key"], newM["device_address"])
+				return fmt.Errorf("device %d with address %s still unaccounted for after update/read", newM["key"].(int), newM["device_address"].(string))
 			}
 			newSet = append(newSet, r.Data())
 			for i := 0; i < len(devices); i++ {
 				device := devices[i]
 				if device.GetVirtualDevice().Key == int32(newM["key"].(int)) {
 					devices = append(devices[:i], devices[i+1:]...)
+					i--
 				}
 			}
 		}
 	}
+	log.Printf("[DEBUG] CdromRefreshOperation: CDROM devices after freshly-created device search: %s", DeviceListString(devices))
+	log.Printf("[DEBUG] CdromRefreshOperation: Resource set to write after freshly-created device search: %s", subresourceListString(newSet))
 
 	// Go over the remaining devices, refresh via key, and then remove their
 	// entries as well.
+	log.Printf("[DEBUG] CdromRefreshOperation: Looking for devices known in state")
 	for i := 0; i < len(devices); i++ {
 		device := devices[i]
 		for n, item := range curSet {
@@ -204,8 +224,11 @@ func CdromRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.V
 			// the list
 			newSet = append(newSet, r.Data())
 			devices = append(devices[:i], devices[i+1:]...)
+			i--
 		}
 	}
+	log.Printf("[DEBUG] CdromRefreshOperation: Resource set to write after known device search: %s", subresourceListString(newSet))
+	log.Printf("[DEBUG] CdromRefreshOperation: Probable orphaned CDROM devices: %s", DeviceListString(devices))
 
 	// Finally, any device that is still here is orphaned. They should be added
 	// as new devices.
@@ -225,11 +248,14 @@ func CdromRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.V
 		newSet = append(newSet, r.Data())
 	}
 
+	log.Printf("[DEBUG] CdromRefreshOperation: Resource set to write after adding orphaned devices: %s", subresourceListString(newSet))
+	log.Printf("[DEBUG] CdromRefreshOperation: Refresh operation complete, sending new resource set")
 	return d.Set(subresourceTypeCdrom, newSet)
 }
 
 // Create creates a vsphere_virtual_machine cdrom sub-resource.
 func (r *CdromSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("[DEBUG] %s: Running create", r)
 	var spec []types.BaseVirtualDeviceConfigSpec
 	var ctlr types.BaseVirtualController
 	ctlr, err := r.ControllerForCreateUpdate(l, SubresourceControllerTypeIDE, 0)
@@ -268,11 +294,14 @@ func (r *CdromSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtu
 		return nil, err
 	}
 	spec = append(spec, dspec...)
+	log.Printf("[DEBUG] %s: Device config operations from create: %s", r, DeviceChangeString(spec))
+	log.Printf("[DEBUG] %s: Create finished", r)
 	return spec, nil
 }
 
 // Read reads a vsphere_virtual_machine cdrom sub-resource.
 func (r *CdromSubresource) Read(l object.VirtualDeviceList) error {
+	log.Printf("[DEBUG] %s: Reading state", r)
 	d, err := r.FindVirtualDevice(l)
 	if err != nil {
 		return fmt.Errorf("cannot find disk device: %s", err)
@@ -294,11 +323,13 @@ func (r *CdromSubresource) Read(l object.VirtualDeviceList) error {
 		return err
 	}
 	r.SaveDevIDs(d, ctlr)
+	log.Printf("[DEBUG] %s: Read finished (key and device address may have changed)", r)
 	return nil
 }
 
 // Update updates a vsphere_virtual_machine cdrom sub-resource.
 func (r *CdromSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("[DEBUG] %s: Beginning update", r)
 	d, err := r.FindVirtualDevice(l)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find disk device: %s", err)
@@ -332,11 +363,14 @@ func (r *CdromSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtu
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("[DEBUG] %s: Device config operations from update: %s", r, DeviceChangeString(spec))
+	log.Printf("[DEBUG] %s: Update complete", r)
 	return spec, nil
 }
 
 // Delete deletes a vsphere_virtual_machine cdrom sub-resource.
 func (r *CdromSubresource) Delete(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("[DEBUG] %s: Beginning delete", r)
 	d, err := r.FindVirtualDevice(l)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find disk device: %s", err)
@@ -349,5 +383,7 @@ func (r *CdromSubresource) Delete(l object.VirtualDeviceList) ([]types.BaseVirtu
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("[DEBUG] %s: Device config operations from update: %s", r, DeviceChangeString(deleteSpec))
+	log.Printf("[DEBUG] %s: Delete completed", r)
 	return deleteSpec, nil
 }

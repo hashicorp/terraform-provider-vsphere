@@ -3,6 +3,8 @@ package vsphere
 import (
 	"context"
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
@@ -211,6 +213,7 @@ func tagTypeForObject(obj object.Reference) (string, error) {
 // in the supplied ResourceData. It returns an error if there was an issue
 // reading the tags.
 func readTagsForResource(client *tags.RestClient, obj object.Reference, d *schema.ResourceData) error {
+	log.Printf("[DEBUG] Reading tags for object %q", obj.Reference().Value)
 	objID := obj.Reference().Value
 	objType, err := tagTypeForObject(obj)
 	if err != nil {
@@ -219,6 +222,7 @@ func readTagsForResource(client *tags.RestClient, obj object.Reference, d *schem
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
 	ids, err := client.ListAttachedTags(ctx, objID, objType)
+	log.Printf("[DEBUG] Tags for object %q: %s", objID, strings.Join(ids, ","))
 	if err != nil {
 		return err
 	}
@@ -287,6 +291,7 @@ func (p *tagDiffProcessor) processAttachOperations() error {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 		defer cancel()
+		log.Printf("[DEBUG] Attaching tag %q for object %q", tagID, objID)
 		if err := p.client.AttachTagToObject(ctx, tagID, objID, objType); err != nil {
 			return err
 		}
@@ -310,6 +315,7 @@ func (p *tagDiffProcessor) processDetachOperations() error {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 		defer cancel()
+		log.Printf("[DEBUG] Detaching tag %q for object %q", tagID, objID)
 		if err := p.client.DetachTagFromObject(ctx, tagID, objID, objType); err != nil {
 			return err
 		}
@@ -327,18 +333,21 @@ func (p *tagDiffProcessor) processDetachOperations() error {
 func tagsClientIfDefined(d *schema.ResourceData, meta interface{}) (*tags.RestClient, error) {
 	old, new := d.GetChange(vSphereTagAttributeKey)
 	if len(old.(*schema.Set).List()) > 0 || len(new.(*schema.Set).List()) > 0 {
+		log.Printf("[DEBUG] tagsClientIfDefined: Loading tagging client")
 		client, err := meta.(*VSphereClient).TagsClient()
 		if err != nil {
 			return nil, err
 		}
 		return client, nil
 	}
+	log.Printf("[DEBUG] tagsClientIfDefined: No tags configured, skipping loading of tagging client")
 	return nil, nil
 }
 
 // processTagDiff wraps the whole tag diffing operation into a nice clean
 // function that resources can use.
 func processTagDiff(client *tags.RestClient, d *schema.ResourceData, obj object.Reference) error {
+	log.Printf("[DEBUG] Processing tags for object %q", obj.Reference().Value)
 	old, new := d.GetChange(vSphereTagAttributeKey)
 	tdp := &tagDiffProcessor{
 		client:    client,

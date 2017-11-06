@@ -384,6 +384,10 @@ variable "datastore" {
   default = "%s"
 }
 
+variable "guest_net_timeout" {
+  default = "%s"
+}
+
 data "vsphere_datacenter" "dc" {
   name = "${var.datacenter}"
 }
@@ -412,11 +416,14 @@ resource "vsphere_virtual_machine_v2" "vm" {
   memory   = 1024
   guest_id = "other3xLinux64Guest"
 
+	wait_for_guest_net_timeout = "${var.guest_net_timeout}"
+
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
   }
 
   disk {
+    name        = "terraform-test.vmdk"
     unit_number = 0
     size        = 20
   }
@@ -426,6 +433,7 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 	)
 }
 
@@ -447,6 +455,10 @@ variable "datastore" {
   default = "%s"
 }
 
+variable "guest_net_timeout" {
+  default = "%s"
+}
+
 data "vsphere_datacenter" "dc" {
   name = "${var.datacenter}"
 }
@@ -475,37 +487,39 @@ resource "vsphere_virtual_machine_v2" "vm" {
   memory   = 1024
   guest_id = "other3xLinux64Guest"
 
+	wait_for_guest_net_timeout = "${var.guest_net_timeout}"
+
   network_interface {
-    index                 = 0
     network_id            = "${data.vsphere_network.network.id}"
     bandwidth_share_level = "normal"
   }
 
   network_interface {
-    index                 = 1
     network_id            = "${data.vsphere_network.network.id}"
     bandwidth_share_level = "high"
   }
 
   network_interface {
-    index                 = 2
     network_id            = "${data.vsphere_network.network.id}"
     bandwidth_share_level = "low"
   }
 
   disk {
-    index = 0
-    size  = 20
+    name        = "terraform-test.vmdk"
+    unit_number = 0
+    size        = 20
   }
 
   disk {
-    index = 1
-    size  = 10
+    name        = "terraform-test_1.vmdk"
+    unit_number = 1
+    size        = 10
   }
 
   disk {
-    index = 2
-    size  = 5
+    name        = "terraform-test_2.vmdk"
+    unit_number = 2
+    size        = 5
   }
 }
 `,
@@ -513,6 +527,7 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 	)
 }
 
@@ -534,6 +549,10 @@ variable "datastore" {
   default = "%s"
 }
 
+variable "guest_net_timeout" {
+	default = "%s"
+}
+
 data "vsphere_datacenter" "dc" {
   name = "${var.datacenter}"
 }
@@ -562,26 +581,28 @@ resource "vsphere_virtual_machine_v2" "vm" {
   memory   = 1024
   guest_id = "other3xLinux64Guest"
 
+	wait_for_guest_net_timeout = "${var.guest_net_timeout}"
+
   network_interface {
-    index                 = 0
     network_id            = "${data.vsphere_network.network.id}"
     bandwidth_share_level = "normal"
   }
 
   network_interface {
-    index                 = 2
     network_id            = "${data.vsphere_network.network.id}"
     bandwidth_share_level = "low"
   }
 
   disk {
-    index = 0
-    size  = 20
+    name        = "terraform-test.vmdk"
+    unit_number = 0
+    size        = 20
   }
 
   disk {
-    index = 2
-    size  = 5
+    name        = "terraform-test_2.vmdk"
+    unit_number = 2
+    size        = 5
   }
 }
 `,
@@ -589,6 +610,7 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 	)
 }
 
@@ -615,6 +637,10 @@ variable "iso_datastore" {
 }
 
 variable "iso_path" {
+  default = "%s"
+}
+
+variable "guest_net_timeout" {
   default = "%s"
 }
 
@@ -647,23 +673,23 @@ resource "vsphere_virtual_machine_v2" "vm" {
   resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
-  num_cpus                   = 2
-  memory                     = 1024
-  guest_id                   = "other3xLinux64Guest"
-  wait_for_guest_net_timeout = -1
+  num_cpus = 2
+  memory   = 1024
+  guest_id = "other3xLinux64Guest"
+
+  wait_for_guest_net_timeout = ${var.guest_net_timeout}
 
   network_interface {
-    index      = 0
     network_id = "${data.vsphere_network.network.id}"
   }
 
   disk {
-    index = 0
-    size  = 20
+    name        = "terraform-test.vmdk"
+    unit_number = 0
+    size        = 20
   }
 
   cdrom {
-    index        = 0
     datastore_id = "${data.vsphere_datastore.iso_datastore.id}"
     path         = "${var.iso_path}"
   }
@@ -675,6 +701,7 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_ISO_DATASTORE"),
 		os.Getenv("VSPHERE_ISO_FILE"),
+		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 	)
 }
 
@@ -696,12 +723,16 @@ variable "datastore" {
   default = "%s"
 }
 
+variable "guest_net_timeout" {
+  default = "%s"
+}
+
 data "vsphere_datacenter" "dc" {
   name = "${var.datacenter}"
 }
 
 data "vsphere_datastore" "datastore" {
-  name = "${var.datastore}"
+  name          = "${var.datastore}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
@@ -724,14 +755,16 @@ resource "vsphere_virtual_machine_v2" "vm" {
   memory   = 8192
   guest_id = "other3xLinux64Guest"
 
+	wait_for_guest_net_timeout = "${var.guest_net_timeout}"
+
   network_interface {
-    index      = 0
     network_id = "${data.vsphere_network.network.id}"
   }
 
   disk {
-    index = 0
-    size  = 20
+    name        = "terraform-test.vmdk"
+    unit_number = 0
+    size        = 20
   }
 }
 `,
@@ -739,6 +772,7 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 	)
 }
 
@@ -757,6 +791,10 @@ variable "network_label" {
 }
 
 variable "datastore" {
+  default = "%s"
+}
+
+variable "guest_net_timeout" {
   default = "%s"
 }
 
@@ -791,14 +829,16 @@ resource "vsphere_virtual_machine_v2" "vm" {
   memory_hot_add_enabled    = %t
   guest_id                  = "other3xLinux64Guest"
 
+	wait_for_guest_net_timeout = "${var.guest_net_timeout}"
+
   network_interface {
-    index      = 0
     network_id = "${data.vsphere_network.network.id}"
   }
 
   disk {
-    index = 0
-    size  = 20
+    name        = "terraform-test.vmdk"
+    unit_number = 0
+    size        = 20
   }
 }
 `,
@@ -806,6 +846,7 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 		nc,
 		nm,
 		cha,
@@ -833,6 +874,10 @@ variable "datastore" {
 }
 
 variable "annotation" {
+	default = "%s"
+}
+
+variable "guest_net_timeout" {
 	default = "%s"
 }
 
@@ -865,14 +910,16 @@ resource "vsphere_virtual_machine_v2" "vm" {
   guest_id = "other3xLinux64Guest"
 	annotation = "${var.annotation}"
 
+	wait_for_guest_net_timeout = "${var.guest_net_timeout}"
+
   network_interface {
-    index      = 0
     network_id = "${data.vsphere_network.network.id}"
   }
 
   disk {
-    index = 0
-    size  = 20
+    name        = "terraform-test.vmdk"
+    unit_number = 0
+    size        = 20
   }
 }
 `,
@@ -880,6 +927,7 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 		testAccResourceVSphereVirtualMachineAnnotation,
 	)
 }
@@ -899,6 +947,10 @@ variable "network_label" {
 }
 
 variable "datastore" {
+  default = "%s"
+}
+
+variable "guest_net_timeout" {
   default = "%s"
 }
 
@@ -930,14 +982,17 @@ resource "vsphere_virtual_machine_v2" "vm" {
   memory   = 1024
   guest_id = "other3xLinux64Guest"
 
+	wait_for_guest_net_timeout = "${var.guest_net_timeout}"
+
   network_interface {
     index      = 0
     network_id = "${data.vsphere_network.network.id}"
   }
 
   disk {
-    index = 0
-    size  = %d
+    name        = "terraform-test.vmdk"
+    unit_number = 0
+    size        = %d
   }
 }
 `,
@@ -945,6 +1000,7 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 		size,
 	)
 }

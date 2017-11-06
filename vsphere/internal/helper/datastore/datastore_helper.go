@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"context"
+	"log"
 
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
@@ -15,6 +16,7 @@ import (
 
 // FromID locates a Datastore by its managed object reference ID.
 func FromID(client *govmomi.Client, id string) (*object.Datastore, error) {
+	log.Printf("[DEBUG] Locating datastore with ID %q", id)
 	finder := find.NewFinder(client.Client, false)
 
 	ref := types.ManagedObjectReference{
@@ -31,6 +33,7 @@ func FromID(client *govmomi.Client, id string) (*object.Datastore, error) {
 	// Should be safe to return here. If our reference returned here and is not a
 	// datastore, then we have bigger problems and to be honest we should be
 	// panicking anyway.
+	log.Printf("[DEBUG] Datastore with ID %q found", ds.Reference().Value)
 	return ds.(*object.Datastore), nil
 }
 

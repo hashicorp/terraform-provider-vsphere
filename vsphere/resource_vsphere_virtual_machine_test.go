@@ -512,6 +512,9 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_HOST_NIC0") == "" {
 		t.Skip("set VSPHERE_HOST_NIC0 to run vsphere_virtual_machine acceptance tests")
 	}
+	if os.Getenv("VSPHERE_GUEST_NET_TIMEOUT") == "" {
+		os.Setenv("VSPHERE_GUEST_NET_TIMEOUT", "5")
+	}
 }
 
 func testAccResourceVSphereVirtualMachineCheckExists(expected bool) resource.TestCheckFunc {

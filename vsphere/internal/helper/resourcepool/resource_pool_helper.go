@@ -3,6 +3,7 @@ package resourcepool
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/computeresource"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
@@ -37,6 +38,7 @@ func FromPathOrDefault(client *govmomi.Client, name string, dc *object.Datacente
 
 // FromID locates a ResourcePool by its managed object reference ID.
 func FromID(client *govmomi.Client, id string) (*object.ResourcePool, error) {
+	log.Printf("[DEBUG] Locating resource pool with ID %s", id)
 	finder := find.NewFinder(client.Client, false)
 
 	ref := types.ManagedObjectReference{
@@ -50,6 +52,7 @@ func FromID(client *govmomi.Client, id string) (*object.ResourcePool, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("[DEBUG] Resource pool found: %s", obj.Reference().Value)
 	return obj.(*object.ResourcePool), nil
 }
 
@@ -76,8 +79,10 @@ func Properties(obj *object.ResourcePool) (*mo.ResourcePool, error) {
 func ValidateHost(client *govmomi.Client, pool *object.ResourcePool, host *object.HostSystem) error {
 	if host == nil {
 		// Nothing to validate here, move along
+		log.Printf("[DEBUG] ValidateHost: no host supplied, nothing to do")
 		return nil
 	}
+	log.Printf("[DEBUG] Validating that host %q is a member of resource pool %q", host.Reference().Value, pool.Reference().Value)
 	pprops, err := Properties(pool)
 	if err != nil {
 		return err
@@ -88,6 +93,7 @@ func ValidateHost(client *govmomi.Client, pool *object.ResourcePool, host *objec
 	}
 	for _, href := range cprops.Host {
 		if href.Value == host.Reference().Value {
+			log.Printf("[DEBUG] Validated that host %q is a member of resource pool %q.", host.Reference().Value, pool.Reference().Value)
 			return nil
 		}
 	}
@@ -97,6 +103,7 @@ func ValidateHost(client *govmomi.Client, pool *object.ResourcePool, host *objec
 // DefaultDevices loads a default VirtualDeviceList for a supplied pool
 // and guest ID (guest OS type).
 func DefaultDevices(client *govmomi.Client, pool *object.ResourcePool, guest string) (object.VirtualDeviceList, error) {
+	log.Printf("[DEBUG] Fetching default device list for resource pool %q for OS type %q", pool.Reference().Value, guest)
 	pprops, err := Properties(pool)
 	if err != nil {
 		return nil, err

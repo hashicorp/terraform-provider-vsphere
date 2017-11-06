@@ -3,6 +3,7 @@ package virtualdevice
 import (
 	"context"
 	"fmt"
+	"log"
 	"reflect"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -128,6 +129,7 @@ func NewNetworkInterfaceSubresource(client *govmomi.Client, rd *schema.ResourceD
 // complete, updated, VirtualDeviceList, and the complete list of changes
 // returned as a slice of BaseVirtualDeviceConfigSpec.
 func NetworkInterfaceApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("[DEBUG] NetworkInterfaceApplyOperation: Beginning apply operation")
 	o, n := d.GetChange(subresourceTypeNetworkInterface)
 	ods := o.([]interface{})
 	nds := n.([]interface{})
@@ -136,6 +138,7 @@ func NetworkInterfaceApplyOperation(d *schema.ResourceData, c *govmomi.Client, l
 
 	// Our old and new sets now have an accurate description of devices that may
 	// have been added, removed, or changed. Look for removed devices first.
+	log.Printf("[DEBUG] NetworkInterfaceApplyOperation: Looking for resources to delete")
 nextOld:
 	for n, oe := range ods {
 		om := oe.(map[string]interface{})
@@ -156,29 +159,34 @@ nextOld:
 
 	// Now check for creates and updates. The results of this operation are
 	// committed to state after the operation completes.
+	log.Printf("[DEBUG] NetworkInterfaceApplyOperation: Looking for resources to create or update")
 	var updates []interface{}
-nextNew:
 	for n, ne := range nds {
 		nm := ne.(map[string]interface{})
-		for _, oe := range ods {
+		if n < len(ods) {
+			// This is an update
+			oe := ods[n]
 			om := oe.(map[string]interface{})
-			if nm["key"] == om["key"] {
-				// This is an update
-				if reflect.DeepEqual(nm, om) {
-					// no change is a no-op
-					continue nextNew
-				}
-				r := NewNetworkInterfaceSubresource(c, d, nm, om, n)
-				uspec, err := r.Update(l)
-				if err != nil {
-					return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
-				}
-				l = applyDeviceChange(l, uspec)
-				spec = append(spec, uspec...)
-				updates = append(updates, r.Data())
-				continue nextNew
+			if nm["key"] != om["key"] {
+				return nil, nil, fmt.Errorf("key mismatch on %s.%d (old: %d, new: %d). This is a bug with Terraform, please report it", subresourceTypeNetworkInterface, n, nm["key"].(int), om["key"].(int))
 			}
+			if reflect.DeepEqual(nm, om) {
+				// no change is a no-op
+				log.Printf("[DEBUG] NetworkInterfaceApplyOperation: No-op resource: key %d", nm["key"].(int))
+				updates = append(updates, nm)
+				continue
+			}
+			r := NewNetworkInterfaceSubresource(c, d, nm, om, n)
+			uspec, err := r.Update(l)
+			if err != nil {
+				return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+			}
+			l = applyDeviceChange(l, uspec)
+			spec = append(spec, uspec...)
+			updates = append(updates, r.Data())
+			continue
 		}
+		// New device
 		r := NewNetworkInterfaceSubresource(c, d, nm, nil, n)
 		cspec, err := r.Create(l)
 		if err != nil {
@@ -189,10 +197,14 @@ nextNew:
 		updates = append(updates, r.Data())
 	}
 
+	log.Printf("[DEBUG] NetworkInterfaceApplyOperation: Post-apply final resource list: %s", subresourceListString(updates))
 	// We are now done! Return the updated device list and config spec. Save updates as well.
 	if err := d.Set(subresourceTypeNetworkInterface, updates); err != nil {
 		return nil, nil, err
 	}
+	log.Printf("[DEBUG] NetworkInterfaceApplyOperation: Device list at end of operation: %s", DeviceListString(l))
+	log.Printf("[DEBUG] NetworkInterfaceApplyOperation: Device config operations from apply: %s", DeviceChangeString(spec))
+	log.Printf("[DEBUG] NetworkInterfaceApplyOperation: Apply complete, returning updated spec")
 	return l, spec, nil
 }
 
@@ -203,19 +215,23 @@ nextNew:
 // change is returned, all necessary values are just set and committed to
 // state.
 func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) error {
+	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Beginning refresh")
 	devices := l.Select(func(device types.BaseVirtualDevice) bool {
 		if _, ok := device.(types.BaseVirtualEthernetCard); ok {
 			return true
 		}
 		return false
 	})
+	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Network devices located: %s", DeviceListString(devices))
 	curSet := d.Get(subresourceTypeNetworkInterface).([]interface{})
+	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Current resource set from state: %s", subresourceListString(curSet))
 	var newSet []interface{}
 	// First check for negative keys. These are freshly added devices that are
 	// usually coming into read post-create.
 	//
 	// If we find what we are looking for, we remove the device from the working
 	// set so that we don't try and process it in the next few passes.
+	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Looking for freshly-created resources to read in")
 	for n, item := range curSet {
 		m := item.(map[string]interface{})
 		if m["key"].(int) < 1 {
@@ -227,20 +243,24 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 			if newM["key"].(int) < 1 {
 				// This should not have happened - if it did, our device
 				// creation/update logic failed somehow that we were not able to track.
-				return fmt.Errorf("device %v with address %v still unaccounted for after update/read", newM["key"], newM["device_address"])
+				return fmt.Errorf("device %d with address %s still unaccounted for after update/read", newM["key"].(int), newM["device_address"].(string))
 			}
 			newSet = append(newSet, r.Data())
 			for i := 0; i < len(devices); i++ {
 				device := devices[i]
 				if device.GetVirtualDevice().Key == int32(newM["key"].(int)) {
 					devices = append(devices[:i], devices[i+1:]...)
+					i--
 				}
 			}
 		}
 	}
+	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Network devices after freshly-created device search: %s", DeviceListString(devices))
+	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Resource set to write after freshly-created device search: %s", subresourceListString(newSet))
 
 	// Go over the remaining devices, refresh via key, and then remove their
 	// entries as well.
+	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Looking for devices known in state")
 	for i := 0; i < len(devices); i++ {
 		device := devices[i]
 		for n, item := range curSet {
@@ -262,11 +282,15 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 			// the list
 			newSet = append(newSet, r.Data())
 			devices = append(devices[:i], devices[i+1:]...)
+			i--
 		}
 	}
+	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Resource set to write after known device search: %s", subresourceListString(newSet))
+	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Probable orphaned network interfaces: %s", DeviceListString(devices))
 
 	// Finally, any device that is still here is orphaned. They should be added
 	// as new devices.
+	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Adding orphaned devices")
 	for n, device := range devices {
 		m := make(map[string]interface{})
 		vd := device.GetVirtualDevice()
@@ -283,6 +307,8 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 		newSet = append(newSet, r.Data())
 	}
 
+	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Resource set to write after adding orphaned devices: %s", subresourceListString(newSet))
+	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Refresh operation complete, sending new resource set")
 	return d.Set(subresourceTypeNetworkInterface, newSet)
 }
 
@@ -328,6 +354,7 @@ func baseVirtualDeviceToBaseVirtualEthernetCard(v types.BaseVirtualDevice) (type
 
 // Create creates a vsphere_virtual_machine network_interface sub-resource.
 func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("[DEBUG] %s: Running create", r)
 	var spec []types.BaseVirtualDeviceConfigSpec
 	ctlr, err := r.ControllerForCreateUpdate(l, SubresourceControllerTypePCI, 0)
 	if err != nil {
@@ -389,11 +416,14 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 		return nil, err
 	}
 	spec = append(spec, dspec...)
+	log.Printf("[DEBUG] %s: Device config operations from create: %s", r, DeviceChangeString(spec))
+	log.Printf("[DEBUG] %s: Create finished", r)
 	return spec, nil
 }
 
 // Read reads a vsphere_virtual_machine network_interface sub-resource.
 func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
+	log.Printf("[DEBUG] %s: Reading state", r)
 	vd, err := r.FindVirtualDevice(l)
 	if err != nil {
 		return fmt.Errorf("cannot find network device: %s", err)
@@ -466,11 +496,13 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
 		return err
 	}
 	r.SaveDevIDs(vd, ctlr)
+	log.Printf("[DEBUG] %s: Read finished (key and device address may have changed)", r)
 	return nil
 }
 
 // Update updates a vsphere_virtual_machine network_interface sub-resource.
 func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("[DEBUG] %s: Beginning update", r)
 	vd, err := r.FindVirtualDevice(l)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find network device: %s", err)
@@ -493,6 +525,7 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 	// gets the same device position as its previous incarnation, allowing old
 	// device aliases to work, etc.
 	if r.HasChange("device_type") {
+		log.Printf("[DEBUG] %s: Device type changing to %s, re-creating device", r, r.Get("adapter_type").(string))
 		card := device.GetVirtualEthernetCard()
 		newDevice, err := l.CreateEthernetCard(r.Get("adapter_type").(string), card.Backing)
 		if err != nil {
@@ -565,11 +598,14 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 		return nil, err
 	}
 	spec = append(spec, uspec...)
+	log.Printf("[DEBUG] %s: Device config operations from update: %s", r, DeviceChangeString(spec))
+	log.Printf("[DEBUG] %s: Update complete", r)
 	return spec, nil
 }
 
 // Delete deletes a vsphere_virtual_machine network_interface sub-resource.
 func (r *NetworkInterfaceSubresource) Delete(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("[DEBUG] %s: Beginning delete", r)
 	vd, err := r.FindVirtualDevice(l)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find network device: %s", err)
@@ -583,6 +619,8 @@ func (r *NetworkInterfaceSubresource) Delete(l object.VirtualDeviceList) ([]type
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("[DEBUG] %s: Device config operations from update: %s", r, DeviceChangeString(spec))
+	log.Printf("[DEBUG] %s: Delete completed", r)
 	return spec, nil
 }
 
