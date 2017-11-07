@@ -64,7 +64,7 @@ func resourceVSphereVirtualMachineV2() *schema.Resource {
 		"scsi_type": {
 			Type:         schema.TypeString,
 			Optional:     true,
-			Default:      virtualdevice.SubresourceControllerTypeLsiLogicSAS,
+			Default:      virtualdevice.SubresourceControllerTypeLsiLogic,
 			Description:  "The type of SCSI bus this virtual machine will have. Can be one of lsilogic-sas or pvscsi.",
 			ValidateFunc: validation.StringInSlice(virtualdevice.SCSIBusTypeAllowedValues, false),
 		},
@@ -428,9 +428,11 @@ func resourceVSphereVirtualMachineV2Delete(d *schema.ResourceData, meta interfac
 	// of catching any edge data issues with associated virtual disks that we may
 	// need to retain on delete. However, we ignore the user-set force shutdown
 	// flag.
-	timeout := d.Get("shutdown_wait_timeout").(int)
-	if err := virtualmachine.GracefulPowerOff(client, vm, timeout, true); err != nil {
-		return fmt.Errorf("error shutting down virtual machine: %s", err)
+	if vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOff {
+		timeout := d.Get("shutdown_wait_timeout").(int)
+		if err := virtualmachine.GracefulPowerOff(client, vm, timeout, true); err != nil {
+			return fmt.Errorf("error shutting down virtual machine: %s", err)
+		}
 	}
 	// Now attempt to detach any virtual disks that may need to be preserved.
 	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
@@ -472,6 +474,10 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 	l, delta, err = virtualdevice.NormalizeSCSIBus(l, d.Get("scsi_type").(string))
 	if err != nil {
 		return nil, err
+	}
+	if len(delta) > 0 {
+		log.Printf("[DEBUG] %s: SCSI bus has changed and requires a VM restart", resourceVSphereVirtualMachineV2IDString(d))
+		d.Set("reboot_required", true)
 	}
 	spec = append(spec, delta...)
 	// Disks

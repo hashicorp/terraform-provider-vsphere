@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -248,6 +249,33 @@ func TestAccResourceVSphereVirtualMachineV2(t *testing.T) {
 				},
 			},
 		},
+		{
+			"swap scsi bus",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineV2ConfigBasic(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckSCSIBus(virtualdevice.SubresourceControllerTypeLsiLogic),
+						),
+					},
+					{
+						Config: testAccResourceVSphereVirtualMachineV2ConfigLsiLogicSAS(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckSCSIBus(virtualdevice.SubresourceControllerTypeLsiLogicSAS),
+						),
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testAccResourceVSphereVirtualMachineV2Cases {
@@ -393,6 +421,23 @@ func testAccResourceVSphereVirtualMachineV2CheckDiskSize(expected int) resource.
 	}
 }
 
+// testAccResourceVSphereVirtualMachineV2CheckSCSIBus checks to make sure the
+// test VM's SCSI bus is all of the specified SCSI type.
+func testAccResourceVSphereVirtualMachineCheckSCSIBus(expected string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVirtualMachineProperties(s, "vm")
+		if err != nil {
+			return err
+		}
+		l := object.VirtualDeviceList(props.Config.Hardware.Device)
+		actual := virtualdevice.ReadSCSIBusState(l)
+		if expected != actual {
+			return fmt.Errorf("expected SCSI bus to be %s, got %s", expected, actual)
+		}
+		return nil
+	}
+}
+
 func testAccResourceVSphereVirtualMachineV2ConfigBasic() string {
 	return fmt.Sprintf(`
 variable "datacenter" {
@@ -443,16 +488,15 @@ resource "vsphere_virtual_machine_v2" "vm" {
   memory   = 1024
   guest_id = "other3xLinux64Guest"
 
-	wait_for_guest_net_timeout = "${var.guest_net_timeout}"
+  wait_for_guest_net_timeout = "${var.guest_net_timeout}"
 
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
   }
 
   disk {
-    name        = "terraform-test.vmdk"
-    unit_number = 0
-    size        = 20
+    name = "terraform-test.vmdk"
+    size = 20
   }
 }
 `,
@@ -514,7 +558,7 @@ resource "vsphere_virtual_machine_v2" "vm" {
   memory   = 1024
   guest_id = "other3xLinux64Guest"
 
-	wait_for_guest_net_timeout = "${var.guest_net_timeout}"
+  wait_for_guest_net_timeout = "${var.guest_net_timeout}"
 
   network_interface {
     network_id            = "${data.vsphere_network.network.id}"
@@ -532,9 +576,8 @@ resource "vsphere_virtual_machine_v2" "vm" {
   }
 
   disk {
-    name        = "terraform-test.vmdk"
-    unit_number = 0
-    size        = 20
+    name = "terraform-test.vmdk"
+    size = 20
   }
 
   disk {
@@ -577,7 +620,7 @@ variable "datastore" {
 }
 
 variable "guest_net_timeout" {
-	default = "%s"
+  default = "%s"
 }
 
 data "vsphere_datacenter" "dc" {
@@ -608,7 +651,7 @@ resource "vsphere_virtual_machine_v2" "vm" {
   memory   = 1024
   guest_id = "other3xLinux64Guest"
 
-	wait_for_guest_net_timeout = "${var.guest_net_timeout}"
+  wait_for_guest_net_timeout = "${var.guest_net_timeout}"
 
   network_interface {
     network_id            = "${data.vsphere_network.network.id}"
@@ -621,9 +664,8 @@ resource "vsphere_virtual_machine_v2" "vm" {
   }
 
   disk {
-    name        = "terraform-test.vmdk"
-    unit_number = 0
-    size        = 20
+    name = "terraform-test.vmdk"
+    size = 20
   }
 
   disk {
@@ -711,9 +753,8 @@ resource "vsphere_virtual_machine_v2" "vm" {
   }
 
   disk {
-    name        = "terraform-test.vmdk"
-    unit_number = 0
-    size        = 20
+    name = "terraform-test.vmdk"
+    size = 20
   }
 
   cdrom {
@@ -782,16 +823,15 @@ resource "vsphere_virtual_machine_v2" "vm" {
   memory   = 8192
   guest_id = "other3xLinux64Guest"
 
-	wait_for_guest_net_timeout = "${var.guest_net_timeout}"
+  wait_for_guest_net_timeout = "${var.guest_net_timeout}"
 
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
   }
 
   disk {
-    name        = "terraform-test.vmdk"
-    unit_number = 0
-    size        = 20
+    name = "terraform-test.vmdk"
+    size = 20
   }
 }
 `,
@@ -863,9 +903,8 @@ resource "vsphere_virtual_machine_v2" "vm" {
   }
 
   disk {
-    name        = "terraform-test.vmdk"
-    unit_number = 0
-    size        = 20
+    name = "terraform-test.vmdk"
+    size = 20
   }
 }
 `,
@@ -944,9 +983,8 @@ resource "vsphere_virtual_machine_v2" "vm" {
   }
 
   disk {
-    name        = "terraform-test.vmdk"
-    unit_number = 0
-    size        = 20
+    name = "terraform-test.vmdk"
+    size = 20
   }
 }
 `,
@@ -1016,9 +1054,8 @@ resource "vsphere_virtual_machine_v2" "vm" {
   }
 
   disk {
-    name        = "terraform-test.vmdk"
-    unit_number = 0
-    size        = %d
+    name = "terraform-test.vmdk"
+    size = %d
   }
 }
 `,
@@ -1028,5 +1065,77 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 		size,
+	)
+}
+
+func testAccResourceVSphereVirtualMachineV2ConfigLsiLogicSAS() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "guest_net_timeout" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine_v2" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 1024
+  guest_id = "other3xLinux64Guest"
+
+	scsi_type = "lsilogic-sas"
+
+  wait_for_guest_net_timeout = "${var.guest_net_timeout}"
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    name = "terraform-test.vmdk"
+    size = 20
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 	)
 }

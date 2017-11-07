@@ -270,7 +270,7 @@ func ShutdownGuest(client *govmomi.Client, vm *object.VirtualMachine, timeout in
 func GracefulPowerOff(client *govmomi.Client, vm *object.VirtualMachine, timeout int, force bool) error {
 	vprops, err := Properties(vm)
 	if err != nil {
-		return fmt.Errorf("cannot fetch properties of virtual machine: %s", err)
+		return err
 	}
 	// First we attempt a guest shutdown if we have VMware tools and if the VM is
 	// actually powered on (we don't expect that a graceful shutdown would

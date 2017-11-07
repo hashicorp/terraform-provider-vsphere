@@ -36,8 +36,12 @@ const (
 	// VMware PV SCSI controller type.
 	SubresourceControllerTypeParaVirtual = "pvscsi"
 
+	// SubresourceControllerTypeLsiLogic is a string representation of the
+	// LSI Logic parallel virtual SCSI controller type.
+	SubresourceControllerTypeLsiLogic = "lsilogic"
+
 	// SubresourceControllerTypeLsiLogicSAS is a string representation of the
-	// LSI Logic virtual SCSI controller type.
+	// LSI Logic SAS virtual SCSI controller type.
 	SubresourceControllerTypeLsiLogicSAS = "lsilogic-sas"
 
 	// SubresourceControllerTypePCI is a string representation of PCI controller
@@ -69,6 +73,7 @@ var sharesLevelAllowedValues = []string{
 // field.
 var SCSIBusTypeAllowedValues = []string{
 	SubresourceControllerTypeParaVirtual,
+	SubresourceControllerTypeLsiLogic,
 	SubresourceControllerTypeLsiLogicSAS,
 }
 
@@ -340,6 +345,9 @@ func findVirtualDeviceInListControllerSelectFunc(ct string, cb int) func(types.B
 			case *types.VirtualLsiLogicSASController:
 				ctlr = v
 				goto controllerFound
+			case *types.VirtualLsiLogicController:
+				ctlr = v
+				goto controllerFound
 			}
 			return false
 		case SubresourceControllerTypePCI:
@@ -454,6 +462,7 @@ func swapSCSIDevice(l object.VirtualDeviceList, device types.BaseVirtualSCSICont
 	if err != nil {
 		return nil, err
 	}
+	nsd.(types.BaseVirtualSCSIController).GetVirtualSCSIController().BusNumber = device.GetVirtualSCSIController().BusNumber
 	cspec, err = object.VirtualDeviceList{nsd}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
 	if err != nil {
 		return nil, err
@@ -462,12 +471,14 @@ func swapSCSIDevice(l object.VirtualDeviceList, device types.BaseVirtualSCSICont
 	ockey := device.GetVirtualSCSIController().Key
 	nckey := nsd.GetVirtualDevice().Key
 	for _, vd := range l {
-		if vd.GetVirtualDevice().Key == ockey {
-			vd.GetVirtualDevice().Key = nckey
+		if vd.GetVirtualDevice().ControllerKey == ockey {
+			vd.GetVirtualDevice().ControllerKey = nckey
 			cspec, err := object.VirtualDeviceList{vd}.ConfigSpec(types.VirtualDeviceConfigSpecOperationEdit)
 			if err != nil {
 				return nil, err
 			}
+			// Clear the file operation
+			cspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
 			spec = append(spec, cspec...)
 		}
 	}
