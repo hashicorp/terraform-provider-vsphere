@@ -677,7 +677,7 @@ resource "vsphere_virtual_machine_v2" "vm" {
   memory   = 1024
   guest_id = "other3xLinux64Guest"
 
-  wait_for_guest_net_timeout = ${var.guest_net_timeout}
+  wait_for_guest_net_timeout = "${var.guest_net_timeout}"
 
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
@@ -873,11 +873,11 @@ variable "datastore" {
   default = "%s"
 }
 
-variable "annotation" {
+variable "guest_net_timeout" {
 	default = "%s"
 }
 
-variable "guest_net_timeout" {
+variable "annotation" {
 	default = "%s"
 }
 
