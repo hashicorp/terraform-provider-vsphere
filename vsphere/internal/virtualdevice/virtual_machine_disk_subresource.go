@@ -527,7 +527,10 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	r.SaveDevIDs(disk, ctlr)
 
 	// Save disk backing settings
-	b := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+	b, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+	if !ok {
+		return fmt.Errorf("disk backing at %s is of an unsupported type (type %T)", r.Get("device_address").(string), disk.Backing)
+	}
 	r.Set("disk_mode", b.DiskMode)
 	r.Set("write_through", b.WriteThrough)
 	r.Set("disk_sharing", b.Sharing)
