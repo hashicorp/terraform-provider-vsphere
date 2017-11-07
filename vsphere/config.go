@@ -87,7 +87,9 @@ func (c *Config) Client() (*VSphereClient, error) {
 	}
 
 	// Set up the VIM/govmomi client connection.
-	client.vimClient, err = govmomi.NewClient(context.TODO(), u, c.InsecureFlag)
+	vctx, vcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer vcancel()
+	client.vimClient, err = govmomi.NewClient(vctx, u, c.InsecureFlag)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up client: %s", err)
 	}
@@ -103,9 +105,9 @@ func (c *Config) Client() (*VSphereClient, error) {
 	// Otherwise, connect to the CIS REST API for tagging.
 	log.Printf("[INFO] Logging in to CIS REST API endpoint on %s", c.VSphereServer)
 	client.tagsClient = tags.NewClient(u, c.InsecureFlag, "")
-	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
-	defer cancel()
-	if err := client.tagsClient.Login(ctx); err != nil {
+	tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer tcancel()
+	if err := client.tagsClient.Login(tctx); err != nil {
 		return nil, fmt.Errorf("Error connecting to CIS REST endpoint: %s", err)
 	}
 	// Done
