@@ -668,6 +668,10 @@ func DeviceChangeString(specs []types.BaseVirtualDeviceConfigSpec) string {
 func subresourceListString(data []interface{}) string {
 	var strs []string
 	for _, v := range data {
+		if v == nil {
+			strs = append(strs, "(<nil>)")
+			continue
+		}
 		m := v.(map[string]interface{})
 		devaddr := m["device_address"].(string)
 		if devaddr == "" {

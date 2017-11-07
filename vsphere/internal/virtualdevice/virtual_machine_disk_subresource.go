@@ -281,16 +281,15 @@ func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 			if err := r.Read(l); err != nil {
 				return fmt.Errorf("%s: %s", r.Addr(), err)
 			}
-			newM := r.Data()
-			if newM["key"].(int) < 1 {
+			if r.Get("key").(int) < 1 {
 				// This should not have happened - if it did, our device
 				// creation/update logic failed somehow that we were not able to track.
-				return fmt.Errorf("device %d with address %s still unaccounted for after update/read", newM["key"].(int), newM["device_address"].(string))
+				return fmt.Errorf("device %d with address %s still unaccounted for after update/read", r.Get("key").(int), r.Get("device_address").(string))
 			}
 			newSet = append(newSet, r.Data())
 			for i := 0; i < len(devices); i++ {
 				device := devices[i]
-				if device.GetVirtualDevice().Key == int32(newM["key"].(int)) {
+				if device.GetVirtualDevice().Key == int32(r.Get("key").(int)) {
 					devices = append(devices[:i], devices[i+1:]...)
 					i--
 				}

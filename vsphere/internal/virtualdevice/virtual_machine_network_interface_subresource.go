@@ -18,6 +18,9 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+// networkInterfacePciDeviceOffset defines the PCI offset for virtual NICs on a vSphere PCI bus.
+const networkInterfacePciDeviceOffset = 7
+
 const (
 	networkInterfaceSubresourceTypeE1000   = "e1000"
 	networkInterfaceSubresourceTypeVmxnet3 = "vmxnet3"
@@ -225,7 +228,7 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Network devices located: %s", DeviceListString(devices))
 	curSet := d.Get(subresourceTypeNetworkInterface).([]interface{})
 	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Current resource set from state: %s", subresourceListString(curSet))
-	var newSet []interface{}
+	newSet := make([]interface{}, len(devices))
 	// First check for negative keys. These are freshly added devices that are
 	// usually coming into read post-create.
 	//
@@ -239,16 +242,19 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 			if err := r.Read(l); err != nil {
 				return fmt.Errorf("%s: %s", r.Addr(), err)
 			}
-			newM := r.Data()
-			if newM["key"].(int) < 1 {
+			if r.Get("key").(int) < 1 {
 				// This should not have happened - if it did, our device
 				// creation/update logic failed somehow that we were not able to track.
-				return fmt.Errorf("device %d with address %s still unaccounted for after update/read", newM["key"].(int), newM["device_address"].(string))
+				return fmt.Errorf("device %d with address %s still unaccounted for after update/read", r.Get("key").(int), r.Get("device_address").(string))
 			}
-			newSet = append(newSet, r.Data())
+			_, _, idx, err := splitDevAddr(r.Get("device_address").(string))
+			if err != nil {
+				return fmt.Errorf("%s: error parsing device address: %s", r, err)
+			}
+			newSet[idx-networkInterfacePciDeviceOffset] = r.Data()
 			for i := 0; i < len(devices); i++ {
 				device := devices[i]
-				if device.GetVirtualDevice().Key == int32(newM["key"].(int)) {
+				if device.GetVirtualDevice().Key == int32(r.Get("key").(int)) {
 					devices = append(devices[:i], devices[i+1:]...)
 					i--
 				}
@@ -280,7 +286,11 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 			}
 			// Done reading, push this onto our new set and remove the device from
 			// the list
-			newSet = append(newSet, r.Data())
+			_, _, idx, err := splitDevAddr(r.Get("device_address").(string))
+			if err != nil {
+				return fmt.Errorf("%s: error parsing device address: %s", r, err)
+			}
+			newSet[idx-networkInterfacePciDeviceOffset] = r.Data()
 			devices = append(devices[:i], devices[i+1:]...)
 			i--
 		}
@@ -304,7 +314,11 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 		if err := r.Read(l); err != nil {
 			return fmt.Errorf("%s: %s", r.Addr(), err)
 		}
-		newSet = append(newSet, r.Data())
+		_, _, idx, err := splitDevAddr(r.Get("device_address").(string))
+		if err != nil {
+			return fmt.Errorf("%s: error parsing device address: %s", r, err)
+		}
+		newSet[idx-networkInterfacePciDeviceOffset] = r.Data()
 	}
 
 	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Resource set to write after adding orphaned devices: %s", subresourceListString(newSet))
@@ -631,7 +645,7 @@ func (r *NetworkInterfaceSubresource) Delete(l object.VirtualDeviceList) ([]type
 func (r *NetworkInterfaceSubresource) assignEthernetCard(l object.VirtualDeviceList, device types.BaseVirtualDevice, c types.BaseVirtualController) error {
 	// The PCI device offset. This seems to be where vSphere starts assigning
 	// virtual NICs on the PCI controller.
-	pciDeviceOffset := int32(7)
+	pciDeviceOffset := int32(networkInterfacePciDeviceOffset)
 
 	// The first part of this is basically the private newUnitNumber function
 	// from VirtualDeviceList, with a maximum unit count of 10. This basically
