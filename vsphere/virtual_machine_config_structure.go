@@ -520,11 +520,13 @@ func expandCPUCountConfig(d *schema.ResourceData) int32 {
 	case oldCPUCount < newCPUCount:
 		// Adding CPUs
 		if !currentHotAdd {
+			log.Printf("[DEBUG] %s: CPU operation requires a VM restart", resourceVSphereVirtualMachineV2IDString(d))
 			d.Set("reboot_required", true)
 		}
 	case oldCPUCount > newCPUCount:
 		// Removing CPUs
 		if !currentHotRemove {
+			log.Printf("[DEBUG] %s: CPU operation requires a VM restart", resourceVSphereVirtualMachineV2IDString(d))
 			d.Set("reboot_required", true)
 		}
 	}
@@ -546,10 +548,12 @@ func expandMemorySizeConfig(d *schema.ResourceData) int64 {
 	case oldMem < newMem:
 		// Adding CPUs
 		if !currentHotAdd {
+			log.Printf("[DEBUG] %s: Memory operation requires a VM restart", resourceVSphereVirtualMachineV2IDString(d))
 			d.Set("reboot_required", true)
 		}
 	case oldMem > newMem:
 		// Removing memory always requires a reboot
+		log.Printf("[DEBUG] %s: Memory operation requires a VM restart", resourceVSphereVirtualMachineV2IDString(d))
 		d.Set("reboot_required", true)
 	}
 	return newMem

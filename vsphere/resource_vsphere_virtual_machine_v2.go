@@ -99,6 +99,11 @@ func resourceVSphereVirtualMachineV2() *schema.Resource {
 			Computed:    true,
 			Description: "Value internal to Terraform used to determine if a configuration set change requires a reboot.",
 		},
+		"vmware_tools_status": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The state of VMware tools in the guest. This will determine the proper course of action for some device operations.",
+		},
 		"vmx_path": {
 			Type:        schema.TypeString,
 			Computed:    true,
@@ -230,6 +235,11 @@ func resourceVSphereVirtualMachineV2Read(d *schema.ResourceData, meta interface{
 	// Reset reboot_required. This is an update only variable and should not be
 	// set across TF runs.
 	d.Set("reboot_required", false)
+	// Check to see if VMware tools is running.
+	if vprops.Guest != nil {
+		d.Set("vmware_tools_status", vprops.Guest.ToolsRunningStatus)
+	}
+
 	// Resource pool
 	if vprops.ResourcePool != nil {
 		d.Set("resource_pool_id", vprops.ResourcePool.Value)

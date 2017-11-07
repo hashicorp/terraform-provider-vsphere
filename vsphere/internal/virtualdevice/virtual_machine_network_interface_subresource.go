@@ -570,6 +570,10 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 		// Ensure the device starts connected
 		// Set the key
 		newCard.Key = l.NewKey()
+		// If VMware tools is not running, this operation requires a reboot
+		if r.resourceData.Get("vmware_tools_status").(string) != string(types.VirtualMachineToolsRunningStatusGuestToolsRunning) {
+			r.SetRestart("device_type")
+		}
 		// Push the delete of the old device
 		bvd := baseVirtualEthernetCardToBaseVirtualDevice(device)
 		dspec, err := object.VirtualDeviceList{bvd}.ConfigSpec(types.VirtualDeviceConfigSpecOperationRemove)
@@ -641,6 +645,10 @@ func (r *NetworkInterfaceSubresource) Delete(l object.VirtualDeviceList) ([]type
 	device, err := baseVirtualDeviceToBaseVirtualEthernetCard(vd)
 	if err != nil {
 		return nil, err
+	}
+	// If VMware tools is not running, this operation requires a reboot
+	if r.resourceData.Get("vmware_tools_status").(string) != string(types.VirtualMachineToolsRunningStatusGuestToolsRunning) {
+		r.SetRestart("<device delete>")
 	}
 	bvd := baseVirtualEthernetCardToBaseVirtualDevice(device)
 	spec, err := object.VirtualDeviceList{bvd}.ConfigSpec(types.VirtualDeviceConfigSpecOperationRemove)
