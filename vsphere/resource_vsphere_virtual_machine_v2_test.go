@@ -221,6 +221,33 @@ func TestAccResourceVSphereVirtualMachineV2(t *testing.T) {
 				},
 			},
 		},
+		{
+			"grow disk",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineV2ConfigGrowDisk(10),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineV2CheckDiskSize(10),
+						),
+					},
+					{
+						Config: testAccResourceVSphereVirtualMachineV2ConfigGrowDisk(20),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineV2CheckDiskSize(20),
+						),
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testAccResourceVSphereVirtualMachineV2Cases {
@@ -985,7 +1012,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
 	wait_for_guest_net_timeout = "${var.guest_net_timeout}"
 
   network_interface {
-    index      = 0
     network_id = "${data.vsphere_network.network.id}"
   }
 

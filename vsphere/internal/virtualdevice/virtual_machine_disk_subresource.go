@@ -590,6 +590,8 @@ func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtua
 	if err != nil {
 		return nil, err
 	}
+	// Clear file operation - VirtualDeviceList currently sets this to replace, which is invalid
+	dspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
 	log.Printf("[DEBUG] %s: Device config operations from update: %s", r, DeviceChangeString(dspec))
 	log.Printf("[DEBUG] %s: Update complete", r)
 	return dspec, nil
