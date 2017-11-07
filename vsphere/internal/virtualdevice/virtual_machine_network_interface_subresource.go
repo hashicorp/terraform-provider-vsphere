@@ -228,7 +228,12 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Network devices located: %s", DeviceListString(devices))
 	curSet := d.Get(subresourceTypeNetworkInterface).([]interface{})
 	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Current resource set from state: %s", subresourceListString(curSet))
-	newSet := make([]interface{}, len(devices))
+	urange, err := unitRange(devices)
+	if err != nil {
+		return fmt.Errorf("error calculating network device range: %s", err)
+	}
+	newSet := make([]interface{}, urange)
+	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: %d devices over a %d unit range", len(devices), urange)
 	// First check for negative keys. These are freshly added devices that are
 	// usually coming into read post-create.
 	//
@@ -319,6 +324,15 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 			return fmt.Errorf("%s: error parsing device address: %s", r, err)
 		}
 		newSet[idx-networkInterfacePciDeviceOffset] = r.Data()
+	}
+
+	// Prune any nils from the new device state. This could potentially happen in
+	// edge cases where device unit numbers are not 100% sequential.
+	for i := 0; i < len(newSet); i++ {
+		if newSet[i] == nil {
+			newSet = append(newSet[:i], newSet[i+1:]...)
+			i--
+		}
 	}
 
 	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Resource set to write after adding orphaned devices: %s", subresourceListString(newSet))
