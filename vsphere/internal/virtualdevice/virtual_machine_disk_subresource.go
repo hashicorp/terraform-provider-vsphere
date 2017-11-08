@@ -6,6 +6,8 @@ import (
 	"log"
 	"math"
 	"path"
+	"sort"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -475,6 +477,127 @@ nextNew:
 	return d.SetNew(subresourceTypeDisk, normalized)
 }
 
+// DiskCloneValidateOperation takes the VirtualDeviceList, which should come
+// from a source VM or template, and validates the following:
+//
+// * There are at least as many disks defined in the configuration as there are
+// in the source VM or template.
+// * All disks survive a disk sub-resource read operation.
+//
+// This function is meant to be called during diff customization. It is a
+// subset of the normal refresh behaviour as we don't worry about checking
+// existing state.
+func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l object.VirtualDeviceList) error {
+	log.Printf("[DEBUG] DiskCloneValidateOperation: Checking existing virtual disk configuration")
+	devices := l.Select(func(device types.BaseVirtualDevice) bool {
+		if _, ok := device.(*types.VirtualDisk); ok {
+			return true
+		}
+		return false
+	})
+	// Sort the device list, in case it's not sorted already.
+	devSort := virtualDeviceListSorter{
+		VirtualDeviceList: devices,
+	}
+	sort.Sort(devSort)
+	devices = devSort.VirtualDeviceList
+	log.Printf("[DEBUG] DiskCloneValidateOperation: Disk devices order after sort: %s", DeviceListString(devices))
+	// Do the same for our listed disks.
+	curSet := d.Get(subresourceTypeDisk).(*schema.Set).List()
+	log.Printf("[DEBUG] DiskCloneValidateOperation: Current resource set: %s", subresourceListString(curSet))
+	sort.Sort(virtualDiskSubresourceSorter(curSet))
+	log.Printf("[DEBUG] DiskCloneValidateOperation: Resource set order after sort: %s", subresourceListString(curSet))
+
+	// Quickly validate length. If there are more disks in the template than
+	// there is in the configuration, kick out an error.
+	if len(devices) > len(curSet) {
+		return fmt.Errorf("not enough disks in configuration - you need at least %d to use this template (current: %d)", len(devices), len(curSet))
+	}
+
+	// Do test read operations on all disks.
+	log.Printf("[DEBUG] DiskCloneValidateOperation: Running test read operations on all disks")
+	for i, device := range devices {
+		m := make(map[string]interface{})
+		vd := device.GetVirtualDevice()
+		ctlr := l.FindByKey(vd.ControllerKey)
+		if ctlr == nil {
+			return fmt.Errorf("could not find controller with key %d", vd.Key)
+		}
+		m["key"] = int(vd.Key)
+		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		r := NewDiskSubresource(c, nil, d, m, nil)
+		if err := r.Read(l); err != nil {
+			return fmt.Errorf("%s: validation failed (%s)", r.Addr(), err)
+		}
+		// Quickly compare size as well, as disks need to be at least the same size
+		// as the source disks, or else the operation will fail on the reconfigure.
+		targetM := curSet[i].(map[string]interface{})
+		tr := NewDiskSubresource(c, nil, d, targetM, nil)
+		if tr.Get("size").(int) < r.Get("size").(int) {
+			return fmt.Errorf("%s: disk name %s must have a minimum size of %d", tr.Addr(), tr.Get("name").(string), r.Get("size").(int))
+		}
+	}
+	log.Printf("[DEBUG] DiskCloneValidateOperation: All disks in source validated successfully")
+	return nil
+}
+
+// DiskCloneRelocateOperation assembles the
+// VirtualMachineRelocateSpecDiskLocator slice for a virtual machine clone
+// operation.
+//
+// This differs from a regular storage vMotion in that we have no existing
+// devices in the resource to work off of - the disks in the source virtual
+// machine is purely our source of truth. These disks are assigned to our disk
+// sub-resources in config and the relocate specs are generated off of the
+// filename and backing data defined in config, taking on these filenames when
+// cloned. After the clone is complete, natural re-configuration happens to
+// bring the disk configurations fully in sync with that is defined.
+func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) ([]types.VirtualMachineRelocateSpecDiskLocator, error) {
+	log.Printf("[DEBUG] DiskCloneRelocateOperation: Generating full disk relocate spec list")
+	devices := l.Select(func(device types.BaseVirtualDevice) bool {
+		if _, ok := device.(*types.VirtualDisk); ok {
+			return true
+		}
+		return false
+	})
+	log.Printf("[DEBUG] DiskCloneRelocateOperation: Disk devices located: %s", DeviceListString(devices))
+	// Sort the device list, in case it's not sorted already.
+	devSort := virtualDeviceListSorter{
+		VirtualDeviceList: devices,
+	}
+	sort.Sort(devSort)
+	devices = devSort.VirtualDeviceList
+	log.Printf("[DEBUG] DiskCloneRelocateOperation: Disk devices order after sort: %s", DeviceListString(devices))
+	// Do the same for our listed disks.
+	curSet := d.Get(subresourceTypeDisk).(*schema.Set).List()
+	log.Printf("[DEBUG] DiskCloneRelocateOperation: Current resource set: %s", subresourceListString(curSet))
+	sort.Sort(virtualDiskSubresourceSorter(curSet))
+	log.Printf("[DEBUG] DiskCloneRelocateOperation: Resource set order after sort: %s", subresourceListString(curSet))
+
+	log.Printf("[DEBUG] DiskCloneRelocateOperation: Generating relocators for source disks")
+	var relocators []types.VirtualMachineRelocateSpecDiskLocator
+	for i, device := range devices {
+		m := curSet[i].(map[string]interface{})
+		vd := device.GetVirtualDevice()
+		ctlr := l.FindByKey(vd.ControllerKey)
+		if ctlr == nil {
+			return nil, fmt.Errorf("could not find controller with key %d", vd.Key)
+		}
+		m["key"] = int(vd.Key)
+		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		r := NewDiskSubresource(c, d, nil, m, nil)
+		relocator, err := r.Relocate(l)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %s", r.Addr(), err)
+		}
+		relocators = append(relocators, relocator)
+	}
+
+	log.Printf("[DEBUG] DiskCloneRelocateOperation: Disk relocator list: %s", diskRelocateListString(relocators))
+	log.Printf("[DEBUG] DiskCloneRelocateOperation: Disk relocator generation complete")
+	return relocators, nil
+}
+
 // Create creates a vsphere_virtual_machine disk sub-resource.
 func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] %s: Running create", r)
@@ -657,6 +780,69 @@ func (r *DiskSubresource) NormalizeDiff() error {
 	return nil
 }
 
+// Relocate produces a VirtualMachineRelocateSpecDiskLocator for this resource
+// and is used for both cloning and storage vMotion.
+func (r *DiskSubresource) Relocate(l object.VirtualDeviceList) (types.VirtualMachineRelocateSpecDiskLocator, error) {
+	log.Printf("[DEBUG] %s: Starting relocate generation", r)
+	device, err := r.FindVirtualDevice(l)
+	var relocate types.VirtualMachineRelocateSpecDiskLocator
+	if err != nil {
+		return relocate, fmt.Errorf("cannot find disk device: %s", err)
+	}
+	disk, ok := device.(*types.VirtualDisk)
+	if !ok {
+		return relocate, fmt.Errorf("device at %q is not a virtual disk", l.Name(device))
+	}
+
+	// Expand all of the necessary disk settings first. This ensures all backing
+	// data is properly populate and updated.
+	if err := r.expandDiskSettings(disk); err != nil {
+		return relocate, err
+	}
+
+	relocate.DiskId = disk.Key
+
+	// Set the datastore for the relocation
+	dsID := r.Get("datastore_id").(string)
+	if dsID == "" {
+		// Default to the default datastore
+		dsID = r.resourceData.Get("datastore_id").(string)
+	}
+	ds, err := datastore.FromID(r.client, dsID)
+	if err != nil {
+		return relocate, err
+	}
+	dsref := ds.Reference()
+	relocate.Datastore = dsref
+
+	// Add additional backing options if we are cloning.
+	if r.resourceData.Id() == "" {
+		log.Printf("[DEBUG] %s: Adding additional options to relocator for cloning", r)
+		relocate.DiskBackingInfo = disk.Backing
+
+		// Set the new name. This is basically the same logic as create.
+		diskName := r.Get("name").(string)
+		vmxPath := r.resourceData.Get("vmx_path").(string)
+		if path.Base(diskName) == diskName && vmxPath != "" {
+			diskName = path.Join(path.Dir(vmxPath), diskName)
+		}
+		relocate.DiskBackingInfo.(*types.VirtualDiskFlatVer2BackingInfo).FileName = ds.Path(diskName)
+		relocate.DiskBackingInfo.(*types.VirtualDiskFlatVer2BackingInfo).Datastore = &dsref
+
+		// Check the kind of clone operation we need to do, depending on if linked clones are configured.
+		if r.resourceData.Get("clone.0.linked_clone").(bool) {
+			relocate.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsCreateNewChildDiskBacking)
+		} else {
+			relocate.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsMoveAllDiskBackingsAndDisallowSharing)
+		}
+	}
+
+	// Done!
+	log.Printf("[DEBUG] %s: Generated disk locator: %s", r, diskRelocateString(relocate))
+	log.Printf("[DEBUG] %s: Relocate generation complete", r)
+	return relocate, nil
+}
+
 // String prints out the disk sub-resource's information including the ID at
 // time of instantiation, the short name of the disk, and the current device
 // key and address.
@@ -818,4 +1004,86 @@ func (r *Subresource) findControllerInfo(l object.VirtualDeviceList, disk *types
 		unit--
 	}
 	return int(unit), ctlr.(types.BaseVirtualController), nil
+}
+
+// diskRelocateListString pretty-prints a list of
+// VirtualMachineRelocateSpecDiskLocator.
+func diskRelocateListString(relocators []types.VirtualMachineRelocateSpecDiskLocator) string {
+	var out []string
+	for _, relocate := range relocators {
+		out = append(out, diskRelocateString(relocate))
+	}
+	return strings.Join(out, ",")
+}
+
+// diskRelocateString prints out information from a
+// VirtualMachineRelocateSpecDiskLocator in a friendly way.
+//
+// The format depends on whether or not a backing has been defined.
+func diskRelocateString(relocate types.VirtualMachineRelocateSpecDiskLocator) string {
+	key := relocate.DiskId
+	var locstring string
+	if relocate.DiskBackingInfo != nil {
+		locstring = relocate.DiskBackingInfo.(*types.VirtualDiskFlatVer2BackingInfo).FileName
+	} else {
+		locstring = relocate.Datastore.Value
+	}
+	return fmt.Sprintf("(%d => %s)", key, locstring)
+}
+
+// virtualDeviceListSorter is an internal type to facilitate sorting of a BaseVirtualDeviceList.
+type virtualDeviceListSorter struct {
+	object.VirtualDeviceList
+}
+
+// Len implements sort.Interface for virtualDeviceListSorter.
+func (l virtualDeviceListSorter) Len() int {
+	return len(l.VirtualDeviceList)
+}
+
+// Less helps implement sort.Interface for virtualDeviceListSorter. A
+// BaseVirtualDevice is "less" than another device if its controller's bus
+// number and unit number combination are earlier in the order than the other.
+func (l virtualDeviceListSorter) Less(i, j int) bool {
+	li := l.VirtualDeviceList[i]
+	lj := l.VirtualDeviceList[j]
+	liCtlr := l.FindByKey(li.GetVirtualDevice().ControllerKey)
+	ljCtlr := l.FindByKey(lj.GetVirtualDevice().ControllerKey)
+	if liCtlr == nil || ljCtlr == nil {
+		panic(errors.New("virtualDeviceListSorter cannot be used with devices that are not assigned to a controller"))
+	}
+	if liCtlr.(types.BaseVirtualController).GetVirtualController().BusNumber < liCtlr.(types.BaseVirtualController).GetVirtualController().BusNumber {
+		return true
+	}
+	liUnit := li.GetVirtualDevice().UnitNumber
+	ljUnit := lj.GetVirtualDevice().UnitNumber
+	if liUnit == nil || ljUnit == nil {
+		panic(errors.New("virtualDeviceListSorter cannot be used with devices that do not have unit numbers set"))
+	}
+	return *liUnit < *ljUnit
+}
+
+// Swap helps implement sort.Interface for virtualDeviceListSorter.
+func (l virtualDeviceListSorter) Swap(i, j int) {
+	l.VirtualDeviceList[i], l.VirtualDeviceList[j] = l.VirtualDeviceList[j], l.VirtualDeviceList[i]
+}
+
+// virtualDiskSubresourceSorter sorts a list of disk sub-resources, based on unit number.
+type virtualDiskSubresourceSorter []interface{}
+
+// Len implements sort.Interface for virtualDiskSubresourceSorter.
+func (s virtualDiskSubresourceSorter) Len() int {
+	return len(s)
+}
+
+// Less helps implement sort.Interface for virtualDiskSubresourceSorter.
+func (s virtualDiskSubresourceSorter) Less(i, j int) bool {
+	mi := s[i].(map[string]interface{})
+	mj := s[j].(map[string]interface{})
+	return mi["unit_number"].(int) < mj["unit_number"].(int)
+}
+
+// Swap helps implement sort.Interface for virtualDiskSubresourceSorter.
+func (s virtualDiskSubresourceSorter) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
 }
