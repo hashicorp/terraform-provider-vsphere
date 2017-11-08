@@ -828,13 +828,6 @@ func (r *DiskSubresource) Relocate(l object.VirtualDeviceList) (types.VirtualMac
 		}
 		relocate.DiskBackingInfo.(*types.VirtualDiskFlatVer2BackingInfo).FileName = ds.Path(diskName)
 		relocate.DiskBackingInfo.(*types.VirtualDiskFlatVer2BackingInfo).Datastore = &dsref
-
-		// Check the kind of clone operation we need to do, depending on if linked clones are configured.
-		if r.resourceData.Get("clone.0.linked_clone").(bool) {
-			relocate.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsCreateNewChildDiskBacking)
-		} else {
-			relocate.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsMoveAllDiskBackingsAndDisallowSharing)
-		}
 	}
 
 	// Done!
