@@ -13,6 +13,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/vmworkflow"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
@@ -456,10 +457,136 @@ func resourceVSphereVirtualMachineV2Delete(d *schema.ResourceData, meta interfac
 }
 
 func resourceVSphereVirtualMachineV2CustomizeDiff(d *schema.ResourceDiff, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Performing diff customization and validation", resourceVSphereVirtualMachineV2IDString(d))
 	client := meta.(*VSphereClient).vimClient
-	// The only diff customization we are doing in this resource right now is
-	// disk-related, so just pass off to that.
-	return virtualdevice.DiskDiffOperation(d, client)
+	// If this is a new resource and we are cloning, perform all clone validation
+	// operations.
+	if len(d.Get("clone").([]interface{})) > 0 {
+		if err := vmworkflow.ValidateVirtualMachineClone(d, client); err != nil {
+			return err
+		}
+	}
+	// Validate and normalize disk sub-resources
+	if err := virtualdevice.DiskDiffOperation(d, client); err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] %s: Diff customization and validation complete", resourceVSphereVirtualMachineV2IDString(d))
+	return nil
+}
+
+// resourceVSphereVirtualMachineV2CreateClone contains the clone part of the VM
+// creation workflow. It expects some of the common stuff done - namely the
+// name of the VM and the folder already fetched. The VM is returned.
+func resourceVSphereVirtualMachineV2CreateClone(d *schema.ResourceData, c *govmomi.Client) (*object.VirtualMachine, error) {
+	log.Printf("[DEBUG] %s: VM being created from clone", resourceVSphereVirtualMachineV2IDString(d))
+
+	// Find the folder based off the path to the resource pool. Basically what we
+	// are saying here is that the VM folder that we are placing this VM in needs
+	// to be in the same hierarchy as the resource pool - so in other words, the
+	// same datacenter.
+	poolID := d.Get("resource_pool_id").(string)
+	pool, err := resourcepool.FromID(c, poolID)
+	if err != nil {
+		return nil, fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
+	}
+	fo, err := folder.VirtualMachineFolderFromObject(c, pool, d.Get("folder").(string))
+	if err != nil {
+		return nil, err
+	}
+
+	// Expand the clone spec. We get the source VM here too.
+	cloneSpec, srcVM, err := vmworkflow.ExpandVirtualMachineCloneSpec(d, c)
+	if err != nil {
+		return nil, err
+	}
+
+	// Start the clone
+	name := d.Get("name").(string)
+	timeout := d.Get("clone.0.timeout").(int)
+	vm, err := virtualmachine.Clone(c, srcVM, fo, name, cloneSpec, timeout)
+	if err != nil {
+		return nil, fmt.Errorf("error cloning virtual machine: %s", err)
+	}
+
+	// VM is created. Set the ID now before proceeding, in case the rest of the
+	// process here fails.
+	vprops, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return nil, fmt.Errorf("cannot fetch properties of created virtual machine: %s", err)
+	}
+	log.Printf("[DEBUG] VM %q - UUID is %q", vm.InventoryPath, vprops.Config.Uuid)
+	d.SetId(vprops.Config.Uuid)
+
+	// Before starting or proceeding any further, we need to normalize the
+	// configuration of the newly cloned VM. This is basically a subset of update
+	// with the stipulation that there is currently no state to help move this
+	// along.
+	d.Partial(true)
+	cfgSpec := expandVirtualMachineConfigSpec(d)
+
+	// To apply device changes, we need the current devicecfgSpec from the config
+	// info. We then filter this list through the same apply process we did for
+	// create, which will apply the changes in an incremental fashion.
+	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
+	var delta []types.BaseVirtualDeviceConfigSpec
+	// First check the state of our SCSI bus. Normalize it if we need to.
+	devices, delta, err = virtualdevice.NormalizeSCSIBus(devices, d.Get("scsi_type").(string))
+	if err != nil {
+		return nil, err
+	}
+	cfgSpec.DeviceChange = append(cfgSpec.DeviceChange, delta...)
+	// Disks
+	devices, delta, err = virtualdevice.DiskPostCloneOperation(d, c, devices)
+	if err != nil {
+		return nil, err
+	}
+	cfgSpec.DeviceChange = append(cfgSpec.DeviceChange, delta...)
+	// Network devices
+	devices, delta, err = virtualdevice.NetworkInterfacePostCloneOperation(d, c, devices)
+	if err != nil {
+		return nil, err
+	}
+	cfgSpec.DeviceChange = append(cfgSpec.DeviceChange, delta...)
+	// CDROM
+	devices, delta, err = virtualdevice.CdromPostCloneOperation(d, c, devices)
+	if err != nil {
+		return nil, err
+	}
+	cfgSpec.DeviceChange = append(cfgSpec.DeviceChange, delta...)
+	log.Printf("[DEBUG] %s: Final device list: %s", resourceVSphereVirtualMachineV2IDString(d), virtualdevice.DeviceListString(devices))
+	log.Printf("[DEBUG] %s: Final device change cfgSpec: %s", resourceVSphereVirtualMachineV2IDString(d), virtualdevice.DeviceChangeString(cfgSpec.DeviceChange))
+
+	// Perform updates
+	if err := virtualmachine.Reconfigure(vm, *cfgSpec); err != nil {
+		return nil, fmt.Errorf("error reconfiguring virtual machine: %s", err)
+	}
+	// Now safe to turn off partial mode.
+	d.Partial(false)
+
+	var cw *virtualMachineCustomizationWaiter
+	// Send customization spec if any has been defined.
+	if len(d.Get("clone.0.customize").([]interface{})) > 0 {
+		custSpec := vmworkflow.ExpandCustomizationSpec(d)
+		cw = newVirtualMachineCustomizationWaiter(c, vm, d.Get("clone.0.customize.0.timeout").(int))
+		if err := virtualmachine.Customize(vm, custSpec); err != nil {
+			return nil, fmt.Errorf("error sending customization spec: %s", err)
+		}
+	}
+
+	// Finally time to power on the virtual machine!
+	if err := virtualmachine.PowerOn(vm); err != nil {
+		return nil, fmt.Errorf("error powering on virtual machine: %s", err)
+	}
+	// If we customized, wait on customization.
+	if cw != nil {
+		log.Printf("[DEBUG] %s: Waiting for VM customization to complete", resourceVSphereVirtualMachineV2IDString(d))
+		<-cw.Done()
+		if err := cw.Err(); err != nil {
+			return nil, fmt.Errorf("error waiting on VM customization: %s", err)
+		}
+	}
+	// Clone is complete and ready to return
+	return vm, nil
 }
 
 // applyVirtualDevices is used by Create and Update to build a list of virtual
@@ -503,9 +630,16 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 	return spec, nil
 }
 
+// resourceVSphereVirtualMachineV2IDStringInterface is a small interface so
+// that we can take ResourceData and ResourceDiff in
+// resourceVSphereVirtualMachineV2IDString.
+type resourceVSphereVirtualMachineV2IDStringInterface interface {
+	Id() string
+}
+
 // resourceVSphereVirtualMachineV2IDString prints a friendly string for the
 // vsphere_virtual_machine resource.
-func resourceVSphereVirtualMachineV2IDString(d *schema.ResourceData) string {
+func resourceVSphereVirtualMachineV2IDString(d resourceVSphereVirtualMachineV2IDStringInterface) string {
 	id := d.Id()
 	if id == "" {
 		id = "<new resource>"

@@ -5,7 +5,10 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 	"github.com/vmware/govmomi"
@@ -33,11 +36,19 @@ func VirtualMachineCloneSchema() map[string]*schema.Schema {
 			ForceNew:    true,
 			Description: "Whether or not to create a linked clone when cloning. When this option is used, the source VM must have a single snapshot associated with it.",
 		},
+		"timeout": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Default:      30,
+			Description:  "The timeout, in minutes, to wait for the virtual machine clone to complete.",
+			ValidateFunc: validation.IntAtLeast(10),
+		},
 		"customize": {
 			Type:        schema.TypeList,
 			Optional:    true,
 			MaxItems:    1,
 			Description: "The customization spec for this clone. This allows the user to configure the virtual machine post-clone.",
+			Elem:        &schema.Resource{Schema: VirtualMachineCustomizeSchema()},
 		},
 	}
 }
@@ -110,12 +121,12 @@ func validateCloneSnapshots(props *mo.VirtualMachine) error {
 // datastore, the source snapshot in the event of linked clones, and a relocate
 // spec that contains the new locations and configuration details of the new
 // virtual disks.
-func ExpandVirtualMachineCloneSpec(d *schema.ResourceData, c *govmomi.Client) (types.VirtualMachineCloneSpec, error) {
+func ExpandVirtualMachineCloneSpec(d *schema.ResourceData, c *govmomi.Client) (types.VirtualMachineCloneSpec, *object.VirtualMachine, error) {
 	var spec types.VirtualMachineCloneSpec
 	log.Printf("[DEBUG] ExpandVirtualMachineCloneSpec: Preparing clone spec for VM")
 	ds, err := datastore.FromID(c, d.Get("datastore_id").(string))
 	if err != nil {
-		return spec, fmt.Errorf("error locating datastore for VM: %s", err)
+		return spec, nil, fmt.Errorf("error locating datastore for VM: %s", err)
 	}
 	dsRef := ds.Reference()
 	spec.Location.Datastore = &dsRef
@@ -123,11 +134,11 @@ func ExpandVirtualMachineCloneSpec(d *schema.ResourceData, c *govmomi.Client) (t
 	log.Printf("[DEBUG] ExpandVirtualMachineCloneSpec: Cloning from UUID: %s", tUUID)
 	vm, err := virtualmachine.FromUUID(c, tUUID)
 	if err != nil {
-		return spec, fmt.Errorf("cannot locate virtual machine or template with UUID %q: %s", tUUID, err)
+		return spec, nil, fmt.Errorf("cannot locate virtual machine or template with UUID %q: %s", tUUID, err)
 	}
 	vprops, err := virtualmachine.Properties(vm)
 	if err != nil {
-		return spec, fmt.Errorf("error fetching virtual machine or template properties: %s", err)
+		return spec, nil, fmt.Errorf("error fetching virtual machine or template properties: %s", err)
 	}
 	// If we are creating a linked clone, grab the current snapshot of the
 	// source, and populate the appropriate field. This should have already been
@@ -136,19 +147,43 @@ func ExpandVirtualMachineCloneSpec(d *schema.ResourceData, c *govmomi.Client) (t
 		log.Printf("[DEBUG] ExpandVirtualMachineCloneSpec: Clone type is a linked clone")
 		log.Printf("[DEBUG] ExpandVirtualMachineCloneSpec: Fetching snapshot for VM/template UUID %s", tUUID)
 		if err := validateCloneSnapshots(vprops); err != nil {
-			return spec, err
+			return spec, nil, err
 		}
 		spec.Snapshot = vprops.Snapshot.CurrentSnapshot
 		spec.Location.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsCreateNewChildDiskBacking)
 		log.Printf("[DEBUG] ExpandVirtualMachineCloneSpec: Snapshot for clone: %s", vprops.Snapshot.CurrentSnapshot.Value)
 	}
+
+	// Set the target host system and resource pool.
+	poolID := d.Get("resource_pool_id").(string)
+	pool, err := resourcepool.FromID(c, poolID)
+	if err != nil {
+		return spec, nil, fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
+	}
+	var hs *object.HostSystem
+	if v, ok := d.GetOk("host_system_id"); ok {
+		hsID := v.(string)
+		var err error
+		if hs, err = hostsystem.FromID(c, hsID); err != nil {
+			return spec, nil, fmt.Errorf("error locating host system at ID %q: %s", hsID, err)
+		}
+	}
+	// Validate that the host is part of the resource pool before proceeding
+	if err := resourcepool.ValidateHost(c, pool, hs); err != nil {
+		return spec, nil, err
+	}
+	poolRef := pool.Reference()
+	hsRef := hs.Reference()
+	spec.Location.Pool = &poolRef
+	spec.Location.Host = &hsRef
+
 	// Grab the relocate spec for the disks.
 	l := object.VirtualDeviceList(vprops.Config.Hardware.Device)
 	relocators, err := virtualdevice.DiskCloneRelocateOperation(d, c, l)
 	if err != nil {
-		return spec, err
+		return spec, nil, err
 	}
 	spec.Location.Disk = relocators
 	log.Printf("[DEBUG] ExpandVirtualMachineCloneSpec: Clone spec prep complete")
-	return spec, nil
+	return spec, vm, nil
 }

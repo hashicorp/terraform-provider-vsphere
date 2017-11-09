@@ -185,6 +185,45 @@ func Create(c *govmomi.Client, f *object.Folder, s types.VirtualMachineConfigSpe
 	return FromMOID(c, result.Result.(types.ManagedObjectReference).Value)
 }
 
+// Clone wraps the creation of a virtual machine and the subsequent waiting of
+// the task. A higher-level virtual machine object is returned.
+func Clone(c *govmomi.Client, src *object.VirtualMachine, f *object.Folder, name string, spec types.VirtualMachineCloneSpec, timeout int) (*object.VirtualMachine, error) {
+	log.Printf("[DEBUG] Cloning virtual machine %q", fmt.Sprintf("%s/%s", f.InventoryPath, name))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*time.Duration(timeout))
+	defer cancel()
+	task, err := src.Clone(ctx, f, name, spec)
+	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			err = errors.New("timeout waiting for clone to complete")
+		}
+		return nil, err
+	}
+	result, err := task.WaitForResult(ctx, nil)
+	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			err = errors.New("timeout waiting for clone to complete")
+		}
+		return nil, err
+	}
+	log.Printf("[DEBUG] Virtual machine %q: clone complete (MOID: %q)", fmt.Sprintf("%s/%s", f.InventoryPath, name), result.Result.(types.ManagedObjectReference).Value)
+	return FromMOID(c, result.Result.(types.ManagedObjectReference).Value)
+}
+
+// Customize wraps the customization of a virtual machine and the subsequent
+// waiting of the task.
+func Customize(vm *object.VirtualMachine, spec types.CustomizationSpec) error {
+	log.Printf("[DEBUG] Sending customization spec to virtual machine %q", vm.InventoryPath)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	task, err := vm.Customize(ctx, spec)
+	if err != nil {
+		return err
+	}
+	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer tcancel()
+	return task.Wait(tctx)
+}
+
 // PowerOn wraps powering on a VM and the waiting for the subsequent task.
 func PowerOn(vm *object.VirtualMachine) error {
 	log.Printf("[DEBUG] Powering on virtual machine %q", vm.InventoryPath)

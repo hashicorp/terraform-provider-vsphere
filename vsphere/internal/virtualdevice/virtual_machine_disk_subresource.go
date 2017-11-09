@@ -6,11 +6,13 @@ import (
 	"log"
 	"math"
 	"path"
+	"reflect"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/mitchellh/copystructure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi"
@@ -596,6 +598,99 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Disk relocator list: %s", diskRelocateListString(relocators))
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Disk relocator generation complete")
 	return relocators, nil
+}
+
+// DiskPostCloneOperation normalizes the virtual disks on a freshly-cloned
+// virtual machine and outputs any necessary device change operations. It also
+// sets the state in advance of the post-create read.
+//
+// This differs from a regular apply operation in that a configuration is
+// already present, but we don't have any existing state, which the standard
+// virtual device operations rely pretty heavily on.
+func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("[DEBUG] DiskPostCloneOperation: Looking for disk device changes post-clone")
+	devices := l.Select(func(device types.BaseVirtualDevice) bool {
+		if _, ok := device.(*types.VirtualDisk); ok {
+			return true
+		}
+		return false
+	})
+	log.Printf("[DEBUG] DiskPostCloneOperation: Disk devices located: %s", DeviceListString(devices))
+	// Sort the device list, in case it's not sorted already.
+	devSort := virtualDeviceListSorter{
+		VirtualDeviceList: devices,
+	}
+	sort.Sort(devSort)
+	devices = devSort.VirtualDeviceList
+	log.Printf("[DEBUG] DiskPostCloneOperation: Disk devices order after sort: %s", DeviceListString(devices))
+	// Do the same for our listed disks.
+	curSet := d.Get(subresourceTypeDisk).(*schema.Set).List()
+	log.Printf("[DEBUG] DiskPostCloneOperation: Current resource set: %s", subresourceListString(curSet))
+	sort.Sort(virtualDiskSubresourceSorter(curSet))
+	log.Printf("[DEBUG] DiskPostCloneOperation: Resource set order after sort: %s", subresourceListString(curSet))
+
+	var spec []types.BaseVirtualDeviceConfigSpec
+	var updates []interface{}
+
+	log.Printf("[DEBUG] DiskPostCloneOperation: Looking for and applying device changes in source disks")
+	for i, device := range devices {
+		src := curSet[i].(map[string]interface{})
+		vd := device.GetVirtualDevice()
+		ctlr := l.FindByKey(vd.ControllerKey)
+		if ctlr == nil {
+			return nil, nil, fmt.Errorf("could not find controller with key %d", vd.Key)
+		}
+		src["key"] = int(vd.Key)
+		src["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		// Copy the source set into old. This allows us to patch a copy of the
+		// product of this set with the source, creating a diff.
+		old, err := copystructure.Copy(src)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error copying source set for disk at unit_number %d: %s", src["unit_number"].(int), err)
+		}
+		rOld := NewDiskSubresource(c, d, nil, old.(map[string]interface{}), nil)
+		if err := rOld.Read(l); err != nil {
+			return nil, nil, fmt.Errorf("%s: %s", rOld.Addr(), err)
+		}
+		new, err := copystructure.Copy(rOld.Data())
+		if err != nil {
+			return nil, nil, fmt.Errorf("error copying current device state for disk at unit_number %d: %s", src["unit_number"].(int), err)
+		}
+		for k, v := range src {
+			new.(map[string]interface{})[k] = v
+		}
+		rNew := NewDiskSubresource(c, d, nil, new.(map[string]interface{}), rOld.Data())
+		if !reflect.DeepEqual(rNew.Data(), rOld.Data()) {
+			uspec, err := rNew.Update(l)
+			if err != nil {
+				return nil, nil, fmt.Errorf("%s: %s", rNew.Addr(), err)
+			}
+			l = applyDeviceChange(l, uspec)
+			spec = append(spec, uspec...)
+		}
+		updates = append(updates, rNew.Data())
+	}
+
+	// Any disk past the current device list is a new device. Create those now.
+	for _, ni := range curSet[len(devices):] {
+		r := NewDiskSubresource(c, d, nil, ni.(map[string]interface{}), nil)
+		cspec, err := r.Create(l)
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+		}
+		l = applyDeviceChange(l, cspec)
+		spec = append(spec, cspec...)
+		updates = append(updates, r.Data())
+	}
+
+	log.Printf("[DEBUG] DiskApplyOperation: Post-clone final resource list: %s", subresourceListString(updates))
+	if err := d.Set(subresourceTypeDisk, updates); err != nil {
+		return nil, nil, err
+	}
+	log.Printf("[DEBUG] DiskPostCloneOperation: Device list at end of operation: %s", DeviceListString(l))
+	log.Printf("[DEBUG] DiskPostCloneOperation: Device config operations from post-clone: %s", DeviceChangeString(spec))
+	log.Printf("[DEBUG] DiskPostCloneOperation: Operation complete, returning updated spec")
+	return l, spec, nil
 }
 
 // Create creates a vsphere_virtual_machine disk sub-resource.

@@ -249,6 +249,12 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 			Optional:    true,
 			Description: "The IPv6 default gateway when using network_interface customization on the virtual machine. This address must be local to a static IPv4 address configured in an interface sub-resource.",
 		},
+		"timeout": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Default:     10,
+			Description: "The amount of time, in minutes, to wait for guest OS customization to complete before returning with an error. Setting this value to 0 or a negative value skips the waiter.",
+		},
 	}
 }
 
@@ -454,10 +460,10 @@ func expandSliceOfCustomizationAdapterMapping(d *schema.ResourceData) []types.Cu
 	return result
 }
 
-// expandCustomizationSpec reads certain ResourceData keys and
+// ExpandCustomizationSpec reads certain ResourceData keys and
 // returns a CustomizationSpec.
-func expandCustomizationSpec(d *schema.ResourceData) *types.CustomizationSpec {
-	obj := &types.CustomizationSpec{
+func ExpandCustomizationSpec(d *schema.ResourceData) types.CustomizationSpec {
+	obj := types.CustomizationSpec{
 		Identity:         expandBaseCustomizationIdentitySettings(d),
 		GlobalIPSettings: expandCustomizationGlobalIPSettings(d),
 		NicSettingMap:    expandSliceOfCustomizationAdapterMapping(d),

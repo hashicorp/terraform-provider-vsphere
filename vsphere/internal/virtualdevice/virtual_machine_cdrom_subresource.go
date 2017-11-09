@@ -252,6 +252,22 @@ func CdromRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.V
 	return d.Set(subresourceTypeCdrom, newSet)
 }
 
+// CdromPostCloneOperation normalizes CDROM devices on a freshly-cloned virtual
+// machine and outputs any necessary device change operations. It also sets the
+// state in advance of the post-create read.
+//
+// Since CDROM devices are not something we only allow one of, and something we
+// don't meticulously track the state of, this is basically the equivalent of a
+// simple refresh and apply, which should add the orphaned devices on top of
+// any in config, clearing out any old devices and replacing them with the new
+// one.
+func CdromPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+	if err := CdromRefreshOperation(d, c, l); err != nil {
+		return nil, nil, err
+	}
+	return CdromApplyOperation(d, c, l)
+}
+
 // Create creates a vsphere_virtual_machine cdrom sub-resource.
 func (r *CdromSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] %s: Running create", r)
@@ -309,13 +325,16 @@ func (r *CdromSubresource) Read(l object.VirtualDeviceList) error {
 	if !ok {
 		return fmt.Errorf("device at %q is not a virtual CDROM device", l.Name(d))
 	}
-	backing := device.Backing.(*types.VirtualCdromIsoBackingInfo)
-	dp := &object.DatastorePath{}
-	if ok := dp.FromString(backing.FileName); !ok {
-		return fmt.Errorf("could not read datastore path in backing %q", backing.FileName)
+	if backing, ok := device.Backing.(*types.VirtualCdromIsoBackingInfo); ok {
+		// Only read backing info if it's available. If not, this is a host
+		// device/client mapping that is not managed by TF and needs to be deleted.
+		dp := &object.DatastorePath{}
+		if ok := dp.FromString(backing.FileName); !ok {
+			return fmt.Errorf("could not read datastore path in backing %q", backing.FileName)
+		}
+		r.Set("datastore_id", backing.Datastore.Value)
+		r.Set("path", dp.Path)
 	}
-	r.Set("datastore_id", backing.Datastore.Value)
-	r.Set("path", dp.Path)
 	// Save the device key and address data
 	ctlr, err := findControllerForDevice(l, d)
 	if err != nil {

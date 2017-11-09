@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/mitchellh/copystructure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/network"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/nsx"
@@ -338,6 +339,120 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Resource set to write after adding orphaned devices: %s", subresourceListString(newSet))
 	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Refresh operation complete, sending new resource set")
 	return d.Set(subresourceTypeNetworkInterface, newSet)
+}
+
+// NetworkInterfacePostCloneOperation normalizes the network interfaces on a
+// freshly-cloned virtual machine and outputs any necessary device change
+// operations. It also sets the state in advance of the post-create read.
+//
+// This differs from a regular apply operation in that a configuration is
+// already present, but we don't have any existing state, which the standard
+// virtual device operations rely pretty heavily on.
+func NetworkInterfacePostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("[DEBUG] NetworkInterfacePostCloneOperation: Beginning refresh")
+	devices := l.Select(func(device types.BaseVirtualDevice) bool {
+		if _, ok := device.(types.BaseVirtualEthernetCard); ok {
+			return true
+		}
+		return false
+	})
+	log.Printf("[DEBUG] NetworkInterfacePostCloneOperation: Network devices located: %s", DeviceListString(devices))
+	curSet := d.Get(subresourceTypeNetworkInterface).([]interface{})
+	log.Printf("[DEBUG] NetworkInterfacePostCloneOperation: Current resource set from state: %s", subresourceListString(curSet))
+	urange, err := unitRange(devices)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error calculating network device range: %s", err)
+	}
+	srcSet := make([]interface{}, urange)
+	log.Printf("[DEBUG] NetworkInterfacePostCloneOperation: Layout from source: %d devices over a %d unit range", len(devices), urange)
+
+	// Populate the source set as if the devices were orphaned. This give us a
+	// base to diff off of.
+	log.Printf("[DEBUG] NetworkInterfacePostCloneOperation: Reading existing devices")
+	for n, device := range devices {
+		m := make(map[string]interface{})
+		vd := device.GetVirtualDevice()
+		ctlr := l.FindByKey(vd.ControllerKey)
+		if ctlr == nil {
+			return nil, nil, fmt.Errorf("could not find controller with key %d", vd.Key)
+		}
+		m["key"] = int(vd.Key)
+		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		r := NewNetworkInterfaceSubresource(c, d, m, nil, n)
+		if err := r.Read(l); err != nil {
+			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+		}
+		_, _, idx, err := splitDevAddr(r.Get("device_address").(string))
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s: error parsing device address: %s", r, err)
+		}
+		srcSet[idx-networkInterfacePciDeviceOffset] = r.Data()
+	}
+
+	// Now go over our current set, kind of treating it like an apply:
+	//
+	// * No source data at the index is a create
+	// * Source data at the index is an update if it has changed
+	// * Data at the source with the same data after patching config data is a
+	// no-op, but we still push the device's state
+	var spec []types.BaseVirtualDeviceConfigSpec
+	var updates []interface{}
+	for i, ci := range curSet {
+		cm := ci.(map[string]interface{})
+		if srcSet[i] == nil {
+			// New device
+			r := NewNetworkInterfaceSubresource(c, d, cm, nil, i)
+			cspec, err := r.Create(l)
+			if err != nil {
+				return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+			}
+			l = applyDeviceChange(l, cspec)
+			spec = append(spec, cspec...)
+			updates = append(updates, r.Data())
+			continue
+		}
+		sm := srcSet[i].(map[string]interface{})
+		nm, err := copystructure.Copy(sm)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error copying source network interface state data at index %d: %s", i, err)
+		}
+		for k, v := range cm {
+			nm.(map[string]interface{})[k] = v
+		}
+		r := NewNetworkInterfaceSubresource(c, d, nm.(map[string]interface{}), sm, i)
+		if !reflect.DeepEqual(sm, nm) {
+			// Update
+			cspec, err := r.Create(l)
+			if err != nil {
+				return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+			}
+			l = applyDeviceChange(l, cspec)
+			spec = append(spec, cspec...)
+		}
+		updates = append(updates, r.Data())
+	}
+
+	// Any other device past the end of the network devices listed in config needs to be removed.
+	for i, si := range srcSet[len(curSet):] {
+		sm := si.(map[string]interface{})
+		r := NewNetworkInterfaceSubresource(c, d, sm, nil, i+len(curSet))
+		dspec, err := r.Delete(l)
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+		}
+		l = applyDeviceChange(l, dspec)
+		spec = append(spec, dspec...)
+	}
+
+	log.Printf("[DEBUG] NetworkInterfacePostCloneOperation: Post-clone final resource list: %s", subresourceListString(updates))
+	// We are now done! Return the updated device list and config spec. Save updates as well.
+	if err := d.Set(subresourceTypeNetworkInterface, updates); err != nil {
+		return nil, nil, err
+	}
+	log.Printf("[DEBUG] NetworkInterfacePostCloneOperation: Device list at end of operation: %s", DeviceListString(l))
+	log.Printf("[DEBUG] NetworkInterfacePostCloneOperation: Device config operations from post-clone: %s", DeviceChangeString(spec))
+	log.Printf("[DEBUG] NetworkInterfacePostCloneOperation: Operation complete, returning updated spec")
+	return l, spec, nil
 }
 
 // baseVirtualEthernetCardToBaseVirtualDevice converts a
