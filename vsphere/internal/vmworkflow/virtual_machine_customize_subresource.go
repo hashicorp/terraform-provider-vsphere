@@ -380,9 +380,9 @@ func expandBaseCustomizationIdentitySettings(d *schema.ResourceData) types.BaseC
 	return obj
 }
 
-// expandCustomizationIPSettingsIpV6AddressSpec reads certain ResourceData keys and
+// expandCustomizationIPSettingsIPV6AddressSpec reads certain ResourceData keys and
 // returns a CustomizationIPSettingsIpV6AddressSpec.
-func expandCustomizationIPSettingsIpV6AddressSpec(d *schema.ResourceData, n int, gwAdd bool) (*types.CustomizationIPSettingsIpV6AddressSpec, bool) {
+func expandCustomizationIPSettingsIPV6AddressSpec(d *schema.ResourceData, n int, gwAdd bool) (*types.CustomizationIPSettingsIpV6AddressSpec, bool) {
 	v, ok := d.GetOk(netifKey("ipv6_address", n))
 	var gwFound bool
 	if !ok {
@@ -430,6 +430,37 @@ func expandCustomizationIPSettings(d *schema.ResourceData, n int, v4gwAdd, v6gwA
 	}
 	obj.DnsServerList = structure.SliceInterfacesToStrings(d.Get(netifKey("dns_server_list", n)).([]interface{}))
 	obj.DnsDomain = d.Get(netifKey("dns_domain", n)).(string)
-	obj.IpV6Spec, v6gwFound = expandCustomizationIPSettingsIpV6AddressSpec(d, n, v6gwAdd)
+	obj.IpV6Spec, v6gwFound = expandCustomizationIPSettingsIPV6AddressSpec(d, n, v6gwAdd)
 	return obj, v4gwFound, v6gwFound
+}
+
+// expandSliceOfCustomizationAdapterMapping reads certain ResourceData keys and
+// returns a CustomizationAdapterMapping slice.
+func expandSliceOfCustomizationAdapterMapping(d *schema.ResourceData) []types.CustomizationAdapterMapping {
+	s := d.Get(cKeyPrefix + "." + "network_interface").([]interface{})
+	if len(s) < 1 {
+		return nil
+	}
+	result := make([]types.CustomizationAdapterMapping, len(s))
+	var v4gwFound, v6gwFound bool
+	for i := range s {
+		var adapter types.CustomizationIPSettings
+		adapter, v4gwFound, v6gwFound = expandCustomizationIPSettings(d, i, !v4gwFound, !v6gwFound)
+		obj := types.CustomizationAdapterMapping{
+			Adapter: adapter,
+		}
+		result[i] = obj
+	}
+	return result
+}
+
+// expandCustomizationSpec reads certain ResourceData keys and
+// returns a CustomizationSpec.
+func expandCustomizationSpec(d *schema.ResourceData) *types.CustomizationSpec {
+	obj := &types.CustomizationSpec{
+		Identity:         expandBaseCustomizationIdentitySettings(d),
+		GlobalIPSettings: expandCustomizationGlobalIPSettings(d),
+		NicSettingMap:    expandSliceOfCustomizationAdapterMapping(d),
+	}
+	return obj
 }
