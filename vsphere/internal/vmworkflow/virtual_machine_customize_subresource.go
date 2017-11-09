@@ -1,8 +1,52 @@
 package vmworkflow
 
 import (
+	"fmt"
+	"net"
+
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/vmware/govmomi/vim25/types"
 )
+
+const (
+	cKeyPrefix        = "clone.0.customize.0"
+	cLinuxKeyPrefix   = "clone.0.customize.0.linux_options.0"
+	cWindowsKeyPrefix = "clone.0.customize.0.windows_options.0"
+	cNetifKeyPrefix   = "clone.0.customize.0.network_interface"
+)
+
+// netifKey renders a specific network_interface key for a specific resource
+// index.
+func netifKey(key string, n int) string {
+	return fmt.Sprintf("%s.%d.%s", cNetifKeyPrefix, n, key)
+}
+
+// matchGateway take an IP, mask, and gateway, and checks to see if the gateway
+// is reachable from the IP address.
+func matchGateway(a string, m int, g string) bool {
+	ip := net.ParseIP(a)
+	gw := net.ParseIP(g)
+	var mask net.IPMask
+	if ip.To4() != nil {
+		mask = net.CIDRMask(m, 32)
+	} else {
+		mask = net.CIDRMask(m, 128)
+	}
+	if ip.Mask(mask).Equal(gw.Mask(mask)) {
+		return true
+	}
+	return false
+}
+
+func v4CIDRMaskToDotted(mask int) string {
+	m := net.CIDRMask(mask, 32)
+	a := int(m[0])
+	b := int(m[1])
+	c := int(m[2])
+	d := int(m[3])
+	return fmt.Sprintf("%d.%d.%d.%d", a, b, c, d)
+}
 
 // VirtualMachineCustomizeSchema returns the schema for VM customization.
 func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
@@ -206,4 +250,186 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 			Description: "The IPv6 default gateway when using network_interface customization on the virtual machine. This address must be local to a static IPv4 address configured in an interface sub-resource.",
 		},
 	}
+}
+
+// expandCustomizationGlobalIPSettings reads certain ResourceData keys and
+// returns a CustomizationGlobalIPSettings.
+func expandCustomizationGlobalIPSettings(d *schema.ResourceData) types.CustomizationGlobalIPSettings {
+	obj := types.CustomizationGlobalIPSettings{
+		DnsSuffixList: structure.SliceInterfacesToStrings(d.Get(cKeyPrefix + "." + "dns_server_list").([]interface{})),
+		DnsServerList: structure.SliceInterfacesToStrings(d.Get(cKeyPrefix + "." + "dns_suffix_list").([]interface{})),
+	}
+	return obj
+}
+
+// expandCustomizationLinuxPrep reads certain ResourceData keys and
+// returns a CustomizationLinuxPrep.
+func expandCustomizationLinuxPrep(d *schema.ResourceData) *types.CustomizationLinuxPrep {
+	obj := &types.CustomizationLinuxPrep{
+		HostName: &types.CustomizationFixedName{
+			Name: d.Get(cLinuxKeyPrefix + "." + "host_name").(string),
+		},
+		Domain:     d.Get(cLinuxKeyPrefix + "." + "domain").(string),
+		TimeZone:   d.Get(cLinuxKeyPrefix + "." + "time_zone").(string),
+		HwClockUTC: structure.GetBoolPtr(d, cLinuxKeyPrefix+"."+"hw_clock_utc"),
+	}
+	return obj
+}
+
+// expandCustomizationGuiRunOnce reads certain ResourceData keys and
+// returns a CustomizationGuiRunOnce.
+func expandCustomizationGuiRunOnce(d *schema.ResourceData) *types.CustomizationGuiRunOnce {
+	obj := &types.CustomizationGuiRunOnce{
+		CommandList: structure.SliceInterfacesToStrings(d.Get(cWindowsKeyPrefix + "." + "run_once_command_list").([]interface{})),
+	}
+	if len(obj.CommandList) < 1 {
+		return nil
+	}
+	return obj
+}
+
+// expandCustomizationGuiUnattended reads certain ResourceData keys and
+// returns a CustomizationGuiUnattended.
+func expandCustomizationGuiUnattended(d *schema.ResourceData) types.CustomizationGuiUnattended {
+	obj := types.CustomizationGuiUnattended{
+		TimeZone:       int32(d.Get(cWindowsKeyPrefix + "." + "time_zone").(int)),
+		AutoLogon:      d.Get(cWindowsKeyPrefix + "." + "auto_logon").(bool),
+		AutoLogonCount: int32(d.Get(cWindowsKeyPrefix + "." + "auto_logon_count").(int)),
+	}
+	if v, ok := d.GetOk(cWindowsKeyPrefix + "." + "admin_password"); ok {
+		obj.Password = &types.CustomizationPassword{
+			Value:     v.(string),
+			PlainText: true,
+		}
+	}
+
+	return obj
+}
+
+// expandCustomizationIdentification reads certain ResourceData keys and
+// returns a CustomizationIdentification.
+func expandCustomizationIdentification(d *schema.ResourceData) types.CustomizationIdentification {
+	obj := types.CustomizationIdentification{
+		JoinWorkgroup: d.Get(cWindowsKeyPrefix + "." + "join_workgroup").(string),
+		JoinDomain:    d.Get(cWindowsKeyPrefix + "." + "join_domain").(string),
+		DomainAdmin:   d.Get(cWindowsKeyPrefix + "." + "domain_admin_user").(string),
+	}
+	if v, ok := d.GetOk(cWindowsKeyPrefix + "." + "domain_admin_password"); ok {
+		obj.DomainAdminPassword = &types.CustomizationPassword{
+			Value:     v.(string),
+			PlainText: true,
+		}
+	}
+	return obj
+}
+
+// expandCustomizationUserData reads certain ResourceData keys and
+// returns a CustomizationUserData.
+func expandCustomizationUserData(d *schema.ResourceData) types.CustomizationUserData {
+	obj := types.CustomizationUserData{
+		FullName: d.Get(cWindowsKeyPrefix + "." + "full_name").(string),
+		OrgName:  d.Get(cWindowsKeyPrefix + "." + "organization_name").(string),
+		ComputerName: &types.CustomizationFixedName{
+			Name: d.Get(cWindowsKeyPrefix + "." + "computer_name").(string),
+		},
+		ProductId: d.Get(cWindowsKeyPrefix + "." + "product_key").(string),
+	}
+	return obj
+}
+
+// expandCustomizationSysprep reads certain ResourceData keys and
+// returns a CustomizationSysprep.
+func expandCustomizationSysprep(d *schema.ResourceData) *types.CustomizationSysprep {
+	obj := &types.CustomizationSysprep{
+		GuiUnattended:  expandCustomizationGuiUnattended(d),
+		UserData:       expandCustomizationUserData(d),
+		GuiRunOnce:     expandCustomizationGuiRunOnce(d),
+		Identification: expandCustomizationIdentification(d),
+	}
+	return obj
+}
+
+// expandCustomizationSysprepText reads certain ResourceData keys and
+// returns a CustomizationSysprepText.
+func expandCustomizationSysprepText(d *schema.ResourceData) *types.CustomizationSysprepText {
+	obj := &types.CustomizationSysprepText{
+		Value: d.Get(cKeyPrefix + "." + "windows_sysprep_text").(string),
+	}
+	return obj
+}
+
+// expandBaseCustomizationIdentitySettings returns a
+// BaseCustomizationIdentitySettings, depending on what is defined.
+//
+// Only one of the three types of identity settings can be specified: Linux
+// settings (from linux_options), Windows settings (from windows_options), and
+// the raw Windows sysprep file (via windows_sysprep_text).
+func expandBaseCustomizationIdentitySettings(d *schema.ResourceData) types.BaseCustomizationIdentitySettings {
+	var obj types.BaseCustomizationIdentitySettings
+	_, lExists := d.GetOkExists(cKeyPrefix + "." + "linux_options")
+	_, wExists := d.GetOkExists(cKeyPrefix + "." + "windows_options")
+	_, wrExists := d.GetOkExists(cKeyPrefix + "." + "windows_sysprep_text")
+	switch {
+	case lExists:
+		obj = expandCustomizationLinuxPrep(d)
+	case wExists:
+		obj = expandCustomizationSysprep(d)
+	case wrExists:
+		obj = expandCustomizationSysprepText(d)
+	}
+	return obj
+}
+
+// expandCustomizationIPSettingsIpV6AddressSpec reads certain ResourceData keys and
+// returns a CustomizationIPSettingsIpV6AddressSpec.
+func expandCustomizationIPSettingsIpV6AddressSpec(d *schema.ResourceData, n int, gwAdd bool) (*types.CustomizationIPSettingsIpV6AddressSpec, bool) {
+	v, ok := d.GetOk(netifKey("ipv6_address", n))
+	var gwFound bool
+	if !ok {
+		return nil, gwFound
+	}
+	addr := v.(string)
+	mask := d.Get(netifKey("ipv6_netmask", n)).(int)
+	gw, gwOk := d.Get(cKeyPrefix + "." + "ipv6_gateway").(string)
+	obj := &types.CustomizationIPSettingsIpV6AddressSpec{
+		Ip: []types.BaseCustomizationIpV6Generator{
+			&types.CustomizationFixedIpV6{
+				IpAddress:  addr,
+				SubnetMask: int32(mask),
+			},
+		},
+	}
+	if gwAdd && gwOk && matchGateway(addr, mask, gw) {
+		obj.Gateway = []string{gw}
+		gwFound = true
+	}
+	return obj, gwFound
+}
+
+// expandCustomizationIPSettings reads certain ResourceData keys and
+// returns a CustomizationIPSettings.
+func expandCustomizationIPSettings(d *schema.ResourceData, n int, v4gwAdd, v6gwAdd bool) (types.CustomizationIPSettings, bool, bool) {
+	var v4gwFound, v6gwFound bool
+	v4addr, v4addrOk := d.GetOk(netifKey("ipv4_address", n))
+	v4mask := d.Get(netifKey("ipv4_netmask", n)).(int)
+	v4gw, v4gwOk := d.Get(cKeyPrefix + "." + "ipv4_gateway").(string)
+	var obj types.CustomizationIPSettings
+	switch {
+	case v4addrOk:
+		obj.Ip = &types.CustomizationFixedIp{
+			IpAddress: v4addr.(string),
+		}
+		obj.SubnetMask = v4CIDRMaskToDotted(v4mask)
+		// Check for the gateway
+		if v4gwAdd && v4gwOk && matchGateway(v4addr.(string), v4mask, v4gw) {
+			obj.Gateway = []string{v4gw}
+			v4gwFound = true
+		}
+	default:
+		obj.Ip = &types.CustomizationDhcpIpGenerator{}
+	}
+	obj.DnsServerList = structure.SliceInterfacesToStrings(d.Get(netifKey("dns_server_list", n)).([]interface{}))
+	obj.DnsDomain = d.Get(netifKey("dns_domain", n)).(string)
+	obj.IpV6Spec, v6gwFound = expandCustomizationIPSettingsIpV6AddressSpec(d, n, v6gwAdd)
+	return obj, v4gwFound, v6gwFound
 }
