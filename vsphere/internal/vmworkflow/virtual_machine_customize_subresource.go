@@ -70,7 +70,7 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 			Type:          schema.TypeList,
 			Optional:      true,
 			MaxItems:      1,
-			ConflictsWith: []string{"windows_options", "windows_sysprep_text"},
+			ConflictsWith: []string{cKeyPrefix + "." + "windows_options", cKeyPrefix + "." + "windows_sysprep_text"},
 			Description:   "A list of configuration options specific to Linux virtual machines.",
 			Elem: &schema.Resource{Schema: map[string]*schema.Schema{
 				"domain": {
@@ -101,7 +101,7 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 			Type:          schema.TypeList,
 			Optional:      true,
 			MaxItems:      1,
-			ConflictsWith: []string{"linux_options", "windows_sysprep_text"},
+			ConflictsWith: []string{cKeyPrefix + "." + "linux_options", cKeyPrefix + "." + "windows_sysprep_text"},
 			Description:   "A list of configuration options specific to Windows virtual machines.",
 			Elem: &schema.Resource{Schema: map[string]*schema.Schema{
 				// CustomizationGuiRunOnce
@@ -140,26 +140,26 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 				"domain_admin_user": {
 					Type:          schema.TypeString,
 					Optional:      true,
-					ConflictsWith: []string{"join_workgroup"},
+					ConflictsWith: []string{cWindowsKeyPrefix + "." + "join_workgroup"},
 					Description:   "The user account of the domain administrator used to join this virtual machine to the domain.",
 				},
 				"domain_admin_password": {
 					Type:          schema.TypeString,
 					Optional:      true,
 					Sensitive:     true,
-					ConflictsWith: []string{"join_workgroup"},
+					ConflictsWith: []string{cWindowsKeyPrefix + "." + "join_workgroup"},
 					Description:   "The password of the domain administrator used to join this virtual machine to the domain.",
 				},
 				"join_domain": {
 					Type:          schema.TypeString,
 					Optional:      true,
-					ConflictsWith: []string{"join_workgroup"},
+					ConflictsWith: []string{cWindowsKeyPrefix + "." + "join_workgroup"},
 					Description:   "The domain that the virtual machine should join.",
 				},
 				"join_workgroup": {
 					Type:          schema.TypeString,
 					Optional:      true,
-					ConflictsWith: []string{"join_domain"},
+					ConflictsWith: []string{cWindowsKeyPrefix + "." + "join_domain"},
 					Description:   "The workgroup that the virtual machine should join.",
 				},
 
@@ -193,7 +193,7 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 		"windows_sysprep_text": {
 			Type:          schema.TypeString,
 			Optional:      true,
-			ConflictsWith: []string{"linux_options", "windows_options"},
+			ConflictsWith: []string{cKeyPrefix + "." + "linux_options", cKeyPrefix + "." + "windows_options"},
 			Description:   "Use this option to specify a windows sysprep file directly.",
 		},
 

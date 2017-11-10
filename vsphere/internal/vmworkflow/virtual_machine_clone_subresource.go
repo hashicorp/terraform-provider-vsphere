@@ -74,6 +74,12 @@ func ValidateVirtualMachineClone(d *schema.ResourceDiff, c *govmomi.Client) erro
 	if vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOff {
 		return fmt.Errorf("virtual machine %s must be powered off to be used as a source for cloning", tUUID)
 	}
+	// Check to see if our guest IDs match.
+	eGuestID := vprops.Config.GuestId
+	aGuestID := d.Get("guest_id").(string)
+	if eGuestID != aGuestID {
+		return fmt.Errorf("invalid guest ID %q for clone. Please set it to %q", aGuestID, eGuestID)
+	}
 	// If linked clone is enabled, check to see if we have a snapshot. There need
 	// to be a single snapshot on the template for it to be eligible.
 	if d.Get("clone.0.linked_clone").(bool) {
@@ -173,9 +179,11 @@ func ExpandVirtualMachineCloneSpec(d *schema.ResourceData, c *govmomi.Client) (t
 		return spec, nil, err
 	}
 	poolRef := pool.Reference()
-	hsRef := hs.Reference()
 	spec.Location.Pool = &poolRef
-	spec.Location.Host = &hsRef
+	if hs != nil {
+		hsRef := hs.Reference()
+		spec.Location.Host = &hsRef
+	}
 
 	// Grab the relocate spec for the disks.
 	l := object.VirtualDeviceList(vprops.Config.Hardware.Device)

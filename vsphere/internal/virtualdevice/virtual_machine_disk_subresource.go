@@ -499,10 +499,12 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 	})
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
-		VirtualDeviceList: devices,
+		Sort:       devices,
+		DeviceList: l,
 	}
+	log.Printf("[DEBUG] DiskCloneValidateOperation: Disk devices order before sort: %s", DeviceListString(devices))
 	sort.Sort(devSort)
-	devices = devSort.VirtualDeviceList
+	devices = devSort.Sort
 	log.Printf("[DEBUG] DiskCloneValidateOperation: Disk devices order after sort: %s", DeviceListString(devices))
 	// Do the same for our listed disks.
 	curSet := d.Get(subresourceTypeDisk).(*schema.Set).List()
@@ -531,12 +533,26 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 		if err := r.Read(l); err != nil {
 			return fmt.Errorf("%s: validation failed (%s)", r.Addr(), err)
 		}
-		// Quickly compare size as well, as disks need to be at least the same size
-		// as the source disks, or else the operation will fail on the reconfigure.
+		// Load the target resource to do a few comparisons for correctness in config.
 		targetM := curSet[i].(map[string]interface{})
 		tr := NewDiskSubresource(c, nil, d, targetM, nil)
+		// Ensure that the file names match. vSphere does not allow you to choose
+		// the name of existing disks during a clone and will rename them according
+		// to the standard convention of <name>.vmdk, <name>_1.vmdk, etc.  Hence we
+		// need to enforce this on all created VMs as well.
+		name := d.Get("name").(string)
+		var extra string
+		if i > 0 {
+			extra = fmt.Sprintf("_%d", i)
+		}
+		expected := fmt.Sprintf("%s%s.vmdk", name, extra)
+		if tr.Get("name").(string) != expected {
+			return fmt.Errorf("%s: invalid disk name %q for cloning. Please rename this disk to %q", tr.Addr(), tr.Get("name").(string), expected)
+		}
+		// Quickly compare size as well, as disks need to be at least the same size
+		// as the source disks, or else the operation will fail on the reconfigure.
 		if tr.Get("size").(int) < r.Get("size").(int) {
-			return fmt.Errorf("%s: disk name %s must have a minimum size of %d", tr.Addr(), tr.Get("name").(string), r.Get("size").(int))
+			return fmt.Errorf("%s: disk name %s must have a minimum size of %d GiB", tr.Addr(), tr.Get("name").(string), r.Get("size").(int))
 		}
 	}
 	log.Printf("[DEBUG] DiskCloneValidateOperation: All disks in source validated successfully")
@@ -565,10 +581,11 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
-		VirtualDeviceList: devices,
+		Sort:       devices,
+		DeviceList: l,
 	}
 	sort.Sort(devSort)
-	devices = devSort.VirtualDeviceList
+	devices = devSort.Sort
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Disk devices order after sort: %s", DeviceListString(devices))
 	// Do the same for our listed disks.
 	curSet := d.Get(subresourceTypeDisk).(*schema.Set).List()
@@ -618,10 +635,11 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 	log.Printf("[DEBUG] DiskPostCloneOperation: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
-		VirtualDeviceList: devices,
+		Sort:       devices,
+		DeviceList: l,
 	}
 	sort.Sort(devSort)
-	devices = devSort.VirtualDeviceList
+	devices = devSort.Sort
 	log.Printf("[DEBUG] DiskPostCloneOperation: Disk devices order after sort: %s", DeviceListString(devices))
 	// Do the same for our listed disks.
 	curSet := d.Get(subresourceTypeDisk).(*schema.Set).List()
@@ -1121,22 +1139,23 @@ func diskRelocateString(relocate types.VirtualMachineRelocateSpecDiskLocator) st
 
 // virtualDeviceListSorter is an internal type to facilitate sorting of a BaseVirtualDeviceList.
 type virtualDeviceListSorter struct {
-	object.VirtualDeviceList
+	Sort       object.VirtualDeviceList
+	DeviceList object.VirtualDeviceList
 }
 
 // Len implements sort.Interface for virtualDeviceListSorter.
 func (l virtualDeviceListSorter) Len() int {
-	return len(l.VirtualDeviceList)
+	return len(l.Sort)
 }
 
 // Less helps implement sort.Interface for virtualDeviceListSorter. A
 // BaseVirtualDevice is "less" than another device if its controller's bus
 // number and unit number combination are earlier in the order than the other.
 func (l virtualDeviceListSorter) Less(i, j int) bool {
-	li := l.VirtualDeviceList[i]
-	lj := l.VirtualDeviceList[j]
-	liCtlr := l.FindByKey(li.GetVirtualDevice().ControllerKey)
-	ljCtlr := l.FindByKey(lj.GetVirtualDevice().ControllerKey)
+	li := l.Sort[i]
+	lj := l.Sort[j]
+	liCtlr := l.DeviceList.FindByKey(li.GetVirtualDevice().ControllerKey)
+	ljCtlr := l.DeviceList.FindByKey(lj.GetVirtualDevice().ControllerKey)
 	if liCtlr == nil || ljCtlr == nil {
 		panic(errors.New("virtualDeviceListSorter cannot be used with devices that are not assigned to a controller"))
 	}
@@ -1153,7 +1172,7 @@ func (l virtualDeviceListSorter) Less(i, j int) bool {
 
 // Swap helps implement sort.Interface for virtualDeviceListSorter.
 func (l virtualDeviceListSorter) Swap(i, j int) {
-	l.VirtualDeviceList[i], l.VirtualDeviceList[j] = l.VirtualDeviceList[j], l.VirtualDeviceList[i]
+	l.Sort[i], l.Sort[j] = l.Sort[j], l.Sort[i]
 }
 
 // virtualDiskSubresourceSorter sorts a list of disk sub-resources, based on unit number.

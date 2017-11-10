@@ -25,6 +25,10 @@ const (
 	// classes.
 	SubresourceControllerTypeIDE = "ide"
 
+	// SubresourceControllerTypeSATA is a string representation of SATA controller
+	// classes.
+	SubresourceControllerTypeSATA = "sata"
+
 	// SubresourceControllerTypeSCSI is a string representation of all SCSI
 	// controller types.
 	//
@@ -58,6 +62,7 @@ var subresourceIDControllerTypeAllowedValues = []string{
 	SubresourceControllerTypeIDE,
 	SubresourceControllerTypeSCSI,
 	SubresourceControllerTypePCI,
+	SubresourceControllerTypeSATA,
 }
 
 var sharesLevelAllowedValues = []string{
@@ -111,6 +116,8 @@ func controllerTypeToClass(c types.BaseVirtualController) string {
 	switch c.(type) {
 	case *types.VirtualIDEController:
 		return SubresourceControllerTypeIDE
+	case *types.VirtualAHCIController:
+		return SubresourceControllerTypeSATA
 	case *types.VirtualPCIController:
 		return SubresourceControllerTypePCI
 	case *types.ParaVirtualSCSIController, *types.VirtualBusLogicController,
@@ -333,6 +340,12 @@ func findVirtualDeviceInListControllerSelectFunc(ct string, cb int) func(types.B
 		switch ct {
 		case SubresourceControllerTypeIDE:
 			if v, ok := device.(*types.VirtualIDEController); ok {
+				ctlr = v
+				goto controllerFound
+			}
+			return false
+		case SubresourceControllerTypeSATA:
+			if v, ok := device.(*types.VirtualAHCIController); ok {
 				ctlr = v
 				goto controllerFound
 			}
@@ -587,6 +600,8 @@ func (r *Subresource) ControllerForCreateUpdate(l object.VirtualDeviceList, ct s
 	switch ct {
 	case SubresourceControllerTypeIDE:
 		ctlr = l.PickController(&types.VirtualIDEController{})
+	case SubresourceControllerTypeSATA:
+		ctlr = l.PickController(&types.VirtualAHCIController{})
 	case SubresourceControllerTypeSCSI:
 		ctlr, err = pickSCSIController(l, bus)
 	case SubresourceControllerTypePCI:

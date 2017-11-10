@@ -95,6 +95,13 @@ func resourceVSphereVirtualMachineV2() *schema.Resource {
 			MaxItems:    1,
 			Elem:        &schema.Resource{Schema: virtualdevice.CdromSubresourceSchema()},
 		},
+		"clone": {
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "A specification for cloning a virtual machine from template.",
+			MaxItems:    1,
+			Elem:        &schema.Resource{Schema: vmworkflow.VirtualMachineCloneSchema()},
+		},
 		"reboot_required": {
 			Type:        schema.TypeBool,
 			Computed:    true,
@@ -133,85 +140,30 @@ func resourceVSphereVirtualMachineV2Create(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	poolID := d.Get("resource_pool_id").(string)
-	pool, err := resourcepool.FromID(client, poolID)
-	if err != nil {
-		return fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
+	var vm *object.VirtualMachine
+	// This is where we process our various VM deploy workflows. We expect the ID
+	// of the resource to be set in the workflow to ensure that any post-create
+	// operations that fail during this process don't create a dangling resource.
+	// The VM should also be returned powered on.
+	switch {
+	case len(d.Get("clone").([]interface{})) > 0:
+		vm, err = resourceVSphereVirtualMachineV2CreateClone(d, client)
+	default:
+		vm, err = resourceVSphereVirtualMachineV2CreateBare(d, client)
 	}
 
-	// Find the folder based off the path to the resource pool. Basically what we
-	// are saying here is that the VM folder that we are placing this VM in needs
-	// to be in the same hierarchy as the resource pool - so in other words, the
-	// same datacenter.
-	fo, err := folder.VirtualMachineFolderFromObject(client, pool, d.Get("folder").(string))
 	if err != nil {
 		return err
 	}
-	var hs *object.HostSystem
-	if v, ok := d.GetOk("host_system_id"); ok {
-		hsID := v.(string)
-		var err error
-		if hs, err = hostsystem.FromID(client, hsID); err != nil {
-			return fmt.Errorf("error locating host system at ID %q: %s", hsID, err)
-		}
-	}
 
-	// Validate that the host is part of the resource pool before proceeding
-	if err := resourcepool.ValidateHost(client, pool, hs); err != nil {
-		return err
-	}
-
-	// Ready to start making the VM here. First expand our main config spec.
-	spec := expandVirtualMachineConfigSpec(d)
-
-	// Set the datastore for the VM.
-	ds, err := datastore.FromID(client, d.Get("datastore_id").(string))
-	if err != nil {
-		return fmt.Errorf("error locating datastore for VM: %s", err)
-	}
-	spec.Files = &types.VirtualMachineFileInfo{
-		VmPathName: fmt.Sprintf("[%s]", ds.Name()),
-	}
-
-	// Now we need to get the default device set - this is available in the
-	// environment info in the resource pool, which we can then filter through
-	// our device CRUD lifecycles to get a full deviceChange attribute for our
-	// configspec.
-	devices, err := resourcepool.DefaultDevices(client, pool, d.Get("guest_id").(string))
-	if err != nil {
-		return fmt.Errorf("error loading default device list: %s", err)
-	}
-	log.Printf("[DEBUG] Default devices: %s", virtualdevice.DeviceListString(devices))
-
-	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
-		return err
-	}
-
-	// We should now have a complete configSpec! Attempt to create the VM now.
-	vm, err := virtualmachine.Create(client, fo, *spec, pool, hs)
-	if err != nil {
-		return fmt.Errorf("error creating virtual machine: %s", err)
-	}
-	// VM is created. Set the ID now before proceeding, in case the rest of the
-	// process here fails.
-	vprops, err := virtualmachine.Properties(vm)
-	if err != nil {
-		return fmt.Errorf("cannot fetch properties of created virtual machine: %s", err)
-	}
-	log.Printf("[DEBUG] VM %q - UUID is %q", vm.InventoryPath, vprops.Config.Uuid)
-	d.SetId(vprops.Config.Uuid)
-	// Tag the VM before we go any further if we need to.
+	// Tag the VM
 	if tagsClient != nil {
 		if err := processTagDiff(tagsClient, d, vm); err != nil {
 			return err
 		}
 	}
 
-	// Start the virtual machine, and wait for a routeable address, if we have
-	// been set to wait for one.
-	if err := virtualmachine.PowerOn(vm); err != nil {
-		return fmt.Errorf("error powering on virtual machine: %s", err)
-	}
+	// Wait for a routeable address if we have been set to wait for one
 	if err := virtualmachine.WaitForGuestNet(client, vm, d.Get("wait_for_guest_net_timeout").(int)); err != nil {
 		return err
 	}
@@ -459,6 +411,10 @@ func resourceVSphereVirtualMachineV2Delete(d *schema.ResourceData, meta interfac
 func resourceVSphereVirtualMachineV2CustomizeDiff(d *schema.ResourceDiff, meta interface{}) error {
 	log.Printf("[DEBUG] %s: Performing diff customization and validation", resourceVSphereVirtualMachineV2IDString(d))
 	client := meta.(*VSphereClient).vimClient
+	// Validate and normalize disk sub-resources
+	if err := virtualdevice.DiskDiffOperation(d, client); err != nil {
+		return err
+	}
 	// If this is a new resource and we are cloning, perform all clone validation
 	// operations.
 	if len(d.Get("clone").([]interface{})) > 0 {
@@ -466,18 +422,92 @@ func resourceVSphereVirtualMachineV2CustomizeDiff(d *schema.ResourceDiff, meta i
 			return err
 		}
 	}
-	// Validate and normalize disk sub-resources
-	if err := virtualdevice.DiskDiffOperation(d, client); err != nil {
-		return err
-	}
 	log.Printf("[DEBUG] %s: Diff customization and validation complete", resourceVSphereVirtualMachineV2IDString(d))
 	return nil
 }
 
-// resourceVSphereVirtualMachineV2CreateClone contains the clone part of the VM
-// creation workflow. It expects some of the common stuff done - namely the
-// name of the VM and the folder already fetched. The VM is returned.
-func resourceVSphereVirtualMachineV2CreateClone(d *schema.ResourceData, c *govmomi.Client) (*object.VirtualMachine, error) {
+// resourceVSphereVirtualMachineV2CreateBare contains the "bare metal" VM
+// deploy path. The VM is returned.
+func resourceVSphereVirtualMachineV2CreateBare(d *schema.ResourceData, client *govmomi.Client) (*object.VirtualMachine, error) {
+	log.Printf("[DEBUG] %s: VM being created from scratch", resourceVSphereVirtualMachineV2IDString(d))
+	poolID := d.Get("resource_pool_id").(string)
+	pool, err := resourcepool.FromID(client, poolID)
+	if err != nil {
+		return nil, fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
+	}
+
+	// Find the folder based off the path to the resource pool. Basically what we
+	// are saying here is that the VM folder that we are placing this VM in needs
+	// to be in the same hierarchy as the resource pool - so in other words, the
+	// same datacenter.
+	fo, err := folder.VirtualMachineFolderFromObject(client, pool, d.Get("folder").(string))
+	if err != nil {
+		return nil, err
+	}
+	var hs *object.HostSystem
+	if v, ok := d.GetOk("host_system_id"); ok {
+		hsID := v.(string)
+		var err error
+		if hs, err = hostsystem.FromID(client, hsID); err != nil {
+			return nil, fmt.Errorf("error locating host system at ID %q: %s", hsID, err)
+		}
+	}
+
+	// Validate that the host is part of the resource pool before proceeding
+	if err := resourcepool.ValidateHost(client, pool, hs); err != nil {
+		return nil, err
+	}
+
+	// Ready to start making the VM here. First expand our main config spec.
+	spec := expandVirtualMachineConfigSpec(d)
+
+	// Set the datastore for the VM.
+	ds, err := datastore.FromID(client, d.Get("datastore_id").(string))
+	if err != nil {
+		return nil, fmt.Errorf("error locating datastore for VM: %s", err)
+	}
+	spec.Files = &types.VirtualMachineFileInfo{
+		VmPathName: fmt.Sprintf("[%s]", ds.Name()),
+	}
+
+	// Now we need to get the default device set - this is available in the
+	// environment info in the resource pool, which we can then filter through
+	// our device CRUD lifecycles to get a full deviceChange attribute for our
+	// configspec.
+	devices, err := resourcepool.DefaultDevices(client, pool, d.Get("guest_id").(string))
+	if err != nil {
+		return nil, fmt.Errorf("error loading default device list: %s", err)
+	}
+	log.Printf("[DEBUG] Default devices: %s", virtualdevice.DeviceListString(devices))
+
+	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
+		return nil, err
+	}
+
+	// We should now have a complete configSpec! Attempt to create the VM now.
+	vm, err := virtualmachine.Create(client, fo, *spec, pool, hs)
+	if err != nil {
+		return nil, fmt.Errorf("error creating virtual machine: %s", err)
+	}
+	// VM is created. Set the ID now before proceeding, in case the rest of the
+	// process here fails.
+	vprops, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return nil, fmt.Errorf("cannot fetch properties of created virtual machine: %s", err)
+	}
+	log.Printf("[DEBUG] VM %q - UUID is %q", vm.InventoryPath, vprops.Config.Uuid)
+	d.SetId(vprops.Config.Uuid)
+
+	// Start the virtual machine
+	if err := virtualmachine.PowerOn(vm); err != nil {
+		return nil, fmt.Errorf("error powering on virtual machine: %s", err)
+	}
+	return vm, nil
+}
+
+// resourceVSphereVirtualMachineV2CreateClone contains the clone VM deploy
+// path. The VM is returned.
+func resourceVSphereVirtualMachineV2CreateClone(d *schema.ResourceData, client *govmomi.Client) (*object.VirtualMachine, error) {
 	log.Printf("[DEBUG] %s: VM being created from clone", resourceVSphereVirtualMachineV2IDString(d))
 
 	// Find the folder based off the path to the resource pool. Basically what we
@@ -485,17 +515,17 @@ func resourceVSphereVirtualMachineV2CreateClone(d *schema.ResourceData, c *govmo
 	// to be in the same hierarchy as the resource pool - so in other words, the
 	// same datacenter.
 	poolID := d.Get("resource_pool_id").(string)
-	pool, err := resourcepool.FromID(c, poolID)
+	pool, err := resourcepool.FromID(client, poolID)
 	if err != nil {
 		return nil, fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
 	}
-	fo, err := folder.VirtualMachineFolderFromObject(c, pool, d.Get("folder").(string))
+	fo, err := folder.VirtualMachineFolderFromObject(client, pool, d.Get("folder").(string))
 	if err != nil {
 		return nil, err
 	}
 
 	// Expand the clone spec. We get the source VM here too.
-	cloneSpec, srcVM, err := vmworkflow.ExpandVirtualMachineCloneSpec(d, c)
+	cloneSpec, srcVM, err := vmworkflow.ExpandVirtualMachineCloneSpec(d, client)
 	if err != nil {
 		return nil, err
 	}
@@ -503,7 +533,7 @@ func resourceVSphereVirtualMachineV2CreateClone(d *schema.ResourceData, c *govmo
 	// Start the clone
 	name := d.Get("name").(string)
 	timeout := d.Get("clone.0.timeout").(int)
-	vm, err := virtualmachine.Clone(c, srcVM, fo, name, cloneSpec, timeout)
+	vm, err := virtualmachine.Clone(client, srcVM, fo, name, cloneSpec, timeout)
 	if err != nil {
 		return nil, fmt.Errorf("error cloning virtual machine: %s", err)
 	}
@@ -536,19 +566,19 @@ func resourceVSphereVirtualMachineV2CreateClone(d *schema.ResourceData, c *govmo
 	}
 	cfgSpec.DeviceChange = append(cfgSpec.DeviceChange, delta...)
 	// Disks
-	devices, delta, err = virtualdevice.DiskPostCloneOperation(d, c, devices)
+	devices, delta, err = virtualdevice.DiskPostCloneOperation(d, client, devices)
 	if err != nil {
 		return nil, err
 	}
 	cfgSpec.DeviceChange = append(cfgSpec.DeviceChange, delta...)
 	// Network devices
-	devices, delta, err = virtualdevice.NetworkInterfacePostCloneOperation(d, c, devices)
+	devices, delta, err = virtualdevice.NetworkInterfacePostCloneOperation(d, client, devices)
 	if err != nil {
 		return nil, err
 	}
 	cfgSpec.DeviceChange = append(cfgSpec.DeviceChange, delta...)
 	// CDROM
-	devices, delta, err = virtualdevice.CdromPostCloneOperation(d, c, devices)
+	devices, delta, err = virtualdevice.CdromPostCloneOperation(d, client, devices)
 	if err != nil {
 		return nil, err
 	}
@@ -567,7 +597,7 @@ func resourceVSphereVirtualMachineV2CreateClone(d *schema.ResourceData, c *govmo
 	// Send customization spec if any has been defined.
 	if len(d.Get("clone.0.customize").([]interface{})) > 0 {
 		custSpec := vmworkflow.ExpandCustomizationSpec(d)
-		cw = newVirtualMachineCustomizationWaiter(c, vm, d.Get("clone.0.customize.0.timeout").(int))
+		cw = newVirtualMachineCustomizationWaiter(client, vm, d.Get("clone.0.customize.0.timeout").(int))
 		if err := virtualmachine.Customize(vm, custSpec); err != nil {
 			return nil, fmt.Errorf("error sending customization spec: %s", err)
 		}
