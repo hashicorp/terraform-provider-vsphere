@@ -339,7 +339,7 @@ func resourceVSphereVirtualMachineV2Update(d *schema.ResourceData, meta interfac
 	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
 		return err
 	}
-	// Ready to do the update. Only carry out this part if we actually have a change to process.
+	// Only carry out the reconfigure if we actually have a change to process.
 	if changed || len(spec.DeviceChange) > 0 {
 		//Check to see if we need to shutdown the VM for this process.
 		if d.Get("reboot_required").(bool) && vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOff {
@@ -354,8 +354,6 @@ func resourceVSphereVirtualMachineV2Update(d *schema.ResourceData, meta interfac
 		if err := virtualmachine.Reconfigure(vm, spec); err != nil {
 			return fmt.Errorf("error reconfiguring virtual machine: %s", err)
 		}
-		// Now safe to turn off partial mode.
-		d.Partial(false)
 		// Re-fetch properties
 		vprops, err = virtualmachine.Properties(vm)
 		if err != nil {
@@ -371,6 +369,8 @@ func resourceVSphereVirtualMachineV2Update(d *schema.ResourceData, meta interfac
 			}
 		}
 	}
+	// Now safe to turn off partial mode.
+	d.Partial(false)
 
 	// Now that any pending changes have been done (namely, any disks that don't
 	// need to be migrated have been deleted), proceed with vMotion if we have
