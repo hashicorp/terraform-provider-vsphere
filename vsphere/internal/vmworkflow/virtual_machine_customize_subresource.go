@@ -1,6 +1,7 @@
 package vmworkflow
 
 import (
+	"errors"
 	"fmt"
 	"net"
 
@@ -210,10 +211,9 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 					Elem:        &schema.Schema{Type: schema.TypeString},
 				},
 				"dns_domain": {
-					Type:        schema.TypeList,
+					Type:        schema.TypeString,
 					Optional:    true,
 					Description: "A list of DNS search domains to add to the DNS configuration on the virtual machine.",
-					Elem:        &schema.Schema{Type: schema.TypeString},
 				},
 				"ipv4_address": {
 					Type:        schema.TypeString,
@@ -250,7 +250,7 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 			Description: "The IPv6 default gateway when using network_interface customization on the virtual machine. This address must be local to a static IPv4 address configured in an interface sub-resource.",
 		},
 		"timeout": {
-			Type:        schema.TypeString,
+			Type:        schema.TypeInt,
 			Optional:    true,
 			Default:     10,
 			Description: "The amount of time, in minutes, to wait for guest OS customization to complete before returning with an error. Setting this value to 0 or a negative value skips the waiter.",
@@ -370,18 +370,19 @@ func expandCustomizationSysprepText(d *schema.ResourceData) *types.Customization
 // Only one of the three types of identity settings can be specified: Linux
 // settings (from linux_options), Windows settings (from windows_options), and
 // the raw Windows sysprep file (via windows_sysprep_text).
-func expandBaseCustomizationIdentitySettings(d *schema.ResourceData) types.BaseCustomizationIdentitySettings {
+func expandBaseCustomizationIdentitySettings(d *schema.ResourceData, family string) types.BaseCustomizationIdentitySettings {
 	var obj types.BaseCustomizationIdentitySettings
-	_, lExists := d.GetOkExists(cKeyPrefix + "." + "linux_options")
 	_, wExists := d.GetOkExists(cKeyPrefix + "." + "windows_options")
 	_, wrExists := d.GetOkExists(cKeyPrefix + "." + "windows_sysprep_text")
 	switch {
-	case lExists:
+	case family == string(types.VirtualMachineGuestOsFamilyLinuxGuest):
 		obj = expandCustomizationLinuxPrep(d)
-	case wExists:
+	case family == string(types.VirtualMachineGuestOsFamilyWindowsGuest) && wExists:
 		obj = expandCustomizationSysprep(d)
-	case wrExists:
+	case family == string(types.VirtualMachineGuestOsFamilyWindowsGuest) && wrExists:
 		obj = expandCustomizationSysprepText(d)
+	default:
+		obj = &types.CustomizationIdentitySettings{}
 	}
 	return obj
 }
@@ -462,11 +463,27 @@ func expandSliceOfCustomizationAdapterMapping(d *schema.ResourceData) []types.Cu
 
 // ExpandCustomizationSpec reads certain ResourceData keys and
 // returns a CustomizationSpec.
-func ExpandCustomizationSpec(d *schema.ResourceData) types.CustomizationSpec {
+func ExpandCustomizationSpec(d *schema.ResourceData, family string) types.CustomizationSpec {
 	obj := types.CustomizationSpec{
-		Identity:         expandBaseCustomizationIdentitySettings(d),
+		Identity:         expandBaseCustomizationIdentitySettings(d, family),
 		GlobalIPSettings: expandCustomizationGlobalIPSettings(d),
 		NicSettingMap:    expandSliceOfCustomizationAdapterMapping(d),
 	}
 	return obj
+}
+
+// ValidateCustomizationSpec checks the validity of the supplied customization
+// spec. It should be called during diff customization to veto invalid configs.
+func ValidateCustomizationSpec(d *schema.ResourceDiff, family string) error {
+	// Validate that the proper section exists for OS family suboptions.
+	lExists := len(d.Get(cKeyPrefix+"."+"linux_options").([]interface{})) > 0
+	wExists := len(d.Get(cKeyPrefix+"."+"windows_options").([]interface{})) > 0
+	wrExists := d.Get(cKeyPrefix+"."+"windows_sysprep_text").(string) != ""
+	switch {
+	case family == string(types.VirtualMachineGuestOsFamilyLinuxGuest) && !lExists:
+		return errors.New("linux_options must exist in VM customization options for Linux operating systems")
+	case family == string(types.VirtualMachineGuestOsFamilyWindowsGuest) && !wExists && !wrExists:
+		return errors.New("one of windows_options or windows_sysprep_text must exist in VM customization options for Windows operating systems")
+	}
+	return nil
 }

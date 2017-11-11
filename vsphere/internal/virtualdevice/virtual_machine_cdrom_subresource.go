@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/mitchellh/copystructure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi"
@@ -256,16 +257,115 @@ func CdromRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.V
 // machine and outputs any necessary device change operations. It also sets the
 // state in advance of the post-create read.
 //
-// Since CDROM devices are not something we only allow one of, and something we
-// don't meticulously track the state of, this is basically the equivalent of a
-// simple refresh and apply, which should add the orphaned devices on top of
-// any in config, clearing out any old devices and replacing them with the new
-// one.
+// This differs from a regular apply operation in that a configuration is
+// already present, but we don't have any existing state, which the standard
+// virtual device operations rely pretty heavily on.
 func CdromPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
-	if err := CdromRefreshOperation(d, c, l); err != nil {
+	log.Printf("[DEBUG] CdromPostCloneOperation: Looking for post-clone device changes")
+	// While we are currently only restricting CD devices to one device, we have
+	// to actually account for the fact that someone could add multiple CD drives
+	// out of band. So this workflow is similar to the multi-device workflow that
+	// exists for network devices.
+	devices := l.Select(func(device types.BaseVirtualDevice) bool {
+		if _, ok := device.(*types.VirtualCdrom); ok {
+			return true
+		}
+		return false
+	})
+	log.Printf("[DEBUG] CdromPostCloneOperation: CDROM devices located: %s", DeviceListString(devices))
+	curSet := d.Get(subresourceTypeCdrom).([]interface{})
+	log.Printf("[DEBUG] CdromPostCloneOperation: Current resource set from configuration: %s", subresourceListString(curSet))
+	var srcSet []interface{}
+
+	// Populate the source set as if the devices were orphaned. This give us a
+	// base to diff off of.
+	log.Printf("[DEBUG] CdromPostCloneOperation: Reading existing devices")
+	for n, device := range devices {
+		m := make(map[string]interface{})
+		vd := device.GetVirtualDevice()
+		ctlr := l.FindByKey(vd.ControllerKey)
+		if ctlr == nil {
+			return nil, nil, fmt.Errorf("could not find controller with key %d", vd.Key)
+		}
+		m["key"] = int(vd.Key)
+		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		r := NewCdromSubresource(c, d, m, nil, n)
+		if err := r.Read(l); err != nil {
+			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+		}
+		srcSet = append(srcSet, r.Data())
+	}
+
+	// Now go over our current set, kind of treating it like an apply:
+	//
+	// * Device past the boundaries of existing devices are created
+	// * Devices within the bounds are changed changed
+	// * Data at the source with the same data after patching config data is a
+	// no-op, but we still push the device's state
+	var spec []types.BaseVirtualDeviceConfigSpec
+	var updates []interface{}
+	for i, ci := range curSet {
+		cm := ci.(map[string]interface{})
+		if i > len(srcSet)-1 {
+			// New device
+			r := NewCdromSubresource(c, d, cm, nil, i)
+			cspec, err := r.Create(l)
+			if err != nil {
+				return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+			}
+			l = applyDeviceChange(l, cspec)
+			spec = append(spec, cspec...)
+			updates = append(updates, r.Data())
+			continue
+		}
+		sm := srcSet[i].(map[string]interface{})
+		nm, err := copystructure.Copy(sm)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error copying source CDROM device state data at index %d: %s", i, err)
+		}
+		for k, v := range cm {
+			// Skip key and device_address here
+			switch k {
+			case "key", "device_address":
+				continue
+			}
+			nm.(map[string]interface{})[k] = v
+		}
+		r := NewCdromSubresource(c, d, nm.(map[string]interface{}), sm, i)
+		if !reflect.DeepEqual(sm, nm) {
+			// Update
+			cspec, err := r.Update(l)
+			if err != nil {
+				return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+			}
+			l = applyDeviceChange(l, cspec)
+			spec = append(spec, cspec...)
+		}
+		updates = append(updates, r.Data())
+	}
+
+	// Any other device past the end of the CDROM devices listed in config needs
+	// to be removed.
+	for i, si := range srcSet[len(curSet):] {
+		sm := si.(map[string]interface{})
+		r := NewCdromSubresource(c, d, sm, nil, i+len(curSet))
+		dspec, err := r.Delete(l)
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+		}
+		l = applyDeviceChange(l, dspec)
+		spec = append(spec, dspec...)
+	}
+
+	log.Printf("[DEBUG] CdromPostCloneOperation: Post-clone final resource list: %s", subresourceListString(updates))
+	// We are now done! Return the updated device list and config spec. Save updates as well.
+	if err := d.Set(subresourceTypeNetworkInterface, updates); err != nil {
 		return nil, nil, err
 	}
-	return CdromApplyOperation(d, c, l)
+	log.Printf("[DEBUG] CdromPostCloneOperation: Device list at end of operation: %s", DeviceListString(l))
+	log.Printf("[DEBUG] CdromPostCloneOperation: Device config operations from post-clone: %s", DeviceChangeString(spec))
+	log.Printf("[DEBUG] CdromPostCloneOperation: Operation complete, returning updated spec")
+	return l, spec, nil
 }
 
 // Create creates a vsphere_virtual_machine cdrom sub-resource.

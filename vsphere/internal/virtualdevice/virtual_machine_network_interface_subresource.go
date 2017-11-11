@@ -349,7 +349,7 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 // already present, but we don't have any existing state, which the standard
 // virtual device operations rely pretty heavily on.
 func NetworkInterfacePostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
-	log.Printf("[DEBUG] NetworkInterfacePostCloneOperation: Beginning refresh")
+	log.Printf("[DEBUG] NetworkInterfacePostCloneOperation: Looking for post-clone device changes")
 	devices := l.Select(func(device types.BaseVirtualDevice) bool {
 		if _, ok := device.(types.BaseVirtualEthernetCard); ok {
 			return true
@@ -358,7 +358,7 @@ func NetworkInterfacePostCloneOperation(d *schema.ResourceData, c *govmomi.Clien
 	})
 	log.Printf("[DEBUG] NetworkInterfacePostCloneOperation: Network devices located: %s", DeviceListString(devices))
 	curSet := d.Get(subresourceTypeNetworkInterface).([]interface{})
-	log.Printf("[DEBUG] NetworkInterfacePostCloneOperation: Current resource set from state: %s", subresourceListString(curSet))
+	log.Printf("[DEBUG] NetworkInterfacePostCloneOperation: Current resource set from configuration: %s", subresourceListString(curSet))
 	urange, err := unitRange(devices)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error calculating network device range: %s", err)
@@ -417,12 +417,17 @@ func NetworkInterfacePostCloneOperation(d *schema.ResourceData, c *govmomi.Clien
 			return nil, nil, fmt.Errorf("error copying source network interface state data at index %d: %s", i, err)
 		}
 		for k, v := range cm {
+			// Skip key and device_address here
+			switch k {
+			case "key", "device_address":
+				continue
+			}
 			nm.(map[string]interface{})[k] = v
 		}
 		r := NewNetworkInterfaceSubresource(c, d, nm.(map[string]interface{}), sm, i)
 		if !reflect.DeepEqual(sm, nm) {
 			// Update
-			cspec, err := r.Create(l)
+			cspec, err := r.Update(l)
 			if err != nil {
 				return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
 			}
@@ -660,14 +665,14 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 	// ones with different device types.
 	var spec []types.BaseVirtualDeviceConfigSpec
 
-	// A change in device_type is essentially a ForceNew. We would normally veto
+	// A change in adapter_type is essentially a ForceNew. We would normally veto
 	// this, but network devices are not extremely mission critical if they go
 	// away, so we can support in-place modification of them in configuration by
 	// just pushing a delete of the old device and adding a new version of the
 	// device, with the old device unit number preserved so that it (hopefully)
 	// gets the same device position as its previous incarnation, allowing old
 	// device aliases to work, etc.
-	if r.HasChange("device_type") {
+	if r.HasChange("adapter_type") {
 		log.Printf("[DEBUG] %s: Device type changing to %s, re-creating device", r, r.Get("adapter_type").(string))
 		card := device.GetVirtualEthernetCard()
 		newDevice, err := l.CreateEthernetCard(r.Get("adapter_type").(string), card.Backing)
@@ -687,7 +692,7 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 		newCard.Key = l.NewKey()
 		// If VMware tools is not running, this operation requires a reboot
 		if r.resourceData.Get("vmware_tools_status").(string) != string(types.VirtualMachineToolsRunningStatusGuestToolsRunning) {
-			r.SetRestart("device_type")
+			r.SetRestart("adapter_type")
 		}
 		// Push the delete of the old device
 		bvd := baseVirtualEthernetCardToBaseVirtualDevice(device)

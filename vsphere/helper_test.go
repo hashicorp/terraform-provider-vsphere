@@ -13,6 +13,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/vmware/govmomi"
@@ -154,6 +155,26 @@ func testGetVirtualMachineProperties(s *terraform.State, resourceName string) (*
 		return nil, err
 	}
 	return virtualmachine.Properties(vm)
+}
+
+// testGetVirtualMachineHost returns the HostSystem for the host that this
+// virtual machine is currently on.
+func testGetVirtualMachineHost(s *terraform.State, resourceName string) (*object.HostSystem, error) {
+	// TODO: Remove this selector after we are done with the refactor of the VM
+	// resource
+	addr := fmt.Sprintf("vsphere_virtual_machine_v2.%s", resourceName)
+	if _, ok := s.RootModule().Resources[addr]; !ok {
+		addr = fmt.Sprintf("vsphere_virtual_machine.%s", resourceName)
+	}
+	tVars, err := testClientVariablesForResource(s, addr)
+	if err != nil {
+		return nil, err
+	}
+	vprops, err := testGetVirtualMachineProperties(s, resourceName)
+	if err != nil {
+		return nil, err
+	}
+	return hostsystem.FromID(tVars.client, vprops.Runtime.Host.Value)
 }
 
 // testPowerOffVM does an immediate power-off of the supplied virtual machine

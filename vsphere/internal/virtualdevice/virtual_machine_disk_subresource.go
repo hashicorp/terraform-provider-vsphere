@@ -224,6 +224,17 @@ nextNew:
 			if nm["key"] == om["key"] {
 				// This is an update
 				r := NewDiskSubresource(c, d, nil, nm, om)
+				// If the only thing changing here is the datastore, this is a no-op as
+				// far as a device change is concerned, and is handled during storage
+				// vMotion later on during the update phase.
+				omc, err := copystructure.Copy(om)
+				if err != nil {
+					return nil, nil, fmt.Errorf("%s: error generating copy of old disk data: %s", r.Addr(), err)
+				}
+				omc.(map[string]interface{})["datastore_id"] = nm["datastore_id"]
+				if reflect.DeepEqual(omc, nm) {
+					continue
+				}
 				uspec, err := r.Update(l)
 				if err != nil {
 					return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -559,6 +570,48 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 	return nil
 }
 
+// DiskMigrateRelocateOperation assembles the
+// VirtualMachineRelocateSpecDiskLocator slice for a virtual machine migration
+// operation, otherwise known as storage vMotion.
+func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) ([]types.VirtualMachineRelocateSpecDiskLocator, error) {
+	log.Printf("[DEBUG] DiskMigrateRelocateOperation: Generating any necessary disk relocate specs")
+	o, n := d.GetChange(subresourceTypeDisk)
+	// Make an intersection set. Any device in the intersection is a device
+	// that is not changing, so we ignore those.
+	ids := o.(*schema.Set).Intersection(n.(*schema.Set))
+	ods := o.(*schema.Set).Difference(ids)
+	nds := n.(*schema.Set).Difference(ids)
+
+	var relocators []types.VirtualMachineRelocateSpecDiskLocator
+
+	// We are only concerned with resources that would normally be updated, as
+	// incoming or outgoing disks obviously won't need migrating. Hence, this is
+	// a simplified subset of the normal apply logic.
+nextDisk:
+	for _, ne := range nds.List() {
+		nm := ne.(map[string]interface{})
+		for _, oe := range ods.List() {
+			om := oe.(map[string]interface{})
+			if nm["key"] == om["key"] {
+				// No change in datastore is a no-op
+				if nm["datastore_id"] == om["datastore_id"] {
+					continue nextDisk
+				}
+				r := NewDiskSubresource(c, d, nil, nm, om)
+				relocator, err := r.Relocate(l)
+				if err != nil {
+					return nil, fmt.Errorf("%s: %s", r.Addr(), err)
+				}
+				relocators = append(relocators, relocator)
+			}
+		}
+	}
+
+	log.Printf("[DEBUG] DiskMigrateRelocateOperation: Disk relocator list: %s", diskRelocateListString(relocators))
+	log.Printf("[DEBUG] DiskMigrateRelocateOperation: Disk relocator generation complete")
+	return relocators, nil
+}
+
 // DiskCloneRelocateOperation assembles the
 // VirtualMachineRelocateSpecDiskLocator slice for a virtual machine clone
 // operation.
@@ -675,6 +728,15 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 			return nil, nil, fmt.Errorf("error copying current device state for disk at unit_number %d: %s", src["unit_number"].(int), err)
 		}
 		for k, v := range src {
+			// Skip name, datastore_id, and share count if share level isn't custom
+			switch k {
+			case "name", "datastore_id":
+				continue
+			case "io_share_count":
+				if src["io_share_level"] != string(types.SharesLevelCustom) {
+					continue
+				}
+			}
 			new.(map[string]interface{})[k] = v
 		}
 		rNew := NewDiskSubresource(c, d, nil, new.(map[string]interface{}), rOld.Data())
@@ -701,7 +763,7 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 		updates = append(updates, r.Data())
 	}
 
-	log.Printf("[DEBUG] DiskApplyOperation: Post-clone final resource list: %s", subresourceListString(updates))
+	log.Printf("[DEBUG] DiskPostCloneOperation: Post-clone final resource list: %s", subresourceListString(updates))
 	if err := d.Set(subresourceTypeDisk, updates); err != nil {
 		return nil, nil, err
 	}

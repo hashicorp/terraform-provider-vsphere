@@ -354,6 +354,25 @@ func Reconfigure(vm *object.VirtualMachine, spec types.VirtualMachineConfigSpec)
 	return task.Wait(tctx)
 }
 
+// Relocate wraps the Relocate task and the subsequent waiting for the task to
+// complete.
+func Relocate(vm *object.VirtualMachine, spec types.VirtualMachineRelocateSpec, timeout int) error {
+	log.Printf("[DEBUG] Beginning migration of virtual machine %q (timeout %d)", vm.InventoryPath, timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*time.Duration(timeout))
+	defer cancel()
+	task, err := vm.Relocate(ctx, spec, "")
+	if err != nil {
+		return err
+	}
+	if err := task.Wait(ctx); err != nil {
+		// Provide a friendly error message if we timed out waiting for the migration.
+		if ctx.Err() == context.DeadlineExceeded {
+			return errors.New("timeout waiting for migration to complete")
+		}
+	}
+	return nil
+}
+
 // Destroy wraps the Destroy task and the subsequent waiting for the task to
 // complete.
 func Destroy(vm *object.VirtualMachine) error {

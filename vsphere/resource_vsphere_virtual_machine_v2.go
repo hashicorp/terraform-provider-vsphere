@@ -19,6 +19,17 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+// formatVirtualMachinePostCloneRollbackError defines the verbose error when
+// rollback fails on a post-clone virtual machine operation.
+const formatVirtualMachinePostCloneRollbackError = `
+WARNING: Dangling resource!
+There was an error moving reconfiguring virtual machine %q after cloning:
+%s
+Additionally, there was an error removing the cloned virtual machine:
+%s
+You will need to remove this virtual machine manually before trying again.
+`
+
 func resourceVSphereVirtualMachineV2() *schema.Resource {
 	s := map[string]*schema.Schema{
 		"resource_pool_id": {
@@ -55,6 +66,13 @@ func resourceVSphereVirtualMachineV2() *schema.Resource {
 			Default:      3,
 			Description:  "The amount of time, in minutes, to wait for shutdown when making necessary updates to the virtual machine.",
 			ValidateFunc: validation.IntBetween(1, 10),
+		},
+		"migrate_wait_timeout": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Default:      30,
+			Description:  "The amount of time, in minutes, to wait for a vMotion operation to complete before failing.",
+			ValidateFunc: validation.IntAtLeast(10),
 		},
 		"force_power_off": {
 			Type:        schema.TypeBool,
@@ -147,9 +165,9 @@ func resourceVSphereVirtualMachineV2Create(d *schema.ResourceData, meta interfac
 	// The VM should also be returned powered on.
 	switch {
 	case len(d.Get("clone").([]interface{})) > 0:
-		vm, err = resourceVSphereVirtualMachineV2CreateClone(d, client)
+		vm, err = resourceVSphereVirtualMachineV2CreateClone(d, meta)
 	default:
-		vm, err = resourceVSphereVirtualMachineV2CreateBare(d, client)
+		vm, err = resourceVSphereVirtualMachineV2CreateBare(d, meta)
 	}
 
 	if err != nil {
@@ -293,12 +311,6 @@ func resourceVSphereVirtualMachineV2Update(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("cannot locate virtual machine with UUID %q: %s", id, err)
 	}
 
-	// TODO: Block changes to host_system_id or resource_pool_id until we have
-	// support for vMotion.
-	if d.HasChange("resource_pool_id") || d.HasChange("host_system_id") {
-		return fmt.Errorf("[TODO] vMotion is currently not supported on this resource, so resource pool or host system cannot be modified")
-	}
-
 	// Update folder if necessary
 	if d.HasChange("folder") {
 		folder := d.Get("folder").(string)
@@ -317,47 +329,54 @@ func resourceVSphereVirtualMachineV2Update(d *schema.ResourceData, meta interfac
 	// Ready to start the VM update. All changes from here, until the update
 	// operation finishes successfully, need to be done in partial mode.
 	d.Partial(true)
-	spec := expandVirtualMachineConfigSpec(d)
 
-	// To apply device changes, we need the current devicespec from the config
-	// info. We then filter this list through the same apply process we did for
-	// create, which will apply the changes in an incremental fashion.
 	vprops, err := virtualmachine.Properties(vm)
 	if err != nil {
 		return fmt.Errorf("error fetching VM properties: %s", err)
 	}
+	spec, changed := expandVirtualMachineConfigSpecChanged(d, vprops.Config)
 	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
 	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
 		return err
 	}
-	// Ready to do the update. Check to see if we need to shutdown the VM for this process.
-	if d.Get("reboot_required").(bool) && vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOff {
-		// Attempt a graceful shutdown of this process. We wrap this in a VM helper.
-		timeout := d.Get("shutdown_wait_timeout").(int)
-		force := d.Get("force_power_off").(bool)
-		if err := virtualmachine.GracefulPowerOff(client, vm, timeout, force); err != nil {
-			return fmt.Errorf("error shutting down virtual machine: %s", err)
+	// Ready to do the update. Only carry out this part if we actually have a change to process.
+	if changed || len(spec.DeviceChange) > 0 {
+		//Check to see if we need to shutdown the VM for this process.
+		if d.Get("reboot_required").(bool) && vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOff {
+			// Attempt a graceful shutdown of this process. We wrap this in a VM helper.
+			timeout := d.Get("shutdown_wait_timeout").(int)
+			force := d.Get("force_power_off").(bool)
+			if err := virtualmachine.GracefulPowerOff(client, vm, timeout, force); err != nil {
+				return fmt.Errorf("error shutting down virtual machine: %s", err)
+			}
+		}
+		// Perform updates
+		if err := virtualmachine.Reconfigure(vm, spec); err != nil {
+			return fmt.Errorf("error reconfiguring virtual machine: %s", err)
+		}
+		// Now safe to turn off partial mode.
+		d.Partial(false)
+		// Re-fetch properties
+		vprops, err = virtualmachine.Properties(vm)
+		if err != nil {
+			return fmt.Errorf("error re-fetching VM properties after update: %s", err)
+		}
+		// Power back on the VM, and wait for network if necessary.
+		if vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOn {
+			if err := virtualmachine.PowerOn(vm); err != nil {
+				return fmt.Errorf("error powering on virtual machine: %s", err)
+			}
+			if err := virtualmachine.WaitForGuestNet(client, vm, d.Get("wait_for_guest_net_timeout").(int)); err != nil {
+				return err
+			}
 		}
 	}
-	// Perform updates
-	if err := virtualmachine.Reconfigure(vm, *spec); err != nil {
-		return fmt.Errorf("error reconfiguring virtual machine: %s", err)
-	}
-	// Now safe to turn off partial mode.
-	d.Partial(false)
-	// Re-fetch properties
-	vprops, err = virtualmachine.Properties(vm)
-	if err != nil {
-		return fmt.Errorf("error re-fetching VM properties after update: %s", err)
-	}
-	// Power back on the VM, and wait for network if necessary.
-	if vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOn {
-		if err := virtualmachine.PowerOn(vm); err != nil {
-			return fmt.Errorf("error powering on virtual machine: %s", err)
-		}
-		if err := virtualmachine.WaitForGuestNet(client, vm, d.Get("wait_for_guest_net_timeout").(int)); err != nil {
-			return err
-		}
+
+	// Now that any pending changes have been done (namely, any disks that don't
+	// need to be migrated have been deleted), proceed with vMotion if we have
+	// one pending.
+	if err := resourceVSphereVirtualMachineV2UpdateLocation(d, meta); err != nil {
+		return fmt.Errorf("error running VM migration: %s", err)
 	}
 
 	// All done with updates.
@@ -417,7 +436,7 @@ func resourceVSphereVirtualMachineV2CustomizeDiff(d *schema.ResourceDiff, meta i
 	}
 	// If this is a new resource and we are cloning, perform all clone validation
 	// operations.
-	if len(d.Get("clone").([]interface{})) > 0 {
+	if d.Id() == "" && len(d.Get("clone").([]interface{})) > 0 {
 		if err := vmworkflow.ValidateVirtualMachineClone(d, client); err != nil {
 			return err
 		}
@@ -428,8 +447,9 @@ func resourceVSphereVirtualMachineV2CustomizeDiff(d *schema.ResourceDiff, meta i
 
 // resourceVSphereVirtualMachineV2CreateBare contains the "bare metal" VM
 // deploy path. The VM is returned.
-func resourceVSphereVirtualMachineV2CreateBare(d *schema.ResourceData, client *govmomi.Client) (*object.VirtualMachine, error) {
+func resourceVSphereVirtualMachineV2CreateBare(d *schema.ResourceData, meta interface{}) (*object.VirtualMachine, error) {
 	log.Printf("[DEBUG] %s: VM being created from scratch", resourceVSphereVirtualMachineV2IDString(d))
+	client := meta.(*VSphereClient).vimClient
 	poolID := d.Get("resource_pool_id").(string)
 	pool, err := resourcepool.FromID(client, poolID)
 	if err != nil {
@@ -485,7 +505,7 @@ func resourceVSphereVirtualMachineV2CreateBare(d *schema.ResourceData, client *g
 	}
 
 	// We should now have a complete configSpec! Attempt to create the VM now.
-	vm, err := virtualmachine.Create(client, fo, *spec, pool, hs)
+	vm, err := virtualmachine.Create(client, fo, spec, pool, hs)
 	if err != nil {
 		return nil, fmt.Errorf("error creating virtual machine: %s", err)
 	}
@@ -507,8 +527,9 @@ func resourceVSphereVirtualMachineV2CreateBare(d *schema.ResourceData, client *g
 
 // resourceVSphereVirtualMachineV2CreateClone contains the clone VM deploy
 // path. The VM is returned.
-func resourceVSphereVirtualMachineV2CreateClone(d *schema.ResourceData, client *govmomi.Client) (*object.VirtualMachine, error) {
+func resourceVSphereVirtualMachineV2CreateClone(d *schema.ResourceData, meta interface{}) (*object.VirtualMachine, error) {
 	log.Printf("[DEBUG] %s: VM being created from clone", resourceVSphereVirtualMachineV2IDString(d))
+	client := meta.(*VSphereClient).vimClient
 
 	// Find the folder based off the path to the resource pool. Basically what we
 	// are saying here is that the VM folder that we are placing this VM in needs
@@ -538,8 +559,8 @@ func resourceVSphereVirtualMachineV2CreateClone(d *schema.ResourceData, client *
 		return nil, fmt.Errorf("error cloning virtual machine: %s", err)
 	}
 
-	// VM is created. Set the ID now before proceeding, in case the rest of the
-	// process here fails.
+	// VM is created and updated. It's save to set the ID here now, in case the
+	// rest of the process here fails.
 	vprops, err := virtualmachine.Properties(vm)
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch properties of created virtual machine: %s", err)
@@ -551,7 +572,6 @@ func resourceVSphereVirtualMachineV2CreateClone(d *schema.ResourceData, client *
 	// configuration of the newly cloned VM. This is basically a subset of update
 	// with the stipulation that there is currently no state to help move this
 	// along.
-	d.Partial(true)
 	cfgSpec := expandVirtualMachineConfigSpec(d)
 
 	// To apply device changes, we need the current devicecfgSpec from the config
@@ -587,16 +607,27 @@ func resourceVSphereVirtualMachineV2CreateClone(d *schema.ResourceData, client *
 	log.Printf("[DEBUG] %s: Final device change cfgSpec: %s", resourceVSphereVirtualMachineV2IDString(d), virtualdevice.DeviceChangeString(cfgSpec.DeviceChange))
 
 	// Perform updates
-	if err := virtualmachine.Reconfigure(vm, *cfgSpec); err != nil {
+	if err := virtualmachine.Reconfigure(vm, cfgSpec); err != nil {
+		// Delete the virtual machine if the update failed here. Updates are
+		// largely atomic, so more than likely no disks with keep_on_remove were
+		// attached, but just in case, we run this through delete to make sure to
+		// safely remove any disk that may have been attached as part of this
+		// process if it was flagged as such.
+		if derr := resourceVSphereVirtualMachineV2Delete(d, meta); derr != nil {
+			return nil, fmt.Errorf(formatVirtualMachinePostCloneRollbackError, vm.InventoryPath, err, derr)
+		}
+		d.SetId("")
 		return nil, fmt.Errorf("error reconfiguring virtual machine: %s", err)
 	}
-	// Now safe to turn off partial mode.
-	d.Partial(false)
 
 	var cw *virtualMachineCustomizationWaiter
 	// Send customization spec if any has been defined.
 	if len(d.Get("clone.0.customize").([]interface{})) > 0 {
-		custSpec := vmworkflow.ExpandCustomizationSpec(d)
+		family, err := resourcepool.OSFamily(client, pool, d.Get("guest_id").(string))
+		if err != nil {
+			return nil, fmt.Errorf("cannot find OS family for guest ID %q: %s", d.Get("guest_id").(string), err)
+		}
+		custSpec := vmworkflow.ExpandCustomizationSpec(d, family)
 		cw = newVirtualMachineCustomizationWaiter(client, vm, d.Get("clone.0.customize.0.timeout").(int))
 		if err := virtualmachine.Customize(vm, custSpec); err != nil {
 			return nil, fmt.Errorf("error sending customization spec: %s", err)
@@ -617,6 +648,83 @@ func resourceVSphereVirtualMachineV2CreateClone(d *schema.ResourceData, client *
 	}
 	// Clone is complete and ready to return
 	return vm, nil
+}
+
+// resourceVSphereVirtualMachineV2UpdateLocation manages vMotion. This includes
+// the migration of a VM from one host to another, or from one datastore to
+// another (storage vMotion).
+//
+// This function is responsible for building the top-level relocate spec. For
+// disks, we call out to relocate functionality in the disk sub-resource.
+func resourceVSphereVirtualMachineV2UpdateLocation(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Checking for pending migration operations", resourceVSphereVirtualMachineV2IDString(d))
+	client := meta.(*VSphereClient).vimClient
+
+	// A little bit of duplication of VM object data is done here to keep the
+	// method signature lean.
+	id := d.Id()
+	vm, err := virtualmachine.FromUUID(client, id)
+	if err != nil {
+		return fmt.Errorf("cannot locate virtual machine with UUID %q: %s", id, err)
+	}
+
+	// Determine if we are performing any storage vMotion tasks. This will generate the relocators if there are any.
+	vprops, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return fmt.Errorf("error fetching VM properties: %s", err)
+	}
+	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
+	relocators, err := virtualdevice.DiskMigrateRelocateOperation(d, client, devices)
+	if err != nil {
+		return err
+	}
+	// If we don't have any changes, stop here.
+	if !d.HasChange("resource_pool_id") && !d.HasChange("host_system_id") && len(relocators) < 1 {
+		log.Printf("[DEBUG] %s: No migration operations found", resourceVSphereVirtualMachineV2IDString(d))
+		return nil
+	}
+	log.Printf("[DEBUG] %s: Migration operations found, proceeding with migration", resourceVSphereVirtualMachineV2IDString(d))
+
+	// Fetch and validate pool and host
+	poolID := d.Get("resource_pool_id").(string)
+	pool, err := resourcepool.FromID(client, poolID)
+	if err != nil {
+		return fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
+	}
+	var hs *object.HostSystem
+	if v, ok := d.GetOk("host_system_id"); ok {
+		hsID := v.(string)
+		var err error
+		if hs, err = hostsystem.FromID(client, hsID); err != nil {
+			return fmt.Errorf("error locating host system at ID %q: %s", hsID, err)
+		}
+	}
+	if err := resourcepool.ValidateHost(client, pool, hs); err != nil {
+		return err
+	}
+
+	// Fetch the datastore
+	ds, err := datastore.FromID(client, d.Get("datastore_id").(string))
+	if err != nil {
+		return fmt.Errorf("error locating datastore for VM: %s", err)
+	}
+
+	dsRef := ds.Reference()
+	pRef := pool.Reference()
+	// Start building the spec
+	spec := types.VirtualMachineRelocateSpec{
+		Datastore: &dsRef,
+		Pool:      &pRef,
+	}
+	if hs != nil {
+		hsRef := hs.Reference()
+		spec.Host = &hsRef
+	}
+
+	spec.Disk = relocators
+
+	// Ready to perform migration. Only do this if necessary.
+	return virtualmachine.Relocate(vm, spec, d.Get("migrate_wait_timeout").(int))
 }
 
 // applyVirtualDevices is used by Create and Update to build a list of virtual

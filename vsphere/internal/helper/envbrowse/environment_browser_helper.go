@@ -3,6 +3,7 @@ package envbrowse
 import (
 	"context"
 	"errors"
+	"log"
 
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25"
@@ -67,6 +68,36 @@ func (b *EnvironmentBrowser) DefaultDevices(ctx context.Context, guests []string
 		return nil, errors.New("no config options were found for the supplied criteria")
 	}
 	return object.VirtualDeviceList(res.Returnval.DefaultDevice), nil
+}
+
+// OSFamily fetches the operating system family for the supplied guest ID.
+func (b *EnvironmentBrowser) OSFamily(ctx context.Context, guest string) (string, error) {
+	var eb mo.EnvironmentBrowser
+
+	err := b.Properties(ctx, b.Reference(), nil, &eb)
+	if err != nil {
+		return "", err
+	}
+
+	req := types.QueryConfigOptionEx{
+		This: b.Reference(),
+		Spec: &types.EnvironmentBrowserConfigOptionQuerySpec{
+			GuestId: []string{guest},
+		},
+	}
+	res, err := methods.QueryConfigOptionEx(ctx, b.Client(), &req)
+	if err != nil {
+		return "", err
+	}
+	if res.Returnval == nil {
+		return "", errors.New("no config options were found for the supplied criteria")
+	}
+	if len(res.Returnval.GuestOSDescriptor) < 1 {
+		return "", errors.New("no guest OS descriptors were found")
+	}
+	family := res.Returnval.GuestOSDescriptor[0].Family
+	log.Printf("[DEBUG] OSFamily: family for %q is %q", guest, family)
+	return family, nil
 }
 
 // QueryConfigOptionDescriptor returns a list the list of ConfigOption keys

@@ -2,10 +2,14 @@ package vsphere
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"reflect"
 
+	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -561,9 +565,9 @@ func expandMemorySizeConfig(d *schema.ResourceData) int64 {
 
 // expandVirtualMachineConfigSpec reads certain ResourceData keys and
 // returns a VirtualMachineConfigSpec.
-func expandVirtualMachineConfigSpec(d *schema.ResourceData) *types.VirtualMachineConfigSpec {
+func expandVirtualMachineConfigSpec(d *schema.ResourceData) types.VirtualMachineConfigSpec {
 	log.Printf("[DEBUG] %s: Building config spec", resourceVSphereVirtualMachineV2IDString(d))
-	obj := &types.VirtualMachineConfigSpec{
+	obj := types.VirtualMachineConfigSpec{
 		Name:                d.Get("name").(string),
 		GuestId:             getWithRestart(d, "guest_id").(string),
 		AlternateGuestName:  getWithRestart(d, "alternate_guest_name").(string),
@@ -631,4 +635,30 @@ func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualM
 	// return its error result directly to ensure there are no warnings in the
 	// linter. It's awkward, but golint does not allow setting exceptions.
 	return flattenVirtualMachineBootOptions(d, obj.BootOptions)
+}
+
+// expandVirtualMachineConfigSpecChanged compares an existing
+// VirtualMachineConfigInfo with a VirtualMachineConfigSpec generated from
+// existing resource data and compares them to see if there is a change. The new spec
+//
+// It does this be creating a fake ResourceData off of the VM resource schema,
+// flattening the config info into that, and then expanding both ResourceData
+// instances and comparing the resultant ConfigSpecs.
+func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, info *types.VirtualMachineConfigInfo) (types.VirtualMachineConfigSpec, bool) {
+	// Create the fake ResourceData from the VM resource
+	oldData := resourceVSphereVirtualMachineV2().Data(&terraform.InstanceState{})
+	oldData.SetId(d.Id())
+	// Flatten the old config info into it
+	flattenVirtualMachineConfigInfo(oldData, info)
+	// Read state back in. This is necessary to ensure GetChange calls work
+	// correctly.
+	oldData = resourceVSphereVirtualMachineV2().Data(oldData.State())
+	// Get both specs. Silence the logging for oldSpec to suppress fake
+	// reboot_required log messages.
+	log.SetOutput(ioutil.Discard)
+	oldSpec := expandVirtualMachineConfigSpec(oldData)
+	logging.SetOutput()
+	newSpec := expandVirtualMachineConfigSpec(d)
+	// Return the new spec and compare
+	return newSpec, !reflect.DeepEqual(oldSpec, newSpec)
 }
