@@ -37,8 +37,9 @@ The following arguments are supported:
 * `name` - (Required) The name of the network. This can be a name or path.
 * `datacenter_id` - (Optional) The [managed object reference
   ID][docs-about-morefs] of the datacenter the network is located in. This can
-  be omitted if the search path used in `name` is an absolute path, or if there
-  is only one datacenter in the vSphere infrastructure.
+  be omitted if the search path used in `name` is an absolute path. For default
+  datacenters, use the id attribute from an empty `vsphere_datacenter` data
+  source.
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 

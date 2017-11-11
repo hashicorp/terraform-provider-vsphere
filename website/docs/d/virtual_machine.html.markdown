@@ -38,7 +38,7 @@ The following arguments are supported:
 * `datacenter_id` - (Optional) The managed object reference ID of the
   datacenter the virtual machine is located in. This can be omitted if the
   search path used in `name` is an absolute path. For default datacenters, use
-  the `id` attribute for an empty `vsphere_datacenter` data source.
+  the `id` attribute from an empty `vsphere_datacenter` data source.
 
 ## Attribute Reference
 
