@@ -78,6 +78,18 @@ func FromMOID(client *govmomi.Client, id string) (*object.VirtualMachine, error)
 	return vm.(*object.VirtualMachine), nil
 }
 
+// FromPath returns a VirtualMachine via its supplied path.
+func FromPath(client *govmomi.Client, path string, dc *object.Datacenter) (*object.VirtualMachine, error) {
+	finder := find.NewFinder(client.Client, false)
+	if dc != nil {
+		finder.SetDatacenter(dc)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	return finder.VirtualMachine(ctx, path)
+}
+
 // Properties is a convenience method that wraps fetching the
 // VirtualMachine MO from its higher-level object.
 func Properties(vm *object.VirtualMachine) (*mo.VirtualMachine, error) {
