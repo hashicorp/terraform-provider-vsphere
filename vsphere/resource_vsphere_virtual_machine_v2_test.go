@@ -1232,7 +1232,11 @@ variable "datastore" {
   default = "%s"
 }
 
-variable "guest_net_timeout" {
+variable "template" {
+  default = "%s"
+}
+
+variable "linked_clone" {
   default = "%s"
 }
 
@@ -1255,6 +1259,11 @@ data "vsphere_network" "network" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
+data "vsphere_virtual_machine" "template" {
+  name          = "${var.template}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
 resource "vsphere_virtual_machine_v2" "vm" {
   name             = "terraform-test"
   resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
@@ -1262,9 +1271,7 @@ resource "vsphere_virtual_machine_v2" "vm" {
 
   num_cpus = 2
   memory   = 1024
-  guest_id = "ubuntu64Guest"
-
-  wait_for_guest_net_timeout = "${var.guest_net_timeout}"
+  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
 
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
@@ -1272,12 +1279,12 @@ resource "vsphere_virtual_machine_v2" "vm" {
 
   disk {
     name = "terraform-test.vmdk"
-    size = 32
+    size = "${data.vsphere_virtual_machine.template.disk_sizes[0]}"
   }
 
   clone {
-    template_uuid = ""
-    linked_clone  = true
+    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
 
     customize {
       linux_options {
@@ -1302,7 +1309,8 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
 		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
+		os.Getenv("VSPHERE_TEMPLATE"),
+		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
 	)
 }
 
@@ -1336,7 +1344,11 @@ variable "datastore" {
   default = "%s"
 }
 
-variable "guest_net_timeout" {
+variable "template" {
+  default = "%s"
+}
+
+variable "linked_clone" {
   default = "%s"
 }
 
@@ -1368,6 +1380,11 @@ data "vsphere_network" "network" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
+data "vsphere_virtual_machine" "template" {
+  name          = "${var.template}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
 resource "vsphere_virtual_machine_v2" "vm" {
   name             = "terraform-test"
   resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
@@ -1378,20 +1395,18 @@ resource "vsphere_virtual_machine_v2" "vm" {
   memory   = 1024
   guest_id = "ubuntu64Guest"
 
-  wait_for_guest_net_timeout = "${var.guest_net_timeout}"
-
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
   }
 
   disk {
     name = "terraform-test.vmdk"
-    size = 32
+    size = "${data.vsphere_virtual_machine.template.disk_sizes[0]}"
   }
 
   clone {
-    template_uuid = ""
-    linked_clone  = true
+    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
 
     customize {
       linux_options {
@@ -1416,7 +1431,8 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
 		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
+		os.Getenv("VSPHERE_TEMPLATE"),
+		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
 		host,
 	)
 }
