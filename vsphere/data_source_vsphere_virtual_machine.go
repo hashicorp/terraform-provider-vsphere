@@ -2,9 +2,11 @@ package vsphere
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 	"github.com/vmware/govmomi/object"
 )
 
@@ -33,6 +35,12 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 				Description: "The alternate guest name of the virtual machine when guest_id is a non-specific operating system, like otherGuest.",
 				Computed:    true,
 			},
+			"disk_sizes": {
+				Type:        schema.TypeList,
+				Description: "The sizes of the disks on this virtual machine, sorted by bus and unit number.",
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeInt},
+			},
 		},
 	}
 }
@@ -41,6 +49,7 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 	client := meta.(*VSphereClient).vimClient
 
 	name := d.Get("name").(string)
+	log.Printf("[DEBUG] Looking for VM or template by name/path %q", name)
 	var dc *object.Datacenter
 	if dcID, ok := d.GetOk("datacenter_id"); ok {
 		var err error
@@ -48,6 +57,7 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 		if err != nil {
 			return fmt.Errorf("cannot locate datacenter: %s", err)
 		}
+		log.Printf("[DEBUG] Datacenter for VM/template search: %s", dc.InventoryPath)
 	}
 	vm, err := virtualmachine.FromPath(client, name, dc)
 	if err != nil {
@@ -61,5 +71,13 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 	d.SetId(props.Config.Uuid)
 	d.Set("guest_id", props.Config.GuestId)
 	d.Set("alternate_guest_name", props.Config.AlternateGuestName)
+	sizes, err := virtualdevice.ReadDiskSizes(object.VirtualDeviceList(props.Config.Hardware.Device))
+	if err != nil {
+		return fmt.Errorf("error reading disk sizes: %s", err)
+	}
+	if d.Set("disk_sizes", sizes); err != nil {
+		return fmt.Errorf("error setting disk sizes: %s", err)
+	}
+	log.Printf("[DEBUG] VM search for %q completed successfully (UUID %q)", name, props.Config.Uuid)
 	return nil
 }

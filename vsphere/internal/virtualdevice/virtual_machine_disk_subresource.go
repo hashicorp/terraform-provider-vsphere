@@ -773,6 +773,34 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 	return l, spec, nil
 }
 
+// ReadDiskSizes returns a list of disk sizes. This is used in the VM data
+// source to discover the sizes of all of the disks on the virtual machine
+// sorted by the order that they would be added in if a clone were to be done.
+func ReadDiskSizes(l object.VirtualDeviceList) ([]int, error) {
+	log.Printf("[DEBUG] ReadDiskSizes: Fetching disk sizes")
+	devices := l.Select(func(device types.BaseVirtualDevice) bool {
+		if _, ok := device.(*types.VirtualDisk); ok {
+			return true
+		}
+		return false
+	})
+	log.Printf("[DEBUG] ReadDiskSizes: Disk devices located: %s", DeviceListString(devices))
+	// Sort the device list, in case it's not sorted already.
+	devSort := virtualDeviceListSorter{
+		Sort:       devices,
+		DeviceList: l,
+	}
+	sort.Sort(devSort)
+	devices = devSort.Sort
+	log.Printf("[DEBUG] ReadDiskSizes: Disk devices order after sort: %s", DeviceListString(devices))
+	var out []int
+	for _, device := range devices {
+		out = append(out, int(structure.ByteToGiB(device.(*types.VirtualDisk).CapacityInBytes).(int64)))
+	}
+	log.Printf("[DEBUG] ReadDiskSizes: Disk sizes returned: %+v", out)
+	return out, nil
+}
+
 // Create creates a vsphere_virtual_machine disk sub-resource.
 func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] %s: Running create", r)

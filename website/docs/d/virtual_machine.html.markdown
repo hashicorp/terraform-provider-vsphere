@@ -46,4 +46,11 @@ The following attributes are exported:
 
 * `id`: The UUID of the virtual machine or template.
 * `guest_id`: The guest ID of the virtual machine or template.
-* `alternate_guest_name`: The alternate guest name of the virtual machine when guest_id is a non-specific operating system, like `otherGuest`.
+* `alternate_guest_name`: The alternate guest name of the virtual machine when
+  guest_id is a non-specific operating system, like `otherGuest`.
+* `disk_sizes`: The sizes, in GiB, of each of the virtual disks on this virtual
+  machine or template. These are sorted by bus and unit number so that they can
+  be applied to a `vsphere_virtual_machine` resource in the order the resource
+  expects while cloning. This is useful for discovering the required size of a
+  disk while performing a linked clone, as the disk size of a linked clone must
+  be the same as its source.
