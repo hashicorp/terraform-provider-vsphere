@@ -1,6 +1,7 @@
 package vsphere
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -135,6 +136,11 @@ func resourceVSphereVirtualMachineV2() *schema.Resource {
 			Computed:    true,
 			Description: "The path of the virtual machine's configuration file in the VM's datastore.",
 		},
+		"imported": {
+			Type:        schema.TypeBool,
+			Computed:    true,
+			Description: "A flag internal to Terraform that indicates that this resource was either imported or came from a earlier major version of this resource.",
+		},
 		vSphereTagAttributeKey: tagsSchema(),
 	}
 	structure.MergeSchema(s, schemaVirtualMachineConfigSpec())
@@ -146,7 +152,10 @@ func resourceVSphereVirtualMachineV2() *schema.Resource {
 		Update:        resourceVSphereVirtualMachineV2Update,
 		Delete:        resourceVSphereVirtualMachineV2Delete,
 		CustomizeDiff: resourceVSphereVirtualMachineV2CustomizeDiff,
-		Schema:        s,
+		Importer: &schema.ResourceImporter{
+			State: resourceVSphereVirtualMachineV2Import,
+		},
+		Schema: s,
 	}
 }
 
@@ -436,13 +445,51 @@ func resourceVSphereVirtualMachineV2CustomizeDiff(d *schema.ResourceDiff, meta i
 	}
 	// If this is a new resource and we are cloning, perform all clone validation
 	// operations.
-	if d.Id() == "" && len(d.Get("clone").([]interface{})) > 0 {
-		if err := vmworkflow.ValidateVirtualMachineClone(d, client); err != nil {
-			return err
+	if len(d.Get("clone").([]interface{})) > 0 {
+		switch {
+		case d.Id() == "":
+			if err := vmworkflow.ValidateVirtualMachineClone(d, client); err != nil {
+				return err
+			}
+		case d.Get("imported").(bool):
+			return errors.New("this resource was imported and does not support cloning. Please remove the clone block from its configuration")
 		}
 	}
 	log.Printf("[DEBUG] %s: Diff customization and validation complete", resourceVSphereVirtualMachineV2IDString(d))
 	return nil
+}
+
+func resourceVSphereVirtualMachineV2Import(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := meta.(*VSphereClient).vimClient
+
+	name := d.Id()
+	log.Printf("[DEBUG] Looking for VM by name/path %q", name)
+	vm, err := virtualmachine.FromPath(client, name, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching virtual machine: %s", err)
+	}
+	props, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching virtual machine properties: %s", err)
+	}
+
+	// Block the import if the VM is a template.
+	if props.Config.Template {
+		return nil, fmt.Errorf("VM %q is a template and cannot be imported", name)
+	}
+
+	// Validate the disks in the VM to make sure that they will work with the
+	// resource. This is mainly ensuring that all disks are SCSI disks, but a
+	// Read operation is attempted as well to make sure it will survive that.
+	if err := virtualdevice.DiskImportOperation(d, client, object.VirtualDeviceList(props.Config.Hardware.Device)); err != nil {
+		return nil, err
+	}
+	// The VM should be ready for reading now
+	log.Printf("[DEBUG] VM UUID for %q is %q", name, props.Config.Uuid)
+	d.SetId(props.Config.Uuid)
+	d.Set("imported", true)
+	log.Printf("[DEBUG] %s: Import complete, resource is ready for read", resourceVSphereVirtualMachineV2IDString(d))
+	return []*schema.ResourceData{d}, nil
 }
 
 // resourceVSphereVirtualMachineV2CreateBare contains the "bare metal" VM

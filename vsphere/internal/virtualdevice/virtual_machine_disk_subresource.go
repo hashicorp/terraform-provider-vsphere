@@ -565,6 +565,15 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 		if tr.Get("size").(int) < r.Get("size").(int) {
 			return fmt.Errorf("%s: disk name %s must have a minimum size of %d GiB", tr.Addr(), tr.Get("name").(string), r.Get("size").(int))
 		}
+		// Finally, we don't support non-SCSI (ie: SATA, IDE, NVMe) disks, so kick
+		// back an error if we see one of those.
+		ct, _, _, err := splitDevAddr(tr.DevAddr())
+		if err != nil {
+			return fmt.Errorf("%s: error parsing device address after reading disk %q: %s", tr.Addr(), tr.Get("name").(string), err)
+		}
+		if ct != SubresourceControllerTypeSCSI {
+			return fmt.Errorf("%s: unsupported controller type %s for disk %q. Please use a template with SCSI disks only", tr.Addr(), ct, tr.Get("name").(string))
+		}
 	}
 	log.Printf("[DEBUG] DiskCloneValidateOperation: All disks in source validated successfully")
 	return nil
@@ -771,6 +780,46 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 	log.Printf("[DEBUG] DiskPostCloneOperation: Device config operations from post-clone: %s", DeviceChangeString(spec))
 	log.Printf("[DEBUG] DiskPostCloneOperation: Operation complete, returning updated spec")
 	return l, spec, nil
+}
+
+// DiskImportOperation validates the disk configuration of the virtual
+// machine's VirtualDeviceList to ensure it will be imported properly.
+func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) error {
+	log.Printf("[DEBUG] DiskImportOperation: Performing disk import validation")
+	devices := l.Select(func(device types.BaseVirtualDevice) bool {
+		if _, ok := device.(*types.VirtualDisk); ok {
+			return true
+		}
+		return false
+	})
+	log.Printf("[DEBUG] DiskImportOperation: Disk devices located: %s", DeviceListString(devices))
+
+	// Read in the disks. We don't do anything with the results here other than
+	// validate that the disks are SCSI disks. The read operation validates the rest.
+	log.Printf("[DEBUG] DiskImportOperation: Validating disks")
+	for _, device := range devices {
+		m := make(map[string]interface{})
+		vd := device.GetVirtualDevice()
+		ctlr := l.FindByKey(vd.ControllerKey)
+		if ctlr == nil {
+			return fmt.Errorf("could not find controller with key %d", vd.Key)
+		}
+		m["key"] = int(vd.Key)
+		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		r := NewDiskSubresource(c, d, nil, m, nil)
+		if err := r.Read(l); err != nil {
+			return fmt.Errorf("%s: %s", r.Addr(), err)
+		}
+		ct, _, _, err := splitDevAddr(r.DevAddr())
+		if err != nil {
+			return fmt.Errorf("%s: error parsing device address after reading disk %q: %s", r.Addr(), r.Get("name").(string), err)
+		}
+		if ct != SubresourceControllerTypeSCSI {
+			return fmt.Errorf("%s: unsupported controller type %s for disk %q. The VM resource supports SCSI disks only", r.Addr(), ct, r.Get("name").(string))
+		}
+	}
+	log.Printf("[DEBUG] DiskImportOperation: Disk validation complete")
+	return nil
 }
 
 // ReadDiskSizes returns a list of disk sizes. This is used in the VM data

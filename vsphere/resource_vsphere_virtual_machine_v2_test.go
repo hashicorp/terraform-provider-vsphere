@@ -322,6 +322,49 @@ func TestAccResourceVSphereVirtualMachineV2(t *testing.T) {
 				},
 			},
 		},
+		{
+			"import",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineV2ConfigBasic(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+						),
+					},
+					{
+						ResourceName:      "vsphere_virtual_machine_v2.vm",
+						ImportState:       true,
+						ImportStateVerify: true,
+						ImportStateVerifyIgnore: []string{
+							"disk",
+							"imported",
+							"force_power_off",
+							"migrate_wait_timeout",
+							"shutdown_wait_timeout",
+							"wait_for_guest_net_timeout",
+						},
+						ImportStateIdFunc: func(s *terraform.State) (string, error) {
+							vm, err := testGetVirtualMachine(s, "vm")
+							if err != nil {
+								return "", err
+							}
+							return vm.InventoryPath, nil
+						},
+						Config: testAccResourceVSphereVirtualMachineV2ConfigBasic(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+						),
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testAccResourceVSphereVirtualMachineV2Cases {
@@ -518,10 +561,6 @@ variable "datastore" {
   default = "%s"
 }
 
-variable "guest_net_timeout" {
-  default = "%s"
-}
-
 data "vsphere_datacenter" "dc" {
   name = "${var.datacenter}"
 }
@@ -550,8 +589,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
   memory   = 1024
   guest_id = "other3xLinux64Guest"
 
-  wait_for_guest_net_timeout = "${var.guest_net_timeout}"
-
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
   }
@@ -566,7 +603,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 	)
 }
 
@@ -588,10 +624,6 @@ variable "datastore" {
   default = "%s"
 }
 
-variable "guest_net_timeout" {
-  default = "%s"
-}
-
 data "vsphere_datacenter" "dc" {
   name = "${var.datacenter}"
 }
@@ -619,8 +651,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
   num_cpus = 2
   memory   = 1024
   guest_id = "other3xLinux64Guest"
-
-  wait_for_guest_net_timeout = "${var.guest_net_timeout}"
 
   network_interface {
     network_id            = "${data.vsphere_network.network.id}"
@@ -659,7 +689,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 	)
 }
 
@@ -678,10 +707,6 @@ variable "network_label" {
 }
 
 variable "datastore" {
-  default = "%s"
-}
-
-variable "guest_net_timeout" {
   default = "%s"
 }
 
@@ -713,8 +738,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
   memory   = 1024
   guest_id = "other3xLinux64Guest"
 
-  wait_for_guest_net_timeout = "${var.guest_net_timeout}"
-
   network_interface {
     network_id            = "${data.vsphere_network.network.id}"
     bandwidth_share_level = "normal"
@@ -741,7 +764,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 	)
 }
 
@@ -768,10 +790,6 @@ variable "iso_datastore" {
 }
 
 variable "iso_path" {
-  default = "%s"
-}
-
-variable "guest_net_timeout" {
   default = "%s"
 }
 
@@ -808,8 +826,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
   memory   = 1024
   guest_id = "other3xLinux64Guest"
 
-  wait_for_guest_net_timeout = "${var.guest_net_timeout}"
-
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
   }
@@ -831,7 +847,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_ISO_DATASTORE"),
 		os.Getenv("VSPHERE_ISO_FILE"),
-		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 	)
 }
 
@@ -850,10 +865,6 @@ variable "network_label" {
 }
 
 variable "datastore" {
-  default = "%s"
-}
-
-variable "guest_net_timeout" {
   default = "%s"
 }
 
@@ -885,8 +896,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
   memory   = 8192
   guest_id = "other3xLinux64Guest"
 
-  wait_for_guest_net_timeout = "${var.guest_net_timeout}"
-
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
   }
@@ -901,7 +910,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 	)
 }
 
@@ -920,10 +928,6 @@ variable "network_label" {
 }
 
 variable "datastore" {
-  default = "%s"
-}
-
-variable "guest_net_timeout" {
   default = "%s"
 }
 
@@ -958,8 +962,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
   memory_hot_add_enabled    = %t
   guest_id                  = "other3xLinux64Guest"
 
-	wait_for_guest_net_timeout = "${var.guest_net_timeout}"
-
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
   }
@@ -974,7 +976,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 		nc,
 		nm,
 		cha,
@@ -999,10 +1000,6 @@ variable "network_label" {
 
 variable "datastore" {
   default = "%s"
-}
-
-variable "guest_net_timeout" {
-	default = "%s"
 }
 
 variable "annotation" {
@@ -1038,8 +1035,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
   guest_id = "other3xLinux64Guest"
 	annotation = "${var.annotation}"
 
-	wait_for_guest_net_timeout = "${var.guest_net_timeout}"
-
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
   }
@@ -1054,7 +1049,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 		testAccResourceVSphereVirtualMachineAnnotation,
 	)
 }
@@ -1074,10 +1068,6 @@ variable "network_label" {
 }
 
 variable "datastore" {
-  default = "%s"
-}
-
-variable "guest_net_timeout" {
   default = "%s"
 }
 
@@ -1109,8 +1099,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
   memory   = 1024
   guest_id = "other3xLinux64Guest"
 
-	wait_for_guest_net_timeout = "${var.guest_net_timeout}"
-
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
   }
@@ -1125,7 +1113,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 		size,
 	)
 }
@@ -1145,10 +1132,6 @@ variable "network_label" {
 }
 
 variable "datastore" {
-  default = "%s"
-}
-
-variable "guest_net_timeout" {
   default = "%s"
 }
 
@@ -1182,8 +1165,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
 
 	scsi_type = "lsilogic-sas"
 
-  wait_for_guest_net_timeout = "${var.guest_net_timeout}"
-
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
   }
@@ -1198,7 +1179,6 @@ resource "vsphere_virtual_machine_v2" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_GUEST_NET_TIMEOUT"),
 	)
 }
 
