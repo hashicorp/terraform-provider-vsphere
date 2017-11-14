@@ -1,1315 +1,293 @@
 package vsphere
 
 import (
+	"errors"
 	"fmt"
 	"log"
-	"net"
-	"strconv"
-	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/vmworkflow"
 	"github.com/vmware/govmomi"
-	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
-	"github.com/vmware/govmomi/property"
-	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
-	"golang.org/x/net/context"
 )
 
-var DefaultDNSSuffixes = []string{
-	"vsphere.local",
-}
-
-var DefaultDNSServers = []string{
-	"8.8.8.8",
-	"8.8.4.4",
-}
-
-var DiskControllerTypes = []string{
-	"scsi",
-	"scsi-lsi-parallel",
-	"scsi-buslogic",
-	"scsi-paravirtual",
-	"scsi-lsi-sas",
-	"ide",
-}
-
-var virtualMachineNetworkAdapterTypeAllowedValues = []string{
-	"vmxnet3",
-	"e1000",
-}
-
-type networkInterface struct {
-	deviceName       string
-	label            string
-	ipv4Address      string
-	ipv4PrefixLength int
-	ipv4Gateway      string
-	ipv6Address      string
-	ipv6PrefixLength int
-	ipv6Gateway      string
-	adapterType      string
-	macAddress       string
-}
-
-type hardDisk struct {
-	name       string
-	size       int64
-	iops       int64
-	initType   string
-	vmdkPath   string
-	controller string
-	bootable   bool
-}
-
-//Additional options Vsphere can use clones of windows machines
-type windowsOptConfig struct {
-	productKey         string
-	adminPassword      string
-	domainUser         string
-	domain             string
-	domainUserPassword string
-}
-
-type cdrom struct {
-	datastore string
-	path      string
-}
-
-type memoryAllocation struct {
-	reservation int64
-}
-
-type virtualMachine struct {
-	name                     string
-	hostname                 string
-	folder                   string
-	datacenter               string
-	cluster                  string
-	resourcePool             string
-	datastore                string
-	vcpu                     int32
-	memoryMb                 int64
-	memoryAllocation         memoryAllocation
-	annotation               string
-	template                 string
-	networkInterfaces        []networkInterface
-	hardDisks                []hardDisk
-	cdroms                   []cdrom
-	domain                   string
-	timeZone                 string
-	dnsSuffixes              []string
-	dnsServers               []string
-	hasBootableVmdk          bool
-	linkedClone              bool
-	skipCustomization        bool
-	enableDiskUUID           bool
-	moid                     string
-	windowsOptionalConfig    windowsOptConfig
-	customConfigurations     map[string](types.AnyType)
-	customizationWaitTimeout int
-}
-
-func (v virtualMachine) Path() string {
-	return vmPath(v.folder, v.name)
-}
-
-func vmPath(folder string, name string) string {
-	var path string
-	if len(folder) > 0 {
-		path += folder + "/"
-	}
-	return path + name
-}
+// formatVirtualMachinePostCloneRollbackError defines the verbose error when
+// rollback fails on a post-clone virtual machine operation.
+const formatVirtualMachinePostCloneRollbackError = `
+WARNING: Dangling resource!
+There was an error moving reconfiguring virtual machine %q after cloning:
+%s
+Additionally, there was an error removing the cloned virtual machine:
+%s
+You will need to remove this virtual machine manually before trying again.
+`
 
 func resourceVSphereVirtualMachine() *schema.Resource {
-	return &schema.Resource{
-		Create: resourceVSphereVirtualMachineCreate,
-		Read:   resourceVSphereVirtualMachineRead,
-		Update: resourceVSphereVirtualMachineUpdate,
-		Delete: resourceVSphereVirtualMachineDelete,
-
-		SchemaVersion: 1,
-		MigrateState:  resourceVSphereVirtualMachineMigrateState,
-
-		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"hostname": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"folder": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"vcpu": &schema.Schema{
-				Type:     schema.TypeInt,
-				Required: true,
-			},
-
-			"memory": &schema.Schema{
-				Type:     schema.TypeInt,
-				Required: true,
-			},
-
-			"memory_reservation": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  0,
-				ForceNew: true,
-			},
-
-			"annotation": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-
-			"datacenter": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"cluster": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"resource_pool": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"linked_clone": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-				ForceNew: true,
-			},
-			"gateway": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use network_interface.ipv4_gateway",
-			},
-
-			"domain": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Default:  "vsphere.local",
-			},
-
-			"time_zone": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Default:  "Etc/UTC",
-			},
-
-			"dns_suffixes": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				ForceNew: true,
-			},
-
-			"dns_servers": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				ForceNew: true,
-			},
-
-			"skip_customization": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: true,
-				Default:  false,
-			},
-
-			"wait_for_customization_timeout": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  10,
-			},
-
-			"wait_for_guest_net": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  true,
-			},
-
-			"enable_disk_uuid": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: true,
-				Default:  false,
-			},
-
-			"uuid": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"moid": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"power_state": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      string(types.VirtualMachinePowerStatePoweredOn),
-				ValidateFunc: validation.StringInSlice([]string{string(types.VirtualMachinePowerStatePoweredOn)}, false),
-			},
-
-			"custom_configuration_parameters": &schema.Schema{
-				Type:     schema.TypeMap,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"windows_opt_config": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				ForceNew: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"product_key": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-						},
-
-						"admin_password": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-						},
-
-						"domain_user": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-						},
-
-						"domain": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-						},
-
-						"domain_user_password": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-						},
-					},
-				},
-			},
-
-			"network_interface": &schema.Schema{
-				Type:     schema.TypeList,
-				Required: true,
-				ForceNew: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"key": &schema.Schema{
-							Type:     schema.TypeInt,
-							Computed: true,
-						},
-
-						"label": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
-						},
-
-						"ip_address": &schema.Schema{
-							Type:       schema.TypeString,
-							Optional:   true,
-							Computed:   true,
-							Deprecated: "Please use ipv4_address",
-						},
-
-						"subnet_mask": &schema.Schema{
-							Type:       schema.TypeString,
-							Optional:   true,
-							Computed:   true,
-							Deprecated: "Please use ipv4_prefix_length",
-						},
-
-						"ipv4_address": &schema.Schema{
-							Type:             schema.TypeString,
-							Optional:         true,
-							Computed:         true,
-							DiffSuppressFunc: suppressIpDifferences,
-						},
-
-						"ipv4_prefix_length": &schema.Schema{
-							Type:     schema.TypeInt,
-							Optional: true,
-							Computed: true,
-						},
-
-						"ipv4_gateway": &schema.Schema{
-							Type:             schema.TypeString,
-							Optional:         true,
-							Computed:         true,
-							DiffSuppressFunc: suppressIpDifferences},
-
-						"ipv6_address": &schema.Schema{
-							Type:             schema.TypeString,
-							Optional:         true,
-							Computed:         true,
-							DiffSuppressFunc: suppressIpDifferences},
-
-						"ipv6_prefix_length": &schema.Schema{
-							Type:     schema.TypeInt,
-							Optional: true,
-							Computed: true,
-						},
-
-						"ipv6_gateway": &schema.Schema{
-							Type:             schema.TypeString,
-							Optional:         true,
-							Computed:         true,
-							DiffSuppressFunc: suppressIpDifferences},
-
-						"adapter_type": &schema.Schema{
-							Type:         schema.TypeString,
-							Optional:     true,
-							ForceNew:     true,
-							Default:      "vmxnet3",
-							ValidateFunc: validation.StringInSlice(virtualMachineNetworkAdapterTypeAllowedValues, false),
-						},
-
-						"mac_address": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
-						},
-					},
-				},
-			},
-
-			"disk": &schema.Schema{
-				Type:     schema.TypeSet,
-				Required: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"uuid": &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-
-						"key": &schema.Schema{
-							Type:     schema.TypeInt,
-							Computed: true,
-						},
-
-						"template": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-
-						"type": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "eager_zeroed",
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								value := v.(string)
-								if value != "thin" && value != "eager_zeroed" && value != "lazy" {
-									errors = append(errors, fmt.Errorf(
-										"only 'thin', 'eager_zeroed', and 'lazy' are supported values for 'type'"))
-								}
-								return
-							},
-						},
-
-						"datastore": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-
-						"size": &schema.Schema{
-							Type:     schema.TypeInt,
-							Optional: true,
-						},
-
-						"name": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-
-						"iops": &schema.Schema{
-							Type:     schema.TypeInt,
-							Optional: true,
-						},
-
-						"vmdk": &schema.Schema{
-							// TODO: Add ValidateFunc to confirm path exists
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-
-						"bootable": &schema.Schema{
-							Type:     schema.TypeBool,
-							Optional: true,
-						},
-
-						"keep_on_remove": &schema.Schema{
-							Type:     schema.TypeBool,
-							Optional: true,
-						},
-
-						"controller_type": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "scsi",
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								value := v.(string)
-								found := false
-								for _, t := range DiskControllerTypes {
-									if t == value {
-										found = true
-									}
-								}
-								if !found {
-									errors = append(errors, fmt.Errorf(
-										"Supported values for 'controller_type' are %v", strings.Join(DiskControllerTypes, ", ")))
-								}
-								return
-							},
-						},
-					},
-				},
-			},
-
-			"detach_unknown_disks_on_delete": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-			},
-
-			"cdrom": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				ForceNew: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"datastore": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
-						},
-
-						"path": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
-						},
-					},
-				},
-			},
-
-			// Tagging
-			vSphereTagAttributeKey: tagsSchema(),
+	s := map[string]*schema.Schema{
+		"resource_pool_id": {
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "The ID of a resource pool to put the virtual machine in.",
 		},
+		"datastore_id": {
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "The ID of the virtual machine's datastore. The virtual machine configuration is placed here, along with any virtual disks that are created without datastores.",
+		},
+		"folder": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The name of the folder to locate the virtual machine in.",
+			StateFunc:   folder.NormalizePath,
+		},
+		"host_system_id": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Computed:    true,
+			Description: "The ID of an optional host system to pin the virtual machine to.",
+		},
+		"wait_for_guest_net_timeout": {
+			Type:        schema.TypeInt,
+			Optional:    true,
+			Default:     5,
+			Description: "The amount of time, in minutes, to wait for a routeable IP address on this virtual machine. A value less than 1 disables the waiter.",
+		},
+		"shutdown_wait_timeout": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Default:      3,
+			Description:  "The amount of time, in minutes, to wait for shutdown when making necessary updates to the virtual machine.",
+			ValidateFunc: validation.IntBetween(1, 10),
+		},
+		"migrate_wait_timeout": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Default:      30,
+			Description:  "The amount of time, in minutes, to wait for a vMotion operation to complete before failing.",
+			ValidateFunc: validation.IntAtLeast(10),
+		},
+		"force_power_off": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Default:     true,
+			Description: "Set to true to force power-off a virtual machine if a graceful guest shutdown failed for a necessary operation.",
+		},
+		"scsi_type": {
+			Type:         schema.TypeString,
+			Optional:     true,
+			Default:      virtualdevice.SubresourceControllerTypeLsiLogic,
+			Description:  "The type of SCSI bus this virtual machine will have. Can be one of lsilogic-sas or pvscsi.",
+			ValidateFunc: validation.StringInSlice(virtualdevice.SCSIBusTypeAllowedValues, false),
+		},
+		// NOTE: disk is only optional so that we can flag it as computed and use
+		// it in ResourceDiff. We validate this field in ResourceDiff to enforce it
+		// having a minimum count of 1 for now - but may support diskless VMs
+		// later.
+		"disk": {
+			Type:        schema.TypeSet,
+			Optional:    true,
+			Computed:    true,
+			Description: "A specification for a virtual disk device on this virtual machine.",
+			MaxItems:    30,
+			Elem:        &schema.Resource{Schema: virtualdevice.DiskSubresourceSchema()},
+		},
+		"network_interface": {
+			Type:        schema.TypeList,
+			Required:    true,
+			Description: "A specification for a virtual NIC on this virtual machine.",
+			MaxItems:    10,
+			Elem:        &schema.Resource{Schema: virtualdevice.NetworkInterfaceSubresourceSchema()},
+		},
+		"cdrom": {
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "A specification for a CDROM device on this virtual machine.",
+			MaxItems:    1,
+			Elem:        &schema.Resource{Schema: virtualdevice.CdromSubresourceSchema()},
+		},
+		"clone": {
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "A specification for cloning a virtual machine from template.",
+			MaxItems:    1,
+			Elem:        &schema.Resource{Schema: vmworkflow.VirtualMachineCloneSchema()},
+		},
+		"reboot_required": {
+			Type:        schema.TypeBool,
+			Computed:    true,
+			Description: "Value internal to Terraform used to determine if a configuration set change requires a reboot.",
+		},
+		"vmware_tools_status": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The state of VMware tools in the guest. This will determine the proper course of action for some device operations.",
+		},
+		"vmx_path": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The path of the virtual machine's configuration file in the VM's datastore.",
+		},
+		"imported": {
+			Type:        schema.TypeBool,
+			Computed:    true,
+			Description: "A flag internal to Terraform that indicates that this resource was either imported or came from a earlier major version of this resource.",
+		},
+		vSphereTagAttributeKey: tagsSchema(),
+	}
+	structure.MergeSchema(s, schemaVirtualMachineConfigSpec())
+	structure.MergeSchema(s, schemaVirtualMachineGuestInfo())
+
+	return &schema.Resource{
+		Create:        resourceVSphereVirtualMachineCreate,
+		Read:          resourceVSphereVirtualMachineRead,
+		Update:        resourceVSphereVirtualMachineUpdate,
+		Delete:        resourceVSphereVirtualMachineDelete,
+		CustomizeDiff: resourceVSphereVirtualMachineCustomizeDiff,
+		Importer: &schema.ResourceImporter{
+			State: resourceVSphereVirtualMachineImport,
+		},
+		SchemaVersion: 2,
+		MigrateState:  resourceVSphereVirtualMachineMigrateState,
+		Schema:        s,
 	}
 }
 
-func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{}) error {
-	// flag if changes have to be applied
-	hasChanges := false
-	// flag if changes have to be done when powered off
-	rebootRequired := false
-
-	// make config spec
-	configSpec := types.VirtualMachineConfigSpec{}
-
-	if d.HasChange("vcpu") {
-		configSpec.NumCPUs = int32(d.Get("vcpu").(int))
-		hasChanges = true
-		rebootRequired = true
-	}
-
-	if d.HasChange("memory") {
-		configSpec.MemoryMB = int64(d.Get("memory").(int))
-		hasChanges = true
-		rebootRequired = true
-	}
-
-	if d.HasChange("annotation") {
-		configSpec.Annotation = d.Get("annotation").(string)
-		hasChanges = true
-	}
-
+func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning create", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*VSphereClient).vimClient
-
-	// Load up the tags client, which will validate a proper vCenter before
-	// attempting to proceed if we have tags defined.
 	tagsClient, err := tagsClientIfDefined(d, meta)
 	if err != nil {
 		return err
 	}
 
-	dc, err := getDatacenter(client, d.Get("datacenter").(string))
+	var vm *object.VirtualMachine
+	// This is where we process our various VM deploy workflows. We expect the ID
+	// of the resource to be set in the workflow to ensure that any post-create
+	// operations that fail during this process don't create a dangling resource.
+	// The VM should also be returned powered on.
+	switch {
+	case len(d.Get("clone").([]interface{})) > 0:
+		vm, err = resourceVSphereVirtualMachineCreateClone(d, meta)
+	default:
+		vm, err = resourceVSphereVirtualMachineCreateBare(d, meta)
+	}
+
 	if err != nil {
 		return err
 	}
-	finder := find.NewFinder(client.Client, true)
-	finder = finder.SetDatacenter(dc)
 
-	vm, err := finder.VirtualMachine(context.TODO(), vmPath(d.Get("folder").(string), d.Get("name").(string)))
-	if err != nil {
-		return err
-	}
-
-	// Apply any pending tags now, before proceeding with any expensive VM updates
+	// Tag the VM
 	if tagsClient != nil {
 		if err := processTagDiff(tagsClient, d, vm); err != nil {
 			return err
 		}
 	}
 
-	if d.HasChange("disk") {
-		hasChanges = true
-		oldDisks, newDisks := d.GetChange("disk")
-		oldDiskSet := oldDisks.(*schema.Set)
-		newDiskSet := newDisks.(*schema.Set)
-
-		addedDisks := newDiskSet.Difference(oldDiskSet)
-		removedDisks := oldDiskSet.Difference(newDiskSet)
-
-		// Removed disks
-		for _, diskRaw := range removedDisks.List() {
-			if disk, ok := diskRaw.(map[string]interface{}); ok {
-				devices, err := vm.Device(context.TODO())
-				if err != nil {
-					return fmt.Errorf("[ERROR] Update Remove Disk - Could not get virtual device list: %v", err)
-				}
-				virtualDisk := devices.FindByKey(int32(disk["key"].(int)))
-
-				keep := false
-				if v, ok := disk["keep_on_remove"].(bool); ok {
-					keep = v
-				}
-
-				err = vm.RemoveDevice(context.TODO(), keep, virtualDisk)
-				if err != nil {
-					return fmt.Errorf("[ERROR] Update Remove Disk - Error removing disk: %v", err)
-				}
-			}
-		}
-		// Added disks
-		for _, diskRaw := range addedDisks.List() {
-			if disk, ok := diskRaw.(map[string]interface{}); ok {
-
-				var datastore *object.Datastore
-				if disk["datastore"] == "" {
-					datastore, err = finder.DefaultDatastore(context.TODO())
-					if err != nil {
-						return fmt.Errorf("[ERROR] Update Remove Disk - Error finding datastore: %v", err)
-					}
-				} else {
-					datastore, err = finder.Datastore(context.TODO(), disk["datastore"].(string))
-					if err != nil {
-						log.Printf("[ERROR] Couldn't find datastore %v.  %s", disk["datastore"].(string), err)
-						return err
-					}
-				}
-
-				var size int64
-				if disk["size"] == 0 {
-					size = 0
-				} else {
-					size = int64(disk["size"].(int))
-				}
-				iops := int64(disk["iops"].(int))
-				controller_type := disk["controller_type"].(string)
-
-				var mo mo.VirtualMachine
-				vm.Properties(context.TODO(), vm.Reference(), []string{"summary", "config"}, &mo)
-
-				var diskPath string
-				switch {
-				case disk["vmdk"] != "":
-					diskPath = disk["vmdk"].(string)
-				case disk["name"] != "":
-					snapshotFullDir := mo.Config.Files.SnapshotDirectory
-					split := strings.Split(snapshotFullDir, " ")
-					if len(split) != 2 {
-						return fmt.Errorf("[ERROR] createVirtualMachine - failed to split snapshot directory: %v", snapshotFullDir)
-					}
-					vmWorkingPath := split[1]
-					diskPath = vmWorkingPath + disk["name"].(string)
-				default:
-					return fmt.Errorf("[ERROR] resourceVSphereVirtualMachineUpdate - Neither vmdk path nor vmdk name was given")
-				}
-
-				var initType string
-				if disk["type"] != "" {
-					initType = disk["type"].(string)
-				} else {
-					initType = "thin"
-				}
-
-				log.Printf("[INFO] Attaching disk: %v", diskPath)
-				err = addHardDisk(vm, size, iops, initType, datastore, diskPath, controller_type)
-				if err != nil {
-					log.Printf("[ERROR] Add Hard Disk Failed: %v", err)
-					return err
-				}
-			}
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
-
-	// We process power state changes here in addition to VM updates. The only
-	// "at rest" power state for a VM managed by Terraform is on, but depending
-	// on if the VM was powered off or not outside of Terraform, we need to
-	// handle rebootRequired in different ways.
-	o, _ := d.GetChange("power_state")
-	powerState := types.VirtualMachinePowerState(o.(string))
-
-	if rebootRequired && powerState != types.VirtualMachinePowerStatePoweredOff {
-		log.Printf("[INFO] Shutting down virtual machine: %s", d.Id())
-
-		task, err := vm.PowerOff(context.TODO())
-		if err != nil {
-			return err
-		}
-
-		err = task.Wait(context.TODO())
-		if err != nil {
-			return err
-		}
-	}
-
-	// Perform reconfiguration tasks if we we have them
-	if hasChanges {
-		log.Printf("[INFO] Reconfiguring virtual machine: %s", d.Id())
-
-		task, err := vm.Reconfigure(context.TODO(), configSpec)
-		if err != nil {
-			log.Printf("[ERROR] %s", err)
-			return err
-		}
-
-		err = task.Wait(context.TODO())
-		if err != nil {
-			log.Printf("[ERROR] %s", err)
-			return err
-		}
-	}
-
-	if rebootRequired || powerState != types.VirtualMachinePowerStatePoweredOn {
-		task, err := vm.PowerOn(context.TODO())
-		if err != nil {
-			return err
-		}
-
-		err = task.Wait(context.TODO())
-		if err != nil {
-			log.Printf("[ERROR] %s", err)
-			return err
-		}
-
-		// Wait for VM guest networking before returning, so that Read can get
-		// accurate networking info for the state.
-		if d.Get("wait_for_guest_net").(bool) {
-			log.Printf("[DEBUG] Waiting for routeable guest network access")
-			if err := virtualmachine.WaitForGuestNet(client, vm, 5); err != nil {
-				return err
-			}
-			log.Printf("[DEBUG] Guest has routeable network access.")
-		}
-	}
-
-	return resourceVSphereVirtualMachineRead(d, meta)
-}
-
-func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*VSphereClient).vimClient
-	// Load up the tags client, which will validate a proper vCenter before
-	// attempting to proceed if we have tags defined.
-	tagsClient, err := tagsClientIfDefined(d, meta)
-	if err != nil {
+	// Wait for a routeable address if we have been set to wait for one
+	if err := virtualmachine.WaitForGuestNet(client, vm, d.Get("wait_for_guest_net_timeout").(int)); err != nil {
 		return err
 	}
 
-	vm := virtualMachine{
-		name:     d.Get("name").(string),
-		vcpu:     int32(d.Get("vcpu").(int)),
-		memoryMb: int64(d.Get("memory").(int)),
-		memoryAllocation: memoryAllocation{
-			reservation: int64(d.Get("memory_reservation").(int)),
-		},
-		customizationWaitTimeout: d.Get("wait_for_customization_timeout").(int),
-	}
-
-	if v, ok := d.GetOk("hostname"); ok {
-		vm.hostname = v.(string)
-	}
-
-	if v, ok := d.GetOk("folder"); ok {
-		vm.folder = v.(string)
-	}
-
-	if v, ok := d.GetOk("datacenter"); ok {
-		vm.datacenter = v.(string)
-	}
-
-	if v, ok := d.GetOk("cluster"); ok {
-		vm.cluster = v.(string)
-	}
-
-	if v, ok := d.GetOk("resource_pool"); ok {
-		vm.resourcePool = v.(string)
-	}
-
-	if v, ok := d.GetOk("domain"); ok {
-		vm.domain = v.(string)
-	}
-
-	if v, ok := d.GetOk("time_zone"); ok {
-		vm.timeZone = v.(string)
-	}
-
-	if v, ok := d.GetOk("annotation"); ok {
-		vm.annotation = v.(string)
-	} else {
-		vm.annotation = ""
-	}
-
-	if v, ok := d.GetOk("linked_clone"); ok {
-		vm.linkedClone = v.(bool)
-	}
-
-	if v, ok := d.GetOk("skip_customization"); ok {
-		vm.skipCustomization = v.(bool)
-	}
-
-	if v, ok := d.GetOk("enable_disk_uuid"); ok {
-		vm.enableDiskUUID = v.(bool)
-	}
-
-	if raw, ok := d.GetOk("dns_suffixes"); ok {
-		for _, v := range raw.([]interface{}) {
-			vm.dnsSuffixes = append(vm.dnsSuffixes, v.(string))
-		}
-	} else {
-		if v, ok := d.GetOk("domain"); ok {
-			vm.dnsSuffixes = append(vm.dnsSuffixes, v.(string))
-		} else {
-			vm.dnsSuffixes = DefaultDNSSuffixes
-		}
-	}
-
-	if raw, ok := d.GetOk("dns_servers"); ok {
-		for _, v := range raw.([]interface{}) {
-			vm.dnsServers = append(vm.dnsServers, v.(string))
-		}
-	} else {
-		vm.dnsServers = DefaultDNSServers
-	}
-
-	if vL, ok := d.GetOk("custom_configuration_parameters"); ok {
-		if custom_configs, ok := vL.(map[string]interface{}); ok {
-			custom := make(map[string]types.AnyType)
-			for k, v := range custom_configs {
-				custom[k] = v
-			}
-			vm.customConfigurations = custom
-			log.Printf("[DEBUG] custom_configuration_parameters init: %v", vm.customConfigurations)
-		}
-	}
-
-	if vL, ok := d.GetOk("network_interface"); ok {
-		networks := make([]networkInterface, len(vL.([]interface{})))
-		for i, v := range vL.([]interface{}) {
-			network := v.(map[string]interface{})
-			networks[i].label = network["label"].(string)
-			if v, ok := network["ip_address"].(string); ok && v != "" {
-				networks[i].ipv4Address = v
-			}
-			if v, ok := d.GetOk("gateway"); ok {
-				networks[i].ipv4Gateway = v.(string)
-			}
-			if v, ok := network["subnet_mask"].(string); ok && v != "" {
-				ip := net.ParseIP(v).To4()
-				if ip != nil {
-					mask := net.IPv4Mask(ip[0], ip[1], ip[2], ip[3])
-					pl, _ := mask.Size()
-					networks[i].ipv4PrefixLength = pl
-				} else {
-					return fmt.Errorf("subnet_mask parameter is invalid.")
-				}
-			}
-			if v, ok := network["ipv4_address"].(string); ok && v != "" {
-				networks[i].ipv4Address = v
-			}
-			if v, ok := network["ipv4_prefix_length"].(int); ok && v != 0 {
-				networks[i].ipv4PrefixLength = v
-			}
-			if v, ok := network["ipv4_gateway"].(string); ok && v != "" {
-				networks[i].ipv4Gateway = v
-			}
-			if v, ok := network["ipv6_address"].(string); ok && v != "" {
-				networks[i].ipv6Address = v
-			}
-			if v, ok := network["ipv6_prefix_length"].(int); ok && v != 0 {
-				networks[i].ipv6PrefixLength = v
-			}
-			if v, ok := network["ipv6_gateway"].(string); ok && v != "" {
-				networks[i].ipv6Gateway = v
-			}
-			if v, ok := network["mac_address"].(string); ok && v != "" {
-				networks[i].macAddress = v
-			}
-			if v, ok := network["adapter_type"].(string); ok && v != "" {
-				networks[i].adapterType = v
-			}
-		}
-		vm.networkInterfaces = networks
-		log.Printf("[DEBUG] network_interface init: %v", networks)
-	}
-
-	if vL, ok := d.GetOk("windows_opt_config"); ok {
-		var winOpt windowsOptConfig
-		custom_configs := (vL.([]interface{}))[0].(map[string]interface{})
-		if v, ok := custom_configs["admin_password"].(string); ok && v != "" {
-			winOpt.adminPassword = v
-		}
-		if v, ok := custom_configs["domain"].(string); ok && v != "" {
-			winOpt.domain = v
-		}
-		if v, ok := custom_configs["domain_user"].(string); ok && v != "" {
-			winOpt.domainUser = v
-		}
-		if v, ok := custom_configs["product_key"].(string); ok && v != "" {
-			winOpt.productKey = v
-		}
-		if v, ok := custom_configs["domain_user_password"].(string); ok && v != "" {
-			winOpt.domainUserPassword = v
-		}
-		vm.windowsOptionalConfig = winOpt
-		log.Printf("[DEBUG] windows config init: %v", winOpt)
-	}
-
-	if vL, ok := d.GetOk("disk"); ok {
-		if diskSet, ok := vL.(*schema.Set); ok {
-
-			disks := []hardDisk{}
-			for _, value := range diskSet.List() {
-				disk := value.(map[string]interface{})
-				newDisk := hardDisk{}
-
-				if v, ok := disk["template"].(string); ok && v != "" {
-					if v, ok := disk["name"].(string); ok && v != "" {
-						return fmt.Errorf("Cannot specify name of a template")
-					}
-					vm.template = v
-					if vm.hasBootableVmdk {
-						return fmt.Errorf("[ERROR] Only one bootable disk or template may be given")
-					}
-					vm.hasBootableVmdk = true
-				}
-
-				if v, ok := disk["type"].(string); ok && v != "" {
-					newDisk.initType = v
-				}
-
-				if v, ok := disk["datastore"].(string); ok && v != "" {
-					vm.datastore = v
-				}
-
-				if v, ok := disk["size"].(int); ok && v != 0 {
-					if v, ok := disk["template"].(string); ok && v != "" {
-						return fmt.Errorf("Cannot specify size of a template")
-					}
-
-					if v, ok := disk["name"].(string); ok && v != "" {
-						newDisk.name = v
-					} else {
-						return fmt.Errorf("[ERROR] Disk name must be provided when creating a new disk")
-					}
-
-					newDisk.size = int64(v)
-				}
-
-				if v, ok := disk["iops"].(int); ok && v != 0 {
-					newDisk.iops = int64(v)
-				}
-
-				if v, ok := disk["controller_type"].(string); ok && v != "" {
-					newDisk.controller = v
-				}
-
-				if vVmdk, ok := disk["vmdk"].(string); ok && vVmdk != "" {
-					if v, ok := disk["template"].(string); ok && v != "" {
-						return fmt.Errorf("Cannot specify a vmdk for a template")
-					}
-					if v, ok := disk["size"].(string); ok && v != "" {
-						return fmt.Errorf("Cannot specify size of a vmdk")
-					}
-					if v, ok := disk["name"].(string); ok && v != "" {
-						return fmt.Errorf("Cannot specify name of a vmdk")
-					}
-					if vBootable, ok := disk["bootable"].(bool); ok {
-						if vBootable && vm.hasBootableVmdk {
-							return fmt.Errorf("[ERROR] Only one bootable disk or template may be given")
-						}
-						newDisk.bootable = vBootable
-						vm.hasBootableVmdk = vm.hasBootableVmdk || vBootable
-					}
-					newDisk.vmdkPath = vVmdk
-				}
-				// Preserves order so bootable disk is first
-				if newDisk.bootable == true || disk["template"] != "" {
-					disks = append([]hardDisk{newDisk}, disks...)
-				} else {
-					disks = append(disks, newDisk)
-				}
-			}
-			vm.hardDisks = disks
-			log.Printf("[DEBUG] disk init: %v", disks)
-		}
-	}
-
-	if vL, ok := d.GetOk("cdrom"); ok {
-		cdroms := make([]cdrom, len(vL.([]interface{})))
-		for i, v := range vL.([]interface{}) {
-			c := v.(map[string]interface{})
-			if v, ok := c["datastore"].(string); ok && v != "" {
-				cdroms[i].datastore = v
-			} else {
-				return fmt.Errorf("Datastore argument must be specified when attaching a cdrom image.")
-			}
-			if v, ok := c["path"].(string); ok && v != "" {
-				cdroms[i].path = v
-			} else {
-				return fmt.Errorf("Path argument must be specified when attaching a cdrom image.")
-			}
-		}
-		vm.cdroms = cdroms
-		log.Printf("[DEBUG] cdrom init: %v", cdroms)
-	}
-
-	if err := vm.setupVirtualMachine(client); err != nil {
-		return err
-	}
-
-	d.SetId(vm.Path())
-	log.Printf("[INFO] Created virtual machine: %s", d.Id())
-
-	newVM, err := virtualmachine.FromMOID(client, vm.moid)
-	if err != nil {
-		return err
-	}
-	newProps, err := virtualmachine.Properties(newVM)
-	if err != nil {
-		return err
-	}
-
-	// Apply any pending tags now
-	if tagsClient != nil {
-		if err := processTagDiff(tagsClient, d, newVM); err != nil {
-			return err
-		}
-	}
-
-	if newProps.Runtime.PowerState == types.VirtualMachinePowerStatePoweredOn && d.Get("wait_for_guest_net").(bool) {
-		// We also need to wait for the guest networking to ensure an accurate set
-		// of information can be read into state and reported to the provisioners.
-		log.Printf("[DEBUG] Waiting for routeable guest network access")
-		if err := virtualmachine.WaitForGuestNet(client, newVM, 5); err != nil {
-			return err
-		}
-		log.Printf("[DEBUG] Guest has routeable network access.")
-	}
+	// All done!
+	log.Printf("[DEBUG] %s: Create complete", resourceVSphereVirtualMachineIDString(d))
 	return resourceVSphereVirtualMachineRead(d, meta)
 }
 
 func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] virtual machine resource data: %#v", d)
+	log.Printf("[DEBUG] %s: Reading state", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*VSphereClient).vimClient
-	dc, err := getDatacenter(client, d.Get("datacenter").(string))
+	id := d.Id()
+	vm, err := virtualmachine.FromUUID(client, id)
 	if err != nil {
+		return fmt.Errorf("cannot locate virtual machine with UUID %q: %s", id, err)
+	}
+	vprops, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return fmt.Errorf("error fetching VM properties: %s", err)
+	}
+	// Reset reboot_required. This is an update only variable and should not be
+	// set across TF runs.
+	d.Set("reboot_required", false)
+	// Check to see if VMware tools is running.
+	if vprops.Guest != nil {
+		d.Set("vmware_tools_status", vprops.Guest.ToolsRunningStatus)
+	}
+
+	// Resource pool
+	if vprops.ResourcePool != nil {
+		d.Set("resource_pool_id", vprops.ResourcePool.Value)
+	}
+	// Set the folder
+	f, err := folder.RootPathParticleVM.SplitRelativeFolder(vm.InventoryPath)
+	if err != nil {
+		return fmt.Errorf("error parsing virtual machine path %q: %s", vm.InventoryPath, err)
+	}
+	d.Set("folder", folder.NormalizePath(f))
+	// Set VM's current host ID if available
+	if vprops.Runtime.Host != nil {
+		d.Set("host_system_id", vprops.Runtime.Host.Value)
+	}
+
+	// Set the VMX path and default datastore
+	dp := &object.DatastorePath{}
+	if ok := dp.FromString(vprops.Config.Files.VmPathName); !ok {
+		return fmt.Errorf("could not parse VMX file path: %s", vprops.Config.Files.VmPathName)
+	}
+	// The easiest path for us to get an exact match on the datastore in use is
+	// to look for the datastore name in the list of used datastores. This is
+	// something we have access to from the VM's properties. This allows us to
+	// get away with not having to have the datastore unnecessarily supplied to
+	// the resource when it's not used by anything else.
+	var ds *object.Datastore
+	for _, dsRef := range vprops.Datastore {
+		dsx, err := datastore.FromID(client, dsRef.Value)
+		if err != nil {
+			return fmt.Errorf("error locating VMX datastore: %s", err)
+		}
+		dsxProps, err := datastore.Properties(dsx)
+		if err != nil {
+			return fmt.Errorf("error fetching VMX datastore properties: %s", err)
+		}
+		if dsxProps.Summary.Name == dp.Datastore {
+			ds = dsx
+		}
+	}
+	if ds == nil {
+		return fmt.Errorf("VMX datastore %s not found", dp.Datastore)
+	}
+	d.Set("datastore_id", ds.Reference().Value)
+	d.Set("vmx_path", dp.Path)
+
+	// Read general VM config info
+	if err := flattenVirtualMachineConfigInfo(d, vprops.Config); err != nil {
+		return fmt.Errorf("error reading virtual machine configuration: %s", err)
+	}
+
+	// Perform pending device read operations.
+	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
+	// Read the state of the SCSI bus.
+	d.Set("scsi_type", virtualdevice.ReadSCSIBusState(devices))
+	// Disks first
+	if err := virtualdevice.DiskRefreshOperation(d, client, devices); err != nil {
 		return err
 	}
-	finder := find.NewFinder(client.Client, true)
-	finder = finder.SetDatacenter(dc)
-
-	vm, err := finder.VirtualMachine(context.TODO(), d.Id())
-	if err != nil {
-		d.SetId("")
-		return nil
-	}
-
-	err = d.Set("moid", vm.Reference().Value)
-	if err != nil {
-		return fmt.Errorf("Invalid moid to set: %#v", vm.Reference().Value)
-	} else {
-		log.Printf("[DEBUG] Set the moid: %#v", vm.Reference().Value)
-	}
-
-	var mvm mo.VirtualMachine
-	collector := property.DefaultCollector(client.Client)
-	if err := collector.RetrieveOne(context.TODO(), vm.Reference(), []string{"guest", "summary", "datastore", "config", "runtime"}, &mvm); err != nil {
+	// Network devices
+	if err := virtualdevice.NetworkInterfaceRefreshOperation(d, client, devices); err != nil {
 		return err
 	}
-
-	log.Printf("[DEBUG] Datacenter - %#v", dc)
-	log.Printf("[DEBUG] mvm.Summary.Config - %#v", mvm.Summary.Config)
-	log.Printf("[DEBUG] mvm.Config - %#v", mvm.Config)
-	log.Printf("[DEBUG] mvm.Guest.Net - %#v", mvm.Guest.Net)
-
-	err = d.Set("moid", mvm.Reference().Value)
-	if err != nil {
-		return fmt.Errorf("Invalid moid to set: %#v", mvm.Reference().Value)
-	} else {
-		log.Printf("[DEBUG] Set the moid: %#v", mvm.Reference().Value)
+	// CDROM
+	if err := virtualdevice.CdromRefreshOperation(d, client, devices); err != nil {
+		return err
 	}
-
-	disks := make([]map[string]interface{}, 0)
-	templateDisk := make(map[string]interface{}, 1)
-	for _, device := range mvm.Config.Hardware.Device {
-		if vd, ok := device.(*types.VirtualDisk); ok {
-
-			virtualDevice := vd.GetVirtualDevice()
-
-			backingInfo := virtualDevice.Backing
-			var diskFullPath string
-			var diskUuid string
-			if v, ok := backingInfo.(*types.VirtualDiskFlatVer2BackingInfo); ok {
-				diskFullPath = v.FileName
-				diskUuid = v.Uuid
-			} else if v, ok := backingInfo.(*types.VirtualDiskSparseVer2BackingInfo); ok {
-				diskFullPath = v.FileName
-				diskUuid = v.Uuid
-			}
-			log.Printf("[DEBUG] resourceVSphereVirtualMachineRead - Analyzing disk: %v", diskFullPath)
-
-			// Separate datastore and path
-			diskFullPathSplit := strings.Split(diskFullPath, " ")
-			if len(diskFullPathSplit) != 2 {
-				return fmt.Errorf("[ERROR] Failed trying to parse disk path: %v", diskFullPath)
-			}
-			diskPath := diskFullPathSplit[1]
-			// Isolate filename
-			diskNameSplit := strings.Split(diskPath, "/")
-			diskName := diskNameSplit[len(diskNameSplit)-1]
-			// Remove possible extension
-			diskName = strings.Split(diskName, ".")[0]
-
-			if prevDisks, ok := d.GetOk("disk"); ok {
-				if prevDiskSet, ok := prevDisks.(*schema.Set); ok {
-					for _, v := range prevDiskSet.List() {
-						prevDisk := v.(map[string]interface{})
-
-						// We're guaranteed only one template disk.  Passing value directly through since templates should be immutable
-						if prevDisk["template"] != "" {
-							if len(templateDisk) == 0 {
-								templateDisk = prevDisk
-								disks = append(disks, templateDisk)
-								break
-							}
-						}
-
-						// It is enforced that prevDisk["name"] should only be set in the case
-						// of creating a new disk for the user.
-						// size case:  name was set by user, compare parsed filename from mo.filename (without path or .vmdk extension) with name
-						// vmdk case:  compare prevDisk["vmdk"] and mo.Filename
-						if diskName == prevDisk["name"] || diskPath == prevDisk["vmdk"] {
-
-							prevDisk["key"] = virtualDevice.Key
-							prevDisk["uuid"] = diskUuid
-
-							disks = append(disks, prevDisk)
-							break
-						}
-					}
-				}
-			}
-			log.Printf("[DEBUG] disks: %#v", disks)
-		}
-	}
-	err = d.Set("disk", disks)
-	if err != nil {
-		return fmt.Errorf("Invalid disks to set: %#v", disks)
-	}
-
-	networkInterfaces := make([]map[string]interface{}, 0)
-
-	deviceList := object.VirtualDeviceList(mvm.Config.Hardware.Device)
-	deviceList = deviceList.SelectByType((*types.VirtualEthernetCard)(nil))
-	log.Printf("[DEBUG] Device list %+v", deviceList)
-	for _, device := range deviceList {
-		networkInterface := make(map[string]interface{})
-		if _, ok := device.(*types.VirtualE1000); ok {
-			networkInterface["adapter_type"] = "e1000"
-		} else {
-			networkInterface["adapter_type"] = "vmxnet3"
-		}
-		virtualDevice := device.GetVirtualDevice()
-		nic := device.(types.BaseVirtualEthernetCard)
-		DeviceName, _ := getNetworkName(client, vm, nic)
-		log.Printf("[DEBUG] device name %s", DeviceName)
-		networkInterface["label"] = DeviceName
-		networkInterface["mac_address"] = nic.GetVirtualEthernetCard().MacAddress
-		networkInterface["key"] = virtualDevice.Key
-		log.Printf("[DEBUG] networkInterface %#v", networkInterface)
-		networkInterfaces = append(networkInterfaces, networkInterface)
-	}
-	log.Printf("[DEBUG] networks: %#v", networkInterfaces)
-
-	for _, v := range mvm.Guest.Net {
-		if v.DeviceConfigId >= 0 {
-			log.Printf("[DEBUG] v.Network - %#v", v.Network)
-			for _, networkInterface := range networkInterfaces {
-				if networkInterface["key"] == v.DeviceConfigId {
-					for _, ip := range v.IpConfig.IpAddress {
-						p := net.ParseIP(ip.IpAddress)
-						_, ok4 := networkInterface["ipv4_address"]
-						_, ok6 := networkInterface["ipv6_address"]
-						if p.To4() != nil && !ok4 {
-							log.Printf("[DEBUG] p.String - %#v", p.String())
-							log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
-							networkInterface["ipv4_address"] = p.String()
-							networkInterface["ipv4_prefix_length"] = ip.PrefixLength
-						} else if p.To4() == nil && p.To16() != nil && !ok6 && !p.IsLinkLocalUnicast() {
-							log.Printf("[DEBUG] p.String - %#v", p.String())
-							log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
-							networkInterface["ipv6_address"] = p.String()
-							networkInterface["ipv6_prefix_length"] = ip.PrefixLength
-						}
-					}
-					log.Printf("[DEBUG] networkInterface: %#v", networkInterface)
-				}
-			}
-		}
-	}
-	log.Printf("[DEBUG] networks: %#v", networkInterfaces)
-	if mvm.Guest.IpStack != nil && len(mvm.Guest.Net) > 0 {
-		for _, v := range mvm.Guest.IpStack {
-			if v.IpRouteConfig != nil && v.IpRouteConfig.IpRoute != nil {
-				for _, route := range v.IpRouteConfig.IpRoute {
-					if route.Gateway.Device != "" {
-						gatewaySetting := ""
-						if route.Network == "::" {
-							gatewaySetting = "ipv6_gateway"
-							p := net.ParseIP(route.Gateway.IpAddress)
-							if p.To16() != nil && p.IsLinkLocalUnicast() {
-								continue
-							}
-						} else if route.Network == "0.0.0.0" {
-							gatewaySetting = "ipv4_gateway"
-						}
-						if gatewaySetting != "" {
-							// We need to get the correct device index which is not always
-							// aligned with what we have saved in Terraform state.
-							//
-							// The index in Device corresponds with the device index in
-							// Guest.Net, which we can use to discover the key.
-							did := route.Gateway.Device
-							nidx, err := strconv.Atoi(did)
-							if err != nil {
-								// "device" for some reason is a string, even though its result
-								// has always been observed to be an int. This should never
-								// happen, but we warn just in case.
-								log.Printf("[WARN] error at processing %s of device id %#v: %#v", gatewaySetting, did, err)
-								continue
-							}
-							key := mvm.Guest.Net[nidx].DeviceConfigId
-							if key < 0 {
-								// Gateway is not set to any hardware device, ignore.
-								continue
-							}
-							didx := -1
-							for n, dev := range networkInterfaces {
-								if dev["key"] == key {
-									didx = n
-									break
-								}
-							}
-							if didx < 0 {
-								// We are not tracking the device that the gateway is going to
-								// in state, so just skip the gateway.
-								continue
-							}
-							log.Printf("[DEBUG] %s of device id %d: %s", gatewaySetting, didx, route.Gateway.IpAddress)
-							networkInterfaces[didx][gatewaySetting] = route.Gateway.IpAddress
-						}
-					}
-				}
-			}
-		}
-	}
-	log.Printf("[DEBUG] networkInterfaces: %#v", networkInterfaces)
-	err = d.Set("network_interface", networkInterfaces)
-	if err != nil {
-		return fmt.Errorf("Invalid network interfaces to set: %#v", networkInterfaces)
-	}
-
-	if len(networkInterfaces) > 0 {
-		if _, ok := networkInterfaces[0]["ipv4_address"]; ok {
-			log.Printf("[DEBUG] ip address: %v", networkInterfaces[0]["ipv4_address"].(string))
-			d.SetConnInfo(map[string]string{
-				"type": "ssh",
-				"host": networkInterfaces[0]["ipv4_address"].(string),
-			})
-		}
-	}
-
-	var rootDatastore string
-	for _, v := range mvm.Datastore {
-		var md mo.Datastore
-		if err := collector.RetrieveOne(context.TODO(), v, []string{"name", "parent"}, &md); err != nil {
-			return err
-		}
-		if md.Parent.Type == "StoragePod" {
-			var msp mo.StoragePod
-			if err := collector.RetrieveOne(context.TODO(), *md.Parent, []string{"name"}, &msp); err != nil {
-				return err
-			}
-			rootDatastore = msp.Name
-			log.Printf("[DEBUG] %#v", msp.Name)
-		} else {
-			rootDatastore = md.Name
-			log.Printf("[DEBUG] %#v", md.Name)
-		}
-		break
-	}
-
-	d.Set("datacenter", dc)
-	d.Set("memory", mvm.Summary.Config.MemorySizeMB)
-	d.Set("memory_reservation", mvm.Summary.Config.MemoryReservation)
-	d.Set("cpu", mvm.Summary.Config.NumCpu)
-	d.Set("datastore", rootDatastore)
-	d.Set("uuid", mvm.Summary.Config.Uuid)
-	d.Set("annotation", mvm.Summary.Config.Annotation)
-	d.Set("power_state", mvm.Runtime.PowerState)
 
 	// Read tags if we have the ability to do so
 	if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
@@ -1318,1064 +296,540 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		}
 	}
 
+	// Finally, select a valid IP address for use by the VM for purposes of
+	// provisioning. This also populates some computed values to present to the
+	// user.
+	if vprops.Guest != nil {
+		if err := buildAndSelectGuestIPs(d, *vprops.Guest); err != nil {
+			return fmt.Errorf("error reading virtual machine guest data: %s", err)
+		}
+	}
+
+	log.Printf("[DEBUG] %s: Read complete", resourceVSphereVirtualMachineIDString(d))
 	return nil
+}
+
+func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Performing update", resourceVSphereVirtualMachineIDString(d))
+	client := meta.(*VSphereClient).vimClient
+	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+	id := d.Id()
+	vm, err := virtualmachine.FromUUID(client, id)
+	if err != nil {
+		return fmt.Errorf("cannot locate virtual machine with UUID %q: %s", id, err)
+	}
+
+	// Update folder if necessary
+	if d.HasChange("folder") {
+		folder := d.Get("folder").(string)
+		if err := virtualmachine.MoveToFolder(client, vm, folder); err != nil {
+			return fmt.Errorf("could not move virtual machine to folder %q: %s", folder, err)
+		}
+	}
+
+	// Apply any pending tags
+	if tagsClient != nil {
+		if err := processTagDiff(tagsClient, d, vm); err != nil {
+			return err
+		}
+	}
+
+	// Ready to start the VM update. All changes from here, until the update
+	// operation finishes successfully, need to be done in partial mode.
+	d.Partial(true)
+
+	vprops, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return fmt.Errorf("error fetching VM properties: %s", err)
+	}
+	spec, changed := expandVirtualMachineConfigSpecChanged(d, vprops.Config)
+	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
+	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
+		return err
+	}
+	// Only carry out the reconfigure if we actually have a change to process.
+	if changed || len(spec.DeviceChange) > 0 {
+		//Check to see if we need to shutdown the VM for this process.
+		if d.Get("reboot_required").(bool) && vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOff {
+			// Attempt a graceful shutdown of this process. We wrap this in a VM helper.
+			timeout := d.Get("shutdown_wait_timeout").(int)
+			force := d.Get("force_power_off").(bool)
+			if err := virtualmachine.GracefulPowerOff(client, vm, timeout, force); err != nil {
+				return fmt.Errorf("error shutting down virtual machine: %s", err)
+			}
+		}
+		// Perform updates
+		if err := virtualmachine.Reconfigure(vm, spec); err != nil {
+			return fmt.Errorf("error reconfiguring virtual machine: %s", err)
+		}
+		// Re-fetch properties
+		vprops, err = virtualmachine.Properties(vm)
+		if err != nil {
+			return fmt.Errorf("error re-fetching VM properties after update: %s", err)
+		}
+		// Power back on the VM, and wait for network if necessary.
+		if vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOn {
+			if err := virtualmachine.PowerOn(vm); err != nil {
+				return fmt.Errorf("error powering on virtual machine: %s", err)
+			}
+			if err := virtualmachine.WaitForGuestNet(client, vm, d.Get("wait_for_guest_net_timeout").(int)); err != nil {
+				return err
+			}
+		}
+	}
+	// Now safe to turn off partial mode.
+	d.Partial(false)
+
+	// Now that any pending changes have been done (namely, any disks that don't
+	// need to be migrated have been deleted), proceed with vMotion if we have
+	// one pending.
+	if err := resourceVSphereVirtualMachineUpdateLocation(d, meta); err != nil {
+		return fmt.Errorf("error running VM migration: %s", err)
+	}
+
+	// All done with updates.
+	log.Printf("[DEBUG] %s: Update complete", resourceVSphereVirtualMachineIDString(d))
+	return resourceVSphereVirtualMachineRead(d, meta)
 }
 
 func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Performing delete", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*VSphereClient).vimClient
-	dc, err := getDatacenter(client, d.Get("datacenter").(string))
+	id := d.Id()
+	vm, err := virtualmachine.FromUUID(client, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot locate virtual machine with UUID %q: %s", id, err)
 	}
-	finder := find.NewFinder(client.Client, true)
-	finder = finder.SetDatacenter(dc)
-
-	vm, err := finder.VirtualMachine(context.TODO(), vmPath(d.Get("folder").(string), d.Get("name").(string)))
+	vprops, err := virtualmachine.Properties(vm)
 	if err != nil {
-		return err
+		return fmt.Errorf("error fetching VM properties: %s", err)
 	}
-	devices, err := vm.Device(context.TODO())
-	if err != nil {
-		log.Printf("[DEBUG] resourceVSphereVirtualMachineDelete - Failed to get device list: %v", err)
-		return err
-	}
-
-	log.Printf("[INFO] Deleting virtual machine: %s", d.Id())
-	state, err := vm.PowerState(context.TODO())
-	if err != nil {
-		return err
-	}
-
-	if state == types.VirtualMachinePowerStatePoweredOn {
-		task, err := vm.PowerOff(context.TODO())
-		if err != nil {
-			return err
+	// Shutdown the VM first. We do attempt a graceful shutdown for the purpose
+	// of catching any edge data issues with associated virtual disks that we may
+	// need to retain on delete. However, we ignore the user-set force shutdown
+	// flag.
+	if vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOff {
+		timeout := d.Get("shutdown_wait_timeout").(int)
+		if err := virtualmachine.GracefulPowerOff(client, vm, timeout, true); err != nil {
+			return fmt.Errorf("error shutting down virtual machine: %s", err)
 		}
-
-		err = task.Wait(context.TODO())
-		if err != nil {
-			return err
+	}
+	// Now attempt to detach any virtual disks that may need to be preserved.
+	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
+	spec := types.VirtualMachineConfigSpec{}
+	if spec.DeviceChange, err = virtualdevice.DiskDestroyOperation(d, client, devices); err != nil {
+		return err
+	}
+	// Only run the reconfigure operation if there's actually disks in the spec.
+	if len(spec.DeviceChange) > 0 {
+		if err := virtualmachine.Reconfigure(vm, spec); err != nil {
+			return fmt.Errorf("error detaching virtual disks: %s", err)
 		}
 	}
 
-	// Safely eject any disks the user marked as keep_on_remove
-	var diskSetList []interface{}
-	if vL, ok := d.GetOk("disk"); ok {
-		if diskSet, ok := vL.(*schema.Set); ok {
-			diskSetList = diskSet.List()
-			for _, value := range diskSetList {
-				disk := value.(map[string]interface{})
-
-				if v, ok := disk["keep_on_remove"].(bool); ok && v == true {
-					log.Printf("[DEBUG] not destroying %v", disk["name"])
-					virtualDisk := devices.FindByKey(int32(disk["key"].(int)))
-					err = vm.RemoveDevice(context.TODO(), true, virtualDisk)
-					if err != nil {
-						log.Printf("[ERROR] Update Remove Disk - Error removing disk: %v", err)
-						return err
-					}
-				}
-			}
-		}
+	// The final operation here is to destroy the VM.
+	if err := virtualmachine.Destroy(vm); err != nil {
+		return fmt.Errorf("error destroying virtual machine: %s", err)
 	}
-
-	// Safely eject any disks that are not managed by this resource
-	if v, ok := d.GetOk("detach_unknown_disks_on_delete"); ok && v.(bool) {
-		var disksToRemove object.VirtualDeviceList
-		for _, device := range devices {
-			if devices.TypeName(device) != "VirtualDisk" {
-				continue
-			}
-			vd := device.GetVirtualDevice()
-			var skip bool
-			for _, value := range diskSetList {
-				disk := value.(map[string]interface{})
-				if int32(disk["key"].(int)) == vd.Key {
-					skip = true
-					break
-				}
-			}
-			if skip {
-				continue
-			}
-			disksToRemove = append(disksToRemove, device)
-		}
-		if len(disksToRemove) != 0 {
-			err = vm.RemoveDevice(context.TODO(), true, disksToRemove...)
-			if err != nil {
-				log.Printf("[ERROR] Update Remove Disk - Error removing disk: %v", err)
-				return err
-			}
-		}
-	}
-
-	task, err := vm.Destroy(context.TODO())
-	if err != nil {
-		return err
-	}
-
-	err = task.Wait(context.TODO())
-	if err != nil {
-		return err
-	}
-
-	d.SetId("")
+	log.Printf("[DEBUG] %s: Delete complete", resourceVSphereVirtualMachineIDString(d))
 	return nil
 }
 
-// addHardDisk adds a new Hard Disk to the VirtualMachine.
-func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, datastore *object.Datastore, diskPath string, controller_type string) error {
-	devices, err := vm.Device(context.TODO())
+func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Performing diff customization and validation", resourceVSphereVirtualMachineIDString(d))
+	client := meta.(*VSphereClient).vimClient
+	// Validate and normalize disk sub-resources
+	if err := virtualdevice.DiskDiffOperation(d, client); err != nil {
+		return err
+	}
+	// If this is a new resource and we are cloning, perform all clone validation
+	// operations.
+	if len(d.Get("clone").([]interface{})) > 0 {
+		switch {
+		case d.Id() == "":
+			if err := vmworkflow.ValidateVirtualMachineClone(d, client); err != nil {
+				return err
+			}
+		case d.Get("imported").(bool):
+			return errors.New("this resource was imported and does not support cloning. Please remove the clone block from its configuration")
+		}
+	}
+	log.Printf("[DEBUG] %s: Diff customization and validation complete", resourceVSphereVirtualMachineIDString(d))
+	return nil
+}
+
+func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := meta.(*VSphereClient).vimClient
+
+	name := d.Id()
+	log.Printf("[DEBUG] Looking for VM by name/path %q", name)
+	vm, err := virtualmachine.FromPath(client, name, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching virtual machine: %s", err)
+	}
+	props, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching virtual machine properties: %s", err)
+	}
+
+	// Block the import if the VM is a template.
+	if props.Config.Template {
+		return nil, fmt.Errorf("VM %q is a template and cannot be imported", name)
+	}
+
+	// Validate the disks in the VM to make sure that they will work with the
+	// resource. This is mainly ensuring that all disks are SCSI disks, but a
+	// Read operation is attempted as well to make sure it will survive that.
+	if err := virtualdevice.DiskImportOperation(d, client, object.VirtualDeviceList(props.Config.Hardware.Device)); err != nil {
+		return nil, err
+	}
+	// The VM should be ready for reading now
+	log.Printf("[DEBUG] VM UUID for %q is %q", name, props.Config.Uuid)
+	d.SetId(props.Config.Uuid)
+	d.Set("imported", true)
+	log.Printf("[DEBUG] %s: Import complete, resource is ready for read", resourceVSphereVirtualMachineIDString(d))
+	return []*schema.ResourceData{d}, nil
+}
+
+// resourceVSphereVirtualMachineCreateBare contains the "bare metal" VM
+// deploy path. The VM is returned.
+func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interface{}) (*object.VirtualMachine, error) {
+	log.Printf("[DEBUG] %s: VM being created from scratch", resourceVSphereVirtualMachineIDString(d))
+	client := meta.(*VSphereClient).vimClient
+	poolID := d.Get("resource_pool_id").(string)
+	pool, err := resourcepool.FromID(client, poolID)
+	if err != nil {
+		return nil, fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
+	}
+
+	// Find the folder based off the path to the resource pool. Basically what we
+	// are saying here is that the VM folder that we are placing this VM in needs
+	// to be in the same hierarchy as the resource pool - so in other words, the
+	// same datacenter.
+	fo, err := folder.VirtualMachineFolderFromObject(client, pool, d.Get("folder").(string))
+	if err != nil {
+		return nil, err
+	}
+	var hs *object.HostSystem
+	if v, ok := d.GetOk("host_system_id"); ok {
+		hsID := v.(string)
+		var err error
+		if hs, err = hostsystem.FromID(client, hsID); err != nil {
+			return nil, fmt.Errorf("error locating host system at ID %q: %s", hsID, err)
+		}
+	}
+
+	// Validate that the host is part of the resource pool before proceeding
+	if err := resourcepool.ValidateHost(client, pool, hs); err != nil {
+		return nil, err
+	}
+
+	// Ready to start making the VM here. First expand our main config spec.
+	spec := expandVirtualMachineConfigSpec(d)
+
+	// Set the datastore for the VM.
+	ds, err := datastore.FromID(client, d.Get("datastore_id").(string))
+	if err != nil {
+		return nil, fmt.Errorf("error locating datastore for VM: %s", err)
+	}
+	spec.Files = &types.VirtualMachineFileInfo{
+		VmPathName: fmt.Sprintf("[%s]", ds.Name()),
+	}
+
+	// Now we need to get the default device set - this is available in the
+	// environment info in the resource pool, which we can then filter through
+	// our device CRUD lifecycles to get a full deviceChange attribute for our
+	// configspec.
+	devices, err := resourcepool.DefaultDevices(client, pool, d.Get("guest_id").(string))
+	if err != nil {
+		return nil, fmt.Errorf("error loading default device list: %s", err)
+	}
+	log.Printf("[DEBUG] Default devices: %s", virtualdevice.DeviceListString(devices))
+
+	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
+		return nil, err
+	}
+
+	// We should now have a complete configSpec! Attempt to create the VM now.
+	vm, err := virtualmachine.Create(client, fo, spec, pool, hs)
+	if err != nil {
+		return nil, fmt.Errorf("error creating virtual machine: %s", err)
+	}
+	// VM is created. Set the ID now before proceeding, in case the rest of the
+	// process here fails.
+	vprops, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return nil, fmt.Errorf("cannot fetch properties of created virtual machine: %s", err)
+	}
+	log.Printf("[DEBUG] VM %q - UUID is %q", vm.InventoryPath, vprops.Config.Uuid)
+	d.SetId(vprops.Config.Uuid)
+
+	// Start the virtual machine
+	if err := virtualmachine.PowerOn(vm); err != nil {
+		return nil, fmt.Errorf("error powering on virtual machine: %s", err)
+	}
+	return vm, nil
+}
+
+// resourceVSphereVirtualMachineCreateClone contains the clone VM deploy
+// path. The VM is returned.
+func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta interface{}) (*object.VirtualMachine, error) {
+	log.Printf("[DEBUG] %s: VM being created from clone", resourceVSphereVirtualMachineIDString(d))
+	client := meta.(*VSphereClient).vimClient
+
+	// Find the folder based off the path to the resource pool. Basically what we
+	// are saying here is that the VM folder that we are placing this VM in needs
+	// to be in the same hierarchy as the resource pool - so in other words, the
+	// same datacenter.
+	poolID := d.Get("resource_pool_id").(string)
+	pool, err := resourcepool.FromID(client, poolID)
+	if err != nil {
+		return nil, fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
+	}
+	fo, err := folder.VirtualMachineFolderFromObject(client, pool, d.Get("folder").(string))
+	if err != nil {
+		return nil, err
+	}
+
+	// Expand the clone spec. We get the source VM here too.
+	cloneSpec, srcVM, err := vmworkflow.ExpandVirtualMachineCloneSpec(d, client)
+	if err != nil {
+		return nil, err
+	}
+
+	// Start the clone
+	name := d.Get("name").(string)
+	timeout := d.Get("clone.0.timeout").(int)
+	vm, err := virtualmachine.Clone(client, srcVM, fo, name, cloneSpec, timeout)
+	if err != nil {
+		return nil, fmt.Errorf("error cloning virtual machine: %s", err)
+	}
+
+	// VM is created and updated. It's save to set the ID here now, in case the
+	// rest of the process here fails.
+	vprops, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return nil, fmt.Errorf("cannot fetch properties of created virtual machine: %s", err)
+	}
+	log.Printf("[DEBUG] VM %q - UUID is %q", vm.InventoryPath, vprops.Config.Uuid)
+	d.SetId(vprops.Config.Uuid)
+
+	// Before starting or proceeding any further, we need to normalize the
+	// configuration of the newly cloned VM. This is basically a subset of update
+	// with the stipulation that there is currently no state to help move this
+	// along.
+	cfgSpec := expandVirtualMachineConfigSpec(d)
+
+	// To apply device changes, we need the current devicecfgSpec from the config
+	// info. We then filter this list through the same apply process we did for
+	// create, which will apply the changes in an incremental fashion.
+	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
+	var delta []types.BaseVirtualDeviceConfigSpec
+	// First check the state of our SCSI bus. Normalize it if we need to.
+	devices, delta, err = virtualdevice.NormalizeSCSIBus(devices, d.Get("scsi_type").(string))
+	if err != nil {
+		return nil, err
+	}
+	cfgSpec.DeviceChange = append(cfgSpec.DeviceChange, delta...)
+	// Disks
+	devices, delta, err = virtualdevice.DiskPostCloneOperation(d, client, devices)
+	if err != nil {
+		return nil, err
+	}
+	cfgSpec.DeviceChange = append(cfgSpec.DeviceChange, delta...)
+	// Network devices
+	devices, delta, err = virtualdevice.NetworkInterfacePostCloneOperation(d, client, devices)
+	if err != nil {
+		return nil, err
+	}
+	cfgSpec.DeviceChange = append(cfgSpec.DeviceChange, delta...)
+	// CDROM
+	devices, delta, err = virtualdevice.CdromPostCloneOperation(d, client, devices)
+	if err != nil {
+		return nil, err
+	}
+	cfgSpec.DeviceChange = append(cfgSpec.DeviceChange, delta...)
+	log.Printf("[DEBUG] %s: Final device list: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceListString(devices))
+	log.Printf("[DEBUG] %s: Final device change cfgSpec: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceChangeString(cfgSpec.DeviceChange))
+
+	// Perform updates
+	if err := virtualmachine.Reconfigure(vm, cfgSpec); err != nil {
+		// Delete the virtual machine if the update failed here. Updates are
+		// largely atomic, so more than likely no disks with keep_on_remove were
+		// attached, but just in case, we run this through delete to make sure to
+		// safely remove any disk that may have been attached as part of this
+		// process if it was flagged as such.
+		if derr := resourceVSphereVirtualMachineDelete(d, meta); derr != nil {
+			return nil, fmt.Errorf(formatVirtualMachinePostCloneRollbackError, vm.InventoryPath, err, derr)
+		}
+		d.SetId("")
+		return nil, fmt.Errorf("error reconfiguring virtual machine: %s", err)
+	}
+
+	var cw *virtualMachineCustomizationWaiter
+	// Send customization spec if any has been defined.
+	if len(d.Get("clone.0.customize").([]interface{})) > 0 {
+		family, err := resourcepool.OSFamily(client, pool, d.Get("guest_id").(string))
+		if err != nil {
+			return nil, fmt.Errorf("cannot find OS family for guest ID %q: %s", d.Get("guest_id").(string), err)
+		}
+		custSpec := vmworkflow.ExpandCustomizationSpec(d, family)
+		cw = newVirtualMachineCustomizationWaiter(client, vm, d.Get("clone.0.customize.0.timeout").(int))
+		if err := virtualmachine.Customize(vm, custSpec); err != nil {
+			return nil, fmt.Errorf("error sending customization spec: %s", err)
+		}
+	}
+
+	// Finally time to power on the virtual machine!
+	if err := virtualmachine.PowerOn(vm); err != nil {
+		return nil, fmt.Errorf("error powering on virtual machine: %s", err)
+	}
+	// If we customized, wait on customization.
+	if cw != nil {
+		log.Printf("[DEBUG] %s: Waiting for VM customization to complete", resourceVSphereVirtualMachineIDString(d))
+		<-cw.Done()
+		if err := cw.Err(); err != nil {
+			return nil, fmt.Errorf("error waiting on VM customization: %s", err)
+		}
+	}
+	// Clone is complete and ready to return
+	return vm, nil
+}
+
+// resourceVSphereVirtualMachineUpdateLocation manages vMotion. This includes
+// the migration of a VM from one host to another, or from one datastore to
+// another (storage vMotion).
+//
+// This function is responsible for building the top-level relocate spec. For
+// disks, we call out to relocate functionality in the disk sub-resource.
+func resourceVSphereVirtualMachineUpdateLocation(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Checking for pending migration operations", resourceVSphereVirtualMachineIDString(d))
+	client := meta.(*VSphereClient).vimClient
+
+	// A little bit of duplication of VM object data is done here to keep the
+	// method signature lean.
+	id := d.Id()
+	vm, err := virtualmachine.FromUUID(client, id)
+	if err != nil {
+		return fmt.Errorf("cannot locate virtual machine with UUID %q: %s", id, err)
+	}
+
+	// Determine if we are performing any storage vMotion tasks. This will generate the relocators if there are any.
+	vprops, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return fmt.Errorf("error fetching VM properties: %s", err)
+	}
+	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
+	relocators, err := virtualdevice.DiskMigrateRelocateOperation(d, client, devices)
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] vm devices: %#v\n", devices)
-
-	var controller types.BaseVirtualController
-	switch controller_type {
-	case "scsi":
-		controller, err = devices.FindDiskController(controller_type)
-	case "scsi-lsi-parallel":
-		controller = devices.PickController(&types.VirtualLsiLogicController{})
-	case "scsi-buslogic":
-		controller = devices.PickController(&types.VirtualBusLogicController{})
-	case "scsi-paravirtual":
-		controller = devices.PickController(&types.ParaVirtualSCSIController{})
-	case "scsi-lsi-sas":
-		controller = devices.PickController(&types.VirtualLsiLogicSASController{})
-	case "ide":
-		controller, err = devices.FindDiskController(controller_type)
-	default:
-		return fmt.Errorf("[ERROR] Unsupported disk controller provided: %v", controller_type)
-	}
-
-	if err != nil || controller == nil {
-		// Check if max number of scsi controller are already used
-		diskControllers := getSCSIControllers(devices)
-		if len(diskControllers) >= 4 {
-			return fmt.Errorf("[ERROR] Maximum number of SCSI controllers created")
-		}
-
-		log.Printf("[DEBUG] Couldn't find a %v controller.  Creating one..", controller_type)
-
-		var c types.BaseVirtualDevice
-		switch controller_type {
-		case "scsi":
-			// Create scsi controller
-			c, err = devices.CreateSCSIController("scsi")
-			if err != nil {
-				return fmt.Errorf("[ERROR] Failed creating SCSI controller: %v", err)
-			}
-		case "scsi-lsi-parallel":
-			// Create scsi controller
-			c, err = devices.CreateSCSIController("lsilogic")
-			if err != nil {
-				return fmt.Errorf("[ERROR] Failed creating SCSI controller: %v", err)
-			}
-		case "scsi-buslogic":
-			// Create scsi controller
-			c, err = devices.CreateSCSIController("buslogic")
-			if err != nil {
-				return fmt.Errorf("[ERROR] Failed creating SCSI controller: %v", err)
-			}
-		case "scsi-paravirtual":
-			// Create scsi controller
-			c, err = devices.CreateSCSIController("pvscsi")
-			if err != nil {
-				return fmt.Errorf("[ERROR] Failed creating SCSI controller: %v", err)
-			}
-		case "scsi-lsi-sas":
-			// Create scsi controller
-			c, err = devices.CreateSCSIController("lsilogic-sas")
-			if err != nil {
-				return fmt.Errorf("[ERROR] Failed creating SCSI controller: %v", err)
-			}
-		case "ide":
-			// Create ide controller
-			c, err = devices.CreateIDEController()
-			if err != nil {
-				return fmt.Errorf("[ERROR] Failed creating IDE controller: %v", err)
-			}
-		default:
-			return fmt.Errorf("[ERROR] Unsupported disk controller provided: %v", controller_type)
-		}
-
-		vm.AddDevice(context.TODO(), c)
-		// Update our devices list
-		devices, err := vm.Device(context.TODO())
-		if err != nil {
-			return err
-		}
-		controller = devices.PickController(c.(types.BaseVirtualController))
-		if controller == nil {
-			log.Printf("[ERROR] Could not find the new %v controller", controller_type)
-			return fmt.Errorf("Could not find the new %v controller", controller_type)
-		}
-	}
-
-	log.Printf("[DEBUG] disk controller: %#v\n", controller)
-
-	// TODO Check if diskPath & datastore exist
-	// If diskPath is not specified, pass empty string to CreateDisk()
-	if diskPath == "" {
-		return fmt.Errorf("[ERROR] addHardDisk - No path proided")
-	} else {
-		diskPath = datastore.Path(diskPath)
-	}
-	log.Printf("[DEBUG] addHardDisk - diskPath: %v", diskPath)
-	disk := devices.CreateDisk(controller, datastore.Reference(), diskPath)
-
-	if strings.Contains(controller_type, "scsi") {
-		unitNumber, err := getNextUnitNumber(devices, controller)
-		if err != nil {
-			return err
-		}
-		*disk.UnitNumber = unitNumber
-	}
-
-	existing := devices.SelectByBackingInfo(disk.Backing)
-	log.Printf("[DEBUG] disk: %#v\n", disk)
-
-	if len(existing) == 0 {
-		disk.CapacityInKB = int64(size * 1024 * 1024)
-		if iops != 0 {
-			disk.StorageIOAllocation = &types.StorageIOAllocationInfo{
-				Limit: &iops,
-			}
-		}
-		backing := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
-
-		if diskType == "eager_zeroed" {
-			// eager zeroed thick virtual disk
-			backing.ThinProvisioned = types.NewBool(false)
-			backing.EagerlyScrub = types.NewBool(true)
-		} else if diskType == "lazy" {
-			// lazy zeroed thick virtual disk
-			backing.ThinProvisioned = types.NewBool(false)
-			backing.EagerlyScrub = types.NewBool(false)
-		} else if diskType == "thin" {
-			// thin provisioned virtual disk
-			backing.ThinProvisioned = types.NewBool(true)
-		}
-
-		log.Printf("[DEBUG] addHardDisk: %#v\n", disk)
-		log.Printf("[DEBUG] addHardDisk capacity: %#v\n", disk.CapacityInKB)
-
-		return vm.AddDevice(context.TODO(), disk)
-	} else {
-		log.Printf("[DEBUG] addHardDisk: Disk already present.\n")
-
+	// If we don't have any changes, stop here.
+	if !d.HasChange("resource_pool_id") && !d.HasChange("host_system_id") && len(relocators) < 1 {
+		log.Printf("[DEBUG] %s: No migration operations found", resourceVSphereVirtualMachineIDString(d))
 		return nil
 	}
-}
+	log.Printf("[DEBUG] %s: Migration operations found, proceeding with migration", resourceVSphereVirtualMachineIDString(d))
 
-func getSCSIControllers(vmDevices object.VirtualDeviceList) []*types.VirtualController {
-	// get virtual scsi controllers of all supported types
-	var scsiControllers []*types.VirtualController
-	for _, device := range vmDevices {
-		devType := vmDevices.Type(device)
-		switch devType {
-		case "scsi", "lsilogic", "buslogic", "pvscsi", "lsilogic-sas":
-			if c, ok := device.(types.BaseVirtualController); ok {
-				scsiControllers = append(scsiControllers, c.GetVirtualController())
-			}
-		}
-	}
-	return scsiControllers
-}
-
-func getNextUnitNumber(devices object.VirtualDeviceList, c types.BaseVirtualController) (int32, error) {
-	key := c.GetVirtualController().Key
-
-	var unitNumbers [16]bool
-	unitNumbers[7] = true
-
-	for _, device := range devices {
-		d := device.GetVirtualDevice()
-
-		if d.ControllerKey == key {
-			if d.UnitNumber != nil {
-				unitNumbers[*d.UnitNumber] = true
-			}
-		}
-	}
-	for i, taken := range unitNumbers {
-		if !taken {
-			return int32(i), nil
-		}
-	}
-	return -1, fmt.Errorf("[ERROR] getNextUnitNumber - controller is full")
-}
-
-// addCdrom adds a new virtual cdrom drive to the VirtualMachine and attaches an image (ISO) to it from a datastore path.
-func addCdrom(client *govmomi.Client, vm *object.VirtualMachine, datacenter *object.Datacenter, datastore, path string) error {
-	devices, err := vm.Device(context.TODO())
+	// Fetch and validate pool and host
+	poolID := d.Get("resource_pool_id").(string)
+	pool, err := resourcepool.FromID(client, poolID)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
 	}
-	log.Printf("[DEBUG] vm devices: %#v", devices)
-
-	var controller *types.VirtualIDEController
-	controller, err = devices.FindIDEController("")
-	if err != nil {
-		log.Printf("[DEBUG] Couldn't find a ide controller.  Creating one..")
-
-		var c types.BaseVirtualDevice
-		c, err := devices.CreateIDEController()
-		if err != nil {
-			return fmt.Errorf("[ERROR] Failed creating IDE controller: %v", err)
-		}
-
-		if v, ok := c.(*types.VirtualIDEController); ok {
-			controller = v
-		} else {
-			return fmt.Errorf("[ERROR] Controller type could not be asserted")
-		}
-		vm.AddDevice(context.TODO(), c)
-		// Update our devices list
-		devices, err := vm.Device(context.TODO())
-		if err != nil {
-			return err
-		}
-		controller, err = devices.FindIDEController("")
-		if err != nil {
-			log.Printf("[ERROR] Could not find the new disk IDE controller: %v", err)
-			return err
+	var hs *object.HostSystem
+	if v, ok := d.GetOk("host_system_id"); ok {
+		hsID := v.(string)
+		var err error
+		if hs, err = hostsystem.FromID(client, hsID); err != nil {
+			return fmt.Errorf("error locating host system at ID %q: %s", hsID, err)
 		}
 	}
-	log.Printf("[DEBUG] ide controller: %#v", controller)
-
-	c, err := devices.CreateCdrom(controller)
-	if err != nil {
+	if err := resourcepool.ValidateHost(client, pool, hs); err != nil {
 		return err
 	}
 
-	finder := find.NewFinder(client.Client, true)
-	finder = finder.SetDatacenter(datacenter)
-	ds, err := getDatastore(finder, datastore)
+	// Fetch the datastore
+	ds, err := datastore.FromID(client, d.Get("datastore_id").(string))
 	if err != nil {
-		return err
+		return fmt.Errorf("error locating datastore for VM: %s", err)
 	}
 
-	c = devices.InsertIso(c, ds.Path(path))
-	log.Printf("[DEBUG] addCdrom: %#v", c)
+	dsRef := ds.Reference()
+	pRef := pool.Reference()
+	// Start building the spec
+	spec := types.VirtualMachineRelocateSpec{
+		Datastore: &dsRef,
+		Pool:      &pRef,
+	}
+	if hs != nil {
+		hsRef := hs.Reference()
+		spec.Host = &hsRef
+	}
 
-	return vm.AddDevice(context.TODO(), c)
+	spec.Disk = relocators
+
+	// Ready to perform migration. Only do this if necessary.
+	return virtualmachine.Relocate(vm, spec, d.Get("migrate_wait_timeout").(int))
 }
 
-// buildNetworkDevice builds VirtualDeviceConfigSpec for Network Device.
-func buildNetworkDevice(f *find.Finder, label, adapterType string, macAddress string) (*types.VirtualDeviceConfigSpec, error) {
-	network, err := f.Network(context.TODO(), label)
+// applyVirtualDevices is used by Create and Update to build a list of virtual
+// device changes.
+func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	// We filter this device list through each major device class' apply
+	// operation. This will give us a final set of changes that will be our
+	// deviceChange attribute.
+	var spec, delta []types.BaseVirtualDeviceConfigSpec
+	var err error
+	// First check the state of our SCSI bus. Normalize it if we need to.
+	l, delta, err = virtualdevice.NormalizeSCSIBus(l, d.Get("scsi_type").(string))
 	if err != nil {
 		return nil, err
 	}
-
-	backing, err := network.EthernetCardBackingInfo(context.TODO())
+	if len(delta) > 0 {
+		log.Printf("[DEBUG] %s: SCSI bus has changed and requires a VM restart", resourceVSphereVirtualMachineIDString(d))
+		d.Set("reboot_required", true)
+	}
+	spec = append(spec, delta...)
+	// Disks
+	l, delta, err = virtualdevice.DiskApplyOperation(d, c, l)
 	if err != nil {
 		return nil, err
 	}
-
-	var address_type string
-	if macAddress == "" {
-		address_type = string(types.VirtualEthernetCardMacTypeGenerated)
-	} else {
-		address_type = string(types.VirtualEthernetCardMacTypeManual)
-	}
-
-	if adapterType == "vmxnet3" {
-		return &types.VirtualDeviceConfigSpec{
-			Operation: types.VirtualDeviceConfigSpecOperationAdd,
-			Device: &types.VirtualVmxnet3{
-				VirtualVmxnet: types.VirtualVmxnet{
-					VirtualEthernetCard: types.VirtualEthernetCard{
-						VirtualDevice: types.VirtualDevice{
-							Key:     -1,
-							Backing: backing,
-						},
-						AddressType: address_type,
-						MacAddress:  macAddress,
-					},
-				},
-			},
-		}, nil
-	} else if adapterType == "e1000" {
-		return &types.VirtualDeviceConfigSpec{
-			Operation: types.VirtualDeviceConfigSpecOperationAdd,
-			Device: &types.VirtualE1000{
-				VirtualEthernetCard: types.VirtualEthernetCard{
-					VirtualDevice: types.VirtualDevice{
-						Key:     -1,
-						Backing: backing,
-					},
-					AddressType: address_type,
-					MacAddress:  macAddress,
-				},
-			},
-		}, nil
-	} else {
-		return nil, fmt.Errorf("Invalid network adapter type.")
-	}
-}
-
-// buildVMRelocateSpec builds VirtualMachineRelocateSpec to set a place for a new VirtualMachine.
-func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *object.VirtualMachine, linkedClone bool, initType string) (types.VirtualMachineRelocateSpec, error) {
-	var key int32
-	var moveType string
-	if linkedClone {
-		moveType = "createNewChildDiskBacking"
-	} else {
-		moveType = "moveAllDiskBackingsAndDisallowSharing"
-	}
-	log.Printf("[DEBUG] relocate type: [%s]", moveType)
-
-	devices, err := vm.Device(context.TODO())
-	if err != nil {
-		return types.VirtualMachineRelocateSpec{}, err
-	}
-	for _, d := range devices {
-		if devices.Type(d) == "disk" {
-			key = int32(d.GetVirtualDevice().Key)
-		}
-	}
-
-	isThin := initType == "thin"
-	eagerScrub := initType == "eager_zeroed"
-	rpr := rp.Reference()
-	dsr := ds.Reference()
-	return types.VirtualMachineRelocateSpec{
-		Datastore:    &dsr,
-		Pool:         &rpr,
-		DiskMoveType: moveType,
-		Disk: []types.VirtualMachineRelocateSpecDiskLocator{
-			{
-				Datastore: dsr,
-				DiskBackingInfo: &types.VirtualDiskFlatVer2BackingInfo{
-					DiskMode:        "persistent",
-					ThinProvisioned: types.NewBool(isThin),
-					EagerlyScrub:    types.NewBool(eagerScrub),
-				},
-				DiskId: key,
-			},
-		},
-	}, nil
-}
-
-// getDatastoreObject gets datastore object.
-func getDatastoreObject(client *govmomi.Client, f *object.DatacenterFolders, name string) (types.ManagedObjectReference, error) {
-	s := object.NewSearchIndex(client.Client)
-	ref, err := s.FindChild(context.TODO(), f.DatastoreFolder, name)
-	if err != nil {
-		return types.ManagedObjectReference{}, err
-	}
-	if ref == nil {
-		return types.ManagedObjectReference{}, fmt.Errorf("Datastore '%s' not found.", name)
-	}
-	log.Printf("[DEBUG] getDatastoreObject: reference: %#v", ref)
-	return ref.Reference(), nil
-}
-
-// buildStoragePlacementSpecCreate builds StoragePlacementSpec for create action.
-func buildStoragePlacementSpecCreate(f *object.DatacenterFolders, rp *object.ResourcePool, storagePod object.StoragePod, configSpec types.VirtualMachineConfigSpec) types.StoragePlacementSpec {
-	vmfr := f.VmFolder.Reference()
-	rpr := rp.Reference()
-	spr := storagePod.Reference()
-
-	sps := types.StoragePlacementSpec{
-		Type:       "create",
-		ConfigSpec: &configSpec,
-		PodSelectionSpec: types.StorageDrsPodSelectionSpec{
-			StoragePod: &spr,
-		},
-		Folder:       &vmfr,
-		ResourcePool: &rpr,
-	}
-	log.Printf("[DEBUG] findDatastore: StoragePlacementSpec: %#v\n", sps)
-	return sps
-}
-
-// buildStoragePlacementSpecClone builds StoragePlacementSpec for clone action.
-func buildStoragePlacementSpecClone(c *govmomi.Client, f *object.DatacenterFolders, vm *object.VirtualMachine, rp *object.ResourcePool, storagePod object.StoragePod) types.StoragePlacementSpec {
-	vmr := vm.Reference()
-	vmfr := f.VmFolder.Reference()
-	rpr := rp.Reference()
-	spr := storagePod.Reference()
-
-	var o mo.VirtualMachine
-	err := vm.Properties(context.TODO(), vmr, []string{"datastore"}, &o)
-	if err != nil {
-		return types.StoragePlacementSpec{}
-	}
-	ds := object.NewDatastore(c.Client, o.Datastore[0])
-	log.Printf("[DEBUG] findDatastore: datastore: %#v\n", ds)
-
-	devices, err := vm.Device(context.TODO())
-	if err != nil {
-		return types.StoragePlacementSpec{}
-	}
-
-	var key int32
-	for _, d := range devices.SelectByType((*types.VirtualDisk)(nil)) {
-		key = int32(d.GetVirtualDevice().Key)
-		log.Printf("[DEBUG] findDatastore: virtual devices: %#v\n", d.GetVirtualDevice())
-	}
-
-	sps := types.StoragePlacementSpec{
-		Type: "clone",
-		Vm:   &vmr,
-		PodSelectionSpec: types.StorageDrsPodSelectionSpec{
-			StoragePod: &spr,
-		},
-		CloneSpec: &types.VirtualMachineCloneSpec{
-			Location: types.VirtualMachineRelocateSpec{
-				Disk: []types.VirtualMachineRelocateSpecDiskLocator{
-					{
-						Datastore:       ds.Reference(),
-						DiskBackingInfo: &types.VirtualDiskFlatVer2BackingInfo{},
-						DiskId:          key,
-					},
-				},
-				Pool: &rpr,
-			},
-			PowerOn:  false,
-			Template: false,
-		},
-		CloneName: "dummy",
-		Folder:    &vmfr,
-	}
-	return sps
-}
-
-// findDatastore finds Datastore object.
-func findDatastore(c *govmomi.Client, sps types.StoragePlacementSpec) (*object.Datastore, error) {
-	var datastore *object.Datastore
-	log.Printf("[DEBUG] findDatastore: StoragePlacementSpec: %#v\n", sps)
-
-	srm := object.NewStorageResourceManager(c.Client)
-	rds, err := srm.RecommendDatastores(context.TODO(), sps)
+	spec = append(spec, delta...)
+	// Network devices
+	l, delta, err = virtualdevice.NetworkInterfaceApplyOperation(d, c, l)
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("[DEBUG] findDatastore: recommendDatastores: %#v\n", rds)
-
-	spa := rds.Recommendations[0].Action[0].(*types.StoragePlacementAction)
-	datastore = object.NewDatastore(c.Client, spa.Destination)
-	log.Printf("[DEBUG] findDatastore: datastore: %#v", datastore)
-
-	return datastore, nil
+	spec = append(spec, delta...)
+	// CDROM
+	l, delta, err = virtualdevice.CdromApplyOperation(d, c, l)
+	if err != nil {
+		return nil, err
+	}
+	spec = append(spec, delta...)
+	log.Printf("[DEBUG] %s: Final device list: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceListString(l))
+	log.Printf("[DEBUG] %s: Final device change spec: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceChangeString(spec))
+	return spec, nil
 }
 
-// createCdroms is a helper function to attach virtual cdrom devices (and their attached disk images) to a virtual IDE controller.
-func createCdroms(client *govmomi.Client, vm *object.VirtualMachine, datacenter *object.Datacenter, cdroms []cdrom) error {
-	log.Printf("[DEBUG] add cdroms: %v", cdroms)
-	for _, cd := range cdroms {
-		log.Printf("[DEBUG] add cdrom (datastore): %v", cd.datastore)
-		log.Printf("[DEBUG] add cdrom (cd path): %v", cd.path)
-		err := addCdrom(client, vm, datacenter, cd.datastore, cd.path)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+// resourceVSphereVirtualMachineIDStringInterface is a small interface so
+// that we can take ResourceData and ResourceDiff in
+// resourceVSphereVirtualMachineIDString.
+type resourceVSphereVirtualMachineIDStringInterface interface {
+	Id() string
 }
 
-func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
-	var cw *virtualMachineCustomizationWaiter
-	dc, err := getDatacenter(c, vm.datacenter)
-
-	if err != nil {
-		return err
+// resourceVSphereVirtualMachineIDString prints a friendly string for the
+// vsphere_virtual_machine resource.
+func resourceVSphereVirtualMachineIDString(d resourceVSphereVirtualMachineIDStringInterface) string {
+	id := d.Id()
+	if id == "" {
+		id = "<new resource>"
 	}
-	finder := find.NewFinder(c.Client, true)
-	finder = finder.SetDatacenter(dc)
-
-	var template *object.VirtualMachine
-	var template_mo mo.VirtualMachine
-	var vm_mo mo.VirtualMachine
-	if vm.template != "" {
-		template, err = finder.VirtualMachine(context.TODO(), vm.template)
-		if err != nil {
-			return err
-		}
-		log.Printf("[DEBUG] template: %#v", template)
-
-		err = template.Properties(context.TODO(), template.Reference(), []string{"parent", "config.template", "config.guestId", "resourcePool", "snapshot", "guest.toolsVersionStatus2", "config.guestFullName"}, &template_mo)
-		if err != nil {
-			return err
-		}
-	}
-
-	var resourcePool *object.ResourcePool
-	if vm.resourcePool == "" {
-		if vm.cluster == "" {
-			resourcePool, err = finder.DefaultResourcePool(context.TODO())
-			if err != nil {
-				return err
-			}
-		} else {
-			resourcePool, err = finder.ResourcePool(context.TODO(), "*"+vm.cluster+"/Resources")
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		resourcePool, err = finder.ResourcePool(context.TODO(), vm.resourcePool)
-		if err != nil {
-			return err
-		}
-	}
-	log.Printf("[DEBUG] resource pool: %#v", resourcePool)
-
-	dcFolders, err := dc.Folders(context.TODO())
-	if err != nil {
-		return err
-	}
-	log.Printf("[DEBUG] folder: %#v", vm.folder)
-
-	folder := dcFolders.VmFolder
-	if len(vm.folder) > 0 {
-		si := object.NewSearchIndex(c.Client)
-		folderRef, err := si.FindByInventoryPath(
-			context.TODO(), fmt.Sprintf("%v/vm/%v", vm.datacenter, vm.folder))
-		if err != nil {
-			return fmt.Errorf("Error reading folder %s: %s", vm.folder, err)
-		} else if folderRef == nil {
-			return fmt.Errorf("Cannot find folder %s", vm.folder)
-		} else {
-			folder = folderRef.(*object.Folder)
-		}
-	}
-
-	// make config spec
-	configSpec := types.VirtualMachineConfigSpec{
-		Name:              vm.name,
-		NumCPUs:           vm.vcpu,
-		NumCoresPerSocket: 1,
-		MemoryMB:          vm.memoryMb,
-		MemoryAllocation: &types.ResourceAllocationInfo{
-			Reservation: &vm.memoryAllocation.reservation,
-		},
-		Flags: &types.VirtualMachineFlagInfo{
-			DiskUuidEnabled: &vm.enableDiskUUID,
-		},
-		Annotation: vm.annotation,
-	}
-	if vm.template == "" {
-		configSpec.GuestId = "otherLinux64Guest"
-	}
-	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
-
-	// make ExtraConfig
-	log.Printf("[DEBUG] virtual machine Extra Config spec start")
-	if len(vm.customConfigurations) > 0 {
-		var ov []types.BaseOptionValue
-		for k, v := range vm.customConfigurations {
-			key := k
-			value := v
-			o := types.OptionValue{
-				Key:   key,
-				Value: &value,
-			}
-			log.Printf("[DEBUG] virtual machine Extra Config spec: %s,%s", k, v)
-			ov = append(ov, &o)
-		}
-		configSpec.ExtraConfig = ov
-		log.Printf("[DEBUG] virtual machine Extra Config spec: %v", configSpec.ExtraConfig)
-	}
-
-	var datastore *object.Datastore
-	if vm.datastore == "" {
-		datastore, err = finder.DefaultDatastore(context.TODO())
-		if err != nil {
-			return err
-		}
-	} else {
-		datastore, err = finder.Datastore(context.TODO(), vm.datastore)
-		if err != nil {
-			// TODO: datastore cluster support in govmomi finder function
-			d, err := getDatastoreObject(c, dcFolders, vm.datastore)
-			if err != nil {
-				return err
-			}
-
-			if d.Type == "StoragePod" {
-				sp := object.StoragePod{
-					Folder: object.NewFolder(c.Client, d),
-				}
-
-				var sps types.StoragePlacementSpec
-				if vm.template != "" {
-					sps = buildStoragePlacementSpecClone(c, dcFolders, template, resourcePool, sp)
-				} else {
-					sps = buildStoragePlacementSpecCreate(dcFolders, resourcePool, sp, configSpec)
-				}
-
-				datastore, err = findDatastore(c, sps)
-				if err != nil {
-					return err
-				}
-			} else {
-				datastore = object.NewDatastore(c.Client, d)
-			}
-		}
-	}
-
-	log.Printf("[DEBUG] datastore: %#v", datastore)
-
-	// network
-	networkDevices := []types.BaseVirtualDeviceConfigSpec{}
-	networkConfigs := []types.CustomizationAdapterMapping{}
-	for _, network := range vm.networkInterfaces {
-		// network device
-		nd, err := buildNetworkDevice(finder, network.label, network.adapterType, network.macAddress)
-		if err != nil {
-			return err
-		}
-		log.Printf("[DEBUG] network device: %+v", nd.Device)
-		networkDevices = append(networkDevices, nd)
-
-		if vm.template != "" {
-			var ipSetting types.CustomizationIPSettings
-			if network.ipv4Address == "" {
-				ipSetting.Ip = &types.CustomizationDhcpIpGenerator{}
-			} else {
-				if network.ipv4PrefixLength == 0 {
-					return fmt.Errorf("Error: ipv4_prefix_length argument is empty.")
-				}
-				m := net.CIDRMask(network.ipv4PrefixLength, 32)
-				sm := net.IPv4(m[0], m[1], m[2], m[3])
-				subnetMask := sm.String()
-				log.Printf("[DEBUG] ipv4 gateway: %v\n", network.ipv4Gateway)
-				log.Printf("[DEBUG] ipv4 address: %v\n", network.ipv4Address)
-				log.Printf("[DEBUG] ipv4 prefix length: %v\n", network.ipv4PrefixLength)
-				log.Printf("[DEBUG] ipv4 subnet mask: %v\n", subnetMask)
-				ipSetting.Gateway = []string{
-					network.ipv4Gateway,
-				}
-				ipSetting.Ip = &types.CustomizationFixedIp{
-					IpAddress: network.ipv4Address,
-				}
-				ipSetting.SubnetMask = subnetMask
-			}
-
-			ipv6Spec := &types.CustomizationIPSettingsIpV6AddressSpec{}
-			if network.ipv6Address == "" {
-				ipv6Spec.Ip = []types.BaseCustomizationIpV6Generator{
-					&types.CustomizationDhcpIpV6Generator{},
-				}
-			} else {
-				log.Printf("[DEBUG] ipv6 gateway: %v\n", network.ipv6Gateway)
-				log.Printf("[DEBUG] ipv6 address: %v\n", network.ipv6Address)
-				log.Printf("[DEBUG] ipv6 prefix length: %v\n", network.ipv6PrefixLength)
-
-				ipv6Spec.Ip = []types.BaseCustomizationIpV6Generator{
-					&types.CustomizationFixedIpV6{
-						IpAddress:  network.ipv6Address,
-						SubnetMask: int32(network.ipv6PrefixLength),
-					},
-				}
-				ipv6Spec.Gateway = []string{network.ipv6Gateway}
-			}
-			ipSetting.IpV6Spec = ipv6Spec
-
-			// network config
-			config := types.CustomizationAdapterMapping{
-				Adapter: ipSetting,
-			}
-			networkConfigs = append(networkConfigs, config)
-		}
-	}
-	log.Printf("[DEBUG] network devices: %#v", networkDevices)
-	log.Printf("[DEBUG] network configs: %#v", networkConfigs)
-
-	var task *object.Task
-	if vm.template == "" {
-		var mds mo.Datastore
-		if err = datastore.Properties(context.TODO(), datastore.Reference(), []string{"name"}, &mds); err != nil {
-			return err
-		}
-		log.Printf("[DEBUG] datastore: %#v", mds.Name)
-		scsi, err := object.SCSIControllerTypes().CreateSCSIController("scsi")
-		if err != nil {
-			log.Printf("[ERROR] %s", err)
-		}
-
-		configSpec.DeviceChange = append(configSpec.DeviceChange, &types.VirtualDeviceConfigSpec{
-			Operation: types.VirtualDeviceConfigSpecOperationAdd,
-			Device:    scsi,
-		})
-
-		configSpec.Files = &types.VirtualMachineFileInfo{VmPathName: fmt.Sprintf("[%s]", mds.Name)}
-
-		task, err = folder.CreateVM(context.TODO(), configSpec, resourcePool, nil)
-		if err != nil {
-			log.Printf("[ERROR] %s", err)
-		}
-
-		err = task.Wait(context.TODO())
-		if err != nil {
-			log.Printf("[ERROR] %s", err)
-		}
-
-	} else {
-
-		relocateSpec, err := buildVMRelocateSpec(resourcePool, datastore, template, vm.linkedClone, vm.hardDisks[0].initType)
-		if err != nil {
-			return err
-		}
-
-		log.Printf("[DEBUG] relocate spec: %v", relocateSpec)
-
-		// make vm clone spec
-		cloneSpec := types.VirtualMachineCloneSpec{
-			Location: relocateSpec,
-			Template: false,
-			Config:   &configSpec,
-			PowerOn:  false,
-		}
-		if vm.linkedClone {
-			if template_mo.Snapshot == nil {
-				return fmt.Errorf("`linkedClone=true`, but image VM has no snapshots")
-			}
-			cloneSpec.Snapshot = template_mo.Snapshot.CurrentSnapshot
-		}
-		log.Printf("[DEBUG] clone spec: %v", cloneSpec)
-
-		task, err = template.Clone(context.TODO(), folder, vm.name, cloneSpec)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = task.Wait(context.TODO())
-	if err != nil {
-		log.Printf("[ERROR] %s", err)
-	}
-
-	newVM, err := finder.VirtualMachine(context.TODO(), vm.Path())
-	if err != nil {
-		return err
-	}
-	log.Printf("[DEBUG] new vm: %v", newVM)
-
-	devices, err := newVM.Device(context.TODO())
-	if err != nil {
-		log.Printf("[DEBUG] Template devices can't be found")
-		return err
-	}
-
-	for _, dvc := range devices {
-		// Issue 3559/3560: Delete all ethernet devices to add the correct ones later
-		if devices.Type(dvc) == "ethernet" {
-			err := newVM.RemoveDevice(context.TODO(), false, dvc)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	// Add Network devices
-	for _, dvc := range networkDevices {
-		err := newVM.AddDevice(
-			context.TODO(), dvc.GetVirtualDeviceConfigSpec().Device)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Create the cdroms if needed.
-	if err := createCdroms(c, newVM, dc, vm.cdroms); err != nil {
-		return err
-	}
-
-	newVM.Properties(context.TODO(), newVM.Reference(), []string{"summary", "config"}, &vm_mo)
-	firstDisk := 0
-	if vm.template != "" {
-		firstDisk++
-	}
-	for i := firstDisk; i < len(vm.hardDisks); i++ {
-		log.Printf("[DEBUG] disk index: %v", i)
-
-		var diskPath string
-		switch {
-		case vm.hardDisks[i].vmdkPath != "":
-			diskPath = vm.hardDisks[i].vmdkPath
-		case vm.hardDisks[i].name != "":
-			snapshotFullDir := vm_mo.Config.Files.SnapshotDirectory
-			split := strings.Split(snapshotFullDir, " ")
-			if len(split) != 2 {
-				return fmt.Errorf("[ERROR] setupVirtualMachine - failed to split snapshot directory: %v", snapshotFullDir)
-			}
-			vmWorkingPath := split[1]
-			diskPath = vmWorkingPath + vm.hardDisks[i].name
-		default:
-			return fmt.Errorf("[ERROR] setupVirtualMachine - Neither vmdk path nor vmdk name was given: %#v", vm.hardDisks[i])
-		}
-		err = addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, diskPath, vm.hardDisks[i].controller)
-		if err != nil {
-			err2 := addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, diskPath, vm.hardDisks[i].controller)
-			if err2 != nil {
-				return err2
-			}
-			return err
-		}
-	}
-
-	if vm.skipCustomization || vm.template == "" {
-		log.Printf("[DEBUG] VM customization skipped")
-	} else {
-		var identity_options types.BaseCustomizationIdentitySettings
-		if strings.HasPrefix(template_mo.Config.GuestId, "win") {
-			var timeZone int
-			if vm.timeZone == "Etc/UTC" {
-				vm.timeZone = "085"
-			}
-			timeZone, err := strconv.Atoi(vm.timeZone)
-			if err != nil {
-				return fmt.Errorf("Error converting TimeZone: %s", err)
-			}
-
-			guiUnattended := types.CustomizationGuiUnattended{
-				AutoLogon:      false,
-				AutoLogonCount: 1,
-				TimeZone:       int32(timeZone),
-			}
-
-			customIdentification := types.CustomizationIdentification{}
-
-			if len(vm.hostname) == 0 {
-				vm.hostname = vm.name
-			}
-
-			userData := types.CustomizationUserData{
-				ComputerName: &types.CustomizationFixedName{
-					Name: strings.Split(vm.hostname, ".")[0],
-				},
-				ProductId: vm.windowsOptionalConfig.productKey,
-				FullName:  "terraform",
-				OrgName:   "terraform",
-			}
-
-			if vm.windowsOptionalConfig.domainUserPassword != "" && vm.windowsOptionalConfig.domainUser != "" && vm.windowsOptionalConfig.domain != "" {
-				customIdentification.DomainAdminPassword = &types.CustomizationPassword{
-					PlainText: true,
-					Value:     vm.windowsOptionalConfig.domainUserPassword,
-				}
-				customIdentification.DomainAdmin = vm.windowsOptionalConfig.domainUser
-				customIdentification.JoinDomain = vm.windowsOptionalConfig.domain
-			}
-
-			if vm.windowsOptionalConfig.adminPassword != "" {
-				guiUnattended.Password = &types.CustomizationPassword{
-					PlainText: true,
-					Value:     vm.windowsOptionalConfig.adminPassword,
-				}
-			}
-
-			identity_options = &types.CustomizationSysprep{
-				GuiUnattended:  guiUnattended,
-				Identification: customIdentification,
-				UserData:       userData,
-			}
-		} else {
-
-			if len(vm.hostname) == 0 {
-				vm.hostname = vm.name
-			}
-
-			identity_options = &types.CustomizationLinuxPrep{
-				HostName: &types.CustomizationFixedName{
-					Name: strings.Split(vm.hostname, ".")[0],
-				},
-				Domain:     vm.domain,
-				TimeZone:   vm.timeZone,
-				HwClockUTC: types.NewBool(true),
-			}
-		}
-
-		// create CustomizationSpec
-		customSpec := types.CustomizationSpec{
-			Identity: identity_options,
-			GlobalIPSettings: types.CustomizationGlobalIPSettings{
-				DnsSuffixList: vm.dnsSuffixes,
-				DnsServerList: vm.dnsServers,
-			},
-			NicSettingMap: networkConfigs,
-		}
-		log.Printf("[DEBUG] custom spec: %v", customSpec)
-
-		log.Printf("[DEBUG] VM customization starting")
-		cw = newVirtualMachineCustomizationWaiter(c, newVM, vm.customizationWaitTimeout)
-		taskb, err := newVM.Customize(context.TODO(), customSpec)
-		if err != nil {
-			return err
-		}
-		_, err = taskb.WaitForResult(context.TODO(), nil)
-		if err != nil {
-			return err
-		}
-	}
-
-	if vm.hasBootableVmdk || vm.template != "" {
-		t, err := newVM.PowerOn(context.TODO())
-		if err != nil {
-			return err
-		}
-		_, err = t.WaitForResult(context.TODO(), nil)
-		if err != nil {
-			return err
-		}
-		err = newVM.WaitForPowerState(context.TODO(), types.VirtualMachinePowerStatePoweredOn)
-		if err != nil {
-			return err
-		}
-		if cw != nil {
-			// Customization is not yet done here 100%. We need to wait for the
-			// customization completion events to confirm, so start listening for those
-			// now.
-			<-cw.Done()
-			if cw.Err() != nil {
-				return cw.Err()
-			}
-			log.Printf("[DEBUG] VM customization finished")
-		}
-	}
-
-	vm.moid = newVM.Reference().Value
-	return nil
-}
-
-func getNetworkName(c *govmomi.Client, vm *object.VirtualMachine, nic types.BaseVirtualEthernetCard) (string, error) {
-	backingInfo := nic.GetVirtualEthernetCard().Backing
-	var deviceName string
-	switch backingInfo.(type) {
-	case *types.VirtualEthernetCardNetworkBackingInfo:
-		deviceName = backingInfo.(*types.VirtualEthernetCardNetworkBackingInfo).DeviceName
-		break
-	case *types.VirtualEthernetCardDistributedVirtualPortBackingInfo:
-		portInfo := backingInfo.(*types.VirtualEthernetCardDistributedVirtualPortBackingInfo).Port
-		log.Printf("network Port %#v", portInfo)
-		o := object.NewDistributedVirtualPortgroup(c.Client, types.ManagedObjectReference{
-			Type:  "DistributedVirtualPortgroup",
-			Value: portInfo.PortgroupKey,
-		})
-		var dvp mo.DistributedVirtualPortgroup
-		err := o.Properties(context.TODO(), o.Reference(), []string{"name", "config.distributedVirtualSwitch"}, &dvp)
-		if err != nil {
-			log.Printf("[ERROR]: Error retrieving portgroup %v", err)
-			return "", err
-		}
-		deviceName = dvp.Name
-	}
-	log.Printf("network Port DeviceName %#v", deviceName)
-	return deviceName, nil
-}
-
-// Suppress Diff on equal ip
-func suppressIpDifferences(k, old, new string, d *schema.ResourceData) bool {
-	o := net.ParseIP(old)
-	n := net.ParseIP(new)
-	if o != nil && n != nil {
-		return o.Equal(n)
-	}
-	return false
+	return fmt.Sprintf("vsphere_virtual_machine (ID = %s)", id)
 }

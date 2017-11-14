@@ -44,7 +44,7 @@ var virtualMachineFirmwareAllowedValues = []string{
 // reboot_required to true.
 func getWithRestart(d *schema.ResourceData, key string) interface{} {
 	if d.HasChange(key) {
-		log.Printf("[DEBUG] %s: Resource argument %q requires a VM restart", resourceVSphereVirtualMachineV2IDString(d), key)
+		log.Printf("[DEBUG] %s: Resource argument %q requires a VM restart", resourceVSphereVirtualMachineIDString(d), key)
 		d.Set("reboot_required", true)
 	}
 	return d.Get(key)
@@ -524,13 +524,13 @@ func expandCPUCountConfig(d *schema.ResourceData) int32 {
 	case oldCPUCount < newCPUCount:
 		// Adding CPUs
 		if !currentHotAdd {
-			log.Printf("[DEBUG] %s: CPU operation requires a VM restart", resourceVSphereVirtualMachineV2IDString(d))
+			log.Printf("[DEBUG] %s: CPU operation requires a VM restart", resourceVSphereVirtualMachineIDString(d))
 			d.Set("reboot_required", true)
 		}
 	case oldCPUCount > newCPUCount:
 		// Removing CPUs
 		if !currentHotRemove {
-			log.Printf("[DEBUG] %s: CPU operation requires a VM restart", resourceVSphereVirtualMachineV2IDString(d))
+			log.Printf("[DEBUG] %s: CPU operation requires a VM restart", resourceVSphereVirtualMachineIDString(d))
 			d.Set("reboot_required", true)
 		}
 	}
@@ -552,12 +552,12 @@ func expandMemorySizeConfig(d *schema.ResourceData) int64 {
 	case oldMem < newMem:
 		// Adding CPUs
 		if !currentHotAdd {
-			log.Printf("[DEBUG] %s: Memory operation requires a VM restart", resourceVSphereVirtualMachineV2IDString(d))
+			log.Printf("[DEBUG] %s: Memory operation requires a VM restart", resourceVSphereVirtualMachineIDString(d))
 			d.Set("reboot_required", true)
 		}
 	case oldMem > newMem:
 		// Removing memory always requires a reboot
-		log.Printf("[DEBUG] %s: Memory operation requires a VM restart", resourceVSphereVirtualMachineV2IDString(d))
+		log.Printf("[DEBUG] %s: Memory operation requires a VM restart", resourceVSphereVirtualMachineIDString(d))
 		d.Set("reboot_required", true)
 	}
 	return newMem
@@ -566,7 +566,7 @@ func expandMemorySizeConfig(d *schema.ResourceData) int64 {
 // expandVirtualMachineConfigSpec reads certain ResourceData keys and
 // returns a VirtualMachineConfigSpec.
 func expandVirtualMachineConfigSpec(d *schema.ResourceData) types.VirtualMachineConfigSpec {
-	log.Printf("[DEBUG] %s: Building config spec", resourceVSphereVirtualMachineV2IDString(d))
+	log.Printf("[DEBUG] %s: Building config spec", resourceVSphereVirtualMachineIDString(d))
 	obj := types.VirtualMachineConfigSpec{
 		Name:                d.Get("name").(string),
 		GuestId:             getWithRestart(d, "guest_id").(string),
@@ -646,13 +646,13 @@ func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualM
 // instances and comparing the resultant ConfigSpecs.
 func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, info *types.VirtualMachineConfigInfo) (types.VirtualMachineConfigSpec, bool) {
 	// Create the fake ResourceData from the VM resource
-	oldData := resourceVSphereVirtualMachineV2().Data(&terraform.InstanceState{})
+	oldData := resourceVSphereVirtualMachine().Data(&terraform.InstanceState{})
 	oldData.SetId(d.Id())
 	// Flatten the old config info into it
 	flattenVirtualMachineConfigInfo(oldData, info)
 	// Read state back in. This is necessary to ensure GetChange calls work
 	// correctly.
-	oldData = resourceVSphereVirtualMachineV2().Data(oldData.State())
+	oldData = resourceVSphereVirtualMachine().Data(oldData.State())
 	// Get both specs. Silence the logging for oldSpec to suppress fake
 	// reboot_required log messages.
 	log.SetOutput(ioutil.Discard)
