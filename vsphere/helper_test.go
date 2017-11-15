@@ -23,6 +23,13 @@ import (
 	"github.com/vmware/vic/pkg/vsphere/tags"
 )
 
+// testAccResourceVSphereEmpty provides an empty provider config to pass some
+// error tests with an empty state. This is to ensure there's no dangling
+// resources on the destroy check if for some reason some state gets written.
+const testAccResourceVSphereEmpty = `
+provider vsphere{}
+`
+
 // testCheckVariables bundles common variables needed by various test checkers.
 type testCheckVariables struct {
 	// A client for various operations.

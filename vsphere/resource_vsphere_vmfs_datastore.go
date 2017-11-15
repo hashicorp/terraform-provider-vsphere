@@ -92,10 +92,11 @@ func resourceVSphereVmfsDatastore() *schema.Resource {
 	s[vSphereTagAttributeKey] = tagsSchema()
 
 	return &schema.Resource{
-		Create: resourceVSphereVmfsDatastoreCreate,
-		Read:   resourceVSphereVmfsDatastoreRead,
-		Update: resourceVSphereVmfsDatastoreUpdate,
-		Delete: resourceVSphereVmfsDatastoreDelete,
+		Create:        resourceVSphereVmfsDatastoreCreate,
+		Read:          resourceVSphereVmfsDatastoreRead,
+		Update:        resourceVSphereVmfsDatastoreUpdate,
+		Delete:        resourceVSphereVmfsDatastoreDelete,
+		CustomizeDiff: resourceVSphereVmfsDatastoreCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: resourceVSphereVmfsDatastoreImport,
 		},
@@ -397,6 +398,21 @@ func resourceVSphereVmfsDatastoreDelete(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("error waiting for datastore to delete: %s", err.Error())
 	}
 
+	return nil
+}
+
+func resourceVSphereVmfsDatastoreCustomizeDiff(d *schema.ResourceDiff, meta interface{}) error {
+	// Check all disks and make sure that the entries are not nil, empty, or duplicates.
+	disks := make(map[string]struct{})
+	for i, v := range d.Get("disks").([]interface{}) {
+		if v == nil || v.(string) == "" {
+			return fmt.Errorf("disk.%d: empty entry", i)
+		}
+		if _, ok := disks[v.(string)]; ok {
+			return fmt.Errorf("disk.%d: duplicate name %q", i, v.(string))
+		}
+		disks[v.(string)] = struct{}{}
+	}
 	return nil
 }
 
