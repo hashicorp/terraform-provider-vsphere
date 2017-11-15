@@ -178,10 +178,10 @@ The `windows_opt_config` block supports:
 
 The `disk` block supports:
 
-* `template` - (Required if size and bootable_vmdk_path not provided) Template
+* `template` - (Required if size and vmdk not provided) Template
   for this disk.
 * `datastore` - (Optional) Datastore for this disk
-* `size` - (Required if template and bootable_vmdks_path not provided) Size of
+* `size` - (Required if template and vmdk not provided) Size of
   this disk (in GB).
 * `name` - (Required if size is provided when creating a new disk) This "name"
   is used for the disk file name in vSphere, when the new disk is created.
