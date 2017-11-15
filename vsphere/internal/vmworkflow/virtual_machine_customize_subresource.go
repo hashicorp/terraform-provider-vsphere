@@ -141,27 +141,27 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 				"domain_admin_user": {
 					Type:          schema.TypeString,
 					Optional:      true,
-					ConflictsWith: []string{cWindowsKeyPrefix + "." + "join_workgroup"},
+					ConflictsWith: []string{cWindowsKeyPrefix + "." + "workgroup"},
 					Description:   "The user account of the domain administrator used to join this virtual machine to the domain.",
 				},
 				"domain_admin_password": {
 					Type:          schema.TypeString,
 					Optional:      true,
 					Sensitive:     true,
-					ConflictsWith: []string{cWindowsKeyPrefix + "." + "join_workgroup"},
+					ConflictsWith: []string{cWindowsKeyPrefix + "." + "workgroup"},
 					Description:   "The password of the domain administrator used to join this virtual machine to the domain.",
 				},
 				"join_domain": {
 					Type:          schema.TypeString,
 					Optional:      true,
-					ConflictsWith: []string{cWindowsKeyPrefix + "." + "join_workgroup"},
+					ConflictsWith: []string{cWindowsKeyPrefix + "." + "workgroup"},
 					Description:   "The domain that the virtual machine should join.",
 				},
-				"join_workgroup": {
+				"workgroup": {
 					Type:          schema.TypeString,
 					Optional:      true,
 					ConflictsWith: []string{cWindowsKeyPrefix + "." + "join_domain"},
-					Description:   "The workgroup that the virtual machine should join.",
+					Description:   "The workgroup for this virtual machine if not joining a domain.",
 				},
 
 				// CustomizationUserData
@@ -316,7 +316,7 @@ func expandCustomizationGuiUnattended(d *schema.ResourceData) types.Customizatio
 // returns a CustomizationIdentification.
 func expandCustomizationIdentification(d *schema.ResourceData) types.CustomizationIdentification {
 	obj := types.CustomizationIdentification{
-		JoinWorkgroup: d.Get(cWindowsKeyPrefix + "." + "join_workgroup").(string),
+		JoinWorkgroup: d.Get(cWindowsKeyPrefix + "." + "workgroup").(string),
 		JoinDomain:    d.Get(cWindowsKeyPrefix + "." + "join_domain").(string),
 		DomainAdmin:   d.Get(cWindowsKeyPrefix + "." + "domain_admin_user").(string),
 	}

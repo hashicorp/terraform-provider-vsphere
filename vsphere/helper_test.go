@@ -133,17 +133,7 @@ func testGetPortGroup(s *terraform.State, resourceName string) (*types.HostPortG
 // testGetVirtualMachine is a convenience method to fetch a virtual machine by
 // resource name.
 func testGetVirtualMachine(s *terraform.State, resourceName string) (*object.VirtualMachine, error) {
-	// To help facilitate testing and remove helper code duplication while we are
-	// are refactoring, we check to see if we have a v2 resource at the specified
-	// address first, before checking for a v1 resource.
-	//
-	// TODO: Remove this selector after we are done with the refactor of the VM
-	// resource.
-	addr := fmt.Sprintf("vsphere_virtual_machine_v2.%s", resourceName)
-	if _, ok := s.RootModule().Resources[addr]; !ok {
-		addr = fmt.Sprintf("vsphere_virtual_machine.%s", resourceName)
-	}
-	tVars, err := testClientVariablesForResource(s, addr)
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_virtual_machine.%s", resourceName))
 	if err != nil {
 		return nil, err
 	}
@@ -167,13 +157,7 @@ func testGetVirtualMachineProperties(s *terraform.State, resourceName string) (*
 // testGetVirtualMachineHost returns the HostSystem for the host that this
 // virtual machine is currently on.
 func testGetVirtualMachineHost(s *terraform.State, resourceName string) (*object.HostSystem, error) {
-	// TODO: Remove this selector after we are done with the refactor of the VM
-	// resource
-	addr := fmt.Sprintf("vsphere_virtual_machine_v2.%s", resourceName)
-	if _, ok := s.RootModule().Resources[addr]; !ok {
-		addr = fmt.Sprintf("vsphere_virtual_machine.%s", resourceName)
-	}
-	tVars, err := testClientVariablesForResource(s, addr)
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_virtual_machine.%s", resourceName))
 	if err != nil {
 		return nil, err
 	}

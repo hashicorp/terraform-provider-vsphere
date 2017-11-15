@@ -728,7 +728,7 @@ func resourceVSphereVirtualMachineUpdateLocation(d *schema.ResourceData, meta in
 		return err
 	}
 	// If we don't have any changes, stop here.
-	if !d.HasChange("resource_pool_id") && !d.HasChange("host_system_id") && len(relocators) < 1 {
+	if !d.HasChange("resource_pool_id") && !d.HasChange("host_system_id") && !d.HasChange("datastore_id") && len(relocators) < 1 {
 		log.Printf("[DEBUG] %s: No migration operations found", resourceVSphereVirtualMachineIDString(d))
 		return nil
 	}

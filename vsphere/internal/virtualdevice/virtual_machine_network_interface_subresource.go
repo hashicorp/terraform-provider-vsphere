@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"sort"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -24,12 +25,17 @@ const networkInterfacePciDeviceOffset = 7
 
 const (
 	networkInterfaceSubresourceTypeE1000   = "e1000"
+	networkInterfaceSubresourceTypeE1000e  = "e1000e"
+	networkInterfaceSubresourceTypePCNet32 = "pcnet32"
+	networkInterfaceSubresourceTypeSriov   = "sriov"
+	networkInterfaceSubresourceTypeVmxnet2 = "vmxnet2"
 	networkInterfaceSubresourceTypeVmxnet3 = "vmxnet3"
 	networkInterfaceSubresourceTypeUnknown = "unknown"
 )
 
 var networkInterfaceSubresourceTypeAllowedValues = []string{
 	networkInterfaceSubresourceTypeE1000,
+	networkInterfaceSubresourceTypeE1000e,
 	networkInterfaceSubresourceTypeVmxnet3,
 }
 
@@ -460,6 +466,35 @@ func NetworkInterfacePostCloneOperation(d *schema.ResourceData, c *govmomi.Clien
 	return l, spec, nil
 }
 
+// ReadNetworkInterfaceTypes returns a list of network interface types. This is used
+// in the VM data source to discover the types of the NIC drivers on the
+// virtual machine. The list is sorted by the order that they would be added in
+// if a clone were to be done.
+func ReadNetworkInterfaceTypes(l object.VirtualDeviceList) ([]string, error) {
+	log.Printf("[DEBUG] ReadNetworkInterfaceTypes: Fetching interface types")
+	devices := l.Select(func(device types.BaseVirtualDevice) bool {
+		if _, ok := device.(types.BaseVirtualEthernetCard); ok {
+			return true
+		}
+		return false
+	})
+	log.Printf("[DEBUG] ReadNetworkInterfaceTypes: Network devices located: %s", DeviceListString(devices))
+	// Sort the device list, in case it's not sorted already.
+	devSort := virtualDeviceListSorter{
+		Sort:       devices,
+		DeviceList: l,
+	}
+	sort.Sort(devSort)
+	devices = devSort.Sort
+	log.Printf("[DEBUG] ReadNetworkInterfaceTypes: Network devices order after sort: %s", DeviceListString(devices))
+	var out []string
+	for _, device := range devices {
+		out = append(out, virtualEthernetCardString(device.(types.BaseVirtualEthernetCard)))
+	}
+	log.Printf("[DEBUG] ReadNetworkInterfaceTypes: Network types returned: %+v", out)
+	return out, nil
+}
+
 // baseVirtualEthernetCardToBaseVirtualDevice converts a
 // BaseVirtualEthernetCard value into a BaseVirtualDevice.
 func baseVirtualEthernetCardToBaseVirtualDevice(v types.BaseVirtualEthernetCard) types.BaseVirtualDevice {
@@ -498,6 +533,25 @@ func baseVirtualDeviceToBaseVirtualEthernetCard(v types.BaseVirtualDevice) (type
 		return types.BaseVirtualEthernetCard(t), nil
 	}
 	return nil, fmt.Errorf("device is not a network device (%T)", v)
+}
+
+// virtualEthernetCardString prints a string representation of the ethernet device passed in.
+func virtualEthernetCardString(d types.BaseVirtualEthernetCard) string {
+	switch d.(type) {
+	case *types.VirtualE1000:
+		return networkInterfaceSubresourceTypeE1000
+	case *types.VirtualE1000e:
+		return networkInterfaceSubresourceTypeE1000e
+	case *types.VirtualPCNet32:
+		return networkInterfaceSubresourceTypePCNet32
+	case *types.VirtualSriovEthernetCard:
+		return networkInterfaceSubresourceTypeSriov
+	case *types.VirtualVmxnet2:
+		return networkInterfaceSubresourceTypeVmxnet2
+	case *types.VirtualVmxnet3:
+		return networkInterfaceSubresourceTypeVmxnet3
+	}
+	return networkInterfaceSubresourceTypeUnknown
 }
 
 // Create creates a vsphere_virtual_machine network_interface sub-resource.
@@ -586,14 +640,7 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
 	// type, as we can determine all of the other settings without having to
 	// worry about the adapter type, and on update, the adapter type will be
 	// rectified by removing the existing NIC and replacing it with a new one.
-	switch device.(type) {
-	case *types.VirtualVmxnet3:
-		r.Set("adapter_type", networkInterfaceSubresourceTypeVmxnet3)
-	case *types.VirtualE1000:
-		r.Set("adapter_type", networkInterfaceSubresourceTypeE1000)
-	default:
-		r.Set("adapter_type", networkInterfaceSubresourceTypeUnknown)
-	}
+	r.Set("adapter_type", virtualEthernetCardString(device))
 
 	// The rest of the information we need to get by reading the attributes off
 	// the base card object.

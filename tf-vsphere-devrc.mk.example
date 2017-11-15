@@ -33,6 +33,7 @@ export VSPHERE_DATACENTER          ?= vm-dc      # VM placement DC
 export VSPHERE_CLUSTER             ?= vm-clus1   # VM placement cluster
 export VSPHERE_RESOURCE_POOL       ?= vm-respool # VM resource resource pool
 export VSPHERE_DATASTORE           ?= datastore1 # VM placement datastore
+export VSPHERE_DATASTORE2          ?= datastore2 # 2nd datastore for vMotion
 export VSPHERE_INIT_TYPE           ?= thin       # vDisk type
 export VSPHERE_ADAPTER_TYPE        ?= lsiLogic   # Virtual disk adapter type
 export VSPHERE_LICENSE             ?= key        # License resource test key

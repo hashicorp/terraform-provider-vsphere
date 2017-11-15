@@ -571,6 +571,30 @@ func ReadSCSIBusState(l object.VirtualDeviceList) string {
 	return last
 }
 
+// ReadSCSIBusStatePartial checks the SCSI bus state and returns a device type
+// depending on if all controllers are one specific kind or not. Unlike
+// ReadSCSIBusState, it only checks the controllers that are installed, not the
+// entire bus.
+func ReadSCSIBusStatePartial(l object.VirtualDeviceList) string {
+	var ctlrs []types.BaseVirtualSCSIController
+	for _, dev := range l {
+		if sc, ok := dev.(types.BaseVirtualSCSIController); ok {
+			ctlrs = append(ctlrs, sc)
+		}
+	}
+	log.Printf("[DEBUG] ReadSCSIBusStatePartial: SCSI controllers found: %s", scsiControllerListString(ctlrs))
+	if len(ctlrs) < 1 {
+		return subresourceControllerTypeUnknown
+	}
+	last := l.Type(ctlrs[0].(types.BaseVirtualDevice))
+	for _, ctlr := range ctlrs[1:] {
+		if l.Type(ctlr.(types.BaseVirtualDevice)) != last {
+			return subresourceControllerTypeMixed
+		}
+	}
+	return last
+}
+
 // getSCSIController picks a SCSI controller at the specific bus number supplied.
 func pickSCSIController(l object.VirtualDeviceList, bus int) (types.BaseVirtualController, error) {
 	log.Printf("[DEBUG] pickSCSIController: Looking for SCSI controller at bus number %d", bus)

@@ -35,11 +35,22 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 				Description: "The alternate guest name of the virtual machine when guest_id is a non-specific operating system, like otherGuest.",
 				Computed:    true,
 			},
+			"scsi_type": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The common SCSI bus type of all controllers on the virtual machine.",
+			},
 			"disk_sizes": {
 				Type:        schema.TypeList,
 				Description: "The sizes of the disks on this virtual machine, sorted by bus and unit number.",
 				Computed:    true,
 				Elem:        &schema.Schema{Type: schema.TypeInt},
+			},
+			"network_interface_types": {
+				Type:        schema.TypeList,
+				Description: "The types of network interfaces found on the virtual machine, sorted by unit number.",
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 		},
 	}
@@ -71,12 +82,20 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 	d.SetId(props.Config.Uuid)
 	d.Set("guest_id", props.Config.GuestId)
 	d.Set("alternate_guest_name", props.Config.AlternateGuestName)
+	d.Set("scsi_type", virtualdevice.ReadSCSIBusStatePartial(object.VirtualDeviceList(props.Config.Hardware.Device)))
 	sizes, err := virtualdevice.ReadDiskSizes(object.VirtualDeviceList(props.Config.Hardware.Device))
 	if err != nil {
 		return fmt.Errorf("error reading disk sizes: %s", err)
 	}
+	nics, err := virtualdevice.ReadNetworkInterfaceTypes(object.VirtualDeviceList(props.Config.Hardware.Device))
+	if err != nil {
+		return fmt.Errorf("error reading network interface types: %s", err)
+	}
 	if d.Set("disk_sizes", sizes); err != nil {
 		return fmt.Errorf("error setting disk sizes: %s", err)
+	}
+	if d.Set("network_interface_types", nics); err != nil {
+		return fmt.Errorf("error setting network interface types: %s", err)
 	}
 	log.Printf("[DEBUG] VM search for %q completed successfully (UUID %q)", name, props.Config.Uuid)
 	return nil

@@ -48,9 +48,21 @@ The following attributes are exported:
 * `guest_id`: The guest ID of the virtual machine or template.
 * `alternate_guest_name`: The alternate guest name of the virtual machine when
   guest_id is a non-specific operating system, like `otherGuest`.
+* `scsi_type`: The common type of all SCSI controllers on this virtual machine.
+  Will be one of `lsilogic` (LSI Logic Parallel), `lsilogic-sas` (LSI Logic
+  SAS), `pvscsi` (VMware Paravirtual), `buslogic` (BusLogic), or `mixed` when
+  there are multiple controller types.
 * `disk_sizes`: The sizes, in GiB, of each of the virtual disks on this virtual
   machine or template. These are sorted by bus and unit number so that they can
   be applied to a `vsphere_virtual_machine` resource in the order the resource
   expects while cloning. This is useful for discovering the required size of a
   disk while performing a linked clone, as the disk size of a linked clone must
   be the same as its source.
+* `network_interface_types`: The network interface types for each network
+  interface found on the virtual machine, in device bus order. Will be one of
+  `e1000`, `e1000e`, `pcnet32`, `sriov`, `vmxnet2`, or `vmxnet3`.
+
+~> **NOTE:** Keep in mind when using the results of `scsi_type` and
+`network_interface_types`, that the `vsphere_virtual_machine` resource only
+supports a subset of the types returned from this data source. See the
+[resource docs][docs-virtual-machine-resource] for more details.

@@ -918,6 +918,11 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	r.Set("unit_number", unit)
 	r.SaveDevIDs(disk, ctlr)
 
+	// Fetch disk attachment state in config
+	var attach bool
+	if r.Get("attach") != nil {
+		attach = r.Get("attach").(bool)
+	}
 	// Save disk backing settings
 	b, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
 	if !ok {
@@ -926,7 +931,7 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	r.Set("disk_mode", b.DiskMode)
 	r.Set("write_through", b.WriteThrough)
 	r.Set("disk_sharing", b.Sharing)
-	if !r.Get("attach").(bool) {
+	if !attach {
 		r.Set("thin_provisioned", b.ThinProvisioned)
 		r.Set("eagerly_scrub", b.EagerlyScrub)
 	}
@@ -940,7 +945,7 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	r.Set("name", dp.Path)
 
 	// Disk settings
-	if !r.Get("attach").(bool) {
+	if !attach {
 		r.Set("size", structure.ByteToGiB(disk.CapacityInBytes))
 	}
 
@@ -1078,6 +1083,14 @@ func (r *DiskSubresource) NormalizeDiff() error {
 	// ultimately the same path by the caller.
 	oname, _ := r.GetChange("name")
 	r.Set("name", oname)
+
+	// Ensure that the user is not attempting to shrink the disk. If we do more
+	// we might want to change the name of this method, but we want to check this
+	// here as CustomizeDiff is meant for vetoing.
+	osize, nsize := r.GetChange("size")
+	if osize.(int) > nsize.(int) {
+		return fmt.Errorf("virtual disk %q: virtual disks cannot be shrunk (old: %d new: %d)", r.Get("name").(string), osize.(int), nsize.(int))
+	}
 
 	log.Printf("[DEBUG] %s: Diff normalization complete", r)
 	return nil
