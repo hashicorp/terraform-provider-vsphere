@@ -53,5 +53,6 @@ export VSPHERE_NFS_PATH            ?= nfs-path   # NFS path for nas_datastore
 export VSPHERE_FOLDER_V0_PATH      ?= old-folder # vsphere_folder state test
 export VSPHERE_ISO_FILE            ?= iso-file   # ISO file for CDROM device
 export VSPHERE_ISO_DATASTORE       ?= iso-ds     # ISO file for CDROM device
+export VSPHERE_VM_V1_PATH          ?= vm-path    # VM resource state migration
 
 # vi: filetype=make
