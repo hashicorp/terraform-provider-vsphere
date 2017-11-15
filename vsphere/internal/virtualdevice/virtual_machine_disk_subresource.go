@@ -121,7 +121,7 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 		// VirtualDisk/Other complex stuff
 		"size": {
 			Type:         schema.TypeInt,
-			Required:     true,
+			Optional:     true,
 			Description:  "The size of the disk, in GB.",
 			ValidateFunc: validation.IntAtLeast(1),
 		},
@@ -136,6 +136,12 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 			Optional:    true,
 			Default:     false,
 			Description: "Set to true to keep the underlying VMDK file when removing this virtual disk from configuration.",
+		},
+		"attach": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Default:     false,
+			Description: "If this is true, the disk is attached instead of created. Implies keep_on_remove.",
 		},
 	}
 	structure.MergeSchema(s, subresourceSchema())
@@ -388,7 +394,7 @@ func DiskDestroyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 	log.Printf("[DEBUG] DiskDestroyOperation: Detaching devices with keep_on_remove enabled")
 	for _, oe := range ds.List() {
 		m := oe.(map[string]interface{})
-		if !m["keep_on_remove"].(bool) {
+		if !m["keep_on_remove"].(bool) && !m["attach"].(bool) {
 			// We don't care about disks we haven't set to keep
 			continue
 		}
@@ -444,6 +450,13 @@ func DiskDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 		}
 		names[name] = struct{}{}
 		units[nm["unit_number"].(int)] = struct{}{}
+		// Run the resource through an individual validate function. This performs
+		// field validation for things we don't need to know the state of other
+		// resources for.
+		r := NewDiskSubresource(c, nil, d, nm, nil)
+		if err := r.ValidateDiff(); err != nil {
+			return fmt.Errorf("%s: %s", r.Addr(), err)
+		}
 	}
 	if _, ok := units[0]; !ok {
 		return errors.New("at least one disk must have a unit_number of 0")
@@ -453,7 +466,7 @@ func DiskDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 	// but in the event that we actually do have intersections (probably will
 	// never happen), we attempt to take an intersection like we do in other
 	// steps.
-	log.Printf("[DEBUG] DiskDiffOperation: Beginning diff validation")
+	log.Printf("[DEBUG] DiskDiffOperation: Beginning diff normalization")
 	ids := o.(*schema.Set).Intersection(n.(*schema.Set))
 	ods := o.(*schema.Set).Difference(ids)
 	nds := n.(*schema.Set).Difference(ids)
@@ -567,9 +580,9 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 		}
 		// Finally, we don't support non-SCSI (ie: SATA, IDE, NVMe) disks, so kick
 		// back an error if we see one of those.
-		ct, _, _, err := splitDevAddr(tr.DevAddr())
+		ct, _, _, err := splitDevAddr(r.DevAddr())
 		if err != nil {
-			return fmt.Errorf("%s: error parsing device address after reading disk %q: %s", tr.Addr(), tr.Get("name").(string), err)
+			return fmt.Errorf("%s: error parsing device address after reading disk %q: %s", tr.Addr(), r.Get("name").(string), err)
 		}
 		if ct != SubresourceControllerTypeSCSI {
 			return fmt.Errorf("%s: unsupported controller type %s for disk %q. Please use a template with SCSI disks only", tr.Addr(), ct, tr.Get("name").(string))
@@ -876,6 +889,10 @@ func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtua
 	if err != nil {
 		return nil, err
 	}
+	// Clear the file operation if we are attaching.
+	if r.Get("attach").(bool) {
+		dspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
+	}
 	spec = append(spec, dspec...)
 	log.Printf("[DEBUG] %s: Device config operations from create: %s", r, DeviceChangeString(spec))
 	log.Printf("[DEBUG] %s: Create finished", r)
@@ -909,8 +926,10 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	r.Set("disk_mode", b.DiskMode)
 	r.Set("write_through", b.WriteThrough)
 	r.Set("disk_sharing", b.Sharing)
-	r.Set("thin_provisioned", b.ThinProvisioned)
-	r.Set("eagerly_scrub", b.EagerlyScrub)
+	if !r.Get("attach").(bool) {
+		r.Set("thin_provisioned", b.ThinProvisioned)
+		r.Set("eagerly_scrub", b.EagerlyScrub)
+	}
 	r.Set("datastore_id", b.Datastore.Value)
 
 	// Save path properly
@@ -921,7 +940,9 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	r.Set("name", dp.Path)
 
 	// Disk settings
-	r.Set("size", structure.ByteToGiB(disk.CapacityInBytes))
+	if !r.Get("attach").(bool) {
+		r.Set("size", structure.ByteToGiB(disk.CapacityInBytes))
+	}
 
 	if disk.StorageIOAllocation != nil {
 		r.Set("io_limit", disk.StorageIOAllocation.Limit)
@@ -987,13 +1008,43 @@ func (r *DiskSubresource) Delete(l object.VirtualDeviceList) ([]types.BaseVirtua
 	if err != nil {
 		return nil, err
 	}
-	if r.Get("keep_on_remove").(bool) {
+	if r.Get("keep_on_remove").(bool) || r.Get("attach").(bool) {
 		// Clear file operation so that the disk is kept on remove.
 		deleteSpec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
 	}
 	log.Printf("[DEBUG] %s: Device config operations from update: %s", r, DeviceChangeString(deleteSpec))
 	log.Printf("[DEBUG] %s: Delete completed", r)
 	return deleteSpec, nil
+}
+
+// ValidateDiff performs any complex validation of an individual disk
+// sub-resource that can't be done in schema alone.
+//
+// Do not use resourceData in this function as it's not populated and calls to
+// it will cause a panic.
+func (r *DiskSubresource) ValidateDiff() error {
+	log.Printf("[DEBUG] %s: Beginning diff validation (device information may be incomplete)", r)
+	name := r.Get("name").(string)
+
+	switch r.Get("attach").(bool) {
+	case true:
+		switch {
+		case r.Get("datastore_id").(string) == "":
+			return fmt.Errorf("datastore_id for disk %q is required when attach is set", name)
+		case r.Get("size").(int) > 0:
+			return fmt.Errorf("size for disk %q cannot be defined when attach is set", name)
+		case r.Get("eagerly_scrub").(bool):
+			return fmt.Errorf("eagerly_scrub for disk %q cannot be defined when attach is set", name)
+		case r.Get("keep_on_remove").(bool):
+			return fmt.Errorf("keep_on_remove for disk %q is implicit when attach is set, please remove this setting", name)
+		}
+	default:
+		if r.Get("size").(int) < 1 {
+			return fmt.Errorf("size for disk %q: required option not set", name)
+		}
+	}
+	log.Printf("[DEBUG] %s: Diff validation complete", r)
+	return nil
 }
 
 // NormalizeDiff checks the diff for a vsphere_virtual_machine disk
@@ -1112,25 +1163,28 @@ func (r *DiskSubresource) expandDiskSettings(disk *types.VirtualDisk) error {
 	b.WriteThrough = structure.BoolPtr(r.GetWithRestart("write_through").(bool))
 	b.Sharing = r.GetWithRestart("disk_sharing").(string)
 
-	var err error
-	var v interface{}
-	if v, err = r.GetWithVeto("thin_provisioned"); err != nil {
-		return err
-	}
-	b.ThinProvisioned = structure.BoolPtr(v.(bool))
+	// This settings are only set for internal disks
+	if !r.Get("attach").(bool) {
+		var err error
+		var v interface{}
+		if v, err = r.GetWithVeto("thin_provisioned"); err != nil {
+			return err
+		}
+		b.ThinProvisioned = structure.BoolPtr(v.(bool))
 
-	if v, err = r.GetWithVeto("eagerly_scrub"); err != nil {
-		return err
-	}
-	b.EagerlyScrub = structure.BoolPtr(v.(bool))
+		if v, err = r.GetWithVeto("eagerly_scrub"); err != nil {
+			return err
+		}
+		b.EagerlyScrub = structure.BoolPtr(v.(bool))
 
-	// Disk settings
-	os, ns := r.GetChange("size")
-	if os.(int) > ns.(int) {
-		return fmt.Errorf("virtual disks cannot be shrunk")
+		// Disk settings
+		os, ns := r.GetChange("size")
+		if os.(int) > ns.(int) {
+			return fmt.Errorf("virtual disks cannot be shrunk")
+		}
+		disk.CapacityInBytes = structure.GiBToByte(ns.(int))
+		disk.CapacityInKB = disk.CapacityInBytes / 1024
 	}
-	disk.CapacityInBytes = structure.GiBToByte(ns.(int))
-	disk.CapacityInKB = disk.CapacityInBytes / 1024
 
 	alloc := &types.StorageIOAllocationInfo{
 		Limit:       structure.Int64Ptr(int64(r.Get("io_limit").(int))),
