@@ -454,7 +454,7 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 				return err
 			}
 		case d.Get("imported").(bool):
-			return errors.New("this resource was imported and does not support cloning. Please remove the clone block from its configuration")
+			return errors.New("this resource was imported or migrated from a previous version and does not support cloning. Please remove the \"clone\" block from its configuration")
 		}
 	}
 	log.Printf("[DEBUG] %s: Diff customization and validation complete", resourceVSphereVirtualMachineIDString(d))
