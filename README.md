@@ -1,11 +1,11 @@
 # Terraform vSphere Provider
 
 This is the repository for the Terraform vSphere Provider, which one can use
-with Terraform to work with VMware vSphere Products, notably [vCenter Server][1]
-and [ESXi][2].
+with Terraform to work with VMware vSphere Products, notably [vCenter
+Server][vmware-vcenter] and [ESXi][vmware-esxi].
 
-[1]: https://www.vmware.com/products/vcenter-server.html
-[2]: https://www.vmware.com/products/esxi-and-esx.html
+[vmware-vcenter]: https://www.vmware.com/products/vcenter-server.html
+[vmware-esxi]: https://www.vmware.com/products/esxi-and-esx.html
 
 Coverage is currently only limited to a few resources namely surrounding virtual
 machines, but in the coming months we are planning release coverage for most
@@ -13,11 +13,11 @@ essential vSphere workflows, including working with storage and networking
 components such as datastores, and standard and distributed vSwitches. Watch
 this space!
 
-For general information about Terraform, visit the [official website][3] and the
-[GitHub project page][4].
+For general information about Terraform, visit the [official
+website][tf-website] and the [GitHub project page][tf-github].
 
-[3]: https://terraform.io/
-[4]: https://github.com/hashicorp/terraform
+[tf-website]: https://terraform.io/
+[tf-github]: https://github.com/hashicorp/terraform
 
 # Using the Provider
 
@@ -26,18 +26,18 @@ run.
 
 Note that you need to run `terraform init` to fetch the provider before
 deploying. Read about the provider split and other changes to TF v0.10.0 in the
-official release announcement found [here][4].
+official release announcement found [here][tf-0.10-announce].
 
-[4]: https://www.hashicorp.com/blog/hashicorp-terraform-0-10/
+[tf-0.10-announce]: https://www.hashicorp.com/blog/hashicorp-terraform-0-10/
 
 ## Full Provider Documentation
 
 The provider is documented in full on the Terraform website and can be found
-[here][5]. Check the provider documentation for details on entering your
-connection information and how to get started with writing configuration for
-vSphere resources.
+[here][tf-vsphere-docs]. Check the provider documentation for details on
+entering your connection information and how to get started with writing
+configuration for vSphere resources.
 
-[5]: https://www.terraform.io/docs/providers/vsphere/index.html
+[tf-vsphere-docs]: https://www.terraform.io/docs/providers/vsphere/index.html
 
 ### Controlling the provider version
 
@@ -55,19 +55,16 @@ provider "vsphere" {
 ```
 
 Version locking uses a pessimistic operator, so this version lock would mean
-anything within the 0.4.x namespace. [Read more][6] on provider version control.
+anything within the 0.4.x namespace. [Read more][provider-vc] on provider
+version control.
 
-[6]: https://www.terraform.io/docs/configuration/providers.html#provider-versions
+[provider-vc]: https://www.terraform.io/docs/configuration/providers.html#provider-versions
 
 # Building The Provider
 
-**NOTE:** Unless you are [developing][7] or require a pre-release bugfix or feature,
-you will want to use the officially released version of the provider (see [the
-section above][8]).
-
-[7]: #developing-the-provider
-[8]: #using-the-provider
-
+**NOTE:** Unless you are [developing](#developing-the-provider) or require a
+pre-release bugfix or feature, you will want to use the officially released
+version of the provider (see [the section above](#using-the-provider)).
 
 ## Cloning the Project
 
@@ -102,16 +99,23 @@ match.
 
 # Developing the Provider
 
-If you wish to work on the provider, you'll first need [Go][9] installed on your
-machine (version 1.9+ is **required**). You'll also need to correctly setup a
-[GOPATH][10], as well as adding `$GOPATH/bin` to your `$PATH`.
+**NOTE:** Before you start work on a feature, please make sure to check the
+[issue tracker][gh-issues] and existing [pull requests][gh-prs] to ensure that
+work is not being duplicated. For further clarification, you can also ask in a
+new issue.
 
-[9]: https://golang.org/
-[10]: http://golang.org/doc/code.html#GOPATH
+[gh-issues]: https://github.com/terraform-providers/terraform-provider-vsphere/issues
+[gh-prs]: https://github.com/terraform-providers/terraform-provider-vsphere/pulls
 
-See [Building the Provider][11] for details on building the provider.
+If you wish to work on the provider, you'll first need [Go][go-website]
+installed on your machine (version 1.9+ is **required**). You'll also need to
+correctly setup a [GOPATH][gopath], as well as adding `$GOPATH/bin` to your
+`$PATH`.
 
-[11]: #building-the-provider
+[go-website]: https://golang.org/
+[gopath]: http://golang.org/doc/code.html#GOPATH
+
+See [Building the Provider](#building-the-provider) for details on building the provider.
 
 # Testing the Provider
 
