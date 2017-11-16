@@ -185,6 +185,7 @@ The `disk` block supports:
   this disk (in GB).
 * `name` - (Required if size is provided when creating a new disk) This "name"
   is used for the disk file name in vSphere, when the new disk is created.
+  Cannot specify name for disk when using `vmdk`.
 * `iops` - (Optional) Number of virtual iops to allocate for this disk.
 * `type` - (Optional) 'eager_zeroed' (the default), 'lazy', or 'thin' are
   supported options.
