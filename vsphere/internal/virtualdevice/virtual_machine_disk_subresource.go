@@ -41,7 +41,6 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 		"datastore_id": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Computed:    true,
 			Description: "The datastore ID for this virtual disk, if different than the virtual machine.",
 		},
 		"name": {
@@ -239,7 +238,8 @@ nextNew:
 				}
 				omc.(map[string]interface{})["datastore_id"] = nm["datastore_id"]
 				if reflect.DeepEqual(omc, nm) {
-					continue
+					updates = append(updates, r.Data())
+					continue nextNew
 				}
 				uspec, err := r.Update(l)
 				if err != nil {
@@ -597,12 +597,7 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 // operation, otherwise known as storage vMotion.
 func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) ([]types.VirtualMachineRelocateSpecDiskLocator, error) {
 	log.Printf("[DEBUG] DiskMigrateRelocateOperation: Generating any necessary disk relocate specs")
-	o, n := d.GetChange(subresourceTypeDisk)
-	// Make an intersection set. Any device in the intersection is a device
-	// that is not changing, so we ignore those.
-	ids := o.(*schema.Set).Intersection(n.(*schema.Set))
-	ods := o.(*schema.Set).Difference(ids)
-	nds := n.(*schema.Set).Difference(ids)
+	ods, nds := d.GetChange(subresourceTypeDisk)
 
 	var relocators []types.VirtualMachineRelocateSpecDiskLocator
 
@@ -610,19 +605,23 @@ func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l o
 	// incoming or outgoing disks obviously won't need migrating. Hence, this is
 	// a simplified subset of the normal apply logic.
 nextDisk:
-	for _, ne := range nds.List() {
+	for _, ne := range nds.(*schema.Set).List() {
 		nm := ne.(map[string]interface{})
-		for _, oe := range ods.List() {
+		for _, oe := range ods.(*schema.Set).List() {
 			om := oe.(map[string]interface{})
 			if nm["key"] == om["key"] {
-				// No change in datastore is a no-op
-				if nm["datastore_id"] == om["datastore_id"] {
+				// No change in datastore is a no-op, unless we are changing default datastores
+				if nm["datastore_id"] == om["datastore_id"] && !d.HasChange("datastore_id") {
 					continue nextDisk
 				}
 				r := NewDiskSubresource(c, d, nil, nm, om)
 				relocator, err := r.Relocate(l)
 				if err != nil {
 					return nil, fmt.Errorf("%s: %s", r.Addr(), err)
+				}
+				if d.Get("datastore_id").(string) == relocator.Datastore.Value {
+					log.Printf("[DEBUG] %s: Datastore in spec is same as default, dropping in favor of implicit relocation", r.Addr())
+					continue nextDisk
 				}
 				relocators = append(relocators, relocator)
 			}
@@ -937,9 +936,19 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	}
 	r.Set("datastore_id", b.Datastore.Value)
 
-	// Save path properly
+	// Walk up the child disk path until we have a path that matches our actual
+	// disk name. If there is no disk name, of if we can't find a match, just
+	// save the main backing.
+	origName := r.Get("name")
+	var name string
+	if origName != nil && origName.(string) != "" && !datastorePathHasBase(b.FileName, origName.(string)) && b.Parent != nil {
+		name = walkDiskBacking(b.Parent, origName.(string))
+	}
+	if name == "" {
+		name = b.FileName
+	}
 	dp := &object.DatastorePath{}
-	if ok := dp.FromString(b.FileName); !ok {
+	if ok := dp.FromString(name); !ok {
 		return fmt.Errorf("could not parse path from filename: %s", b.FileName)
 	}
 	r.Set("name", dp.Path)
@@ -1071,8 +1080,19 @@ func (r *DiskSubresource) NormalizeDiff() error {
 	// Set the datastore if it's missing as we infer this from the default
 	// datastore in that case
 	if r.Get("datastore_id") == "" {
-		odsid, _ := r.GetChange("datastore_id")
-		r.Set("datastore_id", odsid)
+		switch {
+		case r.resourceDiff.HasChange("datastore_id"):
+			// If the default datastore is changing and we don't have a default
+			// datastore here, we need to use the implicit setting here to indicate
+			// that we may need to migrate. This allows us to differentiate between a
+			// full storage vMotion no-op, an implicit migration, and a migration
+			// where we will need to generate a relocate spec for the individual disk
+			// to ensure it stays at a datastore it might be pinned on.
+			r.Set("datastore_id", r.resourceDiff.Get("datastore_id"))
+		default:
+			odsid, _ := r.GetChange("datastore_id")
+			r.Set("datastore_id", odsid)
+		}
 	}
 	// Preserve the share value if we don't have custom shares set
 	osc, _ := r.GetChange("io_share_count")
@@ -1399,4 +1419,27 @@ func (s virtualDiskSubresourceSorter) Less(i, j int) bool {
 // Swap helps implement sort.Interface for virtualDiskSubresourceSorter.
 func (s virtualDiskSubresourceSorter) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
+}
+
+// walkDiskBacking walks up a disk backing's parent disk chain looking for the
+// supplied file name. It returns the full filename/datastore combination when
+// it finds it, otherwise returns nothing.
+func walkDiskBacking(b *types.VirtualDiskFlatVer2BackingInfo, name string) string {
+	if datastorePathHasBase(b.FileName, name) {
+		return b.FileName
+	}
+	if b.Parent != nil {
+		return walkDiskBacking(b.Parent, name)
+	}
+	return ""
+}
+
+// datastorePathHasBase is a helper to check if a datastore path's file matches
+// a supplied file name.
+func datastorePathHasBase(p, b string) bool {
+	dp := &object.DatastorePath{}
+	if ok := dp.FromString(p); !ok {
+		return false
+	}
+	return path.Base(dp.Path) == path.Base(b)
 }

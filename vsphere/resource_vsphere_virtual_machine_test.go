@@ -695,6 +695,37 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 			},
 		},
 		{
+			"storage vmotion - pin datastore",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionPinDatastore(os.Getenv("VSPHERE_DATASTORE")),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
+							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_1.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+						),
+					},
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionPinDatastore(os.Getenv("VSPHERE_DATASTORE2")),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE2")),
+							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE2")),
+							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_1.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+						),
+					},
+				},
+			},
+		},
+		{
 			"import",
 			resource.TestCase{
 				PreCheck: func() {
@@ -3177,7 +3208,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
   
 	disk {
-		datastore_id = "${vsphere_datastore.disk_datastore.id}"
+		datastore_id = "${data.vsphere_datastore.disk_datastore.id}"
     name         = "terraform-test_1.vmdk"
     size         = 1
 		unit_number  = 1
@@ -3215,6 +3246,134 @@ resource "vsphere_virtual_machine" "vm" {
 	)
 }
 
+func testAccResourceVSphereVirtualMachineConfigStorageVMotionPinDatastore(datastore string) string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "ipv4_address" {
+  default = "%s"
+}
+
+variable "ipv4_netmask" {
+  default = "%s"
+}
+
+variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "template" {
+  default = "%s"
+}
+
+variable "linked_clone" {
+  default = "%s"
+}
+
+variable "disk_datastore" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_datastore" "disk_datastore" {
+  name          = "${var.disk_datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_virtual_machine" "template" {
+  name          = "${var.template}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 1024
+  guest_id = "ubuntu64Guest"
+
+  network_interface {
+    network_id   = "${data.vsphere_network.network.id}"
+    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+  }
+
+  disk {
+    name = "terraform-test.vmdk"
+    size = "${data.vsphere_virtual_machine.template.disk_sizes[0]}"
+  }
+  
+	disk {
+		datastore_id = "${data.vsphere_datastore.disk_datastore.id}"
+    name         = "terraform-test_1.vmdk"
+    size         = 1
+		unit_number  = 1
+  }
+
+  clone {
+    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+
+    customize {
+      linux_options {
+        host_name = "terraform-test"
+        domain    = "test.internal"
+      }
+
+      network_interface {
+        ipv4_address = "${var.ipv4_address}"
+        ipv4_netmask = "${var.ipv4_netmask}"
+      }
+
+      ipv4_gateway = "${var.ipv4_gateway}"
+    }
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL"),
+		os.Getenv("VSPHERE_IPV4_ADDRESS"),
+		os.Getenv("VSPHERE_IPV4_PREFIX"),
+		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		datastore,
+		os.Getenv("VSPHERE_TEMPLATE"),
+		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
+		os.Getenv("VSPHERE_DATASTORE"),
+	)
+}
 func testAccResourceVSphereVirtualMachineConfigCloneExtraDisks() string {
 	return fmt.Sprintf(`
 variable "datacenter" {

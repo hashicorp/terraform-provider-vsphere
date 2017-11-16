@@ -130,10 +130,6 @@ variable "datacenter" {
   default = "%s"
 }
 
-variable "cluster" {
-  default = "%s"
-}
-
 variable "resource_pool" {
   default = "%s"
 }
@@ -142,11 +138,11 @@ variable "network_label" {
   default = "%s"
 }
 
-variable "ipv4_addr" {
+variable "ipv4_address" {
   default = "%s"
 }
 
-variable "ipv4_prefix" {
+variable "ipv4_netmask" {
   default = "%s"
 }
 
@@ -166,29 +162,67 @@ variable "snapshot_enabled" {
   default = "%t"
 }
 
-resource "vsphere_virtual_machine" "vm" {
-  name          = "terraform-test"
-  datacenter    = "${var.datacenter}"
-  cluster       = "${var.cluster}"
-  resource_pool = "${var.resource_pool}"
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
 
-  vcpu   = 2
-  memory = 1024
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_virtual_machine" "template" {
+  name          = "${var.template}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 1024
+  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
 
   network_interface {
-    label              = "${var.network_label}"
-    ipv4_address       = "${var.ipv4_addr}"
-    ipv4_prefix_length = "${var.ipv4_prefix}"
-    ipv4_gateway       = "${var.ipv4_gateway}"
+    network_id   = "${data.vsphere_network.network.id}"
+    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
   }
 
   disk {
-    datastore = "${var.datastore}"
-    template  = "${var.template}"
-    iops      = 500
+    name = "terraform-test.vmdk"
+    size = "${data.vsphere_virtual_machine.template.disk_sizes[0]}"
   }
 
-  linked_clone = true
+  clone {
+    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    linked_clone  = true
+
+    customize {
+      linux_options {
+        host_name = "terraform-test"
+        domain    = "test.internal"
+      }
+
+      network_interface {
+        ipv4_address = "${var.ipv4_address}"
+        ipv4_netmask = "${var.ipv4_netmask}"
+      }
+
+      ipv4_gateway = "${var.ipv4_gateway}"
+    }
+  }
 }
 
 resource "vsphere_virtual_machine_snapshot" "snapshot" {
@@ -201,7 +235,6 @@ resource "vsphere_virtual_machine_snapshot" "snapshot" {
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_CLUSTER"),
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL"),
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
