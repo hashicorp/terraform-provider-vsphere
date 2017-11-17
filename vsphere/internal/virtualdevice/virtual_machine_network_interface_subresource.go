@@ -88,7 +88,7 @@ func NetworkInterfaceSubresourceSchema() map[string]*schema.Schema {
 			Type:         schema.TypeString,
 			Optional:     true,
 			Default:      networkInterfaceSubresourceTypeE1000,
-			Description:  "The controller type. Can be one of e1000 or vmxnet3.",
+			Description:  "The controller type. Can be one of e1000, e1000e, or vmxnet3.",
 			ValidateFunc: validation.StringInSlice(networkInterfaceSubresourceTypeAllowedValues, false),
 		},
 		"use_static_mac": {
@@ -100,7 +100,7 @@ func NetworkInterfaceSubresourceSchema() map[string]*schema.Schema {
 			Type:        schema.TypeString,
 			Optional:    true,
 			Computed:    true,
-			Description: "The MAC address of this network interface. Can be manually set if use_static_mac is true.",
+			Description: "The MAC address of this network interface. Can only be manually set if use_static_mac is true.",
 		},
 	}
 	structure.MergeSchema(s, subresourceSchema())

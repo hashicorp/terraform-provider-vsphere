@@ -94,7 +94,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Default:     true,
-			Description: "Expose the UUIDs of attached virtual disk to the virtual machine, allowing access to them in the guest.",
+			Description: "Expose the UUIDs of attached virtual disks to the virtual machine, allowing access to them in the guest.",
 		},
 		"hv_mode": {
 			Type:         schema.TypeString,
@@ -158,7 +158,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Type:         schema.TypeString,
 			Required:     true,
 			Description:  "The name of this virtual machine.",
-			ValidateFunc: validation.NoZeroValues,
+			ValidateFunc: validation.StringLenBetween(1, 80),
 		},
 		"num_cpus": {
 			Type:        schema.TypeInt,

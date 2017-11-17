@@ -85,7 +85,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Type:         schema.TypeString,
 			Optional:     true,
 			Default:      virtualdevice.SubresourceControllerTypeLsiLogic,
-			Description:  "The type of SCSI bus this virtual machine will have. Can be one of lsilogic-sas or pvscsi.",
+			Description:  "The type of SCSI bus this virtual machine will have. Can be one of lsilogic, lsilogic-sas or pvscsi.",
 			ValidateFunc: validation.StringInSlice(virtualdevice.SCSIBusTypeAllowedValues, false),
 		},
 		// NOTE: disk is only optional so that we can flag it as computed and use
@@ -382,6 +382,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	}
 	// Now safe to turn off partial mode.
 	d.Partial(false)
+	d.Set("reboot_required", false)
 
 	// Now that any pending changes have been done (namely, any disks that don't
 	// need to be migrated have been deleted), proceed with vMotion if we have
