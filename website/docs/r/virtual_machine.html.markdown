@@ -62,20 +62,20 @@ resource "vsphere_virtual_machine" "lb" {
 The following arguments are supported:
 
 * `name` - (Required) The virtual machine name (cannot contain underscores and
-  must be less than 15 characters)
+  must be less than 15 characters).
 * `folder` - (Optional) The folder to group the VM in.
 * `vcpu` - (Required) The number of virtual CPUs to allocate to the virtual
-  machine
+  machine.
 * `memory` - (Required) The amount of RAM (in MB) to allocate to the virtual
-  machine
+  machine.
 * `hostname` - (Optional) The virtual machine hostname used during the OS
   customization. Defaults to the `name` attribute.
 * `memory_reservation` - (Optional) The amount of RAM (in MB) to reserve
-  physical memory resource; defaults to 0 (means not to reserve)
+  physical memory resource; defaults to 0 (means not to reserve).
 * `datacenter` - (Optional) The name of a Datacenter in which to launch the
-  virtual machine
+  virtual machine.
 * `cluster` - (Optional) Name of a Cluster in which to launch the virtual
-  machine
+  machine.
 * `resource_pool` (Optional) The name of a Resource Pool in which to launch the
   virtual machine. Requires full path (see cluster example).
 * `gateway` - __Deprecated, please use `network_interface.ipv4_gateway`
@@ -91,17 +91,17 @@ The following arguments are supported:
   `vsphere.local`.
 * `dns_servers` - (Optional) List of DNS servers for the virtual network
   adapter; defaults to 8.8.8.8, 8.8.4.4
-* `network_interface` - (Required) Configures virtual network interfaces; see
-  [Network Interfaces](#network-interfaces) below for details.
+* `network_interface` - (Required) Configures virtual network interfaces. 
+  Structure is documented below.
 * `disk` - (Required) Configures virtual disks; see [Disks](#disks) below for
-  details
+  details.
 * `detach_unknown_disks_on_delete` - (Optional) will detach disks not managed
   by this resource on delete (avoids deletion of disks attached after resource
   creation outside of Terraform scope).
 * `cdrom` - (Optional) Configures a CDROM device and mounts an image as its
   media; see [CDROM](#cdrom) below for more details.
 * `windows_opt_config` - (Optional) Extra options for clones of Windows
-  machines.
+  machines. Structure is documented below.
 * `linked_clone` - (Optional) Specifies if the new machine is a [linked
   clone](https://www.vmware.com/support/ws5/doc/ws_clone_overview.html#wp1036396)
   of another machine or not.
