@@ -79,17 +79,7 @@ resource "vsphere_tag" "tag" {
 }
 
 resource "vsphere_virtual_machine" "web" {
-  name   = "terraform-web"
-  vcpu   = 2
-  memory = 4096
-
-  network_interface {
-    label = "VM Network"
-  }
-
-  disk {
-    template = "centos-7"
-  }
+  ...
 
   tags = ["${vsphere_tag.tag.id}"]
 }

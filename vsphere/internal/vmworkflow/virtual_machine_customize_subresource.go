@@ -87,6 +87,7 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 				"hw_clock_utc": {
 					Type:        schema.TypeBool,
 					Optional:    true,
+					Default:     true,
 					Description: "Specifies whether or not the hardware clock should be in UTC or not.",
 				},
 				"time_zone": {
@@ -213,7 +214,7 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 				"dns_domain": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					Description: "A list of DNS search domains to add to the DNS configuration on the virtual machine.",
+					Description: "A DNS search domain to add to the DNS configuration on the virtual machine.",
 				},
 				"ipv4_address": {
 					Type:        schema.TypeString,
