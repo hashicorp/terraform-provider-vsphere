@@ -652,7 +652,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 					diskPath = disk["vmdk"].(string)
 				case disk["name"] != "":
 					snapshotFullDir := mo.Config.Files.SnapshotDirectory
-					split := strings.Split(snapshotFullDir, " ")
+					split := strings.Split(snapshotFullDir, "] ")
 					if len(split) != 2 {
 						return fmt.Errorf("[ERROR] createVirtualMachine - failed to split snapshot directory: %v", snapshotFullDir)
 					}
@@ -1111,7 +1111,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 			log.Printf("[DEBUG] resourceVSphereVirtualMachineRead - Analyzing disk: %v", diskFullPath)
 
 			// Separate datastore and path
-			diskFullPathSplit := strings.Split(diskFullPath, " ")
+			diskFullPathSplit := strings.Split(diskFullPath, "] ")
 			if len(diskFullPathSplit) != 2 {
 				return fmt.Errorf("[ERROR] Failed trying to parse disk path: %v", diskFullPath)
 			}
@@ -2200,7 +2200,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 			diskPath = vm.hardDisks[i].vmdkPath
 		case vm.hardDisks[i].name != "":
 			snapshotFullDir := vm_mo.Config.Files.SnapshotDirectory
-			split := strings.Split(snapshotFullDir, " ")
+			split := strings.Split(snapshotFullDir, "] ")
 			if len(split) != 2 {
 				return fmt.Errorf("[ERROR] setupVirtualMachine - failed to split snapshot directory: %v", snapshotFullDir)
 			}
