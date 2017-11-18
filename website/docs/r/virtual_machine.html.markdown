@@ -752,7 +752,7 @@ The options are:
   255.255.255.0).
 * `ipv6_address` - (Optional) The IPv6 address assigned to this network adapter. If left
   blank or not included, auto-configuration is used.
-* `ipv4_netmask` - (Optional) The IPv6 subnet mask, in bits (example: `32`).
+* `ipv6_netmask` - (Optional) The IPv6 subnet mask, in bits (example: `32`).
 
 #### Global routing settings
 
