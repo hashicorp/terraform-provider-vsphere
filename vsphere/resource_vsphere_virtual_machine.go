@@ -16,6 +16,7 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	"golang.org/x/net/context"
+	"reflect"
 )
 
 var DefaultDNSSuffixes = []string{
@@ -131,7 +132,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		Update: resourceVSphereVirtualMachineUpdate,
 		Delete: resourceVSphereVirtualMachineDelete,
 
-		SchemaVersion: 1,
+		SchemaVersion: 2,
 		MigrateState:  resourceVSphereVirtualMachineMigrateState,
 
 		Schema: map[string]*schema.Schema{
@@ -408,7 +409,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			},
 
 			"disk": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -590,14 +591,63 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	if d.HasChange("disk") {
 		hasChanges = true
 		oldDisks, newDisks := d.GetChange("disk")
-		oldDiskSet := oldDisks.(*schema.Set)
-		newDiskSet := newDisks.(*schema.Set)
+		oldDiskList := oldDisks.([]interface{})
+		newDiskList := newDisks.([]interface{})
 
-		addedDisks := newDiskSet.Difference(oldDiskSet)
-		removedDisks := oldDiskSet.Difference(newDiskSet)
+		addedDisks := make([]interface{}, 0)
+		removedDisks := make([]interface{}, 0)
+
+		for _, v := range oldDiskList {
+			found := false
+			_v := make(map[string]interface{}, len(v.(map[string]interface{}))-1)
+
+			for mk, mv := range v.(map[string]interface{}) {
+				if mk != "key" && mk != "uuid" {
+					_v[mk] = mv
+				}
+			}
+			for _, x := range newDiskList {
+				_x := make(map[string]interface{}, len(v.(map[string]interface{}))-1)
+				for mk, mv := range x.(map[string]interface{}) {
+					if mk != "key" && mk != "uuid" {
+						_x[mk] = mv
+					}
+				}
+				if reflect.DeepEqual(_v, _x) {
+					found = true
+				}
+			}
+			if !found {
+				removedDisks = append(removedDisks, v)
+			}
+		}
+
+		for _, v := range newDiskList {
+			found := false
+			_v := make(map[string]interface{}, len(v.(map[string]interface{}))-1)
+			for mk, mv := range v.(map[string]interface{}) {
+				if mk != "key" && mk != "uuid" {
+					_v[mk] = mv
+				}
+			}
+			for _, x := range oldDiskList {
+				_x := make(map[string]interface{}, len(v.(map[string]interface{}))-1)
+				for mk, mv := range x.(map[string]interface{}) {
+					if mk != "key" && mk != "uuid" {
+						_x[mk] = mv
+					}
+				}
+				if reflect.DeepEqual(_v, _x) {
+					found = true
+				}
+			}
+			if !found {
+				addedDisks = append(addedDisks, v)
+			}
+		}
 
 		// Removed disks
-		for _, diskRaw := range removedDisks.List() {
+		for _, diskRaw := range removedDisks {
 			if disk, ok := diskRaw.(map[string]interface{}); ok {
 				devices, err := vm.Device(context.TODO())
 				if err != nil {
@@ -617,7 +667,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 			}
 		}
 		// Added disks
-		for _, diskRaw := range addedDisks.List() {
+		for _, diskRaw := range addedDisks {
 			if disk, ok := diskRaw.(map[string]interface{}); ok {
 
 				var datastore *object.Datastore
@@ -669,7 +719,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 					initType = "thin"
 				}
 
-				log.Printf("[INFO] Attaching disk: %v", diskPath)
+				log.Printf("[INFO] Attaching disk: %v", disk)
 				err = addHardDisk(vm, size, iops, initType, datastore, diskPath, controller_type)
 				if err != nil {
 					log.Printf("[ERROR] Add Hard Disk Failed: %v", err)
@@ -917,83 +967,82 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 	}
 
 	if vL, ok := d.GetOk("disk"); ok {
-		if diskSet, ok := vL.(*schema.Set); ok {
+		disks := make([]hardDisk, 0)
 
-			disks := []hardDisk{}
-			for _, value := range diskSet.List() {
-				disk := value.(map[string]interface{})
-				newDisk := hardDisk{}
+		for _, value := range vL.([]interface{}) {
+			disk := value.(map[string]interface{})
+			newDisk := hardDisk{}
 
+			if v, ok := disk["template"].(string); ok && v != "" {
+				if v, ok := disk["name"].(string); ok && v != "" {
+					return fmt.Errorf("Cannot specify name of a template")
+				}
+				vm.template = v
+				if vm.hasBootableVmdk {
+					return fmt.Errorf("[ERROR] Only one bootable disk or template may be given")
+				}
+				vm.hasBootableVmdk = true
+			}
+
+			if v, ok := disk["type"].(string); ok && v != "" {
+				newDisk.initType = v
+			}
+
+			if v, ok := disk["datastore"].(string); ok && v != "" {
+				vm.datastore = v
+			}
+
+			if v, ok := disk["size"].(int); ok && v != 0 {
 				if v, ok := disk["template"].(string); ok && v != "" {
-					if v, ok := disk["name"].(string); ok && v != "" {
-						return fmt.Errorf("Cannot specify name of a template")
-					}
-					vm.template = v
-					if vm.hasBootableVmdk {
+					return fmt.Errorf("Cannot specify size of a template")
+				}
+
+				if v, ok := disk["name"].(string); ok && v != "" {
+					newDisk.name = v
+				} else {
+					return fmt.Errorf("[ERROR] Disk name must be provided when creating a new disk")
+				}
+
+				newDisk.size = int64(v)
+			}
+
+			if v, ok := disk["iops"].(int); ok && v != 0 {
+				newDisk.iops = int64(v)
+			}
+
+			if v, ok := disk["controller_type"].(string); ok && v != "" {
+				newDisk.controller = v
+			}
+
+			if vVmdk, ok := disk["vmdk"].(string); ok && vVmdk != "" {
+				if v, ok := disk["template"].(string); ok && v != "" {
+					return fmt.Errorf("Cannot specify a vmdk for a template")
+				}
+				if v, ok := disk["size"].(string); ok && v != "" {
+					return fmt.Errorf("Cannot specify size of a vmdk")
+				}
+				if v, ok := disk["name"].(string); ok && v != "" {
+					return fmt.Errorf("Cannot specify name of a vmdk")
+				}
+				if vBootable, ok := disk["bootable"].(bool); ok {
+					if vBootable && vm.hasBootableVmdk {
 						return fmt.Errorf("[ERROR] Only one bootable disk or template may be given")
 					}
-					vm.hasBootableVmdk = true
+					newDisk.bootable = vBootable
+					vm.hasBootableVmdk = vm.hasBootableVmdk || vBootable
 				}
-
-				if v, ok := disk["type"].(string); ok && v != "" {
-					newDisk.initType = v
-				}
-
-				if v, ok := disk["datastore"].(string); ok && v != "" {
-					vm.datastore = v
-				}
-
-				if v, ok := disk["size"].(int); ok && v != 0 {
-					if v, ok := disk["template"].(string); ok && v != "" {
-						return fmt.Errorf("Cannot specify size of a template")
-					}
-
-					if v, ok := disk["name"].(string); ok && v != "" {
-						newDisk.name = v
-					} else {
-						return fmt.Errorf("[ERROR] Disk name must be provided when creating a new disk")
-					}
-
-					newDisk.size = int64(v)
-				}
-
-				if v, ok := disk["iops"].(int); ok && v != 0 {
-					newDisk.iops = int64(v)
-				}
-
-				if v, ok := disk["controller_type"].(string); ok && v != "" {
-					newDisk.controller = v
-				}
-
-				if vVmdk, ok := disk["vmdk"].(string); ok && vVmdk != "" {
-					if v, ok := disk["template"].(string); ok && v != "" {
-						return fmt.Errorf("Cannot specify a vmdk for a template")
-					}
-					if v, ok := disk["size"].(string); ok && v != "" {
-						return fmt.Errorf("Cannot specify size of a vmdk")
-					}
-					if v, ok := disk["name"].(string); ok && v != "" {
-						return fmt.Errorf("Cannot specify name of a vmdk")
-					}
-					if vBootable, ok := disk["bootable"].(bool); ok {
-						if vBootable && vm.hasBootableVmdk {
-							return fmt.Errorf("[ERROR] Only one bootable disk or template may be given")
-						}
-						newDisk.bootable = vBootable
-						vm.hasBootableVmdk = vm.hasBootableVmdk || vBootable
-					}
-					newDisk.vmdkPath = vVmdk
-				}
-				// Preserves order so bootable disk is first
-				if newDisk.bootable == true || disk["template"] != "" {
-					disks = append([]hardDisk{newDisk}, disks...)
-				} else {
-					disks = append(disks, newDisk)
-				}
+				newDisk.vmdkPath = vVmdk
 			}
-			vm.hardDisks = disks
-			log.Printf("[DEBUG] disk init: %v", disks)
+			// Preserves order so bootable disk is first
+			if newDisk.bootable == true || disk["template"] != "" {
+				disks = append([]hardDisk{newDisk}, disks...)
+			} else {
+				disks = append(disks, newDisk)
+			}
 		}
+
+		vm.hardDisks = disks
+		log.Printf("[DEBUG] disk init: %v", vm.hardDisks)
 	}
 
 	if vL, ok := d.GetOk("cdrom"); ok {
@@ -1123,31 +1172,29 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 			diskName = strings.Split(diskName, ".")[0]
 
 			if prevDisks, ok := d.GetOk("disk"); ok {
-				if prevDiskSet, ok := prevDisks.(*schema.Set); ok {
-					for _, v := range prevDiskSet.List() {
-						prevDisk := v.(map[string]interface{})
+				for _, v := range prevDisks.([]interface{}) {
+					prevDisk := v.(map[string]interface{})
 
-						// We're guaranteed only one template disk.  Passing value directly through since templates should be immutable
-						if prevDisk["template"] != "" {
-							if len(templateDisk) == 0 {
-								templateDisk = prevDisk
-								disks = append(disks, templateDisk)
-								break
-							}
-						}
-
-						// It is enforced that prevDisk["name"] should only be set in the case
-						// of creating a new disk for the user.
-						// size case:  name was set by user, compare parsed filename from mo.filename (without path or .vmdk extension) with name
-						// vmdk case:  compare prevDisk["vmdk"] and mo.Filename
-						if diskName == prevDisk["name"] || diskPath == prevDisk["vmdk"] {
-
-							prevDisk["key"] = virtualDevice.Key
-							prevDisk["uuid"] = diskUuid
-
-							disks = append(disks, prevDisk)
+					// We're guaranteed only one template disk.  Passing value directly through since templates should be immutable
+					if prevDisk["template"] != "" {
+						if len(templateDisk) == 0 {
+							templateDisk = prevDisk
+							disks = append(disks, templateDisk)
 							break
 						}
+					}
+
+					// It is enforced that prevDisk["name"] should only be set in the case
+					// of creating a new disk for the user.
+					// size case:  name was set by user, compare parsed filename from mo.filename (without path or .vmdk extension) with name
+					// vmdk case:  compare prevDisk["vmdk"] and mo.Filename
+					if diskName == prevDisk["name"] || diskPath == prevDisk["vmdk"] {
+
+						prevDisk["key"] = virtualDevice.Key
+						prevDisk["uuid"] = diskUuid
+
+						disks = append(disks, prevDisk)
+						break
 					}
 				}
 			}
@@ -1358,21 +1405,19 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 	}
 
 	// Safely eject any disks the user marked as keep_on_remove
-	var diskSetList []interface{}
+	var disks []interface{}
 	if vL, ok := d.GetOk("disk"); ok {
-		if diskSet, ok := vL.(*schema.Set); ok {
-			diskSetList = diskSet.List()
-			for _, value := range diskSetList {
-				disk := value.(map[string]interface{})
+		disks = vL.([]interface{})
+		for _, value := range disks {
+			disk := value.(map[string]interface{})
 
-				if v, ok := disk["keep_on_remove"].(bool); ok && v == true {
-					log.Printf("[DEBUG] not destroying %v", disk["name"])
-					virtualDisk := devices.FindByKey(int32(disk["key"].(int)))
-					err = vm.RemoveDevice(context.TODO(), true, virtualDisk)
-					if err != nil {
-						log.Printf("[ERROR] Update Remove Disk - Error removing disk: %v", err)
-						return err
-					}
+			if v, ok := disk["keep_on_remove"].(bool); ok && v == true {
+				log.Printf("[DEBUG] not destroying %v", disk["name"])
+				virtualDisk := devices.FindByKey(int32(disk["key"].(int)))
+				err = vm.RemoveDevice(context.TODO(), true, virtualDisk)
+				if err != nil {
+					log.Printf("[ERROR] Update Remove Disk - Error removing disk: %v", err)
+					return err
 				}
 			}
 		}
@@ -1387,7 +1432,7 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 			}
 			vd := device.GetVirtualDevice()
 			var skip bool
-			for _, value := range diskSetList {
+			for _, value := range disks {
 				disk := value.(map[string]interface{})
 				if int32(disk["key"].(int)) == vd.Key {
 					skip = true
@@ -2193,7 +2238,6 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	}
 	for i := firstDisk; i < len(vm.hardDisks); i++ {
 		log.Printf("[DEBUG] disk index: %v", i)
-
 		var diskPath string
 		switch {
 		case vm.hardDisks[i].vmdkPath != "":
