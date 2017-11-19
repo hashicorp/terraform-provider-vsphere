@@ -20,6 +20,15 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+// diskDeletedName is a placeholder name for deleted disks. This is to assist
+// with user-friendliness in the diff.
+const diskDeletedName = "<deleted>"
+
+// diskDetachedName is a placeholder name for disks that are getting detached,
+// either because they have keep_on_remove set or are external disks attached
+// with "attach".
+const diskDetachedName = "<remove, keep disk>"
+
 var diskSubresourceModeAllowedValues = []string{
 	string(types.VirtualDiskModePersistent),
 	string(types.VirtualDiskModeNonpersistent),
@@ -159,7 +168,7 @@ type DiskSubresource struct {
 
 // NewDiskSubresource returns a subresource populated with all of the necessary
 // fields.
-func NewDiskSubresource(client *govmomi.Client, rd *schema.ResourceData, rdiff *schema.ResourceDiff, d, old map[string]interface{}) *DiskSubresource {
+func NewDiskSubresource(client *govmomi.Client, rd *schema.ResourceData, rdiff *schema.ResourceDiff, d, old map[string]interface{}, idx int) *DiskSubresource {
 	sr := &DiskSubresource{
 		Subresource: &Subresource{
 			schema:       DiskSubresourceSchema(),
@@ -171,7 +180,7 @@ func NewDiskSubresource(client *govmomi.Client, rd *schema.ResourceData, rdiff *
 			resourceDiff: rdiff,
 		},
 	}
-	sr.Index = sr.Hash()
+	sr.Index = idx
 	return sr
 }
 
@@ -188,9 +197,8 @@ func DiskApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Virt
 	o, n := d.GetChange(subresourceTypeDisk)
 	// Make an intersection set. Any device in the intersection is a device
 	// that is not changing, so we ignore those.
-	ids := o.(*schema.Set).Intersection(n.(*schema.Set))
-	ods := o.(*schema.Set).Difference(ids)
-	nds := n.(*schema.Set).Difference(ids)
+	ods := o.([]interface{})
+	nds := n.([]interface{})
 
 	var spec []types.BaseVirtualDeviceConfigSpec
 
@@ -198,15 +206,19 @@ func DiskApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Virt
 	// have been added, removed, or changed. Look for removed devices first.
 	log.Printf("[DEBUG] DiskApplyOperation: Looking for resources to delete")
 nextOld:
-	for _, oe := range ods.List() {
+	for oi, oe := range ods {
 		om := oe.(map[string]interface{})
-		for _, ne := range nds.List() {
+		for _, ne := range nds {
 			nm := ne.(map[string]interface{})
+			if nm["name"] == diskDeletedName || nm["name"] == diskDetachedName {
+				// This is a "dummy" deleted resource and should be skipped over
+				continue
+			}
 			if om["key"] == nm["key"] {
 				continue nextOld
 			}
 		}
-		r := NewDiskSubresource(c, d, nil, om, nil)
+		r := NewDiskSubresource(c, d, nil, om, nil, oi)
 		dspec, err := r.Delete(l)
 		if err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -218,25 +230,32 @@ nextOld:
 	// Now check for creates and updates.  The results of this operation are
 	// committed to state after the operation completes, on top of the items that
 	// have not changed.
-	updates := ids.List()
+	var updates []interface{}
 	log.Printf("[DEBUG] DiskApplyOperation: Looking for resources to create or update")
 	log.Printf("[DEBUG] DiskApplyOperation: Resources not being changed: %s", subresourceListString(updates))
 nextNew:
-	for _, ne := range nds.List() {
+	for ni, ne := range nds {
 		nm := ne.(map[string]interface{})
-		for _, oe := range ods.List() {
+		if nm["name"] == diskDeletedName || nm["name"] == diskDetachedName {
+			// This is a "dummy" deleted resource and should be skipped over
+			continue
+		}
+		for _, oe := range ods {
 			om := oe.(map[string]interface{})
 			if nm["key"] == om["key"] {
 				// This is an update
-				r := NewDiskSubresource(c, d, nil, nm, om)
-				// If the only thing changing here is the datastore, this is a no-op as
-				// far as a device change is concerned, and is handled during storage
-				// vMotion later on during the update phase.
+				r := NewDiskSubresource(c, d, nil, nm, om, ni)
+				// If the only thing changing here is the datastore, or keep_on_remove,
+				// this is a no-op as far as a device change is concerned. Datastore
+				// changes are handled during storage vMotion later on during the
+				// update phase. keep_on_remove is a Terraform-only attribute and only
+				// needs to be committed to state.
 				omc, err := copystructure.Copy(om)
 				if err != nil {
 					return nil, nil, fmt.Errorf("%s: error generating copy of old disk data: %s", r.Addr(), err)
 				}
 				omc.(map[string]interface{})["datastore_id"] = nm["datastore_id"]
+				omc.(map[string]interface{})["keep_on_remove"] = nm["keep_on_remove"]
 				if reflect.DeepEqual(omc, nm) {
 					updates = append(updates, r.Data())
 					continue nextNew
@@ -251,7 +270,7 @@ nextNew:
 				continue nextNew
 			}
 		}
-		r := NewDiskSubresource(c, d, nil, nm, nil)
+		r := NewDiskSubresource(c, d, nil, nm, nil, ni)
 		cspec, err := r.Create(l)
 		if err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -286,7 +305,7 @@ func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 		return false
 	})
 	log.Printf("[DEBUG] DiskRefreshOperation: Disk devices located: %s", DeviceListString(devices))
-	curSet := d.Get(subresourceTypeDisk).(*schema.Set).List()
+	curSet := d.Get(subresourceTypeDisk).([]interface{})
 	log.Printf("[DEBUG] DiskRefreshOperation: Current resource set from state: %s", subresourceListString(curSet))
 	var newSet []interface{}
 	// First check for negative keys. These are freshly added devices that are
@@ -294,11 +313,11 @@ func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 	//
 	// If we find what we are looking for, we remove the device from the working
 	// set so that we don't try and process it in the next few passes.
-	log.Printf("[DEBUG] DiskRefreshOperation: Looking for freshly-created resources to read in")
-	for _, item := range curSet {
+	log.Printf("[DEBUG] DiskRefreshOperation: Looking for freshly-created or re-assigned resources to read in")
+	for i, item := range curSet {
 		m := item.(map[string]interface{})
 		if m["key"].(int) < 1 {
-			r := NewDiskSubresource(c, d, nil, m, nil)
+			r := NewDiskSubresource(c, d, nil, m, nil, i)
 			if err := r.Read(l); err != nil {
 				return fmt.Errorf("%s: %s", r.Addr(), err)
 			}
@@ -317,15 +336,15 @@ func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 			}
 		}
 	}
-	log.Printf("[DEBUG] DiskRefreshOperation: Disk devices after freshly-created device search: %s", DeviceListString(devices))
-	log.Printf("[DEBUG] DiskRefreshOperation: Resource set to write after freshly-created device search: %s", subresourceListString(newSet))
+	log.Printf("[DEBUG] DiskRefreshOperation: Disk devices after created/re-assigned device search: %s", DeviceListString(devices))
+	log.Printf("[DEBUG] DiskRefreshOperation: Resource set to write after created/re-assigned device search: %s", subresourceListString(newSet))
 
 	// Go over the remaining devices, refresh via key, and then remove their
 	// entries as well.
 	log.Printf("[DEBUG] DiskRefreshOperation: Looking for devices known in state")
 	for i := 0; i < len(devices); i++ {
 		device := devices[i]
-		for _, item := range curSet {
+		for n, item := range curSet {
 			m := item.(map[string]interface{})
 			if m["key"].(int) < 1 {
 				// Skip any of these keys as we won't be matching any of those anyway here
@@ -336,7 +355,7 @@ func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 				continue
 			}
 			// We should have our device -> resource match, so read now.
-			r := NewDiskSubresource(c, d, nil, m, nil)
+			r := NewDiskSubresource(c, d, nil, m, nil, n)
 			if err := r.Read(l); err != nil {
 				return fmt.Errorf("%s: %s", r.Addr(), err)
 			}
@@ -365,13 +384,18 @@ func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 		// We want to set keep_on_remove for these disks as well so that they are
 		// not destroyed when we remove them in the next TF run.
 		m["keep_on_remove"] = true
-		r := NewDiskSubresource(c, d, nil, m, nil)
+		r := NewDiskSubresource(c, d, nil, m, nil, len(newSet))
 		if err := r.Read(l); err != nil {
 			return fmt.Errorf("%s: %s", r.Addr(), err)
 		}
 		newSet = append(newSet, r.Data())
 	}
+
 	log.Printf("[DEBUG] DiskRefreshOperation: Resource set to write after adding orphaned devices: %s", subresourceListString(newSet))
+	// Sort the device list by unit number. This provides some semblance of order
+	// in the state as devices are added and removed.
+	sort.Sort(virtualDiskSubresourceSorter(newSet))
+	log.Printf("[DEBUG] DiskRefreshOperation: Final (sorted) resource set to write: %s", subresourceListString(newSet))
 	log.Printf("[DEBUG] DiskRefreshOperation: Refresh operation complete, sending new resource set")
 	return d.Set(subresourceTypeDisk, newSet)
 }
@@ -387,18 +411,18 @@ func DiskDestroyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 	// All we are doing here is getting a config spec for detaching the disks
 	// that we need to detach, so we don't need the vast majority of the stateful
 	// logic that is in deviceApplyOperation.
-	ds := d.Get(subresourceTypeDisk).(*schema.Set)
+	ds := d.Get(subresourceTypeDisk).([]interface{})
 
 	var spec []types.BaseVirtualDeviceConfigSpec
 
 	log.Printf("[DEBUG] DiskDestroyOperation: Detaching devices with keep_on_remove enabled")
-	for _, oe := range ds.List() {
+	for oi, oe := range ds {
 		m := oe.(map[string]interface{})
 		if !m["keep_on_remove"].(bool) && !m["attach"].(bool) {
 			// We don't care about disks we haven't set to keep
 			continue
 		}
-		r := NewDiskSubresource(c, d, nil, m, nil)
+		r := NewDiskSubresource(c, d, nil, m, nil, oi)
 		dspec, err := r.Delete(l)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -427,15 +451,14 @@ func DiskDestroyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 func DiskDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 	log.Printf("[DEBUG] DiskDiffOperation: Beginning disk diff customization")
 	o, n := d.GetChange(subresourceTypeDisk)
-	// Do the validation first. Grab a list off the new set, which we sort and
-	// check for duplicates on.
-	log.Printf("[DEBUG] DiskDiffOperation: Beginning diff validation")
+	// Some global validation first. We handle individual validation later.
+	log.Printf("[DEBUG] DiskDiffOperation: Beginning diff validation (indexes aligned to new config)")
 	names := make(map[string]struct{})
 	units := make(map[int]struct{})
-	if len(n.(*schema.Set).List()) < 1 {
+	if len(n.([]interface{})) < 1 {
 		return errors.New("there must be at least one disk specified")
 	}
-	for _, ne := range n.(*schema.Set).List() {
+	for ni, ne := range n.([]interface{}) {
 		nm := ne.(map[string]interface{})
 		// Because we support long and short-form paths, we don't support duplicate
 		// file names right now, even if they are in a different path. This makes
@@ -453,7 +476,7 @@ func DiskDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 		// Run the resource through an individual validate function. This performs
 		// field validation for things we don't need to know the state of other
 		// resources for.
-		r := NewDiskSubresource(c, nil, d, nm, nil)
+		r := NewDiskSubresource(c, nil, d, nm, nil, ni)
 		if err := r.ValidateDiff(); err != nil {
 			return fmt.Errorf("%s: %s", r.Addr(), err)
 		}
@@ -462,39 +485,60 @@ func DiskDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 		return errors.New("at least one disk must have a unit_number of 0")
 	}
 
-	// Perform the normalization here. We only try to extrapolate intersections,
-	// but in the event that we actually do have intersections (probably will
-	// never happen), we attempt to take an intersection like we do in other
-	// steps.
-	log.Printf("[DEBUG] DiskDiffOperation: Beginning diff normalization")
-	ids := o.(*schema.Set).Intersection(n.(*schema.Set))
-	ods := o.(*schema.Set).Difference(ids)
-	nds := n.(*schema.Set).Difference(ids)
+	// Perform the normalization here.
+	log.Printf("[DEBUG] DiskDiffOperation: Beginning diff normalization (indexes aligned to old state)")
+	ods := o.([]interface{})
+	nds := n.([]interface{})
 
-	normalized := ids.List()
-	log.Printf("[DEBUG] DiskDiffOperation: Resources not requiring normalization: %s", subresourceListString(normalized))
+	normalized := make([]interface{}, len(ods))
 nextNew:
-	for _, ne := range nds.List() {
+	for _, ne := range nds {
 		nm := ne.(map[string]interface{})
-		for _, oe := range ods.List() {
+		for oi, oe := range ods {
 			om := oe.(map[string]interface{})
 			// We extrapolate using the name as a "primary key" of sorts. Since we
 			// support both long-form and short-form paths, and don't support using
 			// same file name regardless of if you are using a long-from path, we
 			// just check the short-form and do the comparison from there.
 			if path.Base(nm["name"].(string)) == path.Base(om["name"].(string)) {
-				r := NewDiskSubresource(c, nil, d, nm, om)
+				r := NewDiskSubresource(c, nil, d, nm, om, oi)
 				if err := r.NormalizeDiff(); err != nil {
 					return fmt.Errorf("%s: %s", r.Addr(), err)
 				}
-				normalized = append(normalized, r.Data())
+				normalized[oi] = r.Data()
 				continue nextNew
 			}
 		}
 		// We didn't find a match for this resource, it could be a new resource or
-		// significantly altered. Put it back on the list in th same form we got it
-		// in.
+		// significantly altered. Put it back on the list in the same form we got
+		// it in, but delete the key and device address first, just in case it was
+		// in a position previously occupied by an existing resource.
+		nm["key"] = 0
+		nm["device_address"] = ""
 		normalized = append(normalized, nm)
+	}
+
+	// Go thru the new list, and replace any nils with a "deleted" copy of the
+	// old resource. This is basically a copy of the old entry with <deleted> in
+	// place of the name, so it shows up nicely in the diff.
+	for ni, ne := range normalized {
+		if ne != nil {
+			continue
+		}
+		nv, err := copystructure.Copy(ods[ni])
+		if err != nil {
+			return fmt.Errorf("disk.%d: error making updated diff of deleted entry: %s", ni, err)
+		}
+		nm := nv.(map[string]interface{})
+		switch {
+		case nm["keep_on_remove"].(bool):
+			fallthrough
+		case nm["attach"].(bool):
+			nm["name"] = diskDetachedName
+		default:
+			nm["name"] = diskDeletedName
+		}
+		normalized[ni] = nm
 	}
 
 	// All done. We can end the customization off by setting the new, normalized diff.
@@ -531,7 +575,7 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 	devices = devSort.Sort
 	log.Printf("[DEBUG] DiskCloneValidateOperation: Disk devices order after sort: %s", DeviceListString(devices))
 	// Do the same for our listed disks.
-	curSet := d.Get(subresourceTypeDisk).(*schema.Set).List()
+	curSet := d.Get(subresourceTypeDisk).([]interface{})
 	log.Printf("[DEBUG] DiskCloneValidateOperation: Current resource set: %s", subresourceListString(curSet))
 	sort.Sort(virtualDiskSubresourceSorter(curSet))
 	log.Printf("[DEBUG] DiskCloneValidateOperation: Resource set order after sort: %s", subresourceListString(curSet))
@@ -553,13 +597,13 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 		}
 		m["key"] = int(vd.Key)
 		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
-		r := NewDiskSubresource(c, nil, d, m, nil)
+		r := NewDiskSubresource(c, nil, d, m, nil, i)
 		if err := r.Read(l); err != nil {
 			return fmt.Errorf("%s: validation failed (%s)", r.Addr(), err)
 		}
 		// Load the target resource to do a few comparisons for correctness in config.
 		targetM := curSet[i].(map[string]interface{})
-		tr := NewDiskSubresource(c, nil, d, targetM, nil)
+		tr := NewDiskSubresource(c, nil, d, targetM, nil, i)
 		// Ensure that the file names match. vSphere does not allow you to choose
 		// the name of existing disks during a clone and will rename them according
 		// to the standard convention of <name>.vmdk, <name>_1.vmdk, etc.  Hence we
@@ -605,16 +649,19 @@ func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l o
 	// incoming or outgoing disks obviously won't need migrating. Hence, this is
 	// a simplified subset of the normal apply logic.
 nextDisk:
-	for _, ne := range nds.(*schema.Set).List() {
+	for ni, ne := range nds.([]interface{}) {
 		nm := ne.(map[string]interface{})
-		for _, oe := range ods.(*schema.Set).List() {
+		if nm["name"] == diskDeletedName || nm["name"] == diskDetachedName {
+			continue
+		}
+		for _, oe := range ods.([]interface{}) {
 			om := oe.(map[string]interface{})
 			if nm["key"] == om["key"] {
 				// No change in datastore is a no-op, unless we are changing default datastores
 				if nm["datastore_id"] == om["datastore_id"] && !d.HasChange("datastore_id") {
 					continue nextDisk
 				}
-				r := NewDiskSubresource(c, d, nil, nm, om)
+				r := NewDiskSubresource(c, d, nil, nm, om, ni)
 				relocator, err := r.Relocate(l)
 				if err != nil {
 					return nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -662,7 +709,7 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 	devices = devSort.Sort
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Disk devices order after sort: %s", DeviceListString(devices))
 	// Do the same for our listed disks.
-	curSet := d.Get(subresourceTypeDisk).(*schema.Set).List()
+	curSet := d.Get(subresourceTypeDisk).([]interface{})
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Current resource set: %s", subresourceListString(curSet))
 	sort.Sort(virtualDiskSubresourceSorter(curSet))
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Resource set order after sort: %s", subresourceListString(curSet))
@@ -678,7 +725,7 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 		}
 		m["key"] = int(vd.Key)
 		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
-		r := NewDiskSubresource(c, d, nil, m, nil)
+		r := NewDiskSubresource(c, d, nil, m, nil, i)
 		relocator, err := r.Relocate(l)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -716,7 +763,7 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 	devices = devSort.Sort
 	log.Printf("[DEBUG] DiskPostCloneOperation: Disk devices order after sort: %s", DeviceListString(devices))
 	// Do the same for our listed disks.
-	curSet := d.Get(subresourceTypeDisk).(*schema.Set).List()
+	curSet := d.Get(subresourceTypeDisk).([]interface{})
 	log.Printf("[DEBUG] DiskPostCloneOperation: Current resource set: %s", subresourceListString(curSet))
 	sort.Sort(virtualDiskSubresourceSorter(curSet))
 	log.Printf("[DEBUG] DiskPostCloneOperation: Resource set order after sort: %s", subresourceListString(curSet))
@@ -740,7 +787,7 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 		if err != nil {
 			return nil, nil, fmt.Errorf("error copying source set for disk at unit_number %d: %s", src["unit_number"].(int), err)
 		}
-		rOld := NewDiskSubresource(c, d, nil, old.(map[string]interface{}), nil)
+		rOld := NewDiskSubresource(c, d, nil, old.(map[string]interface{}), nil, i)
 		if err := rOld.Read(l); err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", rOld.Addr(), err)
 		}
@@ -760,7 +807,7 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 			}
 			new.(map[string]interface{})[k] = v
 		}
-		rNew := NewDiskSubresource(c, d, nil, new.(map[string]interface{}), rOld.Data())
+		rNew := NewDiskSubresource(c, d, nil, new.(map[string]interface{}), rOld.Data(), i)
 		if !reflect.DeepEqual(rNew.Data(), rOld.Data()) {
 			uspec, err := rNew.Update(l)
 			if err != nil {
@@ -774,7 +821,7 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 
 	// Any disk past the current device list is a new device. Create those now.
 	for _, ni := range curSet[len(devices):] {
-		r := NewDiskSubresource(c, d, nil, ni.(map[string]interface{}), nil)
+		r := NewDiskSubresource(c, d, nil, ni.(map[string]interface{}), nil, len(updates))
 		cspec, err := r.Create(l)
 		if err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -809,7 +856,7 @@ func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 	// Read in the disks. We don't do anything with the results here other than
 	// validate that the disks are SCSI disks. The read operation validates the rest.
 	log.Printf("[DEBUG] DiskImportOperation: Validating disks")
-	for _, device := range devices {
+	for i, device := range devices {
 		m := make(map[string]interface{})
 		vd := device.GetVirtualDevice()
 		ctlr := l.FindByKey(vd.ControllerKey)
@@ -818,7 +865,7 @@ func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 		}
 		m["key"] = int(vd.Key)
 		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
-		r := NewDiskSubresource(c, d, nil, m, nil)
+		r := NewDiskSubresource(c, d, nil, m, nil, i)
 		if err := r.Read(l); err != nil {
 			return fmt.Errorf("%s: %s", r.Addr(), err)
 		}
@@ -988,7 +1035,14 @@ func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtua
 		if err != nil {
 			return nil, fmt.Errorf("cannot assign disk: %s", err)
 		}
+		r.SetRestart("unit_number")
 		r.SaveDevIDs(disk, ctlr)
+		// A change in disk unit number forces a device key change after the
+		// reconfigure. We need to keep the key in the device change spec we send
+		// along, but we can reset it here safely. Set it to 0, which will send it
+		// though the new device loop, but will distinguish it from newly-created
+		// devices.
+		r.Set("key", 0)
 	}
 
 	// We can now expand the rest of the settings.

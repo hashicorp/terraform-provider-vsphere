@@ -92,6 +92,15 @@ func migrateVSphereVirtualMachineStateV2(is *terraform.InstanceState, meta inter
 	is.Attributes = make(map[string]string)
 	is.ID = id
 	is.Attributes["imported"] = "true"
+
+	// Set some defaults. This helps possibly prevent diffs where these values
+	// have not been changed.
+	rs := resourceVSphereVirtualMachine().Schema
+	is.Attributes["force_power_off"] = fmt.Sprintf("%v", rs["force_power_off"].Default)
+	is.Attributes["migrate_wait_timeout"] = fmt.Sprintf("%v", rs["migrate_wait_timeout"].Default)
+	is.Attributes["shutdown_wait_timeout"] = fmt.Sprintf("%v", rs["shutdown_wait_timeout"].Default)
+	is.Attributes["wait_for_guest_net_timeout"] = fmt.Sprintf("%v", rs["wait_for_guest_net_timeout"].Default)
+
 	log.Printf("[DEBUG] %s: Migration complete, resource is ready for read", resourceVSphereVirtualMachineIDString(d))
 	return nil
 }

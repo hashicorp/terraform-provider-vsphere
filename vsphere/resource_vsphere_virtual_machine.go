@@ -93,11 +93,11 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		// having a minimum count of 1 for now - but may support diskless VMs
 		// later.
 		"disk": {
-			Type:        schema.TypeSet,
+			Type:        schema.TypeList,
 			Optional:    true,
 			Computed:    true,
 			Description: "A specification for a virtual disk device on this virtual machine.",
-			MaxItems:    30,
+			MaxItems:    60,
 			Elem:        &schema.Resource{Schema: virtualdevice.DiskSubresourceSchema()},
 		},
 		"network_interface": {
@@ -491,6 +491,15 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 	log.Printf("[DEBUG] VM UUID for %q is %q", name, props.Config.Uuid)
 	d.SetId(props.Config.Uuid)
 	d.Set("imported", true)
+
+	// Set some defaults. This helps possibly prevent diffs where these values
+	// have not been changed.
+	rs := resourceVSphereVirtualMachine().Schema
+	d.Set("force_power_off", rs["force_power_off"].Default)
+	d.Set("migrate_wait_timeout", rs["migrate_wait_timeout"].Default)
+	d.Set("shutdown_wait_timeout", rs["shutdown_wait_timeout"].Default)
+	d.Set("wait_for_guest_net_timeout", rs["wait_for_guest_net_timeout"].Default)
+
 	log.Printf("[DEBUG] %s: Import complete, resource is ready for read", resourceVSphereVirtualMachineIDString(d))
 	return []*schema.ResourceData{d}, nil
 }
