@@ -269,7 +269,7 @@ options:
 * `alternate_guest_name` - (Optional) The guest name for the operating system
   when `guest_id` is `other` or `other-64`.
 * `enable_disk_uuid` - (Optional) Expose the UUIDs of attached virtual disks to
-  the virtual machine, allowing access to them in the guest. Default: `true`.
+  the virtual machine, allowing access to them in the guest. Default: `false`.
 * `hv_mode` - (Optional) The (non-nested) hardware virtualization setting for
   this virtual machine. Can be one of `hvAuto`, `hvOn`, or `hvOff`. Default:
   `hvAuto`.

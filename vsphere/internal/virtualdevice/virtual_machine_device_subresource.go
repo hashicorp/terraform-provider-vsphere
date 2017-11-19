@@ -247,7 +247,8 @@ func (r *Subresource) GetWithRestart(key string) interface{} {
 // fashion that would otherwise result in forcing a new resource.
 func (r *Subresource) GetWithVeto(key string) (interface{}, error) {
 	if r.HasChange(key) {
-		return r.Get(key), fmt.Errorf("cannot change the value of %q - must delete and re-create device", key)
+		old, new := r.GetChange(key)
+		return r.Get(key), fmt.Errorf("cannot change the value of %q - (old: %v new: %v)", key, old, new)
 	}
 	return r.Get(key), nil
 }
@@ -504,15 +505,16 @@ func swapSCSIDevice(l object.VirtualDeviceList, device types.BaseVirtualSCSICont
 // controller type. Devices are migrated to the new controller appropriately. A
 // spec slice is returned with the changes.
 //
-// All 4 slots on the SCSI bus are normalized to the appropriate device.
-func NormalizeSCSIBus(l object.VirtualDeviceList, ct string) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
-	log.Printf("[DEBUG] NormalizeSCSIBus: Normalizing SCSI bus to device type %s", ct)
+// The first number of slots specified by count are normalized by this
+// function. Any others are left unchanged.
+func NormalizeSCSIBus(l object.VirtualDeviceList, ct string, count int) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("[DEBUG] NormalizeSCSIBus: Normalizing first %d controllers on SCSI bus to device type %s", count, ct)
 	var spec []types.BaseVirtualDeviceConfigSpec
-	ctlrs := make([]types.BaseVirtualSCSIController, 4)
+	ctlrs := make([]types.BaseVirtualSCSIController, count)
 	// Don't worry about doing any fancy select stuff here, just go thru the
 	// VirtualDeviceList and populate the controllers.
 	for _, dev := range l {
-		if sc, ok := dev.(types.BaseVirtualSCSIController); ok {
+		if sc, ok := dev.(types.BaseVirtualSCSIController); ok && sc.GetVirtualSCSIController().BusNumber < int32(count) {
 			ctlrs[sc.GetVirtualSCSIController().BusNumber] = sc
 		}
 	}
@@ -550,15 +552,16 @@ func NormalizeSCSIBus(l object.VirtualDeviceList, ct string) (object.VirtualDevi
 }
 
 // ReadSCSIBusState checks the SCSI bus state and returns a device type
-// depending on if all controllers are one specific kind or not.
-func ReadSCSIBusState(l object.VirtualDeviceList) string {
-	ctlrs := make([]types.BaseVirtualSCSIController, 4)
+// depending on if all controllers are one specific kind or not. Only the first
+// number of controllers specified by count are checked.
+func ReadSCSIBusState(l object.VirtualDeviceList, count int) string {
+	ctlrs := make([]types.BaseVirtualSCSIController, count)
 	for _, dev := range l {
-		if sc, ok := dev.(types.BaseVirtualSCSIController); ok {
+		if sc, ok := dev.(types.BaseVirtualSCSIController); ok && sc.GetVirtualSCSIController().BusNumber < int32(count) {
 			ctlrs[sc.GetVirtualSCSIController().BusNumber] = sc
 		}
 	}
-	log.Printf("[DEBUG] ReadSCSIBusState: SCSI controller layout: %s", scsiControllerListString(ctlrs))
+	log.Printf("[DEBUG] ReadSCSIBusState: SCSI controller layout for first %d controllers: %s", count, scsiControllerListString(ctlrs))
 	if ctlrs[0] == nil {
 		return subresourceControllerTypeUnknown
 	}

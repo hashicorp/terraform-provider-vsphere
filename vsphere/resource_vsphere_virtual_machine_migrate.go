@@ -96,6 +96,7 @@ func migrateVSphereVirtualMachineStateV2(is *terraform.InstanceState, meta inter
 	// Set some defaults. This helps possibly prevent diffs where these values
 	// have not been changed.
 	rs := resourceVSphereVirtualMachine().Schema
+	is.Attributes["scsi_controller_count"] = fmt.Sprintf("%v", rs["scsi_controller_count"].Default)
 	is.Attributes["force_power_off"] = fmt.Sprintf("%v", rs["force_power_off"].Default)
 	is.Attributes["migrate_wait_timeout"] = fmt.Sprintf("%v", rs["migrate_wait_timeout"].Default)
 	is.Attributes["shutdown_wait_timeout"] = fmt.Sprintf("%v", rs["shutdown_wait_timeout"].Default)

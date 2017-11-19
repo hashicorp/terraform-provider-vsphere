@@ -1315,12 +1315,10 @@ func testAccResourceVSphereVirtualMachineCheckDiskSize(expected int) resource.Te
 // test VM's SCSI bus is all of the specified SCSI type.
 func testAccResourceVSphereVirtualMachineCheckSCSIBus(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		props, err := testGetVirtualMachineProperties(s, "vm")
+		actual, err := testGetVirtualMachineSCSIBusState(s, "vm")
 		if err != nil {
-			return err
+			return fmt.Errorf("bad: %s", err)
 		}
-		l := object.VirtualDeviceList(props.Config.Hardware.Device)
-		actual := virtualdevice.ReadSCSIBusState(l)
 		if expected != actual {
 			return fmt.Errorf("expected SCSI bus to be %s, got %s", expected, actual)
 		}

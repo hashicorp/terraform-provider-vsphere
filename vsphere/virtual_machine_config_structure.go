@@ -93,7 +93,6 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 		"enable_disk_uuid": {
 			Type:        schema.TypeBool,
 			Optional:    true,
-			Default:     true,
 			Description: "Expose the UUIDs of attached virtual disks to the virtual machine, allowing access to them in the guest.",
 		},
 		"hv_mode": {

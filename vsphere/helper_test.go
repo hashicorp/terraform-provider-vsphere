@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"testing"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
@@ -166,6 +168,25 @@ func testGetVirtualMachineHost(s *terraform.State, resourceName string) (*object
 		return nil, err
 	}
 	return hostsystem.FromID(tVars.client, vprops.Runtime.Host.Value)
+}
+
+// testGetVirtualMachineSCSIBusState reads the SCSI bus state for the supplied
+// virtual machine.
+func testGetVirtualMachineSCSIBusState(s *terraform.State, resourceName string) (string, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_virtual_machine.%s", resourceName))
+	if err != nil {
+		return "", err
+	}
+	vprops, err := testGetVirtualMachineProperties(s, resourceName)
+	if err != nil {
+		return "", err
+	}
+	count, err := strconv.Atoi(tVars.resourceAttributes["scsi_controller_count"])
+	if err != nil {
+		return "", err
+	}
+	l := object.VirtualDeviceList(vprops.Config.Hardware.Device)
+	return virtualdevice.ReadSCSIBusState(l, count), nil
 }
 
 // testPowerOffVM does an immediate power-off of the supplied virtual machine

@@ -81,6 +81,13 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Default:     true,
 			Description: "Set to true to force power-off a virtual machine if a graceful guest shutdown failed for a necessary operation.",
 		},
+		"scsi_controller_count": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Default:      1,
+			Description:  "The number of SCSI controllers that Terraform manages on this virtual machine. This directly affects the amount of disks you can add to the virtual machine and the maximum disk unit number. Note that lowering this value does not remove controllers.",
+			ValidateFunc: validation.IntBetween(1, 4),
+		},
 		"scsi_type": {
 			Type:         schema.TypeString,
 			Optional:     true,
@@ -275,7 +282,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	// Perform pending device read operations.
 	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
 	// Read the state of the SCSI bus.
-	d.Set("scsi_type", virtualdevice.ReadSCSIBusState(devices))
+	d.Set("scsi_type", virtualdevice.ReadSCSIBusState(devices, d.Get("scsi_controller_count").(int)))
 	// Disks first
 	if err := virtualdevice.DiskRefreshOperation(d, client, devices); err != nil {
 		return err
@@ -495,6 +502,7 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 	// Set some defaults. This helps possibly prevent diffs where these values
 	// have not been changed.
 	rs := resourceVSphereVirtualMachine().Schema
+	d.Set("scsi_controller_count", rs["scsi_controller_count"].Default)
 	d.Set("force_power_off", rs["force_power_off"].Default)
 	d.Set("migrate_wait_timeout", rs["migrate_wait_timeout"].Default)
 	d.Set("shutdown_wait_timeout", rs["shutdown_wait_timeout"].Default)
@@ -639,7 +647,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
 	var delta []types.BaseVirtualDeviceConfigSpec
 	// First check the state of our SCSI bus. Normalize it if we need to.
-	devices, delta, err = virtualdevice.NormalizeSCSIBus(devices, d.Get("scsi_type").(string))
+	devices, delta, err = virtualdevice.NormalizeSCSIBus(devices, d.Get("scsi_type").(string), d.Get("scsi_controller_count").(int))
 	if err != nil {
 		return nil, err
 	}
@@ -795,7 +803,7 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 	var spec, delta []types.BaseVirtualDeviceConfigSpec
 	var err error
 	// First check the state of our SCSI bus. Normalize it if we need to.
-	l, delta, err = virtualdevice.NormalizeSCSIBus(l, d.Get("scsi_type").(string))
+	l, delta, err = virtualdevice.NormalizeSCSIBus(l, d.Get("scsi_type").(string), d.Get("scsi_controller_count").(int))
 	if err != nil {
 		return nil, err
 	}

@@ -1094,6 +1094,15 @@ func (r *DiskSubresource) ValidateDiff() error {
 	log.Printf("[DEBUG] %s: Beginning diff validation (device information may be incomplete)", r)
 	name := r.Get("name").(string)
 
+	// Enforce the maximum unit number, which is the current value of
+	// scsi_controller_count * 15 - 1.
+	ctlrCount := r.resourceDiff.Get("scsi_controller_count").(int)
+	maxUnit := ctlrCount*15 - 1
+	currentUnit := r.Get("unit_number").(int)
+	if currentUnit > maxUnit {
+		return fmt.Errorf("unit_number on disk %q too high (%d) - maximum value is %d with %d SCSI controller(s)", name, currentUnit, maxUnit, ctlrCount)
+	}
+
 	switch r.Get("attach").(bool) {
 	case true:
 		switch {
@@ -1164,6 +1173,15 @@ func (r *DiskSubresource) NormalizeDiff() error {
 	osize, nsize := r.GetChange("size")
 	if osize.(int) > nsize.(int) {
 		return fmt.Errorf("virtual disk %q: virtual disks cannot be shrunk (old: %d new: %d)", r.Get("name").(string), osize.(int), nsize.(int))
+	}
+
+	// Ensure that there is no change in either eagerly_scrub or thin_provisioned
+	// - these values cannot be changed once set.
+	if _, err := r.GetWithVeto("eagerly_scrub"); err != nil {
+		return fmt.Errorf("virtual disk %q: %s", r.Get("name").(string), err)
+	}
+	if _, err := r.GetWithVeto("thin_provisioned"); err != nil {
+		return fmt.Errorf("virtual disk %q: %s", r.Get("name").(string), err)
 	}
 
 	log.Printf("[DEBUG] %s: Diff normalization complete", r)
