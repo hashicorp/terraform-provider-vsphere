@@ -279,24 +279,6 @@ options:
 
 * `alternate_guest_name` - (Optional) The guest name for the operating system
   when `guest_id` is `other` or `other-64`.
-* `enable_disk_uuid` - (Optional) Expose the UUIDs of attached virtual disks to
-  the virtual machine, allowing access to them in the guest. Default: `false`.
-* `hv_mode` - (Optional) The (non-nested) hardware virtualization setting for
-  this virtual machine. Can be one of `hvAuto`, `hvOn`, or `hvOff`. Default:
-  `hvAuto`.
-* `ept_rvi_mode` - (Optional) The EPT/RVI (hardware memory virtualization)
-  setting for this virtual machine. Can be one of `automatic`, `on`, or `off`.
-  Default: `automatic`.
-* `nested_hv_enabled` - (Optional) Enable nested hardware virtualization on
-  this virtual machine, facilitating nested virtualization in the guest.
-  Default: `false`.
-* `enable_logging` - (Optional) Enable logging of virtual machine events to a
-  log file stored in the virtual machine directory. Default: `true`.
-* `cpu_performance_counters_enabled` - (Optional) Enable CPU performance
-  counters on this virtual machine. Default: `false`.
-* `swap_placement_policy` - (Optional) The swap file placement policy for this
-  virtual machine. Can be one of `inherit`, `hostLocal`, or `vmDirectory`.
-  Default: `inherit`.
 * `annotation` - (Optional) A user-provided description of the virtual machine.
   The default is no annotation.
  `firmware` - (Optional) The firmware interface to use on the virtual machine.
@@ -305,31 +287,6 @@ options:
   machine. Can be used to supply advanced parameters not normally in
   configuration, such as data for cloud-config (under the guestinfo namespace),
   or configuration data for OVF images.
-* `wait_for_guest_net_timeout` - (Optional) The amount of time, in minutes, to
-  wait for a routeable IP address on this virtual machine. A value less than 1
-  disables the waiter. Defualt: 5 minutes.
-* `shutdown_wait_timeout` - (Optional) The amount of time, in minutes, to wait
-  for a graceful guest shutdown when making necessary updates to the virtual
-  machine. If `force_power_off` is set to true, the VM will be force powered-off
-  after this timeout, otherwise an error is returned. Default: 3 minutes.
-* `migrate_wait_timeout` - (Optional) The amount of time, in minutes, to wait
-  for a virtual machine migration to complete before failing. Default: 10
-  minutes. Also see the section on [virtual machine
-  migration](#virtual-machine-migration).
-* `force_power_off` - (Optional) If a guest shutdown failed or timed out while
-  updating or destroying (see
-  [`shutdown_wait_timeout`](#shutdown_wait_timeout)), force the power-off of
-  the virtual machine. Default: `true`.
-* `scsi_controller_count` - (Optional) The number of SCSI controllers that
-  Terraform manages on this virtual machine. This directly affects the amount
-  of disks you can add to the virtual machine and the maximum disk unit number.
-  Note that lowering this value does not remove controllers. Default: `1`.
-
-~> **NOTE:** `scsi_controller_count` should only be modified when you will need
-more than 15 disks on a single virtual machine, or in rare cases that require a
-dedicated controller for certain disks. HashiCorp does not support exploiting
-this value to add out-of-band devices.
-
 * `scsi_type` - (Optional) The type of SCSI bus this virtual machine will have.
   Can be one of lsilogic (LSI Logic Parallel), lsilogic-sas (LSI Logic SAS) or
   pvscsi (VMware Paravirtual). Defualt: `lsilogic`.
@@ -425,6 +382,56 @@ these options.
 * `memory_share_count` - (Optional) The number of memory shares allocated to
   the virtual machine when the `memory_share_level` is `custom`.
 
+### Advanced options
+
+The following options control advanced operation of the virtual machine, or
+control various parts of Terraform workflow, and should not need to be modified
+during basic operation of the resource. Only change these options if they are
+explicitly required, or if you are having trouble with Terraform's default
+behavior.
+
+* `enable_disk_uuid` - (Optional) Expose the UUIDs of attached virtual disks to
+  the virtual machine, allowing access to them in the guest. Default: `false`.
+* `hv_mode` - (Optional) The (non-nested) hardware virtualization setting for
+  this virtual machine. Can be one of `hvAuto`, `hvOn`, or `hvOff`. Default:
+  `hvAuto`.
+* `ept_rvi_mode` - (Optional) The EPT/RVI (hardware memory virtualization)
+  setting for this virtual machine. Can be one of `automatic`, `on`, or `off`.
+  Default: `automatic`.
+* `nested_hv_enabled` - (Optional) Enable nested hardware virtualization on
+  this virtual machine, facilitating nested virtualization in the guest.
+  Default: `false`.
+* `enable_logging` - (Optional) Enable logging of virtual machine events to a
+  log file stored in the virtual machine directory. Default: `true`.
+* `cpu_performance_counters_enabled` - (Optional) Enable CPU performance
+  counters on this virtual machine. Default: `false`.
+* `swap_placement_policy` - (Optional) The swap file placement policy for this
+  virtual machine. Can be one of `inherit`, `hostLocal`, or `vmDirectory`.
+  Default: `inherit`.
+* `wait_for_guest_net_timeout` - (Optional) The amount of time, in minutes, to
+  wait for a routeable IP address on this virtual machine. A value less than 1
+  disables the waiter. Defualt: 5 minutes.
+* `shutdown_wait_timeout` - (Optional) The amount of time, in minutes, to wait
+  for a graceful guest shutdown when making necessary updates to the virtual
+  machine. If `force_power_off` is set to true, the VM will be force powered-off
+  after this timeout, otherwise an error is returned. Default: 3 minutes.
+* `migrate_wait_timeout` - (Optional) The amount of time, in minutes, to wait
+  for a virtual machine migration to complete before failing. Default: 10
+  minutes. Also see the section on [virtual machine
+  migration](#virtual-machine-migration).
+* `force_power_off` - (Optional) If a guest shutdown failed or timed out while
+  updating or destroying (see
+  [`shutdown_wait_timeout`](#shutdown_wait_timeout)), force the power-off of
+  the virtual machine. Default: `true`.
+* `scsi_controller_count` - (Optional) The number of SCSI controllers that
+  Terraform manages on this virtual machine. This directly affects the amount
+  of disks you can add to the virtual machine and the maximum disk unit number.
+  Note that lowering this value does not remove controllers. Default: `1`.
+
+~> **NOTE:** `scsi_controller_count` should only be modified when you will need
+more than 15 disks on a single virtual machine, or in rare cases that require a
+dedicated controller for certain disks. HashiCorp does not support exploiting
+this value to add out-of-band devices.
 
 ### Disk options
 
@@ -999,6 +1006,16 @@ The following attributes are exported on the base level of this resource:
   configuration.
 * `uuid` - The UUID of the virtual machine. Also exposed as the `id` of the
   resource.
+* `default_ip_address` - The IP address selected by Terraform to be used with
+  any [provisioners][tf-docs-provisioners] configured on this resource.
+  Whenever possible, this is the first IPv4 address that is reachable through
+  the default gateway configured on the machine, then the first reachable IPv6
+  address, and then the first general discovered address if neither exist. If
+  VMware tools is not running on the virtual machine, or if the VM is powered
+  off, this value will be blank.
+* `guest_ip_addresses` - The current list of IP addresses on this machine,
+  including the value of `default_ip_address`. If VMware tools is not running
+  on the virtual machine, or if the VM is powered off, this list will be empty.
 
 ## Importing 
 
