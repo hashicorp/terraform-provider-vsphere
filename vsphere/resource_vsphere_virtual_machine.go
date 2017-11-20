@@ -91,6 +91,7 @@ type virtualMachine struct {
 	resourcePool             string
 	datastore                string
 	vcpu                     int32
+	nestedVirtualization     bool
 	memoryMb                 int64
 	memoryAllocation         memoryAllocation
 	annotation               string
@@ -156,6 +157,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			"vcpu": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
+			},
+
+			"nested_virtualization": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 
 			"memory": &schema.Schema{
@@ -548,6 +555,12 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		rebootRequired = true
 	}
 
+	if d.HasChange("nested_virtualization") {
+		configSpec.NestedHVEnabled = boolPtr(d.Get("nested_virtualization").(bool))
+		hasChanges = true
+		rebootRequired = true
+	}
+
 	if d.HasChange("memory") {
 		configSpec.MemoryMB = int64(d.Get("memory").(int))
 		hasChanges = true
@@ -765,6 +778,10 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			reservation: int64(d.Get("memory_reservation").(int)),
 		},
 		customizationWaitTimeout: d.Get("wait_for_customization_timeout").(int),
+	}
+
+	if v, ok := d.GetOk("nested_virtualization"); ok {
+		vm.nestedVirtualization = v.(bool)
 	}
 
 	if v, ok := d.GetOk("hostname"); ok {
@@ -1959,6 +1976,11 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		},
 		Annotation: vm.annotation,
 	}
+
+	if vm.nestedVirtualization {
+		configSpec.NestedHVEnabled = &vm.nestedVirtualization
+	}
+
 	if vm.template == "" {
 		configSpec.GuestId = "otherLinux64Guest"
 	}
