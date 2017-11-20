@@ -39,6 +39,18 @@ The following arguments are supported:
   datacenter the virtual machine is located in. This can be omitted if the
   search path used in `name` is an absolute path. For default datacenters, use
   the `id` attribute from an empty `vsphere_datacenter` data source.
+* `scsi_controller_scan_count` - (Optional) The number of SCSI controllers to
+  scan for disk sizes and controller types on. Default: `1`.
+
+~> **NOTE:** For best results, ensure that all the disks on any templates you
+use with this data source reside on the primary controller, and leave this
+value at the default. See the
+[`vsphere_virtual_machine`][docs-virtual-machine-resource] resource
+documentation for the significance of this setting, specifically the
+[additional requirements and notes for
+cloning][docs-virtual-machine-resource-cloning] section.
+
+[docs-virtual-machine-resource-cloning]: /docs/providers/vsphere/r/virtual_machine.html#additional-requirements-and-notes-for-cloning
 
 ## Attribute Reference
 
@@ -51,13 +63,15 @@ The following attributes are exported:
 * `scsi_type`: The common type of all SCSI controllers on this virtual machine.
   Will be one of `lsilogic` (LSI Logic Parallel), `lsilogic-sas` (LSI Logic
   SAS), `pvscsi` (VMware Paravirtual), `buslogic` (BusLogic), or `mixed` when
-  there are multiple controller types.
+  there are multiple controller types. Only the first number of controllers
+  defined by `scsi_controller_scan_count` are scanned.
 * `disk_sizes`: The sizes, in GiB, of each of the virtual disks on this virtual
   machine or template. These are sorted by bus and unit number so that they can
   be applied to a `vsphere_virtual_machine` resource in the order the resource
   expects while cloning. This is useful for discovering the required size of a
   disk while performing a linked clone, as the disk size of a linked clone must
-  be the same as its source.
+  be the same as its source. Only the first number of controllers defined by
+  `scsi_controller_scan_count` are scanned for disks.
 * `network_interface_types`: The network interface types for each network
   interface found on the virtual machine, in device bus order. Will be one of
   `e1000`, `e1000e`, `pcnet32`, `sriov`, `vmxnet2`, or `vmxnet3`.

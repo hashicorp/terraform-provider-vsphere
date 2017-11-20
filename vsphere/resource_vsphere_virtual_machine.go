@@ -1,6 +1,7 @@
 package vsphere
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -472,9 +473,30 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	client := meta.(*VSphereClient).vimClient
 
-	name := d.Id()
-	log.Printf("[DEBUG] Looking for VM by name/path %q", name)
-	vm, err := virtualmachine.FromPath(client, name, nil)
+	var data struct {
+		Path                string
+		SCSIControllerCount int `json:"scsi_controller_count"`
+	}
+	if err := json.Unmarshal([]byte(d.Id()), &data); err != nil {
+		return nil, err
+	}
+
+	switch {
+	case data.Path == "":
+		return nil, fmt.Errorf("path cannot empty")
+	case data.SCSIControllerCount > 4:
+		return nil, fmt.Errorf("invalid SCSI controller count %d. Maximum is 4", data.SCSIControllerCount)
+	}
+
+	switch {
+	case data.SCSIControllerCount < 1:
+		d.Set("scsi_controller_count", 1)
+	default:
+		d.Set("scsi_controller_count", data.SCSIControllerCount)
+	}
+
+	log.Printf("[DEBUG] Looking for VM by name/path %q", data.Path)
+	vm, err := virtualmachine.FromPath(client, data.Path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching virtual machine: %s", err)
 	}
@@ -485,7 +507,7 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 
 	// Block the import if the VM is a template.
 	if props.Config.Template {
-		return nil, fmt.Errorf("VM %q is a template and cannot be imported", name)
+		return nil, fmt.Errorf("VM %q is a template and cannot be imported", data.Path)
 	}
 
 	// Validate the disks in the VM to make sure that they will work with the
@@ -495,7 +517,7 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 		return nil, err
 	}
 	// The VM should be ready for reading now
-	log.Printf("[DEBUG] VM UUID for %q is %q", name, props.Config.Uuid)
+	log.Printf("[DEBUG] VM UUID for %q is %q", data.Path, props.Config.Uuid)
 	d.SetId(props.Config.Uuid)
 	d.Set("imported", true)
 

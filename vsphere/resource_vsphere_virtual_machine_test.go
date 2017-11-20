@@ -1,6 +1,7 @@
 package vsphere
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -180,6 +181,59 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereVirtualMachineCheckExists(true),
 							testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, false, true}, []bool{true, false, true}),
+						),
+					},
+				},
+			},
+		},
+		{
+			"high disk unit numbers",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigMultiHighBus(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test.vmdk", 0, 0),
+							testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_1.vmdk", 1, 0),
+							testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_2.vmdk", 2, 1),
+						),
+					},
+				},
+			},
+		},
+		{
+			"high disk units to regular single controller",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigMultiHighBus(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test.vmdk", 0, 0),
+							testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_1.vmdk", 1, 0),
+							testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_2.vmdk", 2, 1),
+						),
+					},
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigMultiDevice(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test.vmdk", 0, 0),
+							testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_1.vmdk", 0, 1),
+							testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_2.vmdk", 0, 2),
 						),
 					},
 				},
@@ -775,17 +829,22 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 						ImportStateVerifyIgnore: []string{
 							"disk",
 							"imported",
-							"force_power_off",
-							"migrate_wait_timeout",
-							"shutdown_wait_timeout",
-							"wait_for_guest_net_timeout",
 						},
 						ImportStateIdFunc: func(s *terraform.State) (string, error) {
+							var data struct {
+								Path                string
+								SCSIControllerCount int `json:"scsi_controller_count,omitempty"`
+							}
 							vm, err := testGetVirtualMachine(s, "vm")
 							if err != nil {
 								return "", err
 							}
-							return vm.InventoryPath, nil
+							data.Path = vm.InventoryPath
+							b, err := json.Marshal(data)
+							if err != nil {
+								return "", err
+							}
+							return string(b), nil
 						},
 						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
 						Check: resource.ComposeTestCheckFunc(
@@ -961,6 +1020,52 @@ func testAccResourceVSphereVirtualMachineCheckExtraDisks() resource.TestCheckFun
 		}
 
 		return nil
+	}
+}
+
+// testAccResourceVSphereVirtualMachineCheckDiskBus is a check that looks for a
+// disk with a specific name at a specific SCSI bus number and unit number.
+func testAccResourceVSphereVirtualMachineCheckDiskBus(name string, expectedBus, expectedUnit int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVirtualMachineProperties(s, "vm")
+		if err != nil {
+			return err
+		}
+
+		for _, dev := range props.Config.Hardware.Device {
+			if disk, ok := dev.(*types.VirtualDisk); ok {
+				if info, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo); ok {
+					dp := new(object.DatastorePath)
+					if ok := dp.FromString(info.FileName); !ok {
+						return fmt.Errorf("could not parse datastore path %q", info.FileName)
+					}
+					if path.Base(dp.Path) != name {
+						continue
+					}
+					l := object.VirtualDeviceList(props.Config.Hardware.Device)
+					ctlr := l.FindByKey(disk.ControllerKey)
+					if ctlr == nil {
+						return fmt.Errorf("could not find controller with key %d for disk %q", disk.ControllerKey, name)
+					}
+					sc, ok := ctlr.(types.BaseVirtualSCSIController)
+					if !ok {
+						return fmt.Errorf("disk %q not attached to a SCSI controller (actual: %T)", name, ctlr)
+					}
+					if sc.GetVirtualSCSIController().BusNumber != int32(expectedBus) {
+						return fmt.Errorf("disk %q: Expected controller bus to be %d, got %d", name, expectedBus, sc.GetVirtualSCSIController().BusNumber)
+					}
+					if disk.UnitNumber == nil {
+						return fmt.Errorf("disk %q has no unit number", name)
+					}
+					if *disk.UnitNumber != int32(expectedUnit) {
+						return fmt.Errorf("disk %q: Expected unit number to be %d, got %d", name, expectedUnit, *disk.UnitNumber)
+					}
+					return nil
+				}
+			}
+		}
+
+		return fmt.Errorf("could not find disk path %q", name)
 	}
 }
 
@@ -1550,6 +1655,94 @@ resource "vsphere_virtual_machine" "vm" {
   disk {
     name        = "terraform-test_2.vmdk"
     unit_number = 2
+    size        = 5
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_DATASTORE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigMultiHighBus() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+	scsi_controller_count = 3
+
+  num_cpus = 2
+  memory   = 1024
+  guest_id = "other3xLinux64Guest"
+	
+  network_interface {
+    network_id            = "${data.vsphere_network.network.id}"
+    bandwidth_share_level = "normal"
+  }
+
+  network_interface {
+    network_id            = "${data.vsphere_network.network.id}"
+    bandwidth_share_level = "high"
+  }
+
+  network_interface {
+    network_id            = "${data.vsphere_network.network.id}"
+    bandwidth_share_level = "low"
+  }
+
+  disk {
+    name = "terraform-test.vmdk"
+    size = 20
+  }
+
+  disk {
+    name        = "terraform-test_1.vmdk"
+    unit_number = 15
+    size        = 10
+  }
+
+  disk {
+    name        = "terraform-test_2.vmdk"
+    unit_number = 31
     size        = 5
   }
 }

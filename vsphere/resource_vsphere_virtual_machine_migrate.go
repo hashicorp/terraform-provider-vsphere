@@ -3,12 +3,15 @@ package vsphere
 import (
 	"fmt"
 	"log"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/vim25/types"
 )
 
 // resourceVSphereVirtualMachineMigrateState is the master state migration function for
@@ -84,10 +87,45 @@ func migrateVSphereVirtualMachineStateV2(is *terraform.InstanceState, meta inter
 	// version 2. At this point in time, there is nothing here that would cause
 	// issues (nothing in the sub-resource read logic is reliant on schema
 	// versions), and an empty ResourceData is sent anyway.
+	diskCnt, _ := strconv.Atoi(is.Attributes["disk.#"])
+	maxBus := diskCnt / 15
+	l := object.VirtualDeviceList(props.Config.Hardware.Device)
+	for k, v := range is.Attributes {
+		if !regexp.MustCompile("disk\\.[0-9]+\\.key").MatchString(k) {
+			continue
+		}
+		key, _ := strconv.Atoi(v)
+		if key < 1 {
+			continue
+		}
+		device := l.FindByKey(int32(key))
+		if device == nil {
+			continue
+		}
+		ctlr := l.FindByKey(device.GetVirtualDevice().ControllerKey)
+		if ctlr == nil {
+			continue
+		}
+		if sc, ok := ctlr.(types.BaseVirtualSCSIController); ok && sc.GetVirtualSCSIController().BusNumber > int32(maxBus) {
+			maxBus = int(sc.GetVirtualSCSIController().BusNumber)
+		}
+	}
+
 	d := resourceVSphereVirtualMachine().Data(&terraform.InstanceState{})
+	d.Set("scsi_controller_count", maxBus+1)
 	if err := virtualdevice.DiskImportOperation(d, client, object.VirtualDeviceList(props.Config.Hardware.Device)); err != nil {
 		return err
 	}
+
+	rs := resourceVSphereVirtualMachine().Schema
+	var guestNetTimeout string
+	switch is.Attributes["wait_for_guest_net"] {
+	case "false":
+		guestNetTimeout = "-1"
+	default:
+		guestNetTimeout = fmt.Sprintf("%v", rs["wait_for_guest_net_timeout"].Default)
+	}
+
 	// The VM should be ready for reading now
 	is.Attributes = make(map[string]string)
 	is.ID = id
@@ -95,12 +133,12 @@ func migrateVSphereVirtualMachineStateV2(is *terraform.InstanceState, meta inter
 
 	// Set some defaults. This helps possibly prevent diffs where these values
 	// have not been changed.
-	rs := resourceVSphereVirtualMachine().Schema
 	is.Attributes["scsi_controller_count"] = fmt.Sprintf("%v", rs["scsi_controller_count"].Default)
 	is.Attributes["force_power_off"] = fmt.Sprintf("%v", rs["force_power_off"].Default)
 	is.Attributes["migrate_wait_timeout"] = fmt.Sprintf("%v", rs["migrate_wait_timeout"].Default)
 	is.Attributes["shutdown_wait_timeout"] = fmt.Sprintf("%v", rs["shutdown_wait_timeout"].Default)
-	is.Attributes["wait_for_guest_net_timeout"] = fmt.Sprintf("%v", rs["wait_for_guest_net_timeout"].Default)
+	is.Attributes["wait_for_guest_net_timeout"] = guestNetTimeout
+	is.Attributes["scsi_controller_count"] = fmt.Sprintf("%v", maxBus+1)
 
 	log.Printf("[DEBUG] %s: Migration complete, resource is ready for read", resourceVSphereVirtualMachineIDString(d))
 	return nil

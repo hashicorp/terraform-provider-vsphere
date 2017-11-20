@@ -298,12 +298,7 @@ nextNew:
 // returned, all necessary values are just set and committed to state.
 func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) error {
 	log.Printf("[DEBUG] DiskRefreshOperation: Beginning refresh")
-	devices := l.Select(func(device types.BaseVirtualDevice) bool {
-		if _, ok := device.(*types.VirtualDisk); ok {
-			return true
-		}
-		return false
-	})
+	devices := selectDisks(l, d.Get("scsi_controller_count").(int))
 	log.Printf("[DEBUG] DiskRefreshOperation: Disk devices located: %s", DeviceListString(devices))
 	curSet := d.Get(subresourceTypeDisk).([]interface{})
 	log.Printf("[DEBUG] DiskRefreshOperation: Current resource set from state: %s", subresourceListString(curSet))
@@ -559,12 +554,7 @@ nextNew:
 // existing state.
 func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l object.VirtualDeviceList) error {
 	log.Printf("[DEBUG] DiskCloneValidateOperation: Checking existing virtual disk configuration")
-	devices := l.Select(func(device types.BaseVirtualDevice) bool {
-		if _, ok := device.(*types.VirtualDisk); ok {
-			return true
-		}
-		return false
-	})
+	devices := selectDisks(l, d.Get("scsi_controller_count").(int))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
 		Sort:       devices,
@@ -693,12 +683,7 @@ nextDisk:
 // bring the disk configurations fully in sync with that is defined.
 func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) ([]types.VirtualMachineRelocateSpecDiskLocator, error) {
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Generating full disk relocate spec list")
-	devices := l.Select(func(device types.BaseVirtualDevice) bool {
-		if _, ok := device.(*types.VirtualDisk); ok {
-			return true
-		}
-		return false
-	})
+	devices := selectDisks(l, d.Get("scsi_controller_count").(int))
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
@@ -747,12 +732,7 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 // virtual device operations rely pretty heavily on.
 func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] DiskPostCloneOperation: Looking for disk device changes post-clone")
-	devices := l.Select(func(device types.BaseVirtualDevice) bool {
-		if _, ok := device.(*types.VirtualDisk); ok {
-			return true
-		}
-		return false
-	})
+	devices := selectDisks(l, d.Get("scsi_controller_count").(int))
 	log.Printf("[DEBUG] DiskPostCloneOperation: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
@@ -845,12 +825,7 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 // machine's VirtualDeviceList to ensure it will be imported properly.
 func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) error {
 	log.Printf("[DEBUG] DiskImportOperation: Performing disk import validation")
-	devices := l.Select(func(device types.BaseVirtualDevice) bool {
-		if _, ok := device.(*types.VirtualDisk); ok {
-			return true
-		}
-		return false
-	})
+	devices := selectDisks(l, d.Get("scsi_controller_count").(int))
 	log.Printf("[DEBUG] DiskImportOperation: Disk devices located: %s", DeviceListString(devices))
 
 	// Read in the disks. We don't do anything with the results here other than
@@ -884,14 +859,9 @@ func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 // ReadDiskSizes returns a list of disk sizes. This is used in the VM data
 // source to discover the sizes of all of the disks on the virtual machine
 // sorted by the order that they would be added in if a clone were to be done.
-func ReadDiskSizes(l object.VirtualDeviceList) ([]int, error) {
-	log.Printf("[DEBUG] ReadDiskSizes: Fetching disk sizes")
-	devices := l.Select(func(device types.BaseVirtualDevice) bool {
-		if _, ok := device.(*types.VirtualDisk); ok {
-			return true
-		}
-		return false
-	})
+func ReadDiskSizes(l object.VirtualDeviceList, count int) ([]int, error) {
+	log.Printf("[DEBUG] ReadDiskSizes: Fetching disk sizes for disks across %d SCSI controllers", count)
+	devices := selectDisks(l, count)
 	log.Printf("[DEBUG] ReadDiskSizes: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
@@ -1403,10 +1373,15 @@ func (r *Subresource) findControllerInfo(l object.VirtualDeviceList, disk *types
 	if disk.UnitNumber == nil {
 		return -1, nil, fmt.Errorf("unit number on disk key %d is unset", disk.Key)
 	}
+	sc, ok := ctlr.(types.BaseVirtualSCSIController)
+	if !ok {
+		return -1, nil, fmt.Errorf("controller at key %d is not a SCSI controller (actual: %T)", ctlr.GetVirtualDevice().Key, ctlr)
+	}
 	unit := *disk.UnitNumber
-	if unit > ctlr.(types.BaseVirtualSCSIController).GetVirtualSCSIController().ScsiCtlrUnitNumber {
+	if unit > sc.GetVirtualSCSIController().ScsiCtlrUnitNumber {
 		unit--
 	}
+	unit = unit + 15*sc.GetVirtualSCSIController().BusNumber
 	return int(unit), ctlr.(types.BaseVirtualController), nil
 }
 
@@ -1514,4 +1489,25 @@ func datastorePathHasBase(p, b string) bool {
 		return false
 	}
 	return path.Base(dp.Path) == path.Base(b)
+}
+
+// selectDisks looks for disks that Terraform is supposed to manage. count is
+// the number of controllers that Terraform is managing and serves as an upper
+// limit (count - 1) of the SCSI bus number for a controller that eligible
+// disks need to be attached to.
+func selectDisks(l object.VirtualDeviceList, count int) object.VirtualDeviceList {
+	devices := l.Select(func(device types.BaseVirtualDevice) bool {
+		if disk, ok := device.(*types.VirtualDisk); ok {
+			ctlr, err := findControllerForDevice(l, disk)
+			if err != nil {
+				log.Printf("[DEBUG] DiskRefreshOperation: Error looking for controller for device: %q: %s", l.Name(disk), err)
+				return false
+			}
+			if sc, ok := ctlr.(types.BaseVirtualSCSIController); ok && sc.GetVirtualSCSIController().BusNumber < int32(count) {
+				return true
+			}
+		}
+		return false
+	})
+	return devices
 }

@@ -25,6 +25,12 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 				Description: "The managed object ID of the datacenter the virtual machine is in. This is not required when using ESXi directly, or if there is only one datacenter in your infrastructure.",
 				Optional:    true,
 			},
+			"scsi_controller_scan_count": {
+				Type:        schema.TypeInt,
+				Description: "The number of SCSI controllers to scan for disk sizes and controller types on.",
+				Optional:    true,
+				Default:     1,
+			},
 			"guest_id": {
 				Type:        schema.TypeString,
 				Description: "The guest ID of the virtual machine.",
@@ -82,8 +88,8 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 	d.SetId(props.Config.Uuid)
 	d.Set("guest_id", props.Config.GuestId)
 	d.Set("alternate_guest_name", props.Config.AlternateGuestName)
-	d.Set("scsi_type", virtualdevice.ReadSCSIBusStatePartial(object.VirtualDeviceList(props.Config.Hardware.Device)))
-	sizes, err := virtualdevice.ReadDiskSizes(object.VirtualDeviceList(props.Config.Hardware.Device))
+	d.Set("scsi_type", virtualdevice.ReadSCSIBusState(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int)))
+	sizes, err := virtualdevice.ReadDiskSizes(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int))
 	if err != nil {
 		return fmt.Errorf("error reading disk sizes: %s", err)
 	}

@@ -26,8 +26,8 @@ control than given in a traditional cloud provider. As such, Terraform has to
 make some decisions on how to manage the virtual machines it creates and
 manages. This section documents things you need to know about your virtual
 machine configuration that you should consider when setting up virtual
-machines, creating templates to clone from, or importing external virtual
-machines into Terraform.
+machines, creating templates to clone from, or migrating from previous versions
+of this resource.
 
 ### Disks
 
@@ -39,10 +39,14 @@ Disks are managed by exact name supplied to the `name` attribute of a [`disk`
 sub-resource](#disk-options). This is required - the resource does not support
 automatic naming.
 
-Virtual disks can be SCSI disks only. The entire SCSI bus is filled with
-controllers of the type defined by the top-level [`scsi_type`](#scsi_type)
-setting. If you are cloning from a template, devices will be added or
-re-configured as necessary.
+Virtual disks can be SCSI disks only. The SCSI controllers managed by Terraform
+can vary, depending on the value supplied to
+[`scsi_controller_count`](#scsi_controller_count). This also dictates the
+controllers that are checked when looking for disks during a cloning process.
+By default, this value is `1`, meaning that you can have up to 15 disks
+configured on a virtual machine. These are all configured with the controller
+type defined by the [`scsi_type`](#scsi_type) setting. If you are cloning from
+a template, devices will be added or re-configured as necessary.
 
 When cloning from a template, you must specify disks of either the same or
 greater size than the disks in source template when creating a traditional
@@ -50,8 +54,10 @@ clone, or exactly the same size when cloning from snapshot (also known as a
 linked clone). For more details, see the section on [creating a virtual machine
 from a template](#creating-a-virtual-machine-from-a-template).
 
-A maximum of 60 virtual disks can be configured. See the [disk
-options](#disk-options) section for more details.
+A maximum of 60 virtual disks can be configured when the
+[`scsi_controller_count`](#scsi_controller_count) setting is configured to its
+maximum of `4` controllers. See the [disk options](#disk-options) section for
+more details.
 
 ### Customization and network waiters
 
@@ -87,6 +93,11 @@ The path for migrating to the current version of this resource is very similar
 to the [import](#importing) path, with the exception that the `terraform
 import` command does not need to be run. See that section for details on what
 is required before you run `terraform plan` on a state that requires migration.
+
+A successful import usually only results in a diff where configured disks
+transition their [`keep_on_remove`](#keep_on_remove) settings from `true` to
+`false`. This operation does not perform any virtual machine operations and is
+safe to run while the virtual machine is running.
 
 ## Example Usage
 
@@ -309,6 +320,16 @@ options:
   updating or destroying (see
   [`shutdown_wait_timeout`](#shutdown_wait_timeout)), force the power-off of
   the virtual machine. Default: `true`.
+* `scsi_controller_count` - (Optional) The number of SCSI controllers that
+  Terraform manages on this virtual machine. This directly affects the amount
+  of disks you can add to the virtual machine and the maximum disk unit number.
+  Note that lowering this value does not remove controllers. Default: `1`.
+
+~> **NOTE:** `scsi_controller_count` should only be modified when you will need
+more than 15 disks on a single virtual machine, or in rare cases that require a
+dedicated controller for certain disks. HashiCorp does not support exploiting
+this value to add out-of-band devices.
+
 * `scsi_type` - (Optional) The type of SCSI bus this virtual machine will have.
   Can be one of lsilogic (LSI Logic Parallel), lsilogic-sas (LSI Logic SAS) or
   pvscsi (VMware Paravirtual). Defualt: `lsilogic`.
@@ -440,9 +461,11 @@ The options are:
   should only be a longer path (example: `directory/disk.vmdk`) if attaching an
   external disk.
 * `size` - (Required) The size of the disk, in GiB.
-* `unit_number` - (Optional) The disk number on the SCSI bus. Can be one of `0`
-  to `59`. The default is `0`, for which one disk must be set to. Duplicate
-  unit numbers are not allowed.
+* `unit_number` - (Optional) The disk number on the SCSI bus. The maximum value
+  for this setting is the value of
+  [`scsi_controller_count`](#scsi_controller_count) times 15, minus 1 (so `14`,
+  `29`, `44`, and `59`, for 1-4 controllers respectively). The default is `0`,
+  for which one disk must be set to. Duplicate unit numbers are not allowed.
 * `datastore_id` - (Optional) The datastore for this virtual disk. The default
   is to use the datastore of the virtual machine. See the section on [virtual
   machine migration](#virtual-machine-migration) for details on changing this
@@ -496,66 +519,12 @@ defaults in the sub-resource are the equivalent of thin provisioning.
   `thin_provisioned` should be set to `true`.
 
 ~> **NOTE:** Not all disk types are available on some types of datastores.
-Attempting to set the appropriate options on disks on these datastores will
-create spurious diffs in Terraform.
+Attempting to set options inappropriate for a datastore that a disk is deployed
+to will result in a successful initial apply, but vSphere will silently correct
+the options, and subsequent plans will fail with an appropriate error message
+until the settings are corrected.
 
 ~> **NOTE:** The disk type cannot be changed once set.
-
-#### Reviewing a disk diff
-
-Due to the nature of the options in the `disk` sub-resource, each instance
-needs to be assigned a unique hash in the terraform state versus simply being
-assigned a sequence number, unlike `network_interface` and `cdrom` devices.
-Hence, when running `terraform plan` after making changes to a disk, you will
-see a diff similar to the output below:
-
-```
-disk.1657266812.attach:           "" => "false"
-disk.1657266812.datastore_id:     "" => "datastore-123"
-disk.1657266812.device_address:   "" => "scsi:0:0"
-disk.1657266812.disk_mode:        "" => "persistent"
-disk.1657266812.disk_sharing:     "" => "sharingNone"
-disk.1657266812.eagerly_scrub:    "" => "false"
-disk.1657266812.io_limit:         "" => "-1"
-disk.1657266812.io_reservation:   "" => "0"
-disk.1657266812.io_share_count:   "" => "1000"
-disk.1657266812.io_share_level:   "" => "normal"
-disk.1657266812.keep_on_remove:   "" => "false"
-disk.1657266812.key:              "" => "2000"
-disk.1657266812.name:             "" => "terraform-test/terraform-test.vmdk"
-disk.1657266812.size:             "" => "50"
-disk.1657266812.thin_provisioned: "" => "true"
-disk.1657266812.unit_number:      "" => "0"
-disk.1657266812.write_through:    "" => "false"
-disk.2182090100.attach:           "false" => "false"
-disk.2182090100.datastore_id:     "datastore-123" => ""
-disk.2182090100.disk_mode:        "persistent" => ""
-disk.2182090100.disk_sharing:     "sharingNone" => ""
-disk.2182090100.eagerly_scrub:    "false" => "false"
-disk.2182090100.io_limit:         "-1" => "0"
-disk.2182090100.io_reservation:   "0" => "0"
-disk.2182090100.io_share_count:   "1000" => "0"
-disk.2182090100.io_share_level:   "normal" => ""
-disk.2182090100.keep_on_remove:   "false" => "false"
-disk.2182090100.name:             "terraform-test/terraform-test.vmdk" => ""
-disk.2182090100.size:             "32" => "0"
-disk.2182090100.thin_provisioned: "true" => "false"
-disk.2182090100.unit_number:      "0" => "0"
-disk.2182090100.write_through:    "false" => "false"
-```
-
-To make sure you have a functional diff:
-
-* Locate the hashes on that match the disk's `name` field on the left and
-  right. These are your old and new sets for each affected disk. Disks that are
-  not changing (not shown here) will have data on both the left and right and
-  should not show up in the diff with a different hash number.
-* Check to make sure that `key` is not `0` and `device_address` is not showing
-  up on the right as `<computed>`. If they are, review your configuration, make
-  any necessary changes and re-run `terraform plan`. **Do not** apply the plan
-  as it was generated as you may lose data on the affected disk.
-* You should now be able to compare the rest of the fields in the diff. Here,
-  we are increasing the `size` of the disk from 32 to 50 GiB.
 
 ### Network interface options
 
@@ -935,6 +904,13 @@ both the resource configuration and source template:
 * The `size` of a virtual disk must be at least the same size as its
   counterpart disk in the template.
 * When using `linked_clone`, the `size` has to be an exact match.
+* The [`scsi_controller_count`](#scsi_controller_count) setting should be
+  configured as necessary to cover all of the disks on the template. For best
+  results, only configure this setting for the amount of controllers you will
+  need to cover your disk quantity and bandwidth needs, and configure your
+  template accordingly. For most workloads, this setting should be kept at its
+  default of `1`, and all disks in the template should reside on the single,
+  primary controller.
 * Some operating systems (such as Windows) do not respond well to a change in
   disk controller type, so when using such OSes, take care to ensure that
   `scsi_type` is set to an exact match of the template's controller set. For
@@ -1026,17 +1002,25 @@ The following attributes are exported on the base level of this resource:
 
 ## Importing 
 
-An existing virtual machine can be [imported][docs-import] into this resource via
-the full path to the virtual machine, via the following command:
+An existing virtual machine can be [imported][docs-import] into this resource
+via supplying a JSON string with the full path to the virtual machine, and the
+number of SCSI controllers that the virtual machine has. An example is below:
 
 [docs-import]: /docs/import/index.html
 
 ```
-terraform import vsphere_virtual_machine.vm /dc1/vm/srv1
+terraform import vsphere_virtual_machine.vm '{ "path": "/dc1/vm/srv1" }'
 ```
 
 The above would import the virtual machine named `srv1` that is located in the
-`dc1` datacenter.
+`dc1` datacenter. This implies the default
+[`scsi_controller_count`](#scsi_controller_count) of 1. An example with two
+controllers is below:
+
+```
+terraform import vsphere_virtual_machine.vm \
+  '{ "path": "/dc1/vm/srv1", "scsi_controller_count": 2 }'
+```
 
 ### Additional requirements and notes for importing
 
@@ -1061,13 +1045,11 @@ In addition to these rules, the following extra rules apply to importing:
   `clone` features, you will need to create a new resource and destroy the old
   one.
 
-After importing, you should run `terraform plan` and review the plan. It will
-always be non-empty due to several TF-specific options that need to be added to
-state, in addition to finalizing the configuration for virtual disks that get
-added, and normalization of he SCSI bus. Some of these changes require a power
-off of the virtual machine, so plan accordingly. Please see the section on
-[reviewing a disk diff](#reviewing-a-disk-diff) for information on how to read
-the disk diff details. Unless you have changed anything else in configuration
-that would be causing disk attributes to change, the only difference should be
-the transition of [`keep_on_remove`](#keep_on_remove) of known disks from
-`true` to `false`.
+After importing, you should run `terraform plan`. Unless you have changed
+anything else in configuration that would be causing other attributes to
+change, the only difference should be the transition of
+[`keep_on_remove`](#keep_on_remove) of known disks from `true` to `false`. The
+operation only updates Terraform state when applied, and is safe to run when
+the virtual machine is running. If more settings are being modified, you may
+need to plan maintenance accordingly for any necessary re-configuration of the
+virtual machine.
