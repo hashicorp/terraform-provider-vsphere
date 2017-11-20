@@ -532,6 +532,7 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 						Config: testAccResourceVSphereVirtualMachineConfigClone(),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereVirtualMachineCheckExists(true),
+							resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "default_ip_address", os.Getenv("VSPHERE_IPV4_ADDRESS")),
 						),
 					},
 				},
@@ -657,6 +658,28 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 								os.Getenv("VSPHERE_IPV4_PREFIX"),
 								os.Getenv("VSPHERE_IPV4_GATEWAY"),
 							),
+							resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "default_ip_address", os.Getenv("VSPHERE_IPV4_ADDRESS")),
+						),
+					},
+				},
+			},
+		},
+		{
+			"ipv6 only",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigIPv6Only(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckNet("fd00::2", "32", "fd00::1"),
+							resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "default_ip_address", "fd00::2"),
 						),
 					},
 				},
@@ -3176,6 +3199,105 @@ resource "vsphere_virtual_machine" "vm" {
 	)
 }
 
+func testAccResourceVSphereVirtualMachineConfigIPv6Only() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "template" {
+  default = "%s"
+}
+
+variable "linked_clone" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_virtual_machine" "template" {
+  name          = "${var.template}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 1024
+  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+
+	wait_for_guest_net_timeout = 10
+
+  network_interface {
+    network_id   = "${data.vsphere_network.network.id}"
+    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+  }
+
+  disk {
+    name = "terraform-test.vmdk"
+    size = "${data.vsphere_virtual_machine.template.disk_sizes[0]}"
+  }
+
+  clone {
+    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+
+    customize {
+      linux_options {
+        host_name = "terraform-test"
+        domain    = "test.internal"
+      }
+
+      network_interface {
+				ipv6_address = "fd00::2"
+        ipv6_netmask = "32"
+      }
+
+			ipv6_gateway = "fd00::1"
+    }
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_TEMPLATE"),
+		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
+	)
+}
 func testAccResourceVSphereVirtualMachineConfigHostVMotion(host string) string {
 	return fmt.Sprintf(`
 variable "datacenter" {

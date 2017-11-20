@@ -730,6 +730,15 @@ The options are:
   blank or not included, auto-configuration is used.
 * `ipv6_netmask` - (Optional) The IPv6 subnet mask, in bits (example: `32`).
 
+~> **NOTE:** The minimum setting for IPv4 in a customization specification is
+DHCP. If you are setting up an IPv6-exclusive network without DHCP, you might
+need to set [`wait_for_guest_net_timeout`](#wait_for_guest_net_timeout) to a
+high enough value to cover the DHCP timeout of your virtual machine, or turn it
+off altogether by supplying a zero or negative value. Keep in mind that turning
+off `wait_for_guest_net_timeout` will more than likely mean that IP addresses
+will not be reported to any provisioners you may have configured on the
+resource.
+
 #### Global routing settings
 
 VM customization under the `vsphere_virtual_machine` resource does not take a
