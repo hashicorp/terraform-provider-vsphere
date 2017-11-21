@@ -20,6 +20,8 @@ import (
 	"github.com/hashicorp/terraform/config"
 	"github.com/mitchellh/copystructure"
 	"github.com/satori/go.uuid"
+
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 const (
@@ -664,7 +666,7 @@ func (s *State) FromFutureTerraform() bool {
 	}
 
 	v := version.Must(version.NewVersion(s.TFVersion))
-	return SemVersion.LessThan(v)
+	return tfversion.SemVer.LessThan(v)
 }
 
 func (s *State) Init() {
@@ -1087,7 +1089,7 @@ func (m *ModuleState) Orphans(c *config.Config) []string {
 	defer m.Unlock()
 
 	keys := make(map[string]struct{})
-	for k, _ := range m.Resources {
+	for k := range m.Resources {
 		keys[k] = struct{}{}
 	}
 
@@ -1095,7 +1097,7 @@ func (m *ModuleState) Orphans(c *config.Config) []string {
 		for _, r := range c.Resources {
 			delete(keys, r.Id())
 
-			for k, _ := range keys {
+			for k := range keys {
 				if strings.HasPrefix(k, r.Id()+".") {
 					delete(keys, k)
 				}
@@ -1104,7 +1106,32 @@ func (m *ModuleState) Orphans(c *config.Config) []string {
 	}
 
 	result := make([]string, 0, len(keys))
-	for k, _ := range keys {
+	for k := range keys {
+		result = append(result, k)
+	}
+
+	return result
+}
+
+// RemovedOutputs returns a list of outputs that are in the State but aren't
+// present in the configuration itself.
+func (m *ModuleState) RemovedOutputs(c *config.Config) []string {
+	m.Lock()
+	defer m.Unlock()
+
+	keys := make(map[string]struct{})
+	for k := range m.Outputs {
+		keys[k] = struct{}{}
+	}
+
+	if c != nil {
+		for _, o := range c.Outputs {
+			delete(keys, o.Name)
+		}
+	}
+
+	result := make([]string, 0, len(keys))
+	for k := range keys {
 		result = append(result, k)
 	}
 
@@ -1310,6 +1337,10 @@ func (m *ModuleState) String() string {
 	}
 
 	return buf.String()
+}
+
+func (m *ModuleState) Empty() bool {
+	return len(m.Locals) == 0 && len(m.Outputs) == 0 && len(m.Resources) == 0
 }
 
 // ResourceStateKey is a structured representation of the key used for the
@@ -1908,7 +1939,7 @@ func ReadState(src io.Reader) (*State, error) {
 		result = v3State
 	default:
 		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
-			SemVersion.String(), versionIdentifier.Version)
+			tfversion.SemVer.String(), versionIdentifier.Version)
 	}
 
 	// If we reached this place we must have a result set
@@ -1952,7 +1983,7 @@ func ReadStateV2(jsonBytes []byte) (*State, error) {
 	// version that we don't understand
 	if state.Version > StateVersion {
 		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
-			SemVersion.String(), state.Version)
+			tfversion.SemVer.String(), state.Version)
 	}
 
 	// Make sure the version is semantic
@@ -1987,7 +2018,7 @@ func ReadStateV3(jsonBytes []byte) (*State, error) {
 	// version that we don't understand
 	if state.Version > StateVersion {
 		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
-			SemVersion.String(), state.Version)
+			tfversion.SemVer.String(), state.Version)
 	}
 
 	// Make sure the version is semantic

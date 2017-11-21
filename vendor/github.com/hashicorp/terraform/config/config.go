@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/helper/hilmapstructure"
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -56,6 +55,8 @@ type AtlasConfig struct {
 type Module struct {
 	Name      string
 	Source    string
+	Version   string
+	Providers map[string]string
 	RawConfig *RawConfig
 }
 
@@ -260,7 +261,9 @@ func (r *Resource) ProviderFullName() string {
 // the provider name is inferred from the resource type name.
 func ResourceProviderFullName(resourceType, explicitProvider string) string {
 	if explicitProvider != "" {
-		return explicitProvider
+		// check for an explicit provider name, or return the original
+		parts := strings.SplitAfter(explicitProvider, "provider.")
+		return parts[len(parts)-1]
 	}
 
 	idx := strings.IndexRune(resourceType, '_')
@@ -387,7 +390,7 @@ func (c *Config) Validate() error {
 
 	// Check that providers aren't declared multiple times and that their
 	// version constraints, where present, are syntactically valid.
-	providerSet := make(map[string]struct{})
+	providerSet := make(map[string]bool)
 	for _, p := range c.ProviderConfigs {
 		name := p.FullName()
 		if _, ok := providerSet[name]; ok {
@@ -407,7 +410,7 @@ func (c *Config) Validate() error {
 			}
 		}
 
-		providerSet[name] = struct{}{}
+		providerSet[name] = true
 	}
 
 	// Check that all references to modules are valid
@@ -497,6 +500,15 @@ func (c *Config) Validate() error {
 				"%s: can't initialize configuration: %s",
 				m.Id(), err))
 		}
+
+		// check that all named providers actually exist
+		for _, p := range m.Providers {
+			if !providerSet[p] {
+				errs = append(errs, fmt.Errorf(
+					"provider %q named in module %q does not exist", p, m.Name))
+			}
+		}
+
 	}
 	dupped = nil
 
@@ -566,22 +578,7 @@ func (c *Config) Validate() error {
 			}
 		}
 
-		// Interpolate with a fixed number to verify that its a number.
-		r.RawCount.interpolate(func(root ast.Node) (interface{}, error) {
-			// Execute the node but transform the AST so that it returns
-			// a fixed value of "5" for all interpolations.
-			result, err := hil.Eval(
-				hil.FixedValueTransform(
-					root, &ast.LiteralNode{Value: "5", Typex: ast.TypeString}),
-				nil)
-			if err != nil {
-				return "", err
-			}
-
-			return result.Value, nil
-		})
-		_, err := strconv.ParseInt(r.RawCount.Value().(string), 0, 0)
-		if err != nil {
+		if !r.RawCount.couldBeInteger() {
 			errs = append(errs, fmt.Errorf(
 				"%s: resource count must be an integer",
 				n))
