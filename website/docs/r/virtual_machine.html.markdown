@@ -712,6 +712,35 @@ resource "vsphere_virtual_machine" "vm" {
 The first set of `network_interface` data would be assigned to the `public`
 interface, and the second to the `private` interface.
 
+To use DHCP, declare an empty `network_interface` block for each interface
+being configured. So the above example would look like:
+
+```hcl
+resource "vsphere_virtual_machine" "vm" {
+  ...
+
+  network_interface {
+    network_id   = "${data.vsphere_network.public.id}"
+  }
+
+  network_interface {
+    network_id   = "${data.vsphere_network.private.id}"
+  }
+
+  clone {
+    ...
+
+    customize {
+      ...
+
+      network_interface {}
+
+      network_interface {}
+    }
+  }
+}
+```
+
 The options are:
 
 * `dns_server_list` - (Optional) Network interface-specific DNS server settings
