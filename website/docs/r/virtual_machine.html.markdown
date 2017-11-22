@@ -972,17 +972,22 @@ example](#cloning-and-customization-example) for usage details.
 
 The `vsphere_virtual_machine` resource supports live migration (otherwise known
 as vMotion) both on the host and storage level. One can migrate the entire VM
-to another host or datastore, and migrate or pin a single disk to a specific
-datastore.
+to another host, cluster, resource pool, or datastore, and migrate or pin a
+single disk to a specific datastore.
 
-### Host migration 
+### Host, cluster, and resource pool migration 
 
 To migrate the virtual machine to another host or resource pool, change the
 `host_system_id` or `resource_pool_id` to the manged object IDs of the new host
-or resource pool accordingly.
+or resource pool accordingly. To change the virtual machine's cluster or
+standalone host, select a resource pool within the specific target.
 
 The same rules apply for migration as they do for VM creation - any host
-specified needs to be a part of the resource pool supplied.
+specified needs to be a part of the resource pool supplied. Also keep in mind
+the implications of moving the virtual machine to a resource pool in another
+cluster or standalone host, namely ensuring that all hosts in the cluster (or
+the single standalone host) have access to the datastore that the virtual
+machine is in.
 
 ### Storage migration
 

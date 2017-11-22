@@ -15,7 +15,9 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/computeresource"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 	"github.com/vmware/govmomi/object"
@@ -739,6 +741,33 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 			},
 		},
 		{
+			"resource pool vmotion",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigResourcePoolVMotion(os.Getenv("VSPHERE_RESOURCE_POOL")),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckResourcePool(os.Getenv("VSPHERE_RESOURCE_POOL")),
+						),
+					},
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigResourcePoolVMotion(fmt.Sprintf("%s/Resources", os.Getenv("VSPHERE_CLUSTER"))),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckResourcePool(fmt.Sprintf("%s/Resources", os.Getenv("VSPHERE_CLUSTER"))),
+						),
+					},
+				},
+			},
+		},
+		{
 			"storage vmotion - global setting",
 			resource.TestCase{
 				PreCheck: func() {
@@ -1455,7 +1484,7 @@ func testAccResourceVSphereVirtualMachineCheckSCSIBus(expected string) resource.
 }
 
 // testAccResourceVSphereVirtualMachineCheckHost checks to make sure the
-// test VM's SCSI bus is all of the specified SCSI type.
+// test VM is currently located on a specific host.
 func testAccResourceVSphereVirtualMachineCheckHost(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		hs, err := testGetVirtualMachineHost(s, "vm")
@@ -1465,6 +1494,42 @@ func testAccResourceVSphereVirtualMachineCheckHost(expected string) resource.Tes
 		actual := hs.Name()
 		if expected != actual {
 			return fmt.Errorf("expected host to be %s, got %s", expected, actual)
+		}
+		return nil
+	}
+}
+
+// testAccResourceVSphereVirtualMachineCheckResourcePool checks to make sure the
+// test VM is currently located in a specific resource pool.
+func testAccResourceVSphereVirtualMachineCheckResourcePool(expected string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		pool, err := testGetVirtualMachineResourcePool(s, "vm")
+		if err != nil {
+			return err
+		}
+
+		actual := pool.Name()
+		if actual == "Resources" && path.Base(expected) == "Resources" {
+			client := testAccProvider.Meta().(*VSphereClient).vimClient
+			expectedCluster, err := computeresource.BaseFromPath(client, path.Dir(expected))
+			if err != nil {
+				return err
+			}
+			pprops, err := resourcepool.Properties(pool)
+			if err != nil {
+				return err
+			}
+			actualCluster, err := computeresource.BaseFromReference(client, *pprops.Parent)
+			if err != nil {
+				return err
+			}
+			if expectedCluster.Reference().Value != actualCluster.Reference().Value {
+				return fmt.Errorf("expected default resource pool of %q, got default resource pool of %q", expectedCluster.Reference().Value, actualCluster.Reference().Value)
+			}
+			return nil
+		}
+		if expected != actual {
+			return fmt.Errorf("expected resource pool or to be %s, got %s", expected, actual)
 		}
 		return nil
 	}
@@ -3298,6 +3363,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
 	)
 }
+
 func testAccResourceVSphereVirtualMachineConfigHostVMotion(host string) string {
 	return fmt.Sprintf(`
 variable "datacenter" {
@@ -3419,6 +3485,119 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
 		host,
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigResourcePoolVMotion(pool string) string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "ipv4_address" {
+  default = "%s"
+}
+
+variable "ipv4_netmask" {
+  default = "%s"
+}
+
+variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "template" {
+  default = "%s"
+}
+
+variable "linked_clone" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_virtual_machine" "template" {
+  name          = "${var.template}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 1024
+  guest_id = "ubuntu64Guest"
+
+  network_interface {
+    network_id   = "${data.vsphere_network.network.id}"
+    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+  }
+
+  disk {
+    name = "terraform-test.vmdk"
+    size = "${data.vsphere_virtual_machine.template.disk_sizes[0]}"
+  }
+
+  clone {
+    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+
+    customize {
+      linux_options {
+        host_name = "terraform-test"
+        domain    = "test.internal"
+      }
+
+      network_interface {
+        ipv4_address = "${var.ipv4_address}"
+        ipv4_netmask = "${var.ipv4_netmask}"
+      }
+
+      ipv4_gateway = "${var.ipv4_gateway}"
+    }
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		pool,
+		os.Getenv("VSPHERE_NETWORK_LABEL"),
+		os.Getenv("VSPHERE_IPV4_ADDRESS"),
+		os.Getenv("VSPHERE_IPV4_PREFIX"),
+		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_TEMPLATE"),
+		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
 	)
 }
 

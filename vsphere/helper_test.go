@@ -15,6 +15,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
@@ -168,6 +169,20 @@ func testGetVirtualMachineHost(s *terraform.State, resourceName string) (*object
 		return nil, err
 	}
 	return hostsystem.FromID(tVars.client, vprops.Runtime.Host.Value)
+}
+
+// testGetVirtualMachineResourcePool returns the ResourcePool object for the
+// resource pool this VM is currently in.
+func testGetVirtualMachineResourcePool(s *terraform.State, resourceName string) (*object.ResourcePool, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_virtual_machine.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+	vprops, err := testGetVirtualMachineProperties(s, resourceName)
+	if err != nil {
+		return nil, err
+	}
+	return resourcepool.FromID(tVars.client, vprops.ResourcePool.Value)
 }
 
 // testGetVirtualMachineSCSIBusState reads the SCSI bus state for the supplied

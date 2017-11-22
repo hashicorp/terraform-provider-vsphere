@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/envbrowse"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
@@ -28,6 +29,7 @@ type BaseComputeResource interface {
 	Reconfigure(context.Context, types.BaseComputeResourceConfigSpec, bool) (*object.Task, error)
 	ResourcePool(context.Context) (*object.ResourcePool, error)
 
+	Name() string
 	Properties(context.Context, types.ManagedObjectReference, []string, interface{}) error
 	Reference() types.ManagedObjectReference
 }
@@ -71,6 +73,28 @@ func ClusterFromID(client *govmomi.Client, id string) (*object.ClusterComputeRes
 		return nil, err
 	}
 	return obj.(*object.ClusterComputeResource), nil
+}
+
+// BaseFromPath returns a BaseComputeResource for a given path.
+func BaseFromPath(client *govmomi.Client, path string) (BaseComputeResource, error) {
+	finder := find.NewFinder(client.Client, false)
+
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	list, err := finder.ManagedObjectList(ctx, path, "ComputeResource", "ClusterComputeResource")
+	if err != nil {
+		return nil, err
+	}
+	if len(list) < 1 {
+		return nil, fmt.Errorf("no compute resources found at path %q", path)
+	}
+	if len(list) > 1 {
+		return nil, fmt.Errorf("multiple results returned for path %q", path)
+	}
+	if !strings.HasSuffix(list[0].Path, path) {
+		return nil, fmt.Errorf("returned object path %q does not properly match search path %q", list[0].Path, path)
+	}
+	return BaseFromReference(client, list[0].Object.Reference())
 }
 
 // BaseFromReference returns a BaseComputeResource for a given managed object
