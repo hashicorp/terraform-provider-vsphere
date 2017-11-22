@@ -14,9 +14,6 @@ network interface for `vsphere_virtual_machine` or any other vSphere resource
 that requires a network. This includes standard (host-based) port groups, DVS
 port groups, or opaque networks such as those managed by NSX.
 
-~> **NOTE:** This data source requires vCenter and is not available on direct
-ESXi connections.
-
 ## Example Usage
 
 ```hcl
