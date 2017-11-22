@@ -36,9 +36,8 @@ data "vsphere_tag" "tag" {
 
 The following arguments are supported:
 
-* `name` - (String, required) The name of the tag.
-* `category_id` - (String, required) The ID of the tag category the tag is
-  located in.
+* `name` - (Required) The name of the tag.
+* `category_id` - (Required) The ID of the tag category the tag is located in.
 
 ## Attribute Reference
 

@@ -49,7 +49,7 @@ reduce the size of the datastore, the resource needs to be re-created - run
 
 ## Example Usage
 
-**Addition of local disks on a single host**
+### Addition of local disks on a single host
 
 The following example uses the default datacenter and default host to add a
 datastore with local disks to a single ESXi server.
@@ -80,7 +80,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 }
 ```
 
-**Auto-detection of disks via `vsphere_vmfs_disks`**
+### Auto-detection of disks via `vsphere_vmfs_disks`
 
 The following example makes use of the
 [`vsphere_vmfs_disks`][data-source-vmfs-disks] data source to auto-detect
@@ -120,27 +120,27 @@ resource "vsphere_vmfs_datastore" "datastore" {
 
 The following arguments are supported:
 
-* `name` - (String, required, forces new resource) The name of the datastore.
-* `host_system_id` - (String, required, forces new resource) The managed object
-  ID of the host to set the datastore up on. Note that this is not necessarily
-  the only host that the datastore will be set up on - see
-  [here](#auto-mounting-of-datastores-within-vcenter) for more info.
-* `folder` - (String, optional) The relative path to a folder to put this
-  datastore in. This is a path relative to the datacenter you are deploying the
-  datastore to. Example: for the `dc1` datacenter, and a provided `folder` of
-  `foo/bar`, Terraform will place a datastore named `terraform-test` in a
-  datastore folder located at `/dc1/datastore/foo/bar`, with the final
-  inventory path being `/dc1/datastore/foo/bar/terraform-test`.
-* `disks` - (List of strings, required) The disks to use with the datastore.
-* `tags` - (List of strings, optional) The IDs of any tags to attach to this
-  resource. See [here][docs-applying-tags] for a reference on how to apply
-  tags.
+* `name` - (Required) The name of the datastore. Forces a new resource if
+  changed.
+* `host_system_id` - (Required) The managed object ID of the host to set the
+  datastore up on. Note that this is not necessarily the only host that the
+  datastore will be set up on - see
+  [here](#auto-mounting-of-datastores-within-vcenter) for more info. Forces a
+  new resource if changed.
+* `disks` - (Required) The disks to use with the datastore.
+* `folder` - (Optional) The relative path to a folder to put this datastore in.
+  This is a path relative to the datacenter you are deploying the datastore to.
+  Example: for the `dc1` datacenter, and a provided `folder` of `foo/bar`,
+  Terraform will place a datastore named `terraform-test` in a datastore folder
+  located at `/dc1/datastore/foo/bar`, with the final inventory path being
+  `/dc1/datastore/foo/bar/terraform-test`.
+* `tags` - (Optional) The IDs of any tags to attach to this resource. See
+  [here][docs-applying-tags] for a reference on how to apply tags.
 
 [docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
 
 ~> **NOTE:** Tagging support is unsupported on direct ESXi connections and
 requires vCenter 6.0 or higher.
-
 
 ## Attribute Reference
 

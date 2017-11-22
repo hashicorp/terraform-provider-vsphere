@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_distributed_virtual_switch"
-sidebar_current: "docs-vsphere-resource-network-distributed-virtual-switch"
+sidebar_current: "docs-vsphere-resource-networking-distributed-virtual-switch"
 description: |-
   Provides a vSphere distributed virtual switch resource. This can be used to create and manage DVS resources in vCenter.
 ---

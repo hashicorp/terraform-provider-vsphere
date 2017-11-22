@@ -38,13 +38,13 @@ data "vsphere_vmfs_disks" "available" {
 
 The following arguments are supported:
 
-* `host_system_id` - (String, required) The managed object ID of the host to
-  look for disks on. 
-* `rescan` - (Boolean, optional) Whether or not to rescan storage adapters
-  before searching for disks. This may lengthen the time it takes to perform
-  the search. Default: `false`.
-* `filter` - (String, optional) A regular expression to filter the disks
-  against. Only disks with canonical names that match will be included. 
+* `host_system_id` - (Required) The managed object ID of the host to look for
+  disks on. 
+* `rescan` - (Optional) Whether or not to rescan storage adapters before
+  searching for disks. This may lengthen the time it takes to perform the
+  search. Default: `false`.
+* `filter` - (Optional) A regular expression to filter the disks against. Only
+  disks with canonical names that match will be included. 
 
 ~> **NOTE:** Using a `filter` is recommended if there is any chance the host
 will have any specific storage devices added to it that may affect the order of
@@ -52,5 +52,5 @@ the output `disks` attribute below, which is lexicographically sorted.
 
 ## Attribute Reference
 
-* `disks` - (List of strings) A lexicographically sorted list of devices
-  discovered by the operation, matching the supplied `filter`, if provided.
+* `disks` - A lexicographically sorted list of devices discovered by the
+  operation, matching the supplied `filter`, if provided.

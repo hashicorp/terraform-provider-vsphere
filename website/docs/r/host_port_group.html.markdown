@@ -92,14 +92,15 @@ resource "vsphere_host_port_group" "pg" {
 
 The following arguments are supported:
 
-* `name` - (String, required, forces new resource) The name of the port group.
-* `host_system_id` - (String, required, forces new resource) The managed object
-  ID of the host to set the port group up on. 
-* `virtual_switch_name` - (String, required, forces new resource) The name of
-  the virtual switch to bind this port group to.
-* `vlan_id` - (Integer, optional) The VLAN ID/trunk mode for this port group.
-  An ID of `0` denotes no tagging, an ID of `1`-`4094` tags with the specific ID, and
-  an ID of `4095` enables trunk mode, allowing the guest to manage its own
+* `name` - (Required) The name of the port group.  Forces a new resource if
+  changed.
+* `host_system_id` - (Required) The managed object ID of the host to set the
+  port group up on. Forces a new resource if changed.
+* `virtual_switch_name` - (Required) The name of the virtual switch to bind
+  this port group to. Forces a new resource if changed.
+* `vlan_id` - (Optional) The VLAN ID/trunk mode for this port group.  An ID of
+  `0` denotes no tagging, an ID of `1`-`4094` tags with the specific ID, and an
+  ID of `4095` enables trunk mode, allowing the guest to manage its own
   tagging. Default: `0`.
 
 ### Policy Options

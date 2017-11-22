@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_distributed_port_group"
-sidebar_current: "docs-vsphere-resource-network-distributed-port-group"
+sidebar_current: "docs-vsphere-resource-networking-distributed-port-group"
 description: |-
   Provides a vSphere distributed virtual portgroup resource. This can be used to create and manage portgroups on a distributed virtual switch.
 ---

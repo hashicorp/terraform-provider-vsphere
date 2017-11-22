@@ -56,33 +56,33 @@ resource "vsphere_nas_datastore" "datastore" {
 
 The following arguments are supported:
 
-* `name` - (String, required, forces new resource) The name of the datastore.
-* `host_system_ids` - (List of strings, required) The managed object
-  IDs of the hosts to mount the datastore on.
-* `folder` - (String, optional) The relative path to a folder to put this
-  datastore in. This is a path relative to the datacenter you are deploying the
-  datastore to. Example: for the `dc1` datacenter, and a provided `folder` of
-  `foo/bar`, Terraform will place a datastore named `terraform-test` in a
-  datastore folder located at `/dc1/datastore/foo/bar`, with the final
-  inventory path being `/dc1/datastore/foo/bar/terraform-test`.
-* `type` - (String, optional, forces new resource) The type of NAS volume. Can
-  be one of `NFS` (to denote v3) or `NFS41` (to denote NFS v4.1). Default:
-  `NFS`.
-* `remote_hosts` - (List of strings, required, forces new resource) The
-  hostnames or IP addresses of the remote server or servers. Only one element
-  should be present for NFS v3 but multiple can be present for NFS v4.1.
-* `remote_path` - (String, required, forces new resource) The remote path of
-  the mount point.
-* `access_mode` - (String, optional, forces new resource) Access mode for the
-  mount point. Can be one of `readOnly` or `readWrite`. Note that `readWrite`
-  does not necessarily mean that the datastore will be read-write depending on
-  the permissions of the actual share. Default: `readWrite`.
-* `security_type` - (String, optional, forces new resource) The security type
-  to use when using NFS v4.1. Can be one of `AUTH_SYS`, `SEC_KRB5`, or
-  `SEC_KRB5I`.
-* `tags` - (List of strings, optional) The IDs of any tags to attach to this
-  resource. See [here][docs-applying-tags] for a reference on how to apply
-  tags.
+* `name` - (Required) The name of the datastore. Forces a new resource if
+  changed.
+* `host_system_ids` - (Required) The managed object IDs of the hosts to mount
+  the datastore on.
+* `type` - (Optional) The type of NAS volume. Can be one of `NFS` (to denote
+  v3) or `NFS41` (to denote NFS v4.1). Default: `NFS`. Forces a new resource if
+  changed.
+* `remote_hosts` - (Required) The hostnames or IP addresses of the remote
+  server or servers. Only one element should be present for NFS v3 but multiple
+  can be present for NFS v4.1. Forces a new resource if changed.
+* `remote_path` - (Required) The remote path of the mount point. Forces a new
+  resource if changed.
+* `access_mode` - (Optional) Access mode for the mount point. Can be one of
+  `readOnly` or `readWrite`. Note that `readWrite` does not necessarily mean
+  that the datastore will be read-write depending on the permissions of the
+  actual share. Default: `readWrite`. Forces a new resource if changed.
+* `security_type` - (Optional) The security type to use when using NFS v4.1.
+  Can be one of `AUTH_SYS`, `SEC_KRB5`, or `SEC_KRB5I`. Forces a new resource
+  if changed.
+* `folder` - (Optional) The relative path to a folder to put this datastore in.
+  This is a path relative to the datacenter you are deploying the datastore to.
+  Example: for the `dc1` datacenter, and a provided `folder` of `foo/bar`,
+  Terraform will place a datastore named `terraform-test` in a datastore folder
+  located at `/dc1/datastore/foo/bar`, with the final inventory path being
+  `/dc1/datastore/foo/bar/terraform-test`.
+* `tags` - (Optional) The IDs of any tags to attach to this resource. See
+  [here][docs-applying-tags] for a reference on how to apply tags.
 
 [docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
 

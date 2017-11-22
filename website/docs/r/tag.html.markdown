@@ -99,11 +99,11 @@ resource "vsphere_virtual_machine" "web" {
 
 The following arguments are supported:
 
-* `name` - (String, required) The display name of the tag. The name must be
-  unique within its category.
-* `category_id` - (String, required, forces new resource) The unique identifier
-  of the parent category in which this tag will be created.
-* `description` - (String, optional) A description for the tag.
+* `name` - (Required) The display name of the tag. The name must be unique
+  within its category.
+* `category_id` - (Required) The unique identifier of the parent category in
+  which this tag will be created. Forces a new resource if changed.
+* `description` - (Optional) A description for the tag.
 
 ## Attribute Reference
 

@@ -61,10 +61,11 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 			},
 
 			"adapter_type": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Default:  "lsiLogic",
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Default:    "lsiLogic",
+				Deprecated: "this attribute has no effect on controller types - please use scsi_type in vsphere_virtual_machine instead",
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
 					if value != "ide" && value != "busLogic" && value != "lsiLogic" {

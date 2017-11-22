@@ -29,10 +29,9 @@ data "vsphere_host" "host" {
 
 The following arguments are supported:
 
-* `name` - (String) The name of the host. This can be a name or path.	Can be
+* `datacenter_id` - (Required) The managed object reference ID of a datacenter.
+* `name` - (Optional) The name of the host. This can be a name or path.	Can be
   omitted if there is only one host in your inventory.
-* `datacenter_id` - (String, required) The managed object reference ID of a
-  datacenter.
 
 ~> **NOTE:** When used against an ESXi host directly, this data source _always_
 fetches the server's host object ID, regardless of what is entered into `name`.

@@ -46,15 +46,15 @@ resource "vsphere_tag_category" "category" {
 
 The following arguments are supported:
 
-* `name` - (String, required) The name of the category.
-* `description` - (String, optional) A description for the category.
-* `cardinality` - (String, required, forces new resource) The number of tags
-  that can be assigned from this category to a single object at once. Can be
-  one of `SINGLE` (object can only be assigned one tag in this category), to
-  `MULTIPLE` (object can be assigned multiple tags in this category).
-* `associable_types` - (List of strings, required) A list object types that
-  this category is valid to be assigned to. For a full list, click
+* `name` - (Required) The name of the category.
+* `cardinality` - (Required) The number of tags that can be assigned from this
+  category to a single object at once. Can be one of `SINGLE` (object can only
+  be assigned one tag in this category), to `MULTIPLE` (object can be assigned
+  multiple tags in this category). Forces a new resource if changed.
+* `associable_types` - (Required) A list object types that this category is
+  valid to be assigned to. For a full list, click
   [here](#associable-object-types).
+* `description` - (Optional) A description for the category.
 
 ~> **NOTE:** You can add associable types to a category, but you cannot remove
 them. Attempting to do so will result in an error.
