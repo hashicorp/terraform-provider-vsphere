@@ -3,27 +3,43 @@ layout: "vsphere"
 page_title: "Provider: VMware vSphere"
 sidebar_current: "docs-vsphere-index"
 description: |-
-  The VMware vSphere provider is used to interact with the resources supported by
-  VMware vSphere. The provider needs to be configured with the proper credentials
-  before it can be used.
+  A Terraform provider to work with VMware vSphere, allowing management of virtual machines and other VMware resources. Supports management through both vCenter and ESXi.
 ---
 
 # VMware vSphere Provider
 
-The VMware vSphere provider is used to interact with the resources supported by
-VMware vSphere.
-The provider needs to be configured with the proper credentials before it can be used.
+The VMware vSphere provider gives Terraform the ability to work with VMware vSphere
+Products, notably [vCenter Server][vmware-vcenter] and [ESXi][vmware-esxi].
+This provider can be used to manage many aspects of a VMware vSphere
+environment, including virtual machines, standard and distributed networks,
+datastores, and more.
 
-Use the navigation to the left to read about the available resources.
+[vmware-vcenter]: https://www.vmware.com/products/vcenter-server.html
+[vmware-esxi]: https://www.vmware.com/products/esxi-and-esx.html
 
-~> **NOTE:** The VMware vSphere Provider currently represents _initial support_
-and therefore may undergo significant changes as the community improves it. This
-provider at this time only supports IPv4 addresses on virtual machines.
+Use the navigation on the left to read about the various resources and data
+sources supported by the provider.
 
 ## Example Usage
 
+The following abridged example demonstrates a current basic usage of the
+provider to launch a virtual machine using the [`vsphere_virtual_machine`
+resource][tf-vsphere-virtual-machine-resource]. The datacenter, datastore,
+resource pool, and network are discovered via the
+[`vsphere_datacenter`][tf-vsphere-datacenter],
+[`vsphere_datastore`][tf-vsphere-datastore],
+[`vsphere_resource_pool`][tf-vsphere-resource-pool], and
+[`vsphere_network`][tf-vsphere-network] data sources respectively. Most of
+these resources can be directly managed by Terraform as well - check the
+sidebar for specific resources.
+
+[tf-vsphere-virtual-machine-resource]: /docs/providers/vsphere/r/virtual_machine.html
+[tf-vsphere-datacenter]: /docs/providers/vsphere/d/datacenter.html
+[tf-vsphere-datastore]: /docs/providers/vsphere/d/datastore.html
+[tf-vsphere-resource-pool]: /docs/providers/vsphere/d/resource_pool.html
+[tf-vsphere-network]: /docs/providers/vsphere/d/network.html
+
 ```hcl
-# Configure the VMware vSphere Provider
 provider "vsphere" {
   user           = "${var.vsphere_user}"
   password       = "${var.vsphere_password}"
@@ -33,43 +49,47 @@ provider "vsphere" {
   allow_unverified_ssl = true
 }
 
-# Create a folder
-resource "vsphere_folder" "frontend" {
-  path = "frontend"
-  type = "vm"
+data "vsphere_datacenter" "dc" {
+  name = "dc1"
 }
 
-# Create a file
-resource "vsphere_file" "ubuntu_disk" {
-  datastore        = "local"
-  source_file      = "/home/ubuntu/my_disks/custom_ubuntu.vmdk"
-  destination_file = "/my_path/disks/custom_ubuntu.vmdk"
+data "vsphere_datastore" "datastore" {
+  name          = "datastore1"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
-# Create a disk image
-resource "vsphere_virtual_disk" "extraStorage" {
-  size       = 2
-  vmdk_path  = "myDisk.vmdk"
-  datacenter = "Datacenter"
-  datastore  = "local"
+data "vsphere_resource_pool" "pool" {
+  name          = "cluster1/Resources"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
-# Create a virtual machine within the folder
-resource "vsphere_virtual_machine" "web" {
-  name   = "terraform-web"
-  folder = "${vsphere_folder.frontend.path}"
-  vcpu   = 2
-  memory = 4096
+data "vsphere_network" "network" {
+  name          = "public"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 1024
+  guest_id = "other3xLinux64Guest"
 
   network_interface {
-    label = "VM Network"
+    network_id = "${data.vsphere_network.network.id}"
   }
 
   disk {
-    template = "centos-7"
+    name = "terraform-test.vmdk"
+    size = 20
   }
 }
 ```
+
+See the sidebar for usage information on all of the resources, which will have
+examples specific to their own use cases.
 
 ## Argument Reference
 
@@ -87,127 +107,61 @@ The following arguments are used to configure the VMware vSphere Provider:
   could allow an attacker to intercept your auth token. If omitted, default
   value is `false`. Can also be specified with the `VSPHERE_ALLOW_UNVERIFIED_SSL`
   environment variable.
-* `client_debug` - (Optional) Boolean to set the govomomi api to log soap calls
-   to disk.  The log files are logged to `${HOME}/.govc`, the same path used by
-  `govc`.  Can also be specified with the `VSPHERE_CLIENT_DEBUG` environment
-   variable.
+
+### Debugging options
+
+~> **NOTE:** The following options can leak sensitive data and should only be
+enabled when instructed to do so by HashiCorp for the purposes of
+troubleshooting issues with the provider, or when attempting to perform your
+own troubleshooting. Use them at your own risk and do not leave them enabled!
+
+* `client_debug` - (Optional) When `true`, the provider logs SOAP calls made to
+  the vSphere API to disk.  The log files are logged to `${HOME}/.govmomi`.
+  Can also be specified with the `VSPHERE_CLIENT_DEBUG` environment variable.
 * `client_debug_path` - (Optional) Override the default log path. Can also
    be specified with the `VSPHERE_CLIENT_DEBUG_PATH` environment variable.
-* `client_debug_path_run` - (Optional) Client debug file path for a single run. Can also
-   be specified with the `VSPHERE_CLIENT_DEBUG_PATH_RUN` environment variable.
+* `client_debug_path_run` - (Optional) A specific subdirectory in
+  `client_debug_path` to use for debugging calls for this particular Terraform
+  configuration. All data in this directory is removed at the start of the
+  Terraform run. Can also be specified with the `VSPHERE_CLIENT_DEBUG_PATH_RUN`
+  environment variable.
 
-## Required Privileges
+## Notes on Required Privileges
 
-In order to use Terraform provider as non priviledged user, a Role within
-vCenter must be assigned the following privileges:
+When using a non-administrator account to perform Terraform tasks, keep in mind
+that most Terraform resources perform operations in a CRUD-like fashion and
+require both read and write privileges to the resources they are managing. Make
+sure that the user has appropriate read-write access to the resources you need
+to work with. Read-only access should be sufficient when only using data
+sources on some features. You can read more about vSphere permissions and user
+management [here][vsphere-docs-user-management].
 
-* Datastore
-   - Allocate space
-   - Browse datastore
-   - Low level file operations
-   - Remove file
-   - Update virtual machine files
-   - Update virtual machine metadata
+[vsphere-docs-user-management]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.security.doc/GUID-5372F580-5C23-4E9C-8A4E-EF1B4DD9033E.html
 
-* Folder (all)
-   - Create folder
-   - Delete folder
-   - Move folder
-   - Rename folder
+There are a couple of exceptions to keep in mind when setting up a restricted
+provisioning user:
 
-* Network
-   - Assign network
+### Tags
 
-* Resource
-   - Apply recommendation
-   - Assign virtual machine to resource pool
+If your vSphere version supports [tags][vsphere-docs-tags], keep in mind that
+Terraform will always attempt to read tags from a resource, even if you do not
+have any tags defined. Ensure that your user has access to at least read tags,
+or else you will encounter errors.
 
-* Virtual Machine
-   - Configuration (all) - for now
-   - Guest Operations (all) - for now
-   - Interaction (all)
-   - Inventory (all)
-   - Provisioning (all)
+[vsphere-docs-tags]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.vcenterhost.doc/GUID-E8E854DD-AA97-4E0C-8419-CE84F93C4058.html
 
-* vCenter Inventory Service
-   - vCenter Inventory Service Tagging (all)
+### Events
 
-* License 
-   - Add License
-   - Remove License
-   - Update License
-   - Update Labels
+Likewise, some Terraform resources will attempt to read event data from vSphere
+to check for certain events (such as virtual machine customization or power
+events). Ensure that your user has access to read event data.
 
+## Bug Reports and Contributing
 
-These settings were tested with [vSphere
-6.0](https://pubs.vmware.com/vsphere-60/index.jsp?topic=%2Fcom.vmware.vsphere.security.doc%2FGUID-18071E9A-EED1-4968-8D51-E0B4F526FDA3.html)
-and [vSphere
-5.5](https://pubs.vmware.com/vsphere-55/index.jsp?topic=%2Fcom.vmware.vsphere.security.doc%2FGUID-18071E9A-EED1-4968-8D51-E0B4F526FDA3.html).
-For additional information on roles and permissions, please refer to official
-VMware documentation.
+For more information how how to submit bug reports, feature requests, or
+details on how to make your own contributions to the provider, see the vSphere
+provider [project page][tf-vsphere-project-page].
 
-## Virtual Machine Customization
-
-Guest Operating Systems can be configured using
-[customizations](https://pubs.vmware.com/vsphere-50/index.jsp#com.vmware.vsphere.vm_admin.doc_50/GUID-80F3F5B5-F795-45F1-B0FA-3709978113D5.html),
-in order to set things properties such as domain and hostname. This mechanism
-is not compatible with all operating systems, however. A list of compatible
-operating systems can be found
-[here](http://partnerweb.vmware.com/programs/guestOS/guest-os-customization-matrix.pdf)
-
-If customization is attempted on an operating system which is not supported, Terraform will
-create the virtual machine, but fail with the following error message:
-
-```
-Customization of the guest operating system 'debian6_64Guest' is not
-supported in this configuration. Microsoft Vista (TM) and Linux guests with
-Logical Volume Manager are supported only for recent ESX host and VMware Tools
-versions. Refer to vCenter documentation for supported configurations.
-```
-
-In order to skip the customization step for unsupported operating systems, use
-the `skip_customization` argument on the virtual machine resource.
-
-## Acceptance Tests
-
-The VMware vSphere provider's acceptance tests require the above provider
-configuration fields to be set using the documented environment variables.
-
-In addition, the following environment variables are used in tests, and must be
-set to valid values for your VMware vSphere environment:
-
- * VSPHERE\_IPV4\_GATEWAY
- * VSPHERE\_IPV4\_ADDRESS
- * VSPHERE\_IPV6\_GATEWAY
- * VSPHERE\_IPV6\_ADDRESS
- * VSPHERE\_NETWORK\_LABEL
- * VSPHERE\_NETWORK\_LABEL\_DHCP
- * VSPHERE\_TEMPLATE
- * VSPHERE\_MAC\_ADDRESS
- * VSPHERE_LICENSE
-
-The following environment variables depend on your vSphere environment:
-
- * VSPHERE\_DATACENTER
- * VSPHERE\_CLUSTER
- * VSPHERE\_RESOURCE\_POOL
- * VSPHERE\_DATASTORE
- * VSPHERE\_TEST\_ESXI
-
-The following additional environment variables are needed for running the
-"Mount ISO as CDROM media" acceptance tests.
-
- * VSPHERE\_CDROM\_DATASTORE
- * VSPHERE\_CDROM\_PATH
-
-
-These are used to set and verify attributes on the `vsphere_virtual_machine`
-resource in tests.
-
-Once all these variables are in place, the tests can be run like this:
-
-```
-make testacc TEST=./builtin/providers/vsphere
-```
+[tf-vsphere-project-page]: https://github.com/terraform-providers/terraform-provider-vsphere
 
 
