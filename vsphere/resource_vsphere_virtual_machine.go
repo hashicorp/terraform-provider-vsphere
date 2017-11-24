@@ -92,7 +92,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		"scsi_type": {
 			Type:         schema.TypeString,
 			Optional:     true,
-			Default:      virtualdevice.SubresourceControllerTypeLsiLogic,
+			Default:      virtualdevice.SubresourceControllerTypeParaVirtual,
 			Description:  "The type of SCSI bus this virtual machine will have. Can be one of lsilogic, lsilogic-sas or pvscsi.",
 			ValidateFunc: validation.StringInSlice(virtualdevice.SCSIBusTypeAllowedValues, false),
 		},

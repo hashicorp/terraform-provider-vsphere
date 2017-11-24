@@ -87,7 +87,7 @@ func NetworkInterfaceSubresourceSchema() map[string]*schema.Schema {
 		"adapter_type": {
 			Type:         schema.TypeString,
 			Optional:     true,
-			Default:      networkInterfaceSubresourceTypeE1000,
+			Default:      networkInterfaceSubresourceTypeVmxnet3,
 			Description:  "The controller type. Can be one of e1000, e1000e, or vmxnet3.",
 			ValidateFunc: validation.StringInSlice(networkInterfaceSubresourceTypeAllowedValues, false),
 		},
