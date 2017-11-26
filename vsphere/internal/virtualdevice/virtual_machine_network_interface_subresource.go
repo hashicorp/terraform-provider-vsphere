@@ -756,6 +756,22 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 	}
 
 	card := device.GetVirtualEthernetCard()
+
+	// Has the backing changed?
+	if r.HasChange("network_id") {
+		net, err := network.FromID(r.client, r.Get("network_id").(string))
+		if err != nil {
+			return nil, err
+		}
+		bctx, bcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+		defer bcancel()
+		backing, err := net.EthernetCardBackingInfo(bctx)
+		if err != nil {
+			return nil, err
+		}
+		card.Backing = backing
+	}
+
 	if r.HasChange("use_static_mac") {
 		if r.Get("use_static_mac").(bool) {
 			card.AddressType = string(types.VirtualEthernetCardMacTypeManual)
