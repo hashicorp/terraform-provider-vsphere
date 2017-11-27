@@ -156,6 +156,80 @@ Likewise, some Terraform resources will attempt to read event data from vSphere
 to check for certain events (such as virtual machine customization or power
 events). Ensure that your user has access to read event data.
 
+## Use of Managed Object References by the vSphere Provider
+
+Unlike the vSphere client, many resources in the vSphere Terraform provider
+take Managed Object IDs (or UUIDs when provided and practical) when referring to
+placement parameters and upstream resources. This provides a stable interface
+for providing necessary data to downstream resources, in addition to minimizing
+the bugs that can arise from the flexibility in how an individual object's name
+or inventory path can be supplied.
+
+There are several data sources (such as
+[`vsphere_datacenter`][tf-vsphere-datacenter],
+[`vsphere_host`][tf-vsphere-host],
+[`vsphere_resource_pool`][tf-vsphere-resource-pool],
+[`vsphere_datastore`][tf-vsphere-datastore], and
+[`vsphere_network`][tf-vsphere-network]) that assist with searching for a
+specific resource in Terraform. For usage details on a specific data source,
+look for the appropriate link in the sidebar. In addition, most vSphere
+resources in Terraform supply the managed object ID (or UUID, when it makes
+more sense) as the `id` attribute, which can be supplied to downstream
+resources that should depend on the parent.
+
+[tf-vsphere-host]: /docs/providers/vsphere/d/host.html
+
+### Locating Managed Object IDs
+
+There are certain points in time that you may need to locate the managed object
+ID of a specific vSphere resource yourself. A couple of methods are documented
+below.
+
+#### Via `govc`
+
+[govc][docs-govc] is an vSphere CLI built on [govmomi][docs-govmomi], the
+vSphere Go SDK. It has a robust inventory browser command that can also be used
+to list managed object IDs.
+
+To get all the necessary data in a single output, use `govc ls -l -i PATH`.
+Sample output is below:
+
+```
+$ govc ls -l -i /dc1/vm
+VirtualMachine:vm-123 /dc1/vm/foobar
+Folder:group-v234 /dc1/vm/subfolder
+```
+
+To do a reverse search, supply the `-L` switch:
+
+```
+$ govc ls -i -l -L VirtualMachine:vm-123
+VirtualMachine:vm-123 /dc1/vm/foobar
+```
+
+For details on setting up govc, see the [homepage][docs-govc].
+
+[docs-govc]: https://github.com/vmware/govmomi/tree/master/govc
+[docs-govmomi]: https://github.com/vmware/govmomi
+
+
+#### Via the vSphere Managed Object Browser (MOB)
+
+The Managed Object Browser (MOB) allows one to browse the entire vSphere
+inventory as it's presented to the API. It's normally accessed via
+`https://VSPHERE_SERVER/mob`. For more information, see
+[here][vsphere-docs-using-mob].
+
+[vsphere-docs-using-mob]: https://code.vmware.com/doc/preview?id=4205#/doc/PG_Appx_Using_MOB.21.2.html#994699
+
+~> **NOTE:** The MOB also offers API method invocation capabilities, and for
+security reasons should be used sparingly. Modern vSphere installations may
+have the MOB disabled by default, at the very least on ESXi systems. For more
+information on current security best practices related to the MOB on ESXi,
+click [here][vsphere-docs-esxi-mob].
+
+[vsphere-docs-esxi-mob]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.security.doc/GUID-0EF83EA7-277C-400B-B697-04BDC9173EA3.html
+
 ## Bug Reports and Contributing
 
 For more information how how to submit bug reports, feature requests, or

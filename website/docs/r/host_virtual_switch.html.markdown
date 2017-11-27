@@ -83,12 +83,14 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the virtual switch. Forces a new resource if
   changed.
-* `host_system_id` - (Required) The managed object ID of the host to set the
-  virtual switch up on. Forces a new resource if changed.
+* `host_system_id` - (Required) The [managed object ID][docs-about-morefs] of
+  the host to set the virtual switch up on. Forces a new resource if changed.
 * `mtu` - (Optional) The maximum transmission unit (MTU) for the virtual
   switch. Default: `1500`.
 * `number_of_ports` - (Optional) The number of ports to create with this
   virtual switch. Default: `128`.
+
+[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
 ~> **NOTE:** Changing the port count requires a reboot of the host. Terraform
 will not restart the host for you.

@@ -69,4 +69,6 @@ are immutable and force a new resource if changed.
 ## Attribute Reference
 
 The only attribute this resource exports is the resource `id`, which is set to
-the managed object reference of the snapshot.
+the [managed object reference ID][docs-about-morefs] of the snapshot.
+
+[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider

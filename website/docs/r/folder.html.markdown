@@ -94,7 +94,9 @@ requires vCenter 6.0 or higher.
 ## Attribute Reference
 
 The only attribute that this resource exports is the `id`, which is set to the
-managed object ID of the folder.
+[managed object ID][docs-about-morefs] of the folder.
+
+[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
 ## Importing
 

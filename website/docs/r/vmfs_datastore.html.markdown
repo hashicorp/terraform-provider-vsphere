@@ -122,9 +122,9 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the datastore. Forces a new resource if
   changed.
-* `host_system_id` - (Required) The managed object ID of the host to set the
-  datastore up on. Note that this is not necessarily the only host that the
-  datastore will be set up on - see
+* `host_system_id` - (Required) The [managed object ID][docs-about-morefs] of
+  the host to set the datastore up on. Note that this is not necessarily the
+  only host that the datastore will be set up on - see
   [here](#auto-mounting-of-datastores-within-vcenter) for more info. Forces a
   new resource if changed.
 * `disks` - (Required) The disks to use with the datastore.
@@ -138,6 +138,7 @@ The following arguments are supported:
   [here][docs-applying-tags] for a reference on how to apply tags.
 
 [docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
+[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
 ~> **NOTE:** Tagging support is unsupported on direct ESXi connections and
 requires vCenter 6.0 or higher.
@@ -146,7 +147,7 @@ requires vCenter 6.0 or higher.
 
 The following attributes are exported:
 
-* `id` - The managed object reference ID of the datastore.
+* `id` - The [managed object reference ID][docs-about-morefs] of the datastore.
 * `accessible` - The connectivity status of the datastore. If this is `false`,
   some other computed attributes may be out of date.
 * `capacity` - Maximum capacity of the datastore, in megabytes.

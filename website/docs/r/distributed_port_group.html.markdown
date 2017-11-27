@@ -210,13 +210,16 @@ group can be overridden on the individual port:
 
 The following attributes are exported:
 
-* `id`: The managed object reference ID of the created port group.
+* `id`: The [managed object reference ID][docs-about-morefs] of the created
+  port group.
 * `key`: The generated UUID of the portgroup.
+
+[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
 ~> **NOTE:** While `id` and `key` may look the same in state, they are
 documented differently in the vSphere API and come from different fields in the
-port group object. If you are asked to supply an managed object reference ID to
-another resource, be sure to use the `id` field.
+port group object. If you are asked to supply an [managed object reference
+ID][docs-about-morefs] to another resource, be sure to use the `id` field.
 
 * `config_version`: The current version of the port group configuration,
   incremented by subsequent updates to the port group.

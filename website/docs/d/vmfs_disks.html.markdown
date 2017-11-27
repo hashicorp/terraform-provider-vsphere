@@ -38,8 +38,11 @@ data "vsphere_vmfs_disks" "available" {
 
 The following arguments are supported:
 
-* `host_system_id` - (Required) The managed object ID of the host to look for
-  disks on. 
+* `host_system_id` - (Required) The [managed object ID][docs-about-morefs] of
+  the host to look for disks on.
+
+[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
+
 * `rescan` - (Optional) Whether or not to rescan storage adapters before
   searching for disks. This may lengthen the time it takes to perform the
   search. Default: `false`.

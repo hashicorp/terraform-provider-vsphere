@@ -37,5 +37,7 @@ Hence, the `name` attribute is completely ignored.
 
 ## Attribute Reference
 
-The only exported attribute is `id`, which is the managed object ID of this
-datacenter.
+The only exported attribute is `id`, which is the [managed object
+ID][docs-about-morefs] of this datacenter.
+
+[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider

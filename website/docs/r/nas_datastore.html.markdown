@@ -58,8 +58,8 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the datastore. Forces a new resource if
   changed.
-* `host_system_ids` - (Required) The managed object IDs of the hosts to mount
-  the datastore on.
+* `host_system_ids` - (Required) The [managed object IDs][docs-about-morefs] of
+  the hosts to mount the datastore on.
 * `type` - (Optional) The type of NAS volume. Can be one of `NFS` (to denote
   v3) or `NFS41` (to denote NFS v4.1). Default: `NFS`. Forces a new resource if
   changed.
@@ -85,6 +85,7 @@ The following arguments are supported:
   [here][docs-applying-tags] for a reference on how to apply tags.
 
 [docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
+[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
 ~> **NOTE:** Tagging support is unsupported on direct ESXi connections and
 requires vCenter 6.0 or higher.
@@ -93,7 +94,7 @@ requires vCenter 6.0 or higher.
 
 The following attributes are exported:
 
-* `id` - The managed object reference ID of the datastore.
+* `id` - The [managed object reference ID][docs-about-morefs] of the datastore.
 * `accessible` - The connectivity status of the datastore. If this is `false`,
   some other computed attributes may be out of date.
 * `capacity` - Maximum capacity of the datastore, in megabytes.
