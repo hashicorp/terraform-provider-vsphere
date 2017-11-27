@@ -383,11 +383,38 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 				Steps: []resource.TestStep{
 					{
-						Config: testAccResourceVSphereVirtualMachineConfigExtraConfig(),
+						Config: testAccResourceVSphereVirtualMachineConfigExtraConfig("foo", "bar"),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereVirtualMachineCheckExists(true),
 							testAccResourceVSphereVirtualMachineCheckExtraConfig("foo", "bar"),
+						),
+					},
+				},
+			},
+		},
+		{
+			"extraconfig swap keys",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigExtraConfig("foo", "bar"),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckExtraConfig("foo", "bar"),
+						),
+					},
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigExtraConfig("baz", "qux"),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
 							testAccResourceVSphereVirtualMachineCheckExtraConfig("baz", "qux"),
+							testAccResourceVSphereVirtualMachineCheckExtraConfigKeyMissing("foo"),
 						),
 					},
 				},
@@ -592,18 +619,18 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 				Steps: []resource.TestStep{
 					{
 						// Starting config
-						Config: testAccResourceVSphereVirtualMachineConfigWithHotAdd(2, 1024, true, false, true),
+						Config: testAccResourceVSphereVirtualMachineConfigWithHotAdd(2, 2048, true, false, true),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCPUMem(2, 1024),
+							testAccResourceVSphereVirtualMachineCheckCPUMem(2, 2048),
 						),
 					},
 					{
 						// Add CPU w/hot-add
-						Config: testAccResourceVSphereVirtualMachineConfigWithHotAdd(4, 1024, true, false, true),
+						Config: testAccResourceVSphereVirtualMachineConfigWithHotAdd(4, 2048, true, false, true),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCPUMem(4, 1024),
+							testAccResourceVSphereVirtualMachineCheckCPUMem(4, 2048),
 							testAccResourceVSphereVirtualMachineCheckPowerOffEvent(false),
 						),
 					},
@@ -622,10 +649,10 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 				Steps: []resource.TestStep{
 					{
 						// Starting config
-						Config: testAccResourceVSphereVirtualMachineConfigWithHotAdd(2, 1024, true, false, true),
+						Config: testAccResourceVSphereVirtualMachineConfigWithHotAdd(2, 2048, true, false, true),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCPUMem(2, 1024),
+							testAccResourceVSphereVirtualMachineCheckCPUMem(2, 2048),
 						),
 					},
 					{
@@ -1556,6 +1583,24 @@ func testAccResourceVSphereVirtualMachineCheckExtraConfig(key, expected string) 
 	}
 }
 
+// testAccResourceVSphereVirtualMachineCheckExtraConfigKeyMissing checks to
+// make sure that a key is missing in the VM's extraConfig.
+func testAccResourceVSphereVirtualMachineCheckExtraConfigKeyMissing(key string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVirtualMachineProperties(s, "vm")
+		if err != nil {
+			return err
+		}
+		for _, bov := range props.Config.ExtraConfig {
+			ov := bov.GetOptionValue()
+			if ov.Key == key {
+				return fmt.Errorf("expected key %s to be missing", key)
+			}
+		}
+		return nil
+	}
+}
+
 // testAccResourceVSphereVirtualMachineCheckVmxDatastore checks the datastore
 // that the virtual machine's configuration is currently located.
 func testAccResourceVSphereVirtualMachineCheckVmxDatastore(expected string) resource.TestCheckFunc {
@@ -1648,7 +1693,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "other3xLinux64Guest"
 
   network_interface {
@@ -1711,7 +1756,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "other3xLinux64Guest"
 	
   network_interface {
@@ -1799,7 +1844,7 @@ resource "vsphere_virtual_machine" "vm" {
 	scsi_controller_count = 3
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "other3xLinux64Guest"
 	
   network_interface {
@@ -1885,7 +1930,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "other3xLinux64Guest"
 
   network_interface {
@@ -1960,7 +2005,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "other3xLinux64Guest"
 
   network_interface {
@@ -2048,7 +2093,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "other3xLinux64Guest"
 
 	wait_for_guest_net_timeout = -1
@@ -2187,7 +2232,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "other3xLinux64Guest"
 	annotation = "${var.annotation}"
 
@@ -2252,7 +2297,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "other3xLinux64Guest"
 
   network_interface {
@@ -2316,7 +2361,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "other3xLinux64Guest"
 
 	scsi_type = "lsilogic-sas"
@@ -2338,7 +2383,7 @@ resource "vsphere_virtual_machine" "vm" {
 	)
 }
 
-func testAccResourceVSphereVirtualMachineConfigExtraConfig() string {
+func testAccResourceVSphereVirtualMachineConfigExtraConfig(k, v string) string {
 	return fmt.Sprintf(`
 variable "datacenter" {
   default = "%s"
@@ -2381,12 +2426,11 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "other3xLinux64Guest"
 
   extra_config {
-    "foo" = "bar"
-    "baz" = "qux"
+    "%s" = "%s"
   }
 
   network_interface {
@@ -2403,6 +2447,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
+		k, v,
 	)
 }
 
@@ -2462,7 +2507,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "other3xLinux64Guest"
 
   network_interface {
@@ -2541,7 +2586,7 @@ resource "vsphere_virtual_machine" "vm" {
   folder           = "${vsphere_folder.folder.path}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "other3xLinux64Guest"
 
   network_interface {
@@ -2604,7 +2649,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "other3xLinux64Guest"
 
   network_interface {
@@ -2684,7 +2729,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "other3xLinux64Guest"
 
   network_interface {
@@ -2778,7 +2823,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "other3xLinux64Guest"
 
   network_interface {
@@ -2868,7 +2913,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
 
   network_interface {
@@ -2981,7 +3026,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
 
   network_interface {
@@ -3216,7 +3261,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
 
   network_interface {
@@ -3320,7 +3365,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
 
 	wait_for_guest_net_timeout = 10
@@ -3442,7 +3487,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "ubuntu64Guest"
 
   network_interface {
@@ -3556,7 +3601,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "ubuntu64Guest"
 
   network_interface {
@@ -3669,7 +3714,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "ubuntu64Guest"
 
   network_interface {
@@ -3790,7 +3835,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "ubuntu64Guest"
 
   network_interface {
@@ -3919,7 +3964,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "ubuntu64Guest"
 
   network_interface {
@@ -4077,7 +4122,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${vsphere_vmfs_datastore.datastore.id}"
 
   num_cpus = 2
-  memory   = 1024
+  memory   = 2048
   guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
 
   network_interface {

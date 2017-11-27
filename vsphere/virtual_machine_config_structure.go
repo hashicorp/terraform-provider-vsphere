@@ -441,7 +441,8 @@ func expandExtraConfig(d *schema.ResourceData) []types.BaseOptionValue {
 		}
 		if !found {
 			ov := &types.OptionValue{
-				Key: k1,
+				Key:   k1,
+				Value: "",
 			}
 			opts = append(opts, ov)
 		}
