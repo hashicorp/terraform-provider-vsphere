@@ -214,7 +214,7 @@ func DatastoreFolderFromObject(client *govmomi.Client, obj interface{}, relative
 }
 
 // VirtualMachineFolderFromObject returns an *object.Folder from a given
-// object, and relative datastore folder path. If no such folder is found, of
+// object, and relative datastore folder path. If no such folder is found, or
 // if it is not a VM folder, an appropriate error will be returned.
 func VirtualMachineFolderFromObject(client *govmomi.Client, obj interface{}, relative string) (*object.Folder, error) {
 	log.Printf("[DEBUG] Locating folder at path %q relative to virtual machine root", relative)
