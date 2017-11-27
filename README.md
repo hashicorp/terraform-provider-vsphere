@@ -7,12 +7,6 @@ Server][vmware-vcenter] and [ESXi][vmware-esxi].
 [vmware-vcenter]: https://www.vmware.com/products/vcenter-server.html
 [vmware-esxi]: https://www.vmware.com/products/esxi-and-esx.html
 
-Coverage is currently only limited to a few resources namely surrounding virtual
-machines, but in the coming months we are planning release coverage for most
-essential vSphere workflows, including working with storage and networking
-components such as datastores, and standard and distributed vSwitches. Watch
-this space!
-
 For general information about Terraform, visit the [official
 website][tf-website] and the [GitHub project page][tf-github].
 

@@ -51,10 +51,12 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the distributed virtual switch. This can be a
   name or path.
-* `datacenter_id` - (Optional) The managed object reference ID of the
-  datacenter the DVS is located in. This can be omitted if the search path used
-  in `name` is an absolute path, or if there is only one datacenter in the
-  vSphere infrastructure.
+* `datacenter_id` - (Optional) The [managed object reference
+  ID][docs-about-morefs] of the datacenter the DVS is located in. This can be
+  omitted if the search path used in `name` is an absolute path, or if there is
+  only one datacenter in the vSphere infrastructure.
+
+[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
 ## Attribute Reference
 

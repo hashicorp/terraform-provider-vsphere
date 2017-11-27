@@ -81,13 +81,16 @@ resource "vsphere_host_virtual_switch" "switch" {
 
 The following arguments are supported:
 
-* `name` - (String, required, forces new resource) The name of the virtual switch.
-* `host_system_id` - (String, required, forces new resource) The managed object
-  ID of the host to set the virtual switch up on. 
-* `mtu` - (Integer, optional) The maximum transmission unit (MTU) for the virtual
+* `name` - (Required) The name of the virtual switch. Forces a new resource if
+  changed.
+* `host_system_id` - (Required) The [managed object ID][docs-about-morefs] of
+  the host to set the virtual switch up on. Forces a new resource if changed.
+* `mtu` - (Optional) The maximum transmission unit (MTU) for the virtual
   switch. Default: `1500`.
-* `number_of_ports` - (Integer, optional) The number of ports to create with
-  this virtual switch. Default: `128`.
+* `number_of_ports` - (Optional) The number of ports to create with this
+  virtual switch. Default: `128`.
+
+[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
 ~> **NOTE:** Changing the port count requires a reboot of the host. Terraform
 will not restart the host for you.
@@ -97,16 +100,14 @@ will not restart the host for you.
 The following arguments are related to how the virtual switch binds to physical
 NICs:
 
-* `network_adapters` - (Array of strings, required) The network interfaces to
-  bind to the bridge.
-* `beacon_interval` - (Integer, optional) The interval, in seconds, that a NIC
-  beacon packet is sent out. This can be used with
-  [`check_beacon`](#check_beacon) to offer link failure capability beyond link
-  status only. Default: `1`.
-* `link_discovery_operation` - (String, optional) Whether to `advertise` or
-  `listen` for link discovery traffic. Default: `listen`.
-* `link_discovery_protocol` - (String, optional) The discovery protocol type.
-  Valid types are `cpd` and `lldp`. Default: `cdp`.
+* `network_adapters` - (Required) The network interfaces to bind to the bridge.
+* `beacon_interval` - (Optional) The interval, in seconds, that a NIC beacon
+  packet is sent out. This can be used with [`check_beacon`](#check_beacon) to
+  offer link failure capability beyond link status only. Default: `1`.
+* `link_discovery_operation` - (Optional) Whether to `advertise` or `listen`
+  for link discovery traffic. Default: `listen`.
+* `link_discovery_protocol` - (Optional) The discovery protocol type.  Valid
+  types are `cpd` and `lldp`. Default: `cdp`.
 
 ### Policy Options
 
@@ -126,46 +127,45 @@ or if the NIC is not a valid NIC in `network_adapters`.
 ~> **NOTE:** VMware recommends using a minimum of 3 NICs when using beacon
 probing (configured with [`check_beacon`](#check_beacon)).
 
-* `active_nics` - (Array of strings, required) The list of active network
-  adapters used for load balancing.
-* `standby_nics` - (Array of strings, required) The list of standby network
-  adapters used for failover.
-* `check_beacon` - (Boolean, optional) Enable beacon probing - this requires
-  that the [`beacon_interval`](#beacon_interval) option has been set in the
-  bridge options. If this is false, only link status is used to check for
-  failed NICs. Default: `false`.
-* `teaming_policy` - (String, optional) The network adapter teaming policy. Can
-  be one of `loadbalance_ip`, `loadbalance_srcmac`, `loadbalance_srcid`, or
+* `active_nics` - (Required) The list of active network adapters used for load
+  balancing.
+* `standby_nics` - (Required) The list of standby network adapters used for
+  failover.
+* `check_beacon` - (Optional) Enable beacon probing - this requires that the
+  [`beacon_interval`](#beacon_interval) option has been set in the bridge
+  options. If this is set to `false`, only link status is used to check for
+  failed NICs.  Default: `false`.
+* `teaming_policy` - (Optional) The network adapter teaming policy. Can be one
+  of `loadbalance_ip`, `loadbalance_srcmac`, `loadbalance_srcid`, or
   `failover_explicit`. Default: `loadbalance_srcid`.
-* `notify_switches` - (Boolean, optional) If `true`, the teaming policy will
+* `notify_switches` - (Optional) If set to `true`, the teaming policy will
   notify the broadcast network of a NIC failover, triggering cache updates.
   Default: `true`.
-* `failback` - (Boolean, optional) If `true`, the teaming policy will
-  re-activate failed interfaces higher in precedence when they come back up.
-  Default: `true`.
+* `failback` - (Optional) If set to `true`, the teaming policy will re-activate
+  failed interfaces higher in precedence when they come back up.  Default:
+  `true`.
 
 #### Security Policy Options
 
-* `allow_promiscuous` - (Boolean, optional) Enable promiscuous mode on the
-  network. This flag indicates whether or not all traffic is seen on a given
-  port. Default: `false`.
-* `allow_forged_transmits` - (Boolean, optional) Controls whether or not the
-  virtual network adapter is allowed to send network traffic with a different
-  MAC address than that of its own. Default: `true`.
-* `allow_mac_changes` - (Boolean, optional) Controls whether or not the Media
-  Access Control (MAC) address can be changed. Default: `true`.
+* `allow_promiscuous` - (Optional) Enable promiscuous mode on the network. This
+  flag indicates whether or not all traffic is seen on a given port. Default:
+  `false`.
+* `allow_forged_transmits` - (Optional) Controls whether or not the virtual
+  network adapter is allowed to send network traffic with a different MAC
+  address than that of its own. Default: `true`.
+* `allow_mac_changes` - (Optional) Controls whether or not the Media Access
+  Control (MAC) address can be changed. Default: `true`.
 
 #### Traffic Shaping Options
 
-* `shaping_enabled` - (Boolean, optional) `true` if the traffic shaper is
-  enabled on the port. Default: `false`.
-* `shaping_average_bandwidth` - (Integer, optional) The average bandwidth in
-  bits per second if shaping is enabled on the port. Default: `0`
-* `shaping_peak_bandwidth` - (Integer, optional) The peak bandwidth during
-  bursts in bits per second if traffic shaping is enabled on the port. Default:
-  `0`
-* `shaping_burst_size` - (Integer, optional) The maximum burst size allowed in
-  bytes if shaping is enabled on the port. Default: `0`
+* `shaping_enabled` - (Optional) Set to `true` to enable the traffic shaper for
+  ports managed by this virtual switch. Default: `false`.
+* `shaping_average_bandwidth` - (Optional) The average bandwidth in bits per
+  second if traffic shaping is enabled. Default: `0`
+* `shaping_peak_bandwidth` - (Optional) The peak bandwidth during bursts in
+  bits per second if traffic shaping is enabled. Default: `0`
+* `shaping_burst_size` - (Optional) The maximum burst size allowed in bytes if
+  shaping is enabled. Default: `0`
 
 ## Attribute Reference
 

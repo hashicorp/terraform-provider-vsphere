@@ -39,10 +39,15 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 				ForceNew: true, //TODO Can this be optional (resize)?
 			},
 
+			// TODO:
+			//
+			// * Add extra lifecycles (move, rename, etc). May not be possible
+			// without breaking other resources though.
+			// * Add validation (make sure it ends in .vmdk)
 			"vmdk_path": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true, //TODO Can this be optional (move)?
+				ForceNew: true,
 			},
 
 			"type": &schema.Schema{
@@ -65,6 +70,8 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Default:  "lsiLogic",
+				// TODO: Move this to removed after we remove the support to specify this in later versions
+				Deprecated: "this attribute has no effect on controller types - please use scsi_type in vsphere_virtual_machine instead",
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
 					if value != "ide" && value != "busLogic" && value != "lsiLogic" {

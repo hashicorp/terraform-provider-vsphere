@@ -31,7 +31,7 @@ data "vsphere_tag_category" "category" {
 
 The following arguments are supported:
 
-* `name` - (String, required) The name of the tag category.
+* `name` - (Required) The name of the tag category.
 
 ## Attribute Reference
 
