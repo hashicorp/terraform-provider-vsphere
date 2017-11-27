@@ -136,9 +136,9 @@ probing (configured with [`check_beacon`](#check_beacon)).
 * `teaming_policy` - (Optional) The network adapter teaming policy. Can be one
   of `loadbalance_ip`, `loadbalance_srcmac`, `loadbalance_srcid`, or
   `failover_explicit`. Default: `loadbalance_srcid`.
-* `notify_switches` - (Optional) If `true`, the teaming policy will notify the
-  broadcast network of a NIC failover, triggering cache updates.  Default:
-  `true`.
+* `notify_switches` - (Optional) If set to `true`, the teaming policy will
+  notify the broadcast network of a NIC failover, triggering cache updates.
+  Default: `true`.
 * `failback` - (Optional) If `true`, the teaming policy will re-activate failed
   interfaces higher in precedence when they come back up.  Default: `true`.
 
