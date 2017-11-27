@@ -9,7 +9,7 @@ description: |-
 # vsphere\_virtual\_disk
 
 The `vsphere_virtual_disk` resource can be used to create virtual disks
-external to any [`vsphere_virtual_machine`][docs-vsphere-virtual-machine]
+outside of any given [`vsphere_virtual_machine`][docs-vsphere-virtual-machine]
 resource. These disks can be attached to a virtual machine by creating a disk
 sub-resource with the [`attach`][docs-vsphere-virtual-machine-disk-attach]
 parameter.
@@ -37,7 +37,7 @@ The following arguments are supported:
 immutable and force a new resource if changed.
 
 * `vmdk_path` - (Required) The path, including filename, of the virtual disk to
-  be created.  This should end with `.vmdk`.
+  be created.  This needs to end in `.vmdk`.
 * `datastore` - (Required) The name of the datastore in which to create the
   disk.
 * `size` - (Required) Size of the disk (in GB).
@@ -45,7 +45,12 @@ immutable and force a new resource if changed.
   disk. Can be omitted when when ESXi or if there is only one datacenter in
   your infrastructure.
 * `type` - (Optional) The type of disk to create. Can be one of
-  `eagerZeroedThick`, `lazy`, or `thin`. Default: `eagerZeroedThick`.
+  `eagerZeroedThick`, `lazy`, or `thin`. Default: `eagerZeroedThick`. For
+  information on what each kind of disk provisioning policy means, click
+  [here][docs-vmware-vm-disk-provisioning].
+
+[docs-vmware-vm-disk-provisioning]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.vm_admin.doc/GUID-4C0F4D73-82F2-4B81-8AA7-1DD752A8A5AC.html
+
 * `adapter_type` - (Optional) The adapter type for this virtual disk. Can be
   one of `ide`, `lsiLogic`, or `busLogic`.  Default: `lsiLogic`.
 

@@ -23,7 +23,7 @@ have been attached via the [attach][docs-vsphere-virtual-machine-disk-attach]
 parameter to the `vsphere_virtual_machine` `disk` sub-resource), and even the
 configuration of the virtual machine at the time of the snapshot. Virtual
 machine, disk activity, and configuration changes post-snapshot are not
-included in the original state. Use this resource with care! VMware nor
+included in the original state. Use this resource with care! Neither VMware nor
 HashiCorp recommends retaining snapshots for a extended period of time and does
 NOT recommend using them as as backup feature. For more information on the
 limitation of virtual machine snapshots, see [here][ext-vm-snap-limitations].

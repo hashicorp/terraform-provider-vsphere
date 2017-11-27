@@ -39,10 +39,15 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 				ForceNew: true, //TODO Can this be optional (resize)?
 			},
 
+			// TODO:
+			//
+			// * Add extra lifecycles (move, rename, etc). May not be possible
+			// without breaking other resources though.
+			// * Add validation (make sure it ends in .vmdk)
 			"vmdk_path": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true, //TODO Can this be optional (move)?
+				ForceNew: true,
 			},
 
 			"type": &schema.Schema{
