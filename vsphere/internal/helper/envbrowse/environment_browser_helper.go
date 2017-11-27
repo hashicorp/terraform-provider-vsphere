@@ -3,6 +3,7 @@ package envbrowse
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/vmware/govmomi/object"
@@ -94,6 +95,9 @@ func (b *EnvironmentBrowser) OSFamily(ctx context.Context, guest string) (string
 	}
 	if len(res.Returnval.GuestOSDescriptor) < 1 {
 		return "", errors.New("no guest OS descriptors were found")
+	}
+	if len(res.Returnval.GuestOSDescriptor) > 1 {
+		return "", fmt.Errorf("multiple OS descriptors were found for guest ID %s", guest)
 	}
 	family := res.Returnval.GuestOSDescriptor[0].Family
 	log.Printf("[DEBUG] OSFamily: family for %q is %q", guest, family)
