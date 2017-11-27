@@ -131,8 +131,8 @@ probing (configured with [`check_beacon`](#check_beacon)).
   failover.
 * `check_beacon` - (Optional) Enable beacon probing - this requires that the
   [`beacon_interval`](#beacon_interval) option has been set in the bridge
-  options. If this is false, only link status is used to check for failed NICs.
-  Default: `false`.
+  options. If this is set to `false`, only link status is used to check for
+  failed NICs.  Default: `false`.
 * `teaming_policy` - (Optional) The network adapter teaming policy. Can be one
   of `loadbalance_ip`, `loadbalance_srcmac`, `loadbalance_srcid`, or
   `failover_explicit`. Default: `loadbalance_srcid`.
