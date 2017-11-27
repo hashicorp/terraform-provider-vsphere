@@ -139,8 +139,9 @@ probing (configured with [`check_beacon`](#check_beacon)).
 * `notify_switches` - (Optional) If set to `true`, the teaming policy will
   notify the broadcast network of a NIC failover, triggering cache updates.
   Default: `true`.
-* `failback` - (Optional) If `true`, the teaming policy will re-activate failed
-  interfaces higher in precedence when they come back up.  Default: `true`.
+* `failback` - (Optional) If set to `true`, the teaming policy will re-activate
+  failed interfaces higher in precedence when they come back up.  Default:
+  `true`.
 
 #### Security Policy Options
 
