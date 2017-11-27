@@ -15,7 +15,7 @@ import (
 // EnvironmentBrowser is a higher-level interface to a specific object's
 // environment browser.
 //
-// This essentially fills he role of such functionality lacking in govmomi at
+// This essentially fills the role of such functionality lacking in govmomi at
 // this point in time and may serve as the basis for a respective PR at a later
 // point in time.
 type EnvironmentBrowser struct {
