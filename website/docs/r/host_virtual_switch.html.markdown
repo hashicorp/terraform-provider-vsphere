@@ -156,14 +156,14 @@ probing (configured with [`check_beacon`](#check_beacon)).
 
 #### Traffic Shaping Options
 
-* `shaping_enabled` - (Optional) `true` if the traffic shaper is enabled on the
-  port. Default: `false`.
+* `shaping_enabled` - (Optional) Set to `true` to enable the traffic shaper for
+  ports managed by this virtual switch. Default: `false`.
 * `shaping_average_bandwidth` - (Optional) The average bandwidth in bits per
-  second if shaping is enabled on the port. Default: `0`
+  second if traffic shaping is enabled. Default: `0`
 * `shaping_peak_bandwidth` - (Optional) The peak bandwidth during bursts in
-  bits per second if traffic shaping is enabled on the port. Default: `0`
+  bits per second if traffic shaping is enabled. Default: `0`
 * `shaping_burst_size` - (Optional) The maximum burst size allowed in bytes if
-  shaping is enabled on the port. Default: `0`
+  shaping is enabled. Default: `0`
 
 ## Attribute Reference
 

@@ -82,22 +82,22 @@ func schemaHostNetworkPolicy() map[string]*schema.Schema {
 		"shaping_average_bandwidth": &schema.Schema{
 			Type:        schema.TypeInt,
 			Optional:    true,
-			Description: "The average bandwidth in bits per second if shaping is enabled on the port.",
+			Description: "The average bandwidth in bits per second if traffic shaping is enabled.",
 		},
 		"shaping_burst_size": &schema.Schema{
 			Type:        schema.TypeInt,
 			Optional:    true,
-			Description: "The maximum burst size allowed in bytes if shaping is enabled on the port.",
+			Description: "The maximum burst size allowed in bytes if traffic shaping is enabled.",
 		},
 		"shaping_enabled": &schema.Schema{
 			Type:        schema.TypeBool,
 			Optional:    true,
-			Description: "True if the traffic shaper is enabled on the port.",
+			Description: "Enable traffic shaping on this virtual switch or port group.",
 		},
 		"shaping_peak_bandwidth": &schema.Schema{
 			Type:        schema.TypeInt,
 			Optional:    true,
-			Description: "The peak bandwidth during bursts in bits per second if traffic shaping is enabled on the port.",
+			Description: "The peak bandwidth during bursts in bits per second if traffic shaping is enabled.",
 		},
 	}
 }
