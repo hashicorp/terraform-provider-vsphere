@@ -75,15 +75,16 @@ func (w *virtualMachineCustomizationWaiter) wait(client *govmomi.Client, vm *obj
 	if timeout < 1 {
 		return nil
 	}
+
 	// Our listener loop callback.
-	success := make(chan struct{})
+	cbErr := make(chan error, 1)
 	cb := func(obj types.ManagedObjectReference, page []types.BaseEvent) error {
 		for _, be := range page {
 			switch e := be.(type) {
-			case *types.CustomizationFailed:
-				return errors.New(e.GetEvent().FullFormattedMessage)
+			case types.BaseCustomizationFailed:
+				cbErr <- errors.New(e.GetCustomizationFailed().GetEvent().FullFormattedMessage)
 			case *types.CustomizationSucceeded:
-				close(success)
+				close(cbErr)
 			}
 		}
 		return nil
@@ -100,22 +101,22 @@ func (w *virtualMachineCustomizationWaiter) wait(client *govmomi.Client, vm *obj
 		mgrErr <- mgr.Events(pctx, []types.ManagedObjectReference{vm.Reference()}, 10, true, false, cb)
 	}()
 
-	// This is our waiter. We want to wait on all of these conditions. We also
-	// use a different context so that we can give a better error message on
-	// timeout without interfering with the subscriber's context.
+	// Wait for any error condition (including nil from the closure of the
+	// callback error channel on success). We also use a different context so
+	// that we can give a better error message on timeout without interfering
+	// with the subscriber's context.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Minute)
 	defer cancel()
+	var err error
 	select {
-	case err := <-mgrErr:
-		return err
 	case <-ctx.Done():
 		if ctx.Err() == context.DeadlineExceeded {
-			return fmt.Errorf("timeout waiting for customization to complete")
+			err = fmt.Errorf("timeout waiting for customization to complete")
 		}
-	case <-success:
-		// Pass case to break to success
+	case err = <-mgrErr:
+	case err = <-cbErr:
 	}
-	return nil
+	return err
 }
 
 // selectEventsForReference allows you to query events for a specific
