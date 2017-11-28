@@ -25,7 +25,7 @@ import (
 // rollback fails on a post-clone virtual machine operation.
 const formatVirtualMachinePostCloneRollbackError = `
 WARNING: Dangling resource!
-There was an error moving reconfiguring virtual machine %q after cloning:
+There was an error performing post-clone changes to virtual machine %q:
 %s
 Additionally, there was an error removing the cloned virtual machine:
 %s
@@ -719,6 +719,11 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 		custSpec := vmworkflow.ExpandCustomizationSpec(d, family)
 		cw = newVirtualMachineCustomizationWaiter(client, vm, d.Get("clone.0.customize.0.timeout").(int))
 		if err := virtualmachine.Customize(vm, custSpec); err != nil {
+			// Roll back the VMs as per the error handling in reconfigure.
+			if derr := resourceVSphereVirtualMachineDelete(d, meta); derr != nil {
+				return nil, fmt.Errorf(formatVirtualMachinePostCloneRollbackError, vm.InventoryPath, err, derr)
+			}
+			d.SetId("")
 			return nil, fmt.Errorf("error sending customization spec: %s", err)
 		}
 	}
@@ -732,6 +737,11 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 		log.Printf("[DEBUG] %s: Waiting for VM customization to complete", resourceVSphereVirtualMachineIDString(d))
 		<-cw.Done()
 		if err := cw.Err(); err != nil {
+			// Roll back the VMs as per the error handling in reconfigure.
+			if derr := resourceVSphereVirtualMachineDelete(d, meta); derr != nil {
+				return nil, fmt.Errorf(formatVirtualMachinePostCloneRollbackError, vm.InventoryPath, err, derr)
+			}
+			d.SetId("")
 			return nil, fmt.Errorf("error waiting on VM customization: %s", err)
 		}
 	}
