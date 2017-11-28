@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"regexp"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -94,6 +96,10 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 					Type:        schema.TypeString,
 					Optional:    true,
 					Description: "Customize the time zone on the VM. This should be a time zone-style entry, like America/Los_Angeles.",
+					ValidateFunc: validation.StringMatch(
+						regexp.MustCompile("^[-+/_a-zA-Z0-9]+$"),
+						"must be similar to America/Los_Angeles or other Linux/Unix TZ format",
+					),
 				},
 			}},
 		},
