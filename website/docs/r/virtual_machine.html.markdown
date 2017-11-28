@@ -245,22 +245,27 @@ The following options are general virtual machine and Terraform workflow
 options:
 
 * `name` - (Required) The name of the virtual machine.
-* `resource_pool_id` - (Required) The ID resource pool to put this virtual
-  machine in. See the section on [virtual machine
-  migration](#virtual-machine-migration) for details on changing this value.
-* `datastore_id` - (Required) The ID of the virtual machine's datastore. The
-  virtual machine configuration is placed here, along with any virtual disks
-  that are created where a datastore is not explicitly specified. See the
-  section on [virtual machine migration](#virtual-machine-migration) for
-  details on changing this value.
+* `resource_pool_id` - (Required) The [managed object reference
+  ID][docs-about-morefs] of the resource pool to put this virtual machine in.
+  See the section on [virtual machine migration](#virtual-machine-migration)
+  for details on changing this value.
+
+[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
+
+* `datastore_id` - (Required) The [managed object reference
+  ID][docs-about-morefs] of the virtual machine's datastore. The virtual
+  machine configuration is placed here, along with any virtual disks that are
+  created where a datastore is not explicitly specified. See the section on
+  [virtual machine migration](#virtual-machine-migration) for details on
+  changing this value.
 * `folder` - (Optional) The path to the folder to put this virtual machine in,
   relative to the datacenter that the resource pool is in.
-* `host_system_id` - (Optional) An optional ID of a host to put this virtual
-  machine on. See the section on [virtual machine
-  migration](#virtual-machine-migration) for details on changing this value. If
-  a `host_system_id` is not supplied, vSphere will select a host in the
-  resource pool to place the virtual machine, according to any defaults or DRS
-  policies in place. 
+* `host_system_id` - (Optional) An optional [managed object reference
+  ID][docs-about-morefs] of a host to put this virtual machine on. See the
+  section on [virtual machine migration](#virtual-machine-migration) for
+  details on changing this value. If a `host_system_id` is not supplied,
+  vSphere will select a host in the resource pool to place the virtual machine,
+  according to any defaults or DRS policies in place. 
 * `disk` - (Required) A specification for a virtual disk device on this virtual
   machine. See [disk options](#disk-options) below.
 * `network_interface` - (Required) A specification for a virtual NIC on this
@@ -473,8 +478,9 @@ The options are:
   [`scsi_controller_count`](#scsi_controller_count) times 15, minus 1 (so `14`,
   `29`, `44`, and `59`, for 1-4 controllers respectively). The default is `0`,
   for which one disk must be set to. Duplicate unit numbers are not allowed.
-* `datastore_id` - (Optional) The datastore for this virtual disk. The default
-  is to use the datastore of the virtual machine. See the section on [virtual
+* `datastore_id` - (Optional) A [managed object reference
+  ID][docs-about-morefs] to the datastore for this virtual disk. The default is
+  to use the datastore of the virtual machine. See the section on [virtual
   machine migration](#virtual-machine-migration) for details on changing this
   value.
 * `attach` - (Optional) Attach an external disk instead of creating a new one.
@@ -525,6 +531,11 @@ defaults in the sub-resource are the equivalent of thin provisioning.
 * **Thin provisioned:** `eagerly_scrub` should be set to `false`, and
   `thin_provisioned` should be set to `true`.
 
+For the technical details of each virtual disk provisioning policy, click
+[here][docs-vmware-vm-disk-provisioning].
+
+[docs-vmware-vm-disk-provisioning]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.vm_admin.doc/GUID-4C0F4D73-82F2-4B81-8AA7-1DD752A8A5AC.html
+
 ~> **NOTE:** Not all disk types are available on some types of datastores.
 Attempting to set options inappropriate for a datastore that a disk is deployed
 to will result in a successful initial apply, but vSphere will silently correct
@@ -564,8 +575,8 @@ would show up as `eth1`.
 
 The options are:
 
-* `network_id` - (Required) The ID of the network to connect this interface
-  to.
+* `network_id` - (Required) The [managed object reference
+  ID][docs-about-morefs] of the network to connect this interface to.
 * `adapter_type` - (Optional) The network interface type. Can be one of
   `e1000`, `e1000e`, or `vmxnet3`. Default: `e1000`.
 * `use_static_mac` - (Optional) If true, the `mac_address` field is treated as

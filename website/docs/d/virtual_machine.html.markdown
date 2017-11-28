@@ -35,12 +35,15 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the virtual machine. This can be a name or
   path.
-* `datacenter_id` - (Optional) The managed object reference ID of the
-  datacenter the virtual machine is located in. This can be omitted if the
-  search path used in `name` is an absolute path. For default datacenters, use
-  the `id` attribute from an empty `vsphere_datacenter` data source.
+* `datacenter_id` - (Optional) The [managed object reference
+  ID][docs-about-morefs] of the datacenter the virtual machine is located in.
+  This can be omitted if the search path used in `name` is an absolute path.
+  For default datacenters, use the `id` attribute from an empty
+  `vsphere_datacenter` data source.
 * `scsi_controller_scan_count` - (Optional) The number of SCSI controllers to
   scan for disk sizes and controller types on. Default: `1`.
+
+[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
 ~> **NOTE:** For best results, ensure that all the disks on any templates you
 use with this data source reside on the primary controller, and leave this
