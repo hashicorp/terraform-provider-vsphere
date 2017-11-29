@@ -89,7 +89,7 @@ var SCSIBusTypeAllowedValues = []string{
 // functions for virtual devices.
 type newSubresourceFunc func(*govmomi.Client, int, int, *schema.ResourceData) SubresourceInstance
 
-// SubresourceInstance is an interface for derivative objects of Subresoruce.
+// SubresourceInstance is an interface for derivative objects of Subresource.
 // It's used on the general apply and read operation methods, and contains both
 // exported methods of the base Subresource type and the CRUD methods that
 // should be supplied by derivative objects.
