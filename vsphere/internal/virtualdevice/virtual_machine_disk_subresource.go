@@ -928,6 +928,9 @@ func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtua
 	if err != nil {
 		return nil, err
 	}
+	if len(dspec) != 1 {
+		return nil, fmt.Errorf("incorrect number of config spec items returned - expected 1, got %d", len(dspec))
+	}
 	// Clear the file operation if we are attaching.
 	if r.Get("attach").(bool) {
 		dspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
@@ -1050,6 +1053,9 @@ func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtua
 	dspec, err := object.VirtualDeviceList{disk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationEdit)
 	if err != nil {
 		return nil, err
+	}
+	if len(dspec) != 1 {
+		return nil, fmt.Errorf("incorrect number of config spec items returned - expected 1, got %d", len(dspec))
 	}
 	// Clear file operation - VirtualDeviceList currently sets this to replace, which is invalid
 	dspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""

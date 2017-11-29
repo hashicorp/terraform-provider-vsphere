@@ -485,6 +485,9 @@ func swapSCSIDevice(l object.VirtualDeviceList, device types.BaseVirtualSCSICont
 			if err != nil {
 				return nil, err
 			}
+			if len(cspec) != 1 {
+				return nil, fmt.Errorf("incorrect number of config spec items returned - expected 1, got %d", len(cspec))
+			}
 			// Clear the file operation
 			cspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
 			spec = append(spec, cspec...)
