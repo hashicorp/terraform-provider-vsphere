@@ -758,8 +758,8 @@ The options are:
   for Windows operating systems. Ignored on Linux and possibly other opearating
   systems - for those systems, please see the [global DNS
   settings](#global-dns-settings) section.
-* `dns_server_list` - (Optional) Network interface-specific DNS search domain
-  for Windows operating systems. Ignored on Linux and possibly other opearating
+* `dns_domain` - (Optional) Network interface-specific DNS search domain for
+  Windows operating systems. Ignored on Linux and possibly other opearating
   systems - for those systems, please see the [global DNS
   settings](#global-dns-settings) section.
 * `ipv4_address` - (Optional) The IPv4 address assigned to this network adapter. If left

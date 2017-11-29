@@ -1011,6 +1011,9 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_IPV4_GATEWAY") == "" {
 		t.Skip("set VSPHERE_IPV4_GATEWAY to run vsphere_virtual_machine acceptance tests")
 	}
+	if os.Getenv("VSPHERE_DNS") == "" {
+		t.Skip("set VSPHERE_DNS to run vsphere_virtual_machine acceptance tests")
+	}
 	if os.Getenv("VSPHERE_DATASTORE") == "" {
 		t.Skip("set VSPHERE_DATASTORE to run vsphere_virtual_machine acceptance tests")
 	}
@@ -2911,6 +2914,10 @@ variable "ipv4_gateway" {
   default = "%s"
 }
 
+variable "dns_server" {
+  default = "%s"
+}
+
 variable "datastore" {
   default = "%s"
 }
@@ -2981,7 +2988,9 @@ resource "vsphere_virtual_machine" "vm" {
         ipv4_netmask = "${var.ipv4_netmask}"
       }
 
-      ipv4_gateway = "${var.ipv4_gateway}"
+      ipv4_gateway    = "${var.ipv4_gateway}"
+      dns_server_list = ["${var.dns_server}"]
+      dns_suffix_list = ["test.internal"]
     }
   }
 }
@@ -2992,6 +3001,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DNS"),
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
@@ -3021,6 +3031,10 @@ variable "ipv4_netmask" {
 }
 
 variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "dns_server" {
   default = "%s"
 }
 
@@ -3099,7 +3113,9 @@ resource "vsphere_virtual_machine" "vm" {
         ipv4_netmask = "${var.ipv4_netmask}"
       }
 
-      ipv4_gateway = "${var.ipv4_gateway}"
+      ipv4_gateway    = "${var.ipv4_gateway}"
+      dns_server_list = ["${var.dns_server}"]
+      dns_suffix_list = ["test.internal"]
     }
   }
 }
@@ -3110,6 +3126,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DNS"),
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
@@ -3140,6 +3157,10 @@ variable "ipv4_netmask" {
 }
 
 variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "dns_server" {
   default = "%s"
 }
 
@@ -3213,7 +3234,9 @@ resource "vsphere_virtual_machine" "vm" {
         ipv4_netmask = "${var.ipv4_netmask}"
       }
 
-      ipv4_gateway = "${var.ipv4_gateway}"
+      ipv4_gateway    = "${var.ipv4_gateway}"
+      dns_server_list = ["${var.dns_server}"]
+      dns_suffix_list = ["test.internal"]
     }
   }
 }
@@ -3224,6 +3247,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DNS"),
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
@@ -3254,6 +3278,10 @@ variable "ipv4_netmask" {
 }
 
 variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "dns_server" {
   default = "%s"
 }
 
@@ -3330,7 +3358,9 @@ resource "vsphere_virtual_machine" "vm" {
         ipv4_netmask = "${var.ipv4_netmask}"
       }
 
-      ipv4_gateway = "${var.ipv4_gateway}"
+      ipv4_gateway    = "${var.ipv4_gateway}"
+      dns_server_list = ["${var.dns_server}"]
+      dns_suffix_list = ["test.internal"]
     }
   }
 }
@@ -3341,6 +3371,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DNS"),
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
@@ -3375,6 +3406,10 @@ variable "ipv4_netmask" {
 }
 
 variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "dns_server" {
   default = "%s"
 }
 
@@ -3450,8 +3485,10 @@ resource "vsphere_virtual_machine" "vm" {
         ipv6_netmask = "32"
       }
 
-      ipv4_gateway = "${var.ipv4_gateway}"
-			ipv6_gateway = "fd00::1"
+      ipv4_gateway    = "${var.ipv4_gateway}"
+			ipv6_gateway    = "fd00::1"
+      dns_server_list = ["${var.dns_server}"]
+      dns_suffix_list = ["test.internal"]
     }
   }
 }
@@ -3462,6 +3499,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DNS"),
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
@@ -3594,6 +3632,10 @@ variable "ipv4_gateway" {
   default = "%s"
 }
 
+variable "dns_server" {
+  default = "%s"
+}
+
 variable "datastore" {
   default = "%s"
 }
@@ -3674,7 +3716,9 @@ resource "vsphere_virtual_machine" "vm" {
         ipv4_netmask = "${var.ipv4_netmask}"
       }
 
-      ipv4_gateway = "${var.ipv4_gateway}"
+      ipv4_gateway    = "${var.ipv4_gateway}"
+      dns_server_list = ["${var.dns_server}"]
+      dns_suffix_list = ["test.internal"]
     }
   }
 }
@@ -3685,6 +3729,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DNS"),
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
@@ -3715,6 +3760,10 @@ variable "ipv4_netmask" {
 }
 
 variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "dns_server" {
   default = "%s"
 }
 
@@ -3788,7 +3837,9 @@ resource "vsphere_virtual_machine" "vm" {
         ipv4_netmask = "${var.ipv4_netmask}"
       }
 
-      ipv4_gateway = "${var.ipv4_gateway}"
+      ipv4_gateway    = "${var.ipv4_gateway}"
+      dns_server_list = ["${var.dns_server}"]
+      dns_suffix_list = ["test.internal"]
     }
   }
 }
@@ -3799,6 +3850,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DNS"),
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
@@ -3828,6 +3880,10 @@ variable "ipv4_netmask" {
 }
 
 variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "dns_server" {
   default = "%s"
 }
 
@@ -3900,7 +3956,9 @@ resource "vsphere_virtual_machine" "vm" {
         ipv4_netmask = "${var.ipv4_netmask}"
       }
 
-      ipv4_gateway = "${var.ipv4_gateway}"
+      ipv4_gateway    = "${var.ipv4_gateway}"
+      dns_server_list = ["${var.dns_server}"]
+      dns_suffix_list = ["test.internal"]
     }
   }
 }
@@ -3911,6 +3969,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DNS"),
 		datastore,
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
@@ -3940,6 +3999,10 @@ variable "ipv4_netmask" {
 }
 
 variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "dns_server" {
   default = "%s"
 }
 
@@ -4028,7 +4091,9 @@ resource "vsphere_virtual_machine" "vm" {
         ipv4_netmask = "${var.ipv4_netmask}"
       }
 
-      ipv4_gateway = "${var.ipv4_gateway}"
+      ipv4_gateway    = "${var.ipv4_gateway}"
+      dns_server_list = ["${var.dns_server}"]
+      dns_suffix_list = ["test.internal"]
     }
   }
 }
@@ -4039,6 +4104,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DNS"),
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
@@ -4072,6 +4138,10 @@ variable "ipv4_gateway" {
   default = "%s"
 }
 
+variable "dns_server" {
+  default = "%s"
+}
+
 variable "datastore" {
   default = "%s"
 }
@@ -4157,7 +4227,9 @@ resource "vsphere_virtual_machine" "vm" {
         ipv4_netmask = "${var.ipv4_netmask}"
       }
 
-      ipv4_gateway = "${var.ipv4_gateway}"
+      ipv4_gateway    = "${var.ipv4_gateway}"
+      dns_server_list = ["${var.dns_server}"]
+      dns_suffix_list = ["test.internal"]
     }
   }
 }
@@ -4168,6 +4240,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DNS"),
 		datastore,
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
@@ -4197,6 +4270,10 @@ variable "ipv4_netmask" {
 }
 
 variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "dns_server" {
   default = "%s"
 }
 
@@ -4331,7 +4408,9 @@ resource "vsphere_virtual_machine" "vm" {
         ipv4_netmask = "${var.ipv4_netmask}"
       }
 
-      ipv4_gateway = "${var.ipv4_gateway}"
+      ipv4_gateway    = "${var.ipv4_gateway}"
+      dns_server_list = ["${var.dns_server}"]
+      dns_suffix_list = ["test.internal"]
     }
   }
 }
@@ -4342,6 +4421,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DNS"),
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_DS_VMFS_DISK0"),
@@ -4377,6 +4457,10 @@ variable "ipv4_netmask" {
 }
 
 variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "dns_server" {
   default = "%s"
 }
 
@@ -4449,8 +4533,10 @@ resource "vsphere_virtual_machine" "vm" {
       }
 
       network_interface {
-        ipv4_address = "${var.ipv4_address}"
-        ipv4_netmask = "${var.ipv4_netmask}"
+        ipv4_address    = "${var.ipv4_address}"
+        ipv4_netmask    = "${var.ipv4_netmask}"
+				dns_server_list = ["${var.dns_server}"]
+				dns_domain      = "test.internal"
       }
 
       ipv4_gateway = "${var.ipv4_gateway}"
@@ -4464,6 +4550,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DNS"),
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE_WINDOWS"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),

@@ -39,6 +39,7 @@ func VirtualMachineCloneSchema() map[string]*schema.Schema {
 		"timeout": {
 			Type:         schema.TypeInt,
 			Optional:     true,
+			ForceNew:     true,
 			Default:      30,
 			Description:  "The timeout, in minutes, to wait for the virtual machine clone to complete.",
 			ValidateFunc: validation.IntAtLeast(10),
@@ -46,6 +47,7 @@ func VirtualMachineCloneSchema() map[string]*schema.Schema {
 		"customize": {
 			Type:        schema.TypeList,
 			Optional:    true,
+			ForceNew:    true,
 			MaxItems:    1,
 			Description: "The customization spec for this clone. This allows the user to configure the virtual machine post-clone.",
 			Elem:        &schema.Resource{Schema: VirtualMachineCustomizeSchema()},
