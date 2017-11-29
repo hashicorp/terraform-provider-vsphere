@@ -902,7 +902,7 @@ func ReadDiskSizes(l object.VirtualDeviceList, count int) ([]int, error) {
 
 // Create creates a vsphere_virtual_machine disk sub-resource.
 func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
-	log.Printf("[DEBUG] %s: Running create", r)
+	log.Printf("[DEBUG] %s: Creating disk", r)
 	var spec []types.BaseVirtualDeviceConfigSpec
 
 	disk, err := r.createDisk(l)
