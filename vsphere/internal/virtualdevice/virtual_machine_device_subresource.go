@@ -112,19 +112,22 @@ type SubresourceInstance interface {
 
 // controllerTypeToClass converts a controller type to a specific short-form
 // controller class, namely for use with working with IDs.
-func controllerTypeToClass(c types.BaseVirtualController) string {
+func controllerTypeToClass(c types.BaseVirtualController) (string, error) {
+	var t string
 	switch c.(type) {
 	case *types.VirtualIDEController:
-		return SubresourceControllerTypeIDE
+		t = SubresourceControllerTypeIDE
 	case *types.VirtualAHCIController:
-		return SubresourceControllerTypeSATA
+		t = SubresourceControllerTypeSATA
 	case *types.VirtualPCIController:
-		return SubresourceControllerTypePCI
+		t = SubresourceControllerTypePCI
 	case *types.ParaVirtualSCSIController, *types.VirtualBusLogicController,
 		*types.VirtualLsiLogicController, *types.VirtualLsiLogicSASController:
-		return SubresourceControllerTypeSCSI
+		t = SubresourceControllerTypeSCSI
+	default:
+		return subresourceControllerTypeUnknown, fmt.Errorf("unsupported controller type %T", c)
 	}
-	panic(fmt.Errorf("unsupported controller type %T", c))
+	return t, nil
 }
 
 // Subresource defines a common interface for device sub-resources in the
@@ -274,18 +277,21 @@ func (r *Subresource) Hash() int {
 	return hf(r.data)
 }
 
-// computeDevAddr handles the logic for saveAddr and allows it to be used
+// computeDevAddr handles the logic for SaveDevIDs and allows it to be used
 // outside of a subresource.
-func computeDevAddr(device types.BaseVirtualDevice, ctlr types.BaseVirtualController) string {
+func computeDevAddr(device types.BaseVirtualDevice, ctlr types.BaseVirtualController) (string, error) {
 	vd := device.GetVirtualDevice()
 	vc := ctlr.GetVirtualController()
-	ctype := controllerTypeToClass(ctlr)
+	ctype, err := controllerTypeToClass(ctlr)
+	if err != nil {
+		return "", err
+	}
 	parts := []string{
 		ctype,
 		strconv.Itoa(int(vc.BusNumber)),
 		strconv.Itoa(int(structure.DeRef(vd.UnitNumber).(int32))),
 	}
-	return strings.Join(parts, ":")
+	return strings.Join(parts, ":"), nil
 }
 
 // SaveDevIDs saves the device's current key, and also the device_address. The
@@ -293,9 +299,14 @@ func computeDevAddr(device types.BaseVirtualDevice, ctlr types.BaseVirtualContro
 // controller's bus number, and the device's unit number on that controller.
 // This helps locate the device when the key is in flux (such as when devices
 // are just being created).
-func (r *Subresource) SaveDevIDs(device types.BaseVirtualDevice, ctlr types.BaseVirtualController) {
+func (r *Subresource) SaveDevIDs(device types.BaseVirtualDevice, ctlr types.BaseVirtualController) error {
 	r.Set("key", device.GetVirtualDevice().Key)
-	r.Set("device_address", computeDevAddr(device, ctlr))
+	addr, err := computeDevAddr(device, ctlr)
+	if err != nil {
+		return err
+	}
+	r.Set("device_address", addr)
+	return nil
 }
 
 // DevAddr returns the device_address attribute in the subresource. This

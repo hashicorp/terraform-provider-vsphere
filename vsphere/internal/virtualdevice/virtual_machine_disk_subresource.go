@@ -376,7 +376,11 @@ func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 			return fmt.Errorf("could not find controller with key %d", vd.Key)
 		}
 		m["key"] = int(vd.Key)
-		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		var err error
+		m["device_address"], err = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		if err != nil {
+			return fmt.Errorf("error computing device address: %s", err)
+		}
 		// We want to set keep_on_remove for these disks as well so that they are
 		// not destroyed when we remove them in the next TF run.
 		m["keep_on_remove"] = true
@@ -587,7 +591,11 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 			return fmt.Errorf("could not find controller with key %d", vd.Key)
 		}
 		m["key"] = int(vd.Key)
-		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		var err error
+		m["device_address"], err = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		if err != nil {
+			return fmt.Errorf("error computing device address: %s", err)
+		}
 		r := NewDiskSubresource(c, nil, d, m, nil, i)
 		if err := r.Read(l); err != nil {
 			return fmt.Errorf("%s: validation failed (%s)", r.Addr(), err)
@@ -710,7 +718,11 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 			return nil, fmt.Errorf("could not find controller with key %d", vd.Key)
 		}
 		m["key"] = int(vd.Key)
-		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		var err error
+		m["device_address"], err = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		if err != nil {
+			return nil, fmt.Errorf("error computing device address: %s", err)
+		}
 		r := NewDiskSubresource(c, d, nil, m, nil, i)
 		relocator, err := r.Relocate(l)
 		if err != nil {
@@ -761,7 +773,11 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 			return nil, nil, fmt.Errorf("could not find controller with key %d", vd.Key)
 		}
 		src["key"] = int(vd.Key)
-		src["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		var err error
+		src["device_address"], err = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		if err != nil {
+			return nil, nil, fmt.Errorf("error computing device address: %s", err)
+		}
 		// Copy the source set into old. This allows us to patch a copy of the
 		// product of this set with the source, creating a diff.
 		old, err := copystructure.Copy(src)
@@ -840,7 +856,11 @@ func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 			return fmt.Errorf("could not find controller with key %d", vd.Key)
 		}
 		m["key"] = int(vd.Key)
-		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		var err error
+		m["device_address"], err = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		if err != nil {
+			return fmt.Errorf("error computing device address: %s", err)
+		}
 		r := NewDiskSubresource(c, d, nil, m, nil, i)
 		if err := r.Read(l); err != nil {
 			return fmt.Errorf("%s: %s", r.Addr(), err)
@@ -901,7 +921,9 @@ func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtua
 	}
 
 	// Done here. Save ID, push the device to the new device list and return.
-	r.SaveDevIDs(disk, ctlr)
+	if err := r.SaveDevIDs(disk, ctlr); err != nil {
+		return nil, err
+	}
 	dspec, err := object.VirtualDeviceList{disk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
 	if err != nil {
 		return nil, err
@@ -933,7 +955,9 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 		return err
 	}
 	r.Set("unit_number", unit)
-	r.SaveDevIDs(disk, ctlr)
+	if err := r.SaveDevIDs(disk, ctlr); err != nil {
+		return err
+	}
 
 	// Fetch disk attachment state in config
 	var attach bool
@@ -1007,7 +1031,9 @@ func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtua
 			return nil, fmt.Errorf("cannot assign disk: %s", err)
 		}
 		r.SetRestart("unit_number")
-		r.SaveDevIDs(disk, ctlr)
+		if err := r.SaveDevIDs(disk, ctlr); err != nil {
+			return nil, fmt.Errorf("error saving device address: %s", err)
+		}
 		// A change in disk unit number forces a device key change after the
 		// reconfigure. We need to keep the key in the device change spec we send
 		// along, but we can reset it here safely. Set it to 0, which will send it

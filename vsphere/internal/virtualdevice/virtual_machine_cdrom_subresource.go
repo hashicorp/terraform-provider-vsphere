@@ -240,7 +240,11 @@ func CdromRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.V
 			return fmt.Errorf("could not find controller with key %d", vd.Key)
 		}
 		m["key"] = int(vd.Key)
-		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		var err error
+		m["device_address"], err = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		if err != nil {
+			return fmt.Errorf("error computing device address: %s", err)
+		}
 		r := NewCdromSubresource(c, d, m, nil, n)
 		if err := r.Read(l); err != nil {
 			return fmt.Errorf("%s: %s", r.Addr(), err)
@@ -288,7 +292,11 @@ func CdromPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object
 			return nil, nil, fmt.Errorf("could not find controller with key %d", vd.Key)
 		}
 		m["key"] = int(vd.Key)
-		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		var err error
+		m["device_address"], err = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		if err != nil {
+			return nil, nil, fmt.Errorf("error computing device address: %s", err)
+		}
 		r := NewCdromSubresource(c, d, m, nil, n)
 		if err := r.Read(l); err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -403,7 +411,9 @@ func (r *CdromSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtu
 	device = l.InsertIso(device, dsPath.String())
 
 	// Done here. Save IDs, push the device to the new device list and return.
-	r.SaveDevIDs(device, ctlr)
+	if err := r.SaveDevIDs(device, ctlr); err != nil {
+		return nil, err
+	}
 	dspec, err := object.VirtualDeviceList{device}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
 	if err != nil {
 		return nil, err
@@ -440,7 +450,9 @@ func (r *CdromSubresource) Read(l object.VirtualDeviceList) error {
 	if err != nil {
 		return err
 	}
-	r.SaveDevIDs(d, ctlr)
+	if err := r.SaveDevIDs(d, ctlr); err != nil {
+		return err
+	}
 	log.Printf("[DEBUG] %s: Read finished (key and device address may have changed)", r)
 	return nil
 }

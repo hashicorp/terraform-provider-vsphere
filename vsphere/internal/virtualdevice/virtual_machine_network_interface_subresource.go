@@ -321,7 +321,11 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 			return fmt.Errorf("could not find controller with key %d", vd.Key)
 		}
 		m["key"] = int(vd.Key)
-		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		var err error
+		m["device_address"], err = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		if err != nil {
+			return fmt.Errorf("error computing device address: %s", err)
+		}
 		r := NewNetworkInterfaceSubresource(c, d, m, nil, n)
 		if err := r.Read(l); err != nil {
 			return fmt.Errorf("%s: %s", r.Addr(), err)
@@ -383,7 +387,11 @@ func NetworkInterfacePostCloneOperation(d *schema.ResourceData, c *govmomi.Clien
 			return nil, nil, fmt.Errorf("could not find controller with key %d", vd.Key)
 		}
 		m["key"] = int(vd.Key)
-		m["device_address"] = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		var err error
+		m["device_address"], err = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		if err != nil {
+			return nil, nil, fmt.Errorf("error computing device address: %s", err)
+		}
 		r := NewNetworkInterfaceSubresource(c, d, m, nil, n)
 		if err := r.Read(l); err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -612,7 +620,9 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 	card.ResourceAllocation = alloc
 
 	// Done here. Save ID, push the device to the new device list and return.
-	r.SaveDevIDs(device, ctlr)
+	if err := r.SaveDevIDs(device, ctlr); err != nil {
+		return nil, err
+	}
 	dspec, err := object.VirtualDeviceList{device}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
 	if err != nil {
 		return nil, err
@@ -690,7 +700,9 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
 	if err != nil {
 		return err
 	}
-	r.SaveDevIDs(vd, ctlr)
+	if err := r.SaveDevIDs(vd, ctlr); err != nil {
+		return err
+	}
 	log.Printf("[DEBUG] %s: Read finished (key and device address may have changed)", r)
 	return nil
 }
