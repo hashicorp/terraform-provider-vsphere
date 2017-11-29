@@ -178,7 +178,7 @@ nextOld:
 			oe := ods[n]
 			om := oe.(map[string]interface{})
 			if nm["key"] != om["key"] {
-				return nil, nil, fmt.Errorf("key mismatch on %s.%d (old: %d, new: %d). This is a bug with Terraform, please report it", subresourceTypeNetworkInterface, n, nm["key"].(int), om["key"].(int))
+				return nil, nil, fmt.Errorf("key mismatch on %s.%d (old: %d, new: %d). This is a bug with the provider, please report it", subresourceTypeNetworkInterface, n, nm["key"].(int), om["key"].(int))
 			}
 			if reflect.DeepEqual(nm, om) {
 				// no change is a no-op
