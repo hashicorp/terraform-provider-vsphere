@@ -1003,12 +1003,12 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 		r.Set("size", structure.ByteToGiB(disk.CapacityInBytes))
 	}
 
-	if disk.StorageIOAllocation != nil {
-		r.Set("io_limit", disk.StorageIOAllocation.Limit)
-		r.Set("io_reservation", disk.StorageIOAllocation.Reservation)
-		if disk.StorageIOAllocation.Shares != nil {
-			r.Set("io_share_level", string(disk.StorageIOAllocation.Shares.Level))
-			r.Set("io_share_count", disk.StorageIOAllocation.Shares.Shares)
+	if allocation := disk.StorageIOAllocation; allocation != nil {
+		r.Set("io_limit", allocation.Limit)
+		r.Set("io_reservation", allocation.Reservation)
+		if shares := allocation.Shares; shares != nil {
+			r.Set("io_share_level", string(shares.Level))
+			r.Set("io_share_count", shares.Shares)
 		}
 	}
 	log.Printf("[DEBUG] %s: Read finished (key and device address may have changed)", r)
