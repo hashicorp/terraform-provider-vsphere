@@ -24,12 +24,35 @@ import (
 // formatVirtualMachinePostCloneRollbackError defines the verbose error when
 // rollback fails on a post-clone virtual machine operation.
 const formatVirtualMachinePostCloneRollbackError = `
-WARNING: Dangling resource!
+WARNING:
 There was an error performing post-clone changes to virtual machine %q:
 %s
 Additionally, there was an error removing the cloned virtual machine:
 %s
-You will need to remove this virtual machine manually before trying again.
+
+The virtual machine may still exist in Terraform state. If it does, the
+resource will need to be tainted before trying again. For more information on
+how to do this, see the following page:
+https://www.terraform.io/docs/commands/taint.html
+
+If the virtual machine does not exist in state, manually delete it to try again.
+`
+
+// formatVirtualMachineCustomizationWaitError defines the verbose error that is
+// sent when the customization waiter returns an error. This can either be due
+// to timeout waiting for respective events or a guest-specific customization
+// error. The resource does not roll back in this case, to assist with
+// troubleshooting.
+const formatVirtualMachineCustomizationWaitError = `
+Virtual machine customization failed on %q:
+
+%s
+
+The virtual machine has not been deleted to assist with troubleshooting. If
+corrective steps are taken without modifying the "customize" block of the
+resource configuration, the resource will need to be tainted before trying
+again. For more information on how to do this, see the following page:
+https://www.terraform.io/docs/commands/taint.html
 `
 
 func resourceVSphereVirtualMachine() *schema.Resource {
@@ -737,12 +760,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 		log.Printf("[DEBUG] %s: Waiting for VM customization to complete", resourceVSphereVirtualMachineIDString(d))
 		<-cw.Done()
 		if err := cw.Err(); err != nil {
-			// Roll back the VMs as per the error handling in reconfigure.
-			if derr := resourceVSphereVirtualMachineDelete(d, meta); derr != nil {
-				return nil, fmt.Errorf(formatVirtualMachinePostCloneRollbackError, vm.InventoryPath, err, derr)
-			}
-			d.SetId("")
-			return nil, fmt.Errorf("error waiting on VM customization: %s", err)
+			return nil, fmt.Errorf(formatVirtualMachineCustomizationWaitError, vm.InventoryPath, err)
 		}
 	}
 	// Clone is complete and ready to return
