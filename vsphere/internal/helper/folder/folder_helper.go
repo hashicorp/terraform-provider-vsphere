@@ -388,7 +388,7 @@ func FindType(folder *object.Folder) (VSphereFolderType, error) {
 	case "Network":
 		ft = VSphereFolderTypeNetwork
 	default:
-		return ft, fmt.Errorf("unknown folder type: %#v", ct)
+		return ft, fmt.Errorf("unknown folder type: %#v", ct[1])
 	}
 
 	return ft, nil
