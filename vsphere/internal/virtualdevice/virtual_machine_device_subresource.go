@@ -348,42 +348,25 @@ func splitDevAddr(id string) (string, int, int, error) {
 // the criteria that we have laid out.
 func findVirtualDeviceInListControllerSelectFunc(ct string, cb int) func(types.BaseVirtualDevice) bool {
 	return func(device types.BaseVirtualDevice) bool {
-		var ctlr types.BaseVirtualController
 		switch ct {
 		case SubresourceControllerTypeIDE:
-			if v, ok := device.(*types.VirtualIDEController); ok {
-				ctlr = v
-				goto controllerFound
+			if _, ok := device.(*types.VirtualIDEController); !ok {
+				return false
 			}
-			return false
 		case SubresourceControllerTypeSATA:
-			if v, ok := device.(*types.VirtualAHCIController); ok {
-				ctlr = v
-				goto controllerFound
+			if _, ok := device.(*types.VirtualAHCIController); !ok {
+				return false
 			}
-			return false
 		case SubresourceControllerTypeSCSI:
-			switch v := device.(type) {
-			case *types.ParaVirtualSCSIController:
-				ctlr = v
-				goto controllerFound
-			case *types.VirtualLsiLogicSASController:
-				ctlr = v
-				goto controllerFound
-			case *types.VirtualLsiLogicController:
-				ctlr = v
-				goto controllerFound
+			if _, ok := device.(types.BaseVirtualSCSIController); !ok {
+				return false
 			}
-			return false
 		case SubresourceControllerTypePCI:
-			if v, ok := device.(*types.VirtualPCIController); ok {
-				ctlr = v
-				goto controllerFound
+			if _, ok := device.(*types.VirtualPCIController); !ok {
+				return false
 			}
-			return false
 		}
-	controllerFound:
-		vc := ctlr.GetVirtualController()
+		vc := device.(types.BaseVirtualController).GetVirtualController()
 		if vc.BusNumber == int32(cb) {
 			return true
 		}
