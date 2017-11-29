@@ -510,9 +510,12 @@ func NormalizeSCSIBus(l object.VirtualDeviceList, ct string, count int) (object.
 	ctlrs := make([]types.BaseVirtualSCSIController, count)
 	// Don't worry about doing any fancy select stuff here, just go thru the
 	// VirtualDeviceList and populate the controllers.
+	iCount := int32(count)
 	for _, dev := range l {
-		if sc, ok := dev.(types.BaseVirtualSCSIController); ok && sc.GetVirtualSCSIController().BusNumber < int32(count) {
-			ctlrs[sc.GetVirtualSCSIController().BusNumber] = sc
+		if sc, ok := dev.(types.BaseVirtualSCSIController); ok {
+			if busNumber := sc.GetVirtualSCSIController().BusNumber; busNumber < iCount {
+				ctlrs[busNumber] = sc
+			}
 		}
 	}
 	log.Printf("[DEBUG] NormalizeSCSIBus: Current SCSI bus contents: %s", scsiControllerListString(ctlrs))
