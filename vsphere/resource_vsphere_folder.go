@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/object"
@@ -59,6 +60,8 @@ func resourceVSphereFolder() *schema.Resource {
 			},
 			// Tagging
 			vSphereTagAttributeKey: tagsSchema(),
+			// Custom Attributes
+			customattribute.ConfigKey: customattribute.ConfigSchema(),
 		},
 	}
 }
@@ -66,6 +69,11 @@ func resourceVSphereFolder() *schema.Resource {
 func resourceVSphereFolderCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
 	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+	// Verify a proper vCenter before proceeding if custom attributes are defined
+	attrsProcessor, err := customattribute.GetDiffProcessorIfAttributesDefined(client, d)
 	if err != nil {
 		return err
 	}
@@ -106,6 +114,13 @@ func resourceVSphereFolderCreate(d *schema.ResourceData, meta interface{}) error
 	if tagsClient != nil {
 		if err := processTagDiff(tagsClient, d, folder); err != nil {
 			return fmt.Errorf("error updating tags: %s", err)
+		}
+	}
+
+	// Set custom attributes
+	if attrsProcessor != nil {
+		if err := attrsProcessor.ProcessDiff(folder); err != nil {
+			return fmt.Errorf("error setting custom attributes: %s", err)
 		}
 	}
 
@@ -160,12 +175,26 @@ func resourceVSphereFolderRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	// Read custom attributes
+	if customattribute.IsSupported(client) {
+		moFolder, err := folder.Properties(fo)
+		if err != nil {
+			return err
+		}
+		customattribute.ReadFromResource(client, moFolder.Entity(), d)
+	}
+
 	return nil
 }
 
 func resourceVSphereFolderUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
 	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+	// Verify a proper vCenter before proceeding if custom attributes are defined
+	attrsProcessor, err := customattribute.GetDiffProcessorIfAttributesDefined(client, d)
 	if err != nil {
 		return err
 	}
@@ -180,6 +209,12 @@ func resourceVSphereFolderUpdate(d *schema.ResourceData, meta interface{}) error
 	if tagsClient != nil {
 		if err := processTagDiff(tagsClient, d, fo); err != nil {
 			return fmt.Errorf("error updating tags: %s", err)
+		}
+	}
+
+	if attrsProcessor != nil {
+		if err := attrsProcessor.ProcessDiff(fo); err != nil {
+			return fmt.Errorf("error setting custom attributes: %s", err)
 		}
 	}
 
