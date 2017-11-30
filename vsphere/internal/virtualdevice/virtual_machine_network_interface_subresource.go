@@ -115,15 +115,15 @@ type NetworkInterfaceSubresource struct {
 
 // NewNetworkInterfaceSubresource returns a network_interface subresource
 // populated with all of the necessary fields.
-func NewNetworkInterfaceSubresource(client *govmomi.Client, rd *schema.ResourceData, d, old map[string]interface{}, idx int) *NetworkInterfaceSubresource {
+func NewNetworkInterfaceSubresource(client *govmomi.Client, rdd resourceDataDiff, d, old map[string]interface{}, idx int) *NetworkInterfaceSubresource {
 	sr := &NetworkInterfaceSubresource{
 		Subresource: &Subresource{
-			schema:       NetworkInterfaceSubresourceSchema(),
-			client:       client,
-			srtype:       subresourceTypeNetworkInterface,
-			data:         d,
-			olddata:      old,
-			resourceData: rd,
+			schema:  NetworkInterfaceSubresourceSchema(),
+			client:  client,
+			srtype:  subresourceTypeNetworkInterface,
+			data:    d,
+			olddata: old,
+			rdd:     rdd,
 		},
 	}
 	sr.Index = idx
@@ -750,7 +750,7 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 		// Set the key
 		newCard.Key = l.NewKey()
 		// If VMware tools is not running, this operation requires a reboot
-		if r.resourceData.Get("vmware_tools_status").(string) != string(types.VirtualMachineToolsRunningStatusGuestToolsRunning) {
+		if r.rdd.Get("vmware_tools_status").(string) != string(types.VirtualMachineToolsRunningStatusGuestToolsRunning) {
 			r.SetRestart("adapter_type")
 		}
 		// Push the delete of the old device
@@ -842,7 +842,7 @@ func (r *NetworkInterfaceSubresource) Delete(l object.VirtualDeviceList) ([]type
 		return nil, err
 	}
 	// If VMware tools is not running, this operation requires a reboot
-	if r.resourceData.Get("vmware_tools_status").(string) != string(types.VirtualMachineToolsRunningStatusGuestToolsRunning) {
+	if r.rdd.Get("vmware_tools_status").(string) != string(types.VirtualMachineToolsRunningStatusGuestToolsRunning) {
 		r.SetRestart("<device delete>")
 	}
 	bvd := baseVirtualEthernetCardToBaseVirtualDevice(device)

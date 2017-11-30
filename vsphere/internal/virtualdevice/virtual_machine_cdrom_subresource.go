@@ -41,15 +41,15 @@ type CdromSubresource struct {
 
 // NewCdromSubresource returns a subresource populated with all of the necessary
 // fields.
-func NewCdromSubresource(client *govmomi.Client, rd *schema.ResourceData, d, old map[string]interface{}, idx int) *CdromSubresource {
+func NewCdromSubresource(client *govmomi.Client, rdd resourceDataDiff, d, old map[string]interface{}, idx int) *CdromSubresource {
 	sr := &CdromSubresource{
 		Subresource: &Subresource{
-			schema:       CdromSubresourceSchema(),
-			client:       client,
-			srtype:       subresourceTypeCdrom,
-			data:         d,
-			olddata:      old,
-			resourceData: rd,
+			schema:  CdromSubresourceSchema(),
+			client:  client,
+			srtype:  subresourceTypeCdrom,
+			data:    d,
+			olddata: old,
+			rdd:     rdd,
 		},
 	}
 	sr.Index = idx

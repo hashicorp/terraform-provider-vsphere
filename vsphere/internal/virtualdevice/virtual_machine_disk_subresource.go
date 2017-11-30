@@ -169,16 +169,15 @@ type DiskSubresource struct {
 
 // NewDiskSubresource returns a subresource populated with all of the necessary
 // fields.
-func NewDiskSubresource(client *govmomi.Client, rd *schema.ResourceData, rdiff *schema.ResourceDiff, d, old map[string]interface{}, idx int) *DiskSubresource {
+func NewDiskSubresource(client *govmomi.Client, rdd resourceDataDiff, d, old map[string]interface{}, idx int) *DiskSubresource {
 	sr := &DiskSubresource{
 		Subresource: &Subresource{
-			schema:       DiskSubresourceSchema(),
-			client:       client,
-			srtype:       subresourceTypeDisk,
-			data:         d,
-			olddata:      old,
-			resourceData: rd,
-			resourceDiff: rdiff,
+			schema:  DiskSubresourceSchema(),
+			client:  client,
+			srtype:  subresourceTypeDisk,
+			data:    d,
+			olddata: old,
+			rdd:     rdd,
 		},
 	}
 	sr.Index = idx
@@ -219,7 +218,7 @@ nextOld:
 				continue nextOld
 			}
 		}
-		r := NewDiskSubresource(c, d, nil, om, nil, oi)
+		r := NewDiskSubresource(c, d, om, nil, oi)
 		dspec, err := r.Delete(l)
 		if err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -245,7 +244,7 @@ nextNew:
 			om := oe.(map[string]interface{})
 			if nm["key"] == om["key"] {
 				// This is an update
-				r := NewDiskSubresource(c, d, nil, nm, om, ni)
+				r := NewDiskSubresource(c, d, nm, om, ni)
 				// If the only thing changing here is the datastore, or keep_on_remove,
 				// this is a no-op as far as a device change is concerned. Datastore
 				// changes are handled during storage vMotion later on during the
@@ -271,7 +270,7 @@ nextNew:
 				continue nextNew
 			}
 		}
-		r := NewDiskSubresource(c, d, nil, nm, nil, ni)
+		r := NewDiskSubresource(c, d, nm, nil, ni)
 		cspec, err := r.Create(l)
 		if err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -313,7 +312,7 @@ func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 	for i, item := range curSet {
 		m := item.(map[string]interface{})
 		if m["key"].(int) < 1 {
-			r := NewDiskSubresource(c, d, nil, m, nil, i)
+			r := NewDiskSubresource(c, d, m, nil, i)
 			if err := r.Read(l); err != nil {
 				return fmt.Errorf("%s: %s", r.Addr(), err)
 			}
@@ -351,7 +350,7 @@ func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 				continue
 			}
 			// We should have our device -> resource match, so read now.
-			r := NewDiskSubresource(c, d, nil, m, nil, n)
+			r := NewDiskSubresource(c, d, m, nil, n)
 			if err := r.Read(l); err != nil {
 				return fmt.Errorf("%s: %s", r.Addr(), err)
 			}
@@ -384,7 +383,7 @@ func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 		// We want to set keep_on_remove for these disks as well so that they are
 		// not destroyed when we remove them in the next TF run.
 		m["keep_on_remove"] = true
-		r := NewDiskSubresource(c, d, nil, m, nil, len(newSet))
+		r := NewDiskSubresource(c, d, m, nil, len(newSet))
 		if err := r.Read(l); err != nil {
 			return fmt.Errorf("%s: %s", r.Addr(), err)
 		}
@@ -422,7 +421,7 @@ func DiskDestroyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 			// We don't care about disks we haven't set to keep
 			continue
 		}
-		r := NewDiskSubresource(c, d, nil, m, nil, oi)
+		r := NewDiskSubresource(c, d, m, nil, oi)
 		dspec, err := r.Delete(l)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -476,7 +475,7 @@ func DiskDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 		// Run the resource through an individual validate function. This performs
 		// field validation for things we don't need to know the state of other
 		// resources for.
-		r := NewDiskSubresource(c, nil, d, nm, nil, ni)
+		r := NewDiskSubresource(c, d, nm, nil, ni)
 		if err := r.ValidateDiff(); err != nil {
 			return fmt.Errorf("%s: %s", r.Addr(), err)
 		}
@@ -501,7 +500,7 @@ nextNew:
 			// same file name regardless of if you are using a long-from path, we
 			// just check the short-form and do the comparison from there.
 			if path.Base(nm["name"].(string)) == path.Base(om["name"].(string)) {
-				r := NewDiskSubresource(c, nil, d, nm, om, oi)
+				r := NewDiskSubresource(c, d, nm, om, oi)
 				if err := r.NormalizeDiff(); err != nil {
 					return fmt.Errorf("%s: %s", r.Addr(), err)
 				}
@@ -596,13 +595,13 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 		if err != nil {
 			return fmt.Errorf("error computing device address: %s", err)
 		}
-		r := NewDiskSubresource(c, nil, d, m, nil, i)
+		r := NewDiskSubresource(c, d, m, nil, i)
 		if err := r.Read(l); err != nil {
 			return fmt.Errorf("%s: validation failed (%s)", r.Addr(), err)
 		}
 		// Load the target resource to do a few comparisons for correctness in config.
 		targetM := curSet[i].(map[string]interface{})
-		tr := NewDiskSubresource(c, nil, d, targetM, nil, i)
+		tr := NewDiskSubresource(c, d, targetM, nil, i)
 		// Ensure that the file names match. vSphere does not allow you to choose
 		// the name of existing disks during a clone and will rename them according
 		// to the standard convention of <name>.vmdk, <name>_1.vmdk, etc.  Hence we
@@ -660,7 +659,7 @@ nextDisk:
 				if nm["datastore_id"] == om["datastore_id"] && !d.HasChange("datastore_id") {
 					continue nextDisk
 				}
-				r := NewDiskSubresource(c, d, nil, nm, om, ni)
+				r := NewDiskSubresource(c, d, nm, om, ni)
 				relocator, err := r.Relocate(l)
 				if err != nil {
 					return nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -723,7 +722,7 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 		if err != nil {
 			return nil, fmt.Errorf("error computing device address: %s", err)
 		}
-		r := NewDiskSubresource(c, d, nil, m, nil, i)
+		r := NewDiskSubresource(c, d, m, nil, i)
 		relocator, err := r.Relocate(l)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -784,7 +783,7 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 		if err != nil {
 			return nil, nil, fmt.Errorf("error copying source set for disk at unit_number %d: %s", src["unit_number"].(int), err)
 		}
-		rOld := NewDiskSubresource(c, d, nil, old.(map[string]interface{}), nil, i)
+		rOld := NewDiskSubresource(c, d, old.(map[string]interface{}), nil, i)
 		if err := rOld.Read(l); err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", rOld.Addr(), err)
 		}
@@ -804,7 +803,7 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 			}
 			new.(map[string]interface{})[k] = v
 		}
-		rNew := NewDiskSubresource(c, d, nil, new.(map[string]interface{}), rOld.Data(), i)
+		rNew := NewDiskSubresource(c, d, new.(map[string]interface{}), rOld.Data(), i)
 		if !reflect.DeepEqual(rNew.Data(), rOld.Data()) {
 			uspec, err := rNew.Update(l)
 			if err != nil {
@@ -818,7 +817,7 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 
 	// Any disk past the current device list is a new device. Create those now.
 	for _, ni := range curSet[len(devices):] {
-		r := NewDiskSubresource(c, d, nil, ni.(map[string]interface{}), nil, len(updates))
+		r := NewDiskSubresource(c, d, ni.(map[string]interface{}), nil, len(updates))
 		cspec, err := r.Create(l)
 		if err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -861,7 +860,7 @@ func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 		if err != nil {
 			return fmt.Errorf("error computing device address: %s", err)
 		}
-		r := NewDiskSubresource(c, d, nil, m, nil, i)
+		r := NewDiskSubresource(c, d, m, nil, i)
 		if err := r.Read(l); err != nil {
 			return fmt.Errorf("%s: %s", r.Addr(), err)
 		}
@@ -1102,7 +1101,7 @@ func (r *DiskSubresource) ValidateDiff() error {
 
 	// Enforce the maximum unit number, which is the current value of
 	// scsi_controller_count * 15 - 1.
-	ctlrCount := r.resourceDiff.Get("scsi_controller_count").(int)
+	ctlrCount := r.rdd.Get("scsi_controller_count").(int)
 	maxUnit := ctlrCount*15 - 1
 	currentUnit := r.Get("unit_number").(int)
 	if currentUnit > maxUnit {
@@ -1150,14 +1149,14 @@ func (r *DiskSubresource) NormalizeDiff() error {
 	// datastore in that case
 	if r.Get("datastore_id") == "" {
 		switch {
-		case r.resourceDiff.HasChange("datastore_id"):
+		case r.rdd.HasChange("datastore_id"):
 			// If the default datastore is changing and we don't have a default
 			// datastore here, we need to use the implicit setting here to indicate
 			// that we may need to migrate. This allows us to differentiate between a
 			// full storage vMotion no-op, an implicit migration, and a migration
 			// where we will need to generate a relocate spec for the individual disk
 			// to ensure it stays at a datastore it might be pinned on.
-			r.Set("datastore_id", r.resourceDiff.Get("datastore_id"))
+			r.Set("datastore_id", r.rdd.Get("datastore_id"))
 		default:
 			odsid, _ := r.GetChange("datastore_id")
 			r.Set("datastore_id", odsid)
@@ -1220,7 +1219,7 @@ func (r *DiskSubresource) Relocate(l object.VirtualDeviceList) (types.VirtualMac
 	dsID := r.Get("datastore_id").(string)
 	if dsID == "" {
 		// Default to the default datastore
-		dsID = r.resourceData.Get("datastore_id").(string)
+		dsID = r.rdd.Get("datastore_id").(string)
 	}
 	ds, err := datastore.FromID(r.client, dsID)
 	if err != nil {
@@ -1230,13 +1229,13 @@ func (r *DiskSubresource) Relocate(l object.VirtualDeviceList) (types.VirtualMac
 	relocate.Datastore = dsref
 
 	// Add additional backing options if we are cloning.
-	if r.resourceData.Id() == "" {
+	if r.rdd.Id() == "" {
 		log.Printf("[DEBUG] %s: Adding additional options to relocator for cloning", r)
 		relocate.DiskBackingInfo = disk.Backing
 
 		// Set the new name. This is basically the same logic as create.
 		diskName := r.Get("name").(string)
-		vmxPath := r.resourceData.Get("vmx_path").(string)
+		vmxPath := r.rdd.Get("vmx_path").(string)
 		if path.Base(diskName) == diskName && vmxPath != "" {
 			diskName = path.Join(path.Dir(vmxPath), diskName)
 		}
@@ -1315,7 +1314,7 @@ func (r *DiskSubresource) createDisk(l object.VirtualDeviceList) (*types.Virtual
 	dsID := r.Get("datastore_id").(string)
 	if dsID == "" {
 		// Default to the default datastore
-		dsID = r.resourceData.Get("datastore_id").(string)
+		dsID = r.rdd.Get("datastore_id").(string)
 	}
 	ds, err := datastore.FromID(r.client, dsID)
 	if err != nil {
@@ -1329,7 +1328,7 @@ func (r *DiskSubresource) createDisk(l object.VirtualDeviceList) (*types.Virtual
 	// just being created and the file will be created in a directory of the same
 	// name as the VMX file that is being created.
 	diskName := r.Get("name").(string)
-	vmxPath := r.resourceData.Get("vmx_path").(string)
+	vmxPath := r.rdd.Get("vmx_path").(string)
 	if path.Base(diskName) == diskName && vmxPath != "" {
 		diskName = path.Join(path.Dir(vmxPath), diskName)
 	}

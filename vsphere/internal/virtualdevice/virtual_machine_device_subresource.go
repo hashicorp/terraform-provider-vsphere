@@ -130,6 +130,24 @@ func controllerTypeToClass(c types.BaseVirtualController) (string, error) {
 	return t, nil
 }
 
+// resourceDataDiff is an interface comprised of functions common to both
+// ResourceData and ResourceDiff.
+//
+// During any inparticular CRUD or diff alteration call, either one of
+// ResourceData or ResourceDiff will be available. Both will never be available
+// at the same time. Having these underlying values exposed directly presents a
+// potentially unsafe API where one of them will be nil at any given time.
+// Having this as an interface allows common behavior to be exposed directly,
+// while still offering the ability to type assert in certain situations.
+//
+// This is not an exhaustive list of methods - any missing ones should be added
+// as needed.
+type resourceDataDiff interface {
+	Id() string
+	Get(string) interface{}
+	HasChange(string) bool
+}
+
 // Subresource defines a common interface for device sub-resources in the
 // vsphere_virtual_machine resource.
 //
@@ -168,16 +186,10 @@ type Subresource struct {
 	// The old resource data, if it exists.
 	olddata map[string]interface{}
 
-	// The root-level ResourceData for this resource. This should be used
-	// sparingly. All ResourceData-style calls in this object do not use this
-	// data, save for flagging reboot.
-	resourceData *schema.ResourceData
-
-	// The root-level ResourceDiff for this resource. Like resourceDiff, this
-	// should be used sparingly and is not available in any calls save those that
-	// come in through CustomizeDiff paths. Customization of actual sub-resource
-	// diffs should happen against the entire set in higher-level functions.
-	resourceDiff *schema.ResourceDiff
+	// Either a root-level ResourceData or ResourceDiff. The one that is
+	// specifically present will depend on the context the Subresource is being
+	// used in.
+	rdd resourceDataDiff
 }
 
 // subresourceSchema is a map[string]*schema.Schema of common schema fields.
@@ -260,7 +272,15 @@ func (r *Subresource) GetWithVeto(key string) (interface{}, error) {
 // required for logging.
 func (r *Subresource) SetRestart(key string) {
 	log.Printf("[DEBUG] %s: Resource argument %q requires a VM restart", r, key)
-	r.resourceData.Set("reboot_required", true)
+	switch d := r.rdd.(type) {
+	case *schema.ResourceData:
+		d.Set("reboot_required", true)
+	case *schema.ResourceDiff:
+		d.SetNew("reboot_required", true)
+	default:
+		// This should never happen, but log if it does.
+		log.Printf("[WARN] %s: Could not flag reboot_required: invalid type %T", r, r.rdd)
+	}
 }
 
 // Data returns the underlying data map.
