@@ -1079,6 +1079,9 @@ func (r *DiskSubresource) Delete(l object.VirtualDeviceList) ([]types.BaseVirtua
 	if err != nil {
 		return nil, err
 	}
+	if len(deleteSpec) != 1 {
+		return nil, fmt.Errorf("incorrect number of config spec items returned - expected 1, got %d", len(deleteSpec))
+	}
 	if r.Get("keep_on_remove").(bool) || r.Get("attach").(bool) {
 		// Clear file operation so that the disk is kept on remove.
 		deleteSpec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
