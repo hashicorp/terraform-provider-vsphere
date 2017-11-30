@@ -41,6 +41,8 @@ BUG FIXES:
 
 * `resource/vsphere_virtual_machine`: Several long-standing issues have been fixed,
   namely surrounding virtual disk and network device management. [GH-244]
+* `resource/vsphere_host_virtual_switch`: This resource now correctly supports a
+  configuration with no NICs. [GH-256]
 * `data/vsphere_network`: No longer restricted to being used on vCenter. [GH-248]
 
 ## 0.4.2 (October 13, 2017)
