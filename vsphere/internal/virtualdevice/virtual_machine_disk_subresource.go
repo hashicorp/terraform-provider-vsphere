@@ -195,8 +195,6 @@ func NewDiskSubresource(client *govmomi.Client, rdd resourceDataDiff, d, old map
 func DiskApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] DiskApplyOperation: Beginning apply operation")
 	o, n := d.GetChange(subresourceTypeDisk)
-	// Make an intersection set. Any device in the intersection is a device
-	// that is not changing, so we ignore those.
 	ods := o.([]interface{})
 	nds := n.([]interface{})
 
