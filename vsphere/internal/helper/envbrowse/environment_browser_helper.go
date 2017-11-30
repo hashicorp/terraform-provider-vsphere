@@ -89,7 +89,7 @@ func (b *EnvironmentBrowser) OSFamily(ctx context.Context, guest string) (string
 	}
 	for _, osd := range res.Returnval.GuestOSDescriptor {
 		if osd.Id == guest {
-			family := res.Returnval.GuestOSDescriptor[0].Family
+			family := osd.Family
 			log.Printf("[DEBUG] OSFamily: family for %q is %q", guest, family)
 			return family, nil
 		}
