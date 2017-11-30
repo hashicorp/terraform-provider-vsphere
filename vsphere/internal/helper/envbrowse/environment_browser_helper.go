@@ -32,17 +32,17 @@ func NewEnvironmentBrowser(c *vim25.Client, ref types.ManagedObjectReference) *E
 }
 
 // DefaultDevices loads a satisfactory default device list for the optionally
-// supplied guest ID list, host, and descriptor key. The result is returned as
-// a higher-level VirtualDeviceList object. This can be used as an initial
-// VirtualDeviceList when building a device list and VirtualDeviceConfigSpec
-// list for new virtual machines.
+// supplied host and descriptor key. The result is returned as a higher-level
+// VirtualDeviceList object. This can be used as an initial VirtualDeviceList
+// when building a device list and VirtualDeviceConfigSpec list for new virtual
+// machines.
 //
 // Appropriate options for key can be loaded by running
 // QueryConfigOptionDescriptor, which will return a list of
 // VirtualMachineConfigOptionDescriptor which will contain the appropriate key
-// to use under key. If no key is supplied, the results generally reflect the
-// most recent VM hardware version.
-func (b *EnvironmentBrowser) DefaultDevices(ctx context.Context, guests []string, key string, host *object.HostSystem) (object.VirtualDeviceList, error) {
+// for the virtual machine version needed. If no key is supplied, the results
+// generally reflect the most recent VM hardware version.
+func (b *EnvironmentBrowser) DefaultDevices(ctx context.Context, key string, host *object.HostSystem) (object.VirtualDeviceList, error) {
 	var eb mo.EnvironmentBrowser
 
 	err := b.Properties(ctx, b.Reference(), nil, &eb)
@@ -50,18 +50,15 @@ func (b *EnvironmentBrowser) DefaultDevices(ctx context.Context, guests []string
 		return nil, err
 	}
 
-	req := types.QueryConfigOptionEx{
+	req := types.QueryConfigOption{
 		This: b.Reference(),
-		Spec: &types.EnvironmentBrowserConfigOptionQuerySpec{
-			Key:     key,
-			GuestId: guests,
-		},
+		Key:  key,
 	}
 	if host != nil {
 		ref := host.Reference()
-		req.Spec.Host = &ref
+		req.Host = &ref
 	}
-	res, err := methods.QueryConfigOptionEx(ctx, b.Client(), &req)
+	res, err := methods.QueryConfigOption(ctx, b.Client(), &req)
 	if err != nil {
 		return nil, err
 	}
@@ -80,28 +77,24 @@ func (b *EnvironmentBrowser) OSFamily(ctx context.Context, guest string) (string
 		return "", err
 	}
 
-	req := types.QueryConfigOptionEx{
+	req := types.QueryConfigOption{
 		This: b.Reference(),
-		Spec: &types.EnvironmentBrowserConfigOptionQuerySpec{
-			GuestId: []string{guest},
-		},
 	}
-	res, err := methods.QueryConfigOptionEx(ctx, b.Client(), &req)
+	res, err := methods.QueryConfigOption(ctx, b.Client(), &req)
 	if err != nil {
 		return "", err
 	}
 	if res.Returnval == nil {
 		return "", errors.New("no config options were found for the supplied criteria")
 	}
-	if len(res.Returnval.GuestOSDescriptor) < 1 {
-		return "", errors.New("no guest OS descriptors were found")
+	for _, osd := range res.Returnval.GuestOSDescriptor {
+		if osd.Id == guest {
+			family := osd.Family
+			log.Printf("[DEBUG] OSFamily: family for %q is %q", guest, family)
+			return family, nil
+		}
 	}
-	if len(res.Returnval.GuestOSDescriptor) > 1 {
-		return "", fmt.Errorf("multiple OS descriptors were found for guest ID %s", guest)
-	}
-	family := res.Returnval.GuestOSDescriptor[0].Family
-	log.Printf("[DEBUG] OSFamily: family for %q is %q", guest, family)
-	return family, nil
+	return "", fmt.Errorf("could not find guest ID %s", guest)
 }
 
 // QueryConfigOptionDescriptor returns a list the list of ConfigOption keys
