@@ -81,6 +81,47 @@ resource "vsphere_datacenter" "testDC" {
 }
 `
 
+const testAccCheckVSphereDatacenterConfigCustomAttributes = `
+resource "vsphere_custom_attribute" "terraform-test-attribute" {
+  name                = "terraform-test-attribute"
+  managed_object_type = "Datacenter"
+}
+
+locals {
+  dc_attrs = {
+    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
+  }
+}
+
+resource "vsphere_datacenter" "testDC" {
+  name = "testDC"
+  custom_attributes = "${local.dc_attrs}"
+}
+`
+const testAccCheckVSphereDatacenterConfigMultiCustomAttributes = `
+resource "vsphere_custom_attribute" "terraform-test-attribute" {
+  name                = "terraform-test-attribute"
+  managed_object_type = "Datacenter"
+}
+
+resource "vsphere_custom_attribute" "terraform-test-attribute-2" {
+  name                = "terraform-test-attribute-2"
+  managed_object_type = "Datacenter"
+}
+
+locals {
+  dc_attrs = {
+    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
+    "${vsphere_custom_attribute.terraform-test-attribute-2.id}" = "value-2"
+  }
+}
+
+resource "vsphere_datacenter" "testDC" {
+  name = "testDC"
+  custom_attributes = "${local.dc_attrs}"
+}
+`
+
 // Create a datacenter on the root folder
 func TestAccVSphereDatacenter_createOnRootFolder(t *testing.T) {
 
@@ -188,6 +229,77 @@ func TestAccVSphereDatacenterTags(t *testing.T) {
 		})
 	}
 }
+
+func TestAccVSphereDatacenterCustomAttributes(t *testing.T) {
+	var tp *testing.T
+	testAccResourceCases := []struct {
+		name     string
+		testCase resource.TestCase
+	}{
+		{
+			"single custom attribute",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccCheckVSphereDatacenterDestroy,
+				Steps: []resource.TestStep{
+					{
+						Config: testAccCheckVSphereDatacenterConfigCustomAttributes,
+						Check: resource.ComposeTestCheckFunc(
+							testAccCheckVSphereDatacenterExists(
+								testAccCheckVSphereDatacenterResourceName,
+								true,
+							),
+							testAccResourceVSphereDatacenterHasCustomAttributes(),
+						),
+					},
+				},
+			},
+		},
+		{
+			"modify custom attribute",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccCheckVSphereDatacenterDestroy,
+				Steps: []resource.TestStep{
+					{
+						Config: testAccCheckVSphereDatacenterConfigCustomAttributes,
+						Check: resource.ComposeTestCheckFunc(
+							testAccCheckVSphereDatacenterExists(
+								testAccCheckVSphereDatacenterResourceName,
+								true,
+							),
+							testAccResourceVSphereDatacenterHasCustomAttributes(),
+						),
+					},
+					{
+						Config: testAccCheckVSphereDatacenterConfigMultiCustomAttributes,
+						Check: resource.ComposeTestCheckFunc(
+							testAccCheckVSphereDatacenterExists(
+								testAccCheckVSphereDatacenterResourceName,
+								true,
+							),
+							testAccResourceVSphereDatacenterHasCustomAttributes(),
+						),
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testAccResourceCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tp = t
+			resource.Test(t, tc.testCase)
+		})
+	}
+}
+
 func testAccCheckVSphereDatacenterDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*VSphereClient).vimClient
 	finder := find.NewFinder(client.Client, true)
@@ -282,5 +394,15 @@ func testAccResourceVSphereDatacenterCheckTags(tagResName string) resource.TestC
 		}
 
 		return testObjectHasTags(s, tagsClient, dc, tagResName)
+	}
+}
+
+func testAccResourceVSphereDatacenterHasCustomAttributes() resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		ca, err := testGetDatacenterCustomAttributes(s, "testDC")
+		if err != nil {
+			return err
+		}
+		return testResourceHasCustomAttributeValues(s, "vsphere_datacenter", "testDC", ca.Entity())
 	}
 }

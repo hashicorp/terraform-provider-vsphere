@@ -218,6 +218,26 @@ func testGetVirtualMachineSCSIBusState(s *terraform.State, resourceName string) 
 	return virtualdevice.ReadSCSIBusState(l, count), nil
 }
 
+func testGetDatacenter(s *terraform.State, resourceName string) (*object.Datacenter, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_datacenter.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+	dcName, ok := tVars.resourceAttributes["name"]
+	if !ok {
+		return nil, fmt.Errorf("Datacenter resource %q has no name", resourceName)
+	}
+	return getDatacenter(tVars.client, dcName)
+}
+
+func testGetDatacenterCustomAttributes(s *terraform.State, resourceName string) (*mo.Datacenter, error) {
+	dc, err := testGetDatacenter(s, resourceName)
+	if err != nil {
+		return nil, err
+	}
+	return datacenterCustomAttributes(dc)
+}
+
 // testPowerOffVM does an immediate power-off of the supplied virtual machine
 // resource defined by the supplied resource address name. It is used to help
 // set up a test scenarios where a VM is powered off.

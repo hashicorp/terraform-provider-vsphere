@@ -46,6 +46,16 @@ The following arguments are supported:
 ~> **NOTE:** Tagging support is unsupported on direct ESXi connections and
 requires vCenter 6.0 or higher.
 
+* `custom_attributes` - (Optional) Map of custom attribute ids to value 
+  strings to set for datacenter resource. See 
+  [here][docs-setting-custom-attributes] for a reference on how to set values 
+  for custom attributes.
+
+[docs-setting-custom-attributes]: /docs/providers/vsphere/r/custom_attribute.html#using-custom-attributes-in-a-supported-resource
+
+~> **NOTE:** Custom attributes are unsupported on direct ESXi connections 
+and require vCenter.
+
 ## Attribute Reference
 
 The only attribute exported is `id`, which is the name of the datacenter.
