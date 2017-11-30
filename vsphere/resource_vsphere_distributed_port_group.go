@@ -5,6 +5,9 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -26,7 +29,7 @@ func resourceVSphereDistributedPortGroup() *schema.Resource {
 		vSphereTagAttributeKey: tagsSchema(),
 	}
 
-	mergeSchema(s, schemaDVPortgroupConfigSpec())
+	structure.MergeSchema(s, schemaDVPortgroupConfigSpec())
 
 	return &schema.Resource{
 		Create: resourceVSphereDistributedPortGroupCreate,
@@ -42,7 +45,7 @@ func resourceVSphereDistributedPortGroup() *schema.Resource {
 
 func resourceVSphereDistributedPortGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	if err := validateVirtualCenter(client); err != nil {
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return err
 	}
 	tagsClient, err := tagsClientIfDefined(d, meta)
@@ -56,7 +59,7 @@ func resourceVSphereDistributedPortGroupCreate(d *schema.ResourceData, meta inte
 	}
 
 	spec := expandDVPortgroupConfigSpec(d)
-	task, err := createDVPortgroup(client, dvs, spec)
+	task, err := dvportgroup.Create(client, dvs, spec)
 	if err != nil {
 		return fmt.Errorf("error creating portgroup: %s", err)
 	}
@@ -66,11 +69,11 @@ func resourceVSphereDistributedPortGroupCreate(d *schema.ResourceData, meta inte
 	if err != nil {
 		return fmt.Errorf("error waiting for portgroup creation to complete: %s", err)
 	}
-	pg, err := dvPortgroupFromMOID(client, info.Result.(types.ManagedObjectReference).Value)
+	pg, err := dvportgroup.FromMOID(client, info.Result.(types.ManagedObjectReference).Value)
 	if err != nil {
 		return fmt.Errorf("error fetching portgroup after creation: %s", err)
 	}
-	props, err := dvPortgroupProperties(pg)
+	props, err := dvportgroup.Properties(pg)
 	if err != nil {
 		return fmt.Errorf("error fetching portgroup properties after creation: %s", err)
 	}
@@ -89,15 +92,15 @@ func resourceVSphereDistributedPortGroupCreate(d *schema.ResourceData, meta inte
 
 func resourceVSphereDistributedPortGroupRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	if err := validateVirtualCenter(client); err != nil {
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return err
 	}
 	pgID := d.Id()
-	pg, err := dvPortgroupFromMOID(client, pgID)
+	pg, err := dvportgroup.FromMOID(client, pgID)
 	if err != nil {
 		return fmt.Errorf("could not find portgroup %q: %s", pgID, err)
 	}
-	props, err := dvPortgroupProperties(pg)
+	props, err := dvportgroup.Properties(pg)
 	if err != nil {
 		return fmt.Errorf("error fetching portgroup properties: %s", err)
 	}
@@ -118,7 +121,7 @@ func resourceVSphereDistributedPortGroupRead(d *schema.ResourceData, meta interf
 
 func resourceVSphereDistributedPortGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	if err := validateVirtualCenter(client); err != nil {
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return err
 	}
 	tagsClient, err := tagsClientIfDefined(d, meta)
@@ -126,7 +129,7 @@ func resourceVSphereDistributedPortGroupUpdate(d *schema.ResourceData, meta inte
 		return err
 	}
 	pgID := d.Id()
-	pg, err := dvPortgroupFromMOID(client, pgID)
+	pg, err := dvportgroup.FromMOID(client, pgID)
 	if err != nil {
 		return fmt.Errorf("could not find portgroup %q: %s", pgID, err)
 	}
@@ -154,11 +157,11 @@ func resourceVSphereDistributedPortGroupUpdate(d *schema.ResourceData, meta inte
 
 func resourceVSphereDistributedPortGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	if err := validateVirtualCenter(client); err != nil {
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return err
 	}
 	pgID := d.Id()
-	pg, err := dvPortgroupFromMOID(client, pgID)
+	pg, err := dvportgroup.FromMOID(client, pgID)
 	if err != nil {
 		return fmt.Errorf("could not find portgroup %q: %s", pgID, err)
 	}
@@ -184,15 +187,15 @@ func resourceVSphereDistributedPortGroupImport(d *schema.ResourceData, meta inte
 	// as all query calls for DVS CRUD calls require the correct DVS UUID in
 	// addition to the portgroup UUID.
 	client := meta.(*VSphereClient).vimClient
-	if err := validateVirtualCenter(client); err != nil {
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return nil, err
 	}
 	p := d.Id()
-	pg, err := dvPortgroupFromPath(client, p, nil)
+	pg, err := dvportgroup.FromPath(client, p, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error locating portgroup: %s", err)
 	}
-	props, err := dvPortgroupProperties(pg)
+	props, err := dvportgroup.Properties(pg)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching portgroup properties: %s", err)
 	}

@@ -3,6 +3,7 @@ package vsphere
 import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -94,8 +95,8 @@ func expandHostNasVolumeSpec(d *schema.ResourceData) *types.HostNasVolumeSpec {
 	obj := &types.HostNasVolumeSpec{
 		AccessMode:      d.Get("access_mode").(string),
 		LocalPath:       d.Get("name").(string),
-		RemoteHost:      sliceInterfacesToStrings(d.Get("remote_hosts").([]interface{}))[0],
-		RemoteHostNames: sliceInterfacesToStrings(d.Get("remote_hosts").([]interface{})),
+		RemoteHost:      structure.SliceInterfacesToStrings(d.Get("remote_hosts").([]interface{}))[0],
+		RemoteHostNames: structure.SliceInterfacesToStrings(d.Get("remote_hosts").([]interface{})),
 		RemotePath:      d.Get("remote_path").(string),
 		SecurityType:    d.Get("security_type").(string),
 		Type:            d.Get("type").(string),

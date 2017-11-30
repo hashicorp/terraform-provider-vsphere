@@ -3,8 +3,12 @@ package vsphere
 import (
 	"context"
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/vic/pkg/vsphere/tags"
@@ -92,21 +96,21 @@ this issue, please use a tag name unique within your vCenter system.
 const vSphereTagAttributeKey = "tags"
 
 // tagsMinVersion is the minimum vSphere version required for tags.
-var tagsMinVersion = vSphereVersion{
-	product: "VMware vCenter Server",
-	major:   6,
-	minor:   0,
-	patch:   0,
-	build:   2559268,
+var tagsMinVersion = viapi.VSphereVersion{
+	Product: "VMware vCenter Server",
+	Major:   6,
+	Minor:   0,
+	Patch:   0,
+	Build:   2559268,
 }
 
 // isEligibleTagEndpoint is a meta-validation that is used on login to see if
 // the connected endpoint supports the CIS REST API, which we use for tags.
 func isEligibleTagEndpoint(client *govmomi.Client) bool {
-	if err := validateVirtualCenter(client); err != nil {
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return false
 	}
-	clientVer := parseVersionFromClient(client)
+	clientVer := viapi.ParseVersionFromClient(client)
 	if !clientVer.ProductEqual(tagsMinVersion) || clientVer.Older(tagsMinVersion) {
 		return false
 	}
@@ -209,6 +213,7 @@ func tagTypeForObject(obj object.Reference) (string, error) {
 // in the supplied ResourceData. It returns an error if there was an issue
 // reading the tags.
 func readTagsForResource(client *tags.RestClient, obj object.Reference, d *schema.ResourceData) error {
+	log.Printf("[DEBUG] Reading tags for object %q", obj.Reference().Value)
 	objID := obj.Reference().Value
 	objType, err := tagTypeForObject(obj)
 	if err != nil {
@@ -217,6 +222,7 @@ func readTagsForResource(client *tags.RestClient, obj object.Reference, d *schem
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
 	ids, err := client.ListAttachedTags(ctx, objID, objType)
+	log.Printf("[DEBUG] Tags for object %q: %s", objID, strings.Join(ids, ","))
 	if err != nil {
 		return err
 	}
@@ -285,6 +291,7 @@ func (p *tagDiffProcessor) processAttachOperations() error {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 		defer cancel()
+		log.Printf("[DEBUG] Attaching tag %q for object %q", tagID, objID)
 		if err := p.client.AttachTagToObject(ctx, tagID, objID, objType); err != nil {
 			return err
 		}
@@ -308,6 +315,7 @@ func (p *tagDiffProcessor) processDetachOperations() error {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 		defer cancel()
+		log.Printf("[DEBUG] Detaching tag %q for object %q", tagID, objID)
 		if err := p.client.DetachTagFromObject(ctx, tagID, objID, objType); err != nil {
 			return err
 		}
@@ -325,24 +333,27 @@ func (p *tagDiffProcessor) processDetachOperations() error {
 func tagsClientIfDefined(d *schema.ResourceData, meta interface{}) (*tags.RestClient, error) {
 	old, new := d.GetChange(vSphereTagAttributeKey)
 	if len(old.(*schema.Set).List()) > 0 || len(new.(*schema.Set).List()) > 0 {
+		log.Printf("[DEBUG] tagsClientIfDefined: Loading tagging client")
 		client, err := meta.(*VSphereClient).TagsClient()
 		if err != nil {
 			return nil, err
 		}
 		return client, nil
 	}
+	log.Printf("[DEBUG] tagsClientIfDefined: No tags configured, skipping loading of tagging client")
 	return nil, nil
 }
 
 // processTagDiff wraps the whole tag diffing operation into a nice clean
 // function that resources can use.
 func processTagDiff(client *tags.RestClient, d *schema.ResourceData, obj object.Reference) error {
+	log.Printf("[DEBUG] Processing tags for object %q", obj.Reference().Value)
 	old, new := d.GetChange(vSphereTagAttributeKey)
 	tdp := &tagDiffProcessor{
 		client:    client,
 		subject:   obj,
-		oldTagIDs: sliceInterfacesToStrings(old.(*schema.Set).List()),
-		newTagIDs: sliceInterfacesToStrings(new.(*schema.Set).List()),
+		oldTagIDs: structure.SliceInterfacesToStrings(old.(*schema.Set).List()),
+		newTagIDs: structure.SliceInterfacesToStrings(new.(*schema.Set).List()),
 	}
 	if err := tdp.processDetachOperations(); err != nil {
 		return fmt.Errorf("error detaching tags to object ID %q: %s", obj.Reference().Value, err)

@@ -5,17 +5,33 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	"github.com/vmware/vic/pkg/vsphere/tags"
 )
+
+// testAccResourceVSphereEmpty provides an empty provider config to pass some
+// error tests with an empty state. This is to ensure there's no dangling
+// resources on the destroy check if for some reason some state gets written.
+const testAccResourceVSphereEmpty = `
+provider vsphere{}
+`
 
 // testCheckVariables bundles common variables needed by various test checkers.
 type testCheckVariables struct {
@@ -78,11 +94,11 @@ func testAccSkipIfEsxi(t *testing.T) {
 }
 
 // expectErrorIfNotVirtualCenter returns the error message that
-// validateVirtualCenter returns if VSPHERE_TEST_ESXI is set, to allow for test
+// viapi.ValidateVirtualCenter returns if VSPHERE_TEST_ESXI is set, to allow for test
 // cases that will still run on ESXi, but will expect validation failure.
 func expectErrorIfNotVirtualCenter() *regexp.Regexp {
 	if testAccESXiFlagSet() {
-		return regexp.MustCompile(errVirtualCenterOnly)
+		return regexp.MustCompile(viapi.ErrVirtualCenterOnly)
 	}
 	return nil
 }
@@ -128,7 +144,7 @@ func testGetVirtualMachine(s *terraform.State, resourceName string) (*object.Vir
 	if !ok {
 		return nil, fmt.Errorf("resource %q has no UUID", resourceName)
 	}
-	return virtualMachineFromUUID(tVars.client, uuid)
+	return virtualmachine.FromUUID(tVars.client, uuid)
 }
 
 // testGetVirtualMachineProperties is a convenience method that adds an extra
@@ -138,7 +154,54 @@ func testGetVirtualMachineProperties(s *terraform.State, resourceName string) (*
 	if err != nil {
 		return nil, err
 	}
-	return virtualMachineProperties(vm)
+	return virtualmachine.Properties(vm)
+}
+
+// testGetVirtualMachineHost returns the HostSystem for the host that this
+// virtual machine is currently on.
+func testGetVirtualMachineHost(s *terraform.State, resourceName string) (*object.HostSystem, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_virtual_machine.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+	vprops, err := testGetVirtualMachineProperties(s, resourceName)
+	if err != nil {
+		return nil, err
+	}
+	return hostsystem.FromID(tVars.client, vprops.Runtime.Host.Value)
+}
+
+// testGetVirtualMachineResourcePool returns the ResourcePool object for the
+// resource pool this VM is currently in.
+func testGetVirtualMachineResourcePool(s *terraform.State, resourceName string) (*object.ResourcePool, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_virtual_machine.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+	vprops, err := testGetVirtualMachineProperties(s, resourceName)
+	if err != nil {
+		return nil, err
+	}
+	return resourcepool.FromID(tVars.client, vprops.ResourcePool.Value)
+}
+
+// testGetVirtualMachineSCSIBusState reads the SCSI bus state for the supplied
+// virtual machine.
+func testGetVirtualMachineSCSIBusState(s *terraform.State, resourceName string) (string, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_virtual_machine.%s", resourceName))
+	if err != nil {
+		return "", err
+	}
+	vprops, err := testGetVirtualMachineProperties(s, resourceName)
+	if err != nil {
+		return "", err
+	}
+	count, err := strconv.Atoi(tVars.resourceAttributes["scsi_controller_count"])
+	if err != nil {
+		return "", err
+	}
+	l := object.VirtualDeviceList(vprops.Config.Hardware.Device)
+	return virtualdevice.ReadSCSIBusState(l, count), nil
 }
 
 // testPowerOffVM does an immediate power-off of the supplied virtual machine
@@ -273,7 +336,7 @@ func testGetDatastore(s *terraform.State, resAddr string) (*object.Datastore, er
 	if err != nil {
 		return nil, err
 	}
-	return datastoreFromID(vars.client, vars.resourceID)
+	return datastore.FromID(vars.client, vars.resourceID)
 }
 
 // testAccResourceVSphereDatastoreCheckTags is a check to ensure that the
@@ -302,17 +365,17 @@ func testGetFolder(s *terraform.State, resourceName string) (*object.Folder, err
 	if err != nil {
 		return nil, err
 	}
-	return folderFromID(tVars.client, tVars.resourceID)
+	return folder.FromID(tVars.client, tVars.resourceID)
 }
 
 // testGetFolderProperties is a convenience method that adds an extra step to
 // testGetFolder to get the properties of a folder.
 func testGetFolderProperties(s *terraform.State, resourceName string) (*mo.Folder, error) {
-	folder, err := testGetFolder(s, resourceName)
+	f, err := testGetFolder(s, resourceName)
 	if err != nil {
 		return nil, err
 	}
-	return folderProperties(folder)
+	return folder.Properties(f)
 }
 
 // testGetDVS is a convenience method to fetch a DVS by resource name.
@@ -341,7 +404,7 @@ func testGetDVPortgroup(s *terraform.State, resourceName string) (*object.Distri
 		return nil, err
 	}
 	dvsID := tVars.resourceAttributes["distributed_virtual_switch_uuid"]
-	return dvPortgroupFromUUID(tVars.client, dvsID, tVars.resourceID)
+	return dvportgroup.FromKey(tVars.client, dvsID, tVars.resourceID)
 }
 
 // testGetDVPortgroupProperties is a convenience method that adds an extra step to
@@ -351,5 +414,5 @@ func testGetDVPortgroupProperties(s *terraform.State, resourceName string) (*mo.
 	if err != nil {
 		return nil, err
 	}
-	return dvPortgroupProperties(dvs)
+	return dvportgroup.Properties(dvs)
 }

@@ -4,10 +4,14 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
 
 func TestAccResourceVSphereVmfsDatastore(t *testing.T) {
@@ -225,6 +229,48 @@ func TestAccResourceVSphereVmfsDatastore(t *testing.T) {
 			},
 		},
 		{
+			"bad disk entry",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVmfsDatastorePreCheck(tp)
+				},
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      testAccResourceVSphereVmfsDatastoreConfigBadDisk(),
+						ExpectError: regexp.MustCompile("empty entry"),
+						PlanOnly:    true,
+					},
+					{
+						Config: testAccResourceVSphereEmpty,
+						Check:  resource.ComposeTestCheckFunc(),
+					},
+				},
+			},
+		},
+		{
+			"duplicate disk entry",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVmfsDatastorePreCheck(tp)
+				},
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      testAccResourceVSphereVmfsDatastoreConfigDuplicateDisk(),
+						ExpectError: regexp.MustCompile("duplicate name"),
+						PlanOnly:    true,
+					},
+					{
+						Config: testAccResourceVSphereEmpty,
+						Check:  resource.ComposeTestCheckFunc(),
+					},
+				},
+			},
+		},
+		{
 			"import",
 			resource.TestCase{
 				PreCheck: func() {
@@ -292,7 +338,7 @@ func testAccResourceVSphereVmfsDatastoreExists(expected bool) resource.TestCheck
 	return func(s *terraform.State) error {
 		ds, err := testGetDatastore(s, "vsphere_vmfs_datastore.datastore")
 		if err != nil {
-			if isManagedObjectNotFoundError(err) && expected == false {
+			if viapi.IsManagedObjectNotFoundError(err) && expected == false {
 				// Expected missing
 				return nil
 			}
@@ -312,7 +358,7 @@ func testAccResourceVSphereVmfsDatastoreHasName(expected string) resource.TestCh
 			return err
 		}
 
-		props, err := datastoreProperties(ds)
+		props, err := datastore.Properties(ds)
 		if err != nil {
 			return err
 		}
@@ -332,7 +378,7 @@ func testAccResourceVSphereVmfsDatastoreMatchInventoryPath(expected string) reso
 			return err
 		}
 
-		expected, err := rootPathParticleDatastore.PathFromNewRoot(ds.InventoryPath, rootPathParticleDatastore, expected)
+		expected, err := folder.RootPathParticleDatastore.PathFromNewRoot(ds.InventoryPath, folder.RootPathParticleDatastore, expected)
 		actual := path.Dir(ds.InventoryPath)
 		if err != nil {
 			return fmt.Errorf("bad: %s", err)
@@ -598,4 +644,72 @@ resource "vsphere_vmfs_datastore" "datastore" {
   tags = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
 }
 `, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+}
+
+func testAccResourceVSphereVmfsDatastoreConfigBadDisk() string {
+	return fmt.Sprintf(`
+variable "disk0" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "disk1" {
+  type    = "string"
+  default = "%s"
+}
+
+data "vsphere_datacenter" "datacenter" {
+  name = "%s"
+}
+
+data "vsphere_host" "esxi_host" {
+  name          = "%s"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
+resource "vsphere_vmfs_datastore" "datastore" {
+  name           = "terraform-test"
+  host_system_id = "${data.vsphere_host.esxi_host.id}"
+
+  disks = [
+    "${var.disk0}",
+    "${var.disk1}",
+    "",
+  ]
+}
+`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DS_VMFS_DISK1"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+}
+
+func testAccResourceVSphereVmfsDatastoreConfigDuplicateDisk() string {
+	return fmt.Sprintf(`
+variable "disk0" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "disk1" {
+  type    = "string"
+  default = "%s"
+}
+
+data "vsphere_datacenter" "datacenter" {
+  name = "%s"
+}
+
+data "vsphere_host" "esxi_host" {
+  name          = "%s"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
+resource "vsphere_vmfs_datastore" "datastore" {
+  name           = "terraform-test"
+  host_system_id = "${data.vsphere_host.esxi_host.id}"
+
+  disks = [
+    "${var.disk0}",
+    "${var.disk1}",
+    "${var.disk1}",
+  ]
+}
+`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DS_VMFS_DISK1"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
 }

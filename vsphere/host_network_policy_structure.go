@@ -3,6 +3,7 @@ package vsphere
 import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -108,16 +109,16 @@ func expandHostNicFailureCriteria(d *schema.ResourceData) *types.HostNicFailureC
 	obj := &types.HostNicFailureCriteria{}
 
 	if v, ok := d.GetOkExists("check_beacon"); ok {
-		obj.CheckBeacon = boolPtr(v.(bool))
+		obj.CheckBeacon = structure.BoolPtr(v.(bool))
 	}
 
 	// These fields are deprecated and are set only to make things work. They are
 	// not exposed to Terraform.
 	obj.CheckSpeed = "minimum"
 	obj.Speed = 10
-	obj.CheckDuplex = boolPtr(false)
-	obj.FullDuplex = boolPtr(false)
-	obj.CheckErrorPercent = boolPtr(false)
+	obj.CheckDuplex = structure.BoolPtr(false)
+	obj.FullDuplex = structure.BoolPtr(false)
+	obj.CheckErrorPercent = structure.BoolPtr(false)
 	obj.Percentage = 0
 
 	return obj
@@ -141,8 +142,8 @@ func expandHostNicOrderPolicy(d *schema.ResourceData) *types.HostNicOrderPolicy 
 	if !activeOk && !standbyOk {
 		return nil
 	}
-	obj.ActiveNic = sliceInterfacesToStrings(activeNics.([]interface{}))
-	obj.StandbyNic = sliceInterfacesToStrings(standbyNics.([]interface{}))
+	obj.ActiveNic = structure.SliceInterfacesToStrings(activeNics.([]interface{}))
+	obj.StandbyNic = structure.SliceInterfacesToStrings(standbyNics.([]interface{}))
 	return obj
 }
 
@@ -152,10 +153,10 @@ func flattenHostNicOrderPolicy(d *schema.ResourceData, obj *types.HostNicOrderPo
 	if obj == nil {
 		return nil
 	}
-	if err := d.Set("active_nics", sliceStringsToInterfaces(obj.ActiveNic)); err != nil {
+	if err := d.Set("active_nics", structure.SliceStringsToInterfaces(obj.ActiveNic)); err != nil {
 		return err
 	}
-	if err := d.Set("standby_nics", sliceStringsToInterfaces(obj.StandbyNic)); err != nil {
+	if err := d.Set("standby_nics", structure.SliceStringsToInterfaces(obj.StandbyNic)); err != nil {
 		return err
 	}
 	return nil
@@ -168,17 +169,17 @@ func expandHostNicTeamingPolicy(d *schema.ResourceData) *types.HostNicTeamingPol
 		Policy: d.Get("teaming_policy").(string),
 	}
 	if v, ok := d.GetOkExists("failback"); ok {
-		obj.RollingOrder = boolPtr(!v.(bool))
+		obj.RollingOrder = structure.BoolPtr(!v.(bool))
 	}
 	if v, ok := d.GetOkExists("notify_switches"); ok {
-		obj.NotifySwitches = boolPtr(v.(bool))
+		obj.NotifySwitches = structure.BoolPtr(v.(bool))
 	}
 	obj.FailureCriteria = expandHostNicFailureCriteria(d)
 	obj.NicOrder = expandHostNicOrderPolicy(d)
 
 	// These fields are deprecated and are set only to make things work. They are
 	// not exposed to Terraform.
-	obj.ReversePolicy = boolPtr(true)
+	obj.ReversePolicy = structure.BoolPtr(true)
 
 	return obj
 }
@@ -208,13 +209,13 @@ func flattenHostNicTeamingPolicy(d *schema.ResourceData, obj *types.HostNicTeami
 func expandHostNetworkSecurityPolicy(d *schema.ResourceData) *types.HostNetworkSecurityPolicy {
 	obj := &types.HostNetworkSecurityPolicy{}
 	if v, ok := d.GetOkExists("allow_promiscuous"); ok {
-		obj.AllowPromiscuous = boolPtr(v.(bool))
+		obj.AllowPromiscuous = structure.BoolPtr(v.(bool))
 	}
 	if v, ok := d.GetOkExists("allow_forged_transmits"); ok {
-		obj.ForgedTransmits = boolPtr(v.(bool))
+		obj.ForgedTransmits = structure.BoolPtr(v.(bool))
 	}
 	if v, ok := d.GetOkExists("allow_mac_changes"); ok {
-		obj.MacChanges = boolPtr(v.(bool))
+		obj.MacChanges = structure.BoolPtr(v.(bool))
 	}
 	return obj
 }
@@ -243,7 +244,7 @@ func expandHostNetworkTrafficShapingPolicy(d *schema.ResourceData) *types.HostNe
 		PeakBandwidth:    int64(d.Get("shaping_peak_bandwidth").(int)),
 	}
 	if v, ok := d.GetOkExists("shaping_enabled"); ok {
-		obj.Enabled = boolPtr(v.(bool))
+		obj.Enabled = structure.BoolPtr(v.(bool))
 	}
 	return obj
 }

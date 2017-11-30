@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -210,8 +211,8 @@ func schemaVMwareDVSConfigSpec() map[string]*schema.Schema {
 		},
 	}
 
-	mergeSchema(s, schemaVMwareDVSPortSetting())
-	mergeSchema(s, schemaDvsHostInfrastructureTrafficResource())
+	structure.MergeSchema(s, schemaVMwareDVSPortSetting())
+	structure.MergeSchema(s, schemaDvsHostInfrastructureTrafficResource())
 	return s
 }
 
@@ -242,7 +243,7 @@ func expandDistributedVirtualSwitchHostMemberConfigSpec(d map[string]interface{}
 	}
 
 	var pnSpecs []types.DistributedVirtualSwitchHostMemberPnicSpec
-	nics := sliceInterfacesToStrings(d["devices"].([]interface{}))
+	nics := structure.SliceInterfacesToStrings(d["devices"].([]interface{}))
 	for _, nic := range nics {
 		pnSpec := types.DistributedVirtualSwitchHostMemberPnicSpec{
 			PnicDevice: nic,
@@ -447,19 +448,19 @@ func expandDvsHostInfrastructureTrafficResource(d *schema.ResourceData, key stri
 
 	obj := &types.DvsHostInfrastructureTrafficResource{
 		AllocationInfo: types.DvsHostInfrastructureTrafficResourceAllocation{
-			Limit:       getInt64Ptr(d, maxMbitKey),
-			Reservation: getInt64Ptr(d, resMbitKey),
+			Limit:       structure.GetInt64Ptr(d, maxMbitKey),
+			Reservation: structure.GetInt64Ptr(d, resMbitKey),
 		},
 	}
 	shares := &types.SharesInfo{
 		Level:  types.SharesLevel(d.Get(shareLevelKey).(string)),
 		Shares: int32(d.Get(shareCountKey).(int)),
 	}
-	if !allFieldsEmpty(shares) {
+	if !structure.AllFieldsEmpty(shares) {
 		obj.AllocationInfo.Shares = shares
 	}
 
-	if allFieldsEmpty(obj) {
+	if structure.AllFieldsEmpty(obj) {
 		return nil
 	}
 	obj.Key = key
@@ -475,8 +476,8 @@ func flattenDvsHostInfrastructureTrafficResource(d *schema.ResourceData, obj typ
 	maxMbitKey := fmt.Sprintf("%s_maximum_mbit", strings.ToLower(key))
 	resMbitKey := fmt.Sprintf("%s_reservation_mbit", strings.ToLower(key))
 
-	setInt64Ptr(d, maxMbitKey, obj.AllocationInfo.Limit)
-	setInt64Ptr(d, resMbitKey, obj.AllocationInfo.Reservation)
+	structure.SetInt64Ptr(d, maxMbitKey, obj.AllocationInfo.Limit)
+	structure.SetInt64Ptr(d, resMbitKey, obj.AllocationInfo.Reservation)
 	if obj.AllocationInfo.Shares != nil {
 		d.Set(shareLevelKey, obj.AllocationInfo.Shares.Level)
 		d.Set(shareCountKey, obj.AllocationInfo.Shares.Shares)
@@ -512,9 +513,9 @@ func flattenSliceOfDvsHostInfrastructureTrafficResource(d *schema.ResourceData, 
 // returns a DVSNameArrayUplinkPortPolicy.
 func expandDVSNameArrayUplinkPortPolicy(d *schema.ResourceData) *types.DVSNameArrayUplinkPortPolicy {
 	obj := &types.DVSNameArrayUplinkPortPolicy{
-		UplinkPortName: sliceInterfacesToStrings(d.Get("uplinks").([]interface{})),
+		UplinkPortName: structure.SliceInterfacesToStrings(d.Get("uplinks").([]interface{})),
 	}
-	if allFieldsEmpty(obj) {
+	if structure.AllFieldsEmpty(obj) {
 		return nil
 	}
 	return obj
@@ -614,7 +615,7 @@ func schemaDVSCreateSpec() map[string]*schema.Schema {
 			ValidateFunc: validation.StringInSlice(dvsVersions, false),
 		},
 	}
-	mergeSchema(s, schemaVMwareDVSConfigSpec())
+	structure.MergeSchema(s, schemaVMwareDVSConfigSpec())
 
 	return s
 }

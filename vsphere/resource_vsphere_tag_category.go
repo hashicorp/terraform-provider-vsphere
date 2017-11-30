@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/vic/pkg/vsphere/tags"
 )
 
@@ -72,7 +73,7 @@ func resourceVSphereTagCategoryCreate(d *schema.ResourceData, meta interface{}) 
 
 	spec := &tags.CategoryCreateSpec{
 		CreateSpec: tags.CategoryCreate{
-			AssociableTypes: sliceInterfacesToStrings(d.Get("associable_types").(*schema.Set).List()),
+			AssociableTypes: structure.SliceInterfacesToStrings(d.Get("associable_types").(*schema.Set).List()),
 			Cardinality:     d.Get("cardinality").(string),
 			Description:     d.Get("description").(string),
 			Name:            d.Get("name").(string),
@@ -139,7 +140,7 @@ func resourceVSphereTagCategoryUpdate(d *schema.ResourceData, meta interface{}) 
 	id := d.Id()
 	spec := &tags.CategoryUpdateSpec{
 		UpdateSpec: tags.CategoryUpdate{
-			AssociableTypes: sliceInterfacesToStrings(d.Get("associable_types").(*schema.Set).List()),
+			AssociableTypes: structure.SliceInterfacesToStrings(d.Get("associable_types").(*schema.Set).List()),
 			Cardinality:     d.Get("cardinality").(string),
 			Description:     d.Get("description").(string),
 			Name:            d.Get("name").(string),

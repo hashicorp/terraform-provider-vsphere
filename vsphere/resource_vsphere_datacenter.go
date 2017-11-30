@@ -102,18 +102,18 @@ func resourceVSphereDatacenterCreate(d *schema.ResourceData, meta interface{}) e
 
 func resourceVSphereDatacenterStateRefreshFunc(d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		log.Print("[TRACE] Refreshing datacenter state")
+		log.Print("[DEBUG] Refreshing datacenter state")
 		dc, err := datacenterExists(d, meta)
 		if err != nil {
 			switch err.(type) {
 			case *find.NotFoundError:
-				log.Printf("[TRACE] Refreshing state. Datacenter not found: %s", err)
+				log.Printf("[DEBUG] Refreshing state. Datacenter not found: %s", err)
 				return nil, "InProgress", nil
 			default:
 				return nil, "Failed", err
 			}
 		}
-		log.Print("[TRACE] Refreshing state. Datacenter found")
+		log.Print("[DEBUG] Refreshing state. Datacenter found")
 		return dc, "Created", nil
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 )
 
 func dataSourceVSphereHost() *schema.Resource {
@@ -33,7 +34,7 @@ func dataSourceVSphereHostRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("error fetching datacenter: %s", err)
 	}
-	hs, err := hostSystemOrDefault(client, name, dc)
+	hs, err := hostsystem.SystemOrDefault(client, name, dc)
 	if err != nil {
 		return fmt.Errorf("error fetching host: %s", err)
 	}

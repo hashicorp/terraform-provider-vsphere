@@ -9,6 +9,8 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -30,7 +32,7 @@ func resourceVSphereFolder() *schema.Resource {
 				Type:         schema.TypeString,
 				Description:  "The path of the folder and any parents, relative to the datacenter and folder type being defined.",
 				Required:     true,
-				StateFunc:    normalizeFolderPath,
+				StateFunc:    folder.NormalizePath,
 				ValidateFunc: validation.NoZeroValues,
 			},
 			"type": {
@@ -40,11 +42,11 @@ func resourceVSphereFolder() *schema.Resource {
 				Required:    true,
 				ValidateFunc: validation.StringInSlice(
 					[]string{
-						string(vSphereFolderTypeVM),
-						string(vSphereFolderTypeNetwork),
-						string(vSphereFolderTypeHost),
-						string(vSphereFolderTypeDatastore),
-						string(vSphereFolderTypeDatacenter),
+						string(folder.VSphereFolderTypeVM),
+						string(folder.VSphereFolderTypeNetwork),
+						string(folder.VSphereFolderTypeHost),
+						string(folder.VSphereFolderTypeDatastore),
+						string(folder.VSphereFolderTypeDatacenter),
 					},
 					false,
 				),
@@ -68,7 +70,7 @@ func resourceVSphereFolderCreate(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	ft := vSphereFolderType(d.Get("type").(string))
+	ft := folder.VSphereFolderType(d.Get("type").(string))
 	var dc *object.Datacenter
 	if dcID, ok := d.GetOk("datacenter_id"); ok {
 		var err error
@@ -77,7 +79,7 @@ func resourceVSphereFolderCreate(d *schema.ResourceData, meta interface{}) error
 			return fmt.Errorf("cannot locate datacenter: %s", err)
 		}
 	} else {
-		if ft != vSphereFolderTypeDatacenter {
+		if ft != folder.VSphereFolderTypeDatacenter {
 			return fmt.Errorf("datacenter_id cannot be empty when creating a folder of type %s", ft)
 		}
 	}
@@ -85,7 +87,7 @@ func resourceVSphereFolderCreate(d *schema.ResourceData, meta interface{}) error
 	p := d.Get("path").(string)
 
 	// Determine the parent folder
-	parent, err := parentFolderFromPath(client, p, ft, dc)
+	parent, err := folder.ParentFromPath(client, p, ft, dc)
 	if err != nil {
 		return fmt.Errorf("error trying to determine parent folder: %s", err)
 	}
@@ -112,14 +114,14 @@ func resourceVSphereFolderCreate(d *schema.ResourceData, meta interface{}) error
 
 func resourceVSphereFolderRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	folder, err := folderFromID(client, d.Id())
+	fo, err := folder.FromID(client, d.Id())
 	if err != nil {
 		return fmt.Errorf("cannot locate folder: %s", err)
 	}
 
 	// Determine the folder type first. We use the folder as the source of truth
 	// here versus the state so that we can support import.
-	ft, err := findFolderType(folder)
+	ft, err := folder.FindType(fo)
 	if err != nil {
 		return fmt.Errorf("cannot determine folder type: %s", err)
 	}
@@ -127,9 +129,9 @@ func resourceVSphereFolderRead(d *schema.ResourceData, meta interface{}) error {
 	// Again, to support a clean import (which is done off of absolute path to
 	// the folder), we discover the datacenter from the path (if it's a thing).
 	var dc *object.Datacenter
-	p := folder.InventoryPath
-	if ft != vSphereFolderTypeDatacenter {
-		particle := rootPathParticle(ft)
+	p := fo.InventoryPath
+	if ft != folder.VSphereFolderTypeDatacenter {
+		particle := folder.RootPathParticle(ft)
 		dcp, err := particle.SplitDatacenter(p)
 		if err != nil {
 			return fmt.Errorf("cannot determine datacenter path: %s", err)
@@ -145,7 +147,7 @@ func resourceVSphereFolderRead(d *schema.ResourceData, meta interface{}) error {
 		p = relative
 	}
 
-	d.Set("path", normalizeFolderPath(p))
+	d.Set("path", folder.NormalizePath(p))
 	d.Set("type", ft)
 	if dc != nil {
 		d.Set("datacenter_id", dc.Reference().Value)
@@ -153,7 +155,7 @@ func resourceVSphereFolderRead(d *schema.ResourceData, meta interface{}) error {
 
 	// Read tags if we have the ability to do so
 	if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
-		if err := readTagsForResource(tagsClient, folder, d); err != nil {
+		if err := readTagsForResource(tagsClient, fo, d); err != nil {
 			return fmt.Errorf("error reading tags: %s", err)
 		}
 	}
@@ -168,7 +170,7 @@ func resourceVSphereFolderUpdate(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	folder, err := folderFromID(client, d.Id())
+	fo, err := folder.FromID(client, d.Id())
 	if err != nil {
 		return fmt.Errorf("cannot locate folder: %s", err)
 	}
@@ -176,7 +178,7 @@ func resourceVSphereFolderUpdate(d *schema.ResourceData, meta interface{}) error
 	// Apply any pending tags first as it's the lesser expensive of the two
 	// operations
 	if tagsClient != nil {
-		if err := processTagDiff(tagsClient, d, folder); err != nil {
+		if err := processTagDiff(tagsClient, d, fo); err != nil {
 			return fmt.Errorf("error updating tags: %s", err)
 		}
 	}
@@ -193,13 +195,13 @@ func resourceVSphereFolderUpdate(d *schema.ResourceData, meta interface{}) error
 	if d.HasChange("path") {
 		// The path has changed, which could mean either a change in parent, a
 		// change in name, or both.
-		ft := vSphereFolderType(d.Get("type").(string))
+		ft := folder.VSphereFolderType(d.Get("type").(string))
 		oldp, newp := d.GetChange("path")
-		oldpa, err := parentFolderFromPath(client, oldp.(string), ft, dc)
+		oldpa, err := folder.ParentFromPath(client, oldp.(string), ft, dc)
 		if err != nil {
 			return fmt.Errorf("error parsing parent folder from path %q: %s", oldp.(string), err)
 		}
-		newpa, err := parentFolderFromPath(client, newp.(string), ft, dc)
+		newpa, err := folder.ParentFromPath(client, newp.(string), ft, dc)
 		if err != nil {
 			return fmt.Errorf("error parsing parent folder from path %q: %s", newp.(string), err)
 		}
@@ -208,7 +210,7 @@ func resourceVSphereFolderUpdate(d *schema.ResourceData, meta interface{}) error
 
 		if oldn != newn {
 			// Folder base name has changed and needs a rename
-			if err := renameObject(client, folder.Reference(), newn); err != nil {
+			if err := viapi.RenameObject(client, fo.Reference(), newn); err != nil {
 				return fmt.Errorf("could not rename folder: %s", err)
 			}
 		}
@@ -217,7 +219,7 @@ func resourceVSphereFolderUpdate(d *schema.ResourceData, meta interface{}) error
 			// new path
 			ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 			defer cancel()
-			task, err := newpa.MoveInto(ctx, []types.ManagedObjectReference{folder.Reference()})
+			task, err := newpa.MoveInto(ctx, []types.ManagedObjectReference{fo.Reference()})
 			if err != nil {
 				return fmt.Errorf("could not move folder: %s", err)
 			}
@@ -234,7 +236,7 @@ func resourceVSphereFolderUpdate(d *schema.ResourceData, meta interface{}) error
 
 func resourceVSphereFolderDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	folder, err := folderFromID(client, d.Id())
+	fo, err := folder.FromID(client, d.Id())
 	if err != nil {
 		return fmt.Errorf("cannot locate folder: %s", err)
 	}
@@ -242,7 +244,7 @@ func resourceVSphereFolderDelete(d *schema.ResourceData, meta interface{}) error
 	// We don't destroy if the folder has children. This might be flaggable in
 	// the future, but I don't think it's necessary at this point in time -
 	// better to have hardcoded safe behavior than hardcoded unsafe behavior.
-	ne, err := folderHasChildren(folder)
+	ne, err := folder.HasChildren(fo)
 	if err != nil {
 		return fmt.Errorf("error checking for folder contents: %s", err)
 	}
@@ -252,7 +254,7 @@ func resourceVSphereFolderDelete(d *schema.ResourceData, meta interface{}) error
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
-	task, err := folder.Destroy(ctx)
+	task, err := fo.Destroy(ctx)
 	if err != nil {
 		return fmt.Errorf("cannot delete folder: %s", err)
 	}
@@ -273,8 +275,8 @@ func resourceVSphereFolderImport(d *schema.ResourceData, meta interface{}) ([]*s
 		return nil, errors.New("path must start with a trailing slash")
 	}
 	client := meta.(*VSphereClient).vimClient
-	p = normalizeFolderPath(p)
-	folder, err := folderFromAbsolutePath(client, p)
+	p = folder.NormalizePath(p)
+	folder, err := folder.FromAbsolutePath(client, p)
 	if err != nil {
 		return nil, err
 	}

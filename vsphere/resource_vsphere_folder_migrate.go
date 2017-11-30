@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 )
 
 // resourceVSphereFolderMigrateState is the master state migration function for
@@ -46,8 +47,8 @@ func resourceVSphereFolderMigrateStateV1(s *terraform.InstanceState, meta interf
 	// We just need the path and the datacenter to proceed. We don't have an
 	// analog in for existing_path in the new resource, so we just drop that on
 	// the floor.
-	dcp := normalizeFolderPath(s.Attributes["datacenter"])
-	p := normalizeFolderPath(s.Attributes["path"])
+	dcp := folder.NormalizePath(s.Attributes["datacenter"])
+	p := folder.NormalizePath(s.Attributes["path"])
 
 	// Discover our datacenter first. This field can be empty, so we have to
 	// search for it as we normally would.
@@ -60,8 +61,8 @@ func resourceVSphereFolderMigrateStateV1(s *terraform.InstanceState, meta interf
 	// The old resource only supported VM folders, so this part is easy enough,
 	// we can derive our full path by combining the VM path particle and our
 	// relative path.
-	fp := rootPathParticleVM.PathFromDatacenter(dc, p)
-	folder, err := folderFromAbsolutePath(client, fp)
+	fp := folder.RootPathParticleVM.PathFromDatacenter(dc, p)
+	folder, err := folder.FromAbsolutePath(client, fp)
 	if err != nil {
 		return err
 	}

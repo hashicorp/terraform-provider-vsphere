@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 )
 
 func resourceVSphereHostVirtualSwitch() *schema.Resource {
@@ -23,7 +24,7 @@ func resourceVSphereHostVirtualSwitch() *schema.Resource {
 			ForceNew:    true,
 		},
 	}
-	mergeSchema(s, schemaHostVirtualSwitchSpec())
+	structure.MergeSchema(s, schemaHostVirtualSwitchSpec())
 
 	// Transform any necessary fields in the schema that need to be updated
 	// specifically for this resource.

@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -37,7 +38,7 @@ func schemaHostPortGroupSpec() map[string]*schema.Schema {
 			ForceNew:    true,
 		},
 	}
-	mergeSchema(s, schemaHostNetworkPolicy())
+	structure.MergeSchema(s, schemaHostNetworkPolicy())
 	return s
 }
 
@@ -89,7 +90,7 @@ func calculatePorts(ports []types.HostPortGroupPort) *schema.Set {
 	for _, port := range ports {
 		m := make(map[string]interface{})
 		m["key"] = port.Key
-		m["mac_addresses"] = sliceStringsToInterfaces(port.Mac)
+		m["mac_addresses"] = structure.SliceStringsToInterfaces(port.Mac)
 		m["type"] = port.Type
 		s = append(s, m)
 	}

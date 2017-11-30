@@ -1,4 +1,4 @@
-package vsphere
+package viapi
 
 import (
 	"reflect"
@@ -22,7 +22,7 @@ type testParseVersion struct {
 	product     string
 	version     string
 	build       string
-	expected    vSphereVersion
+	expected    VSphereVersion
 	expectedErr *regexp.Regexp
 }
 
@@ -40,12 +40,12 @@ func (tc *testParseVersion) Test(t *testing.T) {
 	}
 }
 
-var testParseVersionExpected = vSphereVersion{
-	product: "VMware vCenter Server",
-	major:   6,
-	minor:   2,
-	patch:   1,
-	build:   1000000,
+var testParseVersionExpected = VSphereVersion{
+	Product: "VMware vCenter Server",
+	Major:   6,
+	Minor:   2,
+	Patch:   1,
+	Build:   1000000,
 }
 
 func TestParseVersion(t *testing.T) {

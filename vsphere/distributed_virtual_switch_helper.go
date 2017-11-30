@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/network"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -58,7 +59,7 @@ func dvsFromMOID(client *govmomi.Client, id string) (*object.VmwareDistributedVi
 
 // dvsFromPath gets a DVS object from its path.
 func dvsFromPath(client *govmomi.Client, name string, dc *object.Datacenter) (*object.VmwareDistributedVirtualSwitch, error) {
-	net, err := networkFromPath(client, name, dc)
+	net, err := network.FromPath(client, name, dc)
 	if err != nil {
 		return nil, err
 	}

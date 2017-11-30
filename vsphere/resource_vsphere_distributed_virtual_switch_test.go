@@ -10,6 +10,8 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -416,7 +418,7 @@ func testAccResourceVSphereDistributedVirtualSwitchExists(expected bool) resourc
 	return func(s *terraform.State) error {
 		dvs, err := testGetDVS(s, "dvs")
 		if err != nil {
-			if isAnyNotFoundError(err) && expected == false {
+			if viapi.IsAnyNotFoundError(err) && expected == false {
 				// Expected missing
 				return nil
 			}
@@ -574,7 +576,7 @@ func testAccResourceVSphereDistributedVirtualSwitchMatchInventoryPath(expected s
 			return err
 		}
 
-		expected, err := rootPathParticleNetwork.PathFromNewRoot(dvs.InventoryPath, rootPathParticleNetwork, expected)
+		expected, err := folder.RootPathParticleNetwork.PathFromNewRoot(dvs.InventoryPath, folder.RootPathParticleNetwork, expected)
 		actual := path.Dir(dvs.InventoryPath)
 		if err != nil {
 			return fmt.Errorf("bad: %s", err)

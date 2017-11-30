@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -100,7 +101,7 @@ func flattenLinkDiscoveryProtocolConfig(d *schema.ResourceData, obj *types.LinkD
 // returns a HostVirtualSwitchBondBridge.
 func expandHostVirtualSwitchBondBridge(d *schema.ResourceData) *types.HostVirtualSwitchBondBridge {
 	obj := &types.HostVirtualSwitchBondBridge{
-		NicDevice: sliceInterfacesToStrings(d.Get("network_adapters").([]interface{})),
+		NicDevice: structure.SliceInterfacesToStrings(d.Get("network_adapters").([]interface{})),
 	}
 	obj.Beacon = expandHostVirtualSwitchBeaconConfig(d)
 	obj.LinkDiscoveryProtocolConfig = expandLinkDiscoveryProtocolConfig(d)
@@ -110,7 +111,7 @@ func expandHostVirtualSwitchBondBridge(d *schema.ResourceData) *types.HostVirtua
 // flattenHostVirtualSwitchBondBridge reads various fields from a
 // HostVirtualSwitchBondBridge into the passed in ResourceData.
 func flattenHostVirtualSwitchBondBridge(d *schema.ResourceData, obj *types.HostVirtualSwitchBondBridge) error {
-	if err := d.Set("network_adapters", sliceStringsToInterfaces(obj.NicDevice)); err != nil {
+	if err := d.Set("network_adapters", structure.SliceStringsToInterfaces(obj.NicDevice)); err != nil {
 		return err
 	}
 	if err := flattenHostVirtualSwitchBeaconConfig(d, obj.Beacon); err != nil {
@@ -142,8 +143,8 @@ func schemaHostVirtualSwitchSpec() map[string]*schema.Schema {
 			ValidateFunc: validation.IntBetween(0, 1024),
 		},
 	}
-	mergeSchema(s, schemaHostVirtualSwitchBondBridge())
-	mergeSchema(s, schemaHostNetworkPolicy())
+	structure.MergeSchema(s, schemaHostVirtualSwitchBondBridge())
+	structure.MergeSchema(s, schemaHostNetworkPolicy())
 	return s
 }
 

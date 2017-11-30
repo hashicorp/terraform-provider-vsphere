@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/network"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/object"
 )
 
@@ -33,7 +35,7 @@ func dataSourceVSphereNetwork() *schema.Resource {
 
 func dataSourceVSphereNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	if err := validateVirtualCenter(client); err != nil {
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return err
 	}
 
@@ -46,7 +48,7 @@ func dataSourceVSphereNetworkRead(d *schema.ResourceData, meta interface{}) erro
 			return fmt.Errorf("cannot locate datacenter: %s", err)
 		}
 	}
-	net, err := networkFromPath(client, name, dc)
+	net, err := network.FromPath(client, name, dc)
 	if err != nil {
 		return fmt.Errorf("error fetching network: %s", err)
 	}
