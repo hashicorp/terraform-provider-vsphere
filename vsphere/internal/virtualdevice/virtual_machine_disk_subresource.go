@@ -1539,10 +1539,12 @@ func selectDisks(l object.VirtualDeviceList, count int) object.VirtualDeviceList
 		if disk, ok := device.(*types.VirtualDisk); ok {
 			ctlr, err := findControllerForDevice(l, disk)
 			if err != nil {
-				log.Printf("[DEBUG] DiskRefreshOperation: Error looking for controller for device: %q: %s", l.Name(disk), err)
+				log.Printf("[DEBUG] DiskRefreshOperation: Error looking for controller for device %q: %s", l.Name(disk), err)
 				return false
 			}
 			if sc, ok := ctlr.(types.BaseVirtualSCSIController); ok && sc.GetVirtualSCSIController().BusNumber < int32(count) {
+				cd := sc.(types.BaseVirtualDevice)
+				log.Printf("[DEBUG] DiskRefreshOperation: Found controller %q for device %q", l.Name(cd), l.Name(disk))
 				return true
 			}
 		}
