@@ -1233,7 +1233,6 @@ func (r *DiskSubresource) Relocate(l object.VirtualDeviceList) (types.VirtualMac
 	// Add additional backing options if we are cloning.
 	if r.rdd.Id() == "" {
 		log.Printf("[DEBUG] %s: Adding additional options to relocator for cloning", r)
-		relocate.DiskBackingInfo = disk.Backing
 
 		// Set the new name. This is basically the same logic as create.
 		diskName := r.Get("name").(string)
@@ -1241,8 +1240,11 @@ func (r *DiskSubresource) Relocate(l object.VirtualDeviceList) (types.VirtualMac
 		if path.Base(diskName) == diskName && vmxPath != "" {
 			diskName = path.Join(path.Dir(vmxPath), diskName)
 		}
-		relocate.DiskBackingInfo.(*types.VirtualDiskFlatVer2BackingInfo).FileName = ds.Path(diskName)
-		relocate.DiskBackingInfo.(*types.VirtualDiskFlatVer2BackingInfo).Datastore = &dsref
+
+		backing := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+		backing.FileName = ds.Path(diskName)
+		backing.Datastore = &dsref
+		relocate.DiskBackingInfo = disk.Backing
 	}
 
 	// Done!
@@ -1439,8 +1441,8 @@ func diskRelocateListString(relocators []types.VirtualMachineRelocateSpecDiskLoc
 func diskRelocateString(relocate types.VirtualMachineRelocateSpecDiskLocator) string {
 	key := relocate.DiskId
 	var locstring string
-	if relocate.DiskBackingInfo != nil {
-		locstring = relocate.DiskBackingInfo.(*types.VirtualDiskFlatVer2BackingInfo).FileName
+	if backing, ok := relocate.DiskBackingInfo.(*types.VirtualDiskFlatVer2BackingInfo); ok && backing != nil {
+		locstring = backing.FileName
 	} else {
 		locstring = relocate.Datastore.Value
 	}
