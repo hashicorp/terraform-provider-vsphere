@@ -362,7 +362,6 @@ func schemaVirtualMachineResourceAllocation() map[string]*schema.Schema {
 		s[reservationKey] = &schema.Schema{
 			Type:         schema.TypeInt,
 			Optional:     true,
-			Default:      0,
 			Description:  fmt.Sprintf(reservationFmt, t),
 			ValidateFunc: validation.IntAtLeast(0),
 		}
