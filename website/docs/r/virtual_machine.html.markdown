@@ -505,6 +505,10 @@ The options are:
   [picking a disk type](#picking-a-disk-type). Default: `true`. 
 * `disk_sharing` - (Optional) The sharing mode of this virtual disk. Can be one
   of `sharingMultiWriter` or `sharingNone`. Default: `sharingNone`.
+
+~> **NOTE:** Disk sharing is only available on vSphere 6.0 and higher. This
+option is ignored on earlier versions.
+
 * `write_through` - (Optional) If `true`, writes for this disk are sent
   directly to the filesystem immediately instead of being buffered. Default:
   `false`.
