@@ -696,10 +696,10 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 					},
 					{
 						// Add memory with hot-add
-						Config: testAccResourceVSphereVirtualMachineConfigWithHotAdd(2, 4096, true, false, true),
+						Config: testAccResourceVSphereVirtualMachineConfigWithHotAdd(2, 3072, true, false, true),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCPUMem(2, 4096),
+							testAccResourceVSphereVirtualMachineCheckCPUMem(2, 3072),
 							testAccResourceVSphereVirtualMachineCheckPowerOffEvent(false),
 						),
 					},
