@@ -82,7 +82,7 @@ Two waiters of note are:
   off via the [`wait_for_guest_net_timeout`](#wait_for_guest_net_timeout)
   top-level setting.
 
-[tf-docs-provisioners]: http://localhost:4567/docs/provisioners/index.html
+[tf-docs-provisioners]: /docs/provisioners/index.html
 
 ### Migrating from a previous version of this resource
 
