@@ -411,14 +411,14 @@ func expandCustomizationSysprepText(d *schema.ResourceData) *types.Customization
 // the raw Windows sysprep file (via windows_sysprep_text).
 func expandBaseCustomizationIdentitySettings(d *schema.ResourceData, family string) types.BaseCustomizationIdentitySettings {
 	var obj types.BaseCustomizationIdentitySettings
-	_, wExists := d.GetOkExists(cKeyPrefix + "." + "windows_options")
-	_, wrExists := d.GetOkExists(cKeyPrefix + "." + "windows_sysprep_text")
+	_, windowsExists := d.GetOkExists(cKeyPrefix + "." + "windows_options")
+	_, sysprepExists := d.GetOkExists(cKeyPrefix + "." + "windows_sysprep_text")
 	switch {
 	case family == string(types.VirtualMachineGuestOsFamilyLinuxGuest):
 		obj = expandCustomizationLinuxPrep(d)
-	case family == string(types.VirtualMachineGuestOsFamilyWindowsGuest) && wExists:
+	case family == string(types.VirtualMachineGuestOsFamilyWindowsGuest) && windowsExists:
 		obj = expandCustomizationSysprep(d)
-	case family == string(types.VirtualMachineGuestOsFamilyWindowsGuest) && wrExists:
+	case family == string(types.VirtualMachineGuestOsFamilyWindowsGuest) && sysprepExists:
 		obj = expandCustomizationSysprepText(d)
 	default:
 		obj = &types.CustomizationIdentitySettings{}
@@ -515,13 +515,13 @@ func ExpandCustomizationSpec(d *schema.ResourceData, family string) types.Custom
 // spec. It should be called during diff customization to veto invalid configs.
 func ValidateCustomizationSpec(d *schema.ResourceDiff, family string) error {
 	// Validate that the proper section exists for OS family suboptions.
-	lExists := len(d.Get(cKeyPrefix+"."+"linux_options").([]interface{})) > 0
-	wExists := len(d.Get(cKeyPrefix+"."+"windows_options").([]interface{})) > 0
-	wrExists := d.Get(cKeyPrefix+"."+"windows_sysprep_text").(string) != ""
+	linuxExists := len(d.Get(cKeyPrefix+"."+"linux_options").([]interface{})) > 0
+	windowsExists := len(d.Get(cKeyPrefix+"."+"windows_options").([]interface{})) > 0
+	sysprepExists := d.Get(cKeyPrefix+"."+"windows_sysprep_text").(string) != ""
 	switch {
-	case family == string(types.VirtualMachineGuestOsFamilyLinuxGuest) && !lExists:
+	case family == string(types.VirtualMachineGuestOsFamilyLinuxGuest) && !linuxExists:
 		return errors.New("linux_options must exist in VM customization options for Linux operating systems")
-	case family == string(types.VirtualMachineGuestOsFamilyWindowsGuest) && !wExists && !wrExists:
+	case family == string(types.VirtualMachineGuestOsFamilyWindowsGuest) && !windowsExists && !sysprepExists:
 		return errors.New("one of windows_options or windows_sysprep_text must exist in VM customization options for Windows operating systems")
 	}
 	return nil
