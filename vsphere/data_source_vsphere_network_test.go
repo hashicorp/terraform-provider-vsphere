@@ -20,6 +20,7 @@ func TestAccDataSourceVSphereNetwork(t *testing.T) {
 				PreCheck: func() {
 					testAccPreCheck(tp)
 					testAccDataSourceVSphereNetworkPreCheck(tp)
+					testAccSkipIfEsxi(tp)
 				},
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{
@@ -42,6 +43,7 @@ func TestAccDataSourceVSphereNetwork(t *testing.T) {
 				PreCheck: func() {
 					testAccPreCheck(tp)
 					testAccDataSourceVSphereNetworkPreCheck(tp)
+					testAccSkipIfEsxi(tp)
 				},
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{
@@ -82,6 +84,7 @@ func TestAccDataSourceVSphereNetwork(t *testing.T) {
 				PreCheck: func() {
 					testAccPreCheck(tp)
 					testAccDataSourceVSphereNetworkPreCheck(tp)
+					testAccSkipIfEsxi(tp)
 				},
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{

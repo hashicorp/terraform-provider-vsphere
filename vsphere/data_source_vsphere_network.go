@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/network"
-	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/object"
 )
 
@@ -35,9 +34,6 @@ func dataSourceVSphereNetwork() *schema.Resource {
 
 func dataSourceVSphereNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	if err := viapi.ValidateVirtualCenter(client); err != nil {
-		return err
-	}
 
 	name := d.Get("name").(string)
 	var dc *object.Datacenter
