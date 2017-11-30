@@ -3,9 +3,9 @@ package vsphere
 import (
 	"os"
 	"path"
-	"regexp"
 	"testing"
 
+	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 )
@@ -106,8 +106,8 @@ func TestAccResourceVSphereVirtualMachineMigrateStateV2(t *testing.T) {
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
-	if matched, _ := regexp.Match("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$", []byte(is.ID)); !matched {
-		t.Fatalf("expected ID to be a UUID, got ID as %q", is.ID)
+	if _, err := uuid.ParseUUID(is.ID); err != nil {
+		t.Fatalf("could not read ID %q as UUID: %s", is.ID, err)
 	}
 	if is.Attributes["imported"] != "true" {
 		t.Fatalf("expected imported to be true")

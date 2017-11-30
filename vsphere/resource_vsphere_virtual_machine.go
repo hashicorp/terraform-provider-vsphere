@@ -234,7 +234,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 }
 
 func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Reading state", resourceVSphereVirtualMachineIDString(d))
+	log.Printf("[DEBUG] %s: Reading state of virtual machine", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*VSphereClient).vimClient
 	id := d.Id()
 	vm, err := virtualmachine.FromUUID(client, id)

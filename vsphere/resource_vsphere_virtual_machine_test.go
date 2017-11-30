@@ -697,10 +697,10 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 					},
 					{
 						// Add memory with hot-add
-						Config: testAccResourceVSphereVirtualMachineConfigWithHotAdd(2, 2048, true, false, true),
+						Config: testAccResourceVSphereVirtualMachineConfigWithHotAdd(2, 4096, true, false, true),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCPUMem(2, 2048),
+							testAccResourceVSphereVirtualMachineCheckCPUMem(2, 4096),
 							testAccResourceVSphereVirtualMachineCheckPowerOffEvent(false),
 						),
 					},
@@ -1343,7 +1343,7 @@ func testAccResourceVSphereVirtualMachineCheckStaticMACAddr() resource.TestCheck
 		actual := devices[0].(types.BaseVirtualEthernetCard).GetVirtualEthernetCard().MacAddress
 		expected := testAccResourceVSphereVirtualMachineStaticMacAddr
 		if expected != actual {
-			return fmt.Errorf("expected MAC address to be %s, got %s", expected, actual)
+			return fmt.Errorf("expected MAC address to be %q, got %q", expected, actual)
 		}
 		return nil
 	}
@@ -1599,7 +1599,7 @@ func testAccResourceVSphereVirtualMachineCheckResourcePool(expected string) reso
 			return nil
 		}
 		if expected != actual {
-			return fmt.Errorf("expected resource pool or to be %s, got %s", expected, actual)
+			return fmt.Errorf("expected resource pool or to be %q, got %q", expected, actual)
 		}
 		return nil
 	}
