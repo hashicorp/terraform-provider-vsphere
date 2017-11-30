@@ -43,11 +43,12 @@ func resourceVSphereHostVirtualSwitch() *schema.Resource {
 	s["shaping_enabled"].Default = false
 
 	return &schema.Resource{
-		Create: resourceVSphereHostVirtualSwitchCreate,
-		Read:   resourceVSphereHostVirtualSwitchRead,
-		Update: resourceVSphereHostVirtualSwitchUpdate,
-		Delete: resourceVSphereHostVirtualSwitchDelete,
-		Schema: s,
+		Create:        resourceVSphereHostVirtualSwitchCreate,
+		Read:          resourceVSphereHostVirtualSwitchRead,
+		Update:        resourceVSphereHostVirtualSwitchUpdate,
+		Delete:        resourceVSphereHostVirtualSwitchDelete,
+		CustomizeDiff: resourceVSphereHostVirtualSwitchCustomizeDiff,
+		Schema:        s,
 	}
 }
 
@@ -131,6 +132,40 @@ func resourceVSphereHostVirtualSwitchDelete(d *schema.ResourceData, meta interfa
 	defer cancel()
 	if err := ns.RemoveVirtualSwitch(ctx, name); err != nil {
 		return fmt.Errorf("error deleting host vSwitch: %s", err)
+	}
+
+	return nil
+}
+
+func resourceVSphereHostVirtualSwitchCustomizeDiff(d *schema.ResourceDiff, meta interface{}) error {
+	// We want to quickly validate that each NIC that is in either active_nics or
+	// standby_nics will be a part of the bridge.
+	bridgeNics := d.Get("network_adapters").([]interface{})
+	activeNics := d.Get("active_nics").([]interface{})
+	standbyNics := d.Get("standby_nics").([]interface{})
+
+	for _, v := range activeNics {
+		var found bool
+		for _, w := range bridgeNics {
+			if v == w {
+				found = true
+			}
+		}
+		if !found {
+			return fmt.Errorf("active NIC entry %q not present in network_adapters list", v)
+		}
+	}
+
+	for _, v := range standbyNics {
+		var found bool
+		for _, w := range bridgeNics {
+			if v == w {
+				found = true
+			}
+		}
+		if !found {
+			return fmt.Errorf("standby NIC entry %q not present in network_adapters list", v)
+		}
 	}
 
 	return nil
