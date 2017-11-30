@@ -527,19 +527,8 @@ func baseVirtualEthernetCardToBaseVirtualDevice(v types.BaseVirtualEthernetCard)
 // baseVirtualDeviceToBaseVirtualEthernetCard converts a BaseVirtualDevice
 // value into a BaseVirtualEthernetCard.
 func baseVirtualDeviceToBaseVirtualEthernetCard(v types.BaseVirtualDevice) (types.BaseVirtualEthernetCard, error) {
-	switch t := v.(type) {
-	case *types.VirtualE1000:
-		return types.BaseVirtualEthernetCard(t), nil
-	case *types.VirtualE1000e:
-		return types.BaseVirtualEthernetCard(t), nil
-	case *types.VirtualPCNet32:
-		return types.BaseVirtualEthernetCard(t), nil
-	case *types.VirtualSriovEthernetCard:
-		return types.BaseVirtualEthernetCard(t), nil
-	case *types.VirtualVmxnet2:
-		return types.BaseVirtualEthernetCard(t), nil
-	case *types.VirtualVmxnet3:
-		return types.BaseVirtualEthernetCard(t), nil
+	if bve, ok := v.(types.BaseVirtualEthernetCard); ok {
+		return bve, nil
 	}
 	return nil, fmt.Errorf("device is not a network device (%T)", v)
 }
