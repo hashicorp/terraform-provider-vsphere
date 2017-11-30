@@ -1175,18 +1175,20 @@ func (r *DiskSubresource) NormalizeDiff() error {
 	// Ensure that the user is not attempting to shrink the disk. If we do more
 	// we might want to change the name of this method, but we want to check this
 	// here as CustomizeDiff is meant for vetoing.
+	name := r.Get("name").(string)
+
 	osize, nsize := r.GetChange("size")
 	if osize.(int) > nsize.(int) {
-		return fmt.Errorf("virtual disk %q: virtual disks cannot be shrunk (old: %d new: %d)", r.Get("name").(string), osize.(int), nsize.(int))
+		return fmt.Errorf("virtual disk %q: virtual disks cannot be shrunk (old: %d new: %d)", name, osize.(int), nsize.(int))
 	}
 
 	// Ensure that there is no change in either eagerly_scrub or thin_provisioned
 	// - these values cannot be changed once set.
 	if _, err := r.GetWithVeto("eagerly_scrub"); err != nil {
-		return fmt.Errorf("virtual disk %q: %s", r.Get("name").(string), err)
+		return fmt.Errorf("virtual disk %q: %s", name, err)
 	}
 	if _, err := r.GetWithVeto("thin_provisioned"); err != nil {
-		return fmt.Errorf("virtual disk %q: %s", r.Get("name").(string), err)
+		return fmt.Errorf("virtual disk %q: %s", name, err)
 	}
 
 	log.Printf("[DEBUG] %s: Diff normalization complete", r)
