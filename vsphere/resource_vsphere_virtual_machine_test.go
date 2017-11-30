@@ -1,7 +1,6 @@
 package vsphere
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -950,22 +949,52 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 							"imported",
 						},
 						ImportStateIdFunc: func(s *terraform.State) (string, error) {
-							var data struct {
-								Path                string
-								SCSIControllerCount int `json:"scsi_controller_count,omitempty"`
-							}
 							vm, err := testGetVirtualMachine(s, "vm")
 							if err != nil {
 								return "", err
 							}
-							data.Path = vm.InventoryPath
-							b, err := json.Marshal(data)
+							return vm.InventoryPath, nil
+						},
+						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+						),
+					},
+				},
+			},
+		},
+		{
+			"import with multiple disks at different SCSI slots",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigMultiHighBus(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+						),
+					},
+					{
+						ResourceName:      "vsphere_virtual_machine.vm",
+						ImportState:       true,
+						ImportStateVerify: true,
+						ImportStateVerifyIgnore: []string{
+							"disk",
+							"imported",
+						},
+						ImportStateIdFunc: func(s *terraform.State) (string, error) {
+							vm, err := testGetVirtualMachine(s, "vm")
 							if err != nil {
 								return "", err
 							}
-							return string(b), nil
+							return vm.InventoryPath, nil
 						},
-						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+						Config: testAccResourceVSphereVirtualMachineConfigMultiHighBus(),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereVirtualMachineCheckExists(true),
 						),

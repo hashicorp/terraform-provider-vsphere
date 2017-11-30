@@ -1,7 +1,6 @@
 package vsphere
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -496,30 +495,13 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	client := meta.(*VSphereClient).vimClient
 
-	var data struct {
-		Path                string
-		SCSIControllerCount int `json:"scsi_controller_count"`
-	}
-	if err := json.Unmarshal([]byte(d.Id()), &data); err != nil {
-		return nil, err
+	name := d.Id()
+	if name == "" {
+		return nil, fmt.Errorf("path cannot be empty")
 	}
 
-	switch {
-	case data.Path == "":
-		return nil, fmt.Errorf("path cannot empty")
-	case data.SCSIControllerCount > 4:
-		return nil, fmt.Errorf("invalid SCSI controller count %d. Maximum is 4", data.SCSIControllerCount)
-	}
-
-	switch {
-	case data.SCSIControllerCount < 1:
-		d.Set("scsi_controller_count", 1)
-	default:
-		d.Set("scsi_controller_count", data.SCSIControllerCount)
-	}
-
-	log.Printf("[DEBUG] Looking for VM by name/path %q", data.Path)
-	vm, err := virtualmachine.FromPath(client, data.Path, nil)
+	log.Printf("[DEBUG] Looking for VM by name/path %q", name)
+	vm, err := virtualmachine.FromPath(client, name, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching virtual machine: %s", err)
 	}
@@ -530,8 +512,32 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 
 	// Block the import if the VM is a template.
 	if props.Config.Template {
-		return nil, fmt.Errorf("VM %q is a template and cannot be imported", data.Path)
+		return nil, fmt.Errorf("VM %q is a template and cannot be imported", name)
 	}
+
+	// Quickly walk the SCSI bus and determine the number of contiguous
+	// controllers starting from bus number 0. This becomes the current SCSI
+	// controller count. Anything past this is managed by config.
+	log.Printf("[DEBUG] Determining number of SCSI controllers for VM %q", name)
+	scsiBus := make([]bool, 4)
+	for _, device := range props.Config.Hardware.Device {
+		sc, ok := device.(types.BaseVirtualSCSIController)
+		if !ok {
+			continue
+		}
+		scsiBus[sc.GetVirtualSCSIController().BusNumber] = true
+	}
+	var ctlrCnt int
+	for _, v := range scsiBus {
+		if !v {
+			break
+		}
+		ctlrCnt++
+	}
+	if ctlrCnt < 1 {
+		return nil, fmt.Errorf("VM %q has no SCSI controllers", name)
+	}
+	d.Set("scsi_controller_count", ctlrCnt)
 
 	// Validate the disks in the VM to make sure that they will work with the
 	// resource. This is mainly ensuring that all disks are SCSI disks, but a
@@ -540,14 +546,13 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 		return nil, err
 	}
 	// The VM should be ready for reading now
-	log.Printf("[DEBUG] VM UUID for %q is %q", data.Path, props.Config.Uuid)
+	log.Printf("[DEBUG] VM UUID for %q is %q", name, props.Config.Uuid)
 	d.SetId(props.Config.Uuid)
 	d.Set("imported", true)
 
 	// Set some defaults. This helps possibly prevent diffs where these values
 	// have not been changed.
 	rs := resourceVSphereVirtualMachine().Schema
-	d.Set("scsi_controller_count", rs["scsi_controller_count"].Default)
 	d.Set("force_power_off", rs["force_power_off"].Default)
 	d.Set("migrate_wait_timeout", rs["migrate_wait_timeout"].Default)
 	d.Set("shutdown_wait_timeout", rs["shutdown_wait_timeout"].Default)

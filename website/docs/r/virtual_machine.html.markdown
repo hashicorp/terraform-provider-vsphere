@@ -1074,24 +1074,16 @@ The following attributes are exported on the base level of this resource:
 ## Importing 
 
 An existing virtual machine can be [imported][docs-import] into this resource
-via supplying a JSON string with the full path to the virtual machine, and the
-number of SCSI controllers that the virtual machine has. An example is below:
+via supplying the full path to the virtual machine. An example is below:
 
 [docs-import]: /docs/import/index.html
 
 ```
-terraform import vsphere_virtual_machine.vm '{ "path": "/dc1/vm/srv1" }'
+terraform import vsphere_virtual_machine.vm /dc1/vm/srv1
 ```
 
 The above would import the virtual machine named `srv1` that is located in the
-`dc1` datacenter. This implies the default
-[`scsi_controller_count`](#scsi_controller_count) of 1. An example with two
-controllers is below:
-
-```
-terraform import vsphere_virtual_machine.vm \
-  '{ "path": "/dc1/vm/srv1", "scsi_controller_count": 2 }'
-```
+`dc1` datacenter.
 
 ### Additional requirements and notes for importing
 
@@ -1115,6 +1107,12 @@ In addition to these rules, the following extra rules apply to importing:
   need to clone a new virtual machine or want a working configuration with
   `clone` features, you will need to create a new resource and destroy the old
   one.
+* The [`scsi_controller_count`](#scsi_controller_count) for the resource is set
+  to the number of contiguous SCSI controllers found, starting with the SCSI
+  controller at bus number 0. If no SCSI controllers are found, the VM is not
+  eligible for import. To ensure maximum compatibility, make sure your virtual
+  machine has the exact number of SCSI controllers it needs, and set
+  [`scsi_controller_count`](#scsi_controller_count) accordingly.
 
 After importing, you should run `terraform plan`. Unless you have changed
 anything else in configuration that would be causing other attributes to
