@@ -157,6 +157,11 @@ func expandHostVirtualSwitchSpec(d *schema.ResourceData) *types.HostVirtualSwitc
 		Bridge:   expandHostVirtualSwitchBondBridge(d),
 		Policy:   expandHostNetworkPolicy(d),
 	}
+	// If there are no NICs, we need to nil-out Bridge, as a
+	// HostVirtualSwitchBondBridge with no NICs is an invalid config.
+	if len(obj.Bridge.(*types.HostVirtualSwitchBondBridge).NicDevice) < 1 {
+		obj.Bridge = nil
+	}
 	return obj
 }
 
@@ -165,8 +170,10 @@ func expandHostVirtualSwitchSpec(d *schema.ResourceData) *types.HostVirtualSwitc
 func flattenHostVirtualSwitchSpec(d *schema.ResourceData, obj *types.HostVirtualSwitchSpec) error {
 	d.Set("mtu", obj.Mtu)
 	d.Set("number_of_ports", obj.NumPorts)
-	if err := flattenHostVirtualSwitchBondBridge(d, obj.Bridge.(*types.HostVirtualSwitchBondBridge)); err != nil {
-		return err
+	if obj.Bridge != nil {
+		if err := flattenHostVirtualSwitchBondBridge(d, obj.Bridge.(*types.HostVirtualSwitchBondBridge)); err != nil {
+			return err
+		}
 	}
 	if err := flattenHostNetworkPolicy(d, obj.Policy); err != nil {
 		return err
