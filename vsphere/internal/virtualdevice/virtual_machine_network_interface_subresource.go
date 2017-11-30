@@ -671,11 +671,7 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
 	}
 	r.Set("network_id", netID)
 
-	if card.AddressType == string(types.VirtualEthernetCardMacTypeManual) {
-		r.Set("use_static_mac", true)
-	} else {
-		r.Set("use_static_mac", false)
-	}
+	r.Set("use_static_mac", card.AddressType == string(types.VirtualEthernetCardMacTypeManual))
 	r.Set("mac_address", card.MacAddress)
 
 	if card.ResourceAllocation != nil {
