@@ -407,7 +407,7 @@ behavior.
   this virtual machine, facilitating nested virtualization in the guest.
   Default: `false`.
 * `enable_logging` - (Optional) Enable logging of virtual machine events to a
-  log file stored in the virtual machine directory. Default: `true`.
+  log file stored in the virtual machine directory. Default: `false`.
 * `cpu_performance_counters_enabled` - (Optional) Enable CPU performance
   counters on this virtual machine. Default: `false`.
 * `swap_placement_policy` - (Optional) The swap file placement policy for this

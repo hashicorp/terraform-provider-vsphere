@@ -112,7 +112,6 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 		"enable_logging": {
 			Type:        schema.TypeBool,
 			Optional:    true,
-			Default:     true,
 			Description: "Enable logging on this virtual machine.",
 		},
 
