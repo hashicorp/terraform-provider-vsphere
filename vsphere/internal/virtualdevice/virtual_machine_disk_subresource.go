@@ -15,6 +15,7 @@ import (
 	"github.com/mitchellh/copystructure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
@@ -971,7 +972,12 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	}
 	r.Set("disk_mode", b.DiskMode)
 	r.Set("write_through", b.WriteThrough)
-	r.Set("disk_sharing", b.Sharing)
+
+	// Only use disk_sharing if we are on vSphere 6.0 and higher
+	if viapi.ParseVersionFromClient(r.client).Major >= 6 {
+		r.Set("disk_sharing", b.Sharing)
+	}
+
 	if !attach {
 		r.Set("thin_provisioned", b.ThinProvisioned)
 		r.Set("eagerly_scrub", b.EagerlyScrub)
@@ -1273,7 +1279,11 @@ func (r *DiskSubresource) expandDiskSettings(disk *types.VirtualDisk) error {
 	b := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
 	b.DiskMode = r.GetWithRestart("disk_mode").(string)
 	b.WriteThrough = structure.BoolPtr(r.GetWithRestart("write_through").(bool))
-	b.Sharing = r.GetWithRestart("disk_sharing").(string)
+
+	// Only use disk_sharing if we are on vSphere 6.0 and higher
+	if viapi.ParseVersionFromClient(r.client).Major >= 6 {
+		b.Sharing = r.GetWithRestart("disk_sharing").(string)
+	}
 
 	// This settings are only set for internal disks
 	if !r.Get("attach").(bool) {

@@ -375,7 +375,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return fmt.Errorf("error fetching VM properties: %s", err)
 	}
-	spec, changed := expandVirtualMachineConfigSpecChanged(d, vprops.Config)
+	spec, changed := expandVirtualMachineConfigSpecChanged(d, client, vprops.Config)
 	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
 	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
 		return err
@@ -596,7 +596,7 @@ func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interf
 	}
 
 	// Ready to start making the VM here. First expand our main config spec.
-	spec := expandVirtualMachineConfigSpec(d)
+	spec := expandVirtualMachineConfigSpec(d, client)
 
 	// Set the datastore for the VM.
 	ds, err := datastore.FromID(client, d.Get("datastore_id").(string))
@@ -689,7 +689,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	// configuration of the newly cloned VM. This is basically a subset of update
 	// with the stipulation that there is currently no state to help move this
 	// along.
-	cfgSpec := expandVirtualMachineConfigSpec(d)
+	cfgSpec := expandVirtualMachineConfigSpec(d, client)
 
 	// To apply device changes, we need the current devicecfgSpec from the config
 	// info. We then filter this list through the same apply process we did for
