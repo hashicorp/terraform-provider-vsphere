@@ -974,7 +974,8 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	r.Set("write_through", b.WriteThrough)
 
 	// Only use disk_sharing if we are on vSphere 6.0 and higher
-	if viapi.ParseVersionFromClient(r.client).Major >= 6 {
+	version := viapi.ParseVersionFromClient(r.client)
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
 		r.Set("disk_sharing", b.Sharing)
 	}
 
@@ -1281,7 +1282,8 @@ func (r *DiskSubresource) expandDiskSettings(disk *types.VirtualDisk) error {
 	b.WriteThrough = structure.BoolPtr(r.GetWithRestart("write_through").(bool))
 
 	// Only use disk_sharing if we are on vSphere 6.0 and higher
-	if viapi.ParseVersionFromClient(r.client).Major >= 6 {
+	version := viapi.ParseVersionFromClient(r.client)
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
 		b.Sharing = r.GetWithRestart("disk_sharing").(string)
 	}
 
