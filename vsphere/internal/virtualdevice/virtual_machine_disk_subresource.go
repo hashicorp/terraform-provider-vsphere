@@ -15,6 +15,7 @@ import (
 	"github.com/mitchellh/copystructure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
@@ -971,7 +972,13 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	}
 	r.Set("disk_mode", b.DiskMode)
 	r.Set("write_through", b.WriteThrough)
-	r.Set("disk_sharing", b.Sharing)
+
+	// Only use disk_sharing if we are on vSphere 6.0 and higher
+	version := viapi.ParseVersionFromClient(r.client)
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+		r.Set("disk_sharing", b.Sharing)
+	}
+
 	if !attach {
 		r.Set("thin_provisioned", b.ThinProvisioned)
 		r.Set("eagerly_scrub", b.EagerlyScrub)
@@ -1189,6 +1196,14 @@ func (r *DiskSubresource) NormalizeDiff() error {
 		return fmt.Errorf("virtual disk %q: %s", name, err)
 	}
 
+	// Block certain options from being set depending on the vSphere version.
+	version := viapi.ParseVersionFromClient(r.client)
+	if r.Get("disk_sharing").(string) != string(types.VirtualDiskSharingSharingNone) {
+		if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+			return fmt.Errorf("multi-writer disk_sharing is only supported on vSphere 6 and higher")
+		}
+	}
+
 	log.Printf("[DEBUG] %s: Diff normalization complete", r)
 	return nil
 }
@@ -1273,7 +1288,12 @@ func (r *DiskSubresource) expandDiskSettings(disk *types.VirtualDisk) error {
 	b := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
 	b.DiskMode = r.GetWithRestart("disk_mode").(string)
 	b.WriteThrough = structure.BoolPtr(r.GetWithRestart("write_through").(bool))
-	b.Sharing = r.GetWithRestart("disk_sharing").(string)
+
+	// Only use disk_sharing if we are on vSphere 6.0 and higher
+	version := viapi.ParseVersionFromClient(r.client)
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+		b.Sharing = r.GetWithRestart("disk_sharing").(string)
+	}
 
 	// This settings are only set for internal disks
 	if !r.Get("attach").(bool) {

@@ -460,6 +460,32 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 			},
 		},
 		{
+			"move to folder",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+						),
+					},
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigInFolder(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckFolder("terraform-test-vms"),
+						),
+					},
+				},
+			},
+		},
+		{
 			"static mac",
 			resource.TestCase{
 				PreCheck: func() {

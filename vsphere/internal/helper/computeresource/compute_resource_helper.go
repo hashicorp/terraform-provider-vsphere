@@ -137,11 +137,6 @@ func BasePropertiesFromReference(client *govmomi.Client, ref types.ManagedObject
 
 // DefaultDevicesFromReference fetches the default virtual device list for a
 // specific compute resource from a supplied managed object reference.
-//
-// The current implementation of this method takes a single guest ID, which
-// ultimately filters down to a QueryConfigOptionEx call with only the single
-// guest ID set. This ensures that the VirtaulDeviceList returned matches a
-// default set best suited for the guest type that is being created.
 func DefaultDevicesFromReference(client *govmomi.Client, ref types.ManagedObjectReference, guest string) (object.VirtualDeviceList, error) {
 	log.Printf("[DEBUG] Fetching default device list for object reference %q for OS type %q", ref.Value, guest)
 	props, err := BasePropertiesFromReference(client, ref)
@@ -151,7 +146,7 @@ func DefaultDevicesFromReference(client *govmomi.Client, ref types.ManagedObject
 	b := envbrowse.NewEnvironmentBrowser(client.Client, *props.EnvironmentBrowser)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
-	return b.DefaultDevices(ctx, []string{guest}, "", nil)
+	return b.DefaultDevices(ctx, "", nil)
 }
 
 // OSFamily uses the compute resource's environment browser to get the OS family

@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
+	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -253,12 +255,16 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 
 // expandVirtualMachineBootOptions reads certain ResourceData keys and
 // returns a VirtualMachineBootOptions.
-func expandVirtualMachineBootOptions(d *schema.ResourceData) *types.VirtualMachineBootOptions {
+func expandVirtualMachineBootOptions(d *schema.ResourceData, client *govmomi.Client) *types.VirtualMachineBootOptions {
 	obj := &types.VirtualMachineBootOptions{
-		BootDelay:            int64(d.Get("boot_delay").(int)),
-		EfiSecureBootEnabled: structure.GetBool(d, "efi_secure_boot_enabled"),
-		BootRetryEnabled:     structure.GetBool(d, "boot_retry_enabled"),
-		BootRetryDelay:       int64(d.Get("boot_retry_delay").(int)),
+		BootDelay:        int64(d.Get("boot_delay").(int)),
+		BootRetryEnabled: structure.GetBool(d, "boot_retry_enabled"),
+		BootRetryDelay:   int64(d.Get("boot_retry_delay").(int)),
+	}
+	// Only set EFI secure boot if we are on vSphere 6.5 and higher
+	version := viapi.ParseVersionFromClient(client)
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
+		obj.EfiSecureBootEnabled = getBoolWithRestart(d, "efi_secure_boot_enabled")
 	}
 	return obj
 }
@@ -563,7 +569,7 @@ func expandMemorySizeConfig(d *schema.ResourceData) int64 {
 
 // expandVirtualMachineConfigSpec reads certain ResourceData keys and
 // returns a VirtualMachineConfigSpec.
-func expandVirtualMachineConfigSpec(d *schema.ResourceData) types.VirtualMachineConfigSpec {
+func expandVirtualMachineConfigSpec(d *schema.ResourceData, client *govmomi.Client) types.VirtualMachineConfigSpec {
 	log.Printf("[DEBUG] %s: Building config spec", resourceVSphereVirtualMachineIDString(d))
 	obj := types.VirtualMachineConfigSpec{
 		Name:                d.Get("name").(string),
@@ -582,7 +588,7 @@ func expandVirtualMachineConfigSpec(d *schema.ResourceData) types.VirtualMachine
 		MemoryAllocation:    expandVirtualMachineResourceAllocation(d, "memory"),
 		ExtraConfig:         expandExtraConfig(d),
 		SwapPlacement:       getWithRestart(d, "swap_placement_policy").(string),
-		BootOptions:         expandVirtualMachineBootOptions(d),
+		BootOptions:         expandVirtualMachineBootOptions(d, client),
 		Firmware:            getWithRestart(d, "firmware").(string),
 		NestedHVEnabled:     getBoolWithRestart(d, "nested_hv_enabled"),
 		VPMCEnabled:         getBoolWithRestart(d, "cpu_performance_counters_enabled"),
@@ -642,7 +648,7 @@ func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualM
 // It does this be creating a fake ResourceData off of the VM resource schema,
 // flattening the config info into that, and then expanding both ResourceData
 // instances and comparing the resultant ConfigSpecs.
-func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, info *types.VirtualMachineConfigInfo) (types.VirtualMachineConfigSpec, bool) {
+func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, client *govmomi.Client, info *types.VirtualMachineConfigInfo) (types.VirtualMachineConfigSpec, bool) {
 	// Create the fake ResourceData from the VM resource
 	oldData := resourceVSphereVirtualMachine().Data(&terraform.InstanceState{})
 	oldData.SetId(d.Id())
@@ -654,9 +660,9 @@ func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, info *types.V
 	// Get both specs. Silence the logging for oldSpec to suppress fake
 	// reboot_required log messages.
 	log.SetOutput(ioutil.Discard)
-	oldSpec := expandVirtualMachineConfigSpec(oldData)
+	oldSpec := expandVirtualMachineConfigSpec(oldData, client)
 	logging.SetOutput()
-	newSpec := expandVirtualMachineConfigSpec(d)
+	newSpec := expandVirtualMachineConfigSpec(d, client)
 	// Return the new spec and compare
 	return newSpec, !reflect.DeepEqual(oldSpec, newSpec)
 }
