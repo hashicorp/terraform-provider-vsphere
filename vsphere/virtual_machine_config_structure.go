@@ -263,8 +263,8 @@ func expandVirtualMachineBootOptions(d *schema.ResourceData, client *govmomi.Cli
 	}
 	// Only set EFI secure boot if we are on vSphere 6.5 and higher
 	version := viapi.ParseVersionFromClient(client)
-	if version.Newer(viapi.VSphereVersion{Major: 6, Minor: 5}) {
-		obj.EfiSecureBootEnabled = structure.GetBool(d, "efi_secure_boot_enabled")
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
+		obj.EfiSecureBootEnabled = getBoolWithRestart(d, "efi_secure_boot_enabled")
 	}
 	return obj
 }
