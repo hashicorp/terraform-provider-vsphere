@@ -192,6 +192,8 @@ func folderFromObject(client *govmomi.Client, obj interface{}, folderType RootPa
 		p, err = RootPathParticleHost.PathFromNewRoot(o.InventoryPath, folderType, relative)
 	case *object.ResourcePool:
 		p, err = RootPathParticleHost.PathFromNewRoot(o.InventoryPath, folderType, relative)
+	case *object.VirtualMachine:
+		p, err = RootPathParticleVM.PathFromNewRoot(o.InventoryPath, folderType, relative)
 	default:
 		return nil, fmt.Errorf("unsupported object type %T", o)
 	}
