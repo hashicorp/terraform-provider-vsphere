@@ -1196,6 +1196,14 @@ func (r *DiskSubresource) NormalizeDiff() error {
 		return fmt.Errorf("virtual disk %q: %s", name, err)
 	}
 
+	// Block certain options from being set depending on the vSphere version.
+	version := viapi.ParseVersionFromClient(r.client)
+	if r.Get("disk_sharing").(string) != string(types.VirtualDiskSharingSharingNone) {
+		if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+			return fmt.Errorf("multi-writer disk_sharing is only supported on vSphere 6 and higher")
+		}
+	}
+
 	log.Printf("[DEBUG] %s: Diff normalization complete", r)
 	return nil
 }

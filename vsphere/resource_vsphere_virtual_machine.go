@@ -12,6 +12,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/vmworkflow"
@@ -472,6 +473,15 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta interface{}) error {
 	log.Printf("[DEBUG] %s: Performing diff customization and validation", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*VSphereClient).vimClient
+
+	// Block certain options from being set depending on the vSphere version.
+	version := viapi.ParseVersionFromClient(client)
+	if d.Get("efi_secure_boot_enabled").(bool) {
+		if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
+			return fmt.Errorf("efi_secure_boot_enabled is only supported on vSphere 6.5 and higher")
+		}
+	}
+
 	// Validate and normalize disk sub-resources
 	if err := virtualdevice.DiskDiffOperation(d, client); err != nil {
 		return err

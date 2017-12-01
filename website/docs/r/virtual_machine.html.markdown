@@ -339,8 +339,7 @@ The following options control boot settings on the virtual machine:
 * `efi_secure_boot_enabled` - (Optional) When the `firmware` type is set to is
   `efi`, this enables EFI secure boot. Default: `false`.
 
-~> **NOTE:** EFI secure boot is only available on vSphere 6.5 and higher. This
-option is ignored on earlier versions.
+~> **NOTE:** EFI secure boot is only available on vSphere 6.5 and higher.
 
 * `boot_retry_delay` - (Optional) The number of milliseconds to wait before
   retrying the boot sequence. This only valid if `boot_retry_enabled` is true.
@@ -510,8 +509,7 @@ The options are:
 * `disk_sharing` - (Optional) The sharing mode of this virtual disk. Can be one
   of `sharingMultiWriter` or `sharingNone`. Default: `sharingNone`.
 
-~> **NOTE:** Disk sharing is only available on vSphere 6.0 and higher. This
-option is ignored on earlier versions.
+~> **NOTE:** Disk sharing is only available on vSphere 6.0 and higher.
 
 * `write_through` - (Optional) If `true`, writes for this disk are sent
   directly to the filesystem immediately instead of being buffered. Default:

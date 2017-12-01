@@ -94,7 +94,7 @@ func (b *EnvironmentBrowser) OSFamily(ctx context.Context, guest string) (string
 			return family, nil
 		}
 	}
-	return "", fmt.Errorf("could not find guest ID %s", guest)
+	return "", fmt.Errorf("could not find guest ID %q", guest)
 }
 
 // QueryConfigOptionDescriptor returns a list the list of ConfigOption keys
