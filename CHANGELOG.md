@@ -1,4 +1,4 @@
-## 1.0.0 (Unreleased)
+## 1.0.0 (December 01, 2017)
 
 BREAKING CHANGES:
 
@@ -9,9 +9,9 @@ BREAKING CHANGES:
 
 FEATURES:
 
-* **New Data Source:** `vsphere_resource_pool` [GH-244]
-* **New Data Source:** `vsphere_datastore` [GH-244]
-* **New Data Source:** `vsphere_virtual_machine` [GH-244]
+* **New Data Source:** `vsphere_resource_pool` ([#244](https://github.com/terraform-providers/terraform-provider-vsphere/issues/244))
+* **New Data Source:** `vsphere_datastore` ([#244](https://github.com/terraform-providers/terraform-provider-vsphere/issues/244))
+* **New Data Source:** `vsphere_virtual_machine` ([#244](https://github.com/terraform-providers/terraform-provider-vsphere/issues/244))
 
 IMPROVEMENTS:
 
@@ -19,31 +19,31 @@ IMPROVEMENTS:
   defined: all cloning options are now contained within a `clone` sub-resource,
   with customization being a `customize` sub-resource off of that. Absence of
   the `clone` sub-resource means no cloning or customization will occur.
-  [GH-244]
+  ([#244](https://github.com/terraform-providers/terraform-provider-vsphere/issues/244))
 * `resource/vsphere_virtual_machine`: Nearly all customization options have now
   been exposed. Magic values such as hostname and DNS defaults have been
   removed, with some of these options now being required values depending on the
-  OS being customized. [GH-244]
+  OS being customized. ([#244](https://github.com/terraform-providers/terraform-provider-vsphere/issues/244))
 * `resource/vsphere_virtual_machine`: Device management workflows have been
-  greatly improved, exposing more options and fixing several bugs. [GH-244]
+  greatly improved, exposing more options and fixing several bugs. ([#244](https://github.com/terraform-providers/terraform-provider-vsphere/issues/244))
 * `resource/vsphere_virtual_machine`: Added support for CPU and memory hot-plug.
   Several other VM reconfiguration operations are also supported while the VM is
-  powered on, guest type and VMware tools permitting in some cases. [GH-244]
+  powered on, guest type and VMware tools permitting in some cases. ([#244](https://github.com/terraform-providers/terraform-provider-vsphere/issues/244))
 * `resource/vsphere_virtual_machine`: The resource now supports both host and
   storage vMotion. Virtual machines can now be moved between hosts, clusters,
   resource pools, and datastores. Individual disks can be pinned to a single
-  datastore with a VM located in another. [GH-244]
-* `resource/vsphere_virtual_machine`: The resource now supports import. [GH-244]
+  datastore with a VM located in another. ([#244](https://github.com/terraform-providers/terraform-provider-vsphere/issues/244))
+* `resource/vsphere_virtual_machine`: The resource now supports import. ([#244](https://github.com/terraform-providers/terraform-provider-vsphere/issues/244))
 * `resource/vsphere_virtual_machine`: Several other minor improvements, see
-  documentation for more details. [GH-244]
+  documentation for more details. ([#244](https://github.com/terraform-providers/terraform-provider-vsphere/issues/244))
 
 BUG FIXES:
 
 * `resource/vsphere_virtual_machine`: Several long-standing issues have been fixed,
-  namely surrounding virtual disk and network device management. [GH-244]
+  namely surrounding virtual disk and network device management. ([#244](https://github.com/terraform-providers/terraform-provider-vsphere/issues/244))
 * `resource/vsphere_host_virtual_switch`: This resource now correctly supports a
-  configuration with no NICs. [GH-256]
-* `data/vsphere_network`: No longer restricted to being used on vCenter. [GH-248]
+  configuration with no NICs. ([#256](https://github.com/terraform-providers/terraform-provider-vsphere/issues/256))
+* `data/vsphere_network`: No longer restricted to being used on vCenter. ([#248](https://github.com/terraform-providers/terraform-provider-vsphere/issues/248))
 
 ## 0.4.2 (October 13, 2017)
 
