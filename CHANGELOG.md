@@ -1,11 +1,11 @@
-## 1.0.1 (Unreleased)
+## 1.0.1 (December 02, 2017)
 
 BUG FIXES:
 
 * `resource/vsphere_virtual_machine`: Corrected an issue that was preventing the
-  use of this resource on standalone ESXi. [GH-263]
+  use of this resource on standalone ESXi. ([#263](https://github.com/terraform-providers/terraform-provider-vsphere/issues/263))
 * `data/vsphere_resource_pool`: This data source now works as documented on
-  standalone ESXi. [GH-263]
+  standalone ESXi. ([#263](https://github.com/terraform-providers/terraform-provider-vsphere/issues/263))
 
 ## 1.0.0 (December 01, 2017)
 
