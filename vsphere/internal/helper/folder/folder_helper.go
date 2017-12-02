@@ -2,6 +2,7 @@ package folder
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"path"
@@ -178,8 +179,10 @@ func FromAbsolutePath(client *govmomi.Client, path string) (*object.Folder, erro
 // The list of supported object types will grow as the provider supports more
 // resources.
 func folderFromObject(client *govmomi.Client, obj interface{}, folderType RootPathParticle, relative string) (*object.Folder, error) {
-	if err := viapi.ValidateVirtualCenter(client); err != nil {
-		return nil, err
+	// If we are using this for anything else other than the root folder on ESXi,
+	// return an error.
+	if err := viapi.ValidateVirtualCenter(client); err != nil && relative != "" {
+		return nil, errors.New("folders are only supported vCenter only")
 	}
 	var p string
 	var err error
@@ -374,6 +377,15 @@ func FindType(folder *object.Folder) (VSphereFolderType, error) {
 	}
 
 	ct := props.ChildType
+
+	// Supporting a special case here - ESXi's childtype for its root folder for
+	// creating virtual machines is always VirtualMachine first. If that's what
+	// we have, just return here with the folder, as the folder is necessary to
+	// call CreateVM_Task on.
+	if ct[0] == "VirtualMachine" {
+		return VSphereFolderTypeVM, nil
+	}
+
 	if ct[0] != "Folder" {
 		return ft, fmt.Errorf("expected first childtype node to be Folder, got %s", ct[0])
 	}
