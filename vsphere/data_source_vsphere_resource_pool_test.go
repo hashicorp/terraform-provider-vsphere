@@ -72,6 +72,28 @@ func TestAccDataSourceVSphereResourcePool(t *testing.T) {
 				},
 			},
 		},
+		{
+			"empty name on vCenter, should error",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccDataSourceVSphereResourcePoolPreCheck(tp)
+					testAccSkipIfEsxi(tp)
+				},
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      testAccDataSourceVSphereResourcePoolConfigDefault,
+						ExpectError: regexp.MustCompile("name cannot be empty when using vCenter"),
+						PlanOnly:    true,
+					},
+					{
+						Config: testAccResourceVSphereEmpty,
+						Check:  resource.ComposeTestCheckFunc(),
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testAccDataSourceVSphereResourcePoolCases {
