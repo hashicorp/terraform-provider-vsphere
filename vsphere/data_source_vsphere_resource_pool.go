@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/object"
 )
 
@@ -16,7 +17,7 @@ func dataSourceVSphereResourcePool() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Description: "The name or path of the resource pool.",
-				Required:    true,
+				Optional:    true,
 			},
 			"datacenter_id": {
 				Type:        schema.TypeString,
@@ -31,6 +32,12 @@ func dataSourceVSphereResourcePoolRead(d *schema.ResourceData, meta interface{})
 	client := meta.(*VSphereClient).vimClient
 
 	name := d.Get("name").(string)
+	if err := viapi.ValidateVirtualCenter(client); err == nil {
+		if name == "" {
+			return fmt.Errorf("name cannot be empty when using vCenter")
+		}
+	}
+
 	var dc *object.Datacenter
 	if dcID, ok := d.GetOk("datacenter_id"); ok {
 		var err error

@@ -21,6 +21,7 @@ func TestAccDataSourceVSphereResourcePool(t *testing.T) {
 				PreCheck: func() {
 					testAccPreCheck(tp)
 					testAccDataSourceVSphereResourcePoolPreCheck(tp)
+					testAccSkipIfEsxi(tp)
 				},
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{
@@ -39,6 +40,7 @@ func TestAccDataSourceVSphereResourcePool(t *testing.T) {
 				PreCheck: func() {
 					testAccPreCheck(tp)
 					testAccDataSourceVSphereResourcePoolPreCheck(tp)
+					testAccSkipIfEsxi(tp)
 				},
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{
@@ -47,6 +49,47 @@ func TestAccDataSourceVSphereResourcePool(t *testing.T) {
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestMatchResourceAttr("data.vsphere_resource_pool.pool", "id", regexp.MustCompile("^resgroup-")),
 						),
+					},
+				},
+			},
+		},
+		{
+			"default resource pool for ESXi",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccDataSourceVSphereResourcePoolPreCheck(tp)
+					testAccSkipIfNotEsxi(tp)
+				},
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: testAccDataSourceVSphereResourcePoolConfigDefault,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestMatchResourceAttr("data.vsphere_resource_pool.pool", "id", regexp.MustCompile("^ha-root-pool$")),
+						),
+					},
+				},
+			},
+		},
+		{
+			"empty name on vCenter, should error",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccDataSourceVSphereResourcePoolPreCheck(tp)
+					testAccSkipIfEsxi(tp)
+				},
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config:      testAccDataSourceVSphereResourcePoolConfigDefault,
+						ExpectError: regexp.MustCompile("name cannot be empty when using vCenter"),
+						PlanOnly:    true,
+					},
+					{
+						Config: testAccResourceVSphereEmpty,
+						Check:  resource.ComposeTestCheckFunc(),
 					},
 				},
 			},
@@ -125,3 +168,7 @@ data "vsphere_resource_pool" "pool" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 	)
 }
+
+const testAccDataSourceVSphereResourcePoolConfigDefault = `
+data "vsphere_resource_pool" "pool" {}
+`

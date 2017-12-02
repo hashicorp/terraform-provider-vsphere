@@ -17,17 +17,22 @@ import (
 // FromPathOrDefault returns a ResourcePool via its supplied path.
 func FromPathOrDefault(client *govmomi.Client, name string, dc *object.Datacenter) (*object.ResourcePool, error) {
 	finder := find.NewFinder(client.Client, false)
-	if dc != nil {
-		finder.SetDatacenter(dc)
-	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	t := client.ServiceContent.About.ApiType
 	switch t {
 	case "HostAgent":
+		ddc, err := finder.DefaultDatacenter(ctx)
+		if err != nil {
+			return nil, err
+		}
+		finder.SetDatacenter(ddc)
 		return finder.DefaultResourcePool(ctx)
 	case "VirtualCenter":
+		if dc != nil {
+			finder.SetDatacenter(dc)
+		}
 		if name != "" {
 			return finder.ResourcePool(ctx, name)
 		}
