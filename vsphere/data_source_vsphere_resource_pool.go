@@ -16,7 +16,7 @@ func dataSourceVSphereResourcePool() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Description: "The name or path of the resource pool.",
-				Required:    true,
+				Optional:    true,
 			},
 			"datacenter_id": {
 				Type:        schema.TypeString,
