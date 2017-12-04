@@ -123,18 +123,29 @@ func (tc *testCompareVersion) Test(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 
-	var actual testCompareVersionExpectedResult
-	switch {
-	case verA.Older(verB):
-		actual = testCompareVersionOlder
-	case verA.Newer(verB):
-		actual = testCompareVersionNewer
-	case verA.Equal(verB):
-		actual = testCompareVersionEqual
-	default:
-		actual = testCompareVersionUnknown
+	var actual []testCompareVersionExpectedResult
+	if verA.Older(verB) {
+		actual = append(actual, testCompareVersionOlder)
 	}
-	if tc.expected != actual {
+	if verA.Newer(verB) {
+		actual = append(actual, testCompareVersionNewer)
+	}
+	if verA.Equal(verB) {
+		actual = append(actual, testCompareVersionEqual)
+	}
+
+	if len(actual) < 1 {
+		if tc.expected == testCompareVersionUnknown {
+			return
+		}
+		t.Fatalf("expected %s but result was unknown", tc.expected)
+	}
+
+	if len(actual) > 1 {
+		t.Fatalf("expected only one result, got %s", actual)
+	}
+
+	if tc.expected != actual[0] {
 		t.Fatalf("expected %s, got %s", tc.expected, actual)
 	}
 }
@@ -209,6 +220,26 @@ func TestCompareVersion(t *testing.T) {
 			versionB: "6.2.1",
 			buildB:   "1000001",
 			expected: testCompareVersionNewer,
+		},
+		{
+			Name:     "newer (zero-value build number and minor)",
+			productA: "VMware vCenter Server",
+			versionA: "6.0.0",
+			buildA:   "0",
+			productB: "VMware vCenter Server",
+			versionB: "5.5.0",
+			buildB:   "1234567",
+			expected: testCompareVersionNewer,
+		},
+		{
+			Name:     "older (zero-value build number and minor)",
+			productA: "VMware vCenter Server",
+			versionA: "5.5.0",
+			buildA:   "1234567",
+			productB: "VMware vCenter Server",
+			versionB: "6.0.0",
+			buildB:   "0",
+			expected: testCompareVersionOlder,
 		},
 		{
 			Name:     "older (major)",
