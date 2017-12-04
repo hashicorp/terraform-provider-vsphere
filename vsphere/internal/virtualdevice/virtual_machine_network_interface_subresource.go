@@ -413,7 +413,7 @@ func NetworkInterfacePostCloneOperation(d *schema.ResourceData, c *govmomi.Clien
 	var updates []interface{}
 	for i, ci := range curSet {
 		cm := ci.(map[string]interface{})
-		if srcSet[i] == nil {
+		if i > len(srcSet)-1 || srcSet[i] == nil {
 			// New device
 			r := NewNetworkInterfaceSubresource(c, d, cm, nil, i)
 			cspec, err := r.Create(l)
@@ -453,15 +453,17 @@ func NetworkInterfacePostCloneOperation(d *schema.ResourceData, c *govmomi.Clien
 	}
 
 	// Any other device past the end of the network devices listed in config needs to be removed.
-	for i, si := range srcSet[len(curSet):] {
-		sm := si.(map[string]interface{})
-		r := NewNetworkInterfaceSubresource(c, d, sm, nil, i+len(curSet))
-		dspec, err := r.Delete(l)
-		if err != nil {
-			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+	if len(curSet) < len(srcSet) {
+		for i, si := range srcSet[len(curSet):] {
+			sm := si.(map[string]interface{})
+			r := NewNetworkInterfaceSubresource(c, d, sm, nil, i+len(curSet))
+			dspec, err := r.Delete(l)
+			if err != nil {
+				return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+			}
+			l = applyDeviceChange(l, dspec)
+			spec = append(spec, dspec...)
 		}
-		l = applyDeviceChange(l, dspec)
-		spec = append(spec, dspec...)
 	}
 
 	log.Printf("[DEBUG] NetworkInterfacePostCloneOperation: Post-clone final resource list: %s", subresourceListString(updates))
