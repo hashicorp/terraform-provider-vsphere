@@ -1,4 +1,11 @@
 ## 1.0.2 (Unreleased)
+
+BUG FIXES:
+
+* `resource/vsphere_virtual_machine`: Fixed issues related to correct processing
+  VM templates with no network interfaces, or fewer network interfaces than the
+  amount that will ultimately end up in configuration. [GH-269]
+
 ## 1.0.1 (December 02, 2017)
 
 BUG FIXES:
