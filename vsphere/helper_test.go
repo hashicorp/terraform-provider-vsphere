@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"reflect"
 	"regexp"
 	"strconv"
 	"testing"
@@ -578,4 +579,57 @@ func testCheckResourceNotAttr(name, key, value string) resource.TestCheckFunc {
 		}
 		return fmt.Errorf("%s: Attribute '%s' expected to not match %#v", name, key, value)
 	}
+}
+
+// testGetCustomAttribute gets a custom attribute by name.
+func testGetCustomAttribute(s *terraform.State, resourceName string) (*types.CustomFieldDef, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_custom_attribute.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+
+	key, err := strconv.ParseInt(tVars.resourceID, 10, 32)
+	if err != nil {
+		return nil, err
+	}
+	fm, err := object.GetCustomFieldsManager(tVars.client.Client)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	fields, err := fm.Field(ctx)
+	if err != nil {
+		return nil, err
+	}
+	field := fields.ByKey(int32(key))
+
+	return field, nil
+}
+
+func testResourceHasCustomAttributeValues(s *terraform.State, resourceType string, resourceName string, entity *mo.ManagedEntity) error {
+	testVars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceType, resourceName))
+	if err != nil {
+		return err
+	}
+	expectedAttrs := make(map[string]string)
+	re := regexp.MustCompile(`custom_attributes\.(\d+)`)
+	for key, value := range testVars.resourceAttributes {
+		if m := re.FindStringSubmatch(key); m != nil {
+			expectedAttrs[m[1]] = value
+		}
+	}
+
+	actualAttrs := make(map[string]string)
+	for _, fv := range entity.CustomValue {
+		value := fv.(*types.CustomFieldStringValue).Value
+		if value != "" {
+			actualAttrs[fmt.Sprint(fv.GetCustomFieldValue().Key)] = value
+		}
+	}
+
+	if !reflect.DeepEqual(expectedAttrs, actualAttrs) {
+		return fmt.Errorf("expected custom attributes to be %q, got %q", expectedAttrs, actualAttrs)
+	}
+	return nil
 }

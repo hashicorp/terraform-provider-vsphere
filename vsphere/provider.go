@@ -69,6 +69,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"vsphere_custom_attribute":           resourceVSphereCustomAttribute(),
 			"vsphere_datacenter":                 resourceVSphereDatacenter(),
 			"vsphere_distributed_port_group":     resourceVSphereDistributedPortGroup(),
 			"vsphere_distributed_virtual_switch": resourceVSphereDistributedVirtualSwitch(),
@@ -87,6 +88,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
+			"vsphere_custom_attribute":           dataSourceVSphereCustomAttribute(),
 			"vsphere_datacenter":                 dataSourceVSphereDatacenter(),
 			"vsphere_datastore":                  dataSourceVSphereDatastore(),
 			"vsphere_distributed_virtual_switch": dataSourceVSphereDistributedVirtualSwitch(),
