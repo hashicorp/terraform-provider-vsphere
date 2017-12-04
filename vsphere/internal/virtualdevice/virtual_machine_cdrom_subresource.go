@@ -354,15 +354,17 @@ func CdromPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object
 
 	// Any other device past the end of the CDROM devices listed in config needs
 	// to be removed.
-	for i, si := range srcSet[len(curSet):] {
-		sm := si.(map[string]interface{})
-		r := NewCdromSubresource(c, d, sm, nil, i+len(curSet))
-		dspec, err := r.Delete(l)
-		if err != nil {
-			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+	if len(curSet) < len(srcSet) {
+		for i, si := range srcSet[len(curSet):] {
+			sm := si.(map[string]interface{})
+			r := NewCdromSubresource(c, d, sm, nil, i+len(curSet))
+			dspec, err := r.Delete(l)
+			if err != nil {
+				return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+			}
+			l = applyDeviceChange(l, dspec)
+			spec = append(spec, dspec...)
 		}
-		l = applyDeviceChange(l, dspec)
-		spec = append(spec, dspec...)
 	}
 
 	log.Printf("[DEBUG] CdromPostCloneOperation: Post-clone final resource list: %s", subresourceListString(updates))

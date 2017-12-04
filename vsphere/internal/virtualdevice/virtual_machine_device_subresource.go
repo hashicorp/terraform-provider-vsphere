@@ -748,6 +748,10 @@ func scsiControllerListString(ctlrs []types.BaseVirtualSCSIController) string {
 // It's mainly used in network interface refresh logic to determine how many
 // subresources may end up in state.
 func unitRange(l object.VirtualDeviceList) (int, error) {
+	// No NICs means no range
+	if len(l) < 1 {
+		return 0, nil
+	}
 	var low, high *int32
 	for _, v := range l {
 		d := v.GetVirtualDevice()
