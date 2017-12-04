@@ -20,6 +20,9 @@ datastores, and more.
 Use the navigation on the left to read about the various resources and data
 sources supported by the provider.
 
+~> **NOTE:** This provider requires API write access and hence is not supported
+on a free ESXi license.
+
 ## Example Usage
 
 The following abridged example demonstrates a current basic usage of the
