@@ -233,16 +233,11 @@ func (v VSphereVersion) ProductEqual(other VSphereVersion) bool {
 // higher than the version supplied in other. This is broken off from the main
 // test so that it can be checked in Older before the build number is compared.
 func (v VSphereVersion) newerVersion(other VSphereVersion) bool {
-	if v.Major > other.Major {
-		return true
-	}
-	if v.Minor > other.Minor {
-		return true
-	}
-	if v.Patch > other.Patch {
-		return true
-	}
-	return false
+	// Assuming here that VMware is a loooong way away from having a
+	// major/minor/patch that's bigger than 254.
+	vc := v.Major<<16 + v.Minor<<8 + v.Patch
+	vo := other.Major<<16 + other.Minor<<8 + other.Patch
+	return vc > vo
 }
 
 // Newer returns true if this version's product is the same, and composite of
@@ -272,16 +267,11 @@ func (v VSphereVersion) Newer(other VSphereVersion) bool {
 // older than the version supplied in other. This is broken off from the main
 // test so that it can be checked in Newer before the build number is compared.
 func (v VSphereVersion) olderVersion(other VSphereVersion) bool {
-	if v.Major < other.Major {
-		return true
-	}
-	if v.Minor < other.Minor {
-		return true
-	}
-	if v.Patch < other.Patch {
-		return true
-	}
-	return false
+	// Assuming here that VMware is a loooong way away from having a
+	// major/minor/patch that's bigger than 254.
+	vc := v.Major<<16 + v.Minor<<8 + v.Patch
+	vo := other.Major<<16 + other.Minor<<8 + other.Patch
+	return vc < vo
 }
 
 // Older returns true if this version's product is the same, and composite of
