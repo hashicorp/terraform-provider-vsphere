@@ -1,13 +1,13 @@
-## 1.0.2 (Unreleased)
+## 1.0.2 (December 05, 2017)
 
 BUG FIXES:
 
 * `resource/vsphere_virtual_machine`: Fixed issues related to correct processing
   VM templates with no network interfaces, or fewer network interfaces than the
-  amount that will ultimately end up in configuration. [GH-269]
+  amount that will ultimately end up in configuration. ([#269](https://github.com/terraform-providers/terraform-provider-vsphere/issues/269))
 * `resource/vsphere_virtual_machine`: Version comparison logic now functions
   correctly to properly disable certain features when using older versions of
-  vSphere. [GH-272]
+  vSphere. ([#272](https://github.com/terraform-providers/terraform-provider-vsphere/issues/272))
 
 ## 1.0.1 (December 02, 2017)
 
