@@ -555,7 +555,7 @@ nextNew:
 // This function is meant to be called during diff customization. It is a
 // subset of the normal refresh behaviour as we don't worry about checking
 // existing state.
-func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l object.VirtualDeviceList) error {
+func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l object.VirtualDeviceList, linked bool) error {
 	log.Printf("[DEBUG] DiskCloneValidateOperation: Checking existing virtual disk configuration")
 	devices := selectDisks(l, d.Get("scsi_controller_count").(int))
 	// Sort the device list, in case it's not sorted already.
@@ -614,11 +614,39 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 		if tr.Get("name").(string) != expected {
 			return fmt.Errorf("%s: invalid disk name %q for cloning. Please rename this disk to %q", tr.Addr(), tr.Get("name").(string), expected)
 		}
-		// Quickly compare size as well, as disks need to be at least the same size
-		// as the source disks, or else the operation will fail on the reconfigure.
-		if tr.Get("size").(int) < r.Get("size").(int) {
-			return fmt.Errorf("%s: disk name %s must have a minimum size of %d GiB", tr.Addr(), tr.Get("name").(string), r.Get("size").(int))
+
+		// Do some pre-clone validation. This is mainly to make sure that the disks
+		// clone in a way that is consistent with configuration.
+		targetName := tr.Get("name").(string)
+		sourceSize := r.Get("size").(int)
+		targetSize := tr.Get("size").(int)
+		targetThin := tr.Get("thin_provisioned").(bool)
+		targetEager := tr.Get("eagerly_scrub").(bool)
+
+		var sourceThin, sourceEager bool
+		if b := r.Get("thin_provisioned"); b != nil {
+			sourceThin = b.(bool)
 		}
+		if b := r.Get("eagerly_scrub"); b != nil {
+			sourceEager = b.(bool)
+		}
+
+		switch {
+		case linked:
+			switch {
+			case sourceSize != targetSize:
+				return fmt.Errorf("%s: disk name %s must be the exact size of source when using linked_clone (expected: %d GiB)", tr.Addr(), targetName, sourceSize)
+			case sourceThin != targetThin:
+				return fmt.Errorf("%s: disk name %s must have same value for thin_provisioned as source when using linked_clone (expected: %t)", tr.Addr(), targetName, sourceThin)
+			case sourceEager != targetEager:
+				return fmt.Errorf("%s: disk name %s must have same value for eagerly_scrub as source when using linked_clone (expected: %t)", tr.Addr(), targetName, sourceEager)
+			}
+		default:
+			if sourceSize > targetSize {
+				return fmt.Errorf("%s: disk name %s must be at least the same size of source when cloning (expected: >= %d GiB)", tr.Addr(), targetName, sourceSize)
+			}
+		}
+
 		// Finally, we don't support non-SCSI (ie: SATA, IDE, NVMe) disks, so kick
 		// back an error if we see one of those.
 		ct, _, _, err := splitDevAddr(r.DevAddr())
