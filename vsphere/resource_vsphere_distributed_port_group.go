@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
@@ -27,6 +28,8 @@ func resourceVSphereDistributedPortGroup() *schema.Resource {
 		},
 		// Tagging
 		vSphereTagAttributeKey: tagsSchema(),
+		// Custom Attributes
+		customattribute.ConfigKey: customattribute.ConfigSchema(),
 	}
 
 	structure.MergeSchema(s, schemaDVPortgroupConfigSpec())
@@ -52,6 +55,12 @@ func resourceVSphereDistributedPortGroupCreate(d *schema.ResourceData, meta inte
 	if err != nil {
 		return err
 	}
+	// Verify a proper vCenter before proceeding if custom attributes are defined
+	attrsProcessor, err := customattribute.GetDiffProcessorIfAttributesDefined(client, d)
+	if err != nil {
+		return err
+	}
+
 	dvsID := d.Get("distributed_virtual_switch_uuid").(string)
 	dvs, err := dvsFromUUID(client, dvsID)
 	if err != nil {
@@ -87,6 +96,14 @@ func resourceVSphereDistributedPortGroupCreate(d *schema.ResourceData, meta inte
 			return fmt.Errorf("error updating tags: %s", err)
 		}
 	}
+
+	// Set custom attributes
+	if attrsProcessor != nil {
+		if err := attrsProcessor.ProcessDiff(object.NewReference(client.Client, pg.Reference())); err != nil {
+			return err
+		}
+	}
+
 	return resourceVSphereDistributedPortGroupRead(d, meta)
 }
 
@@ -116,6 +133,11 @@ func resourceVSphereDistributedPortGroupRead(d *schema.ResourceData, meta interf
 			return fmt.Errorf("error reading tags: %s", err)
 		}
 	}
+
+	if customattribute.IsSupported(client) {
+		customattribute.ReadFromResource(client, props.Entity(), d)
+	}
+
 	return nil
 }
 
@@ -128,6 +150,12 @@ func resourceVSphereDistributedPortGroupUpdate(d *schema.ResourceData, meta inte
 	if err != nil {
 		return err
 	}
+	// Verify a proper vCenter before proceeding if custom attributes are defined
+	attrsProcessor, err := customattribute.GetDiffProcessorIfAttributesDefined(client, d)
+	if err != nil {
+		return err
+	}
+
 	pgID := d.Id()
 	pg, err := dvportgroup.FromMOID(client, pgID)
 	if err != nil {
@@ -152,6 +180,14 @@ func resourceVSphereDistributedPortGroupUpdate(d *schema.ResourceData, meta inte
 			return fmt.Errorf("error updating tags: %s", err)
 		}
 	}
+
+	// Update custom attributes
+	if attrsProcessor != nil {
+		if err := attrsProcessor.ProcessDiff(object.NewReference(client.Client, pg.Reference())); err != nil {
+			return fmt.Errorf("error updating custom attributes: %s", err)
+		}
+	}
+
 	return resourceVSphereDistributedPortGroupRead(d, meta)
 }
 
