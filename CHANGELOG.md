@@ -5,6 +5,9 @@ BUG FIXES:
 * `resource/vsphere_virtual_machine`: Fixed issues related to correct processing
   VM templates with no network interfaces, or fewer network interfaces than the
   amount that will ultimately end up in configuration. [GH-269]
+* `resource/vsphere_virtual_machine`: Version comparison logic now functions
+  correctly to properly disable certain features when using older versions of
+  vSphere. [GH-272]
 
 ## 1.0.1 (December 02, 2017)
 
