@@ -41,10 +41,10 @@ data "vsphere_resource_pool" "pool" {
 }
 ```
 
-### Using with ESXi
+### Using with Standalone ESXi
 
-On ESXi, you don't have to specify either attribute to use this data source. An
-empty declaration will load the default resource pool.
+When using ESXi without vCenter, you don't have to specify either attribute to
+use this data source. An empty declaration will load the default resource pool.
 
 ```
 data "vsphere_resource_pool" "pool" {}
