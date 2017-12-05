@@ -348,6 +348,16 @@ options:
 ~> **NOTE:** Tagging support is unsupported on direct ESXi connections and
 requires vCenter 6.0 or higher.
 
+* `custom_attributes` - (Optional) Map of custom attribute ids to attribute
+  value strings to set for virtual machine. See 
+  [here][docs-setting-custom-attributes] for a reference on how to set values 
+  for custom attributes.
+
+[docs-setting-custom-attributes]: /docs/providers/vsphere/r/custom_attribute.html#using-custom-attributes-in-a-supported-resource
+
+~> **NOTE:** Custom attributes are unsupported on direct ESXi connections 
+and require vCenter.
+
 ### CPU and memory options
 
 The following options control CPU and memory settings on the virtual machine:
