@@ -386,6 +386,53 @@ func TestAccResourceVSphereDistributedVirtualSwitch(t *testing.T) {
 				},
 			},
 		},
+		{
+			"single custom attribute",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereDistributedVirtualSwitchConfigSingleCustomAttribute(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereDistributedVirtualSwitchExists(true),
+							testAccResourceVSphereDistributedVirtualSwitchCheckCustomAttributes(),
+						),
+					},
+				},
+			},
+		},
+		{
+			"multi custom attribute",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereDistributedVirtualSwitchConfigSingleCustomAttribute(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereDistributedVirtualSwitchExists(true),
+							testAccResourceVSphereDistributedVirtualSwitchCheckCustomAttributes(),
+						),
+					},
+					{
+						Config: testAccResourceVSphereDistributedVirtualSwitchConfigMultiCustomAttribute(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereDistributedVirtualSwitchExists(true),
+							testAccResourceVSphereDistributedVirtualSwitchCheckCustomAttributes(),
+						),
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testAccResourceVSphereDistributedVirtualSwitchCases {
@@ -602,6 +649,16 @@ func testAccResourceVSphereDistributedVirtualSwitchCheckTags(tagResName string) 
 			return err
 		}
 		return testObjectHasTags(s, tagsClient, dvs, tagResName)
+	}
+}
+
+func testAccResourceVSphereDistributedVirtualSwitchCheckCustomAttributes() resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetDVSProperties(s, "dvs")
+		if err != nil {
+			return err
+		}
+		return testResourceHasCustomAttributeValues(s, "vsphere_distributed_virtual_switch", "dvs", props.Entity())
 	}
 }
 
@@ -1150,6 +1207,84 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
     min_vlan = 3000
     max_vlan = 3999
   }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+	)
+}
+
+func testAccResourceVSphereDistributedVirtualSwitchConfigSingleCustomAttribute() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+resource "vsphere_custom_attribute" "terraform-test-attribute" {
+  name                = "terraform-test-attribute"
+  managed_object_type = "VmwareDistributedVirtualSwitch"
+}
+
+locals {
+  vs_attrs = {
+    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
+  }
+}
+
+resource "vsphere_distributed_virtual_switch" "dvs" {
+  name          = "terraform-test-dvs"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+
+  custom_attributes = "${local.vs_attrs}"
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+	)
+}
+
+func testAccResourceVSphereDistributedVirtualSwitchConfigMultiCustomAttribute() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "custom_attrs" {
+  default = [
+    "terraform-test-attribute-1",
+    "terraform-test-attriubute-2"
+  ]
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+resource "vsphere_custom_attribute" "terraform-test-attribute" {
+  name                = "terraform-test-attribute"
+  managed_object_type = "VmwareDistributedVirtualSwitch"
+}
+
+resource "vsphere_custom_attribute" "terraform-test-attribute-alt" {
+  count               = "${length(var.custom_attrs)}"
+  name                = "${var.custom_attrs[count.index]}"
+  managed_object_type = "VmwareDistributedVirtualSwitch"
+}
+
+locals {
+  vs_attrs = {
+    "${vsphere_custom_attribute.terraform-test-attribute-alt.0.id}" = "value"
+    "${vsphere_custom_attribute.terraform-test-attribute-alt.1.id}" = "value-2"
+  }
+}
+
+resource "vsphere_distributed_virtual_switch" "dvs" {
+  name          = "terraform-test-dvs"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+
+  custom_attributes = "${local.vs_attrs}"
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
