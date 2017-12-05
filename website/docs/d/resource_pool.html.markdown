@@ -41,15 +41,6 @@ data "vsphere_resource_pool" "pool" {
 }
 ```
 
-### Using with ESXi
-
-On ESXi, you don't have to specify either attribute to use this data source. An
-empty declaration will load the default resource pool.
-
-```
-data "vsphere_resource_pool" "pool" {}
-```
-
 ## Argument Reference
 
 The following arguments are supported:
@@ -63,6 +54,10 @@ The following arguments are supported:
   `vsphere_datacenter` data source.
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
+
+~> **Note when using with standalone ESXi:** When using ESXi without vCenter,
+you don't have to specify either attribute to use this data source. An empty
+declaration will load the default resource pool.
 
 ## Attribute Reference
 
