@@ -369,7 +369,7 @@ func CdromPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object
 
 	log.Printf("[DEBUG] CdromPostCloneOperation: Post-clone final resource list: %s", subresourceListString(updates))
 	// We are now done! Return the updated device list and config spec. Save updates as well.
-	if err := d.Set(subresourceTypeNetworkInterface, updates); err != nil {
+	if err := d.Set(subresourceTypeCdrom, updates); err != nil {
 		return nil, nil, err
 	}
 	log.Printf("[DEBUG] CdromPostCloneOperation: Device list at end of operation: %s", DeviceListString(l))
