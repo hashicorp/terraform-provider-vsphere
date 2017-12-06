@@ -1,4 +1,10 @@
 ## 1.0.3 (Unreleased)
+
+BUG FIXES:
+
+* `resource/vsphere_virtual_machine`: Fixed issues related to adding CDROM
+  devices to cloned virtual machines. [GH-276]
+
 ## 1.0.2 (December 05, 2017)
 
 BUG FIXES:
