@@ -5,6 +5,8 @@ BUG FIXES:
 * `resource/vsphere_virtual_machine`: Tightened the pre-clone checks for virtual
   disks to ensure that the size and disk types are the same between the template
   and the created virtual machine's configuration. [GH-277]
+* `resource/vsphere_virtual_machine`: CDROM devices on cloned virtual machines
+  are now connected properly on power on. [GH-278]
 
 ## 1.0.3 (December 06, 2017)
 
