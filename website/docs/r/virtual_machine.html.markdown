@@ -965,7 +965,9 @@ both the resource configuration and source template:
   this.
 * The `size` of a virtual disk must be at least the same size as its
   counterpart disk in the template.
-* When using `linked_clone`, the `size` has to be an exact match.
+* When using `linked_clone`, the `size`, `thin_provisioned`, and
+  `eagerly_scrub` settings for each disk must be an exact match to the
+  individual disk's counterpart in the source template.
 * The [`scsi_controller_count`](#scsi_controller_count) setting should be
   configured as necessary to cover all of the disks on the template. For best
   results, only configure this setting for the amount of controllers you will

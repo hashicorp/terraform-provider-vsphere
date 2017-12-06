@@ -84,7 +84,8 @@ func ValidateVirtualMachineClone(d *schema.ResourceDiff, c *govmomi.Client) erro
 	}
 	// If linked clone is enabled, check to see if we have a snapshot. There need
 	// to be a single snapshot on the template for it to be eligible.
-	if d.Get("clone.0.linked_clone").(bool) {
+	linked := d.Get("clone.0.linked_clone").(bool)
+	if linked {
 		log.Printf("[DEBUG] ValidateVirtualMachineClone: Checking snapshots on %s for linked clone eligibility", tUUID)
 		if err := validateCloneSnapshots(vprops); err != nil {
 			return err
@@ -94,7 +95,7 @@ func ValidateVirtualMachineClone(d *schema.ResourceDiff, c *govmomi.Client) erro
 	// in the configuration. This is in the virtual device package, so pass off
 	// to that now.
 	l := object.VirtualDeviceList(vprops.Config.Hardware.Device)
-	if err := virtualdevice.DiskCloneValidateOperation(d, c, l); err != nil {
+	if err := virtualdevice.DiskCloneValidateOperation(d, c, l, linked); err != nil {
 		return err
 	}
 
