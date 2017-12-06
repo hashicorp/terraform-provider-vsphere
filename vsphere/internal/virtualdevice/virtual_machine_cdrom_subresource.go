@@ -411,6 +411,7 @@ func (r *CdromSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtu
 		return nil, err
 	}
 	device = l.InsertIso(device, dsPath.String())
+	l.Connect(device)
 
 	// Done here. Save IDs, push the device to the new device list and return.
 	if err := r.SaveDevIDs(device, ctlr); err != nil {
@@ -490,6 +491,7 @@ func (r *CdromSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtu
 	}
 
 	device = l.InsertIso(device, dsPath.String())
+	l.Connect(device)
 
 	spec, err := object.VirtualDeviceList{device}.ConfigSpec(types.VirtualDeviceConfigSpecOperationEdit)
 	if err != nil {
