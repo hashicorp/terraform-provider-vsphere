@@ -1578,6 +1578,8 @@ func testAccResourceVSphereVirtualMachineCheckMultiDevice(expectedD, expectedN [
 	}
 }
 
+// testAccResourceVSphereVirtualMachineCheckCdrom checks to make sure that the
+// subject VM has a CDROM device configured and connected.
 func testAccResourceVSphereVirtualMachineCheckCdrom() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		props, err := testGetVirtualMachineProperties(s, "vm")
@@ -1587,6 +1589,9 @@ func testAccResourceVSphereVirtualMachineCheckCdrom() resource.TestCheckFunc {
 
 		for _, dev := range props.Config.Hardware.Device {
 			if cdrom, ok := dev.(*types.VirtualCdrom); ok {
+				if !cdrom.Connectable.Connected {
+					return fmt.Errorf("expected CDROM device to be connected")
+				}
 				if backing, ok := cdrom.Backing.(*types.VirtualCdromIsoBackingInfo); ok {
 					expected := &object.DatastorePath{
 						Datastore: os.Getenv("VSPHERE_ISO_DATASTORE"),
