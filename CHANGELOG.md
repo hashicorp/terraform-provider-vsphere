@@ -1,9 +1,9 @@
-## 1.0.3 (Unreleased)
+## 1.0.3 (December 06, 2017)
 
 BUG FIXES:
 
 * `resource/vsphere_virtual_machine`: Fixed an issue in the post-clone process
-  when a CDROM device exists in configuration. [GH-276]
+  when a CDROM device exists in configuration. ([#276](https://github.com/terraform-providers/terraform-provider-vsphere/issues/276))
 
 ## 1.0.2 (December 05, 2017)
 
