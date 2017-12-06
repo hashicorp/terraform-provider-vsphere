@@ -41,7 +41,7 @@ The following arguments are supported:
   For default datacenters, use the `id` attribute from an empty
   `vsphere_datacenter` data source.
 * `scsi_controller_scan_count` - (Optional) The number of SCSI controllers to
-  scan for disk sizes and controller types on. Default: `1`.
+  scan for disk attributes and controller types on. Default: `1`.
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
@@ -59,23 +59,27 @@ cloning][docs-virtual-machine-resource-cloning] section.
 
 The following attributes are exported:
 
-* `id`: The UUID of the virtual machine or template.
-* `guest_id`: The guest ID of the virtual machine or template.
-* `alternate_guest_name`: The alternate guest name of the virtual machine when
+* `id` - The UUID of the virtual machine or template.
+* `guest_id` - The guest ID of the virtual machine or template.
+* `alternate_guest_name` - The alternate guest name of the virtual machine when
   guest_id is a non-specific operating system, like `otherGuest`.
-* `scsi_type`: The common type of all SCSI controllers on this virtual machine.
+* `scsi_type` - The common type of all SCSI controllers on this virtual machine.
   Will be one of `lsilogic` (LSI Logic Parallel), `lsilogic-sas` (LSI Logic
   SAS), `pvscsi` (VMware Paravirtual), `buslogic` (BusLogic), or `mixed` when
   there are multiple controller types. Only the first number of controllers
   defined by `scsi_controller_scan_count` are scanned.
-* `disk_sizes`: The sizes, in GiB, of each of the virtual disks on this virtual
-  machine or template. These are sorted by bus and unit number so that they can
-  be applied to a `vsphere_virtual_machine` resource in the order the resource
-  expects while cloning. This is useful for discovering the required size of a
-  disk while performing a linked clone, as the disk size of a linked clone must
-  be the same as its source. Only the first number of controllers defined by
-  `scsi_controller_scan_count` are scanned for disks.
-* `network_interface_types`: The network interface types for each network
+* `disks` - Information about each of the disks on this virtual machine or
+  template. These are sorted by bus and unit number so that they can be applied
+  to a `vsphere_virtual_machine` resource in the order the resource expects
+  while cloning. This is useful for discovering certain disk settings while
+  performing a linked clone, as all settings that are output by this data
+  source must be the same on the destination virtual machine as the source.
+  Only the first number of controllers defined by `scsi_controller_scan_count`
+  are scanned for disks. The sub-attributes are:
+ * `size` - The size of the disk, in GIB.
+ * `eagerly_scrub` - Set to `true` if the disk has been eager zeroed.
+ * `thin_provisioned` - Set to `true` if the disk has been thin provisioned.
+* `network_interface_types` - The network interface types for each network
   interface found on the virtual machine, in device bus order. Will be one of
   `e1000`, `e1000e`, `pcnet32`, `sriov`, `vmxnet2`, or `vmxnet3`.
 
