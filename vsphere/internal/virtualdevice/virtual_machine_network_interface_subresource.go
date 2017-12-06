@@ -870,7 +870,7 @@ func (r *NetworkInterfaceSubresource) assignEthernetCard(l object.VirtualDeviceL
 
 	// Now that we know which units are used, we can pick one
 	newUnit := int32(r.Index) + pciDeviceOffset
-	if units[newUnit] {
+	if units[newUnit-pciDeviceOffset] {
 		return fmt.Errorf("device unit at %d is currently in use on the PCI bus", newUnit)
 	}
 
