@@ -281,6 +281,26 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 			},
 		},
 		{
+			"maximum number of nics",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigMaxNIC(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckNICCount(10),
+						),
+					},
+				},
+			},
+		},
+		{
 			"upgrade cpu and ram",
 			resource.TestCase{
 				PreCheck: func() {
@@ -1808,6 +1828,28 @@ func testAccResourceVSphereVirtualMachineCheckVmdkDatastore(name, expected strin
 	}
 }
 
+// testAccResourceVSphereVirtualMachineCheckNICCount checks the number of NICs
+// on the virtual machine.
+func testAccResourceVSphereVirtualMachineCheckNICCount(expected int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVirtualMachineProperties(s, "vm")
+		if err != nil {
+			return err
+		}
+
+		var actual int
+		for _, dev := range props.Config.Hardware.Device {
+			if _, ok := dev.(types.BaseVirtualEthernetCard); ok {
+				actual++
+			}
+		}
+		if expected != actual {
+			return fmt.Errorf("expected %d number of NICs, got %d", expected, actual)
+		}
+		return nil
+	}
+}
+
 func testAccResourceVSphereVirtualMachineConfigBasic() string {
 	return fmt.Sprintf(`
 variable "datacenter" {
@@ -2373,6 +2415,105 @@ resource "vsphere_virtual_machine" "vm" {
   num_cpus = 4
   memory   = 8192
   guest_id = "other3xLinux64Guest"
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    name = "terraform-test.vmdk"
+    size = 20
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_DATASTORE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigMaxNIC() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinux64Guest"
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
 
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
@@ -3295,6 +3436,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
 	)
 }
+
 func testAccResourceVSphereVirtualMachineConfigCloneTimeZone(zone string) string {
 	return fmt.Sprintf(`
 variable "datacenter" {
