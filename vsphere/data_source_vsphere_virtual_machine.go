@@ -46,11 +46,26 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 				Computed:    true,
 				Description: "The common SCSI bus type of all controllers on the virtual machine.",
 			},
-			"disk_sizes": {
+			"disks": {
 				Type:        schema.TypeList,
-				Description: "The sizes of the disks on this virtual machine, sorted by bus and unit number.",
+				Description: "Select configuration attributes from the disks on this virtual machine, sorted by bus and unit number.",
 				Computed:    true,
-				Elem:        &schema.Schema{Type: schema.TypeInt},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"size": {
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+						"eagerly_scrub": {
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
+						"thin_provisioned": {
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
+					},
+				},
 			},
 			"network_interface_types": {
 				Type:        schema.TypeList,
@@ -89,7 +104,7 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 	d.Set("guest_id", props.Config.GuestId)
 	d.Set("alternate_guest_name", props.Config.AlternateGuestName)
 	d.Set("scsi_type", virtualdevice.ReadSCSIBusState(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int)))
-	sizes, err := virtualdevice.ReadDiskSizes(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int))
+	disks, err := virtualdevice.ReadDiskAttrsForDataSource(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int))
 	if err != nil {
 		return fmt.Errorf("error reading disk sizes: %s", err)
 	}
@@ -97,7 +112,7 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return fmt.Errorf("error reading network interface types: %s", err)
 	}
-	if d.Set("disk_sizes", sizes); err != nil {
+	if d.Set("disks", disks); err != nil {
 		return fmt.Errorf("error setting disk sizes: %s", err)
 	}
 	if d.Set("network_interface_types", nics); err != nil {

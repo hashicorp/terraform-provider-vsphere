@@ -903,13 +903,14 @@ func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 	return nil
 }
 
-// ReadDiskSizes returns a list of disk sizes. This is used in the VM data
-// source to discover the sizes of all of the disks on the virtual machine
-// sorted by the order that they would be added in if a clone were to be done.
-func ReadDiskSizes(l object.VirtualDeviceList, count int) ([]int, error) {
-	log.Printf("[DEBUG] ReadDiskSizes: Fetching disk sizes for disks across %d SCSI controllers", count)
+// ReadDiskAttrsForDataSource returns select attributes from the list of disks
+// on a virtual machine. This is used in the VM data source to discover
+// specific options of all of the disks on the virtual machine sorted by the
+// order that they would be added in if a clone were to be done.
+func ReadDiskAttrsForDataSource(l object.VirtualDeviceList, count int) ([]map[string]interface{}, error) {
+	log.Printf("[DEBUG] ReadDiskAttrsForDataSource: Fetching select attributes for disks across %d SCSI controllers", count)
 	devices := selectDisks(l, count)
-	log.Printf("[DEBUG] ReadDiskSizes: Disk devices located: %s", DeviceListString(devices))
+	log.Printf("[DEBUG] ReadDiskAttrsForDataSource: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
 		Sort:       devices,
@@ -917,12 +918,28 @@ func ReadDiskSizes(l object.VirtualDeviceList, count int) ([]int, error) {
 	}
 	sort.Sort(devSort)
 	devices = devSort.Sort
-	log.Printf("[DEBUG] ReadDiskSizes: Disk devices order after sort: %s", DeviceListString(devices))
-	var out []int
-	for _, device := range devices {
-		out = append(out, int(structure.ByteToGiB(device.(*types.VirtualDisk).CapacityInBytes).(int64)))
+	log.Printf("[DEBUG] ReadDiskAttrsForDataSource: Disk devices order after sort: %s", DeviceListString(devices))
+	var out []map[string]interface{}
+	for i, device := range devices {
+		disk := device.(*types.VirtualDisk)
+		backing, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+		if !ok {
+			return nil, fmt.Errorf("disk number %d has an unsupported backing type (expected flat VMDK version 2, got %T", i, disk.Backing)
+		}
+		m := make(map[string]interface{})
+		var eager, thin bool
+		if backing.EagerlyScrub != nil {
+			eager = *backing.EagerlyScrub
+		}
+		if backing.ThinProvisioned != nil {
+			thin = *backing.ThinProvisioned
+		}
+		m["size"] = int(structure.ByteToGiB(disk.CapacityInBytes).(int64))
+		m["eagerly_scrub"] = eager
+		m["thin_provisioned"] = thin
+		out = append(out, m)
 	}
-	log.Printf("[DEBUG] ReadDiskSizes: Disk sizes returned: %+v", out)
+	log.Printf("[DEBUG] ReadDiskAttrsForDataSource: Attributes returned: %+v", out)
 	return out, nil
 }
 
