@@ -43,13 +43,13 @@ The syntax is as follows:
 
 ```hcl
 provider "vsphere" {
-  version = "~> 1.0.0"
+  version = "~> 1.1.0"
   ...
 }
 ```
 
 Version locking uses a pessimistic operator, so this version lock would mean
-anything within the 1.0.x namespace. [Read more][provider-vc] on provider
+anything within the 1.1.x namespace. [Read more][provider-vc] on provider
 version control.
 
 [provider-vc]: https://www.terraform.io/docs/configuration/providers.html#provider-versions
