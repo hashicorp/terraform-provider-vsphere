@@ -2095,7 +2095,7 @@ resource "vsphere_virtual_machine" "vm" {
   num_cpus = 2
   memory   = 2048
   guest_id = "other3xLinux64Guest"
-	
+
   network_interface {
     network_id            = "${data.vsphere_network.network.id}"
     bandwidth_share_level = "normal"
@@ -2178,12 +2178,12 @@ resource "vsphere_virtual_machine" "vm" {
   resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
-	scsi_controller_count = 3
+  scsi_controller_count = 3
 
   num_cpus = 2
   memory   = 2048
   guest_id = "other3xLinux64Guest"
-	
+
   network_interface {
     network_id            = "${data.vsphere_network.network.id}"
     bandwidth_share_level = "normal"
@@ -2433,7 +2433,7 @@ resource "vsphere_virtual_machine" "vm" {
   memory   = 2048
   guest_id = "other3xLinux64Guest"
 
-	wait_for_guest_net_timeout = -1
+  wait_for_guest_net_timeout = -1
 
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
@@ -2640,7 +2640,7 @@ variable "datastore" {
 }
 
 variable "annotation" {
-	default = "%s"
+  default = "%s"
 }
 
 data "vsphere_datacenter" "dc" {
@@ -2648,7 +2648,7 @@ data "vsphere_datacenter" "dc" {
 }
 
 data "vsphere_datastore" "datastore" {
-  name = "${var.datastore}"
+  name          = "${var.datastore}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
@@ -2667,10 +2667,10 @@ resource "vsphere_virtual_machine" "vm" {
   resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
-  num_cpus = 2
-  memory   = 2048
-  guest_id = "other3xLinux64Guest"
-	annotation = "${var.annotation}"
+  num_cpus   = 2
+  memory     = 2048
+  guest_id   = "other3xLinux64Guest"
+  annotation = "${var.annotation}"
 
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
@@ -2800,7 +2800,7 @@ resource "vsphere_virtual_machine" "vm" {
   memory   = 2048
   guest_id = "other3xLinux64Guest"
 
-	scsi_type = "lsilogic-sas"
+  scsi_type = "lsilogic-sas"
 
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
@@ -3486,7 +3486,7 @@ resource "vsphere_virtual_machine" "vm" {
   disk {
     name             = "terraform-test.vmdk"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-		eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub == "true" ? "false" : "true"}"
+    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub == "true" ? "false" : "true"}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
   }
 
@@ -3608,7 +3608,7 @@ resource "vsphere_virtual_machine" "vm" {
   disk {
     name             = "terraform-test.vmdk"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-		eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
+    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned == "true" ? "false" : "true"}"
   }
 
@@ -3730,7 +3730,7 @@ resource "vsphere_virtual_machine" "vm" {
   disk {
     name             = "terraform-test.vmdk"
     size             = 999
-		eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
+    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
   }
 
@@ -3852,7 +3852,7 @@ resource "vsphere_virtual_machine" "vm" {
   disk {
     name             = "terraform-test.vmdk"
     size             = 1
-		eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
+    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
   }
 
@@ -4116,7 +4116,7 @@ resource "vsphere_virtual_machine" "vm" {
       linux_options {
         host_name = "terraform-test"
         domain    = "test.internal"
-				time_zone = "${var.time_zone}"
+        time_zone = "${var.time_zone}"
       }
 
       network_interface {
@@ -4366,8 +4366,8 @@ resource "vsphere_virtual_machine" "vm" {
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
   }
-  
-	cdrom {
+
+  cdrom {
     datastore_id = "${data.vsphere_datastore.iso_datastore.id}"
     path         = "${var.iso_path}"
   }
@@ -4411,7 +4411,6 @@ resource "vsphere_virtual_machine" "vm" {
 
 func testAccResourceVSphereVirtualMachineConfigWithHotAdd(nc, nm int, cha, chr, mha bool) string {
 	return fmt.Sprintf(`
-
 variable "datacenter" {
   default = "%s"
 }
@@ -4640,12 +4639,12 @@ resource "vsphere_virtual_machine" "vm" {
       network_interface {
         ipv4_address = "${var.ipv4_address}"
         ipv4_netmask = "${var.ipv4_netmask}"
-				ipv6_address = "fd00::2"
+        ipv6_address = "fd00::2"
         ipv6_netmask = "32"
       }
 
       ipv4_gateway    = "${var.ipv4_gateway}"
-			ipv6_gateway    = "fd00::1"
+      ipv6_gateway    = "fd00::1"
       dns_server_list = ["${var.dns_server}"]
       dns_suffix_list = ["test.internal"]
     }
@@ -4724,7 +4723,7 @@ resource "vsphere_virtual_machine" "vm" {
   memory   = 2048
   guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
 
-	wait_for_guest_net_timeout = 10
+  wait_for_guest_net_timeout = 10
 
   network_interface {
     network_id   = "${data.vsphere_network.network.id}"
@@ -4749,11 +4748,11 @@ resource "vsphere_virtual_machine" "vm" {
       }
 
       network_interface {
-				ipv6_address = "fd00::2"
+        ipv6_address = "fd00::2"
         ipv6_netmask = "32"
       }
 
-			ipv6_gateway = "fd00::1"
+      ipv6_gateway = "fd00::1"
     }
   }
 }
@@ -5238,12 +5237,12 @@ resource "vsphere_virtual_machine" "vm" {
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
   }
-  
-	disk {
-		datastore_id = "${data.vsphere_datastore.disk_datastore.id}"
+
+  disk {
+    datastore_id = "${data.vsphere_datastore.disk_datastore.id}"
     name         = "terraform-test_1.vmdk"
     size         = 1
-		unit_number  = 1
+    unit_number  = 1
   }
 
   clone {
@@ -5376,12 +5375,12 @@ resource "vsphere_virtual_machine" "vm" {
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
   }
-  
-	disk {
-		datastore_id = "${data.vsphere_datastore.disk_datastore.id}"
+
+  disk {
+    datastore_id = "${data.vsphere_datastore.disk_datastore.id}"
     name         = "terraform-test_1.vmdk"
     size         = 1
-		unit_number  = 1
+    unit_number  = 1
   }
 
   clone {
@@ -5710,8 +5709,8 @@ resource "vsphere_virtual_machine" "vm" {
       network_interface {
         ipv4_address    = "${var.ipv4_address}"
         ipv4_netmask    = "${var.ipv4_netmask}"
-				dns_server_list = ["${var.dns_server}"]
-				dns_domain      = "test.internal"
+        dns_server_list = ["${var.dns_server}"]
+        dns_domain      = "test.internal"
       }
 
       ipv4_gateway = "${var.ipv4_gateway}"
