@@ -1,3 +1,4 @@
+## 1.1.1 (Unreleased)
 ## 1.1.0 (December 07, 2017)
 
 BREAKING CHANGES:
