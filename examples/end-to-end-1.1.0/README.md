@@ -1,0 +1,63 @@
+# vSphere 1.1.0 end-to-end Example
+
+This repository is designed to demonstrate the capabilities of the [Terraform
+vSphere Provider][ref-tf-vsphere] at the time of the 1.1.0 release.
+
+[ref-tf-vsphere]: https://www.terraform.io/docs/providers/vsphere/index.html
+
+This example performs the following:
+
+* Sets up an NFS datastore across a number of hosts. This uses the
+  [`vsphere_nas_datstore` resource][ref-tf-vsphere-nas-datastore].
+* Sets up a vSphere distributed virtual switch (DVS) across a number of hosts,
+  using the [`vsphere_distributed_virtual_switch` resource][ref-tf-vsphere-dvs].
+* Creates a port group on the created DVS with a configured VLAN, using the
+  [`vsphere_distributed_port_group` resource][ref-tf-vsphere-dvportgroup].
+* Finally, creates a virtual machine using the [`vsphere_virtual_machine`
+  resource][ref-tf-vsphere-virtual-machine] on the above three created
+  resources.
+
+[ref-tf-vsphere-nas-datastore]: https://www.terraform.io/docs/providers/vsphere/r/nas_datastore.html
+[ref-tf-vsphere-dvs]: https://www.terraform.io/docs/providers/vsphere/r/distributed_virtual_switch.html
+[ref-tf-vsphere-dvportgroup]: https://www.terraform.io/docs/providers/vsphere/r/distributed_port_group.html
+[ref-tf-vsphere-virtual-machine]: https://www.terraform.io/docs/providers/vsphere/r/virtual_machine.html
+
+Several data sources are also used:
+
+* [`vsphere_datacenter`][ref-tf-vsphere-datacenter] - To get a datacenter
+* [`vsphere_resource_pool`][ref-tf-vsphere-resource-pool] - To get a resource
+  pool
+* [`vsphere_virtual_machine`][ref-tf-vsphere-vm-data-source] - To get a virtual
+  machine template.
+
+[ref-tf-vsphere-datacenter]: https://www.terraform.io/docs/providers/vsphere/d/datacenter.html
+[ref-tf-vsphere-resource-pool]: https://www.terraform.io/docs/providers/vsphere/d/resource_pool.html
+[ref-tf-vsphere-vm-data-source]: https://www.terraform.io/docs/providers/vsphere/d/virtual_machine.html
+
+## Requirements
+
+* A working vCenter installation. This example does not support ESXi.
+* Your ESXi hosts should have at least one free NIC available.
+* The ESXi hosts should have access to an NFS server with an available share.
+* A suitably modern Linux VM that has a single snapshot configured. This needs
+  to be customizable by your version of vSphere.
+
+## Usage Details
+
+You can either clone the entire
+[terraform-provider-vsphere][ref-tf-vsphere-github] repository, or download
+the `variables.tf`, `data_sources.tf`, `resources.tf`, and `terraform.tfvars`
+files into a directory of your choice. Once done, edit the `terraform.tfvars`
+file, populating the fields with the relevant values.
+
+[ref-tf-vsphere-github]: https://github.com/terraform-providers/terraform-provider-vsphere
+
+Once done, run `terraform init`, and `terraform plan` to review the plan, then
+`terraform apply` to execute. If you use Terraform 0.11.0 or higher, you can
+skip `terraform plan` as `terraform apply` will now perform the plan for you and
+ask you confirm the changes.
+
+## Further Reading
+
+This example is being used as an example for an upcoming blog post on the
+HashiCorp website.
