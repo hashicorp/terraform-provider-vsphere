@@ -165,7 +165,7 @@ it from a template, fetched via the
 [`vsphere_virtual_machine`][tf-vsphere-virtual-machine-ds] data source. This
 allows us to locate the UUID of the template we want to clone, along with
 settings for network interface type, SCSI bus type (especially important on
-Windows machines), and disk sizes.
+Windows machines), and disk attributes.
 
 [tf-vsphere-virtual-machine-ds]: /docs/providers/vsphere/d/virtual_machine.html
 
@@ -202,7 +202,7 @@ resource "vsphere_virtual_machine" "vm" {
   num_cpus = 2
   memory   = 1024
   guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
-  
+
   scsi_type = "${data.vsphere_virtual_machine.template.scsi_type}"
 
   network_interface {
@@ -211,8 +211,10 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = "${data.vsphere_virtual_machine.template.disk_sizes[0]}"
+    name             = "terraform-test.vmdk"
+    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
+    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
   }
 
   clone {
@@ -983,8 +985,8 @@ both the resource configuration and source template:
 
 To ease the gathering of some of these options, you can use the
 [`vsphere_virtual_machine` data source][tf-vsphere-virtual-machine-ds], which
-will give you disk sizes, network interface types, SCSI bus types, and also the
-guest ID of the source template.  See the [cloning and customization
+will give you disk attributes, network interface types, SCSI bus types, and
+also the guest ID of the source template.  See the [cloning and customization
 example](#cloning-and-customization-example) for usage details.
 
 ## Virtual Machine Migration
