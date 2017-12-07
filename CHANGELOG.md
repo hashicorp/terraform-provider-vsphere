@@ -1,4 +1,4 @@
-## 1.1.0 (Unreleased)
+## 1.1.0 (December 07, 2017)
 
 BREAKING CHANGES:
 
@@ -59,12 +59,12 @@ in the documentation.
 BUG FIXES:
 
 * `resource/vsphere_virtual_machine`: Fixed a bug with NIC device assignment
-  logic that was causing a crash when adding more than 3 NICs to a VM. [GH-280]
+  logic that was causing a crash when adding more than 3 NICs to a VM. ([#280](https://github.com/terraform-providers/terraform-provider-vsphere/issues/280))
 * `resource/vsphere_virtual_machine`: CDROM devices on cloned virtual machines
-  are now connected properly on power on. [GH-278]
+  are now connected properly on power on. ([#278](https://github.com/terraform-providers/terraform-provider-vsphere/issues/278))
 * `resource/vsphere_virtual_machine`: Tightened the pre-clone checks for virtual
   disks to ensure that the size and disk types are the same between the template
-  and the created virtual machine's configuration. [GH-277]
+  and the created virtual machine's configuration. ([#277](https://github.com/terraform-providers/terraform-provider-vsphere/issues/277))
 
 ## 1.0.3 (December 06, 2017)
 
