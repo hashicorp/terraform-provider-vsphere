@@ -1,4 +1,60 @@
-## 1.0.4 (Unreleased)
+## 1.1.0 (Unreleased)
+
+BREAKING CHANGES:
+
+* The `vsphere_virtual_machine` _data source_ has a new sub-resource attribute
+  for disk information, named `disks`. This takes the place of `disk_sizes`,
+  which has been moved to a `size` attribute within this new sub-resource, and
+  also contains information about the discovered disks' `eagerly_scrub` and
+  `thin_provisioned` settings. This is to facilitate the ability to discover all
+  settings that could cause issues when cloning virtual machines.
+
+To transition to the new syntax, any `disk` sub-resource in a
+`vsphere_virtual_machine` resource that depends on a syntax such as:
+
+```
+resource "vsphere_virtual_machine" "vm" {
+  ...
+
+  disk {
+    name = "terraform-test.vmdk"
+    size = "${data.vsphere_virtual_machine.template.disk_sizes[0]}"
+  }
+}
+```
+
+Should be changed to:
+
+```
+resource "vsphere_virtual_machine" "vm" {
+  ...
+
+  disk {
+    name = "terraform-test.vmdk"
+    size = "${data.vsphere_virtual_machine.template.disks.0.size}"
+  }
+}
+```
+
+If you are using `linked_clone`, add the new settings for `eagerly_scrub` and
+`thin_provisioned`:
+
+```
+resource "vsphere_virtual_machine" "vm" {
+  ...
+
+  disk {
+    name             = "terraform-test.vmdk"
+    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
+    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+  }
+}
+```
+
+For a more complete example, see the [cloning and customization
+example](https://www.terraform.io/docs/providers/vsphere/r/virtual_machine.html#cloning-and-customization-example)
+in the documentation.
 
 BUG FIXES:
 
