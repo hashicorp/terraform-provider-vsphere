@@ -46,10 +46,11 @@ Several data sources are also used:
 ## Usage Details
 
 You can either clone the entire
-[terraform-provider-vsphere][ref-tf-vsphere-github] repository, or download
-the `variables.tf`, `data_sources.tf`, `resources.tf`, and `terraform.tfvars`
-files into a directory of your choice. Once done, edit the `terraform.tfvars`
-file, populating the fields with the relevant values.
+[terraform-provider-vsphere][ref-tf-vsphere-github] repository, or download the
+`variables.tf`, `data_sources.tf`, `resources.tf`, and
+`terraform.tfvars.example` files into a directory of your choice. Once done,
+edit the `terraform.tfvars.example` file, populating the fields with the
+relevant values, and then rename it to `terraform.tfvars`.
 
 [ref-tf-vsphere-github]: https://github.com/terraform-providers/terraform-provider-vsphere
 
