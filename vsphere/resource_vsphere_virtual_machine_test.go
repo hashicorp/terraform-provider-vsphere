@@ -851,8 +851,27 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereVirtualMachineCheckExists(true),
 							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("example_key", "example value"),
+							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("another_key", ""),
 						),
 					},
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigCloneUpdatingVAppProperties(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("another_key", "another value"),
+							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("example_key", "new value"),
+						),
+					},
+					// This test is commented out because removing a value does not work with the current implementation.
+					// This seems like it may be a limitation of the vSphere API or or client implementation.
+					// {
+					// 	Config: testAccResourceVSphereVirtualMachineConfigCloneWithVAppProperties(),
+					// 	Check: resource.ComposeTestCheckFunc(
+					// 		testAccResourceVSphereVirtualMachineCheckExists(true),
+					// 		testAccResourceVSphereVirtualMachineCheckVAppConfigKey("example_key", "example value"),
+					// 		testAccResourceVSphereVirtualMachineCheckVAppConfigKey("another_key", ""),
+					// 	),
+					// },
 				},
 			},
 		},
@@ -5829,12 +5848,97 @@ resource "vsphere_virtual_machine" "vm" {
 
   disk {
     name = "terraform-test.vmdk"
-    size = "${data.vsphere_virtual_machine.template.disk_sizes[0]}"
+    size = "${data.vsphere_virtual_machine.template.disks.0.size}"
   }
 
   vapp {
     properties {
       example_key = "example value"
+    }
+  }
+
+  clone {
+    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_TEMPLATE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigCloneUpdatingVAppProperties() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "template" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_virtual_machine" "template" {
+  name          = "${var.template}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+
+  network_interface {
+    network_id   = "${data.vsphere_network.network.id}"
+    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+  }
+
+  disk {
+    name = "terraform-test.vmdk"
+    size = "${data.vsphere_virtual_machine.template.disks.0.size}"
+  }
+
+  vapp {
+    properties {
+	  another_key = "another value"
+	  example_key = "new value"
     }
   }
 

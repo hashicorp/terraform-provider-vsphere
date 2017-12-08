@@ -523,24 +523,23 @@ func expandVAppConfig(d *schema.ResourceData) types.BaseVmConfigSpec {
 	var (
 		props  []types.VAppPropertySpec
 		allIds sort.StringSlice
-		oldMap map[string]interface{}
-		newMap map[string]interface{}
 	)
 
 	old, new := d.GetChange("vapp")
 
-	if len(old.([]interface{})) > 0 {
-		oldVApp := old.([]interface{})[0].(map[string]interface{})
-		if props, ok := oldVApp["properties"].(map[string]interface{}); ok {
-			oldMap = props
+	getVAppProps := func(val interface{}) map[string]interface{} {
+		vApps := val.([]interface{})
+		if vApps != nil && len(vApps) > 0 {
+			vApp := vApps[0].(map[string]interface{})
+			if props, ok := vApp["properties"].(map[string]interface{}); ok {
+				return props
+			}
 		}
+		return make(map[string]interface{})
 	}
-	if len(new.([]interface{})) > 0 {
-		newVApp := new.([]interface{})[0].(map[string]interface{})
-		if props, ok := newVApp["properties"].(map[string]interface{}); ok {
-			newMap = props
-		}
-	}
+
+	oldMap := getVAppProps(old)
+	newMap := getVAppProps(new)
 
 	for k := range oldMap {
 		allIds = append(allIds, k)
