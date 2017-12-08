@@ -40,19 +40,24 @@ Several data sources are also used:
   have at least 3 hosts in a single cluster.
 * Your ESXi hosts should have at least one free NIC available.
 * The ESXi hosts should have access to an NFS server with an available share.
-* A suitably modern Linux VM that has a single snapshot configured and one
-  virtual disk. This needs to be customizable by your version of vSphere.
+* A suitably modern Linux VM with one virtual disk. This needs to be
+  customizable by your version of vSphere.
 
 ## Usage Details
 
 You can either clone the entire
 [terraform-provider-vsphere][ref-tf-vsphere-github] repository, or download the
-`variables.tf`, `data_sources.tf`, `resources.tf`, and
+`provider.tf`, `variables.tf`, `data_sources.tf`, `resources.tf`, and
 `terraform.tfvars.example` files into a directory of your choice. Once done,
 edit the `terraform.tfvars.example` file, populating the fields with the
-relevant values, and then rename it to `terraform.tfvars`.
+relevant values, and then rename it to `terraform.tfvars`. Don't forget to
+configure your endpoint and credentials by either adding them to the
+`provider.tf` file, or by using enviornment variables. See
+[here][ref-tf-vsphere-provider-settings] for a reference on provider-level
+configuration values.
 
 [ref-tf-vsphere-github]: https://github.com/terraform-providers/terraform-provider-vsphere
+[ref-tf-vsphere-provider-settings]: https://www.terraform.io/docs/providers/vsphere/index.html#argument-reference
 
 Once done, run `terraform init`, and `terraform plan` to review the plan, then
 `terraform apply` to execute. If you use Terraform 0.11.0 or higher, you can

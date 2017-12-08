@@ -58,15 +58,12 @@ resource "vsphere_virtual_machine" "example_virtual_machines" {
   }
 
   disk {
-    name             = "${var.virtual_machine_name_prefix}${count.index}.vmdk"
-    size             = "${data.vsphere_virtual_machine.example_template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.example_template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.example_template.disks.0.thin_provisioned}"
+    name = "${var.virtual_machine_name_prefix}${count.index}.vmdk"
+    size = "${data.vsphere_virtual_machine.example_template.disks.0.size}"
   }
 
   clone {
     template_uuid = "${data.vsphere_virtual_machine.example_template.id}"
-    linked_clone  = true
 
     customize {
       linux_options {
