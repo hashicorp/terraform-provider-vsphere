@@ -5833,7 +5833,9 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   vapp {
-    example_key = "example value"
+    properties {
+      example_key = "example value"
+    }
   }
 
   clone {

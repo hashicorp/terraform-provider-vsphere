@@ -153,10 +153,11 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Elem:        &schema.Resource{Schema: vmworkflow.VirtualMachineCloneSchema()},
 		},
 		"vapp": {
-			Type:        schema.TypeMap,
+			Type:        schema.TypeList,
 			Optional:    true,
 			Description: "vApp configuration data for this virtual machine. Can be used to provide configuration data for OVF images.",
-			Elem:        schema.TypeString,
+			MaxItems:    1,
+			Elem:        &schema.Resource{Schema: VAppSubresourceSchema()},
 		},
 		"reboot_required": {
 			Type:        schema.TypeBool,
@@ -195,6 +196,21 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		SchemaVersion: 2,
 		MigrateState:  resourceVSphereVirtualMachineMigrateState,
 		Schema:        s,
+	}
+}
+
+// VAppSchema represents the schema for the vApp sub-resource.
+//
+// This sub-resource allows the customization of vApp properties
+// on cloned VMs.
+func VAppSubresourceSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"properties": {
+			Type:        schema.TypeMap,
+			Optional:    true,
+			Description: "A map of customizable vApp properties and their values. Allows customization of VMs cloned from OVF templates which have customizable vApp properties.",
+			Elem:        schema.TypeString,
+		},
 	}
 }
 

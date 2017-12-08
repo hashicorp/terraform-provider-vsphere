@@ -523,11 +523,24 @@ func expandVAppConfig(d *schema.ResourceData) types.BaseVmConfigSpec {
 	var (
 		props  []types.VAppPropertySpec
 		allIds sort.StringSlice
+		oldMap map[string]interface{}
+		newMap map[string]interface{}
 	)
 
 	old, new := d.GetChange("vapp")
-	oldMap := old.(map[string]interface{})
-	newMap := new.(map[string]interface{})
+
+	if len(old.([]interface{})) > 0 {
+		oldVApp := old.([]interface{})[0].(map[string]interface{})
+		if props, ok := oldVApp["properties"].(map[string]interface{}); ok {
+			oldMap = props
+		}
+	}
+	if len(new.([]interface{})) > 0 {
+		newVApp := new.([]interface{})[0].(map[string]interface{})
+		if props, ok := newVApp["properties"].(map[string]interface{}); ok {
+			newMap = props
+		}
+	}
 
 	for k := range oldMap {
 		allIds = append(allIds, k)
@@ -589,14 +602,23 @@ func flattenVAppConfig(d *schema.ResourceData, config types.BaseVmConfigInfo) er
 		return nil
 	}
 	vac := make(map[string]interface{})
-	for _, v := range props {
-		for k := range d.Get("vapp").(map[string]interface{}) {
-			if v.Id == k {
-				vac[v.Id] = v.Value
+	vApp := d.Get("vapp").([]interface{})
+	if len(vApp) > 0 {
+		if vAppProps, ok := vApp[0].(map[string]interface{})["properties"]; ok {
+			for _, v := range props {
+				for k := range vAppProps.(map[string]interface{}) {
+					if v.Id == k {
+						vac[v.Id] = v.Value
+					}
+				}
 			}
 		}
 	}
-	return d.Set("vapp", vac)
+	return d.Set("vapp", []interface{}{
+		map[string]interface{}{
+			"properties": vac,
+		},
+	})
 }
 
 // expandCPUCountConfig is a helper for expandVirtualMachineConfigSpec that
