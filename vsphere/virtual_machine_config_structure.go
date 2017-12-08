@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"reflect"
+	"sort"
 
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -508,6 +509,96 @@ func flattenExtraConfig(d *schema.ResourceData, opts []types.BaseOptionValue) er
 	return d.Set("extra_config", ec)
 }
 
+// expandVAppConfig reads in all the vapp key/value pairs and returns
+// the appropriate VmConfigSpec.
+//
+// We track changes to keys to determine if any have been removed from
+// configuration - if they have, we add them with an empty value to ensure
+// they are removed from vAppConfig on the update.
+func expandVAppConfig(d *schema.ResourceData) types.BaseVmConfigSpec {
+	if !d.HasChange("vapp") {
+		return nil
+	}
+
+	var (
+		props  []types.VAppPropertySpec
+		allIds sort.StringSlice
+	)
+
+	old, new := d.GetChange("vapp")
+	oldMap := old.(map[string]interface{})
+	newMap := new.(map[string]interface{})
+
+	for k := range oldMap {
+		allIds = append(allIds, k)
+	}
+
+	for k := range newMap {
+		if _, ok := oldMap[k]; !ok {
+			allIds = append(allIds, k)
+		}
+	}
+	sort.Sort(allIds)
+
+	for i, k := range allIds {
+		_, isOld := oldMap[k]
+		_, isNew := newMap[k]
+
+		if isNew {
+			prop := types.VAppPropertySpec{
+				ArrayUpdateSpec: types.ArrayUpdateSpec{
+					Operation: types.ArrayUpdateOperationEdit,
+				},
+				Info: &types.VAppPropertyInfo{
+					Key:   int32(i) + 1,
+					Id:    k,
+					Value: newMap[k].(string),
+				},
+			}
+			props = append(props, prop)
+		} else if isOld {
+			prop := types.VAppPropertySpec{
+				ArrayUpdateSpec: types.ArrayUpdateSpec{
+					Operation: types.ArrayUpdateOperationEdit,
+				},
+				Info: &types.VAppPropertyInfo{
+					Key:   int32(i) + 1,
+					Id:    k,
+					Value: "",
+				},
+			}
+			props = append(props, prop)
+		}
+	}
+
+	// Done!
+	return &types.VmConfigSpec{
+		Property: props,
+	}
+}
+
+// flattenVAppConfig reads in the vAppConfig from a running virtual machine
+// and *only* sets the keys in vapp that we know about.
+func flattenVAppConfig(d *schema.ResourceData, config types.BaseVmConfigInfo) error {
+	if config == nil {
+		return nil
+	}
+	props := config.GetVmConfigInfo().Property
+	if len(props) < 1 {
+		// No props to read is a no-op
+		return nil
+	}
+	vac := make(map[string]interface{})
+	for _, v := range props {
+		for k := range d.Get("vapp").(map[string]interface{}) {
+			if v.Id == k {
+				vac[v.Id] = v.Value
+			}
+		}
+	}
+	return d.Set("vapp", vac)
+}
+
 // expandCPUCountConfig is a helper for expandVirtualMachineConfigSpec that
 // determines if we need to restart the VM due to a change in CPU count. This
 // is determined by the net change in CPU count and the pre-update values of
@@ -589,6 +680,7 @@ func expandVirtualMachineConfigSpec(d *schema.ResourceData, client *govmomi.Clie
 		ExtraConfig:         expandExtraConfig(d),
 		SwapPlacement:       getWithRestart(d, "swap_placement_policy").(string),
 		BootOptions:         expandVirtualMachineBootOptions(d, client),
+		VAppConfig:          expandVAppConfig(d),
 		Firmware:            getWithRestart(d, "firmware").(string),
 		NestedHVEnabled:     getBoolWithRestart(d, "nested_hv_enabled"),
 		VPMCEnabled:         getBoolWithRestart(d, "cpu_performance_counters_enabled"),
@@ -632,6 +724,9 @@ func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualM
 		return err
 	}
 	if err := flattenExtraConfig(d, obj.ExtraConfig); err != nil {
+		return err
+	}
+	if err := flattenVAppConfig(d, obj.VAppConfig); err != nil {
 		return err
 	}
 

@@ -152,6 +152,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			MaxItems:    1,
 			Elem:        &schema.Resource{Schema: vmworkflow.VirtualMachineCloneSchema()},
 		},
+		"vapp": {
+			Type:        schema.TypeMap,
+			Optional:    true,
+			Description: "vApp configuration data for this virtual machine. Can be used to provide configuration data for OVF images.",
+			Elem:        schema.TypeString,
+		},
 		"reboot_required": {
 			Type:        schema.TypeBool,
 			Computed:    true,
