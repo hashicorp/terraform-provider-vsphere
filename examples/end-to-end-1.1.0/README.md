@@ -36,11 +36,12 @@ Several data sources are also used:
 
 ## Requirements
 
-* A working vCenter installation. This example does not support ESXi.
+* A working vCenter installation. This example does not support ESXi. You must
+  have at least 3 hosts in a single cluster.
 * Your ESXi hosts should have at least one free NIC available.
 * The ESXi hosts should have access to an NFS server with an available share.
-* A suitably modern Linux VM that has a single snapshot configured. This needs
-  to be customizable by your version of vSphere.
+* A suitably modern Linux VM that has a single snapshot configured and one
+  virtual disk. This needs to be customizable by your version of vSphere.
 
 ## Usage Details
 
