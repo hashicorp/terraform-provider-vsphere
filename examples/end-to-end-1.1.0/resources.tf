@@ -43,39 +43,40 @@ resource "vsphere_distributed_port_group" "example_port_group" {
 // host.
 resource "vsphere_virtual_machine" "example_virtual_machines" {
   count            = "${length(var.esxi_hosts)}"
-  name             = "${var.virtual_machine_name}${count.index}"
+  name             = "${var.virtual_machine_name_prefix}${count.index}"
   resource_pool_id = "${data.vsphere_resource_pool.example_resource_pool.id}"
+  host_system_id   = "${data.vsphere_host.example_hosts.*.id[count.index]}"
   datastore_id     = "${vsphere_nas_datastore.example_datastore.id}"
 
   num_cpus = 2
   memory   = 1024
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = "${data.vsphere_virtual_machine.example_template.guest_id}"
 
   network_interface {
     network_id   = "${vsphere_distributed_port_group.example_port_group.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    adapter_type = "${data.vsphere_virtual_machine.example_template.network_interface_types[0]}"
   }
 
   disk {
-    name             = "${var.virtual_machine_name}${count.index}.vmdk"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    name             = "${var.virtual_machine_name_prefix}${count.index}.vmdk"
+    size             = "${data.vsphere_virtual_machine.example_template.disks.0.size}"
+    eagerly_scrub    = "${data.vsphere_virtual_machine.example_template.disks.0.eagerly_scrub}"
+    thin_provisioned = "${data.vsphere_virtual_machine.example_template.disks.0.thin_provisioned}"
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    template_uuid = "${data.vsphere_virtual_machine.example_template.id}"
     linked_clone  = true
 
     customize {
       linux_options {
-        host_name = "${var.virtual_machine_name}${count.index}"
+        host_name = "${var.virtual_machine_name_prefix}${count.index}"
         domain    = "${var.virtual_machine_domain}"
       }
 
       network_interface {
         ipv4_address = "${cidrhost(var.virtual_machine_network_address, var.virtual_machine_ip_address_start + count.index)}"
-        ipv4_netmask = "${split("/", var.virtual_machine_network_address)}"
+        ipv4_netmask = "${element(split("/", var.virtual_machine_network_address), 1)}"
       }
 
       ipv4_gateway    = "${var.virtual_machine_gateway}"

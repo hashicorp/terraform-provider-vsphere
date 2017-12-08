@@ -20,9 +20,7 @@ virtual_machine_name_prefix = "e2e-test"
 
 virtual_machine_domain = "vsphere.local"
 
-virtual_machine_ipaddr_begin = "10.0.0.100"
-
-virtual_machine_netmask = "24"
+virtual_machine_network_address = "10.0.0.0/24"
 
 virtual_machine_gateway = "10.0.0.1"
 
