@@ -21,6 +21,39 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+// diskReadNameMismatchError is a "friendly" error message that's displayed if
+// for some reason there is a mismatch between the original name of a disk, and
+// the name found by Terraform. This can happen if disk device configuration is
+// significantly changed manually, or if a snapshot chain is broken (can happen
+// when linked clones are storage vMotioned).
+const diskReadNameMismatchError = `
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Terraform discovered a different virtual disk than expected:
+
+Virtual machine: %s
+Device key:      %d
+Device address:  %s
+Expected disk:   %s
+Actual disk:     %s
+
+Possible causes are:
+
+* The disk configuration was significantly modified outside of Terraform.
+* The disk has snapshots and Terraform cannot trace back to the original disk.
+* The virtual machine is a linked clone that was migrated to another datastore
+
+Terraform cannot continue. If at all possible, manually correct the
+configuration of the virtual machine, run "terraform plan", and carefully
+review the changes, if any, for correctness and consistency.
+
+If you have received this message and the following does not apply, please open
+an issue at
+https://github.com/terraform-providers/terraform-provider-vsphere/issues
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+`
+
 // diskDeletedName is a placeholder name for deleted disks. This is to assist
 // with user-friendliness in the diff.
 const diskDeletedName = "<deleted>"
@@ -1044,6 +1077,22 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	dp := &object.DatastorePath{}
 	if ok := dp.FromString(name); !ok {
 		return fmt.Errorf("could not parse path from filename: %s", b.FileName)
+	}
+
+	// Validate that our names match on the base. If they don't, something is seriously wrong.
+	if origName != nil && origName.(string) != "" {
+		ob := path.Base(origName.(string))
+		cb := path.Base(dp.Path)
+		if ob != cb {
+			return fmt.Errorf(
+				diskReadNameMismatchError,
+				r.rdd.Get("name").(string),
+				r.Get("key").(int),
+				r.Get("device_address").(string),
+				ob,
+				cb,
+			)
+		}
 	}
 	r.Set("name", dp.Path)
 
