@@ -237,6 +237,49 @@ resource "vsphere_virtual_machine" "vm" {
 }
 ```
 
+#### Parameterizing virtual machine name during cloning
+
+If you parameterize your virtual machine name, keep in mind that Terraform will
+block a virtual machine rename operation if it detects that doing so may cause
+accidental deletion of any virtual disks that may bear the name. This is
+required when cloning, so it's important to stabilize the disk name somehow.
+
+This can be accomplished using [`null_resource`][tf-null-resource] in the
+following fashion, using `ignore_changes` to block any incoming updates to the
+controlling variable. An example is below:
+
+[tf-null-resource]: /docs/providers/null/resource.html
+
+```hcl
+variable "vm_name" {
+  default = "terraform-test"
+}
+
+resource "null_resource" "disk_prefix" {
+  triggers = {
+    prefix = "${var.vm_name}"
+  }
+
+  lifecycle {
+    ignore_changes = [
+      "triggers",
+    ]
+  }
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name = "${var.vm_name}"
+  ...
+
+  disk {
+    name = "${null_resource.disk_prefix.triggers.prefix}.vmdk"
+    ...
+  }
+  ...
+ }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:

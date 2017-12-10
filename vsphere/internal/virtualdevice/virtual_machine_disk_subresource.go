@@ -21,6 +21,40 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+// diskDeleteRenameError is a "friendly" error message that's displayed if
+// Terraform suspects a large disk deletion that could be the result of a
+// virtual machine rename where the source of the rename is a variable that is
+// also being used to determine the name of the disks. This is a common pattern
+// (currently) and hence needs to be guarded against.
+const diskDeleteRenameError = `
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Terraform discovered disks that were being deleted or detached that contained
+the old virtual machine name during a virtual machine rename operation:
+
+Old virtual machine name: %s
+New virtual machine name: %s
+
+Disks being deleted or detached:
+%s
+
+To prevent accidental deletion when disk names are parameterized, Terraform
+prohibits this operation from proceeding.
+
+If this is intentional, please configure the virtual machine so that the
+virtual machine is renamed before the disks are removed.
+
+For tips on how to successfully parameterize virtual machine disk names that
+are based on the name of the virtual machine, see the documentation at
+https://www.terraform.io/docs/providers/vsphere/r/virtual_machine.html
+
+If you have received this message and the following does not apply, please open
+an issue at
+https://github.com/terraform-providers/terraform-provider-vsphere/issues
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+`
+
 // diskDeletedName is a placeholder name for deleted disks. This is to assist
 // with user-friendliness in the diff.
 const diskDeletedName = "<deleted>"
@@ -433,6 +467,38 @@ func DiskDestroyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 	return spec, nil
 }
 
+// protectDiskDeleteRename is a fail-safe to prevent a VM rename operation from
+// accidentally deleting any disks that may be based on the previous name of
+// the virtual machine. This scenario is plausible when using a common variable
+// to help name both the virtual machine and the disks associated with it.
+func protectDiskDeleteRename(d *schema.ResourceDiff, old, new []interface{}) error {
+	o, n := d.GetChange("name")
+	oldVMName := o.(string)
+	newVMName := n.(string)
+
+	var deletedDisks []string
+
+	for i, ov := range old {
+		om := ov.(map[string]interface{})
+		oldDiskName := om["name"].(string)
+		if i >= len(new) {
+			break
+		}
+		if !strings.Contains(oldDiskName, oldVMName) {
+			continue
+		}
+		nm := new[i].(map[string]interface{})
+		newDiskName := nm["name"].(string)
+		if newDiskName == diskDeletedName || newDiskName == diskDetachedName {
+			deletedDisks = append(deletedDisks, oldDiskName)
+		}
+	}
+	if len(deletedDisks) > 0 {
+		return fmt.Errorf(diskDeleteRenameError, oldVMName, newVMName, strings.Join(deletedDisks, "\n"))
+	}
+	return nil
+}
+
 // DiskDiffOperation performs operations relevant to managing the diff on disk
 // sub-resources.
 //
@@ -537,6 +603,16 @@ nextNew:
 			nm["name"] = diskDeletedName
 		}
 		normalized[ni] = nm
+	}
+
+	// Guard against an accidental deletion scenario that can reasonably come up
+	// when the name of the virtual machine and the logic for naming disks share
+	// a common variable. This can lead to issues when the variable is changed to
+	// rename the virtual machine.
+	if d.HasChange("name") {
+		if err := protectDiskDeleteRename(d, ods, normalized); err != nil {
+			return err
+		}
 	}
 
 	// All done. We can end the customization off by setting the new, normalized diff.
