@@ -1,4 +1,12 @@
 ## 1.1.1 (Unreleased)
+
+IMPROVEMENTS:
+
+* `resource/vsphere_virtual_machine`: The resource now attempts to detect unsafe
+  disk deletion scenarios that can happen from the renaming of a virtual machine
+  in situations where the VM and disk names may share a common variable. The
+  provider will block such operations from proceeding. [GH-305]
+
 ## 1.1.0 (December 07, 2017)
 
 BREAKING CHANGES:
