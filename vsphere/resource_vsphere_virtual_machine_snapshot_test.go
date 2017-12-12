@@ -202,7 +202,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   disk {
     name = "terraform-test.vmdk"
-    size = "${data.vsphere_virtual_machine.template.disk_sizes[0]}"
+    size = "${data.vsphere_virtual_machine.template.disks.0.size}"
   }
 
   clone {
