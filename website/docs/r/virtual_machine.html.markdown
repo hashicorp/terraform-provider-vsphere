@@ -331,7 +331,7 @@ options:
   when `guest_id` is `other` or `other-64`.
 * `annotation` - (Optional) A user-provided description of the virtual machine.
   The default is no annotation.
- `firmware` - (Optional) The firmware interface to use on the virtual machine.
+* `firmware` - (Optional) The firmware interface to use on the virtual machine.
   Can be one of `bios` or `EFI`. Default: `bios`.
 * `extra_config` - (Optional) Extra configuration data for this virtual
   machine. Can be used to supply advanced parameters not normally in
