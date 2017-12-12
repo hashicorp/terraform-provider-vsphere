@@ -510,8 +510,8 @@ func testGetDatastore(s *terraform.State, resAddr string) (*object.Datastore, er
 
 // testGetDatastoreProperties is a convenience method that adds an extra step
 // to testGetDatastore to get the properties of a datastore.
-func testGetDatastoreProperties(s *terraform.State, resourceName string) (*mo.Datastore, error) {
-	ds, err := testGetDatastore(s, "vsphere_vmfs_datastore."+resourceName)
+func testGetDatastoreProperties(s *terraform.State, datastoreType string, resourceName string) (*mo.Datastore, error) {
+	ds, err := testGetDatastore(s, "vsphere_"+datastoreType+"_datastore."+resourceName)
 	if err != nil {
 		return nil, err
 	}

@@ -258,6 +258,53 @@ func TestAccResourceVSphereNasDatastore(t *testing.T) {
 				},
 			},
 		},
+		{
+			"single custom attribute",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereNasDatastorePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereNasDatastoreConfigSingleCustomAttribute(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereNasDatastoreExists(true),
+							testAccResourceVSphereNasDatastoreHasCustomAttributes(),
+						),
+					},
+				},
+			},
+		},
+		{
+			"multi custom attribute",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereNasDatastorePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereNasDatastoreConfigSingleCustomAttribute(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereNasDatastoreExists(true),
+							testAccResourceVSphereNasDatastoreHasCustomAttributes(),
+						),
+					},
+					{
+						Config: testAccResourceVSphereNasDatastoreConfigMultiCustomAttributes(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereNasDatastoreExists(true),
+							testAccResourceVSphereNasDatastoreHasCustomAttributes(),
+						),
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testAccResourceVSphereNasDatastoreCases {
@@ -342,6 +389,16 @@ func testAccResourceVSphereNasDatastoreMatchInventoryPath(expected string) resou
 			return fmt.Errorf("expected path to be %s, got %s", expected, actual)
 		}
 		return nil
+	}
+}
+
+func testAccResourceVSphereNasDatastoreHasCustomAttributes() resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetDatastoreProperties(s, "nas", "datastore")
+		if err != nil {
+			return err
+		}
+		return testResourceHasCustomAttributeValues(s, "vsphere_nas_datastore", "datastore", props.Entity())
 	}
 }
 
@@ -593,6 +650,102 @@ resource "vsphere_nas_datastore" "datastore" {
   remote_path  = "${var.nfs_path}"
 
   tags = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
+}
+`, os.Getenv("VSPHERE_NAS_HOST"), os.Getenv("VSPHERE_NFS_PATH"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+}
+
+func testAccResourceVSphereNasDatastoreConfigSingleCustomAttribute() string {
+	return fmt.Sprintf(`
+variable "nfs_host" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "nfs_path" {
+  type    = "string"
+  default = "%s"
+}
+
+data "vsphere_datacenter" "datacenter" {
+  name = "%s"
+}
+
+data "vsphere_host" "esxi_host" {
+  name          = "%s"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
+resource "vsphere_custom_attribute" "terraform-test-attribute" {
+  name                = "terraform-test-attribute"
+  managed_object_type = "Datastore"
+}
+
+locals {
+  nas_attrs = {
+    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
+  }
+}
+
+resource "vsphere_nas_datastore" "datastore" {
+  name            = "terraform-test-nas"
+  host_system_ids = ["${data.vsphere_host.esxi_host.id}"]
+
+  type         = "NFS"
+  remote_hosts = ["${var.nfs_host}"]
+  remote_path  = "${var.nfs_path}"
+
+  custom_attributes = "${local.nas_attrs}"
+}
+`, os.Getenv("VSPHERE_NAS_HOST"), os.Getenv("VSPHERE_NFS_PATH"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+}
+
+func testAccResourceVSphereNasDatastoreConfigMultiCustomAttributes() string {
+	return fmt.Sprintf(`
+variable "nfs_host" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "nfs_path" {
+  type    = "string"
+  default = "%s"
+}
+
+data "vsphere_datacenter" "datacenter" {
+  name = "%s"
+}
+
+data "vsphere_host" "esxi_host" {
+  name          = "%s"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
+resource "vsphere_custom_attribute" "terraform-test-attribute" {
+  name                = "terraform-test-attribute"
+  managed_object_type = "Datastore"
+}
+
+resource "vsphere_custom_attribute" "terraform-test-attribute-2" {
+  name                = "terraform-test-attribute-2"
+  managed_object_type = "Datastore"
+}
+
+locals {
+  nas_attrs = {
+    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
+    "${vsphere_custom_attribute.terraform-test-attribute-2.id}" = "value-2"
+  }
+}
+
+resource "vsphere_nas_datastore" "datastore" {
+  name            = "terraform-test-nas"
+  host_system_ids = ["${data.vsphere_host.esxi_host.id}"]
+
+  type         = "NFS"
+  remote_hosts = ["${var.nfs_host}"]
+  remote_path  = "${var.nfs_path}"
+
+  custom_attributes = "${local.nas_attrs}"
 }
 `, os.Getenv("VSPHERE_NAS_HOST"), os.Getenv("VSPHERE_NFS_PATH"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
 }

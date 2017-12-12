@@ -439,7 +439,7 @@ func testAccResourceVSphereVmfsDatastoreMatchInventoryPath(expected string) reso
 
 func testAccResourceVSphereVmfsDatastoreHasCustomAttributes() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		props, err := testGetDatastoreProperties(s, "datastore")
+		props, err := testGetDatastoreProperties(s, "vmfs", "datastore")
 		if err != nil {
 			return err
 		}
