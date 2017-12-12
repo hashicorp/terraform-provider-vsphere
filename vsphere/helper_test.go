@@ -508,6 +508,16 @@ func testGetDatastore(s *terraform.State, resAddr string) (*object.Datastore, er
 	return datastore.FromID(vars.client, vars.resourceID)
 }
 
+// testGetDatastoreProperties is a convenience method that adds an extra step
+// to testGetDatastore to get the properties of a datastore.
+func testGetDatastoreProperties(s *terraform.State, resourceName string) (*mo.Datastore, error) {
+	ds, err := testGetDatastore(s, "vsphere_vmfs_datastore."+resourceName)
+	if err != nil {
+		return nil, err
+	}
+	return datastore.Properties(ds)
+}
+
 // testAccResourceVSphereDatastoreCheckTags is a check to ensure that the
 // supplied datastore has had the tags that have been created with the supplied
 // tag resource name attached.

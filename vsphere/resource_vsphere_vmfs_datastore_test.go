@@ -303,6 +303,53 @@ func TestAccResourceVSphereVmfsDatastore(t *testing.T) {
 				},
 			},
 		},
+		{
+			"single custom attribute",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVmfsDatastorePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVmfsDatastoreExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVmfsDatastoreConfigCustomAttributes(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVmfsDatastoreExists(true),
+							testAccResourceVSphereVmfsDatastoreHasCustomAttributes(),
+						),
+					},
+				},
+			},
+		},
+		{
+			"multi custom attribute",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVmfsDatastorePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVmfsDatastoreExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVmfsDatastoreConfigCustomAttributes(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVmfsDatastoreExists(true),
+							testAccResourceVSphereVmfsDatastoreHasCustomAttributes(),
+						),
+					},
+					{
+						Config: testAccResourceVSphereVmfsDatastoreConfigMultiCustomAttributes(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVmfsDatastoreExists(true),
+							testAccResourceVSphereVmfsDatastoreHasCustomAttributes(),
+						),
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testAccResourceVSphereVmfsDatastoreCases {
@@ -387,6 +434,16 @@ func testAccResourceVSphereVmfsDatastoreMatchInventoryPath(expected string) reso
 			return fmt.Errorf("expected path to be %s, got %s", expected, actual)
 		}
 		return nil
+	}
+}
+
+func testAccResourceVSphereVmfsDatastoreHasCustomAttributes() resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetDatastoreProperties(s, "datastore")
+		if err != nil {
+			return err
+		}
+		return testResourceHasCustomAttributeValues(s, "vsphere_vmfs_datastore", "datastore", props.Entity())
 	}
 }
 
@@ -712,4 +769,90 @@ resource "vsphere_vmfs_datastore" "datastore" {
   ]
 }
 `, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DS_VMFS_DISK1"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+}
+
+func testAccResourceVSphereVmfsDatastoreConfigCustomAttributes() string {
+	return fmt.Sprintf(`
+variable "disk0" {
+  type    = "string"
+  default = "%s"
+}
+
+data "vsphere_datacenter" "datacenter" {
+  name = "%s"
+}
+
+data "vsphere_host" "esxi_host" {
+  name          = "%s"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
+resource "vsphere_custom_attribute" "terraform-test-attribute" {
+  name                = "terraform-test-attribute"
+  managed_object_type = "Datastore"
+}
+
+locals {
+  vmfs_attrs = {
+    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
+  }
+}
+
+resource "vsphere_vmfs_datastore" "datastore" {
+  name           = "terraform-test"
+  host_system_id = "${data.vsphere_host.esxi_host.id}"
+
+  disks = [
+    "${var.disk0}",
+  ]
+
+  custom_attributes = "${local.vmfs_attrs}"
+}
+`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+}
+
+func testAccResourceVSphereVmfsDatastoreConfigMultiCustomAttributes() string {
+	return fmt.Sprintf(`
+variable "disk0" {
+  type    = "string"
+  default = "%s"
+}
+
+data "vsphere_datacenter" "datacenter" {
+  name = "%s"
+}
+
+data "vsphere_host" "esxi_host" {
+  name          = "%s"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
+resource "vsphere_custom_attribute" "terraform-test-attribute" {
+  name                = "terraform-test-attribute"
+  managed_object_type = "Datastore"
+}
+
+resource "vsphere_custom_attribute" "terraform-test-attribute-2" {
+  name                = "terraform-test-attribute-2"
+  managed_object_type = "Datastore"
+}
+
+locals {
+  vmfs_attrs = {
+    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
+    "${vsphere_custom_attribute.terraform-test-attribute-2.id}" = "value-2"
+  }
+}
+
+resource "vsphere_vmfs_datastore" "datastore" {
+  name           = "terraform-test"
+  host_system_id = "${data.vsphere_host.esxi_host.id}"
+
+  disks = [
+    "${var.disk0}",
+  ]
+
+  custom_attributes = "${local.vmfs_attrs}"
+}
+`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
 }
