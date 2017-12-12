@@ -13,6 +13,8 @@ website][tf-website] and the [GitHub project page][tf-github].
 [tf-website]: https://terraform.io/
 [tf-github]: https://github.com/hashicorp/terraform
 
+This provider plugin is maintained by the Terraform team at [HashiCorp](https://www.hashicorp.com/).
+
 # Using the Provider
 
 The current version of this provider requires Terraform v0.10.2 or higher to
