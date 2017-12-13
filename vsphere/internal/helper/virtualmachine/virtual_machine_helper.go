@@ -56,6 +56,21 @@ func FromUUID(client *govmomi.Client, uuid string) (*object.VirtualMachine, erro
 	return vm.(*object.VirtualMachine), nil
 }
 
+// FromUUIDOrPath attempts to locate a virtualMachine by UUID, and if that fails,
+// it falls back on path.
+func FromUUIDOrPath(client *govmomi.Client, uuid, path string, dc *object.Datacenter) (*object.VirtualMachine, error) {
+	vm, err := FromUUID(client, uuid)
+	if err != nil {
+		log.Printf("[DEBUG] VM not found for UUID %q, searching with path %q", uuid, path)
+		vm, err = FromPath(client, path, dc)
+		if err != nil {
+			return nil, err
+		}
+		log.Printf("[DEBUG] VM %q found for path %q", vm.InventoryPath, path)
+	}
+	return vm, nil
+}
+
 // FromMOID locates a virtualMachine by its managed
 // object reference ID.
 func FromMOID(client *govmomi.Client, id string) (*object.VirtualMachine, error) {
