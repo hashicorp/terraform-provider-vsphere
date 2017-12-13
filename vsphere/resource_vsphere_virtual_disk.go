@@ -8,6 +8,7 @@ import (
 	"path"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datacenter"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -127,7 +128,7 @@ func resourceVSphereVirtualDiskCreate(d *schema.ResourceData, meta interface{}) 
 
 	finder := find.NewFinder(client.Client, true)
 
-	dc, err := getDatacenter(client, d.Get("datacenter").(string))
+	dc, err := datacenter.GetDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
 		return fmt.Errorf("Error finding Datacenter: %s: %s", vDisk.datacenter, err)
 	}
@@ -177,7 +178,7 @@ func resourceVSphereVirtualDiskRead(d *schema.ResourceData, meta interface{}) er
 		vDisk.datastore = v.(string)
 	}
 
-	dc, err := getDatacenter(client, d.Get("datacenter").(string))
+	dc, err := datacenter.GetDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
 		return err
 	}
@@ -275,7 +276,7 @@ func resourceVSphereVirtualDiskDelete(d *schema.ResourceData, meta interface{}) 
 		vDisk.datastore = v.(string)
 	}
 
-	dc, err := getDatacenter(client, d.Get("datacenter").(string))
+	dc, err := datacenter.GetDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
 		return err
 	}
@@ -309,7 +310,7 @@ func resourceVSphereVirtualDiskDelete(d *schema.ResourceData, meta interface{}) 
 }
 
 // createHardDisk creates a new Hard Disk.
-func createHardDisk(client *govmomi.Client, size int, diskPath string, diskType string, adapterType string, dc string) error {
+func createHardDisk(client *govmomi.Client, size int, diskPath string, diskType string, adapterType string, dcName string) error {
 	var vDiskType string
 	switch diskType {
 	case "thin":
@@ -328,13 +329,13 @@ func createHardDisk(client *govmomi.Client, size int, diskPath string, diskType 
 		},
 		CapacityKb: int64(1024 * 1024 * size),
 	}
-	datacenter, err := getDatacenter(client, dc)
+	dc, err := datacenter.GetDatacenter(client, dcName)
 	if err != nil {
 		return err
 	}
 	log.Printf("[DEBUG] Disk spec: %v", spec)
 
-	task, err := virtualDiskManager.CreateVirtualDisk(context.TODO(), diskPath, datacenter, spec)
+	task, err := virtualDiskManager.CreateVirtualDisk(context.TODO(), diskPath, dc, spec)
 	if err != nil {
 		return err
 	}

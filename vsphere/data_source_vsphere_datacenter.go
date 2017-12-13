@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datacenter"
 )
 
 func dataSourceVSphereDatacenter() *schema.Resource {
@@ -22,8 +23,8 @@ func dataSourceVSphereDatacenter() *schema.Resource {
 
 func dataSourceVSphereDatacenterRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	datacenter := d.Get("name").(string)
-	dc, err := getDatacenter(client, datacenter)
+	dcName := d.Get("name").(string)
+	dc, err := datacenter.GetDatacenter(client, dcName)
 	if err != nil {
 		return fmt.Errorf("error fetching datacenter: %s", err)
 	}

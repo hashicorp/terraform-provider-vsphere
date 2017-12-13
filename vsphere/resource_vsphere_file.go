@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datacenter"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -291,11 +292,11 @@ func resourceVSphereFileUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		// Get old and new dataceter and datastore
 		client := meta.(*VSphereClient).vimClient
-		dcOld, err := getDatacenter(client, oldDataceneter)
+		dcOld, err := datacenter.GetDatacenter(client, oldDataceneter)
 		if err != nil {
 			return err
 		}
-		dcNew, err := getDatacenter(client, newDatacenter)
+		dcNew, err := datacenter.GetDatacenter(client, newDatacenter)
 		if err != nil {
 			return err
 		}
@@ -366,7 +367,7 @@ func resourceVSphereFileDelete(d *schema.ResourceData, meta interface{}) error {
 
 func deleteFile(client *govmomi.Client, f *file) error {
 
-	dc, err := getDatacenter(client, f.datacenter)
+	dc, err := datacenter.GetDatacenter(client, f.datacenter)
 	if err != nil {
 		return err
 	}

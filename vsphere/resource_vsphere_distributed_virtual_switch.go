@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datacenter"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
@@ -58,7 +59,7 @@ func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta 
 		return err
 	}
 
-	dc, err := datacenterFromID(client, d.Get("datacenter_id").(string))
+	dc, err := datacenter.FromID(client, d.Get("datacenter_id").(string))
 	if err != nil {
 		return fmt.Errorf("cannot locate datacenter: %s", err)
 	}
@@ -127,7 +128,7 @@ func resourceVSphereDistributedVirtualSwitchRead(d *schema.ResourceData, meta in
 	if err != nil {
 		return fmt.Errorf("error parsing datacenter from inventory path: %s", err)
 	}
-	dc, err := getDatacenter(client, dcp)
+	dc, err := datacenter.GetDatacenter(client, dcp)
 	if err != nil {
 		return fmt.Errorf("error locating datacenter: %s", err)
 	}
