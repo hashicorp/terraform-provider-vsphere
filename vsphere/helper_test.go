@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"regexp"
 	"strconv"
 	"testing"
@@ -304,6 +305,41 @@ func testRenameVMFirstDisk(s *terraform.State, resourceName string, new string) 
 		DeviceChange: dcSpec,
 	}
 	return virtualmachine.Reconfigure(vm, spec)
+}
+
+// testDeleteVMDisk deletes a VMDK file from the virtual machine directory. It
+// doesn't check configuration other than to look for the directory the VMX
+// file is in and is mainly meant to serve as a cleanup method.
+func testDeleteVMDisk(s *terraform.State, resourceName string, name string) error {
+	tVars, err := testClientVariablesForResource(s, "vsphere_virtual_machine.vm")
+	if err != nil {
+		return err
+	}
+	vm, err := testGetVirtualMachine(s, "vm")
+	if err != nil {
+		return err
+	}
+	props, err := testGetVirtualMachineProperties(s, "vm")
+	if err != nil {
+		return err
+	}
+	vmxPath, success := virtualdisk.DatastorePathFromString(props.Config.Files.VmPathName)
+	if !success {
+		return fmt.Errorf("could not parse VMX path %q", props.Config.Files.VmPathName)
+	}
+	dcp, err := folder.RootPathParticleVM.SplitDatacenter(vm.InventoryPath)
+	if err != nil {
+		return err
+	}
+	dc, err := getDatacenter(tVars.client, dcp)
+	if err != nil {
+		return err
+	}
+	p := &object.DatastorePath{
+		Datastore: vmxPath.Datastore,
+		Path:      path.Join(path.Dir(vmxPath.Path), name),
+	}
+	return virtualdisk.Delete(tVars.client, p.String(), dc)
 }
 
 // testGetTagCategory gets a tag category by name.

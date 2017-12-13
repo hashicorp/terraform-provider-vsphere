@@ -653,6 +653,18 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 							testCheckVMDiskFileExists("foobar.vmdk"),
 						),
 					},
+					// The last step is a cleanup step. This assumes the test is
+					// functional as the orphaned disk will be now detached and not
+					// deleted when the VM is destroyed.
+					{
+						PreConfig: func() {
+							if err := testDeleteVMDisk(state, "vm", "foobar.vmdk"); err != nil {
+								panic(err)
+							}
+						},
+						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+						Check:  resource.ComposeTestCheckFunc(),
+					},
 				},
 			},
 		},

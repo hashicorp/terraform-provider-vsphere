@@ -121,3 +121,25 @@ func dstDataStorePathFromLocalSrc(src, dst string) string {
 	}
 	return dstDP.String()
 }
+
+// Delete deletes the virtual disk at the specified datastore path.
+func Delete(client *govmomi.Client, name string, dc *object.Datacenter) error {
+	if dc == nil {
+		return fmt.Errorf("datacenter cannot be nil")
+	}
+	log.Printf("[DEBUG] Deleting virtual disk %q in datacenter %s", name, dc)
+	vdm := object.NewVirtualDiskManager(client.Client)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	task, err := vdm.DeleteVirtualDisk(ctx, name, dc)
+	if err != nil {
+		return err
+	}
+	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer tcancel()
+	if err := task.Wait(tctx); err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] Virtual disk %q in datacenter %s deleted succesfully", name, dc)
+	return nil
+}
