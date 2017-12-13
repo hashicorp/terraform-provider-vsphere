@@ -1121,6 +1121,26 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	if ok := dp.FromString(name); !ok {
 		return fmt.Errorf("could not parse path from filename: %s", b.FileName)
 	}
+	// Validate that our names match on the base. If they don't, the disk we are
+	// looking for has either disappeared completely, or the name has changed in
+	// a way that we can't track it anymore. Treat this like an orphaned disk and
+	// ensure that keep_on_remove is set.
+	if origName != nil && origName.(string) != "" {
+		ob := path.Base(origName.(string))
+		cb := path.Base(dp.Path)
+		if ob != cb {
+			log.Printf(
+				"[DEBUG] %q on virtual machine %q: Disk name mismatch (key: %d, device_address: %q, expected: %q actual: %q) - treating disk as orphaned",
+				r,
+				r.rdd.Get("name").(string),
+				r.Get("key").(int),
+				r.Get("device_address").(string),
+				ob,
+				cb,
+			)
+			r.Set("keep_on_remove", true)
+		}
+	}
 	r.Set("name", dp.Path)
 
 	// Disk settings
