@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/computeresource"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datacenter"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
@@ -2042,7 +2043,7 @@ func testCheckVMDiskFileExists(name string) resource.TestCheckFunc {
 		if err != nil {
 			return err
 		}
-		dc, err := getDatacenter(tVars.client, dcp)
+		dc, err := datacenter.GetDatacenter(tVars.client, dcp)
 		if err != nil {
 			return err
 		}
