@@ -2,6 +2,9 @@
 
 IMPROVEMENTS:
 
+* `resource/vsphere_virtual_machine`: The resource now treats disks that it does
+  not recognize at a known device address as orphaned, and will set
+  `keep_on_remove` to safely remove them. [GH-317]
 * `resource/vsphere_virtual_machine`: The resource now attempts to detect unsafe
   disk deletion scenarios that can happen from the renaming of a virtual machine
   in situations where the VM and disk names may share a common variable. The
