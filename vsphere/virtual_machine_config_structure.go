@@ -529,7 +529,7 @@ func expandVAppConfig(d *schema.ResourceData) types.BaseVmConfigSpec {
 
 	getVAppProps := func(val interface{}) map[string]interface{} {
 		vApps := val.([]interface{})
-		if vApps != nil && len(vApps) > 0 {
+		if vApps != nil && len(vApps) > 0 && vApps[0] != nil {
 			vApp := vApps[0].(map[string]interface{})
 			if props, ok := vApp["properties"].(map[string]interface{}); ok {
 				return props
@@ -602,7 +602,7 @@ func flattenVAppConfig(d *schema.ResourceData, config types.BaseVmConfigInfo) er
 	}
 	vac := make(map[string]interface{})
 	vApp := d.Get("vapp").([]interface{})
-	if len(vApp) > 0 {
+	if len(vApp) > 0 && vApp[0] != nil {
 		if vAppProps, ok := vApp[0].(map[string]interface{})["properties"]; ok {
 			for _, v := range props {
 				for k := range vAppProps.(map[string]interface{}) {
