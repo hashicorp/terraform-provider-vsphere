@@ -698,6 +698,13 @@ The options available in the `clone` sub-resource are:
 
 * `template_uuid` - (Required) The UUID of the source virtual machine or
   template.
+* `template_path` - (Optional) The path of the source virtual machine or
+  template. This can be used as a fallback for cloning VM templates on
+  vSphere versions which do not support finding templates by UUID. Requires
+  `template_datacenter_id` to be set.
+* `template_datacenter_id` - (Optional) The ID of the datacenter containing
+  the template at `template_path`. Will be ignored unless `template_path` is
+  also set.
 * `linked_clone` - (Optional) Clone this virtual machine from a snapshot.
   Templates must have a single snapshot only in order to be eligible. Default:
   `false`.
