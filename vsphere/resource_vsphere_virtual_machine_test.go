@@ -15,9 +15,11 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/computeresource"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualdisk"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
@@ -613,6 +615,55 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 							testAccResourceVSphereVirtualMachineCheckExists(true),
 							testAccResourceVSphereVirtualMachineCheckTags("terraform-test-tags-alt"),
 						),
+					},
+				},
+			},
+		},
+		{
+			"orphaned (renamed) disk in place of existing",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+						Check: resource.ComposeTestCheckFunc(
+							copyStatePtr(&state),
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+						),
+					},
+					{
+						PreConfig: func() {
+							if err := testRenameVMFirstDisk(state, "vm", "foobar.vmdk"); err != nil {
+								panic(err)
+							}
+						},
+						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							// The only real way we can check to see if this is actually
+							// functional in the current test framework is by checking that
+							// the file we renamed to was not deleted (this is due to a lack
+							// of ability to check diff in the test framework right now).
+							testCheckVMDiskFileExists("terraform-test.vmdk"),
+							testCheckVMDiskFileExists("foobar.vmdk"),
+						),
+					},
+					// The last step is a cleanup step. This assumes the test is
+					// functional as the orphaned disk will be now detached and not
+					// deleted when the VM is destroyed.
+					{
+						PreConfig: func() {
+							if err := testDeleteVMDisk(state, "vm", "foobar.vmdk"); err != nil {
+								panic(err)
+							}
+						},
+						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+						Check:  resource.ComposeTestCheckFunc(),
 					},
 				},
 			},
@@ -1967,6 +2018,50 @@ func testAccResourceVSphereVirtualMachineCheckNICCount(expected int) resource.Te
 	}
 }
 
+// testCheckVMDiskFileExists takes a VMDK filename and checks to see if it
+// exists within the same directory as the virtual machine's VMX file.
+func testCheckVMDiskFileExists(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		tVars, err := testClientVariablesForResource(s, "vsphere_virtual_machine.vm")
+		if err != nil {
+			return err
+		}
+		vm, err := testGetVirtualMachine(s, "vm")
+		if err != nil {
+			return err
+		}
+		props, err := testGetVirtualMachineProperties(s, "vm")
+		if err != nil {
+			return err
+		}
+		vmxPath, success := virtualdisk.DatastorePathFromString(props.Config.Files.VmPathName)
+		if !success {
+			return fmt.Errorf("could not parse VMX path %q", props.Config.Files.VmPathName)
+		}
+		dcp, err := folder.RootPathParticleVM.SplitDatacenter(vm.InventoryPath)
+		if err != nil {
+			return err
+		}
+		dc, err := getDatacenter(tVars.client, dcp)
+		if err != nil {
+			return err
+		}
+		ds, err := datastore.FromPath(tVars.client, vmxPath.Datastore, dc)
+		if err != nil {
+			return err
+		}
+		p := path.Join(path.Dir(vmxPath.Path), name)
+		exists, err := datastore.FileExists(ds, p)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return fmt.Errorf("file %q does not exist in datastore %q", p, ds.Name())
+		}
+		return nil
+	}
+}
+
 func testAccResourceVSphereVirtualMachineConfigBasic() string {
 	return fmt.Sprintf(`
 variable "datacenter" {
@@ -2012,7 +2107,7 @@ resource "vsphere_virtual_machine" "vm" {
   num_cpus = 2
   memory   = 2048
   guest_id = "other3xLinux64Guest"
-
+	
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
   }

@@ -390,3 +390,13 @@ func NormalizeValue(v interface{}) interface{} {
 	}
 	return v
 }
+
+// LogCond takes a boolean (which can be passed in as a bool or as a
+// conditional), and returns either the first value if true, and the second if
+// false. It's designed to be a "ternary" operator of sorts for logging.
+func LogCond(c bool, t, f interface{}) interface{} {
+	if c {
+		return t
+	}
+	return f
+}

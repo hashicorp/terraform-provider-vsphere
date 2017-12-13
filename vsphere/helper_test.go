@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"regexp"
 	"strconv"
 	"testing"
@@ -17,6 +18,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualdisk"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 	"github.com/vmware/govmomi"
@@ -224,6 +226,120 @@ func testPowerOffVM(s *terraform.State, resourceName string) error {
 		return fmt.Errorf("error waiting for poweroff: %s", err)
 	}
 	return nil
+}
+
+// testRenameVMFirstDisk renames the first disk in a virtual machine
+// configuration and re-attaches it to the virtual machine under the new name.
+func testRenameVMFirstDisk(s *terraform.State, resourceName string, new string) error {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_virtual_machine.%s", resourceName))
+	if err != nil {
+		return err
+	}
+	vm, err := testGetVirtualMachine(s, resourceName)
+	if err != nil {
+		return err
+	}
+	vprops, err := testGetVirtualMachineProperties(s, resourceName)
+	if err != nil {
+		return err
+	}
+	if err := testPowerOffVM(s, resourceName); err != nil {
+		return err
+	}
+	dcp, err := folder.RootPathParticleVM.SplitDatacenter(vm.InventoryPath)
+	if err != nil {
+		return err
+	}
+	dc, err := getDatacenter(tVars.client, dcp)
+	if err != nil {
+		return err
+	}
+
+	var dcSpec []types.BaseVirtualDeviceConfigSpec
+	for _, d := range vprops.Config.Hardware.Device {
+		if oldDisk, ok := d.(*types.VirtualDisk); ok {
+			newFileName, err := virtualdisk.Move(
+				tVars.client,
+				oldDisk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).FileName,
+				dc,
+				new,
+				nil,
+			)
+			if err != nil {
+				return err
+			}
+			newDisk := &types.VirtualDisk{
+				VirtualDevice: types.VirtualDevice{
+					Backing: &types.VirtualDiskFlatVer2BackingInfo{
+						VirtualDeviceFileBackingInfo: types.VirtualDeviceFileBackingInfo{
+							FileName: newFileName,
+						},
+						ThinProvisioned: oldDisk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).ThinProvisioned,
+						EagerlyScrub:    oldDisk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).EagerlyScrub,
+						DiskMode:        oldDisk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).DiskMode,
+					},
+				},
+			}
+			newDisk.ControllerKey = oldDisk.ControllerKey
+			newDisk.UnitNumber = oldDisk.UnitNumber
+
+			dspec, err := object.VirtualDeviceList{oldDisk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationRemove)
+			if err != nil {
+				return err
+			}
+			dspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
+			aspec, err := object.VirtualDeviceList{newDisk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
+			if err != nil {
+				return err
+			}
+			aspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
+			dcSpec = append(dcSpec, dspec...)
+			dcSpec = append(dcSpec, aspec...)
+			break
+		}
+	}
+	if len(dcSpec) < 1 {
+		return fmt.Errorf("could not find a virtual disk on virtual machine %q", vm.InventoryPath)
+	}
+	spec := types.VirtualMachineConfigSpec{
+		DeviceChange: dcSpec,
+	}
+	return virtualmachine.Reconfigure(vm, spec)
+}
+
+// testDeleteVMDisk deletes a VMDK file from the virtual machine directory. It
+// doesn't check configuration other than to look for the directory the VMX
+// file is in and is mainly meant to serve as a cleanup method.
+func testDeleteVMDisk(s *terraform.State, resourceName string, name string) error {
+	tVars, err := testClientVariablesForResource(s, "vsphere_virtual_machine.vm")
+	if err != nil {
+		return err
+	}
+	vm, err := testGetVirtualMachine(s, "vm")
+	if err != nil {
+		return err
+	}
+	props, err := testGetVirtualMachineProperties(s, "vm")
+	if err != nil {
+		return err
+	}
+	vmxPath, success := virtualdisk.DatastorePathFromString(props.Config.Files.VmPathName)
+	if !success {
+		return fmt.Errorf("could not parse VMX path %q", props.Config.Files.VmPathName)
+	}
+	dcp, err := folder.RootPathParticleVM.SplitDatacenter(vm.InventoryPath)
+	if err != nil {
+		return err
+	}
+	dc, err := getDatacenter(tVars.client, dcp)
+	if err != nil {
+		return err
+	}
+	p := &object.DatastorePath{
+		Datastore: vmxPath.Datastore,
+		Path:      path.Join(path.Dir(vmxPath.Path), name),
+	}
+	return virtualdisk.Delete(tVars.client, p.String(), dc)
 }
 
 // testGetTagCategory gets a tag category by name.
