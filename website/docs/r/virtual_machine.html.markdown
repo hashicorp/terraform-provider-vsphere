@@ -702,7 +702,7 @@ The options available in the `clone` sub-resource are:
   Templates must have a single snapshot only in order to be eligible. Default:
   `false`.
 * `timeout` - (Optional) The timeout, in minutes, to wait for the virtual
-  machine clone to complete. Default: 10 minutes.
+  machine clone to complete. Default: 30 minutes.
 * `customize` - (Optional) The customization spec for this clone. This allows
   the user to configure the virtual machine post-clone. For more details, see
   [virtual machine customization](#virtual-machine-customization).
