@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datacenter"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
@@ -250,7 +251,7 @@ func testRenameVMFirstDisk(s *terraform.State, resourceName string, new string) 
 	if err != nil {
 		return err
 	}
-	dc, err := getDatacenter(tVars.client, dcp)
+	dc, err := datacenter.GetDatacenter(tVars.client, dcp)
 	if err != nil {
 		return err
 	}
@@ -331,7 +332,7 @@ func testDeleteVMDisk(s *terraform.State, resourceName string, name string) erro
 	if err != nil {
 		return err
 	}
-	dc, err := getDatacenter(tVars.client, dcp)
+	dc, err := datacenter.GetDatacenter(tVars.client, dcp)
 	if err != nil {
 		return err
 	}

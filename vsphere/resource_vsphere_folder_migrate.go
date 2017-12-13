@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datacenter"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 )
 
@@ -53,7 +54,7 @@ func resourceVSphereFolderMigrateStateV1(s *terraform.InstanceState, meta interf
 	// Discover our datacenter first. This field can be empty, so we have to
 	// search for it as we normally would.
 	client := meta.(*VSphereClient).vimClient
-	dc, err := getDatacenter(client, dcp)
+	dc, err := datacenter.GetDatacenter(client, dcp)
 	if err != nil {
 		return err
 	}

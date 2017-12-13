@@ -56,6 +56,24 @@ func FromUUID(client *govmomi.Client, uuid string) (*object.VirtualMachine, erro
 	return vm.(*object.VirtualMachine), nil
 }
 
+// FromUUIDOrPath locates a virtualMachine by its UUID, falling back to
+// path if UUID is not available (e.g. for templates without a UUID assigned).
+func FromUUIDOrPath(client *govmomi.Client, uuid, path string, dc *object.Datacenter) (*object.VirtualMachine, error) {
+	vm, err := FromUUID(client, uuid)
+	if err != nil {
+		log.Printf("[DEBUG] Source VM with UUID %s not found", uuid)
+		log.Printf("[DEBUG] Falling back to using path")
+		vm, err = FromPath(client, path, dc)
+		if err != nil {
+			return nil, fmt.Errorf("cannot locate VM or template with path %q: %s", path, err)
+		}
+		log.Printf("[DEBUG] VM %q found for path %q", vm.InventoryPath, path)
+		return vm, nil
+	}
+	log.Printf("[DEBUG] VM %q found for UUID %q", vm.InventoryPath, uuid)
+	return vm, nil
+}
+
 // FromMOID locates a virtualMachine by its managed
 // object reference ID.
 func FromMOID(client *govmomi.Client, id string) (*object.VirtualMachine, error) {

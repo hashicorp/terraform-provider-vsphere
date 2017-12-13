@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datacenter"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/object"
@@ -74,7 +75,7 @@ func resourceVSphereFolderCreate(d *schema.ResourceData, meta interface{}) error
 	var dc *object.Datacenter
 	if dcID, ok := d.GetOk("datacenter_id"); ok {
 		var err error
-		dc, err = datacenterFromID(client, dcID.(string))
+		dc, err = datacenter.FromID(client, dcID.(string))
 		if err != nil {
 			return fmt.Errorf("cannot locate datacenter: %s", err)
 		}
@@ -136,7 +137,7 @@ func resourceVSphereFolderRead(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			return fmt.Errorf("cannot determine datacenter path: %s", err)
 		}
-		dc, err = getDatacenter(client, dcp)
+		dc, err = datacenter.GetDatacenter(client, dcp)
 		if err != nil {
 			return fmt.Errorf("cannot find datacenter from path %q: %s", dcp, err)
 		}
@@ -186,7 +187,7 @@ func resourceVSphereFolderUpdate(d *schema.ResourceData, meta interface{}) error
 	var dc *object.Datacenter
 	if dcID, ok := d.GetOk("datacenter_id"); ok {
 		var err error
-		dc, err = datacenterFromID(client, dcID.(string))
+		dc, err = datacenter.FromID(client, dcID.(string))
 		if err != nil {
 			return fmt.Errorf("cannot locate datacenter: %s", err)
 		}
