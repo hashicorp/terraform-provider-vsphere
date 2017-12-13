@@ -41,7 +41,7 @@ func VirtualMachineCloneSchema() map[string]*schema.Schema {
 			Type:        schema.TypeString,
 			Optional:    true,
 			ForceNew:    true,
-			Description: "The ID of the datacenter containing the source virtual machine or template. Use with template_path.",
+			Description: "The ID of the datacenter containing the template. Only required if using template_path.",
 		},
 		"linked_clone": {
 			Type:        schema.TypeBool,
@@ -77,11 +77,7 @@ func VirtualMachineCloneSchema() map[string]*schema.Schema {
 func ValidateVirtualMachineClone(d *schema.ResourceDiff, c *govmomi.Client) error {
 	tUUID := d.Get("clone.0.template_uuid").(string)
 	log.Printf("[DEBUG] ValidateVirtualMachineClone: Validating fitness of source VM/template %s", tUUID)
-	var tPath string
 	var dc *object.Datacenter
-	if path, ok := d.GetOk("clone.0.template_path"); ok {
-		tPath = path.(string)
-	}
 	if dcID, ok := d.GetOk("clone.0.template_datacenter_id"); ok {
 		var err error
 		dc, err = datacenter.FromID(c, dcID.(string))
@@ -89,6 +85,10 @@ func ValidateVirtualMachineClone(d *schema.ResourceDiff, c *govmomi.Client) erro
 			return fmt.Errorf("cannot locate datacenter: %s", err)
 		}
 		log.Printf("[DEBUG] Datacenter for VM/template search: %s", dc.InventoryPath)
+	}
+	var tPath string
+	if path, ok := d.GetOk("clone.0.template_path"); ok {
+		tPath = path.(string)
 	}
 	vm, err := virtualmachine.FromUUIDOrPath(c, tUUID, tPath, dc)
 	if err != nil {
@@ -184,7 +184,19 @@ func ExpandVirtualMachineCloneSpec(d *schema.ResourceData, c *govmomi.Client) (t
 	spec.Location.Datastore = &dsRef
 	tUUID := d.Get("clone.0.template_uuid").(string)
 	log.Printf("[DEBUG] ExpandVirtualMachineCloneSpec: Cloning from UUID: %s", tUUID)
-	vm, err := virtualmachine.FromUUID(c, tUUID)
+	var dc *object.Datacenter
+	if dcID, ok := d.GetOk("clone.0.template_datacenter_id"); ok {
+		var err error
+		dc, err = datacenter.FromID(c, dcID.(string))
+		if err != nil {
+			return spec, nil, fmt.Errorf("cannot locate datacenter: %s", err)
+		}
+	}
+	var tPath string
+	if path, ok := d.GetOk("clone.0.template_path"); ok {
+		tPath = path.(string)
+	}
+	vm, err := virtualmachine.FromUUIDOrPath(c, tUUID, tPath, dc)
 	if err != nil {
 		return spec, nil, fmt.Errorf("cannot locate virtual machine or template with UUID %q: %s", tUUID, err)
 	}
