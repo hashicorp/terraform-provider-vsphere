@@ -482,6 +482,11 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 		}
 	}
 
+	// Validate network device sub-resources
+	if err := virtualdevice.NetworkInterfaceDiffOperation(d, client); err != nil {
+		return err
+	}
+
 	// Validate and normalize disk sub-resources
 	if err := virtualdevice.DiskDiffOperation(d, client); err != nil {
 		return err
