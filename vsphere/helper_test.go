@@ -115,6 +115,17 @@ func copyStatePtr(t **terraform.State) resource.TestCheckFunc {
 	}
 }
 
+// copyState returns a TestCheckFunc that returns a deep copy of the state.
+// Unlike copyStatePtr, this state has de-coupled from the in-flight state, so
+// it will not be modified on subsequent steps and hence will possibly drift.
+// It can be used to access values of the state at a certain step.
+func copyState(t **terraform.State) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		*t = s.DeepCopy()
+		return nil
+	}
+}
+
 // testGetPortGroup is a convenience method to fetch a static port group
 // resource for testing.
 func testGetPortGroup(s *terraform.State, resourceName string) (*types.HostPortGroup, error) {
@@ -342,6 +353,27 @@ func testDeleteVMDisk(s *terraform.State, resourceName string, name string) erro
 	return virtualdisk.Delete(tVars.client, p.String(), dc)
 }
 
+// testDeleteVM deletes the virtual machine. This is used to test resource
+// re-creation if TF cannot locate a VM that is in state any more.
+func testDeleteVM(s *terraform.State, resourceName string) error {
+	if err := testPowerOffVM(s, resourceName); err != nil {
+		return err
+	}
+	vm, err := testGetVirtualMachine(s, resourceName)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	task, err := vm.Destroy(ctx)
+	if err != nil {
+		return fmt.Errorf("error destroying virtual machine: %s", err)
+	}
+	tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer tcancel()
+	return task.Wait(tctx)
+}
+
 // testGetTagCategory gets a tag category by name.
 func testGetTagCategory(s *terraform.State, resourceName string) (*tags.Category, error) {
 	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_tag_category.%s", resourceName))
@@ -531,4 +563,19 @@ func testGetDVPortgroupProperties(s *terraform.State, resourceName string) (*mo.
 		return nil, err
 	}
 	return dvportgroup.Properties(dvs)
+}
+
+// testCheckResourceNotAttr is an inverse check of TestCheckResourceAttr. It
+// checks to make sure the resource attribute does *not* match a certain value.
+func testCheckResourceNotAttr(name, key, value string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		err := resource.TestCheckResourceAttr(name, key, value)(s)
+		if err != nil {
+			if regexp.MustCompile("[-_.a-zA-Z0-9]\\: Attribute '.*' expected .*, got .*").MatchString(err.Error()) {
+				return nil
+			}
+			return err
+		}
+		return fmt.Errorf("%s: Attribute '%s' expected to not match %#v", name, key, value)
+	}
 }

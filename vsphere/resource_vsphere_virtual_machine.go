@@ -239,7 +239,12 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	id := d.Id()
 	vm, err := virtualmachine.FromUUID(client, id)
 	if err != nil {
-		return fmt.Errorf("cannot locate virtual machine with UUID %q: %s", id, err)
+		if _, ok := err.(*virtualmachine.UUIDNotFoundError); ok {
+			log.Printf("[DEBUG] %s: Virtual machine not found, marking resource as gone: %s", resourceVSphereVirtualMachineIDString(d), err)
+			d.SetId("")
+			return nil
+		}
+		return fmt.Errorf("error searching for with UUID %q: %s", id, err)
 	}
 	vprops, err := virtualmachine.Properties(vm)
 	if err != nil {
