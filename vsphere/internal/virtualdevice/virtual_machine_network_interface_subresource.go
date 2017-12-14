@@ -15,6 +15,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/nsx"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
@@ -351,6 +352,23 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 	return d.Set(subresourceTypeNetworkInterface, newSet)
 }
 
+// NetworkInterfaceDiffOperation performs operations relevant to managing the
+// diff on network_interface sub-resources.
+func NetworkInterfaceDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
+	// We just need the new values for now, as all we are doing is validating some values based on API version
+	n := d.Get(subresourceTypeNetworkInterface)
+	log.Printf("[DEBUG] NetworkInterfaceDiffOperation: Beginning diff validation")
+	for ni, ne := range n.([]interface{}) {
+		nm := ne.(map[string]interface{})
+		r := NewNetworkInterfaceSubresource(c, d, nm, nil, ni)
+		if err := r.ValidateDiff(); err != nil {
+			return fmt.Errorf("%s: %s", r.Addr(), err)
+		}
+	}
+	log.Printf("[DEBUG] NetworkInterfaceDiffOperation: Diff validation complete")
+	return nil
+}
+
 // NetworkInterfacePostCloneOperation normalizes the network interfaces on a
 // freshly-cloned virtual machine and outputs any necessary device change
 // operations. It also sets the state in advance of the post-create read.
@@ -601,15 +619,18 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 		card.AddressType = string(types.VirtualEthernetCardMacTypeManual)
 		card.MacAddress = r.Get("mac_address").(string)
 	}
-	alloc := &types.VirtualEthernetCardResourceAllocation{
-		Limit:       structure.Int64Ptr(int64(r.Get("bandwidth_limit").(int))),
-		Reservation: structure.Int64Ptr(int64(r.Get("bandwidth_reservation").(int))),
-		Share: types.SharesInfo{
-			Shares: int32(r.Get("bandwidth_share_count").(int)),
-			Level:  types.SharesLevel(r.Get("bandwidth_share_level").(string)),
-		},
+	version := viapi.ParseVersionFromClient(r.client)
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+		alloc := &types.VirtualEthernetCardResourceAllocation{
+			Limit:       structure.Int64Ptr(int64(r.Get("bandwidth_limit").(int))),
+			Reservation: structure.Int64Ptr(int64(r.Get("bandwidth_reservation").(int))),
+			Share: types.SharesInfo{
+				Shares: int32(r.Get("bandwidth_share_count").(int)),
+				Level:  types.SharesLevel(r.Get("bandwidth_share_level").(string)),
+			},
+		}
+		card.ResourceAllocation = alloc
 	}
-	card.ResourceAllocation = alloc
 
 	// Done here. Save ID, push the device to the new device list and return.
 	if err := r.SaveDevIDs(device, ctlr); err != nil {
@@ -676,11 +697,14 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
 	r.Set("use_static_mac", card.AddressType == string(types.VirtualEthernetCardMacTypeManual))
 	r.Set("mac_address", card.MacAddress)
 
-	if card.ResourceAllocation != nil {
-		r.Set("bandwidth_limit", card.ResourceAllocation.Limit)
-		r.Set("bandwidth_reservation", card.ResourceAllocation.Reservation)
-		r.Set("bandwidth_share_count", card.ResourceAllocation.Share.Shares)
-		r.Set("bandwidth_share_level", card.ResourceAllocation.Share.Level)
+	version := viapi.ParseVersionFromClient(r.client)
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+		if card.ResourceAllocation != nil {
+			r.Set("bandwidth_limit", card.ResourceAllocation.Limit)
+			r.Set("bandwidth_reservation", card.ResourceAllocation.Reservation)
+			r.Set("bandwidth_share_count", card.ResourceAllocation.Share.Shares)
+			r.Set("bandwidth_share_level", card.ResourceAllocation.Share.Level)
+		}
 	}
 
 	// Save the device key and address data
@@ -841,6 +865,44 @@ func (r *NetworkInterfaceSubresource) Delete(l object.VirtualDeviceList) ([]type
 	log.Printf("[DEBUG] %s: Device config operations from update: %s", r, DeviceChangeString(spec))
 	log.Printf("[DEBUG] %s: Delete completed", r)
 	return spec, nil
+}
+
+// ValidateDiff performs any complex validation of an individual
+// network_interface sub-resource that can't be done in schema alone.
+func (r *NetworkInterfaceSubresource) ValidateDiff() error {
+	log.Printf("[DEBUG] %s: Beginning diff validation", r)
+
+	// Ensure that network resource allocation options are only set on vSphere
+	// 6.0 and higher.
+	version := viapi.ParseVersionFromClient(r.client)
+	if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+		if err := r.restrictResourceAllocationSettings(); err != nil {
+			return err
+		}
+	}
+
+	log.Printf("[DEBUG] %s: Diff validation complete", r)
+	return nil
+}
+
+func (r *NetworkInterfaceSubresource) restrictResourceAllocationSettings() error {
+	rs := NetworkInterfaceSubresourceSchema()
+	keys := []string{
+		"bandwidth_limit",
+		"bandwidth_reservation",
+		"bandwidth_share_level",
+		"bandwidth_share_count",
+	}
+	for _, key := range keys {
+		expected := rs[key].Default
+		if expected == nil {
+			expected = rs[key].ZeroValue()
+		}
+		if r.Get(key) != expected {
+			return fmt.Errorf("%s requires vSphere 6.0 or higher", key)
+		}
+	}
+	return nil
 }
 
 // assignEthernetCard is a subset of the logic that goes into AssignController
