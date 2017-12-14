@@ -1,24 +1,24 @@
-## 1.1.1 (Unreleased)
+## 1.1.1 (December 14, 2017)
 
 IMPROVEMENTS:
 
 * `resource/vsphere_virtual_machine`: Network interface resource allocation
   options are now restricted to vSphere 6.0 and higher, as they are unsupported
-  on vSphere 5.5. [GH-322]
+  on vSphere 5.5. ([#322](https://github.com/terraform-providers/terraform-provider-vsphere/issues/322))
 * `resource/vsphere_virtual_machine`: Resources that were deleted outside of
   Terraform will now be marked as gone in the state, causing them to be
-  re-created during the next apply. [GH-321]
+  re-created during the next apply. ([#321](https://github.com/terraform-providers/terraform-provider-vsphere/issues/321))
 * `resource/vsphere_virtual_machine`: Added some restrictions to storage vMotion
   to cover some currently un-supported scenarios that were still allowed,
   leading to potentially dangerous situations or invalid post-application
-  states. [GH-319]
+  states. ([#319](https://github.com/terraform-providers/terraform-provider-vsphere/issues/319))
 * `resource/vsphere_virtual_machine`: The resource now treats disks that it does
   not recognize at a known device address as orphaned, and will set
-  `keep_on_remove` to safely remove them. [GH-317]
+  `keep_on_remove` to safely remove them. ([#317](https://github.com/terraform-providers/terraform-provider-vsphere/issues/317))
 * `resource/vsphere_virtual_machine`: The resource now attempts to detect unsafe
   disk deletion scenarios that can happen from the renaming of a virtual machine
   in situations where the VM and disk names may share a common variable. The
-  provider will block such operations from proceeding. [GH-305]
+  provider will block such operations from proceeding. ([#305](https://github.com/terraform-providers/terraform-provider-vsphere/issues/305))
 
 ## 1.1.0 (December 07, 2017)
 
