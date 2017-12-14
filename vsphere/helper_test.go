@@ -118,7 +118,7 @@ func copyStatePtr(t **terraform.State) resource.TestCheckFunc {
 // copyState returns a TestCheckFunc that returns a deep copy of the state.
 // Unlike copyStatePtr, this state has de-coupled from the in-flight state, so
 // it will not be modified on subsequent steps and hence will possibly drift.
-// It can be used to access vales of the state at a certain step.
+// It can be used to access values of the state at a certain step.
 func copyState(t **terraform.State) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		*t = s.DeepCopy()
