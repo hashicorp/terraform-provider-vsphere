@@ -1372,7 +1372,9 @@ func (r *DiskSubresource) NormalizeDiff() error {
 //
 // TODO: Once we have solved the disk tracking issue and are no longer tracking
 // disks via their file names, the only restriction that should remain is for
-// externally attached disks.
+// externally attached disks. That restriction will go away once we figure out
+// a strategy for handling when said disks have been moved OOB of the VM
+// workflow.
 func (r *DiskSubresource) validateStorageRelocateDiff() error {
 	log.Printf("[DEBUG] %s: Validating storage vMotion eligibility", r)
 	if err := r.blockRelocateAttachedDisks(); err != nil {
