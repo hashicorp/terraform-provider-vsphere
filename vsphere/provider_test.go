@@ -6,15 +6,19 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/terraform-providers/terraform-provider-null/null"
 )
 
 var testAccProviders map[string]terraform.ResourceProvider
 var testAccProvider *schema.Provider
+var testAccNullProvider *schema.Provider
 
 func init() {
 	testAccProvider = Provider().(*schema.Provider)
+	testAccNullProvider = null.Provider().(*schema.Provider)
 	testAccProviders = map[string]terraform.ResourceProvider{
 		"vsphere": testAccProvider,
+		"null":    testAccNullProvider,
 	}
 }
 

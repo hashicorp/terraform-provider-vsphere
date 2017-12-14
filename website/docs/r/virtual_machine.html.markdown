@@ -1092,6 +1092,22 @@ resource "vsphere_virtual_machine" "vm" {
 }
 ```
 
+#### Storage migration restrictions
+
+~> **NOTE:** These restrictions will be lifted in later versions of this
+resource.
+
+Some restrictions currently apply to storage migration:
+
+* External disks added with the `attach` parameter cannot be migrated.
+* You must name your `disk` sub-resources according to the vSphere naming
+  convention. This generally means that your first disk will be named
+  `VMNAME.vmdk` and all other disks will be named `VMNAME_INDEX.vmdk`, with
+  `INDEX` starting at `1` for your second disk, and so on. These are the same
+  restrictions imposed when cloning from template.
+* You cannot migrate the storage of VMs that have
+  [`linked_clone`](#linked_clone) set.
+
 ## Attribute Reference
 
 The following attributes are exported on the base level of this resource:
