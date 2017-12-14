@@ -2,6 +2,16 @@
 
 IMPROVEMENTS:
 
+* `resource/vsphere_virtual_machine`: Network interface resource allocation
+  options are now restricted to vSphere 6.0 and higher, as they are unsupported
+  on vSphere 5.5. [GH-322]
+* `resource/vsphere_virtual_machine`: Resources that were deleted outside of
+  Terraform will now be marked as gone in the state, causing them to be
+  re-created during the next apply. [GH-321]
+* `resource/vsphere_virtual_machine`: Added some restrictions to storage vMotion
+  to cover some currently un-supported scenarios that were still allowed,
+  leading to potentially dangerous situations or invalid post-application
+  states. [GH-319]
 * `resource/vsphere_virtual_machine`: The resource now treats disks that it does
   not recognize at a known device address as orphaned, and will set
   `keep_on_remove` to safely remove them. [GH-317]
