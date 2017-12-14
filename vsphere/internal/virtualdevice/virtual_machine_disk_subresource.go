@@ -682,11 +682,7 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 		// to the standard convention of <name>.vmdk, <name>_1.vmdk, etc.  Hence we
 		// need to enforce this on all created VMs as well.
 		name := d.Get("name").(string)
-		var extra string
-		if i > 0 {
-			extra = fmt.Sprintf("_%d", i)
-		}
-		expected := fmt.Sprintf("%s%s.vmdk", name, extra)
+		expected := standardDiskName(name, i)
 		if tr.Get("name").(string) != expected {
 			return fmt.Errorf("%s: invalid disk name %q for cloning. Please rename this disk to %q", tr.Addr(), tr.Get("name").(string), expected)
 		}
@@ -1337,6 +1333,18 @@ func (r *DiskSubresource) NormalizeDiff() error {
 		return fmt.Errorf("virtual disk %q: %s", name, err)
 	}
 
+	// Same with attach
+	if _, err := r.GetWithVeto("attach"); err != nil {
+		return fmt.Errorf("virtual disk %q: %s", name, err)
+	}
+
+	// Validate storage vMotion if the datastore is changing
+	if r.HasChange("datastore_id") {
+		if err := r.validateStorageRelocateDiff(); err != nil {
+			return err
+		}
+	}
+
 	// Block certain options from being set depending on the vSphere version.
 	version := viapi.ParseVersionFromClient(r.client)
 	if r.Get("disk_sharing").(string) != string(types.VirtualDiskSharingSharingNone) {
@@ -1346,6 +1354,74 @@ func (r *DiskSubresource) NormalizeDiff() error {
 	}
 
 	log.Printf("[DEBUG] %s: Diff normalization complete", r)
+	return nil
+}
+
+// validateStorageRelocateDiff validates certain storage vMotion diffs to make
+// sure they are functional. These mainly have to do with limitations
+// associated with our tracking of virtual disks via their names.
+//
+// The current limitations are:
+//
+// * Externally-attached virtual disks are not allowed to be vMotioned.
+// * Disks must match the vSphere naming convention, where the first disk is
+// named VMNAME.vmdk, and all other disks are named VMNAME_INDEX.vmdk This is a
+// validation we use for cloning as well.
+// * Any VM that has been created by a linked clone is blocked from storage
+// vMotion full stop.
+//
+// TODO: Once we have solved the disk tracking issue and are no longer tracking
+// disks via their file names, the only restriction that should remain is for
+// externally attached disks.
+func (r *DiskSubresource) validateStorageRelocateDiff() error {
+	log.Printf("[DEBUG] %s: Validating storage vMotion eligibility", r)
+	if err := r.blockRelocateAttachedDisks(); err != nil {
+		return err
+	}
+	if err := r.blockRelocateInvalidName(); err != nil {
+		return err
+	}
+	if err := r.blockRelocateLinkedClone(); err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] %s: Storage vMotion validation successful", r)
+	return nil
+}
+
+func (r *DiskSubresource) blockRelocateInvalidName() error {
+	vmName := r.rdd.Get("name").(string)
+	diskPath := r.Get("name").(string)
+	expected := standardDiskName(vmName, r.Index)
+	actual := path.Base(diskPath)
+	if expected != actual {
+		return fmt.Errorf(
+			"virtual disk %q has an ineligible file name for migration (expected: %q)",
+			actual,
+			expected,
+		)
+	}
+	return nil
+}
+
+func (r *DiskSubresource) blockRelocateLinkedClone() error {
+	lc := r.rdd.Get("clone.0.linked_clone")
+	if lc == nil {
+		return nil
+	}
+	if lc.(bool) {
+		return fmt.Errorf("virtual disks of linked clones cannot be migrated")
+	}
+	return nil
+}
+
+func (r *DiskSubresource) blockRelocateAttachedDisks() error {
+	attach := r.Get("attach")
+	if attach == nil {
+		return nil
+	}
+	if attach.(bool) {
+		return fmt.Errorf("externally attached disk %q cannot be migrated", r.Get("name"))
+	}
 	return nil
 }
 
@@ -1710,4 +1786,18 @@ func selectDisks(l object.VirtualDeviceList, count int) object.VirtualDeviceList
 		return false
 	})
 	return devices
+}
+
+// standardDiskName returns a disk name that matches the vSphere naming
+// convention for virtual disks:
+//
+// * The first disk is named VMNAME.vmdk (index = 0)
+// * The second disk is named VMNAME_1.vmdk (index = 1)
+// * All subsequent disks are named VMNAME_INDEX.vmdk (as per index = 1)
+func standardDiskName(name string, index int) string {
+	var extra string
+	if index > 0 {
+		extra = fmt.Sprintf("_%d", index)
+	}
+	return fmt.Sprintf("%s%s.vmdk", name, extra)
 }
