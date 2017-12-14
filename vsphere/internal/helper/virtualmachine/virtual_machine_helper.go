@@ -21,6 +21,25 @@ import (
 
 var errGuestShutdownTimeout = errors.New("the VM did not power off within the specified amount of time")
 
+// UUIDNotFoundError is an error type that is returned when a
+// virtual machine could not be found by UUID.
+type UUIDNotFoundError struct {
+	s string
+}
+
+// Error implements error for UUIDNotFoundError.
+func (e *UUIDNotFoundError) Error() string {
+	return e.s
+}
+
+// newUUIDNotFoundError returns a new UUIDNotFoundError with the
+// text populated.
+func newUUIDNotFoundError(s string) *UUIDNotFoundError {
+	return &UUIDNotFoundError{
+		s: s,
+	}
+}
+
 // FromUUID locates a virtualMachine by its UUID.
 func FromUUID(client *govmomi.Client, uuid string) (*object.VirtualMachine, error) {
 	log.Printf("[DEBUG] Locating virtual machine with UUID %q", uuid)
@@ -34,7 +53,7 @@ func FromUUID(client *govmomi.Client, uuid string) (*object.VirtualMachine, erro
 	}
 
 	if result == nil {
-		return nil, fmt.Errorf("virtual machine with UUID %q not found", uuid)
+		return nil, newUUIDNotFoundError(fmt.Sprintf("virtual machine with UUID %q not found", uuid))
 	}
 
 	// We need to filter our object through finder to ensure that the

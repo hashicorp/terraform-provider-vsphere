@@ -115,6 +115,41 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 			},
 		},
 		{
+			"re-create on deletion",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+						Check: resource.ComposeTestCheckFunc(
+							copyState(&state),
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+						),
+					},
+					{
+						PreConfig: func() {
+							if err := testDeleteVM(state, "vm"); err != nil {
+								panic(err)
+							}
+						},
+						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							func(s *terraform.State) error {
+								oldID := state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.ID
+								return testCheckResourceNotAttr("vsphere_virtual_machine.vm", "id", oldID)(s)
+							},
+						),
+					},
+				},
+			},
+		},
+		{
 			"multi-device",
 			resource.TestCase{
 				PreCheck: func() {
@@ -2107,7 +2142,7 @@ resource "vsphere_virtual_machine" "vm" {
   num_cpus = 2
   memory   = 2048
   guest_id = "other3xLinux64Guest"
-	
+
   network_interface {
     network_id = "${data.vsphere_network.network.id}"
   }
