@@ -159,6 +159,14 @@ specify `number_of_ports`, you may wish to set `auto_expand` to `false`.
 * `network_resource_pool_key` - (Optional) The key of a network resource pool
   to associate with this port group. The default is `-1`, which implies no
   association.
+* `custom_attributes` (Optional) Map of custom attribute ids to attribute
+  value string to set for port group. See [here][docs-setting-custom-attributes] 
+  for a reference on how to set values for custom attributes.
+
+[docs-setting-custom-attributes]: /docs/providers/vsphere/r/custom_attribute.html#using-custom-attributes-in-a-supported-resource
+
+~> **NOTE:** Custom attributes are unsupported on direct ESXi connections 
+and require vCenter.
 
 ### Policy options
 

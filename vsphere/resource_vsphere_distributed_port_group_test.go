@@ -171,6 +171,53 @@ func TestAccResourceVSphereDistributedPortGroup(t *testing.T) {
 				},
 			},
 		},
+		{
+			"single custom attribute",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereDistributedPortGroupPreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereDistributedPortGroupConfigSingleCustomAttribute(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereDistributedPortGroupExists(true),
+							testAccResourceVSphereDistributedPortGroupCheckCustomAttributes(),
+						),
+					},
+				},
+			},
+		},
+		{
+			"multi custom attribute",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereDistributedPortGroupPreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereDistributedPortGroupConfigSingleCustomAttribute(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereDistributedPortGroupExists(true),
+							testAccResourceVSphereDistributedPortGroupCheckCustomAttributes(),
+						),
+					},
+					{
+						Config: testAccResourceVSphereDistributedPortGroupConfigMultiCustomAttribute(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereDistributedPortGroupExists(true),
+							testAccResourceVSphereDistributedPortGroupCheckCustomAttributes(),
+						),
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testAccResourceVSphereDistributedPortGroupCases {
@@ -248,6 +295,16 @@ func testAccResourceVSphereDistributedPortGroupCheckTags(tagResName string) reso
 			return err
 		}
 		return testObjectHasTags(s, tagsClient, dvs, tagResName)
+	}
+}
+
+func testAccResourceVSphereDistributedPortGroupCheckCustomAttributes() resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetDVPortgroupProperties(s, "pg")
+		if err != nil {
+			return err
+		}
+		return testResourceHasCustomAttributeValues(s, "vsphere_distributed_port_group", "pg", props.Entity())
 	}
 }
 
@@ -510,6 +567,94 @@ resource "vsphere_distributed_port_group" "pg" {
   name                            = "terraform-test-pg"
   distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
   tags                            = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+	)
+}
+
+func testAccResourceVSphereDistributedPortGroupConfigSingleCustomAttribute() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+resource "vsphere_custom_attribute" "terraform-test-attribute" {
+  name                = "terraform-test-attribute"
+  managed_object_type = "DistributedVirtualPortgroup" 
+}
+
+resource "vsphere_distributed_virtual_switch" "dvs" {
+  name          = "terraform-test-dvs"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+locals {
+  pg_attrs = {
+    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
+  }
+}
+
+resource "vsphere_distributed_port_group" "pg" {
+  name                            = "terraform-test-pg"
+  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
+
+  custom_attributes = "${local.pg_attrs}"
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+	)
+}
+
+func testAccResourceVSphereDistributedPortGroupConfigMultiCustomAttribute() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "custom_attrs" {
+  default = [
+    "terraform-test-attribute-1",
+    "terraform-test-attribute-2"
+  ]
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+resource "vsphere_custom_attribute" "terraform-test-attribute" {
+  name                = "terraform-test-attribute"
+  managed_object_type = "DistributedVirtualPortgroup"
+}
+
+resource "vsphere_custom_attribute" "terraform-test-attribute-alt" {
+  count               = "${length(var.custom_attrs)}"
+  name                = "${var.custom_attrs[count.index]}"
+  managed_object_type = "DistributedVirtualPortgroup"
+}
+
+resource "vsphere_distributed_virtual_switch" "dvs" {
+  name          = "terraform-test-dvs"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+locals {
+  pg_attrs = {
+    "${vsphere_custom_attribute.terraform-test-attribute-alt.0.id}" = "value"
+    "${vsphere_custom_attribute.terraform-test-attribute-alt.1.id}" = "value-2"
+  }
+}
+
+resource "vsphere_distributed_port_group" "pg" {
+  name                            = "terraform-test-pg"
+  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
+
+  custom_attributes = "${local.pg_attrs}"
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),

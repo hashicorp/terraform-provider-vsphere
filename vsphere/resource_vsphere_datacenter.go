@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/methods"
@@ -35,6 +36,9 @@ func resourceVSphereDatacenter() *schema.Resource {
 
 			// Add tags schema
 			vSphereTagAttributeKey: tagsSchema(),
+
+			// Custom Attributes
+			customattribute.ConfigKey: customattribute.ConfigSchema(),
 		},
 	}
 }
@@ -45,6 +49,11 @@ func resourceVSphereDatacenterCreate(d *schema.ResourceData, meta interface{}) e
 	// Load up the tags client, which will validate a proper vCenter before
 	// attempting to proceed if we have tags defined.
 	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+	// Verify a proper vCenter before proceeding if custom attributes are defined
+	attrsProcessor, err := customattribute.GetDiffProcessorIfAttributesDefined(client, d)
 	if err != nil {
 		return err
 	}
@@ -94,10 +103,16 @@ func resourceVSphereDatacenterCreate(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
+	// Set custom attributes
+	if attrsProcessor != nil {
+		if err := attrsProcessor.ProcessDiff(dc); err != nil {
+			return err
+		}
+	}
+
 	d.SetId(name)
 
 	return resourceVSphereDatacenterRead(d, meta)
-
 }
 
 func resourceVSphereDatacenterStateRefreshFunc(d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
@@ -147,6 +162,16 @@ func resourceVSphereDatacenterRead(d *schema.ResourceData, meta interface{}) err
 		}
 	}
 
+	// Read set custom attributes
+	client := meta.(*VSphereClient).vimClient
+	if customattribute.IsSupported(client) {
+		moDc, err := datacenterCustomAttributes(dc)
+		if err != nil {
+			return err
+		}
+		customattribute.ReadFromResource(client, moDc.Entity(), d)
+	}
+
 	return nil
 }
 
@@ -154,6 +179,12 @@ func resourceVSphereDatacenterUpdate(d *schema.ResourceData, meta interface{}) e
 	// Load up the tags client, which will validate a proper vCenter before
 	// attempting to proceed if we have tags defined.
 	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+	// Verify a proper vCenter before proceeding if custom attributes are defined
+	client := meta.(*VSphereClient).vimClient
+	attrsProcessor, err := customattribute.GetDiffProcessorIfAttributesDefined(client, d)
 	if err != nil {
 		return err
 	}
@@ -166,6 +197,13 @@ func resourceVSphereDatacenterUpdate(d *schema.ResourceData, meta interface{}) e
 	// Apply any pending tags now
 	if tagsClient != nil {
 		if err := processTagDiff(tagsClient, d, dc); err != nil {
+			return err
+		}
+	}
+
+	// Set custom attributes
+	if attrsProcessor != nil {
+		if err := attrsProcessor.ProcessDiff(dc); err != nil {
 			return err
 		}
 	}

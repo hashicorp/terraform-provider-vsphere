@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
@@ -32,7 +33,8 @@ func resourceVSphereDistributedVirtualSwitch() *schema.Resource {
 			Optional:    true,
 		},
 		// Tagging
-		vSphereTagAttributeKey: tagsSchema(),
+		vSphereTagAttributeKey:    tagsSchema(),
+		customattribute.ConfigKey: customattribute.ConfigSchema(),
 	}
 	structure.MergeSchema(s, schemaDVSCreateSpec())
 
@@ -54,6 +56,11 @@ func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta 
 		return err
 	}
 	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+	// Verify a proper vCenter before proceeding if custom attributes are defined
+	attrsProcessor, err := customattribute.GetDiffProcessorIfAttributesDefined(client, d)
 	if err != nil {
 		return err
 	}
@@ -101,6 +108,13 @@ func resourceVSphereDistributedVirtualSwitchCreate(d *schema.ResourceData, meta 
 	if tagsClient != nil {
 		if err := processTagDiff(tagsClient, d, object.NewReference(client.Client, dvs.Reference())); err != nil {
 			return fmt.Errorf("error updating tags: %s", err)
+		}
+	}
+
+	// Set custom attributes
+	if attrsProcessor != nil {
+		if err := attrsProcessor.ProcessDiff(dvs); err != nil {
+			return err
 		}
 	}
 
@@ -152,6 +166,11 @@ func resourceVSphereDistributedVirtualSwitchRead(d *schema.ResourceData, meta in
 		}
 	}
 
+	// Read set custom attributes
+	if customattribute.IsSupported(client) {
+		customattribute.ReadFromResource(client, props.Entity(), d)
+	}
+
 	return nil
 }
 
@@ -164,6 +183,12 @@ func resourceVSphereDistributedVirtualSwitchUpdate(d *schema.ResourceData, meta 
 	if err != nil {
 		return err
 	}
+	// Verify a proper vCenter before proceeding if custom attributes are defined
+	attrsProcessor, err := customattribute.GetDiffProcessorIfAttributesDefined(client, d)
+	if err != nil {
+		return err
+	}
+
 	id := d.Id()
 	dvs, err := dvsFromUUID(client, id)
 	if err != nil {
@@ -212,6 +237,13 @@ func resourceVSphereDistributedVirtualSwitchUpdate(d *schema.ResourceData, meta 
 	if tagsClient != nil {
 		if err := processTagDiff(tagsClient, d, object.NewReference(client.Client, dvs.Reference())); err != nil {
 			return fmt.Errorf("error updating tags: %s", err)
+		}
+	}
+
+	// Apply custom attribute updates
+	if attrsProcessor != nil {
+		if err := attrsProcessor.ProcessDiff(dvs); err != nil {
+			return err
 		}
 	}
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
@@ -172,7 +173,8 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Computed:    true,
 			Description: "A flag internal to Terraform that indicates that this resource was either imported or came from a earlier major version of this resource.",
 		},
-		vSphereTagAttributeKey: tagsSchema(),
+		vSphereTagAttributeKey:    tagsSchema(),
+		customattribute.ConfigKey: customattribute.ConfigSchema(),
 	}
 	structure.MergeSchema(s, schemaVirtualMachineConfigSpec())
 	structure.MergeSchema(s, schemaVirtualMachineGuestInfo())
@@ -199,6 +201,11 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return err
 	}
+	// Verify a proper vCenter before proceeding if custom attributes are defined
+	attrsProcessor, err := customattribute.GetDiffProcessorIfAttributesDefined(client, d)
+	if err != nil {
+		return err
+	}
 
 	var vm *object.VirtualMachine
 	// This is where we process our various VM deploy workflows. We expect the ID
@@ -219,6 +226,13 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 	// Tag the VM
 	if tagsClient != nil {
 		if err := processTagDiff(tagsClient, d, vm); err != nil {
+			return err
+		}
+	}
+
+	// Set custom attributes
+	if attrsProcessor != nil {
+		if err := attrsProcessor.ProcessDiff(vm); err != nil {
 			return err
 		}
 	}
@@ -332,6 +346,11 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		}
 	}
 
+	// Read set custom attributes
+	if customattribute.IsSupported(client) {
+		customattribute.ReadFromResource(client, vprops.Entity(), d)
+	}
+
 	// Finally, select a valid IP address for use by the VM for purposes of
 	// provisioning. This also populates some computed values to present to the
 	// user.
@@ -352,6 +371,12 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return err
 	}
+	// Verify a proper vCenter before proceeding if custom attributes are defined
+	attrsProcessor, err := customattribute.GetDiffProcessorIfAttributesDefined(client, d)
+	if err != nil {
+		return err
+	}
+
 	id := d.Id()
 	vm, err := virtualmachine.FromUUID(client, id)
 	if err != nil {
@@ -369,6 +394,13 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	// Apply any pending tags
 	if tagsClient != nil {
 		if err := processTagDiff(tagsClient, d, vm); err != nil {
+			return err
+		}
+	}
+
+	// Update custom attributes
+	if attrsProcessor != nil {
+		if err := attrsProcessor.ProcessDiff(vm); err != nil {
 			return err
 		}
 	}

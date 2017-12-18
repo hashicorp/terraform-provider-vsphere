@@ -6,6 +6,7 @@ import (
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	"golang.org/x/net/context"
 )
@@ -46,4 +47,14 @@ func datacenterFromID(client *govmomi.Client, id string) (*object.Datacenter, er
 		return nil, fmt.Errorf("could not find datacenter with id: %s: %s", id, err)
 	}
 	return ds.(*object.Datacenter), nil
+}
+
+func datacenterCustomAttributes(dc *object.Datacenter) (*mo.Datacenter, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	var props mo.Datacenter
+	if err := dc.Properties(ctx, dc.Reference(), []string{"customValue"}, &props); err != nil {
+		return nil, err
+	}
+	return &props, nil
 }
