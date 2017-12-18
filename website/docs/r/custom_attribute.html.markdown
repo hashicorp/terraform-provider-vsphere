@@ -44,7 +44,7 @@ value to created custom attribute on it.
 [docs-virtual-machine-resource]: /docs/providers/vsphere/r/virutal_machine.html
 
 ```hcl
-  resource "vsphere_custom_attribute" "attribute" {
+resource "vsphere_custom_attribute" "attribute" {
   name                = "terraform-test-attribute"
   managed_object_type = "VirtualMachine"
 }
@@ -52,7 +52,7 @@ value to created custom attribute on it.
 resource "vpshere_virtual_machine" "web" {
   ...
 
-  custom_attributes = "${map(vsphere_custom_attribute.terraform-test-attribute.id, "value")}"
+  custom_attributes = "${map(vsphere_custom_attribute.attribute.id, "value")}"
 }
 ```
 
@@ -61,17 +61,17 @@ resource "vpshere_virtual_machine" "web" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the custom attribute.
-* `managed_object_type` - (Optional) The object type that this attribute 
-  may be applied to. If not set the custom attribute may be applied to any 
-  object type. For a full list, click [here](#managed_object_types). Forces a 
-  new custom attribute if changed.
+* `managed_object_type` - (Optional) The object type that this attribute may be
+  applied to. If not set, the custom attribute may be applied to any object
+  type. For a full list, click [here](#managed-object-types). Forces a new
+  resource if changed.
 
 ## Managed Object Types
 
 The following table will help you determine what value you need to enter for 
 the managed object type you want the attribute to apply to.
 
-Note that if you want a attribute to apply to all objects leave the type 
+Note that if you want a attribute to apply to all objects, leave the type 
 unspecified.
 
 <table>
