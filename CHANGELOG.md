@@ -1,4 +1,16 @@
-## 1.1.2 (Unreleased)
+## 1.2.0 (Unreleased)
+
+FEATURES:
+
+* **New Resource:** `vsphere_custom_attribute` [GH-229]
+* **New Data Source:** `vsphere_custom_attribute` [GH-229]
+
+IMPROVEMENTS:
+
+* All vSphere provider that are capable of doing so now support custom
+  attributes. Check the documentation of any specific resource for more
+  details! [GH-229]
+
 ## 1.1.1 (December 14, 2017)
 
 IMPROVEMENTS:
