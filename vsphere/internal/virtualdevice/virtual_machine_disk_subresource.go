@@ -1241,6 +1241,12 @@ func (r *DiskSubresource) ValidateDiff() error {
 	log.Printf("[DEBUG] %s: Beginning diff validation (device information may be incomplete)", r)
 	name := r.Get("name").(string)
 
+	// name is a required field. If it's blank here, that means it's computed,
+	// which we don't allow either - so kick back an error.
+	if name == "" {
+		return fmt.Errorf("value of disk name cannot be computed")
+	}
+
 	// Enforce the maximum unit number, which is the current value of
 	// scsi_controller_count * 15 - 1.
 	ctlrCount := r.rdd.Get("scsi_controller_count").(int)
@@ -1309,6 +1315,7 @@ func (r *DiskSubresource) NormalizeDiff() error {
 	if r.Get("io_share_level").(string) != string(types.SharesLevelCustom) {
 		r.Set("io_share_count", osc)
 	}
+
 	// Normalize the path. This should have already have been vetted as being
 	// ultimately the same path by the caller.
 	oname, _ := r.GetChange("name")
