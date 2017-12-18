@@ -263,6 +263,12 @@
 			"revisionTime": "2016-10-29T20:57:26Z"
 		},
 		{
+			"checksumSHA1": "PvxFk8o4Lr9oqxkdJmuEfh4gaS0=",
+			"path": "github.com/dustinkirkland/golang-petname",
+			"revision": "d3c2ba80e75eeef10c5cf2fc76d2c809637376b3",
+			"revisionTime": "2017-09-21T22:06:37Z"
+		},
+		{
 			"checksumSHA1": "BCv50o5pDkoSG3vYKOSai1Z8p3w=",
 			"path": "github.com/fsouza/go-dockerclient",
 			"revision": "1d4f4ae73768d3ca16a6fb964694f58dc5eba601",
@@ -770,6 +776,18 @@
 			"path": "github.com/terraform-providers/terraform-provider-null/null",
 			"revision": "1e016b8a70416ce036b2600870723cc6f13e2e20",
 			"revisionTime": "2017-12-12T00:16:12Z"
+		},
+		{
+			"checksumSHA1": "hPKo72TB30MsBxn10cMgwdbvDTw=",
+			"path": "github.com/terraform-providers/terraform-provider-random",
+			"revision": "e6526ec8369cf8a96edee186f9e427dd9a9fb0b2",
+			"revisionTime": "2017-12-07T14:23:19Z"
+		},
+		{
+			"checksumSHA1": "im7uHwKCmfoorIMyOMADy8eodHg=",
+			"path": "github.com/terraform-providers/terraform-provider-random/random",
+			"revision": "e6526ec8369cf8a96edee186f9e427dd9a9fb0b2",
+			"revisionTime": "2017-12-07T14:23:19Z"
 		},
 		{
 			"checksumSHA1": "qgMa75aMGbkFY0jIqqqgVnCUoNA=",
