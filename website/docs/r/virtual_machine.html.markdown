@@ -297,6 +297,15 @@ options:
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
+~> **NOTE:** All clusters and standalone hosts have a resource pool, even if
+one has not been explicitly created. For more information, see the section on
+[specifying the root resource pool for a cluster or standalone
+host][docs-resource-pool-cluster-default] in the `vsphere_resource_pool` data
+source documentation. This resource does not take a cluster or standalone host
+resource directly.
+
+[docs-resource-pool-cluster-default]: /docs/providers/vsphere/d/resource_pool.html#specifying-the-default-resource-pool-for-a-cluster
+
 * `datastore_id` - (Required) The [managed object reference
   ID][docs-about-morefs] of the virtual machine's datastore. The virtual
   machine configuration is placed here, along with any virtual disks that are
