@@ -850,26 +850,28 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 						Config: testAccResourceVSphereVirtualMachineConfigCloneWithVAppProperties(),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("example_key", "example value"),
-							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("another_key", ""),
+							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.hostname", "example.local"),
+							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.0", "4.4.4.4"),
 						),
 					},
 					{
 						Config: testAccResourceVSphereVirtualMachineConfigCloneUpdatingVAppProperties(),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("another_key", "another value"),
-							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("example_key", "new value"),
+							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.hostname", "example2.local"),
+							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.0", "4.4.4.4"),
+							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.1", "8.8.8.8"),
 						),
 					},
-					// This test is commented out because removing a value does not work with the current implementation.
+					// This test is commented out because zeroing out a value does not work with the current implementation.
 					// This seems like it may be a limitation of the vSphere API or or client implementation.
 					// {
 					// 	Config: testAccResourceVSphereVirtualMachineConfigCloneWithVAppProperties(),
 					// 	Check: resource.ComposeTestCheckFunc(
 					// 		testAccResourceVSphereVirtualMachineCheckExists(true),
-					// 		testAccResourceVSphereVirtualMachineCheckVAppConfigKey("example_key", "example value"),
-					// 		testAccResourceVSphereVirtualMachineCheckVAppConfigKey("another_key", ""),
+					//		testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.hostname", "example.local"),
+					//		testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.0", "4.4.4.4"),
+					//		testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.1", ""),
 					// 	),
 					// },
 				},
@@ -5853,7 +5855,8 @@ resource "vsphere_virtual_machine" "vm" {
 
   vapp {
     properties {
-      example_key = "example value"
+      "guestinfo.hostname"     = "example.local"
+      "guestinfo.dns.server.0" = "4.4.4.4"
     }
   }
 
@@ -5937,8 +5940,9 @@ resource "vsphere_virtual_machine" "vm" {
 
   vapp {
     properties {
-	  another_key = "another value"
-	  example_key = "new value"
+      "guestinfo.hostname"     = "example2.local"
+      "guestinfo.dns.server.0" = "4.4.4.4"
+      "guestinfo.dns.server.1" = "8.8.8.8"
     }
   }
 
