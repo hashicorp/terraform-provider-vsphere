@@ -515,7 +515,7 @@ func flattenExtraConfig(d *schema.ResourceData, opts []types.BaseOptionValue) er
 // We track changes to keys to determine if any have been removed from
 // configuration - if they have, we add them with an empty value to ensure
 // they are removed from vAppConfig on the update.
-func expandVAppConfig(d *schema.ResourceData) types.BaseVmConfigSpec {
+func expandVAppConfig(d *schema.ResourceData) *types.VmConfigSpec {
 	if !d.HasChange("vapp") {
 		return nil
 	}
