@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"reflect"
-	"sort"
 
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -13,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -515,75 +515,48 @@ func flattenExtraConfig(d *schema.ResourceData, opts []types.BaseOptionValue) er
 // We track changes to keys to determine if any have been removed from
 // configuration - if they have, we add them with an empty value to ensure
 // they are removed from vAppConfig on the update.
-func expandVAppConfig(d *schema.ResourceData) *types.VmConfigSpec {
+func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) *types.VmConfigSpec {
 	if !d.HasChange("vapp") {
 		return nil
 	}
 
-	var (
-		props  []types.VAppPropertySpec
-		allIds sort.StringSlice
-	)
+	var props []types.VAppPropertySpec
 
-	old, new := d.GetChange("vapp")
+	_, new := d.GetChange("vapp")
+	newMap := make(map[string]interface{})
 
-	getVAppProps := func(val interface{}) map[string]interface{} {
-		vApps := val.([]interface{})
-		if vApps != nil && len(vApps) > 0 && vApps[0] != nil {
-			vApp := vApps[0].(map[string]interface{})
-			if props, ok := vApp["properties"].(map[string]interface{}); ok {
-				return props
-			}
-		}
-		return make(map[string]interface{})
-	}
-
-	oldMap := getVAppProps(old)
-	newMap := getVAppProps(new)
-
-	for k := range oldMap {
-		allIds = append(allIds, k)
-	}
-
-	for k := range newMap {
-		if _, ok := oldMap[k]; !ok {
-			allIds = append(allIds, k)
-		}
-	}
-	sort.Sort(allIds)
-
-	for i, k := range allIds {
-		_, isOld := oldMap[k]
-		_, isNew := newMap[k]
-
-		if isNew {
-			prop := types.VAppPropertySpec{
-				ArrayUpdateSpec: types.ArrayUpdateSpec{
-					Operation: types.ArrayUpdateOperationEdit,
-				},
-				Info: &types.VAppPropertyInfo{
-					Key:   int32(i) + 1,
-					Id:    k,
-					Value: newMap[k].(string),
-				},
-			}
-			props = append(props, prop)
-		} else if isOld {
-			prop := types.VAppPropertySpec{
-				ArrayUpdateSpec: types.ArrayUpdateSpec{
-					Operation: types.ArrayUpdateOperationEdit,
-				},
-				Info: &types.VAppPropertyInfo{
-					Key:   int32(i) + 1,
-					Id:    k,
-					Value: "",
-				},
-			}
-			props = append(props, prop)
+	newVApps := new.([]interface{})
+	if newVApps != nil && len(newVApps) > 0 && newVApps[0] != nil {
+		newVApp := newVApps[0].(map[string]interface{})
+		if props, ok := newVApp["properties"].(map[string]interface{}); ok {
+			newMap = props
 		}
 	}
 
-	// Done!
+	vm, _ := virtualmachine.FromUUID(client, d.Id())
+	vmProps, _ := virtualmachine.Properties(vm)
+	allProperties := vmProps.Config.VAppConfig.GetVmConfigInfo().Property
+
+	for _, p := range allProperties {
+		prop := types.VAppPropertySpec{
+			ArrayUpdateSpec: types.ArrayUpdateSpec{
+				Operation: types.ArrayUpdateOperationEdit,
+			},
+			Info: &types.VAppPropertyInfo{
+				Key:   p.Key,
+				Id:    p.Id,
+				Value: p.DefaultValue,
+			},
+		}
+		for k, v := range newMap {
+			if k == p.Id {
+				prop.Info.Value = v.(string)
+				break
+			}
+		}
+		props = append(props, prop)
+	}
+
 	return &types.VmConfigSpec{
 		Property: props,
 	}
@@ -701,7 +674,7 @@ func expandVirtualMachineConfigSpec(d *schema.ResourceData, client *govmomi.Clie
 		ExtraConfig:         expandExtraConfig(d),
 		SwapPlacement:       getWithRestart(d, "swap_placement_policy").(string),
 		BootOptions:         expandVirtualMachineBootOptions(d, client),
-		VAppConfig:          expandVAppConfig(d),
+		VAppConfig:          expandVAppConfig(d, client),
 		Firmware:            getWithRestart(d, "firmware").(string),
 		NestedHVEnabled:     getBoolWithRestart(d, "nested_hv_enabled"),
 		VPMCEnabled:         getBoolWithRestart(d, "cpu_performance_counters_enabled"),
