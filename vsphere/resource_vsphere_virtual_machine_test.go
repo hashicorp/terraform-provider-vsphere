@@ -1335,7 +1335,7 @@ func testAccResourceVSphereVirtualMachineCheckVAppConfigKey(key, value string) r
 		actual := props.Config.VAppConfig.GetVmConfigInfo().Property
 		for _, prop := range actual {
 			if prop.Id == key && prop.Value != value {
-				return fmt.Errorf("expected vAppConfig property %s to have value %s, got %s", key, value, prop.Value)
+				return fmt.Errorf("expected vAppConfig property %s to have value %s, got %s.", key, value, prop.Value)
 			}
 		}
 		return nil

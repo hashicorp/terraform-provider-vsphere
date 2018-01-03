@@ -545,7 +545,7 @@ func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) *types.VmC
 			Info: &types.VAppPropertyInfo{
 				Key:   p.Key,
 				Id:    p.Id,
-				Value: p.DefaultValue,
+				Value: " ",
 			},
 		}
 		for k, v := range newMap {
