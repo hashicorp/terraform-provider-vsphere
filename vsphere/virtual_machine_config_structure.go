@@ -239,6 +239,13 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Optional:    true,
 			Description: "Extra configuration data for this virtual machine. Can be used to supply advanced parameters not normally in configuration, such as data for cloud-config (under the guestinfo namespace), or configuration data for OVF images.",
 		},
+		"vapp": {
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "vApp configuration data for this virtual machine. Can be used to provide configuration data for OVF images.",
+			MaxItems:    1,
+			Elem:        &schema.Resource{Schema: VAppSubresourceSchema()},
+		},
 		"change_version": {
 			Type:        schema.TypeString,
 			Computed:    true,
@@ -252,6 +259,21 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 	}
 	structure.MergeSchema(s, schemaVirtualMachineResourceAllocation())
 	return s
+}
+
+// VAppSchema represents the schema for the vApp sub-resource.
+//
+// This sub-resource allows the customization of vApp properties
+// on cloned VMs.
+func VAppSubresourceSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"properties": {
+			Type:        schema.TypeMap,
+			Optional:    true,
+			Description: "A map of customizable vApp properties and their values. Allows customization of VMs cloned from OVF templates which have customizable vApp properties.",
+			Elem:        schema.TypeString,
+		},
+	}
 }
 
 // expandVirtualMachineBootOptions reads certain ResourceData keys and
