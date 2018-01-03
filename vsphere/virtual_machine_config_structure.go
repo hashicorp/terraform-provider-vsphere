@@ -538,6 +538,10 @@ func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) *types.VmC
 	allProperties := vmProps.Config.VAppConfig.GetVmConfigInfo().Property
 
 	for _, p := range allProperties {
+		defaultValue := " "
+		if p.DefaultValue != "" {
+			defaultValue = p.DefaultValue
+		}
 		prop := types.VAppPropertySpec{
 			ArrayUpdateSpec: types.ArrayUpdateSpec{
 				Operation: types.ArrayUpdateOperationEdit,
@@ -545,7 +549,7 @@ func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) *types.VmC
 			Info: &types.VAppPropertyInfo{
 				Key:   p.Key,
 				Id:    p.Id,
-				Value: " ",
+				Value: defaultValue,
 			},
 		}
 		for k, v := range newMap {
