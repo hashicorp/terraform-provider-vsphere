@@ -567,7 +567,7 @@ func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) *types.VmC
 }
 
 // flattenVAppConfig reads in the vAppConfig from a running virtual machine
-// and *only* sets the keys in vapp that we know about.
+// and sets all keys in vapp.
 func flattenVAppConfig(d *schema.ResourceData, config types.BaseVmConfigInfo) error {
 	if config == nil {
 		return nil
@@ -578,16 +578,9 @@ func flattenVAppConfig(d *schema.ResourceData, config types.BaseVmConfigInfo) er
 		return nil
 	}
 	vac := make(map[string]interface{})
-	vApp := d.Get("vapp").([]interface{})
-	if len(vApp) > 0 && vApp[0] != nil {
-		if vAppProps, ok := vApp[0].(map[string]interface{})["properties"]; ok {
-			for _, v := range props {
-				for k := range vAppProps.(map[string]interface{}) {
-					if v.Id == k {
-						vac[v.Id] = v.Value
-					}
-				}
-			}
+	for _, v := range props {
+		if v.Value != "" && v.Value != v.DefaultValue {
+			vac[v.Id] = v.Value
 		}
 	}
 	return d.Set("vapp", []interface{}{
