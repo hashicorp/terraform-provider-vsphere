@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/computeresource"
+	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
@@ -171,11 +172,14 @@ func createClusterRule(d *schema.ResourceData) (*clusterRule, error) {
 }
 
 func checkExist(ctx context.Context, c *object.ClusterComputeResource, name string) (bool, error) {
-	ret, err := getRule(ctx, c, name)
+	ret, err := getRule(c, name)
 	return ret != nil, err
 }
 
-func getRule(ctx context.Context, c *object.ClusterComputeResource, name string) (types.BaseClusterRuleInfo, error) {
+func getRule(c *object.ClusterComputeResource, name string) (types.BaseClusterRuleInfo, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultAPITimeout)
+	defer cancel()
+
 	cluserConfig, err := c.Configuration(ctx)
 	if err != nil {
 		return nil, err
@@ -189,6 +193,32 @@ func getRule(ctx context.Context, c *object.ClusterComputeResource, name string)
 	return nil, nil
 }
 
+//TODO move to internal/helper/virtualmachine/virtual_machine_helper.go
+func getVmsRefFromPaths(client *govmomi.Client, paths []string, dc *object.Datacenter) ([]types.ManagedObjectReference, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultAPITimeout)
+	defer cancel()
+	finder := find.NewFinder(client.Client, true)
+	finder.SetDatacenter(dc)
+
+	var refVMs []types.ManagedObjectReference
+	for _, path := range paths {
+
+		vms, err := finder.VirtualMachineList(ctx, path)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, vm := range vms {
+			ref := types.ManagedObjectReference{
+				Type:  "VirtualMachine",
+				Value: vm.Reference().Value,
+			}
+			refVMs = append(refVMs, ref)
+		}
+	}
+	return refVMs, nil
+
+}
 func resourceVSphereClusterRuleCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Creating Cluster Rule")
 	client := meta.(*VSphereClient).vimClient
@@ -206,34 +236,23 @@ func resourceVSphereClusterRuleCreate(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	finder := find.NewFinder(client.Client, true)
-	finder.SetDatacenter(dc)
-
-	var refVMs []types.ManagedObjectReference
-	for _, vmNames := range cr.VirtualMachines {
-		vms, err := finder.VirtualMachineList(ctx, vmNames)
-		if err != nil {
-			return err
-		}
-
-		for _, vm := range vms {
-			ref := types.ManagedObjectReference{
-				Type:  "VirtualMachine",
-				Value: vm.Reference().Value,
-			}
-			refVMs = append(refVMs, ref)
-		}
-	}
-	var ruleSpecs []types.ClusterRuleSpec
+	//var ruleSpecs []types.ClusterRuleSpec
 	var rule types.BaseClusterRuleInfo
-	//TODO Add other types
 	switch cr.ClusterRuleType {
 	case "antiaffinity":
 		aaRule := &types.ClusterAntiAffinityRuleSpec{}
+		refVMs, err := getVmsRefFromPaths(client, cr.VirtualMachines, dc)
+		if err != nil {
+			return err
+		}
 		aaRule.Vm = refVMs
 		rule = aaRule
 	case "affinity":
 		aRule := &types.ClusterAffinityRuleSpec{}
+		refVMs, err := getVmsRefFromPaths(client, cr.VirtualMachines, dc)
+		if err != nil {
+			return err
+		}
 		aRule.Vm = refVMs
 		rule = aRule
 	case "vmhostaffine":
@@ -248,16 +267,7 @@ func resourceVSphereClusterRuleCreate(d *schema.ResourceData, meta interface{}) 
 		rule = vmhRule
 
 	}
-	ruleInfo := rule.GetClusterRuleInfo()
-	ruleInfo.Name = cr.Name
-	ruleInfo.Mandatory = &cr.Mandatory
-	ruleInfo.Enabled = &cr.Enabled
-	spec := types.ClusterRuleSpec{}
-	spec.Operation = types.ArrayUpdateOperationAdd
-	spec.Info = rule
-	ruleSpecs = append(ruleSpecs, spec)
 
-	clusterSpec := &types.ClusterConfigSpecEx{RulesSpec: ruleSpecs}
 	ccr, err := computeresource.ClusterFromID(client, cr.ClusterComputeResourceID)
 	if err != nil {
 		return err
@@ -270,6 +280,21 @@ func resourceVSphereClusterRuleCreate(d *schema.ResourceData, meta interface{}) 
 	}
 	if ok {
 		return fmt.Errorf("Rule name already exists")
+	}
+
+	ruleInfo := rule.GetClusterRuleInfo()
+	ruleInfo.Name = cr.Name
+	ruleInfo.Mandatory = &cr.Mandatory
+	ruleInfo.Enabled = &cr.Enabled
+
+	spec := types.ClusterRuleSpec{}
+	spec.Operation = types.ArrayUpdateOperationAdd
+	spec.Info = rule
+
+	clusterSpec := &types.ClusterConfigSpecEx{
+		RulesSpec: []types.ClusterRuleSpec{
+			spec,
+		},
 	}
 
 	task, err := ccr.Reconfigure(ctx, clusterSpec, true)
@@ -293,25 +318,13 @@ func resourceVSphereClusterRuleRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultAPITimeout)
-	defer cancel()
-
-	finder := find.NewFinder(client.Client, true)
-
-	dc, err := datacenterFromID(client, cr.DatacenterID)
-	if err != nil {
-		return err
-	}
-
-	finder.SetDatacenter(dc)
-
 	ccr, err := computeresource.ClusterFromID(client, cr.ClusterComputeResourceID)
 	if err != nil {
 		return err
 	}
 
 	//Get rule Key
-	resRule, err := getRule(ctx, ccr, cr.Name)
+	resRule, err := getRule(ccr, cr.Name)
 	if err != nil {
 		return err
 	}
@@ -319,7 +332,7 @@ func resourceVSphereClusterRuleRead(d *schema.ResourceData, meta interface{}) er
 	cri := resRule.GetClusterRuleInfo()
 	log.Printf("READ >>>> %+v\n", cri)
 
-	d.SetId(fmt.Sprint(cri.Id))
+	d.SetId(fmt.Sprint(cri.Key))
 	d.Set("name", cri.Name)
 	d.Set("mandatory", *cri.Mandatory)
 	d.Set("enabled", *cri.Enabled)
@@ -337,6 +350,7 @@ func resourceVSphereClusterRuleRead(d *schema.ResourceData, meta interface{}) er
 func resourceVSphereClusterRuleUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Reading Cluster Rule.")
 	//client := meta.(*VSphereClient).vimClient
+	//TODO
 	return nil
 }
 
@@ -352,17 +366,7 @@ func resourceVSphereClusterRuleDelete(d *schema.ResourceData, meta interface{}) 
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultAPITimeout)
 	defer cancel()
 
-	finder := find.NewFinder(client.Client, true)
-
-	dc, err := datacenterFromID(client, cr.DatacenterID)
-	if err != nil {
-		return err
-	}
-
-	finder.SetDatacenter(dc)
-
 	var ruleSpecs []types.ClusterRuleSpec
-
 	spec := types.ClusterRuleSpec{}
 	spec.Operation = types.ArrayUpdateOperationRemove
 	spec.RemoveKey = cr.Id
