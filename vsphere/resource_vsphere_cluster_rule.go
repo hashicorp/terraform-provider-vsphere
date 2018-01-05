@@ -281,13 +281,6 @@ func resourceVSphereClusterRuleCreate(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	//Get rule Key
-	resRule, err := getRule(ctx, ccr, cr.Name)
-	if err != nil {
-		return err
-	}
-	cr.Id = resRule.GetClusterRuleInfo().Key
-	d.SetId(fmt.Sprint(cr.Id))
 	return resourceVSphereClusterRuleRead(d, meta)
 }
 
@@ -325,6 +318,8 @@ func resourceVSphereClusterRuleRead(d *schema.ResourceData, meta interface{}) er
 
 	cri := resRule.GetClusterRuleInfo()
 	log.Printf("READ >>>> %+v\n", cri)
+
+	d.SetId(fmt.Sprint(cri.Id))
 	d.Set("name", cri.Name)
 	d.Set("mandatory", *cri.Mandatory)
 	d.Set("enabled", *cri.Enabled)
