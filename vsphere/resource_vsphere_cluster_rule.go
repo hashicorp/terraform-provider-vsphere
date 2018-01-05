@@ -192,12 +192,17 @@ func resourceVSphereClusterRuleCreate(d *schema.ResourceData, meta interface{}) 
 	switch cr.ClusterRuleType {
 	case "antiaffinity":
 		aaRule := &types.ClusterAntiAffinityRuleSpec{}
-		aaRule.Name = cr.Name
-		aaRule.Mandatory = boolPtr(false)
-		aaRule.Enabled = boolPtr(true)
 		aaRule.Vm = refVMs
 		rule = aaRule
+	case "affinity":
+		aRule := &types.ClusterAffinityRuleSpec{}
+		aRule.Vm = refVMs
+		rule = aRule
 	}
+	ruleInfo := rule.GetClusterRuleInfo()
+	ruleInfo.Name = cr.Name
+	ruleInfo.Mandatory = boolPtr(false)
+	ruleInfo.Enabled = boolPtr(true)
 	spec := types.ClusterRuleSpec{}
 	spec.Operation = types.ArrayUpdateOperationAdd
 	spec.Info = rule
