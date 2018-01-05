@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/clusterrule"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/computeresource"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -24,10 +25,6 @@ var ruleTypeAllowedValues = []string{
 }
 
 const DefaultAPITimeout = time.Minute * 5
-
-//func boolPtr(b bool) *bool {
-//	return &b
-//}
 
 type clusterRule struct {
 	Id                       int32
@@ -171,28 +168,6 @@ func createClusterRule(d *schema.ResourceData) (*clusterRule, error) {
 	return &cr, nil
 }
 
-func checkExist(ctx context.Context, c *object.ClusterComputeResource, name string) (bool, error) {
-	ret, err := getRule(c, name)
-	return ret != nil, err
-}
-
-func getRule(c *object.ClusterComputeResource, name string) (types.BaseClusterRuleInfo, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultAPITimeout)
-	defer cancel()
-
-	cluserConfig, err := c.Configuration(ctx)
-	if err != nil {
-		return nil, err
-	}
-	for _, crule := range cluserConfig.Rule {
-		info := crule.GetClusterRuleInfo()
-		if info.Name == name {
-			return info, nil
-		}
-	}
-	return nil, nil
-}
-
 //TODO move to internal/helper/virtualmachine/virtual_machine_helper.go
 func getVmsRefFromPaths(client *govmomi.Client, paths []string, dc *object.Datacenter) ([]types.ManagedObjectReference, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultAPITimeout)
@@ -274,7 +249,7 @@ func resourceVSphereClusterRuleCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	//Issue github.com/vmware/govmomi/issues/980
-	ok, err := checkExist(ctx, ccr, cr.Name)
+	ok, err := clusterrule.CheckExist(ctx, ccr, cr.Name)
 	if err != nil {
 		return err
 	}
@@ -324,7 +299,7 @@ func resourceVSphereClusterRuleRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	//Get rule Key
-	resRule, err := getRule(ccr, cr.Name)
+	resRule, err := clusterrule.GetRuleByName(ccr, cr.Name)
 	if err != nil {
 		return err
 	}
