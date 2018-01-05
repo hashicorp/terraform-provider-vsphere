@@ -35,7 +35,6 @@ type clusterRule struct {
 	Enabled                  bool
 	Status                   string
 	ClusterRuleType          string
-	HostSystemID             string
 	DatacenterID             string
 	ClusterComputeResourceID string
 	VirtualMachines          []string
@@ -79,9 +78,8 @@ func resourceVSphereClusterRule() *schema.Resource {
 				Description: "Use this option to enable the rule.",
 			},
 			"status": &schema.Schema{
-				Type:        schema.TypeBool,
-				Compute:     true,
-				Description: "The rule status.",
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"datacenter_id": &schema.Schema{
@@ -246,7 +244,7 @@ func resourceVSphereClusterRuleCreate(d *schema.ResourceData, meta interface{}) 
 	case "vmhostantiaffine":
 		vmhRule := &types.ClusterVmHostRuleInfo{}
 		vmhRule.VmGroupName = cr.VmGroupName
-		vmhRule.AffineHostGroupName = cr.HostGroupName
+		vmhRule.AntiAffineHostGroupName = cr.HostGroupName
 		rule = vmhRule
 
 	}
@@ -295,7 +293,48 @@ func resourceVSphereClusterRuleCreate(d *schema.ResourceData, meta interface{}) 
 
 func resourceVSphereClusterRuleRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Reading Cluster Rule.")
-	//client := meta.(*VSphereClient).vimClient
+	client := meta.(*VSphereClient).vimClient
+
+	cr, err := createClusterRule(d)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultAPITimeout)
+	defer cancel()
+
+	finder := find.NewFinder(client.Client, true)
+
+	dc, err := datacenterFromID(client, cr.DatacenterID)
+	if err != nil {
+		return err
+	}
+
+	finder.SetDatacenter(dc)
+
+	ccr, err := computeresource.ClusterFromID(client, cr.ClusterComputeResourceID)
+	if err != nil {
+		return err
+	}
+
+	//Get rule Key
+	resRule, err := getRule(ctx, ccr, cr.Name)
+	if err != nil {
+		return err
+	}
+
+	cri := resRule.GetClusterRuleInfo()
+	log.Printf("READ >>>> %+v\n", cri)
+	d.Set("name", cri.Name)
+	d.Set("mandatory", *cri.Mandatory)
+	d.Set("enabled", *cri.Enabled)
+	d.Set("status", cri.Status)
+	//TODO reverse lookup
+	//d.Set("virtual_machines", cri.VirtualMachines)
+	//TODO switch type
+	//d.Set("cluster_rule_type", cri.ClusterRuleType)
+	//d.Set("vm_group_name", cri.VmGroupName)
+	//d.Set("host_group_name", cri.AntiAffineHostGroupName)
 	return nil
 
 }
@@ -335,11 +374,11 @@ func resourceVSphereClusterRuleDelete(d *schema.ResourceData, meta interface{}) 
 	ruleSpecs = append(ruleSpecs, spec)
 
 	clusterSpec := &types.ClusterConfigSpecEx{RulesSpec: ruleSpecs}
-	cluster, err := computeresource.ClusterFromID(client, cr.ClusterComputeResourceID)
+	ccr, err := computeresource.ClusterFromID(client, cr.ClusterComputeResourceID)
 	if err != nil {
 		return err
 	}
-	task, err := cluster.Reconfigure(ctx, clusterSpec, true)
+	task, err := ccr.Reconfigure(ctx, clusterSpec, true)
 	if err != nil {
 		return err
 	}
