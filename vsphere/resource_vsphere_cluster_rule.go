@@ -16,25 +16,31 @@ import (
 )
 
 var ruleTypeAllowedValues = []string{
-	"vmhost",
+	"vmhostaffine",
+	"vmhostantiaffine",
 	"affinity",
 	"antiaffinity",
 }
 
 const DefaultAPITimeout = time.Minute * 5
 
-func boolPtr(b bool) *bool {
-	return &b
-}
+//func boolPtr(b bool) *bool {
+//	return &b
+//}
 
 type clusterRule struct {
 	Id                       int32
 	Name                     string
+	Mandatory                bool
+	Enabled                  bool
+	Status                   string
 	ClusterRuleType          string
 	HostSystemID             string
 	DatacenterID             string
 	ClusterComputeResourceID string
 	VirtualMachines          []string
+	VmGroupName              string
+	HostGroupName            string
 }
 
 // Define Cluster Rule
@@ -60,12 +66,24 @@ func resourceVSphereClusterRule() *schema.Resource {
 				Description:  "The type for the cluster rule.",
 				ValidateFunc: validation.StringInSlice(ruleTypeAllowedValues, false),
 			},
-
-			"host_system_id": &schema.Schema{
-				Type:        schema.TypeString,
+			"mandatory": &schema.Schema{
+				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Use this option only for type 'vmhost'. The managed object ID of the host to put virtual machines.",
+				Default:     false,
+				Description: "Use this option to set this rule is mandatory or optional.",
 			},
+			"enabled": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: "Use this option to enable the rule.",
+			},
+			"status": &schema.Schema{
+				Type:        schema.TypeBool,
+				Compute:     true,
+				Description: "The rule status.",
+			},
+
 			"datacenter_id": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
@@ -80,9 +98,20 @@ func resourceVSphereClusterRule() *schema.Resource {
 			},
 			"virtual_machines": &schema.Schema{
 				Type:        schema.TypeList,
-				Required:    true,
+				Optional:    true,
 				Description: "The list of virtual machines for the affinity",
 				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
+			"vm_group_name": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Use this option only for type 'vmhost'. The virtual machine group name",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
+			"host_group_name": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Use this option only for type 'vmhost'. The host group name.",
 			},
 		},
 	}
@@ -116,10 +145,6 @@ func createClusterRule(d *schema.ResourceData) (*clusterRule, error) {
 	if crType, ok := d.GetOk("type"); ok {
 		cr.ClusterRuleType = crType.(string)
 	}
-	if hsID, ok := d.GetOk("host_system_id"); ok {
-		cr.HostSystemID = hsID.(string)
-	}
-
 	if datacenter_id, ok := d.GetOk("datacenter_id"); ok {
 		cr.DatacenterID = datacenter_id.(string)
 	}
@@ -128,6 +153,21 @@ func createClusterRule(d *schema.ResourceData) (*clusterRule, error) {
 	}
 	if vms, ok := d.GetOk("virtual_machines"); ok {
 		cr.VirtualMachines = expandStringList(vms.([]interface{}))
+	}
+	if vmgn, ok := d.GetOk("vm_group_name"); ok {
+		cr.VmGroupName = vmgn.(string)
+	}
+	if hgn, ok := d.GetOk("host_group_name"); ok {
+		cr.HostGroupName = hgn.(string)
+	}
+	if m, ok := d.GetOk("enabled"); ok {
+		cr.Enabled = m.(bool)
+	}
+	if e, ok := d.GetOk("mandatory"); ok {
+		cr.Mandatory = e.(bool)
+	}
+	if s, ok := d.GetOk("status"); ok {
+		cr.Status = s.(string)
 	}
 	return &cr, nil
 }
@@ -198,11 +238,22 @@ func resourceVSphereClusterRuleCreate(d *schema.ResourceData, meta interface{}) 
 		aRule := &types.ClusterAffinityRuleSpec{}
 		aRule.Vm = refVMs
 		rule = aRule
+	case "vmhostaffine":
+		vmhRule := &types.ClusterVmHostRuleInfo{}
+		vmhRule.VmGroupName = cr.VmGroupName
+		vmhRule.AffineHostGroupName = cr.HostGroupName
+		rule = vmhRule
+	case "vmhostantiaffine":
+		vmhRule := &types.ClusterVmHostRuleInfo{}
+		vmhRule.VmGroupName = cr.VmGroupName
+		vmhRule.AffineHostGroupName = cr.HostGroupName
+		rule = vmhRule
+
 	}
 	ruleInfo := rule.GetClusterRuleInfo()
 	ruleInfo.Name = cr.Name
-	ruleInfo.Mandatory = boolPtr(false)
-	ruleInfo.Enabled = boolPtr(true)
+	ruleInfo.Mandatory = &cr.Mandatory
+	ruleInfo.Enabled = &cr.Enabled
 	spec := types.ClusterRuleSpec{}
 	spec.Operation = types.ArrayUpdateOperationAdd
 	spec.Info = rule
