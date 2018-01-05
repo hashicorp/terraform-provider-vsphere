@@ -366,13 +366,16 @@ func resourceVSphereClusterRuleDelete(d *schema.ResourceData, meta interface{}) 
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultAPITimeout)
 	defer cancel()
 
-	var ruleSpecs []types.ClusterRuleSpec
 	spec := types.ClusterRuleSpec{}
 	spec.Operation = types.ArrayUpdateOperationRemove
 	spec.RemoveKey = cr.Id
-	ruleSpecs = append(ruleSpecs, spec)
 
-	clusterSpec := &types.ClusterConfigSpecEx{RulesSpec: ruleSpecs}
+	clusterSpec := &types.ClusterConfigSpecEx{
+		RulesSpec: []types.ClusterRuleSpec{
+			spec,
+		},
+	}
+
 	ccr, err := computeresource.ClusterFromID(client, cr.ClusterComputeResourceID)
 	if err != nil {
 		return err
