@@ -58,5 +58,6 @@ export VSPHERE_FOLDER_V0_PATH      ?= old-folder # vsphere_folder state test
 export VSPHERE_ISO_FILE            ?= iso-file   # ISO file for CDROM device
 export VSPHERE_ISO_DATASTORE       ?= iso-ds     # ISO file for CDROM device
 export VSPHERE_VM_V1_PATH          ?= vm-path    # VM resource state migration
-
+export VSPHERE_VM_GROUP_NAME       ?= vmg1       # VM groupe name
+export VSPHERE_HOST_GROUP_NAME     ?= hg1        # Host groupe name
 # vi: filetype=make
