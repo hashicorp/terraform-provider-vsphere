@@ -648,7 +648,7 @@ The options are:
 * `network_id` - (Required) The [managed object reference
   ID][docs-about-morefs] of the network to connect this interface to.
 * `adapter_type` - (Optional) The network interface type. Can be one of
-  `e1000`, `e1000e`, or `vmxnet3`. Default: `e1000`.
+  `e1000`, `e1000e`, or `vmxnet3`. Default: `vmxnet3`.
 * `use_static_mac` - (Optional) If true, the `mac_address` field is treated as
   a static MAC address and set accordingly. Setting this to `true` requires
   `mac_address` to be set. Default: `false`.
