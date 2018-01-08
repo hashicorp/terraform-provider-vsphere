@@ -540,6 +540,11 @@ func flattenExtraConfig(d *schema.ResourceData, opts []types.BaseOptionValue) er
 func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) *types.VmConfigSpec {
 	if !d.HasChange("vapp") {
 		return nil
+	} else {
+		// Many vApp config values, such as IP address, will require a
+		// restart of the machine to properly apply. We don't necessarily
+		// know which ones they are, so we will restart for every change.
+		d.Set("reboot_required", true)
 	}
 
 	var props []types.VAppPropertySpec
