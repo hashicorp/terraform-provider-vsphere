@@ -14,6 +14,12 @@ IMPROVEMENTS:
   `name` coming from a value that is still unavailable at plan time (such as a
   computed value from a resource). [GH-329]
 
+BUG FIXES:
+
+* `resource/vsphere_virtual_machine`: Fixed an issue that was causing crashes
+  when working with virtual machines or templates when no network interface was
+  occupying the first available device slot on the PCI bus. [GH-344]
+
 ## 1.1.1 (December 14, 2017)
 
 IMPROVEMENTS:
