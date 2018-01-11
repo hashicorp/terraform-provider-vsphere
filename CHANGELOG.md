@@ -1,24 +1,24 @@
-## 1.2.0 (Unreleased)
+## 1.2.0 (January 11, 2018)
 
 FEATURES:
 
-* **New Resource:** `vsphere_custom_attribute` [GH-229]
-* **New Data Source:** `vsphere_custom_attribute` [GH-229]
+* **New Resource:** `vsphere_custom_attribute` ([#229](https://github.com/terraform-providers/terraform-provider-vsphere/issues/229))
+* **New Data Source:** `vsphere_custom_attribute` ([#229](https://github.com/terraform-providers/terraform-provider-vsphere/issues/229))
 
 IMPROVEMENTS:
 
 * All vSphere provider resources that are capable of doing so now support custom
   attributes. Check the documentation of any specific resource for more details!
-  [GH-229]
+  ([#229](https://github.com/terraform-providers/terraform-provider-vsphere/issues/229))
 * `resource/vsphere_virtual_machine`: The resource will now disallow a disk's
   `name` coming from a value that is still unavailable at plan time (such as a
-  computed value from a resource). [GH-329]
+  computed value from a resource). ([#329](https://github.com/terraform-providers/terraform-provider-vsphere/issues/329))
 
 BUG FIXES:
 
 * `resource/vsphere_virtual_machine`: Fixed an issue that was causing crashes
   when working with virtual machines or templates when no network interface was
-  occupying the first available device slot on the PCI bus. [GH-344]
+  occupying the first available device slot on the PCI bus. ([#344](https://github.com/terraform-providers/terraform-provider-vsphere/issues/344))
 
 ## 1.1.1 (December 14, 2017)
 
