@@ -579,11 +579,11 @@ func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) *types.VmC
 				Value: defaultValue,
 			},
 		}
-		for k, v := range newMap {
-			if k == p.Id {
-				prop.Info.Value = v.(string)
-				break
-			}
+
+		newValue, ok := newMap[p.Id]
+		if ok {
+			prop.Info.Value = newValue.(string)
+			delete(newMap, p.Id)
 		}
 		props = append(props, prop)
 	}
