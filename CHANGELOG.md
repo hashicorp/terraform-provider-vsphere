@@ -7,9 +7,9 @@ FEATURES:
 
 IMPROVEMENTS:
 
-* All vSphere provider that are capable of doing so now support custom
-  attributes. Check the documentation of any specific resource for more
-  details! [GH-229]
+* All vSphere provider resources that are capable of doing so now support custom
+  attributes. Check the documentation of any specific resource for more details!
+  [GH-229]
 * `resource/vsphere_virtual_machine`: The resource will now disallow a disk's
   `name` coming from a value that is still unavailable at plan time (such as a
   computed value from a resource). [GH-329]
