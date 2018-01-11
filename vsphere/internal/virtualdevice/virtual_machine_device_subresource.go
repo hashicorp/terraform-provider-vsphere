@@ -743,27 +743,3 @@ func scsiControllerListString(ctlrs []types.BaseVirtualSCSIController) string {
 	}
 	return DeviceListString(l)
 }
-
-// unitRange calculates a range of units given a certain VirtualDeviceList.
-// It's mainly used in network interface refresh logic to determine how many
-// subresources may end up in state.
-func unitRange(l object.VirtualDeviceList) (int, error) {
-	// No NICs means no range
-	if len(l) < 1 {
-		return 0, nil
-	}
-	var low, high *int32
-	for _, v := range l {
-		d := v.GetVirtualDevice()
-		if d.UnitNumber == nil {
-			return 0, fmt.Errorf("device at key %d has no unit number", d.Key)
-		}
-		if low == nil || *d.UnitNumber < *low {
-			low = d.UnitNumber
-		}
-		if high == nil || *d.UnitNumber > *high {
-			high = d.UnitNumber
-		}
-	}
-	return int(*high - *low + 1), nil
-}

@@ -236,7 +236,7 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Network devices located: %s", DeviceListString(devices))
 	curSet := d.Get(subresourceTypeNetworkInterface).([]interface{})
 	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Current resource set from state: %s", subresourceListString(curSet))
-	urange, err := unitRange(devices)
+	urange, err := nicUnitRange(devices)
 	if err != nil {
 		return fmt.Errorf("error calculating network device range: %s", err)
 	}
@@ -387,7 +387,7 @@ func NetworkInterfacePostCloneOperation(d *schema.ResourceData, c *govmomi.Clien
 	log.Printf("[DEBUG] NetworkInterfacePostCloneOperation: Network devices located: %s", DeviceListString(devices))
 	curSet := d.Get(subresourceTypeNetworkInterface).([]interface{})
 	log.Printf("[DEBUG] NetworkInterfacePostCloneOperation: Current resource set from configuration: %s", subresourceListString(curSet))
-	urange, err := unitRange(devices)
+	urange, err := nicUnitRange(devices)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error calculating network device range: %s", err)
 	}
@@ -943,4 +943,27 @@ func (r *NetworkInterfaceSubresource) assignEthernetCard(l object.VirtualDeviceL
 		d.Key = -1
 	}
 	return nil
+}
+
+// nicUnitRange calculates a range of units given a certain VirtualDeviceList,
+// which should be network interfaces.  It's used in network interface refresh
+// logic to determine how many subresources may end up in state.
+func nicUnitRange(l object.VirtualDeviceList) (int, error) {
+	// No NICs means no range
+	if len(l) < 1 {
+		return 0, nil
+	}
+
+	high := int32(networkInterfacePciDeviceOffset)
+
+	for _, v := range l {
+		d := v.GetVirtualDevice()
+		if d.UnitNumber == nil {
+			return 0, fmt.Errorf("device at key %d has no unit number", d.Key)
+		}
+		if *d.UnitNumber > high {
+			high = *d.UnitNumber
+		}
+	}
+	return int(high - networkInterfacePciDeviceOffset + 1), nil
 }
