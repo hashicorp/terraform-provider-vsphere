@@ -41,7 +41,7 @@ The following example builds on the above example by creating a
 [`vsphere_virtual_machine`][docs-virtual-machine-resource] and assigning a 
 value to created custom attribute on it.
 
-[docs-virtual-machine-resource]: /docs/providers/vsphere/r/virutal_machine.html
+[docs-virtual-machine-resource]: /docs/providers/vsphere/r/virtual_machine.html
 
 ```hcl
 resource "vsphere_custom_attribute" "attribute" {
