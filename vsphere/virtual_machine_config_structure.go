@@ -244,7 +244,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Optional:    true,
 			Description: "vApp configuration data for this virtual machine. Can be used to provide configuration data for OVF images.",
 			MaxItems:    1,
-			Elem:        &schema.Resource{Schema: VAppSubresourceSchema()},
+			Elem:        &schema.Resource{Schema: vAppSubresourceSchema()},
 		},
 		"change_version": {
 			Type:        schema.TypeString,
@@ -261,11 +261,11 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 	return s
 }
 
-// VAppSchema represents the schema for the vApp sub-resource.
+// vAppSubresourceSchema represents the schema for the vApp sub-resource.
 //
 // This sub-resource allows the customization of vApp properties
 // on cloned VMs.
-func VAppSubresourceSchema() map[string]*schema.Schema {
+func vAppSubresourceSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"properties": {
 			Type:        schema.TypeMap,
@@ -540,12 +540,12 @@ func flattenExtraConfig(d *schema.ResourceData, opts []types.BaseOptionValue) er
 func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) (*types.VmConfigSpec, error) {
 	if !d.HasChange("vapp") {
 		return nil, nil
-	} else {
-		// Many vApp config values, such as IP address, will require a
-		// restart of the machine to properly apply. We don't necessarily
-		// know which ones they are, so we will restart for every change.
-		d.Set("reboot_required", true)
 	}
+
+	// Many vApp config values, such as IP address, will require a
+	// restart of the machine to properly apply. We don't necessarily
+	// know which ones they are, so we will restart for every change.
+	d.Set("reboot_required", true)
 
 	var props []types.VAppPropertySpec
 
