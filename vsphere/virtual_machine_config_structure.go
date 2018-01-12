@@ -537,9 +537,9 @@ func flattenExtraConfig(d *schema.ResourceData, opts []types.BaseOptionValue) er
 // We track changes to keys to determine if any have been removed from
 // configuration - if they have, we add them with an empty value to ensure
 // they are removed from vAppConfig on the update.
-func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) *types.VmConfigSpec {
+func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) (*types.VmConfigSpec, error) {
 	if !d.HasChange("vapp") {
-		return nil
+		return nil, nil
 	} else {
 		// Many vApp config values, such as IP address, will require a
 		// restart of the machine to properly apply. We don't necessarily
@@ -588,9 +588,13 @@ func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) *types.VmC
 		props = append(props, prop)
 	}
 
+	if len(newMap) > 0 {
+		return nil, fmt.Errorf("Unspported vApp properties in vapp.properties: %+v", reflect.ValueOf(newMap).MapKeys())
+	}
+
 	return &types.VmConfigSpec{
 		Property: props,
-	}
+	}, nil
 }
 
 // flattenVAppConfig reads in the vAppConfig from a running virtual machine
@@ -678,8 +682,13 @@ func expandMemorySizeConfig(d *schema.ResourceData) int64 {
 
 // expandVirtualMachineConfigSpec reads certain ResourceData keys and
 // returns a VirtualMachineConfigSpec.
-func expandVirtualMachineConfigSpec(d *schema.ResourceData, client *govmomi.Client) types.VirtualMachineConfigSpec {
+func expandVirtualMachineConfigSpec(d *schema.ResourceData, client *govmomi.Client) (types.VirtualMachineConfigSpec, error) {
 	log.Printf("[DEBUG] %s: Building config spec", resourceVSphereVirtualMachineIDString(d))
+	vappConfig, err := expandVAppConfig(d, client)
+	if err != nil {
+		return types.VirtualMachineConfigSpec{}, err
+	}
+
 	obj := types.VirtualMachineConfigSpec{
 		Name:                d.Get("name").(string),
 		GuestId:             getWithRestart(d, "guest_id").(string),
@@ -698,13 +707,13 @@ func expandVirtualMachineConfigSpec(d *schema.ResourceData, client *govmomi.Clie
 		ExtraConfig:         expandExtraConfig(d),
 		SwapPlacement:       getWithRestart(d, "swap_placement_policy").(string),
 		BootOptions:         expandVirtualMachineBootOptions(d, client),
-		VAppConfig:          expandVAppConfig(d, client),
+		VAppConfig:          vappConfig,
 		Firmware:            getWithRestart(d, "firmware").(string),
 		NestedHVEnabled:     getBoolWithRestart(d, "nested_hv_enabled"),
 		VPMCEnabled:         getBoolWithRestart(d, "cpu_performance_counters_enabled"),
 	}
 
-	return obj
+	return obj, nil
 }
 
 // flattenVirtualMachineConfigInfo reads various fields from a
@@ -761,7 +770,7 @@ func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualM
 // It does this be creating a fake ResourceData off of the VM resource schema,
 // flattening the config info into that, and then expanding both ResourceData
 // instances and comparing the resultant ConfigSpecs.
-func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, client *govmomi.Client, info *types.VirtualMachineConfigInfo) (types.VirtualMachineConfigSpec, bool) {
+func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, client *govmomi.Client, info *types.VirtualMachineConfigInfo) (types.VirtualMachineConfigSpec, bool, error) {
 	// Create the fake ResourceData from the VM resource
 	oldData := resourceVSphereVirtualMachine().Data(&terraform.InstanceState{})
 	oldData.SetId(d.Id())
@@ -773,9 +782,18 @@ func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, client *govmo
 	// Get both specs. Silence the logging for oldSpec to suppress fake
 	// reboot_required log messages.
 	log.SetOutput(ioutil.Discard)
-	oldSpec := expandVirtualMachineConfigSpec(oldData, client)
+	oldSpec, err := expandVirtualMachineConfigSpec(oldData, client)
+	if err != nil {
+		return types.VirtualMachineConfigSpec{}, false, err
+	}
+
 	logging.SetOutput()
-	newSpec := expandVirtualMachineConfigSpec(d, client)
+
+	newSpec, err := expandVirtualMachineConfigSpec(d, client)
+	if err != nil {
+		return types.VirtualMachineConfigSpec{}, false, err
+	}
+
 	// Return the new spec and compare
-	return newSpec, !reflect.DeepEqual(oldSpec, newSpec)
+	return newSpec, !reflect.DeepEqual(oldSpec, newSpec), nil
 }
