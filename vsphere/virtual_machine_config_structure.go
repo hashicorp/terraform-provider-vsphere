@@ -560,8 +560,22 @@ func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) (*types.Vm
 		}
 	}
 
+	uuid := d.Id()
+	if uuid == "" {
+		// No virtual machine has been created, this usually means that this is a
+		// brand new virtual machine. vApp properties are not supported on this
+		// workflow, so if there are any defined, return an error indicating such.
+		// Return with a no-op otherwise.
+		if len(newMap) > 0 {
+			return nil, fmt.Errorf("vApp properties can only be set on cloned virtual machines")
+		}
+		return nil, nil
+	}
 	vm, _ := virtualmachine.FromUUID(client, d.Id())
 	vmProps, _ := virtualmachine.Properties(vm)
+	if vmProps.Config.VAppConfig == nil {
+		return nil, fmt.Errorf("this VM lacks a vApp configuration and cannot have vApp properties set on it")
+	}
 	allProperties := vmProps.Config.VAppConfig.GetVmConfigInfo().Property
 
 	for _, p := range allProperties {
