@@ -998,17 +998,15 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.1", "8.8.8.8"),
 						),
 					},
-					// This test is commented out because zeroing out a value does not work with the current implementation.
-					// This seems like it may be a limitation of the vSphere API or or client implementation.
-					// {
-					// 	Config: testAccResourceVSphereVirtualMachineConfigCloneWithVAppProperties(),
-					// 	Check: resource.ComposeTestCheckFunc(
-					// 		testAccResourceVSphereVirtualMachineCheckExists(true),
-					//		testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.hostname", "example.local"),
-					//		testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.0", "4.4.4.4"),
-					//		testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.1", ""),
-					// 	),
-					// },
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigCloneWithVAppProperties(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.hostname", "example.local"),
+							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.0", "4.4.4.4"),
+							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.1", ""),
+						),
+					},
 				},
 			},
 		},
@@ -1575,6 +1573,9 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_TEMPLATE_WINDOWS") == "" {
 		t.Skip("set VSPHERE_TEMPLATE_WINDOWS to run vsphere_virtual_machine acceptance tests")
 	}
+	if os.Getenv("VSPHERE_TEMPLATE_COREOS") == "" {
+		t.Skip("set VSPHERE_TEMPLATE_COREOS to run vsphere_virtual_machine acceptance tests")
+	}
 	if os.Getenv("VSPHERE_ESXI_HOST") == "" {
 		t.Skip("set VSPHERE_ESXI_HOST to run vsphere_virtual_machine acceptance tests")
 	}
@@ -1624,7 +1625,7 @@ func testAccResourceVSphereVirtualMachineCheckVAppConfigKey(key, value string) r
 		actual := props.Config.VAppConfig.GetVmConfigInfo().Property
 		for _, prop := range actual {
 			if prop.Id == key && prop.Value != value {
-				return fmt.Errorf("expected vAppConfig property %s to have value %s, got %s.", key, value, prop.Value)
+				return fmt.Errorf("expected vAppConfig property %s to have value %s, got %s", key, value, prop.Value)
 			}
 		}
 		return nil
@@ -6961,58 +6962,72 @@ func testAccResourceVSphereVirtualMachineConfigCloneWithVAppProperties() string 
 variable "datacenter" {
   default = "%s"
 }
+
 variable "resource_pool" {
   default = "%s"
 }
+
 variable "network_label" {
   default = "%s"
 }
+
 variable "datastore" {
   default = "%s"
 }
+
 variable "template" {
   default = "%s"
 }
+
 data "vsphere_datacenter" "dc" {
   name = "${var.datacenter}"
 }
+
 data "vsphere_datastore" "datastore" {
   name          = "${var.datastore}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
+
 data "vsphere_resource_pool" "pool" {
   name          = "${var.resource_pool}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
+
 data "vsphere_network" "network" {
   name          = "${var.network_label}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
+
 data "vsphere_virtual_machine" "template" {
   name          = "${var.template}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
+
 resource "vsphere_virtual_machine" "vm" {
   name             = "terraform-test"
   resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
-  num_cpus = 2
-  memory   = 2048
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  num_cpus         = 2
+  memory           = 2048
+  guest_id         = "${data.vsphere_virtual_machine.template.guest_id}"
+
   network_interface {
     network_id   = "${data.vsphere_network.network.id}"
     adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
   }
+
   disk {
     name = "terraform-test.vmdk"
     size = "${data.vsphere_virtual_machine.template.disks.0.size}"
   }
+
   vapp {
     properties {
       "guestinfo.hostname"     = "example.local"
       "guestinfo.dns.server.0" = "4.4.4.4"
     }
   }
+
   clone {
     template_uuid = "${data.vsphere_virtual_machine.template.id}"
   }
@@ -7022,7 +7037,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL"),
 		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_TEMPLATE"),
+		os.Getenv("VSPHERE_TEMPLATE_COREOS"),
 	)
 }
 
@@ -7031,52 +7046,65 @@ func testAccResourceVSphereVirtualMachineConfigCloneUpdatingVAppProperties() str
 variable "datacenter" {
   default = "%s"
 }
+
 variable "resource_pool" {
   default = "%s"
 }
+
 variable "network_label" {
   default = "%s"
 }
+
 variable "datastore" {
   default = "%s"
 }
+
 variable "template" {
   default = "%s"
 }
+
 data "vsphere_datacenter" "dc" {
   name = "${var.datacenter}"
 }
+
 data "vsphere_datastore" "datastore" {
   name          = "${var.datastore}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
+
 data "vsphere_resource_pool" "pool" {
   name          = "${var.resource_pool}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
+
 data "vsphere_network" "network" {
   name          = "${var.network_label}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
+
 data "vsphere_virtual_machine" "template" {
   name          = "${var.template}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
+
 resource "vsphere_virtual_machine" "vm" {
   name             = "terraform-test"
   resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
-  num_cpus = 2
-  memory   = 2048
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  num_cpus         = 2
+  memory           = 2048
+  guest_id         = "${data.vsphere_virtual_machine.template.guest_id}"
+
   network_interface {
     network_id   = "${data.vsphere_network.network.id}"
     adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
   }
+
   disk {
     name = "terraform-test.vmdk"
     size = "${data.vsphere_virtual_machine.template.disks.0.size}"
   }
+
   vapp {
     properties {
       "guestinfo.hostname"     = "example2.local"
@@ -7084,6 +7112,7 @@ resource "vsphere_virtual_machine" "vm" {
       "guestinfo.dns.server.1" = "8.8.8.8"
     }
   }
+
   clone {
     template_uuid = "${data.vsphere_virtual_machine.template.id}"
   }
@@ -7093,6 +7122,6 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL"),
 		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_TEMPLATE"),
+		os.Getenv("VSPHERE_TEMPLATE_COREOS"),
 	)
 }
