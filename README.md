@@ -13,6 +13,8 @@ website][tf-website] and the [GitHub project page][tf-github].
 [tf-website]: https://terraform.io/
 [tf-github]: https://github.com/hashicorp/terraform
 
+This provider plugin is maintained by the Terraform team at [HashiCorp](https://www.hashicorp.com/).
+
 # Using the Provider
 
 The current version of this provider requires Terraform v0.10.2 or higher to
@@ -43,14 +45,14 @@ The syntax is as follows:
 
 ```hcl
 provider "vsphere" {
-  version = "~> 1.1.0"
+  version = "~> 1.1"
   ...
 }
 ```
 
 Version locking uses a pessimistic operator, so this version lock would mean
-anything within the 1.1.x namespace. [Read more][provider-vc] on provider
-version control.
+anything within the 1.x namespace, including or after 1.1.0. [Read
+more][provider-vc] on provider version control.
 
 [provider-vc]: https://www.terraform.io/docs/configuration/providers.html#provider-versions
 

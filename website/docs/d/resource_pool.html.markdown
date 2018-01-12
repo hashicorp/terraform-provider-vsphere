@@ -23,16 +23,17 @@ data "vsphere_datacenter" "datacenter" {
 }
 
 data "vsphere_resource_pool" "pool" {
-  name          = "cluster1/Resources/resource-pool-1"
+  name          = "resource-pool-1"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 ```
 
-### Specifying the default resource pool for a cluster
+### Specifying the root resource pool for a cluster or standalone host
 
-If you don't have any resource pools in your cluster, or you want to use the
-parent resource pool for a cluster, you can just specify the `Resources` named
-default in your path for the resource pool:
+All clusters and standalone hosts have a resource pool, even if one has not
+been explicitly created. This resource pool is referred to as the _root
+resource pool_ and can be looked up by specifying the path as per the example
+below:
 
 ```
 data "vsphere_resource_pool" "pool" {
@@ -40,6 +41,11 @@ data "vsphere_resource_pool" "pool" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 ```
+
+For more information on the root resource pool, see [Managing Resource
+Pools][vmware-docs-resource-pools] in the vSphere documentation.
+
+[vmware-docs-resource-pools]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.resmgmt.doc/GUID-60077B40-66FF-4625-934A-641703ED7601.html
 
 ## Argument Reference
 
@@ -57,7 +63,7 @@ The following arguments are supported:
 
 ~> **Note when using with standalone ESXi:** When using ESXi without vCenter,
 you don't have to specify either attribute to use this data source. An empty
-declaration will load the default resource pool.
+declaration will load the host's root resource pool.
 
 ## Attribute Reference
 

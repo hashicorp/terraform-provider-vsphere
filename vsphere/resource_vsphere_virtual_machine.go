@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
@@ -172,7 +173,8 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Computed:    true,
 			Description: "A flag internal to Terraform that indicates that this resource was either imported or came from a earlier major version of this resource.",
 		},
-		vSphereTagAttributeKey: tagsSchema(),
+		vSphereTagAttributeKey:    tagsSchema(),
+		customattribute.ConfigKey: customattribute.ConfigSchema(),
 	}
 	structure.MergeSchema(s, schemaVirtualMachineConfigSpec())
 	structure.MergeSchema(s, schemaVirtualMachineGuestInfo())
@@ -196,6 +198,11 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 	log.Printf("[DEBUG] %s: Beginning create", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*VSphereClient).vimClient
 	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+	// Verify a proper vCenter before proceeding if custom attributes are defined
+	attrsProcessor, err := customattribute.GetDiffProcessorIfAttributesDefined(client, d)
 	if err != nil {
 		return err
 	}
@@ -223,6 +230,13 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		}
 	}
 
+	// Set custom attributes
+	if attrsProcessor != nil {
+		if err := attrsProcessor.ProcessDiff(vm); err != nil {
+			return err
+		}
+	}
+
 	// Wait for a routeable address if we have been set to wait for one
 	if err := virtualmachine.WaitForGuestNet(client, vm, d.Get("wait_for_guest_net_timeout").(int)); err != nil {
 		return err
@@ -239,7 +253,12 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	id := d.Id()
 	vm, err := virtualmachine.FromUUID(client, id)
 	if err != nil {
-		return fmt.Errorf("cannot locate virtual machine with UUID %q: %s", id, err)
+		if _, ok := err.(*virtualmachine.UUIDNotFoundError); ok {
+			log.Printf("[DEBUG] %s: Virtual machine not found, marking resource as gone: %s", resourceVSphereVirtualMachineIDString(d), err)
+			d.SetId("")
+			return nil
+		}
+		return fmt.Errorf("error searching for with UUID %q: %s", id, err)
 	}
 	vprops, err := virtualmachine.Properties(vm)
 	if err != nil {
@@ -327,6 +346,11 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		}
 	}
 
+	// Read set custom attributes
+	if customattribute.IsSupported(client) {
+		customattribute.ReadFromResource(client, vprops.Entity(), d)
+	}
+
 	// Finally, select a valid IP address for use by the VM for purposes of
 	// provisioning. This also populates some computed values to present to the
 	// user.
@@ -347,6 +371,12 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return err
 	}
+	// Verify a proper vCenter before proceeding if custom attributes are defined
+	attrsProcessor, err := customattribute.GetDiffProcessorIfAttributesDefined(client, d)
+	if err != nil {
+		return err
+	}
+
 	id := d.Id()
 	vm, err := virtualmachine.FromUUID(client, id)
 	if err != nil {
@@ -364,6 +394,13 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	// Apply any pending tags
 	if tagsClient != nil {
 		if err := processTagDiff(tagsClient, d, vm); err != nil {
+			return err
+		}
+	}
+
+	// Update custom attributes
+	if attrsProcessor != nil {
+		if err := attrsProcessor.ProcessDiff(vm); err != nil {
 			return err
 		}
 	}
@@ -485,6 +522,11 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 		if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
 			return fmt.Errorf("efi_secure_boot_enabled is only supported on vSphere 6.5 and higher")
 		}
+	}
+
+	// Validate network device sub-resources
+	if err := virtualdevice.NetworkInterfaceDiffOperation(d, client); err != nil {
+		return err
 	}
 
 	// Validate and normalize disk sub-resources

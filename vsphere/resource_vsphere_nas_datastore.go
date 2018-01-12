@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
@@ -42,6 +43,8 @@ func resourceVSphereNasDatastore() *schema.Resource {
 
 	// Add tags schema
 	s[vSphereTagAttributeKey] = tagsSchema()
+	// Add custom attribute schema
+	s[customattribute.ConfigKey] = customattribute.ConfigSchema()
 
 	return &schema.Resource{
 		Create: resourceVSphereNasDatastoreCreate,
@@ -61,6 +64,11 @@ func resourceVSphereNasDatastoreCreate(d *schema.ResourceData, meta interface{})
 	// Load up the tags client, which will validate a proper vCenter before
 	// attempting to proceed if we have tags defined.
 	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+	// Verify a proper vCenter before proceeding if custom attributes are defined
+	attrsProcessor, err := customattribute.GetDiffProcessorIfAttributesDefined(client, d)
 	if err != nil {
 		return err
 	}
@@ -91,6 +99,13 @@ func resourceVSphereNasDatastoreCreate(d *schema.ResourceData, meta interface{})
 	// Apply any pending tags now
 	if tagsClient != nil {
 		if err := processTagDiff(tagsClient, d, ds); err != nil {
+			return err
+		}
+	}
+
+	// Set custom attributes
+	if attrsProcessor != nil {
+		if err := attrsProcessor.ProcessDiff(ds); err != nil {
 			return err
 		}
 	}
@@ -142,6 +157,11 @@ func resourceVSphereNasDatastoreRead(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
+	// Read custom attributes
+	if customattribute.IsSupported(client) {
+		customattribute.ReadFromResource(client, props.Entity(), d)
+	}
+
 	return nil
 }
 
@@ -151,6 +171,11 @@ func resourceVSphereNasDatastoreUpdate(d *schema.ResourceData, meta interface{})
 	// Load up the tags client, which will validate a proper vCenter before
 	// attempting to proceed if we have tags defined.
 	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+	// Verify a proper vCenter before proceeding if custom attributes are defined
+	attrsProcessor, err := customattribute.GetDiffProcessorIfAttributesDefined(client, d)
 	if err != nil {
 		return err
 	}
@@ -179,6 +204,13 @@ func resourceVSphereNasDatastoreUpdate(d *schema.ResourceData, meta interface{})
 	// Apply any pending tags now
 	if tagsClient != nil {
 		if err := processTagDiff(tagsClient, d, ds); err != nil {
+			return err
+		}
+	}
+
+	// Apply custom attribute updates
+	if attrsProcessor != nil {
+		if err := attrsProcessor.ProcessDiff(ds); err != nil {
 			return err
 		}
 	}

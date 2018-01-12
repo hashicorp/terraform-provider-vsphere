@@ -287,6 +287,87 @@ func TestAccResourceVSphereFolder(t *testing.T) {
 			},
 		},
 		{
+			"custom attributes",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereFolderExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereFolderCustomAttribute(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereFolderExists(true),
+							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
+							testAccResourceVSphereFolderHasCustomAttributes(),
+						),
+					},
+				},
+			},
+		},
+		{
+			"modify custom attributes",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereFolderExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereFolderCustomAttribute(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereFolderExists(true),
+							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
+							testAccResourceVSphereFolderHasCustomAttributes(),
+						),
+					},
+					{
+						Config: testAccResourceVSphereFolderMultiCustomAttributes(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereFolderExists(true),
+							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
+							testAccResourceVSphereFolderHasCustomAttributes(),
+						),
+					},
+				},
+			},
+		},
+		{
+			"remove all custom attributes",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereFolderExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereFolderMultiCustomAttributes(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereFolderExists(true),
+							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
+							testAccResourceVSphereFolderHasCustomAttributes(),
+						),
+					},
+					{
+						Config: testAccResourceVSphereFolderRemovedCustomAttributes(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereFolderExists(true),
+							testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
+							testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
+							testAccResourceVSphereFolderHasCustomAttributes(),
+						),
+					},
+				},
+			},
+		},
+		{
 			"prevent delete if not empty",
 			resource.TestCase{
 				PreCheck: func() {
@@ -493,6 +574,16 @@ func testAccResourceVSphereFolderCheckNoTags() resource.TestCheckFunc {
 			return err
 		}
 		return testObjectHasNoTags(s, tagsClient, folder)
+	}
+}
+
+func testAccResourceVSphereFolderHasCustomAttributes() resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetFolderProperties(s, "folder")
+		if err != nil {
+			return err
+		}
+		return testResourceHasCustomAttributeValues(s, "vsphere_folder", "folder", props.Entity())
 	}
 }
 
@@ -730,6 +821,136 @@ resource "vsphere_folder" "folder" {
   type          = "${var.folder_type}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
   tags          = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		testAccResourceVSphereFolderConfigExpectedName,
+		folder.VSphereFolderTypeVM,
+	)
+}
+
+func testAccResourceVSphereFolderCustomAttribute() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "folder_name" {
+  default = "%s"
+}
+
+variable "folder_type" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+resource "vsphere_custom_attribute" "terraform-test-attribute" {
+  name                = "terraform-test-attribute"
+  managed_object_type = "Folder"
+}
+
+locals {
+  folder_attrs = {
+    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
+  }
+}
+
+resource "vsphere_folder" "folder" {
+  path          = "${var.folder_name}"
+  type          = "${var.folder_type}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  custom_attributes = "${local.folder_attrs}"
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		testAccResourceVSphereFolderConfigExpectedName,
+		folder.VSphereFolderTypeVM,
+	)
+}
+
+func testAccResourceVSphereFolderMultiCustomAttributes() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "folder_name" {
+  default = "%s"
+}
+
+variable "folder_type" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+resource "vsphere_custom_attribute" "terraform-test-attribute" {
+  name                = "terraform-test-attribute"
+  managed_object_type = "Folder"
+}
+
+resource "vsphere_custom_attribute" "terraform-test-attribute-2" {
+  name                = "terraform-test-attribute-2"
+  managed_object_type = "Folder"
+}
+
+locals {
+  folder_attrs = {
+    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
+    "${vsphere_custom_attribute.terraform-test-attribute-2.id}" = "value-2"
+  }
+}
+
+resource "vsphere_folder" "folder" {
+  path          = "${var.folder_name}"
+  type          = "${var.folder_type}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  custom_attributes = "${local.folder_attrs}"
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		testAccResourceVSphereFolderConfigExpectedName,
+		folder.VSphereFolderTypeVM,
+	)
+}
+
+func testAccResourceVSphereFolderRemovedCustomAttributes() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "folder_name" {
+  default = "%s"
+}
+
+variable "folder_type" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+resource "vsphere_custom_attribute" "terraform-test-attribute" {
+  name                = "terraform-test-attribute"
+  managed_object_type = "Folder"
+}
+
+resource "vsphere_custom_attribute" "terraform-test-attribute-2" {
+  name                = "terraform-test-attribute-2"
+  managed_object_type = "Folder"
+}
+
+resource "vsphere_folder" "folder" {
+  path          = "${var.folder_name}"
+  type          = "${var.folder_type}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),

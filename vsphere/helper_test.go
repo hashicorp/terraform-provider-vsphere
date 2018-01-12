@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
+	"reflect"
 	"regexp"
 	"strconv"
 	"testing"
@@ -17,6 +19,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualdisk"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 	"github.com/vmware/govmomi"
@@ -113,6 +116,17 @@ func copyStatePtr(t **terraform.State) resource.TestCheckFunc {
 	}
 }
 
+// copyState returns a TestCheckFunc that returns a deep copy of the state.
+// Unlike copyStatePtr, this state has de-coupled from the in-flight state, so
+// it will not be modified on subsequent steps and hence will possibly drift.
+// It can be used to access values of the state at a certain step.
+func copyState(t **terraform.State) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		*t = s.DeepCopy()
+		return nil
+	}
+}
+
 // testGetPortGroup is a convenience method to fetch a static port group
 // resource for testing.
 func testGetPortGroup(s *terraform.State, resourceName string) (*types.HostPortGroup, error) {
@@ -204,6 +218,26 @@ func testGetVirtualMachineSCSIBusState(s *terraform.State, resourceName string) 
 	return virtualdevice.ReadSCSIBusState(l, count), nil
 }
 
+func testGetDatacenter(s *terraform.State, resourceName string) (*object.Datacenter, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_datacenter.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+	dcName, ok := tVars.resourceAttributes["name"]
+	if !ok {
+		return nil, fmt.Errorf("Datacenter resource %q has no name", resourceName)
+	}
+	return getDatacenter(tVars.client, dcName)
+}
+
+func testGetDatacenterCustomAttributes(s *terraform.State, resourceName string) (*mo.Datacenter, error) {
+	dc, err := testGetDatacenter(s, resourceName)
+	if err != nil {
+		return nil, err
+	}
+	return datacenterCustomAttributes(dc)
+}
+
 // testPowerOffVM does an immediate power-off of the supplied virtual machine
 // resource defined by the supplied resource address name. It is used to help
 // set up a test scenarios where a VM is powered off.
@@ -224,6 +258,141 @@ func testPowerOffVM(s *terraform.State, resourceName string) error {
 		return fmt.Errorf("error waiting for poweroff: %s", err)
 	}
 	return nil
+}
+
+// testRenameVMFirstDisk renames the first disk in a virtual machine
+// configuration and re-attaches it to the virtual machine under the new name.
+func testRenameVMFirstDisk(s *terraform.State, resourceName string, new string) error {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_virtual_machine.%s", resourceName))
+	if err != nil {
+		return err
+	}
+	vm, err := testGetVirtualMachine(s, resourceName)
+	if err != nil {
+		return err
+	}
+	vprops, err := testGetVirtualMachineProperties(s, resourceName)
+	if err != nil {
+		return err
+	}
+	if err := testPowerOffVM(s, resourceName); err != nil {
+		return err
+	}
+	dcp, err := folder.RootPathParticleVM.SplitDatacenter(vm.InventoryPath)
+	if err != nil {
+		return err
+	}
+	dc, err := getDatacenter(tVars.client, dcp)
+	if err != nil {
+		return err
+	}
+
+	var dcSpec []types.BaseVirtualDeviceConfigSpec
+	for _, d := range vprops.Config.Hardware.Device {
+		if oldDisk, ok := d.(*types.VirtualDisk); ok {
+			newFileName, err := virtualdisk.Move(
+				tVars.client,
+				oldDisk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).FileName,
+				dc,
+				new,
+				nil,
+			)
+			if err != nil {
+				return err
+			}
+			newDisk := &types.VirtualDisk{
+				VirtualDevice: types.VirtualDevice{
+					Backing: &types.VirtualDiskFlatVer2BackingInfo{
+						VirtualDeviceFileBackingInfo: types.VirtualDeviceFileBackingInfo{
+							FileName: newFileName,
+						},
+						ThinProvisioned: oldDisk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).ThinProvisioned,
+						EagerlyScrub:    oldDisk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).EagerlyScrub,
+						DiskMode:        oldDisk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).DiskMode,
+					},
+				},
+			}
+			newDisk.ControllerKey = oldDisk.ControllerKey
+			newDisk.UnitNumber = oldDisk.UnitNumber
+
+			dspec, err := object.VirtualDeviceList{oldDisk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationRemove)
+			if err != nil {
+				return err
+			}
+			dspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
+			aspec, err := object.VirtualDeviceList{newDisk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
+			if err != nil {
+				return err
+			}
+			aspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
+			dcSpec = append(dcSpec, dspec...)
+			dcSpec = append(dcSpec, aspec...)
+			break
+		}
+	}
+	if len(dcSpec) < 1 {
+		return fmt.Errorf("could not find a virtual disk on virtual machine %q", vm.InventoryPath)
+	}
+	spec := types.VirtualMachineConfigSpec{
+		DeviceChange: dcSpec,
+	}
+	return virtualmachine.Reconfigure(vm, spec)
+}
+
+// testDeleteVMDisk deletes a VMDK file from the virtual machine directory. It
+// doesn't check configuration other than to look for the directory the VMX
+// file is in and is mainly meant to serve as a cleanup method.
+func testDeleteVMDisk(s *terraform.State, resourceName string, name string) error {
+	tVars, err := testClientVariablesForResource(s, "vsphere_virtual_machine.vm")
+	if err != nil {
+		return err
+	}
+	vm, err := testGetVirtualMachine(s, "vm")
+	if err != nil {
+		return err
+	}
+	props, err := testGetVirtualMachineProperties(s, "vm")
+	if err != nil {
+		return err
+	}
+	vmxPath, success := virtualdisk.DatastorePathFromString(props.Config.Files.VmPathName)
+	if !success {
+		return fmt.Errorf("could not parse VMX path %q", props.Config.Files.VmPathName)
+	}
+	dcp, err := folder.RootPathParticleVM.SplitDatacenter(vm.InventoryPath)
+	if err != nil {
+		return err
+	}
+	dc, err := getDatacenter(tVars.client, dcp)
+	if err != nil {
+		return err
+	}
+	p := &object.DatastorePath{
+		Datastore: vmxPath.Datastore,
+		Path:      path.Join(path.Dir(vmxPath.Path), name),
+	}
+	return virtualdisk.Delete(tVars.client, p.String(), dc)
+}
+
+// testDeleteVM deletes the virtual machine. This is used to test resource
+// re-creation if TF cannot locate a VM that is in state any more.
+func testDeleteVM(s *terraform.State, resourceName string) error {
+	if err := testPowerOffVM(s, resourceName); err != nil {
+		return err
+	}
+	vm, err := testGetVirtualMachine(s, resourceName)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	task, err := vm.Destroy(ctx)
+	if err != nil {
+		return fmt.Errorf("error destroying virtual machine: %s", err)
+	}
+	tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer tcancel()
+	return task.Wait(tctx)
 }
 
 // testGetTagCategory gets a tag category by name.
@@ -339,6 +508,16 @@ func testGetDatastore(s *terraform.State, resAddr string) (*object.Datastore, er
 	return datastore.FromID(vars.client, vars.resourceID)
 }
 
+// testGetDatastoreProperties is a convenience method that adds an extra step
+// to testGetDatastore to get the properties of a datastore.
+func testGetDatastoreProperties(s *terraform.State, datastoreType string, resourceName string) (*mo.Datastore, error) {
+	ds, err := testGetDatastore(s, "vsphere_"+datastoreType+"_datastore."+resourceName)
+	if err != nil {
+		return nil, err
+	}
+	return datastore.Properties(ds)
+}
+
 // testAccResourceVSphereDatastoreCheckTags is a check to ensure that the
 // supplied datastore has had the tags that have been created with the supplied
 // tag resource name attached.
@@ -415,4 +594,72 @@ func testGetDVPortgroupProperties(s *terraform.State, resourceName string) (*mo.
 		return nil, err
 	}
 	return dvportgroup.Properties(dvs)
+}
+
+// testCheckResourceNotAttr is an inverse check of TestCheckResourceAttr. It
+// checks to make sure the resource attribute does *not* match a certain value.
+func testCheckResourceNotAttr(name, key, value string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		err := resource.TestCheckResourceAttr(name, key, value)(s)
+		if err != nil {
+			if regexp.MustCompile("[-_.a-zA-Z0-9]\\: Attribute '.*' expected .*, got .*").MatchString(err.Error()) {
+				return nil
+			}
+			return err
+		}
+		return fmt.Errorf("%s: Attribute '%s' expected to not match %#v", name, key, value)
+	}
+}
+
+// testGetCustomAttribute gets a custom attribute by name.
+func testGetCustomAttribute(s *terraform.State, resourceName string) (*types.CustomFieldDef, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_custom_attribute.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+
+	key, err := strconv.ParseInt(tVars.resourceID, 10, 32)
+	if err != nil {
+		return nil, err
+	}
+	fm, err := object.GetCustomFieldsManager(tVars.client.Client)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	fields, err := fm.Field(ctx)
+	if err != nil {
+		return nil, err
+	}
+	field := fields.ByKey(int32(key))
+
+	return field, nil
+}
+
+func testResourceHasCustomAttributeValues(s *terraform.State, resourceType string, resourceName string, entity *mo.ManagedEntity) error {
+	testVars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceType, resourceName))
+	if err != nil {
+		return err
+	}
+	expectedAttrs := make(map[string]string)
+	re := regexp.MustCompile(`custom_attributes\.(\d+)`)
+	for key, value := range testVars.resourceAttributes {
+		if m := re.FindStringSubmatch(key); m != nil {
+			expectedAttrs[m[1]] = value
+		}
+	}
+
+	actualAttrs := make(map[string]string)
+	for _, fv := range entity.CustomValue {
+		value := fv.(*types.CustomFieldStringValue).Value
+		if value != "" {
+			actualAttrs[fmt.Sprint(fv.GetCustomFieldValue().Key)] = value
+		}
+	}
+
+	if !reflect.DeepEqual(expectedAttrs, actualAttrs) {
+		return fmt.Errorf("expected custom attributes to be %q, got %q", expectedAttrs, actualAttrs)
+	}
+	return nil
 }

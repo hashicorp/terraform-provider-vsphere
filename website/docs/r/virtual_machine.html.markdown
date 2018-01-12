@@ -323,6 +323,49 @@ resource "vsphere_virtual_machine" "vm" {
 }
 ```
 
+#### Parameterizing virtual machine name during cloning
+
+If you parameterize your virtual machine name, keep in mind that Terraform will
+block a virtual machine rename operation if it detects that doing so may cause
+accidental deletion of any virtual disks that may bear the name. This is
+required when cloning, so it's important to stabilize the disk name somehow.
+
+This can be accomplished using [`null_resource`][tf-null-resource] in the
+following fashion, using `ignore_changes` to block any incoming updates to the
+controlling variable. An example is below:
+
+[tf-null-resource]: /docs/providers/null/resource.html
+
+```hcl
+variable "vm_name" {
+  default = "terraform-test"
+}
+
+resource "null_resource" "disk_prefix" {
+  triggers = {
+    prefix = "${var.vm_name}"
+  }
+
+  lifecycle {
+    ignore_changes = [
+      "triggers",
+    ]
+  }
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name = "${var.vm_name}"
+  ...
+
+  disk {
+    name = "${null_resource.disk_prefix.triggers.prefix}.vmdk"
+    ...
+  }
+  ...
+ }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -339,6 +382,15 @@ options:
   for details on changing this value.
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
+
+~> **NOTE:** All clusters and standalone hosts have a resource pool, even if
+one has not been explicitly created. For more information, see the section on
+[specifying the root resource pool for a cluster or standalone
+host][docs-resource-pool-cluster-default] in the `vsphere_resource_pool` data
+source documentation. This resource does not take a cluster or standalone host
+resource directly.
+
+[docs-resource-pool-cluster-default]: /docs/providers/vsphere/d/resource_pool.html#specifying-the-default-resource-pool-for-a-cluster
 
 * `datastore_id` - (Required) The [managed object reference
   ID][docs-about-morefs] of the virtual machine's datastore. The virtual
@@ -379,7 +431,7 @@ options:
   when `guest_id` is `other` or `other-64`.
 * `annotation` - (Optional) A user-provided description of the virtual machine.
   The default is no annotation.
- `firmware` - (Optional) The firmware interface to use on the virtual machine.
+* `firmware` - (Optional) The firmware interface to use on the virtual machine.
   Can be one of `bios` or `EFI`. Default: `bios`.
 * `extra_config` - (Optional) Extra configuration data for this virtual
   machine. Can be used to supply advanced parameters not normally in
@@ -401,6 +453,16 @@ configuration](#using-vapp-properties-to-supply-ovf-ova-configuration).
 
 ~> **NOTE:** Tagging support is unsupported on direct ESXi connections and
 requires vCenter 6.0 or higher.
+
+* `custom_attributes` - (Optional) Map of custom attribute ids to attribute
+  value strings to set for virtual machine. See 
+  [here][docs-setting-custom-attributes] for a reference on how to set values 
+  for custom attributes.
+
+[docs-setting-custom-attributes]: /docs/providers/vsphere/r/custom_attribute.html#using-custom-attributes-in-a-supported-resource
+
+~> **NOTE:** Custom attributes are unsupported on direct ESXi connections 
+and require vCenter.
 
 ### CPU and memory options
 
@@ -683,7 +745,7 @@ The options are:
 * `network_id` - (Required) The [managed object reference
   ID][docs-about-morefs] of the network to connect this interface to.
 * `adapter_type` - (Optional) The network interface type. Can be one of
-  `e1000`, `e1000e`, or `vmxnet3`. Default: `e1000`.
+  `e1000`, `e1000e`, or `vmxnet3`. Default: `vmxnet3`.
 * `use_static_mac` - (Optional) If true, the `mac_address` field is treated as
   a static MAC address and set accordingly. Setting this to `true` requires
   `mac_address` to be set. Default: `false`.
@@ -756,7 +818,7 @@ The options available in the `clone` sub-resource are:
   Templates must have a single snapshot only in order to be eligible. Default:
   `false`.
 * `timeout` - (Optional) The timeout, in minutes, to wait for the virtual
-  machine clone to complete. Default: 10 minutes.
+  machine clone to complete. Default: 30 minutes.
 * `customize` - (Optional) The customization spec for this clone. This allows
   the user to configure the virtual machine post-clone. For more details, see
   [virtual machine customization](#virtual-machine-customization).
@@ -1181,6 +1243,22 @@ resource "vsphere_virtual_machine" "vm" {
   ...
 }
 ```
+
+#### Storage migration restrictions
+
+~> **NOTE:** These restrictions will be lifted in later versions of this
+resource.
+
+Some restrictions currently apply to storage migration:
+
+* External disks added with the `attach` parameter cannot be migrated.
+* You must name your `disk` sub-resources according to the vSphere naming
+  convention. This generally means that your first disk will be named
+  `VMNAME.vmdk` and all other disks will be named `VMNAME_INDEX.vmdk`, with
+  `INDEX` starting at `1` for your second disk, and so on. These are the same
+  restrictions imposed when cloning from template.
+* You cannot migrate the storage of VMs that have
+  [`linked_clone`](#linked_clone) set.
 
 ## Attribute Reference
 
