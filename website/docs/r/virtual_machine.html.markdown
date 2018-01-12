@@ -237,6 +237,92 @@ resource "vsphere_virtual_machine" "vm" {
 }
 ```
 
+### Cloning from an OVF/OVA-created template with vApp properties
+
+This alternate example details how to clone a VM from a template that came from
+an OVF/OVA file. This leverages the resource's [vApp
+properties](#using-vapp-properties-to-supply-ovf-ova-configuration) capabilities to
+set appropriate keys that control various configuration settings on the virtual
+machine or virtual appliance. In this scenario, using `customize` is not
+recommended as the functionality has tendency to overlap.
+
+~> **NOTE:** Neither the `vsphere_virtual_machine` resource nor the vSphere
+provider supports importing of OVA or OVF files as this is a workflow that is
+fundamentally not the domain of Terraform. The supported path for deployment in
+Terraform is to first import the virtual machine into a template that has not
+been powered on, and then clone from that template. This can be accomplished
+with [Packer][ext-packer-io], [govc][ext-govc]'s `import.ovf` and `import.ova`
+subcommands, or [ovftool][ext-ovftool].
+
+[ext-packer-io]: https://www.packer.io/
+[ext-govc]: https://github.com/vmware/govmomi/tree/master/govc
+[ext-ovftool]: https://code.vmware.com/web/dp/tool/ovf
+
+```hcl
+data "vsphere_datacenter" "dc" {
+  name = "dc1"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "datastore1"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "cluster1/Resources"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "public"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_virtual_machine" "tempate_from_ovf" {
+  name          = "template_from_ovf"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 1024
+  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+
+  scsi_type = "${data.vsphere_virtual_machine.template.scsi_type}"
+
+  network_interface {
+    network_id   = "${data.vsphere_network.network.id}"
+    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+  }
+
+  disk {
+    name             = "terraform-test.vmdk"
+    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
+    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+  }
+
+  clone {
+    template_uuid = "${data.vsphere_virtual_machine.template_from_ovf.id}"
+  }
+
+  vapp {
+    properties {
+      "guestinfo.hostname"                        = "terraform-test.foobar.local"
+      "guestinfo.interface.0.name"                = "ens192"
+      "guestinfo.interface.0.ip.0.address"        = "10.0.0.100/24"
+      "guestinfo.interface.0.route.0.gateway"     = "10.0.0.1"
+      "guestinfo.interface.0.route.0.destination" = "0.0.0.0/0"
+      "guestinfo.dns.server.0"                    = "10.0.0.10"
+    }
+  }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -279,6 +365,11 @@ options:
   specified template. Optional customization options can be submitted as well.
   See [creating a virtual machine from a
   template](#creating-a-virtual-machine-from-a-template) for more details.
+* `vapp` - (Optional) Optional vApp configuration. The only sub-key available
+  is `properties`, which is a key/value map of properties for virtual machines
+  imported from OVF or OVA files. See [Using vApp properties to supply OVF/OVA
+  configuration](#using-vapp-properties-to-supply-ovf-ova-configuration) for
+  more details.
 * `guest_id` - (Optional) The guest ID for the operating system type. For a
   full list of possible values, see [here][vmware-docs-guest-ids]. Default: `other-64`.
 
@@ -292,8 +383,14 @@ options:
   Can be one of `bios` or `EFI`. Default: `bios`.
 * `extra_config` - (Optional) Extra configuration data for this virtual
   machine. Can be used to supply advanced parameters not normally in
-  configuration, such as data for cloud-config (under the guestinfo namespace),
-  or configuration data for OVF images.
+  configuration, such as data for cloud-config (under the guestinfo namespace).
+
+~> **NOTE:** Do not use `extra_config` when working with a template imported
+from OVF or OVA as more than likely your settings will be ignored. Use the
+`vapp` sub-resource's `properties` section as outlined in [Using vApp
+properties to supply OVF/OVA
+configuration](#using-vapp-properties-to-supply-ovf-ova-configuration).
+
 * `scsi_type` - (Optional) The type of SCSI bus this virtual machine will have.
   Can be one of lsilogic (LSI Logic Parallel), lsilogic-sas (LSI Logic SAS) or
   pvscsi (VMware Paravirtual). Defualt: `lsilogic`.
@@ -954,6 +1051,42 @@ resource "vsphere_virtual_machine" "vm" {
 
 Note this option is mutually exclusive to `windows_options` - one must not be
 included if the other is specified.
+
+### Using vApp properties to supply OVF/OVA configuration
+
+Alternative to the settings in `customize`, one can use the settings in the
+`properties` section of the `vapp` sub-resource to supply configuration
+parameters to a virtual machine cloned from a template that came from an
+imported OVF or OVA file.
+
+~> **NOTE:** The only supported usage path for vApp properties is for existing
+user-configurable keys. These generally come from an existing template that was
+created from an imported OVF or OVA file. You cannot set values for vApp
+properties on virtual machines created from scratch, virtual machines lacking a
+vApp configuration, or on property keys that do not exist.
+
+The configuration looks similar to the one below:
+
+```hcl
+resource "vsphere_virtual_machine" "vm" {
+  ...
+
+  clone {
+    template_uuid = "${data.vsphere_virtual_machine.template_from_ovf.id}"
+  }
+
+  vapp {
+    properties {
+      "guestinfo.hostname"                        = "${var.vm_name}.foobar.local"
+      "guestinfo.interface.0.name"                = "ens192"
+      "guestinfo.interface.0.ip.0.address"        = "10.0.0.100/24"
+      "guestinfo.interface.0.route.0.gateway"     = "10.0.0.1"
+      "guestinfo.interface.0.route.0.destination" = "0.0.0.0/0"
+      "guestinfo.dns.server.0"                    = "10.0.0.10"
+    }
+  }
+}
+```
 
 ### Additional requirements and notes for cloning
 
