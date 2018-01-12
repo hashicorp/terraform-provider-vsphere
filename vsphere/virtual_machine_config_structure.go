@@ -589,7 +589,7 @@ func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) (*types.Vm
 	}
 
 	if len(newMap) > 0 {
-		return nil, fmt.Errorf("Unspported vApp properties in vapp.properties: %+v", reflect.ValueOf(newMap).MapKeys())
+		return nil, fmt.Errorf("Unsupported vApp properties in vapp.properties: %+v", reflect.ValueOf(newMap).MapKeys())
 	}
 
 	return &types.VmConfigSpec{
