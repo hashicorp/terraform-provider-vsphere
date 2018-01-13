@@ -413,7 +413,12 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return fmt.Errorf("error fetching VM properties: %s", err)
 	}
-	spec, changed := expandVirtualMachineConfigSpecChanged(d, client, vprops.Config)
+
+	spec, changed, err := expandVirtualMachineConfigSpecChanged(d, client, vprops.Config)
+	if err != nil {
+		return fmt.Errorf("error in virtual machine configuration: %s", err)
+	}
+
 	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
 	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
 		return err
@@ -648,7 +653,10 @@ func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interf
 	}
 
 	// Ready to start making the VM here. First expand our main config spec.
-	spec := expandVirtualMachineConfigSpec(d, client)
+	spec, err := expandVirtualMachineConfigSpec(d, client)
+	if err != nil {
+		return nil, fmt.Errorf("error in virtual machine configuration: %s", err)
+	}
 
 	// Set the datastore for the VM.
 	ds, err := datastore.FromID(client, d.Get("datastore_id").(string))
@@ -741,7 +749,10 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	// configuration of the newly cloned VM. This is basically a subset of update
 	// with the stipulation that there is currently no state to help move this
 	// along.
-	cfgSpec := expandVirtualMachineConfigSpec(d, client)
+	cfgSpec, err := expandVirtualMachineConfigSpec(d, client)
+	if err != nil {
+		return nil, resourceVSphereVirtualMachineRollbackCreate(d, meta, vm, fmt.Errorf("error in virtual machine configuration: %s", err))
+	}
 
 	// To apply device changes, we need the current devicecfgSpec from the config
 	// info. We then filter this list through the same apply process we did for
@@ -777,16 +788,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 
 	// Perform updates
 	if err := virtualmachine.Reconfigure(vm, cfgSpec); err != nil {
-		// Delete the virtual machine if the update failed here. Updates are
-		// largely atomic, so more than likely no disks with keep_on_remove were
-		// attached, but just in case, we run this through delete to make sure to
-		// safely remove any disk that may have been attached as part of this
-		// process if it was flagged as such.
-		if derr := resourceVSphereVirtualMachineDelete(d, meta); derr != nil {
-			return nil, fmt.Errorf(formatVirtualMachinePostCloneRollbackError, vm.InventoryPath, err, derr)
-		}
-		d.SetId("")
-		return nil, fmt.Errorf("error reconfiguring virtual machine: %s", err)
+		return nil, resourceVSphereVirtualMachineRollbackCreate(d, meta, vm, fmt.Errorf("error reconfiguring virtual machine: %s", err))
 	}
 
 	var cw *virtualMachineCustomizationWaiter
@@ -822,6 +824,31 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	}
 	// Clone is complete and ready to return
 	return vm, nil
+}
+
+// resourceVSphereVirtualMachineRollbackCreate attempts to "roll back" a
+// resource due to an error that happened post-create that will put the VM in a
+// state where it cannot be worked with. This should only be done early on in
+// the process, namely on clone operations between when the clone actually
+// happens, and no later than after the initial post-clone update is complete.
+//
+// If the rollback fails, an error is displayed prompting the user to manually
+// delete the virtual machine before trying again.
+func resourceVSphereVirtualMachineRollbackCreate(
+	d *schema.ResourceData,
+	meta interface{},
+	vm *object.VirtualMachine,
+	origErr error,
+) error {
+	// Updates are largely atomic, so more than likely no disks with
+	// keep_on_remove were attached, but just in case, we run this through delete
+	// to make sure to safely remove any disk that may have been attached as part
+	// of this process if it was flagged as such.
+	if err := resourceVSphereVirtualMachineDelete(d, meta); err != nil {
+		return fmt.Errorf(formatVirtualMachinePostCloneRollbackError, vm.InventoryPath, origErr, err)
+	}
+	d.SetId("")
+	return fmt.Errorf("error reconfiguring virtual machine: %s", origErr)
 }
 
 // resourceVSphereVirtualMachineUpdateLocation manages vMotion. This includes

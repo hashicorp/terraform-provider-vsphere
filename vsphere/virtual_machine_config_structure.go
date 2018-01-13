@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -238,6 +239,13 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Optional:    true,
 			Description: "Extra configuration data for this virtual machine. Can be used to supply advanced parameters not normally in configuration, such as data for cloud-config (under the guestinfo namespace), or configuration data for OVF images.",
 		},
+		"vapp": {
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "vApp configuration data for this virtual machine. Can be used to provide configuration data for OVF images.",
+			MaxItems:    1,
+			Elem:        &schema.Resource{Schema: vAppSubresourceSchema()},
+		},
 		"change_version": {
 			Type:        schema.TypeString,
 			Computed:    true,
@@ -251,6 +259,21 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 	}
 	structure.MergeSchema(s, schemaVirtualMachineResourceAllocation())
 	return s
+}
+
+// vAppSubresourceSchema represents the schema for the vApp sub-resource.
+//
+// This sub-resource allows the customization of vApp properties
+// on cloned VMs.
+func vAppSubresourceSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"properties": {
+			Type:        schema.TypeMap,
+			Optional:    true,
+			Description: "A map of customizable vApp properties and their values. Allows customization of VMs cloned from OVF templates which have customizable vApp properties.",
+			Elem:        schema.TypeString,
+		},
+	}
 }
 
 // expandVirtualMachineBootOptions reads certain ResourceData keys and
@@ -508,6 +531,110 @@ func flattenExtraConfig(d *schema.ResourceData, opts []types.BaseOptionValue) er
 	return d.Set("extra_config", ec)
 }
 
+// expandVAppConfig reads in all the vapp key/value pairs and returns
+// the appropriate VmConfigSpec.
+//
+// We track changes to keys to determine if any have been removed from
+// configuration - if they have, we add them with an empty value to ensure
+// they are removed from vAppConfig on the update.
+func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) (*types.VmConfigSpec, error) {
+	if !d.HasChange("vapp") {
+		return nil, nil
+	}
+
+	// Many vApp config values, such as IP address, will require a
+	// restart of the machine to properly apply. We don't necessarily
+	// know which ones they are, so we will restart for every change.
+	d.Set("reboot_required", true)
+
+	var props []types.VAppPropertySpec
+
+	_, new := d.GetChange("vapp")
+	newMap := make(map[string]interface{})
+
+	newVApps := new.([]interface{})
+	if newVApps != nil && len(newVApps) > 0 && newVApps[0] != nil {
+		newVApp := newVApps[0].(map[string]interface{})
+		if props, ok := newVApp["properties"].(map[string]interface{}); ok {
+			newMap = props
+		}
+	}
+
+	uuid := d.Id()
+	if uuid == "" {
+		// No virtual machine has been created, this usually means that this is a
+		// brand new virtual machine. vApp properties are not supported on this
+		// workflow, so if there are any defined, return an error indicating such.
+		// Return with a no-op otherwise.
+		if len(newMap) > 0 {
+			return nil, fmt.Errorf("vApp properties can only be set on cloned virtual machines")
+		}
+		return nil, nil
+	}
+	vm, _ := virtualmachine.FromUUID(client, d.Id())
+	vmProps, _ := virtualmachine.Properties(vm)
+	if vmProps.Config.VAppConfig == nil {
+		return nil, fmt.Errorf("this VM lacks a vApp configuration and cannot have vApp properties set on it")
+	}
+	allProperties := vmProps.Config.VAppConfig.GetVmConfigInfo().Property
+
+	for _, p := range allProperties {
+		defaultValue := " "
+		if p.DefaultValue != "" {
+			defaultValue = p.DefaultValue
+		}
+		prop := types.VAppPropertySpec{
+			ArrayUpdateSpec: types.ArrayUpdateSpec{
+				Operation: types.ArrayUpdateOperationEdit,
+			},
+			Info: &types.VAppPropertyInfo{
+				Key:   p.Key,
+				Id:    p.Id,
+				Value: defaultValue,
+			},
+		}
+
+		newValue, ok := newMap[p.Id]
+		if ok {
+			prop.Info.Value = newValue.(string)
+			delete(newMap, p.Id)
+		}
+		props = append(props, prop)
+	}
+
+	if len(newMap) > 0 {
+		return nil, fmt.Errorf("unsupported vApp properties in vapp.properties: %+v", reflect.ValueOf(newMap).MapKeys())
+	}
+
+	return &types.VmConfigSpec{
+		Property: props,
+	}, nil
+}
+
+// flattenVAppConfig reads in the vAppConfig from a running virtual machine
+// and sets all keys in vapp.
+func flattenVAppConfig(d *schema.ResourceData, config types.BaseVmConfigInfo) error {
+	if config == nil {
+		return nil
+	}
+	props := config.GetVmConfigInfo().Property
+	if len(props) < 1 {
+		// No props to read is a no-op
+		return nil
+	}
+	vac := make(map[string]interface{})
+	for _, v := range props {
+		if v.Value != "" && v.Value != v.DefaultValue {
+			vac[v.Id] = v.Value
+		}
+	}
+	return d.Set("vapp", []interface{}{
+		map[string]interface{}{
+			"properties": vac,
+		},
+	})
+}
+
 // expandCPUCountConfig is a helper for expandVirtualMachineConfigSpec that
 // determines if we need to restart the VM due to a change in CPU count. This
 // is determined by the net change in CPU count and the pre-update values of
@@ -569,8 +696,13 @@ func expandMemorySizeConfig(d *schema.ResourceData) int64 {
 
 // expandVirtualMachineConfigSpec reads certain ResourceData keys and
 // returns a VirtualMachineConfigSpec.
-func expandVirtualMachineConfigSpec(d *schema.ResourceData, client *govmomi.Client) types.VirtualMachineConfigSpec {
+func expandVirtualMachineConfigSpec(d *schema.ResourceData, client *govmomi.Client) (types.VirtualMachineConfigSpec, error) {
 	log.Printf("[DEBUG] %s: Building config spec", resourceVSphereVirtualMachineIDString(d))
+	vappConfig, err := expandVAppConfig(d, client)
+	if err != nil {
+		return types.VirtualMachineConfigSpec{}, err
+	}
+
 	obj := types.VirtualMachineConfigSpec{
 		Name:                d.Get("name").(string),
 		GuestId:             getWithRestart(d, "guest_id").(string),
@@ -589,12 +721,13 @@ func expandVirtualMachineConfigSpec(d *schema.ResourceData, client *govmomi.Clie
 		ExtraConfig:         expandExtraConfig(d),
 		SwapPlacement:       getWithRestart(d, "swap_placement_policy").(string),
 		BootOptions:         expandVirtualMachineBootOptions(d, client),
+		VAppConfig:          vappConfig,
 		Firmware:            getWithRestart(d, "firmware").(string),
 		NestedHVEnabled:     getBoolWithRestart(d, "nested_hv_enabled"),
 		VPMCEnabled:         getBoolWithRestart(d, "cpu_performance_counters_enabled"),
 	}
 
-	return obj
+	return obj, nil
 }
 
 // flattenVirtualMachineConfigInfo reads various fields from a
@@ -634,6 +767,9 @@ func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualM
 	if err := flattenExtraConfig(d, obj.ExtraConfig); err != nil {
 		return err
 	}
+	if err := flattenVAppConfig(d, obj.VAppConfig); err != nil {
+		return err
+	}
 
 	// This method does not operate any different than the above method but we
 	// return its error result directly to ensure there are no warnings in the
@@ -648,7 +784,7 @@ func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualM
 // It does this be creating a fake ResourceData off of the VM resource schema,
 // flattening the config info into that, and then expanding both ResourceData
 // instances and comparing the resultant ConfigSpecs.
-func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, client *govmomi.Client, info *types.VirtualMachineConfigInfo) (types.VirtualMachineConfigSpec, bool) {
+func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, client *govmomi.Client, info *types.VirtualMachineConfigInfo) (types.VirtualMachineConfigSpec, bool, error) {
 	// Create the fake ResourceData from the VM resource
 	oldData := resourceVSphereVirtualMachine().Data(&terraform.InstanceState{})
 	oldData.SetId(d.Id())
@@ -660,9 +796,18 @@ func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, client *govmo
 	// Get both specs. Silence the logging for oldSpec to suppress fake
 	// reboot_required log messages.
 	log.SetOutput(ioutil.Discard)
-	oldSpec := expandVirtualMachineConfigSpec(oldData, client)
+	oldSpec, err := expandVirtualMachineConfigSpec(oldData, client)
+	if err != nil {
+		return types.VirtualMachineConfigSpec{}, false, err
+	}
+
 	logging.SetOutput()
-	newSpec := expandVirtualMachineConfigSpec(d, client)
+
+	newSpec, err := expandVirtualMachineConfigSpec(d, client)
+	if err != nil {
+		return types.VirtualMachineConfigSpec{}, false, err
+	}
+
 	// Return the new spec and compare
-	return newSpec, !reflect.DeepEqual(oldSpec, newSpec)
+	return newSpec, !reflect.DeepEqual(oldSpec, newSpec), nil
 }
