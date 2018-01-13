@@ -1,4 +1,10 @@
-## 1.2.1 (Unreleased)
+## 1.3.0  (Unreleased)
+
+IMPROVEMENTS:
+
+* `resource/vsphere_virtual_machine`: Now supports setting vApp properties that
+  usually come from a OVF/OVA template or virtual appliance. [GH-303]
+
 ## 1.2.0 (January 11, 2018)
 
 FEATURES:
