@@ -21,7 +21,8 @@ import (
 // vsphere_virtual_machine resource, as there is no direct path from an opaque
 // network backing to the managed object reference that represents the opaque
 // network in vCenter.
-func OpaqueNetworkFromNetworkID(client *govmomi.Client, id string) (*object.OpaqueNetwork, error) {
+// govmomi's Reference for OpaqueNetwork is Network, hence the return type
+func OpaqueNetworkFromNetworkID(client *govmomi.Client, id string) (*object.Network, error) {
 	// We use the same ContainerView logic that we use with networkFromID, but we
 	// go a step further and limit it to opaque networks only.
 	m := view.NewManager(client.Client)
@@ -58,7 +59,7 @@ func OpaqueNetworkFromNetworkID(client *govmomi.Client, id string) (*object.Opaq
 			// Should be safe to return here, as we have already asserted that this type
 			// should be a OpaqueNetwork by using ContainerView, along with relying
 			// on several fields that only an opaque network would have.
-			return nref.(*object.OpaqueNetwork), nil
+			return nref.(*object.Network), nil
 		}
 	}
 	return nil, fmt.Errorf("could not find opaque network with ID %q", id)
