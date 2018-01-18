@@ -21,38 +21,21 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-// diskDeleteRenameError is a "friendly" error message that's displayed if
-// Terraform suspects a large disk deletion that could be the result of a
-// virtual machine rename where the source of the rename is a variable that is
-// also being used to determine the name of the disks. This is a common pattern
-// (currently) and hence needs to be guarded against.
-const diskDeleteRenameError = `
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// diskNameDeprecationNotice is the deprecation warning for the "name"
+// attribute, which will removed in 2.0. The notice is verbose, so we format it
+// so it looks a little better over CLI.
+//
+// TODO: Remove this in 2.0.
+const diskNameDeprecationNotice = `
+The name attribute for virtual disks will be removed in favor of "label" in
+future releases. To transition existing disks, rename the "name" attribute to
+"label". When doing so, ensure the value of the attribute stays the same.
 
-Terraform discovered disks that were being deleted or detached that contained
-the old virtual machine name during a virtual machine rename operation:
+Note that "label" does not control the name of a VMDK and does not need to bear
+the name of one on new disks or virtual machines. For more information, see the
+documentation for the label attribute at: 
 
-Old virtual machine name: %s
-New virtual machine name: %s
-
-Disks being deleted or detached:
-%s
-
-To prevent accidental deletion when disk names are parameterized, Terraform
-prohibits this operation from proceeding.
-
-If this is intentional, please configure the virtual machine so that the
-virtual machine is renamed before the disks are removed.
-
-For tips on how to successfully parameterize virtual machine disk names that
-are based on the name of the virtual machine, see the documentation at
-https://www.terraform.io/docs/providers/vsphere/r/virtual_machine.html
-
-If you have received this message and the following does not apply, please open
-an issue at
-https://github.com/terraform-providers/terraform-provider-vsphere/issues
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+https://www.terraform.io/docs/providers/vsphere/r/virtual_machine.html#label
 `
 
 // diskDeletedName is a placeholder name for deleted disks. This is to assist
@@ -97,7 +80,7 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 				}
 				return nil, nil
 			},
-			Deprecated: "The name attribute for virtual disks will be removed in favor of \"label\" in future releases. To transition existing disks, rename the \"name\" attribute to \"label\". The name must stay the same, however this is not a requirement for new disks.",
+			Deprecated: diskNameDeprecationNotice,
 		},
 		"path": {
 			Type:        schema.TypeString,
@@ -805,7 +788,7 @@ func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l o
 					break
 				}
 				r := NewDiskSubresource(c, d, nm, om, ni)
-				relocator, err := r.Relocate(l)
+				relocator, err := r.Relocate(l, false)
 				if err != nil {
 					return nil, fmt.Errorf("%s: %s", r.Addr(), err)
 				}
@@ -868,7 +851,7 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 			return nil, fmt.Errorf("error computing device address: %s", err)
 		}
 		r := NewDiskSubresource(c, d, m, nil, i)
-		relocator, err := r.Relocate(l)
+		relocator, err := r.Relocate(l, true)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", r.Addr(), err)
 		}
@@ -937,10 +920,11 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 			return nil, nil, fmt.Errorf("error copying current device state for disk at unit_number %d: %s", src["unit_number"].(int), err)
 		}
 		for k, v := range src {
-			// Skip label, name, datastore_id, and share count if share level isn't custom
+			// Skip label, name, datastore_id, and uuid. Also skip share_count if we
+			// the share level isn't custom.
 			// TODO: Remove "name" after 2.0
 			switch k {
-			case "label", "name", "datastore_id":
+			case "label", "name", "datastore_id", "uuid":
 				continue
 			case "io_share_count":
 				if src["io_share_level"] != string(types.SharesLevelCustom) {
@@ -1281,6 +1265,12 @@ func (r *DiskSubresource) Diff() error {
 	if olabel != "" && nlabel == "" {
 		return errors.New("cannot migrate from label to name")
 	}
+	// Carry forward the name attribute like we used to if no label is defined.
+	// TODO: Remove this after 2.0.
+	if nlabel == "" {
+		oname, _ := r.GetChange("name")
+		r.Set("name", oname.(string))
+	}
 
 	// set some computed fields: key, device_address, and uuid will always be
 	// non-populated, so copy those.
@@ -1422,9 +1412,9 @@ func (r *DiskSubresource) blockRelocateAttachedDisks() error {
 
 // Relocate produces a VirtualMachineRelocateSpecDiskLocator for this resource
 // and is used for both cloning and storage vMotion.
-func (r *DiskSubresource) Relocate(l object.VirtualDeviceList) (types.VirtualMachineRelocateSpecDiskLocator, error) {
+func (r *DiskSubresource) Relocate(l object.VirtualDeviceList, clone bool) (types.VirtualMachineRelocateSpecDiskLocator, error) {
 	log.Printf("[DEBUG] %s: Starting relocate generation", r)
-	disk, err := r.findVirtualDisk(l, false)
+	disk, err := r.findVirtualDisk(l, clone)
 	var relocate types.VirtualMachineRelocateSpecDiskLocator
 	if err != nil {
 		return relocate, fmt.Errorf("cannot find disk device: %s", err)
@@ -1468,17 +1458,14 @@ func (r *DiskSubresource) Relocate(l object.VirtualDeviceList) (types.VirtualMac
 }
 
 // String prints out the disk sub-resource's information including the ID at
-// time of instantiation, the label of the disk, and the current device
+// time of instantiation, the path of the disk, and the current device
 // key and address.
 func (r *DiskSubresource) String() string {
-	n, err := diskLabelOrName(r.data)
-	var name string
-	if err != nil {
-		name = n
-	} else {
-		name = "<unknown>"
+	p := diskPathOrName(r.data)
+	if p == "" {
+		p = "<unknown>"
 	}
-	return fmt.Sprintf("%s (%s)", r.Subresource.String(), name)
+	return fmt.Sprintf("%s (%s)", r.Subresource.String(), p)
 }
 
 // expandDiskSettings sets appropriate fields on an existing disk - this is
@@ -1766,7 +1753,7 @@ func diskLabelOrName(data map[string]interface{}) (string, error) {
 		label = v.(string)
 	}
 	if v, ok := data["name"]; ok && v != nil {
-		name = v.(string)
+		name = path.Base(v.(string))
 	}
 	switch {
 	case label == "" && name == "":

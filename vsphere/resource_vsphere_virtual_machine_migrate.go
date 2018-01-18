@@ -29,6 +29,9 @@ func resourceVSphereVirtualMachineMigrateState(version int, os *terraform.Instan
 
 	var migrateFunc func(*terraform.InstanceState, interface{}) error
 	switch version {
+	case 2:
+		log.Printf("[DEBUG] Migrating vsphere_virtual_machine state: old v%d state: %#v", version, os)
+		migrateFunc = migrateVSphereVirtualMachineStateV3
 	case 1:
 		log.Printf("[DEBUG] Migrating vsphere_virtual_machine state: old v%d state: %#v", version, os)
 		migrateFunc = migrateVSphereVirtualMachineStateV2
@@ -46,6 +49,69 @@ func resourceVSphereVirtualMachineMigrateState(version int, os *terraform.Instan
 	version++
 	log.Printf("[DEBUG] Migrating vsphere_virtual_machine state: new v%d state: %#v", version, os)
 	return resourceVSphereVirtualMachineMigrateState(version, os, meta)
+}
+
+// migrateVSphereVirtualMachineStateV3 migrates the state of the
+// vsphere_virtual_machine from version 2 to version 3.
+func migrateVSphereVirtualMachineStateV3(is *terraform.InstanceState, meta interface{}) error {
+	// All we really preserve from the old state is the UUID of the virtual
+	// machine. We leverage some of the special parts of the import functionality
+	// - namely validating disks, and flagging the VM as imported in the state to
+	// guard against someone adding customization to the configuration and
+	// accidentally forcing a new resource.
+	//
+	// Read will handle most of the population post-migration as it does for
+	// import, and there will be an unavoidable diff for TF-only options on the
+	// next plan.
+	client := meta.(*VSphereClient).vimClient
+	id := is.ID
+
+	log.Printf("[DEBUG] Migrate state for VM at UUID %q", id)
+	vm, err := virtualmachine.FromUUID(client, id)
+	if err != nil {
+		return fmt.Errorf("error fetching virtual machine: %s", err)
+	}
+	props, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return fmt.Errorf("error fetching virtual machine properties: %s", err)
+	}
+
+	// Populate the UUID field of all virtual disks in state.
+	diskCnt, _ := strconv.Atoi(is.Attributes["disk.#"])
+	l := object.VirtualDeviceList(props.Config.Hardware.Device)
+	for i := 0; i < diskCnt; i++ {
+		v, ok := is.Attributes[fmt.Sprintf("disk.%d.key", i)]
+		if !ok {
+			return fmt.Errorf("corrupt state: key disk.%d.key not found", i)
+		}
+		key, err := strconv.Atoi(v)
+		if err != nil {
+			return fmt.Errorf("corrupt state: strconv.Atoi error on disk.%d.key: %s", i, err)
+		}
+		device := l.FindByKey(int32(key))
+		if device == nil {
+			// Missing device, pass
+			continue
+		}
+		disk, ok := device.(*types.VirtualDisk)
+		if !ok {
+			// Not the device we are looking for
+			continue
+		}
+		backing, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+		if !ok {
+			// Someone has tampered with the VM to the point where we really should
+			// not mess with it. We can't account for all cases, but if someone has
+			// added something like an RDM disk or something else that is not
+			// VMDK-backed, we don't want to continue. We have never supported this.
+			return fmt.Errorf("disk device %s is not a VMDK-backed virtual disk and state import cannot continue", l.Name(disk))
+		}
+		is.Attributes[fmt.Sprintf("disk.%d.uuid", i)] = backing.Uuid
+	}
+
+	d := resourceVSphereVirtualMachine().Data(&terraform.InstanceState{})
+	log.Printf("[DEBUG] %s: Migration to V3 complete", resourceVSphereVirtualMachineIDString(d))
+	return nil
 }
 
 // migrateVSphereVirtualMachineStateV2 migrates the state of the
@@ -140,7 +206,7 @@ func migrateVSphereVirtualMachineStateV2(is *terraform.InstanceState, meta inter
 	is.Attributes["wait_for_guest_net_timeout"] = guestNetTimeout
 	is.Attributes["scsi_controller_count"] = fmt.Sprintf("%v", maxBus+1)
 
-	log.Printf("[DEBUG] %s: Migration complete, resource is ready for read", resourceVSphereVirtualMachineIDString(d))
+	log.Printf("[DEBUG] %s: Migration to V2 complete", resourceVSphereVirtualMachineIDString(d))
 	return nil
 }
 
