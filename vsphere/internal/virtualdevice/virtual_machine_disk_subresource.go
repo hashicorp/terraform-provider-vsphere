@@ -1022,8 +1022,9 @@ func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 		}
 		m := make(map[string]interface{})
 		// Save information so that the next DiskRefreshOperation can pick this
-		// disk up as a new and not attempt to try and line up UUIDs. We use a key
-		// < 1 for this reason, in addition to assigning the device address.
+		// disk up as if it was newly added and not attempt to try and line up
+		// UUIDs. We use a negative key for this reason, in addition to assigning
+		// the device address.
 		m["key"] = (i + 1) * -1
 		m["device_address"] = addr
 		// Assign a computed label. This label *needs* be the label this disk is
