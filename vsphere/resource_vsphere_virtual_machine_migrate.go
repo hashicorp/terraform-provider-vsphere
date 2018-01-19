@@ -126,11 +126,14 @@ func migrateVSphereVirtualMachineStateV2(is *terraform.InstanceState, meta inter
 	// machine. We leverage some of the special parts of the import functionality
 	// - namely validating disks, and flagging the VM as imported in the state to
 	// guard against someone adding customization to the configuration and
-	// accidentally forcing a new resource.
+	// accidentally forcing a new resource. To assist with the migration of state
+	// from V1 to V3 as well, we now pull in disk attribute data that is
+	// populated during the import process.
 	//
 	// Read will handle most of the population post-migration as it does for
 	// import, and there will be an unavoidable diff for TF-only options on the
-	// next plan.
+	// next plan. This diff should not require a reconfigure of the virtual
+	// machine.
 	client := meta.(*VSphereClient).vimClient
 	name := is.ID
 	id := is.Attributes["uuid"]

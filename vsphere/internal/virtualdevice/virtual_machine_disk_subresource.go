@@ -353,6 +353,10 @@ func diskApplyOperationCreateUpdate(
 			oldCopy := omc.(map[string]interface{})
 			oldCopy["datastore_id"] = newData["datastore_id"]
 			oldCopy["keep_on_remove"] = newData["keep_on_remove"]
+			// TODO: Remove these in 2.0, when all attributes should bear a label and
+			// name is gone, and we won't need to exempt transitions.
+			oldCopy["label"] = newData["label"]
+			oldCopy["name"] = newData["name"]
 			if reflect.DeepEqual(oldCopy, newData) {
 				*updates = append(*updates, r.Data())
 				return nil
@@ -386,7 +390,7 @@ func diskApplyOperationCreateUpdate(
 // returned, all necessary values are just set and committed to state.
 func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) error {
 	log.Printf("[DEBUG] DiskRefreshOperation: Beginning refresh")
-	devices := selectDisks(l, d.Get("scsi_controller_count").(int))
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int))
 	log.Printf("[DEBUG] DiskRefreshOperation: Disk devices located: %s", DeviceListString(devices))
 	curSet := d.Get(subresourceTypeDisk).([]interface{})
 	log.Printf("[DEBUG] DiskRefreshOperation: Current resource set from state: %s", subresourceListString(curSet))
@@ -666,7 +670,7 @@ nextNew:
 // existing state.
 func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l object.VirtualDeviceList, linked bool) error {
 	log.Printf("[DEBUG] DiskCloneValidateOperation: Checking existing virtual disk configuration")
-	devices := selectDisks(l, d.Get("scsi_controller_count").(int))
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
 		Sort:       devices,
@@ -822,7 +826,7 @@ func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l o
 // configurations fully in sync with what is defined.
 func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) ([]types.VirtualMachineRelocateSpecDiskLocator, error) {
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Generating full disk relocate spec list")
-	devices := selectDisks(l, d.Get("scsi_controller_count").(int))
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int))
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
@@ -875,7 +879,7 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 // virtual device operations rely pretty heavily on.
 func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] DiskPostCloneOperation: Looking for disk device changes post-clone")
-	devices := selectDisks(l, d.Get("scsi_controller_count").(int))
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int))
 	log.Printf("[DEBUG] DiskPostCloneOperation: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
@@ -976,7 +980,7 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 // imported device list is sorted by the device's unit number on the SCSI bus.
 func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) error {
 	log.Printf("[DEBUG] DiskImportOperation: Performing pre-read import and validation of virtual disks")
-	devices := selectDisks(l, d.Get("scsi_controller_count").(int))
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
 		Sort:       devices,
@@ -1011,7 +1015,7 @@ func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 		// As one final validation, as we are no longer reading here, validate that
 		// this is a VMDK-backed virtual disk to make sure we aren't importing RDM
 		// disks or what not. The device should have already been validated as a
-		// virtual disk via selectDisks.
+		// virtual disk via SelectDisks.
 		if _, ok := device.(*types.VirtualDisk).Backing.(*types.VirtualDiskFlatVer2BackingInfo); !ok {
 			return fmt.Errorf(
 				"disk.%d: unsupported disk type at %s (expected flat VMDK version 2, got %T)",
@@ -1052,7 +1056,7 @@ func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 // order that they would be added in if a clone were to be done.
 func ReadDiskAttrsForDataSource(l object.VirtualDeviceList, count int) ([]map[string]interface{}, error) {
 	log.Printf("[DEBUG] ReadDiskAttrsForDataSource: Fetching select attributes for disks across %d SCSI controllers", count)
-	devices := selectDisks(l, count)
+	devices := SelectDisks(l, count)
 	log.Printf("[DEBUG] ReadDiskAttrsForDataSource: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
@@ -1730,11 +1734,11 @@ func datastorePathHasBase(p, b string) bool {
 	return path.Base(dp.Path) == path.Base(b)
 }
 
-// selectDisks looks for disks that Terraform is supposed to manage. count is
+// SelectDisks looks for disks that Terraform is supposed to manage. count is
 // the number of controllers that Terraform is managing and serves as an upper
 // limit (count - 1) of the SCSI bus number for a controller that eligible
 // disks need to be attached to.
-func selectDisks(l object.VirtualDeviceList, count int) object.VirtualDeviceList {
+func SelectDisks(l object.VirtualDeviceList, count int) object.VirtualDeviceList {
 	devices := l.Select(func(device types.BaseVirtualDevice) bool {
 		if disk, ok := device.(*types.VirtualDisk); ok {
 			ctlr, err := findControllerForDevice(l, disk)

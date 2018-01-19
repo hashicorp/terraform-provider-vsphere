@@ -25,15 +25,10 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-const diskDeleteRenameErrorExpectedHeader = `
-Terraform discovered disks that were being deleted or detached that contained
-the old virtual machine name during a virtual machine rename operation:
-`
-
 const (
-	testAccResourceVSphereVirtualMachineDiskNameEager     = "terraform-test-extra-eager.vmdk"
-	testAccResourceVSphereVirtualMachineDiskNameLazy      = "terraform-test-extra-lazy.vmdk"
-	testAccResourceVSphereVirtualMachineDiskNameThin      = "terraform-test-extra-thin.vmdk"
+	testAccResourceVSphereVirtualMachineDiskNameEager     = "terraform-test_1.vmdk"
+	testAccResourceVSphereVirtualMachineDiskNameLazy      = "terraform-test_2.vmdk"
+	testAccResourceVSphereVirtualMachineDiskNameThin      = "terraform-test_3.vmdk"
 	testAccResourceVSphereVirtualMachineDiskNameExtraVmdk = "terraform-test-vm-extra-disk.vmdk"
 	testAccResourceVSphereVirtualMachineStaticMacAddr     = "06:5c:89:2b:a0:64"
 	testAccResourceVSphereVirtualMachineAnnotation        = "Managed by Terraform"
@@ -714,7 +709,7 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 				Steps: []resource.TestStep{
 					{
 						Config:      testAccResourceVSphereVirtualMachineConfigComputedDisk(),
-						ExpectError: regexp.MustCompile("value of disk name cannot be computed"),
+						ExpectError: regexp.MustCompile("disk label or name must be defined and cannot be computed"),
 						PlanOnly:    true,
 					},
 					{
@@ -933,29 +928,6 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 					{
 						Config: testAccResourceVSphereEmpty,
 						Check:  resource.ComposeTestCheckFunc(),
-					},
-				},
-			},
-		},
-		{
-			"clone - prevent accidental disk deletion from shared name variable",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigCloneParameterized("terraform-test"),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-					{
-						Config:      testAccResourceVSphereVirtualMachineConfigCloneParameterized("foo-test"),
-						ExpectError: regexp.MustCompile(diskDeleteRenameErrorExpectedHeader),
-						PlanOnly:    true,
 					},
 				},
 			},
@@ -1422,7 +1394,7 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 			},
 		},
 		{
-			"storage vmotion - block disk and name mismatch",
+			"storage vmotion - renamed virtual machine",
 			resource.TestCase{
 				PreCheck: func() {
 					testAccPreCheck(tp)
@@ -1449,15 +1421,17 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 					},
 					{
 						Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("foobar-test", os.Getenv("VSPHERE_DATASTORE2")),
-						ExpectError: regexp.MustCompile(regexp.QuoteMeta(
-							`virtual disk "terraform-test.vmdk" has an ineligible file name for migration (expected: "foobar-test.vmdk")`,
-						)),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE2")),
+							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("foobar-test.vmdk", os.Getenv("VSPHERE_DATASTORE2")),
+						),
 					},
 				},
 			},
 		},
 		{
-			"storage vmotion - block linked clones",
+			"storage vmotion - linked clones",
 			resource.TestCase{
 				PreCheck: func() {
 					testAccPreCheck(tp)
@@ -1475,8 +1449,12 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 						),
 					},
 					{
-						Config:      testAccResourceVSphereVirtualMachineConfigStorageVMotionLinkedClone(os.Getenv("VSPHERE_DATASTORE2")),
-						ExpectError: regexp.MustCompile(regexp.QuoteMeta(`virtual disks of linked clones cannot be migrated`)),
+						Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionLinkedClone(os.Getenv("VSPHERE_DATASTORE2")),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE2")),
+							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE2")),
+						),
 					},
 				},
 			},
@@ -1504,6 +1482,173 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 						ExpectError: regexp.MustCompile(regexp.QuoteMeta(
 							fmt.Sprintf("externally attached disk %q cannot be migrated", testAccResourceVSphereVirtualMachineDiskNameExtraVmdk),
 						)),
+					},
+				},
+			},
+		},
+		{
+			"single custom attribute",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigWithCustomAttribute(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckCustomAttributes(),
+						),
+					},
+				},
+			},
+		},
+		{
+			"multi custom attribute",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigWithMultiCustomAttribute(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckCustomAttributes(),
+						),
+					},
+				},
+			},
+		},
+		{
+			"switch custom attribute",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigWithCustomAttribute(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckCustomAttributes(),
+						),
+					},
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigWithMultiCustomAttribute(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							testAccResourceVSphereVirtualMachineCheckCustomAttributes(),
+						),
+					},
+				},
+			},
+		},
+		// TODO: Remove this test in 2.0
+		{
+			"transition to label",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigBasicDiskNameOrLabel("name"),
+						Check: resource.ComposeTestCheckFunc(
+							copyState(&state),
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+						),
+					},
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigBasicDiskNameOrLabel("label"),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							func(s *terraform.State) error {
+								uuid := state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.Attributes["disk.0.uuid"]
+								return resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "disk.0.uuid", uuid)(s)
+							},
+						),
+					},
+				},
+			},
+		},
+		// TODO: Remove this test in 2.0
+		{
+			"prevent revert to name",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigBasicDiskNameOrLabel("name"),
+						Check: resource.ComposeTestCheckFunc(
+							copyState(&state),
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+						),
+					},
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigBasicDiskNameOrLabel("label"),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							func(s *terraform.State) error {
+								uuid := state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.Attributes["disk.0.uuid"]
+								return resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "disk.0.uuid", uuid)(s)
+							},
+						),
+					},
+					{
+						Config:      testAccResourceVSphereVirtualMachineConfigBasicDiskNameOrLabel("name"),
+						ExpectError: regexp.MustCompile("cannot migrate from label to name"),
+					},
+				},
+			},
+		},
+		// TODO: Remove this test in 2.0
+		{
+			"transition to label - attached disk",
+			resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(tp)
+					testAccResourceVSphereVirtualMachinePreCheck(tp)
+				},
+				Providers:    testAccProviders,
+				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigExistingVmdkWithName(),
+						Check: resource.ComposeTestCheckFunc(
+							copyState(&state),
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+						),
+					},
+					{
+						Config: testAccResourceVSphereVirtualMachineConfigExistingVmdkWithLabel(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereVirtualMachineCheckExists(true),
+							func(s *terraform.State) error {
+								uuid := state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.Attributes["disk.1.uuid"]
+								if err := resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "disk.1.uuid", uuid)(s); err != nil {
+									return err
+								}
+								return resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "disk.1.attach", "true")(s)
+							},
+						),
 					},
 				},
 			},
@@ -1581,73 +1726,6 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 						Config: testAccResourceVSphereVirtualMachineConfigMultiHighBus(),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-				},
-			},
-		},
-		{
-			"single custom attribute",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigWithCustomAttribute(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCustomAttributes(),
-						),
-					},
-				},
-			},
-		},
-		{
-			"multi custom attribute",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigWithMultiCustomAttribute(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCustomAttributes(),
-						),
-					},
-				},
-			},
-		},
-		{
-			"switch custom attribute",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigWithCustomAttribute(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCustomAttributes(),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigWithMultiCustomAttribute(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCustomAttributes(),
 						),
 					},
 				},
@@ -2524,8 +2602,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 }
 `,
@@ -2574,8 +2652,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 }
 `,
@@ -2646,18 +2724,18 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 
   disk {
-    name        = "terraform-test_1.vmdk"
+    label       = "disk1"
     unit_number = 1
     size        = 10
   }
 
   disk {
-    name        = "terraform-test_2.vmdk"
+    label       = "disk2"
     unit_number = 2
     size        = 5
   }
@@ -2734,18 +2812,18 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 
   disk {
-    name        = "terraform-test_1.vmdk"
+    label       = "disk1"
     unit_number = 15
     size        = 10
   }
 
   disk {
-    name        = "terraform-test_2.vmdk"
+    label       = "disk2"
     unit_number = 31
     size        = 5
   }
@@ -2815,12 +2893,12 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 
   disk {
-    name        = "terraform-test_2.vmdk"
+    label       = "disk2"
     unit_number = 2
     size        = 5
   }
@@ -2890,12 +2968,12 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 
   disk {
-    name        = "terraform-test_2.vmdk"
+    label       = "disk2"
     unit_number = 1
     size        = 5
   }
@@ -2974,8 +3052,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 
   cdrom {
@@ -3044,8 +3122,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 }
 `,
@@ -3143,8 +3221,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 }
 `,
@@ -3211,8 +3289,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 }
 `,
@@ -3275,8 +3353,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = %d
+    label = "disk0"
+    size  = %d
   }
 }
 `,
@@ -3341,8 +3419,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 }
 `,
@@ -3408,8 +3486,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 }
 `,
@@ -3485,13 +3563,14 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 
   disk {
+    label        = "disk1"
     datastore_id = "${data.vsphere_datastore.datastore.id}"
-    name         = "${vsphere_virtual_disk.disk.vmdk_path}"
+    path         = "${vsphere_virtual_disk.disk.vmdk_path}"
     disk_mode    = "independent_persistent"
     attach       = true
     unit_number  = 1
@@ -3564,8 +3643,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 }
 `,
@@ -3629,8 +3708,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 }
 `,
@@ -3707,8 +3786,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 
   tags = [
@@ -3801,8 +3880,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 
   tags = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
@@ -3868,8 +3947,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test-${random_pet.pet.id}.vmdk"
-    size = 20
+    label = "terraform-test-${random_pet.pet.id}.vmdk"
+    size  = 20
   }
 }
 `,
@@ -3931,8 +4010,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 
   vapp {
@@ -4030,7 +4109,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -4071,132 +4150,6 @@ resource "vsphere_virtual_machine" "vm" {
 	)
 }
 
-func testAccResourceVSphereVirtualMachineConfigCloneParameterized(name string) string {
-	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "resource_pool" {
-  default = "%s"
-}
-
-variable "network_label" {
-  default = "%s"
-}
-
-variable "ipv4_address" {
-  default = "%s"
-}
-
-variable "ipv4_netmask" {
-  default = "%s"
-}
-
-variable "ipv4_gateway" {
-  default = "%s"
-}
-
-variable "dns_server" {
-  default = "%s"
-}
-
-variable "datastore" {
-  default = "%s"
-}
-
-variable "template" {
-  default = "%s"
-}
-
-variable "linked_clone" {
-  default = "%s"
-}
-
-variable "virtual_machine_name" {
-	default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-data "vsphere_datastore" "datastore" {
-  name          = "${var.datastore}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_resource_pool" "pool" {
-  name          = "${var.resource_pool}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_network" "network" {
-  name          = "${var.network_label}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_virtual_machine" "template" {
-  name          = "${var.template}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-resource "vsphere_virtual_machine" "vm" {
-  name             = "${var.virtual_machine_name}"
-  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
-
-  num_cpus = 2
-  memory   = 2048
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
-
-  network_interface {
-    network_id   = "${data.vsphere_network.network.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
-  }
-
-  disk {
-    name             = "${var.virtual_machine_name}.vmdk"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
-  }
-
-  clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
-    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
-
-    customize {
-      linux_options {
-        host_name = "terraform-test"
-        domain    = "test.internal"
-      }
-
-      network_interface {
-        ipv4_address = "${var.ipv4_address}"
-        ipv4_netmask = "${var.ipv4_netmask}"
-      }
-
-      ipv4_gateway    = "${var.ipv4_gateway}"
-      dns_server_list = ["${var.dns_server}"]
-      dns_suffix_list = ["test.internal"]
-    }
-  }
-}
-`,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_RESOURCE_POOL"),
-		os.Getenv("VSPHERE_NETWORK_LABEL"),
-		os.Getenv("VSPHERE_IPV4_ADDRESS"),
-		os.Getenv("VSPHERE_IPV4_PREFIX"),
-		os.Getenv("VSPHERE_IPV4_GATEWAY"),
-		os.Getenv("VSPHERE_DNS"),
-		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_TEMPLATE"),
-		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
-		name,
-	)
-}
 func testAccResourceVSphereVirtualMachineConfigBadEager() string {
 	return fmt.Sprintf(`
 variable "datacenter" {
@@ -4278,7 +4231,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub == "true" ? "false" : "true"}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -4400,7 +4353,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned == "true" ? "false" : "true"}"
@@ -4522,7 +4475,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = 999
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -4644,7 +4597,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = 1
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -4768,7 +4721,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -4896,7 +4849,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -5020,7 +4973,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -5155,7 +5108,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -5287,7 +5240,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -5414,7 +5367,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -5525,7 +5478,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -5651,7 +5604,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -5774,7 +5727,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -5896,7 +5849,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -6026,15 +5979,15 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
   }
 
   disk {
+    label        = "disk1"
     datastore_id = "${data.vsphere_datastore.disk_datastore.id}"
-    name         = "terraform-test_1.vmdk"
     size         = 1
     unit_number  = 1
   }
@@ -6164,15 +6117,15 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
   }
 
   disk {
+    label        = "disk1"
     datastore_id = "${data.vsphere_datastore.disk_datastore.id}"
-    name         = "terraform-test_1.vmdk"
     size         = 1
     unit_number  = 1
   }
@@ -6282,18 +6235,6 @@ data "vsphere_virtual_machine" "template" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
-resource "null_resource" "disk_prefix" {
-  triggers = {
-    prefix = "${var.vm_name}"
-  }
-
-  lifecycle {
-    ignore_changes = [
-      "triggers",
-    ]
-  }
-}
-
 resource "vsphere_virtual_machine" "vm" {
   name             = "${var.vm_name}"
   resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
@@ -6309,7 +6250,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "${null_resource.disk_prefix.triggers.prefix}.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -6431,7 +6372,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -6566,15 +6507,16 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
   }
 
   disk {
+    label        = "disk1"
     datastore_id = "${data.vsphere_datastore.datastore.id}"
-    name         = "${vsphere_virtual_disk.disk.vmdk_path}"
+    path         = "${vsphere_virtual_disk.disk.vmdk_path}"
     disk_mode    = "independent_persistent"
     attach       = true
     unit_number  = 1
@@ -6673,18 +6615,6 @@ variable "host" {
   default = "%s"
 }
 
-variable "disk_name_eager" {
-  default = "%s"
-}
-
-variable "disk_name_lazy" {
-  default = "%s"
-}
-
-variable "disk_name_thin" {
-  default = "%s"
-}
-
 data "vsphere_datacenter" "dc" {
   name = "${var.datacenter}"
 }
@@ -6735,14 +6665,14 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
   }
 
   disk {
-    name             = "${var.disk_name_eager}"
+    label            = "disk1"
     size             = 1
     unit_number      = 1
     thin_provisioned = false
@@ -6750,7 +6680,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "${var.disk_name_lazy}"
+    label            = "disk2"
     size             = 1
     unit_number      = 2
     thin_provisioned = false
@@ -6758,11 +6688,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name        = "${var.disk_name_thin}"
+    label       = "disk3"
     size        = 1
-    unit_number = 3
-  }
-
   clone {
     template_uuid = "${data.vsphere_virtual_machine.template.id}"
     linked_clone  = false
@@ -6798,9 +6725,6 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_DS_VMFS_DISK1"),
 		os.Getenv("VSPHERE_DS_VMFS_DISK2"),
 		os.Getenv("VSPHERE_ESXI_HOST"),
-		testAccResourceVSphereVirtualMachineDiskNameEager,
-		testAccResourceVSphereVirtualMachineDiskNameLazy,
-		testAccResourceVSphereVirtualMachineDiskNameThin,
 	)
 }
 
@@ -6887,7 +6811,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -7021,8 +6945,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    label = "disk0"
+    size  = "${data.vsphere_virtual_machine.template.disks.0.size}"
   }
 
   clone {
@@ -7168,8 +7092,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    label = "disk0"
+    size  = "${data.vsphere_virtual_machine.template.disks.0.size}"
   }
 
   clone {
@@ -7289,8 +7213,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    label = "disk0"
+    size  = "${data.vsphere_virtual_machine.template.disks.0.size}"
   }
 
   vapp {
@@ -7404,8 +7328,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    label = "disk0"
+    size  = "${data.vsphere_virtual_machine.template.disks.0.size}"
   }
 
   vapp {
@@ -7520,8 +7444,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    label = "disk0"
+    size  = "${data.vsphere_virtual_machine.template.disks.0.size}"
   }
 
   vapp {
@@ -7637,7 +7561,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -7681,5 +7605,243 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
+	)
+}
+
+// TODO: Remove this fixture in 2.0
+func testAccResourceVSphereVirtualMachineConfigBasicDiskNameOrLabel(nameKey string) string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinux64Guest"
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    %s    = "terraform-test.vmdk"
+    size  = 20
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		nameKey,
+	)
+}
+
+// TODO: Remove this fixture in 2.0
+func testAccResourceVSphereVirtualMachineConfigExistingVmdkWithName() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "extra_vmdk_name" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_disk" "disk" {
+  size         = 1
+  vmdk_path    = "${var.extra_vmdk_name}"
+  datacenter   = "${var.datacenter}"
+  datastore    = "${var.datastore}"
+  type         = "thin"
+  adapter_type = "lsiLogic"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinux64Guest"
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    name  = "terraform-test.vmdk"
+    size  = 20
+  }
+
+  disk {
+    name         = "${vsphere_virtual_disk.disk.vmdk_path}"
+    datastore_id = "${data.vsphere_datastore.datastore.id}"
+    disk_mode    = "independent_persistent"
+    attach       = true
+    unit_number  = 1
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		testAccResourceVSphereVirtualMachineDiskNameExtraVmdk,
+	)
+}
+
+// TODO: Remove this fixture in 2.0
+func testAccResourceVSphereVirtualMachineConfigExistingVmdkWithLabel() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "extra_vmdk_name" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_disk" "disk" {
+  size         = 1
+  vmdk_path    = "${var.extra_vmdk_name}"
+  datacenter   = "${var.datacenter}"
+  datastore    = "${var.datastore}"
+  type         = "thin"
+  adapter_type = "lsiLogic"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinux64Guest"
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    label = "terraform-test.vmdk"
+    size  = 20
+  }
+
+  disk {
+    label        = "${vsphere_virtual_disk.disk.vmdk_path}"
+    path         = "${vsphere_virtual_disk.disk.vmdk_path}"
+    datastore_id = "${data.vsphere_datastore.datastore.id}"
+    disk_mode    = "independent_persistent"
+    attach       = true
+    unit_number  = 1
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		testAccResourceVSphereVirtualMachineDiskNameExtraVmdk,
 	)
 }
