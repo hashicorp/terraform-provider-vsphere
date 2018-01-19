@@ -88,6 +88,11 @@ func migrateVSphereVirtualMachineStateV3(is *terraform.InstanceState, meta inter
 		if err != nil {
 			return fmt.Errorf("corrupt state: strconv.Atoi error on disk.%d.key: %s", i, err)
 		}
+		if key < 1 {
+			// This is a possibility during v1 -> v3 migrations, and would fail to
+			// find a device anyway, so we just ignore these.
+			continue
+		}
 		device := l.FindByKey(int32(key))
 		if device == nil {
 			// Missing device, pass
@@ -145,8 +150,7 @@ func migrateVSphereVirtualMachineStateV2(is *terraform.InstanceState, meta inter
 
 	// Validate the disks in the VM to make sure that they will work with the new
 	// version of the resource. This is mainly ensuring that all disks are SCSI
-	// disks, but a Read operation is attempted as well to make sure it will
-	// survive that.
+	// disks.
 	//
 	// NOTE: This uses the current version of the resource to make this check,
 	// which at some point in time may end up being a higher schema version than
@@ -205,6 +209,14 @@ func migrateVSphereVirtualMachineStateV2(is *terraform.InstanceState, meta inter
 	is.Attributes["shutdown_wait_timeout"] = fmt.Sprintf("%v", rs["shutdown_wait_timeout"].Default)
 	is.Attributes["wait_for_guest_net_timeout"] = guestNetTimeout
 	is.Attributes["scsi_controller_count"] = fmt.Sprintf("%v", maxBus+1)
+
+	// Populate our disk data from the fake state.
+	d.SetId(id)
+	for k, v := range d.State().Attributes {
+		if strings.HasPrefix(k, "disk.") {
+			is.Attributes[k] = v
+		}
+	}
 
 	log.Printf("[DEBUG] %s: Migration to V2 complete", resourceVSphereVirtualMachineIDString(d))
 	return nil

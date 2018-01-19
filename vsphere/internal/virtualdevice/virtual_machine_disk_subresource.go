@@ -616,6 +616,9 @@ nextNew:
 		nm["key"] = 0
 		nm["device_address"] = ""
 		nm["uuid"] = ""
+		if a, ok := nm["attach"]; !ok || !a.(bool) {
+			nm["path"] = ""
+		}
 		normalized = append(normalized, nm)
 	}
 
@@ -970,8 +973,7 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 // DiskImportOperation validates the disk configuration of the virtual
 // machine's VirtualDeviceList to ensure it will be imported properly, and also
 // saves device addresses into state for disks defined in config. Both the
-// imported device list and the list of disks in config are sorted by their
-// respective unit numbers on the SCSI bus.
+// imported device list is sorted by the device's unit number on the SCSI bus.
 func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) error {
 	log.Printf("[DEBUG] DiskImportOperation: Performing pre-read import and validation of virtual disks")
 	devices := selectDisks(l, d.Get("scsi_controller_count").(int))
@@ -984,20 +986,12 @@ func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 	sort.Sort(devSort)
 	devices = devSort.Sort
 	log.Printf("[DEBUG] DiskImportOperation: Disk devices order after sort: %s", DeviceListString(devices))
-	// Do the same for our listed disks.
-	curSet := d.Get(subresourceTypeDisk).([]interface{})
-	log.Printf("[DEBUG] DiskImportOperation: Current resource set: %s", subresourceListString(curSet))
-	sort.Sort(virtualDiskSubresourceSorter(curSet))
-	log.Printf("[DEBUG] DiskImportOperation: Resource set order after sort: %s", subresourceListString(curSet))
 
 	// Read in the disks. We don't do anything with the results here other than
 	// validate that the disks are SCSI disks. The read operation validates the rest.
+	var curSet []interface{}
 	log.Printf("[DEBUG] DiskImportOperation: Validating disk type and saving ")
 	for i, device := range devices {
-		if i >= len(curSet) {
-			break
-		}
-		m := curSet[i].(map[string]interface{})
 		vd := device.GetVirtualDevice()
 		ctlr := l.FindByKey(vd.ControllerKey)
 		if ctlr == nil {
@@ -1026,9 +1020,24 @@ func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 				device.(*types.VirtualDisk).Backing,
 			)
 		}
+		m := make(map[string]interface{})
+		// Save information so that the next DiskRefreshOperation can pick this
+		// disk up as a new and not attempt to try and line up UUIDs. We use a key
+		// < 1 for this reason, in addition to assigning the device address.
+		m["key"] = (i + 1) * -1
 		m["device_address"] = addr
-		curSet[i] = m
+		// Assign a computed label. This label *needs* be the label this disk is
+		// assigned in config, or you risk service interruptions or data corruption.
+		m["label"] = fmt.Sprintf("disk%d", i)
+		// Set keep_on_remove to ensure that if labels are assigned incorrectly,
+		// all that happens is that the disk is removed. The comments above
+		// regarding the risk of incorrect label assignment are still true, but
+		// this greatly reduces the risk of data loss.
+		m["keep_on_remove"] = true
+
+		curSet = append(curSet, m)
 	}
+	log.Printf("[DEBUG] DiskImportOperation: Discovered disks from import: %s", subresourceListString(curSet))
 	if err := d.Set(subresourceTypeDisk, curSet); err != nil {
 		return err
 	}
@@ -1753,18 +1762,23 @@ func diskLabelOrName(data map[string]interface{}) (string, error) {
 		label = v.(string)
 	}
 	if v, ok := data["name"]; ok && v != nil {
-		name = path.Base(v.(string))
+		name = v.(string)
 	}
+	if name != "" {
+		name = path.Base(name)
+	}
+
+	log.Printf("[DEBUG] diskLabelOrName: label: %q name: %q", label, name)
 	switch {
 	case label == "" && name == "":
 		return "", errors.New("disk label or name must be defined and cannot be computed")
 	case label != "" && name != "":
 		return "", errors.New("disk label and name cannot be defined at the same time")
 	case label != "":
-		log.Printf("[DEBUG] diskLabelOrName: Using defined label value: %s", label)
+		log.Printf("[DEBUG] diskLabelOrName: Using defined label value %q", label)
 		return label, nil
 	}
-	log.Printf("[DEBUG] diskLabelOrName: Using defined name value as fallback: %s", name)
+	log.Printf("[DEBUG] diskLabelOrName: Using defined name value as fallback %q", name)
 	return name, nil
 }
 
@@ -1781,10 +1795,10 @@ func diskPathOrName(data map[string]interface{}) string {
 		name = v.(string)
 	}
 	if path != "" {
-		log.Printf("[DEBUG] diskPathOrName: Using defined path value: %s", path)
+		log.Printf("[DEBUG] diskPathOrName: Using defined path value %q", path)
 		return path
 	}
-	log.Printf("[DEBUG] diskPathOrName: Using defined name value as fallback: %s", name)
+	log.Printf("[DEBUG] diskPathOrName: Using defined name value as fallback %q", name)
 	return name
 }
 
