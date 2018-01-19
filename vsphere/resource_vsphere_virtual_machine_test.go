@@ -2227,12 +2227,12 @@ func testAccResourceVSphereVirtualMachineCheckMultiDevice(expectedD, expectedN [
 
 		for n, actual := range actualD {
 			if actual != expectedD[n] {
-				return fmt.Errorf("could not locate disk at index %d", n)
+				return fmt.Errorf("expected disk at index %d to be %t, got %t", n, expectedD[n], actual)
 			}
 		}
 		for n, actual := range actualN {
 			if actual != expectedN[n] {
-				return fmt.Errorf("could not locate network interface at index %d", n)
+				return fmt.Errorf("expected network interface at index %d to be %t, got %t", n, expectedN[n], actual)
 			}
 		}
 

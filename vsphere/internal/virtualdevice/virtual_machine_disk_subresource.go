@@ -296,7 +296,7 @@ func diskApplyOperationDelete(
 		if name, err = diskLabelOrName(newData); err != nil {
 			return err
 		}
-		if name == diskDeletedName || name == diskDetachedName && oldData["uuid"] == newData["uuid"] {
+		if (name == diskDeletedName || name == diskDetachedName) && oldData["uuid"] == newData["uuid"] {
 			didx = ni
 			break
 		}
@@ -1320,6 +1320,9 @@ func (r *DiskSubresource) Diff() error {
 		if r.Get("size").(int) < 1 {
 			return fmt.Errorf("size for disk %q: required option not set", name)
 		}
+		// Carry forward path when attach is not set
+		opath, _ := r.GetChange("path")
+		r.Set("path", opath.(string))
 	}
 
 	// Set the datastore if it's missing as we infer this from the default
