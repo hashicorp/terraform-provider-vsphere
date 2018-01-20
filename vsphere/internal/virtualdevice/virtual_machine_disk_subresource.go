@@ -47,6 +47,11 @@ const diskDeletedName = "<deleted>"
 // with "attach".
 const diskDetachedName = "<remove, keep disk>"
 
+// diskOrphanedPrefix is a placeholder name for disks that have been discovered
+// as not being tracked by Terraform. These disks are assigned
+// "orphaned_disk_0", "orphaned_disk_1", and so on.
+const diskOrphanedPrefix = "orphaned_disk_"
+
 var diskSubresourceModeAllowedValues = []string{
 	string(types.VirtualDiskModePersistent),
 	string(types.VirtualDiskModeNonpersistent),
@@ -175,6 +180,12 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 			Type:        schema.TypeString,
 			Optional:    true,
 			Description: "A unique label for this disk.",
+			ValidateFunc: func(v interface{}, _ string) ([]string, []error) {
+				if strings.HasPrefix(v.(string), diskOrphanedPrefix) {
+					return nil, []error{fmt.Errorf("disk label %q cannot start with %q", v.(string), diskOrphanedPrefix)}
+				}
+				return nil, nil
+			},
 		},
 		"unit_number": {
 			Type:         schema.TypeInt,
@@ -480,7 +491,7 @@ func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 			return fmt.Errorf("%s: %s", r.Addr(), err)
 		}
 		// Add a generic label indicating that this disk is orphaned.
-		r.Set("label", fmt.Sprintf("orphaned_disk_%d", i))
+		r.Set("label", fmt.Sprintf("%s%d", diskOrphanedPrefix, i))
 		newSet = append(newSet, r.Data())
 	}
 
