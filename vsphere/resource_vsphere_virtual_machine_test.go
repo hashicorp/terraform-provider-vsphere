@@ -1472,9 +1472,13 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 					{
 						Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionLinkedClone(os.Getenv("VSPHERE_DATASTORE2")),
 						Check: resource.ComposeTestCheckFunc(
+							copyStatePtr(&state),
 							testAccResourceVSphereVirtualMachineCheckExists(true),
 							testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE2")),
-							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE2")),
+							func(s *terraform.State) error {
+								filename := path.Base(state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.Attributes["disk.0.path"])
+								return testAccResourceVSphereVirtualMachineCheckVmdkDatastore(filename, os.Getenv("VSPHERE_DATASTORE2"))(s)
+							},
 						),
 					},
 				},
