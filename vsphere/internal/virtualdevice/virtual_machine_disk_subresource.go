@@ -1424,7 +1424,7 @@ func (r *DiskSubresource) blockRelocateAttachedDisks() error {
 		return nil
 	}
 	if attach.(bool) {
-		return fmt.Errorf("externally attached disk %q cannot be migrated", r.Get("name"))
+		return fmt.Errorf("externally attached disk %q cannot be migrated", diskPathOrName(r.data))
 	}
 	return nil
 }
