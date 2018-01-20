@@ -6690,6 +6690,9 @@ resource "vsphere_virtual_machine" "vm" {
   disk {
     label       = "disk3"
     size        = 1
+    unit_number = 3
+  }
+
   clone {
     template_uuid = "${data.vsphere_virtual_machine.template.id}"
     linked_clone  = false
