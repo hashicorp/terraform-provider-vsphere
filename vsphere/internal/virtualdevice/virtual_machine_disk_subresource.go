@@ -927,11 +927,13 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 			return nil, nil, fmt.Errorf("error copying current device state for disk at unit_number %d: %s", src["unit_number"].(int), err)
 		}
 		for k, v := range src {
-			// Skip label, name, datastore_id, and uuid. Also skip share_count if we
-			// the share level isn't custom.
-			// TODO: Remove "name" after 2.0
+			// Skip label, path (path will always be computed here as cloned disks
+			// are not being attached externally), name, datastore_id, and uuid. Also
+			// skip share_count if we the share level isn't custom.
+			//
+			// TODO: Remove "name" after 2.0.
 			switch k {
-			case "label", "name", "datastore_id", "uuid":
+			case "label", "path", "name", "datastore_id", "uuid":
 				continue
 			case "io_share_count":
 				if src["io_share_level"] != string(types.SharesLevelCustom) {
