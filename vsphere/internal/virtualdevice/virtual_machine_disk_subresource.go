@@ -21,38 +21,21 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-// diskDeleteRenameError is a "friendly" error message that's displayed if
-// Terraform suspects a large disk deletion that could be the result of a
-// virtual machine rename where the source of the rename is a variable that is
-// also being used to determine the name of the disks. This is a common pattern
-// (currently) and hence needs to be guarded against.
-const diskDeleteRenameError = `
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// diskNameDeprecationNotice is the deprecation warning for the "name"
+// attribute, which will removed in 2.0. The notice is verbose, so we format it
+// so it looks a little better over CLI.
+//
+// TODO: Remove this in 2.0.
+const diskNameDeprecationNotice = `
+The name attribute for virtual disks will be removed in favor of "label" in
+future releases. To transition existing disks, rename the "name" attribute to
+"label". When doing so, ensure the value of the attribute stays the same.
 
-Terraform discovered disks that were being deleted or detached that contained
-the old virtual machine name during a virtual machine rename operation:
+Note that "label" does not control the name of a VMDK and does not need to bear
+the name of one on new disks or virtual machines. For more information, see the
+documentation for the label attribute at: 
 
-Old virtual machine name: %s
-New virtual machine name: %s
-
-Disks being deleted or detached:
-%s
-
-To prevent accidental deletion when disk names are parameterized, Terraform
-prohibits this operation from proceeding.
-
-If this is intentional, please configure the virtual machine so that the
-virtual machine is renamed before the disks are removed.
-
-For tips on how to successfully parameterize virtual machine disk names that
-are based on the name of the virtual machine, see the documentation at
-https://www.terraform.io/docs/providers/vsphere/r/virtual_machine.html
-
-If you have received this message and the following does not apply, please open
-an issue at
-https://github.com/terraform-providers/terraform-provider-vsphere/issues
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+https://www.terraform.io/docs/providers/vsphere/r/virtual_machine.html#label
 `
 
 // diskDeletedName is a placeholder name for deleted disks. This is to assist
@@ -63,6 +46,11 @@ const diskDeletedName = "<deleted>"
 // either because they have keep_on_remove set or are external disks attached
 // with "attach".
 const diskDetachedName = "<remove, keep disk>"
+
+// diskOrphanedPrefix is a placeholder name for disks that have been discovered
+// as not being tracked by Terraform. These disks are assigned
+// "orphaned_disk_0", "orphaned_disk_1", and so on.
+const diskOrphanedPrefix = "orphaned_disk_"
 
 var diskSubresourceModeAllowedValues = []string{
 	string(types.VirtualDiskModePersistent),
@@ -89,11 +77,24 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 		},
 		"name": {
 			Type:        schema.TypeString,
-			Required:    true,
+			Optional:    true,
 			Description: "The file name of the disk. This can be either a name or path relative to the root of the datastore. If simply a name, the disk is located with the virtual machine.",
 			ValidateFunc: func(v interface{}, _ string) ([]string, []error) {
 				if path.Ext(v.(string)) != ".vmdk" {
 					return nil, []error{fmt.Errorf("disk name %s must end in .vmdk", v.(string))}
+				}
+				return nil, nil
+			},
+			Deprecated: diskNameDeprecationNotice,
+		},
+		"path": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Computed:    true,
+			Description: "The full path of the virtual disk. This can only be provided if attach is set to true, otherwise it is a read-only value.",
+			ValidateFunc: func(v interface{}, _ string) ([]string, []error) {
+				if path.Ext(v.(string)) != ".vmdk" {
+					return nil, []error{fmt.Errorf("disk path %s must end in .vmdk", v.(string))}
 				}
 				return nil, nil
 			},
@@ -130,6 +131,11 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 			Default:     false,
 			Description: "If true, writes for this disk are sent directly to the filesystem immediately instead of being buffered.",
 		},
+		"uuid": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The UUID of the virtual disk.",
+		},
 
 		// StorageIOAllocationInfo
 		"io_limit": {
@@ -161,12 +167,25 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 			ValidateFunc: validation.IntAtLeast(0),
 		},
 
-		// VirtualDisk/Other complex stuff
+		// VirtualDisk
 		"size": {
 			Type:         schema.TypeInt,
 			Optional:     true,
 			Description:  "The size of the disk, in GB.",
 			ValidateFunc: validation.IntAtLeast(1),
+		},
+
+		// Complex terraform-local things
+		"label": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "A unique label for this disk.",
+			ValidateFunc: func(v interface{}, _ string) ([]string, []error) {
+				if strings.HasPrefix(v.(string), diskOrphanedPrefix) {
+					return nil, []error{fmt.Errorf("disk label %q cannot start with %q", v.(string), diskOrphanedPrefix)}
+				}
+				return nil, nil
+			},
 		},
 		"unit_number": {
 			Type:         schema.TypeInt,
@@ -238,26 +257,11 @@ func DiskApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Virt
 	// Our old and new sets now have an accurate description of devices that may
 	// have been added, removed, or changed. Look for removed devices first.
 	log.Printf("[DEBUG] DiskApplyOperation: Looking for resources to delete")
-nextOld:
 	for oi, oe := range ods {
 		om := oe.(map[string]interface{})
-		for _, ne := range nds {
-			nm := ne.(map[string]interface{})
-			if nm["name"] == diskDeletedName || nm["name"] == diskDetachedName {
-				// This is a "dummy" deleted resource and should be skipped over
-				continue
-			}
-			if om["key"] == nm["key"] {
-				continue nextOld
-			}
+		if err := diskApplyOperationDelete(oi, om, nds, c, d, &l, &spec); err != nil {
+			return nil, nil, err
 		}
-		r := NewDiskSubresource(c, d, om, nil, oi)
-		dspec, err := r.Delete(l)
-		if err != nil {
-			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
-		}
-		l = applyDeviceChange(l, dspec)
-		spec = append(spec, dspec...)
 	}
 
 	// Now check for creates and updates.  The results of this operation are
@@ -266,51 +270,11 @@ nextOld:
 	var updates []interface{}
 	log.Printf("[DEBUG] DiskApplyOperation: Looking for resources to create or update")
 	log.Printf("[DEBUG] DiskApplyOperation: Resources not being changed: %s", subresourceListString(updates))
-nextNew:
 	for ni, ne := range nds {
 		nm := ne.(map[string]interface{})
-		if nm["name"] == diskDeletedName || nm["name"] == diskDetachedName {
-			// This is a "dummy" deleted resource and should be skipped over
-			continue
+		if err := diskApplyOperationCreateUpdate(ni, nm, ods, c, d, &l, &spec, &updates); err != nil {
+			return nil, nil, err
 		}
-		for _, oe := range ods {
-			om := oe.(map[string]interface{})
-			if nm["key"] == om["key"] {
-				// This is an update
-				r := NewDiskSubresource(c, d, nm, om, ni)
-				// If the only thing changing here is the datastore, or keep_on_remove,
-				// this is a no-op as far as a device change is concerned. Datastore
-				// changes are handled during storage vMotion later on during the
-				// update phase. keep_on_remove is a Terraform-only attribute and only
-				// needs to be committed to state.
-				omc, err := copystructure.Copy(om)
-				if err != nil {
-					return nil, nil, fmt.Errorf("%s: error generating copy of old disk data: %s", r.Addr(), err)
-				}
-				omc.(map[string]interface{})["datastore_id"] = nm["datastore_id"]
-				omc.(map[string]interface{})["keep_on_remove"] = nm["keep_on_remove"]
-				if reflect.DeepEqual(omc, nm) {
-					updates = append(updates, r.Data())
-					continue nextNew
-				}
-				uspec, err := r.Update(l)
-				if err != nil {
-					return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
-				}
-				l = applyDeviceChange(l, uspec)
-				spec = append(spec, uspec...)
-				updates = append(updates, r.Data())
-				continue nextNew
-			}
-		}
-		r := NewDiskSubresource(c, d, nm, nil, ni)
-		cspec, err := r.Create(l)
-		if err != nil {
-			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
-		}
-		l = applyDeviceChange(l, cspec)
-		spec = append(spec, cspec...)
-		updates = append(updates, r.Data())
 	}
 
 	log.Printf("[DEBUG] DiskApplyOperation: Post-apply final resource list: %s", subresourceListString(updates))
@@ -324,6 +288,112 @@ nextNew:
 	return l, spec, nil
 }
 
+// diskApplyOperationDelete is an inner-loop helper for disk deletion
+// operations.
+func diskApplyOperationDelete(
+	index int,
+	oldData map[string]interface{},
+	newDataSet []interface{},
+	c *govmomi.Client,
+	d *schema.ResourceData,
+	l *object.VirtualDeviceList,
+	spec *[]types.BaseVirtualDeviceConfigSpec,
+) error {
+	didx := -1
+	for ni, ne := range newDataSet {
+		newData := ne.(map[string]interface{})
+		var name string
+		var err error
+		if name, err = diskLabelOrName(newData); err != nil {
+			return err
+		}
+		if (name == diskDeletedName || name == diskDetachedName) && oldData["uuid"] == newData["uuid"] {
+			didx = ni
+			break
+		}
+	}
+	if didx < 0 {
+		// Deleted entry not found
+		return nil
+	}
+	r := NewDiskSubresource(c, d, oldData, nil, index)
+	dspec, err := r.Delete(*l)
+	if err != nil {
+		return fmt.Errorf("%s: %s", r.Addr(), err)
+	}
+	*l = applyDeviceChange(*l, dspec)
+	*spec = append(*spec, dspec...)
+	return nil
+}
+
+// diskApplyOperationCreateUpdate is an inner-loop helper for disk creation and
+// update operations.
+func diskApplyOperationCreateUpdate(
+	index int,
+	newData map[string]interface{},
+	oldDataSet []interface{},
+	c *govmomi.Client,
+	d *schema.ResourceData,
+	l *object.VirtualDeviceList,
+	spec *[]types.BaseVirtualDeviceConfigSpec,
+	updates *[]interface{},
+) error {
+	var name string
+	var err error
+	if name, err = diskLabelOrName(newData); err != nil {
+		return err
+	}
+	if name == diskDeletedName || name == diskDetachedName {
+		// This is a "dummy" deleted resource and should be skipped over
+		return nil
+	}
+	for _, oe := range oldDataSet {
+		oldData := oe.(map[string]interface{})
+		if newData["uuid"] == oldData["uuid"] {
+			// This is an update
+			r := NewDiskSubresource(c, d, newData, oldData, index)
+			// If the only thing changing here is the datastore, or keep_on_remove,
+			// this is a no-op as far as a device change is concerned. Datastore
+			// changes are handled during storage vMotion later on during the
+			// update phase. keep_on_remove is a Terraform-only attribute and only
+			// needs to be committed to state.
+			omc, err := copystructure.Copy(oldData)
+			if err != nil {
+				return fmt.Errorf("%s: error generating copy of old disk data: %s", r.Addr(), err)
+			}
+			oldCopy := omc.(map[string]interface{})
+			oldCopy["datastore_id"] = newData["datastore_id"]
+			oldCopy["keep_on_remove"] = newData["keep_on_remove"]
+			// TODO: Remove these in 2.0, when all attributes should bear a label and
+			// name is gone, and we won't need to exempt transitions.
+			oldCopy["label"] = newData["label"]
+			oldCopy["name"] = newData["name"]
+			if reflect.DeepEqual(oldCopy, newData) {
+				*updates = append(*updates, r.Data())
+				return nil
+			}
+			uspec, err := r.Update(*l)
+			if err != nil {
+				return fmt.Errorf("%s: %s", r.Addr(), err)
+			}
+			*l = applyDeviceChange(*l, uspec)
+			*spec = append(*spec, uspec...)
+			*updates = append(*updates, r.Data())
+			return nil
+		}
+	}
+	// New data was not found - this is a create operation
+	r := NewDiskSubresource(c, d, newData, nil, index)
+	cspec, err := r.Create(*l)
+	if err != nil {
+		return fmt.Errorf("%s: %s", r.Addr(), err)
+	}
+	*l = applyDeviceChange(*l, cspec)
+	*spec = append(*spec, cspec...)
+	*updates = append(*updates, r.Data())
+	return nil
+}
+
 // DiskRefreshOperation processes a refresh operation for all of the disks in
 // the resource.
 //
@@ -331,7 +401,7 @@ nextNew:
 // returned, all necessary values are just set and committed to state.
 func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) error {
 	log.Printf("[DEBUG] DiskRefreshOperation: Beginning refresh")
-	devices := selectDisks(l, d.Get("scsi_controller_count").(int))
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int))
 	log.Printf("[DEBUG] DiskRefreshOperation: Disk devices located: %s", DeviceListString(devices))
 	curSet := d.Get(subresourceTypeDisk).([]interface{})
 	log.Printf("[DEBUG] DiskRefreshOperation: Current resource set from state: %s", subresourceListString(curSet))
@@ -378,8 +448,8 @@ func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 				// Skip any of these keys as we won't be matching any of those anyway here
 				continue
 			}
-			if device.GetVirtualDevice().Key != int32(m["key"].(int)) {
-				// Skip any device that doesn't match key as well
+			if !diskUUIDMatch(device, m["uuid"].(string)) {
+				// Skip any device that doesn't match UUID
 				continue
 			}
 			// We should have our device -> resource match, so read now.
@@ -400,7 +470,7 @@ func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 	// Finally, any device that is still here is orphaned. They should be added
 	// as new devices.
 	log.Printf("[DEBUG] DiskRefreshOperation: Adding orphaned devices")
-	for _, device := range devices {
+	for i, device := range devices {
 		m := make(map[string]interface{})
 		vd := device.GetVirtualDevice()
 		ctlr := l.FindByKey(vd.ControllerKey)
@@ -420,6 +490,8 @@ func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 		if err := r.Read(l); err != nil {
 			return fmt.Errorf("%s: %s", r.Addr(), err)
 		}
+		// Add a generic label indicating that this disk is orphaned.
+		r.Set("label", fmt.Sprintf("%s%d", diskOrphanedPrefix, i))
 		newSet = append(newSet, r.Data())
 	}
 
@@ -467,38 +539,6 @@ func DiskDestroyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 	return spec, nil
 }
 
-// protectDiskDeleteRename is a fail-safe to prevent a VM rename operation from
-// accidentally deleting any disks that may be based on the previous name of
-// the virtual machine. This scenario is plausible when using a common variable
-// to help name both the virtual machine and the disks associated with it.
-func protectDiskDeleteRename(d *schema.ResourceDiff, old, new []interface{}) error {
-	o, n := d.GetChange("name")
-	oldVMName := o.(string)
-	newVMName := n.(string)
-
-	var deletedDisks []string
-
-	for i, ov := range old {
-		om := ov.(map[string]interface{})
-		oldDiskName := om["name"].(string)
-		if i >= len(new) {
-			break
-		}
-		if !strings.Contains(oldDiskName, oldVMName) {
-			continue
-		}
-		nm := new[i].(map[string]interface{})
-		newDiskName := nm["name"].(string)
-		if newDiskName == diskDeletedName || newDiskName == diskDetachedName {
-			deletedDisks = append(deletedDisks, oldDiskName)
-		}
-	}
-	if len(deletedDisks) > 0 {
-		return fmt.Errorf(diskDeleteRenameError, oldVMName, newVMName, strings.Join(deletedDisks, "\n"))
-	}
-	return nil
-}
-
 // DiskDiffOperation performs operations relevant to managing the diff on disk
 // sub-resources.
 //
@@ -516,41 +556,47 @@ func DiskDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 	log.Printf("[DEBUG] DiskDiffOperation: Beginning disk diff customization")
 	o, n := d.GetChange(subresourceTypeDisk)
 	// Some global validation first. We handle individual validation later.
-	log.Printf("[DEBUG] DiskDiffOperation: Beginning diff validation (indexes aligned to new config)")
+	log.Printf("[DEBUG] DiskDiffOperation: Beginning collective diff validation (indexes aligned to new config)")
 	names := make(map[string]struct{})
+	attachments := make(map[string]struct{})
 	units := make(map[int]struct{})
 	if len(n.([]interface{})) < 1 {
 		return errors.New("there must be at least one disk specified")
 	}
 	for ni, ne := range n.([]interface{}) {
 		nm := ne.(map[string]interface{})
-		// Because we support long and short-form paths, we don't support duplicate
-		// file names right now, even if they are in a different path. This makes
-		// things slightly more inflexible but hopefully not enough to be seriously
-		// cumbersome to the use of the resource.
-		name := path.Base(nm["name"].(string))
+		name, err := diskLabelOrName(nm)
+		if err != nil {
+			return fmt.Errorf("disk.%d: %s", ni, err)
+		}
 		if _, ok := names[name]; ok {
 			return fmt.Errorf("disk: duplicate name %s", name)
 		}
+		// If attach is set, we need to validate that there's no other duplicate paths.
+		if nm["attach"].(bool) {
+			path := diskPathOrName(nm)
+			if path == "" {
+				return fmt.Errorf("disk.%d: path or name cannot be empty when using attach", ni)
+			}
+			if _, ok := attachments[path]; ok {
+				return fmt.Errorf("disk: multiple entries trying to attach external disk %s", path)
+			}
+			attachments[path] = struct{}{}
+		}
+
 		if _, ok := units[nm["unit_number"].(int)]; ok {
 			return fmt.Errorf("disk: duplicate unit_number %d", nm["unit_number"].(int))
 		}
 		names[name] = struct{}{}
 		units[nm["unit_number"].(int)] = struct{}{}
-		// Run the resource through an individual validate function. This performs
-		// field validation for things we don't need to know the state of other
-		// resources for.
-		r := NewDiskSubresource(c, d, nm, nil, ni)
-		if err := r.ValidateDiff(); err != nil {
-			return fmt.Errorf("%s: %s", r.Addr(), err)
-		}
+		// Run the resource through a pre-validate function. This does some single-value validation that is required before
 	}
 	if _, ok := units[0]; !ok {
 		return errors.New("at least one disk must have a unit_number of 0")
 	}
 
 	// Perform the normalization here.
-	log.Printf("[DEBUG] DiskDiffOperation: Beginning diff normalization (indexes aligned to old state)")
+	log.Printf("[DEBUG] DiskDiffOperation: Beginning diff validation and normalization (indexes aligned to old state)")
 	ods := o.([]interface{})
 	nds := n.([]interface{})
 
@@ -560,13 +606,18 @@ nextNew:
 		nm := ne.(map[string]interface{})
 		for oi, oe := range ods {
 			om := oe.(map[string]interface{})
-			// We extrapolate using the name as a "primary key" of sorts. Since we
-			// support both long-form and short-form paths, and don't support using
-			// same file name regardless of if you are using a long-from path, we
-			// just check the short-form and do the comparison from there.
-			if path.Base(nm["name"].(string)) == path.Base(om["name"].(string)) {
+			var oname, nname string
+			var err error
+			if oname, err = diskLabelOrName(om); err != nil {
+				return fmt.Errorf("disk.%d: %s", oi, err)
+			}
+			if nname, err = diskLabelOrName(nm); err != nil {
+				return fmt.Errorf("disk.%d: %s", oi, err)
+			}
+			// We extrapolate using the label as a "primary key" of sorts.
+			if nname == oname {
 				r := NewDiskSubresource(c, d, nm, om, oi)
-				if err := r.NormalizeDiff(); err != nil {
+				if err := r.Diff(); err != nil {
 					return fmt.Errorf("%s: %s", r.Addr(), err)
 				}
 				normalized[oi] = r.Data()
@@ -575,16 +626,20 @@ nextNew:
 		}
 		// We didn't find a match for this resource, it could be a new resource or
 		// significantly altered. Put it back on the list in the same form we got
-		// it in, but delete the key and device address first, just in case it was
-		// in a position previously occupied by an existing resource.
+		// it in, but all computed data first, just in case it was in a position
+		// previously occupied by an existing resource.
 		nm["key"] = 0
 		nm["device_address"] = ""
+		nm["uuid"] = ""
+		if a, ok := nm["attach"]; !ok || !a.(bool) {
+			nm["path"] = ""
+		}
 		normalized = append(normalized, nm)
 	}
 
 	// Go thru the new list, and replace any nils with a "deleted" copy of the
 	// old resource. This is basically a copy of the old entry with <deleted> in
-	// place of the name, so it shows up nicely in the diff.
+	// place of the label, so it shows up nicely in the diff.
 	for ni, ne := range normalized {
 		if ne != nil {
 			continue
@@ -594,25 +649,18 @@ nextNew:
 			return fmt.Errorf("disk.%d: error making updated diff of deleted entry: %s", ni, err)
 		}
 		nm := nv.(map[string]interface{})
+		// Clear out the name. We put the message in label now, even if name was
+		// the item defined.  TODO: Remove this after 2.0.
+		nm["name"] = ""
 		switch {
 		case nm["keep_on_remove"].(bool):
 			fallthrough
 		case nm["attach"].(bool):
-			nm["name"] = diskDetachedName
+			nm["label"] = diskDetachedName
 		default:
-			nm["name"] = diskDeletedName
+			nm["label"] = diskDeletedName
 		}
 		normalized[ni] = nm
-	}
-
-	// Guard against an accidental deletion scenario that can reasonably come up
-	// when the name of the virtual machine and the logic for naming disks share
-	// a common variable. This can lead to issues when the variable is changed to
-	// rename the virtual machine.
-	if d.HasChange("name") {
-		if err := protectDiskDeleteRename(d, ods, normalized); err != nil {
-			return err
-		}
 	}
 
 	// All done. We can end the customization off by setting the new, normalized diff.
@@ -633,7 +681,7 @@ nextNew:
 // existing state.
 func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l object.VirtualDeviceList, linked bool) error {
 	log.Printf("[DEBUG] DiskCloneValidateOperation: Checking existing virtual disk configuration")
-	devices := selectDisks(l, d.Get("scsi_controller_count").(int))
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
 		Sort:       devices,
@@ -677,19 +725,14 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 		// Load the target resource to do a few comparisons for correctness in config.
 		targetM := curSet[i].(map[string]interface{})
 		tr := NewDiskSubresource(c, d, targetM, nil, i)
-		// Ensure that the file names match. vSphere does not allow you to choose
-		// the name of existing disks during a clone and will rename them according
-		// to the standard convention of <name>.vmdk, <name>_1.vmdk, etc.  Hence we
-		// need to enforce this on all created VMs as well.
-		name := d.Get("name").(string)
-		expected := standardDiskName(name, i)
-		if tr.Get("name").(string) != expected {
-			return fmt.Errorf("%s: invalid disk name %q for cloning. Please rename this disk to %q", tr.Addr(), tr.Get("name").(string), expected)
-		}
 
 		// Do some pre-clone validation. This is mainly to make sure that the disks
 		// clone in a way that is consistent with configuration.
-		targetName := tr.Get("name").(string)
+		targetName, err := diskLabelOrName(tr.Data())
+		if err != nil {
+			return fmt.Errorf("%s: %s", tr.Addr(), err)
+		}
+		targetPath := r.Get("path").(string)
 		sourceSize := r.Get("size").(int)
 		targetSize := tr.Get("size").(int)
 		targetThin := tr.Get("thin_provisioned").(bool)
@@ -723,10 +766,10 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 		// back an error if we see one of those.
 		ct, _, _, err := splitDevAddr(r.DevAddr())
 		if err != nil {
-			return fmt.Errorf("%s: error parsing device address after reading disk %q: %s", tr.Addr(), r.Get("name").(string), err)
+			return fmt.Errorf("%s: error parsing device address after reading disk %q: %s", tr.Addr(), targetPath, err)
 		}
 		if ct != SubresourceControllerTypeSCSI {
-			return fmt.Errorf("%s: unsupported controller type %s for disk %q. Please use a template with SCSI disks only", tr.Addr(), ct, tr.Get("name").(string))
+			return fmt.Errorf("%s: unsupported controller type %s for disk %q. Please use a template with SCSI disks only", tr.Addr(), ct, targetPath)
 		}
 	}
 	log.Printf("[DEBUG] DiskCloneValidateOperation: All disks in source validated successfully")
@@ -745,27 +788,31 @@ func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l o
 	// We are only concerned with resources that would normally be updated, as
 	// incoming or outgoing disks obviously won't need migrating. Hence, this is
 	// a simplified subset of the normal apply logic.
-nextDisk:
 	for ni, ne := range nds.([]interface{}) {
 		nm := ne.(map[string]interface{})
-		if nm["name"] == diskDeletedName || nm["name"] == diskDetachedName {
+		var name string
+		var err error
+		if name, err = diskLabelOrName(nm); err != nil {
+			return nil, fmt.Errorf("disk.%d: %s", ni, err)
+		}
+		if name == diskDeletedName || name == diskDetachedName {
 			continue
 		}
 		for _, oe := range ods.([]interface{}) {
 			om := oe.(map[string]interface{})
-			if nm["key"] == om["key"] {
+			if nm["uuid"] == om["uuid"] {
 				// No change in datastore is a no-op, unless we are changing default datastores
 				if nm["datastore_id"] == om["datastore_id"] && !d.HasChange("datastore_id") {
-					continue nextDisk
+					break
 				}
 				r := NewDiskSubresource(c, d, nm, om, ni)
-				relocator, err := r.Relocate(l)
+				relocator, err := r.Relocate(l, false)
 				if err != nil {
 					return nil, fmt.Errorf("%s: %s", r.Addr(), err)
 				}
 				if d.Get("datastore_id").(string) == relocator.Datastore.Value {
 					log.Printf("[DEBUG] %s: Datastore in spec is same as default, dropping in favor of implicit relocation", r.Addr())
-					continue nextDisk
+					break
 				}
 				relocators = append(relocators, relocator)
 			}
@@ -783,14 +830,14 @@ nextDisk:
 //
 // This differs from a regular storage vMotion in that we have no existing
 // devices in the resource to work off of - the disks in the source virtual
-// machine is purely our source of truth. These disks are assigned to our disk
+// machine is our source of truth. These disks are assigned to our disk
 // sub-resources in config and the relocate specs are generated off of the
-// filename and backing data defined in config, taking on these filenames when
-// cloned. After the clone is complete, natural re-configuration happens to
-// bring the disk configurations fully in sync with that is defined.
+// backing data defined in config, taking on these filenames when cloned. After
+// the clone is complete, natural re-configuration happens to bring the disk
+// configurations fully in sync with what is defined.
 func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) ([]types.VirtualMachineRelocateSpecDiskLocator, error) {
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Generating full disk relocate spec list")
-	devices := selectDisks(l, d.Get("scsi_controller_count").(int))
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int))
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
@@ -822,7 +869,7 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 			return nil, fmt.Errorf("error computing device address: %s", err)
 		}
 		r := NewDiskSubresource(c, d, m, nil, i)
-		relocator, err := r.Relocate(l)
+		relocator, err := r.Relocate(l, true)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", r.Addr(), err)
 		}
@@ -843,7 +890,7 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 // virtual device operations rely pretty heavily on.
 func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] DiskPostCloneOperation: Looking for disk device changes post-clone")
-	devices := selectDisks(l, d.Get("scsi_controller_count").(int))
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int))
 	log.Printf("[DEBUG] DiskPostCloneOperation: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
@@ -891,9 +938,13 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 			return nil, nil, fmt.Errorf("error copying current device state for disk at unit_number %d: %s", src["unit_number"].(int), err)
 		}
 		for k, v := range src {
-			// Skip name, datastore_id, and share count if share level isn't custom
+			// Skip label, path (path will always be computed here as cloned disks
+			// are not being attached externally), name, datastore_id, and uuid. Also
+			// skip share_count if we the share level isn't custom.
+			//
+			// TODO: Remove "name" after 2.0.
 			switch k {
-			case "name", "datastore_id":
+			case "label", "path", "name", "datastore_id", "uuid":
 				continue
 			case "io_share_count":
 				if src["io_share_level"] != string(types.SharesLevelCustom) {
@@ -937,41 +988,78 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 }
 
 // DiskImportOperation validates the disk configuration of the virtual
-// machine's VirtualDeviceList to ensure it will be imported properly.
+// machine's VirtualDeviceList to ensure it will be imported properly, and also
+// saves device addresses into state for disks defined in config. Both the
+// imported device list is sorted by the device's unit number on the SCSI bus.
 func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) error {
-	log.Printf("[DEBUG] DiskImportOperation: Performing disk import validation")
-	devices := selectDisks(l, d.Get("scsi_controller_count").(int))
-	log.Printf("[DEBUG] DiskImportOperation: Disk devices located: %s", DeviceListString(devices))
+	log.Printf("[DEBUG] DiskImportOperation: Performing pre-read import and validation of virtual disks")
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int))
+	// Sort the device list, in case it's not sorted already.
+	devSort := virtualDeviceListSorter{
+		Sort:       devices,
+		DeviceList: l,
+	}
+	log.Printf("[DEBUG] DiskImportOperation: Disk devices order before sort: %s", DeviceListString(devices))
+	sort.Sort(devSort)
+	devices = devSort.Sort
+	log.Printf("[DEBUG] DiskImportOperation: Disk devices order after sort: %s", DeviceListString(devices))
 
 	// Read in the disks. We don't do anything with the results here other than
 	// validate that the disks are SCSI disks. The read operation validates the rest.
-	log.Printf("[DEBUG] DiskImportOperation: Validating disks")
+	var curSet []interface{}
+	log.Printf("[DEBUG] DiskImportOperation: Validating disk type and saving ")
 	for i, device := range devices {
-		m := make(map[string]interface{})
 		vd := device.GetVirtualDevice()
 		ctlr := l.FindByKey(vd.ControllerKey)
 		if ctlr == nil {
 			return fmt.Errorf("could not find controller with key %d", vd.Key)
 		}
-		m["key"] = int(vd.Key)
-		var err error
-		m["device_address"], err = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		addr, err := computeDevAddr(vd, ctlr.(types.BaseVirtualController))
 		if err != nil {
 			return fmt.Errorf("error computing device address: %s", err)
 		}
-		r := NewDiskSubresource(c, d, m, nil, i)
-		if err := r.Read(l); err != nil {
-			return fmt.Errorf("%s: %s", r.Addr(), err)
-		}
-		ct, _, _, err := splitDevAddr(r.DevAddr())
+		ct, _, _, err := splitDevAddr(addr)
 		if err != nil {
-			return fmt.Errorf("%s: error parsing device address after reading disk %q: %s", r.Addr(), r.Get("name").(string), err)
+			return fmt.Errorf("disk.%d: error parsing device address %s: %s", i, addr, err)
 		}
 		if ct != SubresourceControllerTypeSCSI {
-			return fmt.Errorf("%s: unsupported controller type %s for disk %q. The VM resource supports SCSI disks only", r.Addr(), ct, r.Get("name").(string))
+			return fmt.Errorf("disk.%d: unsupported controller type %s for disk %s. The VM resource supports SCSI disks only", i, ct, addr)
 		}
+		// As one final validation, as we are no longer reading here, validate that
+		// this is a VMDK-backed virtual disk to make sure we aren't importing RDM
+		// disks or what not. The device should have already been validated as a
+		// virtual disk via SelectDisks.
+		if _, ok := device.(*types.VirtualDisk).Backing.(*types.VirtualDiskFlatVer2BackingInfo); !ok {
+			return fmt.Errorf(
+				"disk.%d: unsupported disk type at %s (expected flat VMDK version 2, got %T)",
+				i,
+				addr,
+				device.(*types.VirtualDisk).Backing,
+			)
+		}
+		m := make(map[string]interface{})
+		// Save information so that the next DiskRefreshOperation can pick this
+		// disk up as if it was newly added and not attempt to try and line up
+		// UUIDs. We use a negative key for this reason, in addition to assigning
+		// the device address.
+		m["key"] = (i + 1) * -1
+		m["device_address"] = addr
+		// Assign a computed label. This label *needs* be the label this disk is
+		// assigned in config, or you risk service interruptions or data corruption.
+		m["label"] = fmt.Sprintf("disk%d", i)
+		// Set keep_on_remove to ensure that if labels are assigned incorrectly,
+		// all that happens is that the disk is removed. The comments above
+		// regarding the risk of incorrect label assignment are still true, but
+		// this greatly reduces the risk of data loss.
+		m["keep_on_remove"] = true
+
+		curSet = append(curSet, m)
 	}
-	log.Printf("[DEBUG] DiskImportOperation: Disk validation complete")
+	log.Printf("[DEBUG] DiskImportOperation: Discovered disks from import: %s", subresourceListString(curSet))
+	if err := d.Set(subresourceTypeDisk, curSet); err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] DiskImportOperation: Pre-read import and validation complete")
 	return nil
 }
 
@@ -981,7 +1069,7 @@ func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 // order that they would be added in if a clone were to be done.
 func ReadDiskAttrsForDataSource(l object.VirtualDeviceList, count int) ([]map[string]interface{}, error) {
 	log.Printf("[DEBUG] ReadDiskAttrsForDataSource: Fetching select attributes for disks across %d SCSI controllers", count)
-	devices := selectDisks(l, count)
+	devices := SelectDisks(l, count)
 	log.Printf("[DEBUG] ReadDiskAttrsForDataSource: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
@@ -996,7 +1084,7 @@ func ReadDiskAttrsForDataSource(l object.VirtualDeviceList, count int) ([]map[st
 		disk := device.(*types.VirtualDisk)
 		backing, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
 		if !ok {
-			return nil, fmt.Errorf("disk number %d has an unsupported backing type (expected flat VMDK version 2, got %T", i, disk.Backing)
+			return nil, fmt.Errorf("disk number %d has an unsupported backing type (expected flat VMDK version 2, got %T)", i, disk.Backing)
 		}
 		m := make(map[string]interface{})
 		var eager, thin bool
@@ -1060,13 +1148,9 @@ func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtua
 // to the newData layer.
 func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	log.Printf("[DEBUG] %s: Reading state", r)
-	device, err := r.FindVirtualDevice(l)
+	disk, err := r.findVirtualDisk(l, true)
 	if err != nil {
 		return fmt.Errorf("cannot find disk device: %s", err)
-	}
-	disk, ok := device.(*types.VirtualDisk)
-	if !ok {
-		return fmt.Errorf("device at %q is not a virtual disk", l.Name(device))
 	}
 	unit, ctlr, err := r.findControllerInfo(l, disk)
 	if err != nil {
@@ -1087,6 +1171,7 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	if !ok {
 		return fmt.Errorf("disk backing at %s is of an unsupported type (type %T)", r.Get("device_address").(string), disk.Backing)
 	}
+	r.Set("uuid", b.Uuid)
 	r.Set("disk_mode", b.DiskMode)
 	r.Set("write_through", b.WriteThrough)
 
@@ -1102,45 +1187,13 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	}
 	r.Set("datastore_id", b.Datastore.Value)
 
-	// Walk up the child disk path until we have a path that matches our actual
-	// disk name. If there is no disk name, of if we can't find a match, just
-	// save the main backing.
-	origName := r.Get("name")
-	var name string
-	if origName != nil && origName.(string) != "" && !datastorePathHasBase(b.FileName, origName.(string)) && b.Parent != nil {
-		name = walkDiskBacking(b.Parent, origName.(string))
-	}
-	if name == "" {
-		name = b.FileName
-	}
-	dp := &object.DatastorePath{}
-	if ok := dp.FromString(name); !ok {
-		return fmt.Errorf("could not parse path from filename: %s", b.FileName)
-	}
-	// Validate that our names match on the base. If they don't, the disk we are
-	// looking for has either disappeared completely, or the name has changed in
-	// a way that we can't track it anymore. Treat this like an orphaned disk and
-	// ensure that keep_on_remove is set.
-	if origName != nil && origName.(string) != "" {
-		ob := path.Base(origName.(string))
-		cb := path.Base(dp.Path)
-		if ob != cb {
-			log.Printf(
-				"[DEBUG] %q on virtual machine %q: Disk name mismatch (key: %d, device_address: %q, expected: %q actual: %q) - treating disk as orphaned",
-				r,
-				r.rdd.Get("name").(string),
-				r.Get("key").(int),
-				r.Get("device_address").(string),
-				ob,
-				cb,
-			)
-			r.Set("keep_on_remove", true)
-		}
-	}
-	r.Set("name", dp.Path)
-
 	// Disk settings
 	if !attach {
+		dp := &object.DatastorePath{}
+		if ok := dp.FromString(b.FileName); !ok {
+			return fmt.Errorf("could not parse path from filename: %s", b.FileName)
+		}
+		r.Set("path", dp.Path)
 		r.Set("size", structure.ByteToGiB(disk.CapacityInBytes))
 	}
 
@@ -1159,13 +1212,9 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 // Update updates a vsphere_virtual_machine disk sub-resource.
 func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] %s: Beginning update", r)
-	device, err := r.FindVirtualDevice(l)
+	disk, err := r.findVirtualDisk(l, false)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find disk device: %s", err)
-	}
-	disk, ok := device.(*types.VirtualDisk)
-	if !ok {
-		return nil, fmt.Errorf("device at %q is not a virtual disk", l.Name(device))
 	}
 
 	// Has the unit number changed?
@@ -1208,13 +1257,9 @@ func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtua
 // Delete deletes a vsphere_virtual_machine disk sub-resource.
 func (r *DiskSubresource) Delete(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] %s: Beginning delete", r)
-	device, err := r.FindVirtualDevice(l)
+	disk, err := r.findVirtualDisk(l, false)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find disk device: %s", err)
-	}
-	disk, ok := device.(*types.VirtualDisk)
-	if !ok {
-		return nil, fmt.Errorf("device at %q is not a virtual disk", l.Name(device))
 	}
 	deleteSpec, err := object.VirtualDeviceList{disk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationRemove)
 	if err != nil {
@@ -1232,20 +1277,36 @@ func (r *DiskSubresource) Delete(l object.VirtualDeviceList) ([]types.BaseVirtua
 	return deleteSpec, nil
 }
 
-// ValidateDiff performs any complex validation of an individual disk
-// sub-resource that can't be done in schema alone.
-//
-// Do not use resourceData in this function as it's not populated and calls to
-// it will cause a panic.
-func (r *DiskSubresource) ValidateDiff() error {
-	log.Printf("[DEBUG] %s: Beginning diff validation (device information may be incomplete)", r)
-	name := r.Get("name").(string)
-
-	// name is a required field. If it's blank here, that means it's computed,
-	// which we don't allow either - so kick back an error.
-	if name == "" {
-		return fmt.Errorf("value of disk name cannot be computed")
+// Diff performs normalization and validation tasks for a specific disk
+// sub-resource's diff.
+func (r *DiskSubresource) Diff() error {
+	log.Printf("[DEBUG] %s: Beginning diff validation and normalization (device information may be incomplete)", r)
+	name, err := diskLabelOrName(r.data)
+	if err != nil {
+		return err
 	}
+
+	// Prevent a backward migration of label -> name. TODO: Remove this after
+	// 2.0.
+	olabel, nlabel := r.GetChange("label")
+	if olabel != "" && nlabel == "" {
+		return errors.New("cannot migrate from label to name")
+	}
+	// Carry forward the name attribute like we used to if no label is defined.
+	// TODO: Remove this after 2.0.
+	if nlabel == "" {
+		oname, _ := r.GetChange("name")
+		r.Set("name", oname.(string))
+	}
+
+	// set some computed fields: key, device_address, and uuid will always be
+	// non-populated, so copy those.
+	okey, _ := r.GetChange("key")
+	odaddr, _ := r.GetChange("device_address")
+	ouuid, _ := r.GetChange("uuid")
+	r.Set("key", okey)
+	r.Set("device_address", odaddr)
+	r.Set("uuid", ouuid)
 
 	// Enforce the maximum unit number, which is the current value of
 	// scsi_controller_count * 15 - 1.
@@ -1256,8 +1317,7 @@ func (r *DiskSubresource) ValidateDiff() error {
 		return fmt.Errorf("unit_number on disk %q too high (%d) - maximum value is %d with %d SCSI controller(s)", name, currentUnit, maxUnit, ctlrCount)
 	}
 
-	switch r.Get("attach").(bool) {
-	case true:
+	if r.Get("attach").(bool) {
 		switch {
 		case r.Get("datastore_id").(string) == "":
 			return fmt.Errorf("datastore_id for disk %q is required when attach is set", name)
@@ -1268,31 +1328,16 @@ func (r *DiskSubresource) ValidateDiff() error {
 		case r.Get("keep_on_remove").(bool):
 			return fmt.Errorf("keep_on_remove for disk %q is implicit when attach is set, please remove this setting", name)
 		}
-	default:
+	} else {
+		// Enforce size as a required field when attach is not set
 		if r.Get("size").(int) < 1 {
 			return fmt.Errorf("size for disk %q: required option not set", name)
 		}
+		// Carry forward path when attach is not set
+		opath, _ := r.GetChange("path")
+		r.Set("path", opath.(string))
 	}
-	log.Printf("[DEBUG] %s: Diff validation complete", r)
-	return nil
-}
 
-// NormalizeDiff checks the diff for a vsphere_virtual_machine disk
-// sub-resource. It should be called after setting data and olddata to values
-// that seems similar enough to be possibly the same resource, after which this
-// function should then compare them and fill in any values that may be missing
-// from the new set due to computed values, such as inferred datastore or path
-// names.
-//
-// Do not use resourceData in this function as it's not populated and calls to
-// it will cause a panic.
-func (r *DiskSubresource) NormalizeDiff() error {
-	log.Printf("[DEBUG] %s: Beginning diff normalization (device information may be incomplete)", r)
-	// key and device_address will always be non-populated, so copy those.
-	okey, _ := r.GetChange("key")
-	odaddr, _ := r.GetChange("device_address")
-	r.Set("key", okey)
-	r.Set("device_address", odaddr)
 	// Set the datastore if it's missing as we infer this from the default
 	// datastore in that case
 	if r.Get("datastore_id") == "" {
@@ -1316,16 +1361,9 @@ func (r *DiskSubresource) NormalizeDiff() error {
 		r.Set("io_share_count", osc)
 	}
 
-	// Normalize the path. This should have already have been vetted as being
-	// ultimately the same path by the caller.
-	oname, _ := r.GetChange("name")
-	r.Set("name", oname)
-
 	// Ensure that the user is not attempting to shrink the disk. If we do more
 	// we might want to change the name of this method, but we want to check this
 	// here as CustomizeDiff is meant for vetoing.
-	name := r.Get("name").(string)
-
 	osize, nsize := r.GetChange("size")
 	if osize.(int) > nsize.(int) {
 		return fmt.Errorf("virtual disk %q: virtual disks cannot be shrunk (old: %d new: %d)", name, osize.(int), nsize.(int))
@@ -1360,7 +1398,7 @@ func (r *DiskSubresource) NormalizeDiff() error {
 		}
 	}
 
-	log.Printf("[DEBUG] %s: Diff normalization complete", r)
+	log.Printf("[DEBUG] %s: Diff validation and normalization complete", r)
 	return nil
 }
 
@@ -1387,39 +1425,7 @@ func (r *DiskSubresource) validateStorageRelocateDiff() error {
 	if err := r.blockRelocateAttachedDisks(); err != nil {
 		return err
 	}
-	if err := r.blockRelocateInvalidName(); err != nil {
-		return err
-	}
-	if err := r.blockRelocateLinkedClone(); err != nil {
-		return err
-	}
 	log.Printf("[DEBUG] %s: Storage vMotion validation successful", r)
-	return nil
-}
-
-func (r *DiskSubresource) blockRelocateInvalidName() error {
-	vmName := r.rdd.Get("name").(string)
-	diskPath := r.Get("name").(string)
-	expected := standardDiskName(vmName, r.Index)
-	actual := path.Base(diskPath)
-	if expected != actual {
-		return fmt.Errorf(
-			"virtual disk %q has an ineligible file name for migration (expected: %q)",
-			actual,
-			expected,
-		)
-	}
-	return nil
-}
-
-func (r *DiskSubresource) blockRelocateLinkedClone() error {
-	lc := r.rdd.Get("clone.0.linked_clone")
-	if lc == nil {
-		return nil
-	}
-	if lc.(bool) {
-		return fmt.Errorf("virtual disks of linked clones cannot be migrated")
-	}
 	return nil
 }
 
@@ -1429,23 +1435,19 @@ func (r *DiskSubresource) blockRelocateAttachedDisks() error {
 		return nil
 	}
 	if attach.(bool) {
-		return fmt.Errorf("externally attached disk %q cannot be migrated", r.Get("name"))
+		return fmt.Errorf("externally attached disk %q cannot be migrated", diskPathOrName(r.data))
 	}
 	return nil
 }
 
 // Relocate produces a VirtualMachineRelocateSpecDiskLocator for this resource
 // and is used for both cloning and storage vMotion.
-func (r *DiskSubresource) Relocate(l object.VirtualDeviceList) (types.VirtualMachineRelocateSpecDiskLocator, error) {
+func (r *DiskSubresource) Relocate(l object.VirtualDeviceList, clone bool) (types.VirtualMachineRelocateSpecDiskLocator, error) {
 	log.Printf("[DEBUG] %s: Starting relocate generation", r)
-	device, err := r.FindVirtualDevice(l)
+	disk, err := r.findVirtualDisk(l, clone)
 	var relocate types.VirtualMachineRelocateSpecDiskLocator
 	if err != nil {
 		return relocate, fmt.Errorf("cannot find disk device: %s", err)
-	}
-	disk, ok := device.(*types.VirtualDisk)
-	if !ok {
-		return relocate, fmt.Errorf("device at %q is not a virtual disk", l.Name(device))
 	}
 
 	// Expand all of the necessary disk settings first. This ensures all backing
@@ -1473,17 +1475,10 @@ func (r *DiskSubresource) Relocate(l object.VirtualDeviceList) (types.VirtualMac
 	if r.rdd.Id() == "" {
 		log.Printf("[DEBUG] %s: Adding additional options to relocator for cloning", r)
 
-		// Set the new name. This is basically the same logic as create.
-		diskName := r.Get("name").(string)
-		vmxPath := r.rdd.Get("vmx_path").(string)
-		if path.Base(diskName) == diskName && vmxPath != "" {
-			diskName = path.Join(path.Dir(vmxPath), diskName)
-		}
-
 		backing := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
-		backing.FileName = ds.Path(diskName)
+		backing.FileName = ds.Path("")
 		backing.Datastore = &dsref
-		relocate.DiskBackingInfo = disk.Backing
+		relocate.DiskBackingInfo = backing
 	}
 
 	// Done!
@@ -1493,17 +1488,14 @@ func (r *DiskSubresource) Relocate(l object.VirtualDeviceList) (types.VirtualMac
 }
 
 // String prints out the disk sub-resource's information including the ID at
-// time of instantiation, the short name of the disk, and the current device
+// time of instantiation, the path of the disk, and the current device
 // key and address.
 func (r *DiskSubresource) String() string {
-	n := r.Get("name")
-	var name string
-	if n != nil {
-		name = path.Base(n.(string))
-	} else {
-		name = "<unknown>"
+	p := diskPathOrName(r.data)
+	if p == "" {
+		p = "<unknown>"
 	}
-	return fmt.Sprintf("%s (%s)", r.Subresource.String(), name)
+	return fmt.Sprintf("%s (%s)", r.Subresource.String(), p)
 }
 
 // expandDiskSettings sets appropriate fields on an existing disk - this is
@@ -1570,15 +1562,12 @@ func (r *DiskSubresource) createDisk(l object.VirtualDeviceList) (*types.Virtual
 	}
 	dsref := ds.Reference()
 
-	// Determine the full path to the disk if no directory is specified. The path
-	// is the same path as the VMX file's current location. If we don't have a
-	// VMX file path right now, don't worry about it - this means that the VM is
-	// just being created and the file will be created in a directory of the same
-	// name as the VMX file that is being created.
-	diskName := r.Get("name").(string)
-	vmxPath := r.rdd.Get("vmx_path").(string)
-	if path.Base(diskName) == diskName && vmxPath != "" {
-		diskName = path.Join(path.Dir(vmxPath), diskName)
+	var diskName string
+	if r.Get("attach").(bool) {
+		// No path interpolation is performed any more for attached disks - the
+		// provided path must be the full path to the virtual disk you want to
+		// attach.
+		diskName = diskPathOrName(r.data)
 	}
 
 	disk := &types.VirtualDisk{
@@ -1751,19 +1740,6 @@ func (s virtualDiskSubresourceSorter) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-// walkDiskBacking walks up a disk backing's parent disk chain looking for the
-// supplied file name. It returns the full filename/datastore combination when
-// it finds it, otherwise returns nothing.
-func walkDiskBacking(b *types.VirtualDiskFlatVer2BackingInfo, name string) string {
-	if datastorePathHasBase(b.FileName, name) {
-		return b.FileName
-	}
-	if b.Parent != nil {
-		return walkDiskBacking(b.Parent, name)
-	}
-	return ""
-}
-
 // datastorePathHasBase is a helper to check if a datastore path's file matches
 // a supplied file name.
 func datastorePathHasBase(p, b string) bool {
@@ -1774,11 +1750,11 @@ func datastorePathHasBase(p, b string) bool {
 	return path.Base(dp.Path) == path.Base(b)
 }
 
-// selectDisks looks for disks that Terraform is supposed to manage. count is
+// SelectDisks looks for disks that Terraform is supposed to manage. count is
 // the number of controllers that Terraform is managing and serves as an upper
 // limit (count - 1) of the SCSI bus number for a controller that eligible
 // disks need to be attached to.
-func selectDisks(l object.VirtualDeviceList, count int) object.VirtualDeviceList {
+func SelectDisks(l object.VirtualDeviceList, count int) object.VirtualDeviceList {
 	devices := l.Select(func(device types.BaseVirtualDevice) bool {
 		if disk, ok := device.(*types.VirtualDisk); ok {
 			ctlr, err := findControllerForDevice(l, disk)
@@ -1797,16 +1773,106 @@ func selectDisks(l object.VirtualDeviceList, count int) object.VirtualDeviceList
 	return devices
 }
 
-// standardDiskName returns a disk name that matches the vSphere naming
-// convention for virtual disks:
+// diskLabelOrName is a helper method that returns the unique label for a disk
+// - either its label or name. An error is returned if both are defined.
 //
-// * The first disk is named VMNAME.vmdk (index = 0)
-// * The second disk is named VMNAME_1.vmdk (index = 1)
-// * All subsequent disks are named VMNAME_INDEX.vmdk (as per index = 1)
-func standardDiskName(name string, index int) string {
-	var extra string
-	if index > 0 {
-		extra = fmt.Sprintf("_%d", index)
+// TODO: This method will be removed in future releases.
+func diskLabelOrName(data map[string]interface{}) (string, error) {
+	var label, name string
+	if v, ok := data["label"]; ok && v != nil {
+		label = v.(string)
 	}
-	return fmt.Sprintf("%s%s.vmdk", name, extra)
+	if v, ok := data["name"]; ok && v != nil {
+		name = v.(string)
+	}
+	if name != "" {
+		name = path.Base(name)
+	}
+
+	log.Printf("[DEBUG] diskLabelOrName: label: %q name: %q", label, name)
+	switch {
+	case label == "" && name == "":
+		return "", errors.New("disk label or name must be defined and cannot be computed")
+	case label != "" && name != "":
+		return "", errors.New("disk label and name cannot be defined at the same time")
+	case label != "":
+		log.Printf("[DEBUG] diskLabelOrName: Using defined label value %q", label)
+		return label, nil
+	}
+	log.Printf("[DEBUG] diskLabelOrName: Using defined name value as fallback %q", name)
+	return name, nil
+}
+
+// diskPathOrName is a helper method that returns the path for a disk - either
+// its path attribute or name as a fallback.
+//
+// TODO: This method will be removed in future releases.
+func diskPathOrName(data map[string]interface{}) string {
+	var path, name string
+	if v, ok := data["path"]; ok && v != nil {
+		path = v.(string)
+	}
+	if v, ok := data["name"]; ok && v != nil {
+		name = v.(string)
+	}
+	if path != "" {
+		log.Printf("[DEBUG] diskPathOrName: Using defined path value %q", path)
+		return path
+	}
+	log.Printf("[DEBUG] diskPathOrName: Using defined name value as fallback %q", name)
+	return name
+}
+
+// findVirtualDisk locates a virtual disk by it UUID, or by its device address
+// if UUID is missing.
+//
+// The device address search is only used if fallback is true - this is so that
+// we can distinguish situations where it should be used, such as a read,
+// versus situations where it should never be used, such as an update or
+// delete.
+func (r *DiskSubresource) findVirtualDisk(l object.VirtualDeviceList, fallback bool) (*types.VirtualDisk, error) {
+	device, err := r.findVirtualDiskByUUIDOrAddress(l, fallback)
+	if err != nil {
+		return nil, err
+	}
+	return device.(*types.VirtualDisk), nil
+}
+
+func (r *DiskSubresource) findVirtualDiskByUUIDOrAddress(l object.VirtualDeviceList, fallback bool) (types.BaseVirtualDevice, error) {
+	var uuid string
+	if v := r.Get("uuid"); v != nil {
+		uuid = v.(string)
+	}
+	switch {
+	case uuid == "" && fallback:
+		return r.FindVirtualDevice(l)
+	case uuid == "" && !fallback:
+		return nil, errors.New("disk UUID is missing")
+	}
+	devices := l.Select(func(device types.BaseVirtualDevice) bool {
+		return diskUUIDMatch(device, uuid)
+	})
+	switch {
+	case len(devices) < 1:
+		return nil, fmt.Errorf("virtual disk with UUID %s not found", uuid)
+	case len(devices) > 1:
+		// This is an edge/should never happen case
+		return nil, fmt.Errorf("multiple virtual disks with UUID %s found", uuid)
+	}
+	return devices[0], nil
+}
+
+func diskUUIDMatch(device types.BaseVirtualDevice, uuid string) bool {
+	disk, ok := device.(*types.VirtualDisk)
+	if !ok {
+		return false
+	}
+	backing, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+	if !ok {
+		return false
+	}
+	if backing.Uuid != uuid {
+		return false
+	}
+	return true
 }

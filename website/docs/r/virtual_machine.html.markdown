@@ -35,9 +35,11 @@ The `vsphere_virtual_machine` resource currently only supports standard
 VMDK-backed virtual disks - it does not support other special kinds of disk
 devices like RDM disks.
 
-Disks are managed by exact name supplied to the `name` attribute of a [`disk`
-sub-resource](#disk-options). This is required - the resource does not support
-automatic naming.
+Disks are managed by an arbitrary label supplied to the [`label`](#label)
+attribute of a [`disk` sub-resource](#disk-options). This is separate from the
+automatic naming that vSphere picks for you when creating a virtual machine.
+Control over a virtual disk's name is not supported unless you are attaching an
+external disk with the [`attach`](#attach) attribute.
 
 Virtual disks can be SCSI disks only. The SCSI controllers managed by Terraform
 can vary, depending on the value supplied to
@@ -49,7 +51,7 @@ type defined by the [`scsi_type`](#scsi_type) setting. If you are cloning from
 a template, devices will be added or re-configured as necessary.
 
 When cloning from a template, you must specify disks of either the same or
-greater size than the disks in source template when creating a traditional
+greater size than the disks in the source template when creating a traditional
 clone, or exactly the same size when cloning from snapshot (also known as a
 linked clone). For more details, see the section on [creating a virtual machine
 from a template](#creating-a-virtual-machine-from-a-template).
@@ -152,8 +154,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 }
 ```
@@ -211,7 +213,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    label            = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -300,7 +302,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name             = "terraform-test.vmdk"
+    name             = "disk0"
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
@@ -320,49 +322,6 @@ resource "vsphere_virtual_machine" "vm" {
       "guestinfo.dns.server.0"                    = "10.0.0.10"
     }
   }
-}
-```
-
-#### Parameterizing virtual machine name during cloning
-
-If you parameterize your virtual machine name, keep in mind that Terraform will
-block a virtual machine rename operation if it detects that doing so may cause
-accidental deletion of any virtual disks that may bear the name. This is
-required when cloning, so it's important to stabilize the disk name somehow.
-
-This can be accomplished using [`null_resource`][tf-null-resource] in the
-following fashion, using `ignore_changes` to block any incoming updates to the
-controlling variable. An example is below:
-
-[tf-null-resource]: /docs/providers/null/resource.html
-
-```hcl
-variable "vm_name" {
-  default = "terraform-test"
-}
-
-resource "null_resource" "disk_prefix" {
-  triggers = {
-    prefix = "${var.vm_name}"
-  }
-
-  lifecycle {
-    ignore_changes = [
-      "triggers",
-    ]
-  }
-}
-
-resource "vsphere_virtual_machine" "vm" {
-  name = "${var.vm_name}"
-  ...
-
-  disk {
-    name = "${null_resource.disk_prefix.triggers.prefix}.vmdk"
-    ...
-  }
-  ...
- }
 }
 ```
 
@@ -617,12 +576,12 @@ resource "vsphere_virtual_machine" "vm" {
   ...
 
   disk {
-    name = "terraform-test.vmdk"
-    size = "10"
+    label = "disk0"
+    size  = "10"
   }
   
   disk {
-    name        = "terraform-test_data.vmdk"
+    label       = "disk1"
     size        = "100"
     unit_number = 1
   }
@@ -633,9 +592,31 @@ resource "vsphere_virtual_machine" "vm" {
 
 The options are:
 
-* `name` - (Required) The name of the disk. Forces a new disk if changed.  This
-  should only be a longer path (example: `directory/disk.vmdk`) if attaching an
-  external disk.
+* `label` - (Required) A label for the disk. Forces a new disk if changed.
+
+~> **NOTE:** It's recommended that you set the disk label to a format matching
+`diskN`, where `N` is the number of the disk, starting from disk number 0. This
+will ensure that your configuration is compatible when importing a virtual
+machine. For more information, see the section on [importing](#importing).
+
+~> **NOTE:** Do not choose a label that starts with `orphaned_disk_` (example:
+`orphaned_disk_0`), as this prefix is reserved for disks that Terraform does
+not recognize, such as disks that are attached externally. Terraform will issue
+an error if you try to label a disk with this prefix. 
+
+* `name` - (Optional) An alias for both `label` and `path`, the latter when
+  using `attach`. Required if not using `label`.
+
+~> **NOTE:** This parameter has been deprecated and will be removed in future
+versions of the vSphere provider. You cannot use `name` on a disk that has
+previously had a `label`, and using this argument is not recommend for new
+configurations.
+
+~> **NOTE:** In previous versions of the vSphere provider this argument
+controlled file names for non-attached disks - this behavior has now been
+removed, and the only time this controls path is when attaching a disk
+externally with `attach` when the `path` field is not specified.
+
 * `size` - (Required) The size of the disk, in GiB.
 * `unit_number` - (Optional) The disk number on the SCSI bus. The maximum value
   for this setting is the value of
@@ -649,7 +630,10 @@ The options are:
   value.
 * `attach` - (Optional) Attach an external disk instead of creating a new one.
   Implies and conflicts with `keep_on_remove`. If set, you cannot set `size`,
-  `eagerly_scrub`, or `thin_provisioned`.
+  `eagerly_scrub`, or `thin_provisioned`. Must set `path` if used.
+* `path` - (Optional) When using `attach`, this parameter controls the path of
+  a virtual disk to attach externally. Otherwise, it is a computed attribute
+  that contains the virtual disk's current filename.
 * `keep_on_remove` - (Optional) Keep this disk when removing the sub-resource
   or destroying the virtual machine. Default: `false`.
 * `disk_mode` - (Optional) The mode of this this virtual disk for purposes of
@@ -683,6 +667,11 @@ The options are:
   be one of `low`, `normal`, `high`, or `custom`. Default: `normal`.
 * `io_share_count` - (Optional) The share count for this disk when the share
   level is `custom`.
+
+#### Computed disk attributes
+
+* `uuid` - The UUID of the virtual disk's VMDK file. This is used to track the
+  virtual disk on the virtual machine.
 
 #### Picking a disk type
 
@@ -1229,13 +1218,13 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.vm_datastore.id}"
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 10
+    label = "disk0"
+    size  = 10
   }
   
   disk {
     datastore_id = "${data.vsphere_datastore.pinned_datastore.id}"
-    name         = "terraform-test_data.vmdk"
+    label        = "disk1"
     size         = 100
     unit_number  = 1
   }
@@ -1246,19 +1235,13 @@ resource "vsphere_virtual_machine" "vm" {
 
 #### Storage migration restrictions
 
-~> **NOTE:** These restrictions will be lifted in later versions of this
-resource.
+Note that you cannot migrate external disks added with the `attach` parameter.
+As these disks have usually been created and assigned to a datastore outside of
+the scope of the `vsphere_virtual_machine` resource in question, such as by
+using the [`vsphere_virtual_disk` resource][tf-vsphere-virtual-disk],
+management of such disks would render their configuration unstable.
 
-Some restrictions currently apply to storage migration:
-
-* External disks added with the `attach` parameter cannot be migrated.
-* You must name your `disk` sub-resources according to the vSphere naming
-  convention. This generally means that your first disk will be named
-  `VMNAME.vmdk` and all other disks will be named `VMNAME_INDEX.vmdk`, with
-  `INDEX` starting at `1` for your second disk, and so on. These are the same
-  restrictions imposed when cloning from template.
-* You cannot migrate the storage of VMs that have
-  [`linked_clone`](#linked_clone) set.
+[tf-vsphere-virtual-disk]: /docs/providers/vsphere/r/virtual_disk.html
 
 ## Attribute Reference
 
@@ -1316,10 +1299,12 @@ correctness of the configuration before the import.
 
 In addition to these rules, the following extra rules apply to importing:
 
-* Disks need to be named the exact same as they appear in the VM configuration.
-  It is recommended that you have no snapshots on the virtual machine before
-  reviewing the names of the disks in configuration, as snapshots create delta
-  disks that obfuscate the names of the parent.
+* Disks need to have their [`label`](#label) argument assigned in a convention
+  matching `diskN`, starting with disk number 0, based on each disk's order on
+  the SCSI bus. As an example, a disk on SCSI controller 0 with a unit number
+  of 0 would be labeled `disk0`, a disk on the same controller with a unit
+  number of 1 would be `disk1`, but the next disk, which is on SCSI controller
+  1 with a unit number of 0, still becomes `disk2`.
 * Disks always get imported with [`keep_on_remove`](#keep_on_remove) enabled
   until the first `terraform apply` runs, which will remove the setting for
   known disks. This is an extra safeguard against naming or accounting mistakes

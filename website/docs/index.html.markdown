@@ -85,8 +85,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    name = "terraform-test.vmdk"
-    size = 20
+    label = "disk0"
+    size  = 20
   }
 }
 ```

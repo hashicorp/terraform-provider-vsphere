@@ -3,11 +3,14 @@ package vsphere
 import (
 	"os"
 	"path"
+	"strconv"
 	"testing"
 
-	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
+	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/vim25/types"
 )
 
 func testAccResourceVSphereVirtualMachineMigrateStatePreCheck(t *testing.T) {
@@ -73,6 +76,99 @@ func TestVSphereVirtualMachineMigrateStateV1(t *testing.T) {
 	}
 }
 
+func TestAccResourceVSphereVirtualMachineMigrateStateV3_fromV2(t *testing.T) {
+	testAccResourceVSphereVirtualMachineMigrateStatePreCheck(t)
+	testAccPreCheck(t)
+
+	meta, err := testAccProviderMeta(t)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	client := meta.(*VSphereClient).vimClient
+	pth := os.Getenv("VSPHERE_VM_V1_PATH")
+	vm, err := virtualmachine.FromPath(client, pth, nil)
+	if err != nil {
+		t.Fatalf("error fetching virtual machine: %s", err)
+	}
+	props, err := virtualmachine.Properties(vm)
+	if err != nil {
+		t.Fatalf("error fetching virtual machine properties: %s", err)
+	}
+
+	disks := virtualdevice.SelectDisks(object.VirtualDeviceList(props.Config.Hardware.Device), 1)
+	disk := disks[0].(*types.VirtualDisk)
+	backing := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+	is := &terraform.InstanceState{
+		ID: props.Config.Uuid,
+		Attributes: map[string]string{
+			"disk.#":     "1",
+			"disk.0.key": strconv.Itoa(int(disk.Key)),
+		},
+	}
+	is, err = resourceVSphereVirtualMachineMigrateState(2, is, meta)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	if is.Attributes["disk.0.uuid"] != backing.Uuid {
+		t.Fatalf("expected disk.0.uuid to be %q", backing.Uuid)
+	}
+}
+
+func TestAccResourceVSphereVirtualMachineMigrateStateV3_fromV1(t *testing.T) {
+	testAccResourceVSphereVirtualMachineMigrateStatePreCheck(t)
+	testAccPreCheck(t)
+
+	meta, err := testAccProviderMeta(t)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	client := meta.(*VSphereClient).vimClient
+	pth := os.Getenv("VSPHERE_VM_V1_PATH")
+	name := path.Base(pth)
+	vm, err := virtualmachine.FromPath(client, pth, nil)
+	if err != nil {
+		t.Fatalf("error fetching virtual machine: %s", err)
+	}
+	props, err := virtualmachine.Properties(vm)
+	if err != nil {
+		t.Fatalf("error fetching virtual machine properties: %s", err)
+	}
+
+	is := &terraform.InstanceState{
+		ID: name,
+		Attributes: map[string]string{
+			"uuid": props.Config.Uuid,
+		},
+	}
+	is, err = resourceVSphereVirtualMachineMigrateState(1, is, meta)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	if is.ID != props.Config.Uuid {
+		t.Fatalf("expected ID to match %q, got %q", props.Config.Uuid, is.ID)
+	}
+	if is.Attributes["imported"] != "true" {
+		t.Fatal("expected imported to be true")
+	}
+	if is.Attributes["disk.#"] != "1" {
+		t.Fatal("expected disk count to be 1")
+	}
+	if is.Attributes["disk.0.key"] != "-1" {
+		t.Fatal("expected disk.0.key to be -1")
+	}
+	if is.Attributes["disk.0.device_address"] != "scsi:0:0" {
+		t.Fatal("expected disk.0.device_address to be scsi:0:0")
+	}
+	if is.Attributes["disk.0.label"] != "disk0" {
+		t.Fatal("expected disk.0.label to be disk0")
+	}
+	if is.Attributes["disk.0.keep_on_remove"] != "true" {
+		t.Fatal("expected disk.0.keep_on_remove to be true")
+	}
+}
+
 func TestAccResourceVSphereVirtualMachineMigrateStateV2(t *testing.T) {
 	testAccResourceVSphereVirtualMachineMigrateStatePreCheck(t)
 	testAccPreCheck(t)
@@ -106,11 +202,26 @@ func TestAccResourceVSphereVirtualMachineMigrateStateV2(t *testing.T) {
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
-	if _, err := uuid.ParseUUID(is.ID); err != nil {
-		t.Fatalf("could not read ID %q as UUID: %s", is.ID, err)
+	if is.ID != props.Config.Uuid {
+		t.Fatalf("expected ID to match %q, got %q", props.Config.Uuid, is.ID)
 	}
 	if is.Attributes["imported"] != "true" {
-		t.Fatalf("expected imported to be true")
+		t.Fatal("expected imported to be true")
+	}
+	if is.Attributes["disk.#"] != "1" {
+		t.Fatal("expected disk count to be 1")
+	}
+	if is.Attributes["disk.0.key"] != "-1" {
+		t.Fatal("expected disk.0.key to be -1")
+	}
+	if is.Attributes["disk.0.device_address"] != "scsi:0:0" {
+		t.Fatal("expected disk.0.device_address to be scsi:0:0")
+	}
+	if is.Attributes["disk.0.label"] != "disk0" {
+		t.Fatal("expected disk.0.label to be disk0")
+	}
+	if is.Attributes["disk.0.keep_on_remove"] != "true" {
+		t.Fatal("expected disk.0.keep_on_remove to be true")
 	}
 }
 
