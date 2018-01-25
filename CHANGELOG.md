@@ -49,6 +49,9 @@ IMPROVEMENTS:
 
 ### Other improvements
 
+* `resource/vsphere_virtual_machine`: Fixed an issue where certain changes
+  happening at the same time (such as a disk resize along with a change of SCSI
+  type) were resulting in invalid device change operations. [GH-371]
 * `resource/vsphere_virtual_machine`: Now supports setting vApp properties that
   usually come from an OVF/OVA template or virtual appliance. [GH-303]
 
