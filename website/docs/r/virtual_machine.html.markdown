@@ -404,7 +404,7 @@ configuration](#using-vapp-properties-to-supply-ovf-ova-configuration).
 
 * `scsi_type` - (Optional) The type of SCSI bus this virtual machine will have.
   Can be one of lsilogic (LSI Logic Parallel), lsilogic-sas (LSI Logic SAS) or
-  pvscsi (VMware Paravirtual). Defualt: `lsilogic`.
+  pvscsi (VMware Paravirtual). Defualt: `pvscsi`.
 * `tags` - (Optional) The IDs of any tags to attach to this resource. See
   [here][docs-applying-tags] for a reference on how to apply tags.
 
