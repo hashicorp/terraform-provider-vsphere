@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/mitchellh/copystructure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
@@ -742,4 +743,22 @@ func scsiControllerListString(ctlrs []types.BaseVirtualSCSIController) string {
 		}
 	}
 	return DeviceListString(l)
+}
+
+// AppendDeviceChangeSpec appends unique copies of the supplied device change
+// operations and appends them to spec. The resulting list is returned.
+//
+// The object of this function is to provide deep copies of each virtual device
+// to the spec as they looked like when the append operation was called,
+// helping facilitate multiple update operations to the same device in a single
+// reconfigure call.
+func AppendDeviceChangeSpec(
+	spec []types.BaseVirtualDeviceConfigSpec,
+	ops ...types.BaseVirtualDeviceConfigSpec,
+) []types.BaseVirtualDeviceConfigSpec {
+	for _, op := range ops {
+		c := copystructure.Must(copystructure.Copy(op)).(types.BaseVirtualDeviceConfigSpec)
+		spec = append(spec, c)
+	}
+	return spec
 }
