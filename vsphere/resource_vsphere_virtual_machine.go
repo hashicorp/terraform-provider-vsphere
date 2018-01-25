@@ -764,25 +764,25 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	if err != nil {
 		return nil, err
 	}
-	cfgSpec.DeviceChange = append(cfgSpec.DeviceChange, delta...)
+	cfgSpec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec.DeviceChange, delta...)
 	// Disks
 	devices, delta, err = virtualdevice.DiskPostCloneOperation(d, client, devices)
 	if err != nil {
 		return nil, err
 	}
-	cfgSpec.DeviceChange = append(cfgSpec.DeviceChange, delta...)
+	cfgSpec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec.DeviceChange, delta...)
 	// Network devices
 	devices, delta, err = virtualdevice.NetworkInterfacePostCloneOperation(d, client, devices)
 	if err != nil {
 		return nil, err
 	}
-	cfgSpec.DeviceChange = append(cfgSpec.DeviceChange, delta...)
+	cfgSpec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec.DeviceChange, delta...)
 	// CDROM
 	devices, delta, err = virtualdevice.CdromPostCloneOperation(d, client, devices)
 	if err != nil {
 		return nil, err
 	}
-	cfgSpec.DeviceChange = append(cfgSpec.DeviceChange, delta...)
+	cfgSpec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec.DeviceChange, delta...)
 	log.Printf("[DEBUG] %s: Final device list: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceListString(devices))
 	log.Printf("[DEBUG] %s: Final device change cfgSpec: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceChangeString(cfgSpec.DeviceChange))
 
@@ -945,25 +945,25 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 		log.Printf("[DEBUG] %s: SCSI bus has changed and requires a VM restart", resourceVSphereVirtualMachineIDString(d))
 		d.Set("reboot_required", true)
 	}
-	spec = append(spec, delta...)
+	spec = virtualdevice.AppendDeviceChangeSpec(spec, delta...)
 	// Disks
 	l, delta, err = virtualdevice.DiskApplyOperation(d, c, l)
 	if err != nil {
 		return nil, err
 	}
-	spec = append(spec, delta...)
+	spec = virtualdevice.AppendDeviceChangeSpec(spec, delta...)
 	// Network devices
 	l, delta, err = virtualdevice.NetworkInterfaceApplyOperation(d, c, l)
 	if err != nil {
 		return nil, err
 	}
-	spec = append(spec, delta...)
+	spec = virtualdevice.AppendDeviceChangeSpec(spec, delta...)
 	// CDROM
 	l, delta, err = virtualdevice.CdromApplyOperation(d, c, l)
 	if err != nil {
 		return nil, err
 	}
-	spec = append(spec, delta...)
+	spec = virtualdevice.AppendDeviceChangeSpec(spec, delta...)
 	log.Printf("[DEBUG] %s: Final device list: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceListString(l))
 	log.Printf("[DEBUG] %s: Final device change spec: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceChangeString(spec))
 	return spec, nil
