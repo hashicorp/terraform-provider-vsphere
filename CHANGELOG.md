@@ -1,4 +1,4 @@
-## 1.3.0 (Unreleased)
+## 1.3.0 (January 26, 2018)
 
 BREAKING CHANGES:
 
@@ -16,39 +16,39 @@ IMPROVEMENTS:
 
 * `resource/vsphere_virtual_machine`: Fixed an issue where certain changes
   happening at the same time (such as a disk resize along with a change of SCSI
-  type) were resulting in invalid device change operations. [GH-371]
+  type) were resulting in invalid device change operations. ([#371](https://github.com/terraform-providers/terraform-provider-vsphere/issues/371))
 * `resource/vsphere_virtual_machine`: Introduced the `label` argument, which
   allows one to address a virtual disk independent of its VMDK file name and
-  position on the SCSI bus. [GH-363]
+  position on the SCSI bus. ([#363](https://github.com/terraform-providers/terraform-provider-vsphere/issues/363))
 * `resource/vsphere_virtual_machine`: Introduced the `path` argument, which
   replaces the `name` attribute for supplying the path for externally attached
   disks supplied with `attach = true`, and is otherwise a computed attribute
-  pointing to the current path of any specific virtual disk. [GH-363]
+  pointing to the current path of any specific virtual disk. ([#363](https://github.com/terraform-providers/terraform-provider-vsphere/issues/363))
 * `resource/vsphere_virtual_machine`: Introduced the `uuid` attribute, a new
   computed attribute that allows the tracking of a disk independent of its
   current position on the SCSI bus. This is used in all scenarios aside from
-  freshly-created or added virtual disks. [GH-363]
+  freshly-created or added virtual disks. ([#363](https://github.com/terraform-providers/terraform-provider-vsphere/issues/363))
 * `resource/vsphere_virtual_machine`: The virtual disk `name` argument is now
   deprecated and will be removed from future releases. It no longer dictates the
   name of non-attached VMDK files and serves as an alias to the now-split `label`
-  and `path` attributes. [GH-363]
+  and `path` attributes. ([#363](https://github.com/terraform-providers/terraform-provider-vsphere/issues/363))
 * `resource/vsphere_virtual_machine`: Cloning no longer requires you to choose a
-  disk label (name) that matches the name of the VM. [GH-363]
+  disk label (name) that matches the name of the VM. ([#363](https://github.com/terraform-providers/terraform-provider-vsphere/issues/363))
 * `resource/vsphere_virtual_machine`: Storage vMotion can now be performed on
-  renamed virtual machines. [GH-363]
+  renamed virtual machines. ([#363](https://github.com/terraform-providers/terraform-provider-vsphere/issues/363))
 * `resource/vsphere_virtual_machine`: Storage vMotion no longer cares what your
   disks are labeled (named), and will not block migrations based on the naming
-  criteria added after 1.1.1. [GH-363]
+  criteria added after 1.1.1. ([#363](https://github.com/terraform-providers/terraform-provider-vsphere/issues/363))
 * `resource/vsphere_virtual_machine`: Storage vMotion now works on linked
-  clones. [GH-363]
+  clones. ([#363](https://github.com/terraform-providers/terraform-provider-vsphere/issues/363))
 * `resource/vsphere_virtual_machine`: The import restrictions for virtual disks
   have changed, and rather than ensuring that disk `name` arguments match a
   certain convention, `label` is now expected to match a convention of `diskN`,
   where N is the disk number, ordered by the disk's position on the SCSI bus.
   Importing to a configuration still using `name` to address disks is no longer
-  supported. [GH-363]
+  supported. ([#363](https://github.com/terraform-providers/terraform-provider-vsphere/issues/363))
 * `resource/vsphere_virtual_machine`: Now supports setting vApp properties that
-  usually come from an OVF/OVA template or virtual appliance. [GH-303]
+  usually come from an OVF/OVA template or virtual appliance. ([#303](https://github.com/terraform-providers/terraform-provider-vsphere/issues/303))
 
 ## 1.2.0 (January 11, 2018)
 
