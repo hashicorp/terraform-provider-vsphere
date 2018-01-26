@@ -14,8 +14,9 @@ BREAKING CHANGES:
 
 IMPROVEMENTS:
 
-### `vsphere_virtual_machine` virtual disk-related changes
-
+* `resource/vsphere_virtual_machine`: Fixed an issue where certain changes
+  happening at the same time (such as a disk resize along with a change of SCSI
+  type) were resulting in invalid device change operations. [GH-371]
 * `resource/vsphere_virtual_machine`: Introduced the `label` argument, which
   allows one to address a virtual disk independent of its VMDK file name and
   position on the SCSI bus. [GH-363]
@@ -46,12 +47,6 @@ IMPROVEMENTS:
   where N is the disk number, ordered by the disk's position on the SCSI bus.
   Importing to a configuration still using `name` to address disks is no longer
   supported. [GH-363]
-
-### Other improvements
-
-* `resource/vsphere_virtual_machine`: Fixed an issue where certain changes
-  happening at the same time (such as a disk resize along with a change of SCSI
-  type) were resulting in invalid device change operations. [GH-371]
 * `resource/vsphere_virtual_machine`: Now supports setting vApp properties that
   usually come from an OVF/OVA template or virtual appliance. [GH-303]
 
