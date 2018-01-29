@@ -11,15 +11,25 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
+	"github.com/vmware/govmomi/view"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
 var errGuestShutdownTimeout = errors.New("the VM did not power off within the specified amount of time")
+
+// vmUUIDSearchIndexVersion denotes the minimum version we use the SearchIndex
+// VM UUID search for. All versions lower than this use ContainerView to find
+// the VM.
+var vmUUIDSearchIndexVersion = viapi.VSphereVersion{
+	Major: 6,
+	Minor: 5,
+}
 
 // UUIDNotFoundError is an error type that is returned when a
 // virtual machine could not be found by UUID.
@@ -43,17 +53,20 @@ func newUUIDNotFoundError(s string) *UUIDNotFoundError {
 // FromUUID locates a virtualMachine by its UUID.
 func FromUUID(client *govmomi.Client, uuid string) (*object.VirtualMachine, error) {
 	log.Printf("[DEBUG] Locating virtual machine with UUID %q", uuid)
-	search := object.NewSearchIndex(client.Client)
 
-	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
-	defer cancel()
-	result, err := search.FindByUuid(ctx, nil, uuid, true, structure.BoolPtr(false))
-	if err != nil {
-		return nil, err
+	var result object.Reference
+	var err error
+	version := viapi.ParseVersionFromClient(client)
+	expected := vmUUIDSearchIndexVersion
+	expected.Product = version.Product
+	if version.Older(expected) {
+		result, err = virtualMachineFromContainerView(client, uuid)
+	} else {
+		result, err = virtualMachineFromSearchIndex(client, uuid)
 	}
 
-	if result == nil {
-		return nil, newUUIDNotFoundError(fmt.Sprintf("virtual machine with UUID %q not found", uuid))
+	if err != nil {
+		return nil, err
 	}
 
 	// We need to filter our object through finder to ensure that the
@@ -73,6 +86,64 @@ func FromUUID(client *govmomi.Client, uuid string) (*object.VirtualMachine, erro
 	// anyway.
 	log.Printf("[DEBUG] VM %q found for UUID %q", vm.(*object.VirtualMachine).InventoryPath, uuid)
 	return vm.(*object.VirtualMachine), nil
+}
+
+// virtualMachineFromSearchIndex gets the virtual machine reference via the
+// SearchIndex MO and is the method used to fetch UUIDs on newer versions of
+// vSphere.
+func virtualMachineFromSearchIndex(client *govmomi.Client, uuid string) (object.Reference, error) {
+	log.Printf("[DEBUG] Using SearchIndex to look up UUID %q", uuid)
+	search := object.NewSearchIndex(client.Client)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	result, err := search.FindByUuid(ctx, nil, uuid, true, structure.BoolPtr(false))
+	if err != nil {
+		return nil, err
+	}
+
+	if result == nil {
+		return nil, newUUIDNotFoundError(fmt.Sprintf("virtual machine with UUID %q not found", uuid))
+	}
+
+	return result, nil
+}
+
+// virtualMachineFromContainerView is a compatability method that is
+// used when the version of vSphere is too old to support using SearchIndex's
+// FindByUuid method correctly. This is mainly to facilitate the ability to use
+// FromUUID to find both templates in addition to virtual machines, which
+// historically was not supported by FindByUuid.
+func virtualMachineFromContainerView(client *govmomi.Client, uuid string) (object.Reference, error) {
+	log.Printf("[DEBUG] Using ContainerView to look up UUID %q", uuid)
+	m := view.NewManager(client.Client)
+
+	vctx, vcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer vcancel()
+	v, err := m.CreateContainerView(vctx, client.ServiceContent.RootFolder, []string{"VirtualMachine"}, true)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		dctx, dcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+		defer dcancel()
+		v.Destroy(dctx)
+	}()
+
+	var vms []mo.VirtualMachine
+	err = v.RetrieveWithFilter(vctx, []string{"VirtualMachine"}, []string{"summary"}, &vms, property.Filter{"config.uuid": uuid})
+	if err != nil {
+		return nil, err
+	}
+
+	switch {
+	case len(vms) < 1:
+		return nil, newUUIDNotFoundError(fmt.Sprintf("virtual machine with UUID %q not found", uuid))
+	case len(vms) > 1:
+		return nil, fmt.Errorf("multiple virtual machines with UUID %q found", uuid)
+	}
+
+	return object.NewReference(client.Client, vms[0].Self), nil
 }
 
 // FromMOID locates a virtualMachine by its managed
