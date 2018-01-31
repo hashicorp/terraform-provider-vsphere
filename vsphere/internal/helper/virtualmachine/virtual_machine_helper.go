@@ -123,7 +123,7 @@ func virtualMachineFromContainerView(ctx context.Context, client *govmomi.Client
 
 	defer func() {
 		if err = v.Destroy(ctx); err != nil {
-			panic(err)
+			log.Printf("[DEBUG] virtualMachineFromContainerView: Unexpected error destroying container view: %s", err)
 		}
 	}()
 
