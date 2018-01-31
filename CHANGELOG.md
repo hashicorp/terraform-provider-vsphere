@@ -1,4 +1,10 @@
 ## 1.3.1 (Unreleased)
+
+BUG FIXES:
+
+* `resource/vsphere_virtual_machine`: Looking up templates by their UUID now
+  functions correctly for vSphere 6.0 and earlier. [GH-377]
+
 ## 1.3.0 (January 26, 2018)
 
 BREAKING CHANGES:
