@@ -1,7 +1,7 @@
-# vSphere 1.1.0 end-to-end Example
+# vSphere 1.3.0 end-to-end Example
 
 This repository is designed to demonstrate the capabilities of the [Terraform
-vSphere Provider][ref-tf-vsphere] at the time of the 1.1.0 release.
+vSphere Provider][ref-tf-vsphere] at the time of the 1.3.0 release.
 
 [ref-tf-vsphere]: https://www.terraform.io/docs/providers/vsphere/index.html
 
@@ -66,5 +66,9 @@ ask you confirm the changes.
 
 ## Further Reading
 
-This example is being used as an example for an upcoming blog post on the
-HashiCorp website.
+This configuration is the working example for [this blog
+post][a-re-introduction-to-the-terraform-vsphere-provider] on the [HashiCorp
+website][hc-website].
+
+[a-re-introduction-to-the-terraform-vsphere-provider]: https://www.hashicorp.com/blog/a-re-introduction-to-the-terraform-vsphere-provider
+[hc-website]: https://www.hashicorp.com/

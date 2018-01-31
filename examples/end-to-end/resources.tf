@@ -58,8 +58,8 @@ resource "vsphere_virtual_machine" "example_virtual_machines" {
   }
 
   disk {
-    name = "${var.virtual_machine_name_prefix}${count.index}.vmdk"
-    size = "${data.vsphere_virtual_machine.example_template.disks.0.size}"
+    label = "disk0"
+    size  = "${data.vsphere_virtual_machine.example_template.disks.0.size}"
   }
 
   clone {
