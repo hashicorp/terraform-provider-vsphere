@@ -54,15 +54,18 @@ func newUUIDNotFoundError(s string) *UUIDNotFoundError {
 func FromUUID(client *govmomi.Client, uuid string) (*object.VirtualMachine, error) {
 	log.Printf("[DEBUG] Locating virtual machine with UUID %q", uuid)
 
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+
 	var result object.Reference
 	var err error
 	version := viapi.ParseVersionFromClient(client)
 	expected := vmUUIDSearchIndexVersion
 	expected.Product = version.Product
 	if version.Older(expected) {
-		result, err = virtualMachineFromContainerView(client, uuid)
+		result, err = virtualMachineFromContainerView(ctx, client, uuid)
 	} else {
-		result, err = virtualMachineFromSearchIndex(client, uuid)
+		result, err = virtualMachineFromSearchIndex(ctx, client, uuid)
 	}
 
 	if err != nil {
@@ -74,9 +77,7 @@ func FromUUID(client *govmomi.Client, uuid string) (*object.VirtualMachine, erro
 	// being present will fail.
 	finder := find.NewFinder(client.Client, false)
 
-	rctx, rcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
-	defer rcancel()
-	vm, err := finder.ObjectReference(rctx, result.Reference())
+	vm, err := finder.ObjectReference(ctx, result.Reference())
 	if err != nil {
 		return nil, err
 	}
@@ -91,11 +92,9 @@ func FromUUID(client *govmomi.Client, uuid string) (*object.VirtualMachine, erro
 // virtualMachineFromSearchIndex gets the virtual machine reference via the
 // SearchIndex MO and is the method used to fetch UUIDs on newer versions of
 // vSphere.
-func virtualMachineFromSearchIndex(client *govmomi.Client, uuid string) (object.Reference, error) {
+func virtualMachineFromSearchIndex(ctx context.Context, client *govmomi.Client, uuid string) (object.Reference, error) {
 	log.Printf("[DEBUG] Using SearchIndex to look up UUID %q", uuid)
 	search := object.NewSearchIndex(client.Client)
-	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
-	defer cancel()
 	result, err := search.FindByUuid(ctx, nil, uuid, true, structure.BoolPtr(false))
 	if err != nil {
 		return nil, err
@@ -113,25 +112,23 @@ func virtualMachineFromSearchIndex(client *govmomi.Client, uuid string) (object.
 // FindByUuid method correctly. This is mainly to facilitate the ability to use
 // FromUUID to find both templates in addition to virtual machines, which
 // historically was not supported by FindByUuid.
-func virtualMachineFromContainerView(client *govmomi.Client, uuid string) (object.Reference, error) {
+func virtualMachineFromContainerView(ctx context.Context, client *govmomi.Client, uuid string) (object.Reference, error) {
 	log.Printf("[DEBUG] Using ContainerView to look up UUID %q", uuid)
 	m := view.NewManager(client.Client)
 
-	vctx, vcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
-	defer vcancel()
-	v, err := m.CreateContainerView(vctx, client.ServiceContent.RootFolder, []string{"VirtualMachine"}, true)
+	v, err := m.CreateContainerView(ctx, client.ServiceContent.RootFolder, []string{"VirtualMachine"}, true)
 	if err != nil {
 		return nil, err
 	}
 
 	defer func() {
-		dctx, dcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
-		defer dcancel()
-		v.Destroy(dctx)
+		if err = v.Destroy(ctx); err != nil {
+			panic(err)
+		}
 	}()
 
 	var vms []mo.VirtualMachine
-	err = v.RetrieveWithFilter(vctx, []string{"VirtualMachine"}, []string{"summary"}, &vms, property.Filter{"config.uuid": uuid})
+	err = v.RetrieveWithFilter(ctx, []string{"VirtualMachine"}, []string{"summary"}, &vms, property.Filter{"config.uuid": uuid})
 	if err != nil {
 		return nil, err
 	}
