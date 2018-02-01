@@ -1,9 +1,9 @@
-## 1.3.1 (Unreleased)
+## 1.3.1 (February 01, 2018)
 
 BUG FIXES:
 
 * `resource/vsphere_virtual_machine`: Looking up templates by their UUID now
-  functions correctly for vSphere 6.0 and earlier. [GH-377]
+  functions correctly for vSphere 6.0 and earlier. ([#377](https://github.com/terraform-providers/terraform-provider-vsphere/issues/377))
 
 ## 1.3.0 (January 26, 2018)
 
