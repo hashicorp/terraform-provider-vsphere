@@ -1,0 +1,33 @@
+datacenter = "dc"
+
+resource_pool = "cluster1/Resources"
+
+datastore_name = "datastore"
+
+network_name = "network"
+
+template_name = "some-coreos-template"
+
+virtual_machine_name_prefix = "e2e-test"
+
+virtual_machine_domain = "vsphere.local"
+
+virtual_machine_network_address = "10.0.0.0/24"
+
+virtual_machine_gateway = "10.0.0.1"
+
+virtual_machine_dns_servers = [
+  "10.0.0.10",
+]
+
+esxi_hosts = [
+  "esxi1",
+  "esxi2",
+  "esxi3",
+]
+
+server_binary_name = "ovf-example-service"
+
+management_ssh_keys = [
+  "ssh-rsa abcdef user@host",
+]
