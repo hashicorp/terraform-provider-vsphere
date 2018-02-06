@@ -128,7 +128,7 @@ func virtualMachineFromContainerView(ctx context.Context, client *govmomi.Client
 	}()
 
 	var vms, results []mo.VirtualMachine
-	err = v.Retrieve(ctx, []string{"VirtualMachine"}, nil, &results)
+	err = v.Retrieve(ctx, []string{"VirtualMachine"}, []string{"config.uuid"}, &results)
 	if err != nil {
 		return nil, err
 	}
