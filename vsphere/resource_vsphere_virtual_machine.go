@@ -176,7 +176,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		"moid": &schema.Schema{
 			Type:     schema.TypeString,
 			Computed: true,
-			Description: ""
+			Description: "",
 		},		
 		vSphereTagAttributeKey:    tagsSchema(),
 		customattribute.ConfigKey: customattribute.ConfigSchema(),
