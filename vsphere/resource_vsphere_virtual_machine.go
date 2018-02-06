@@ -174,10 +174,10 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Description: "A flag internal to Terraform that indicates that this resource was either imported or came from a earlier major version of this resource.",
 		},
 		"moid": &schema.Schema{
-			Type:     schema.TypeString,
-			Computed: true,
+			Type:        schema.TypeString,
+			Computed:    true,
 			Description: "",
-		},		
+		},
 		vSphereTagAttributeKey:    tagsSchema(),
 		customattribute.ConfigKey: customattribute.ConfigSchema(),
 	}
@@ -271,13 +271,13 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("error fetching VM properties: %s", err)
 	}
 
-	err = d.Set("moid", vm.Reference().Value )
+	err = d.Set("moid", vm.Reference().Value)
 	if err != nil {
 		return fmt.Errorf("Invalid moid to set: %#v", vm.Reference().Value)
 	} else {
 		log.Printf("[DEBUG] Set the moid: %#v", vm.Reference().Value)
 	}
-	
+
 	// Reset reboot_required. This is an update only variable and should not be
 	// set across TF runs.
 	d.Set("reboot_required", false)
