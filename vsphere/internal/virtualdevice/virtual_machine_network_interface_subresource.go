@@ -18,6 +18,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -44,7 +45,7 @@ var networkInterfaceSubresourceMACAddressTypeAllowedValues = []string{
 	string(types.VirtualEthernetCardMacTypeManual),
 }
 
-// NetworkInterfaceSubresourceSchema returns the schema for the disk
+// NetworkInterfaceSubresourceSchema returns the schema for the network
 // sub-resource.
 func NetworkInterfaceSubresourceSchema() map[string]*schema.Schema {
 	s := map[string]*schema.Schema{
@@ -84,6 +85,11 @@ func NetworkInterfaceSubresourceSchema() map[string]*schema.Schema {
 			Required:     true,
 			Description:  "The ID of the network to connect this network interface to.",
 			ValidateFunc: validation.NoZeroValues,
+		},
+		"is_opaque": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "If true, specified network_id will be read as nsx uuid",
 		},
 		"adapter_type": {
 			Type:         schema.TypeString,
@@ -572,6 +578,56 @@ func virtualEthernetCardString(d types.BaseVirtualEthernetCard) string {
 	return networkInterfaceSubresourceTypeUnknown
 }
 
+// Prepare backing based on is_opaque attribute.
+// For opaque networks, specific backing needs to be created.
+func (r *NetworkInterfaceSubresource) GetBacking() (types.BaseVirtualDeviceBackingInfo, error) {
+	is_opaque := r.Get("is_opaque").(bool)
+	network_id := r.Get("network_id").(string)
+	if is_opaque {
+		// For opaque networks, network_id specified in config should be read
+		// as nsx uuid
+		log.Printf("[DEBUG] Prepare backing for opaque network %s", network_id)
+		net, err := nsx.OpaqueNetworkFromNetworkID(r.client, network_id)
+		if err != nil {
+			return nil, err
+		}
+
+		// This copies the functionality of EthernetCardBackingInfo in
+		// OpaqueNetwork (govmomi), we can not using the original function here
+		// since finder returns Network object instead of OpaqueNetwork object.
+		bctx, bcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+		defer bcancel()
+		var mo_network mo.OpaqueNetwork
+		if err := net.Properties(bctx, net.Reference(), []string{"summary"}, &mo_network); err != nil {
+			return nil, err
+		}
+
+		summary, ok := mo_network.Summary.(*types.OpaqueNetworkSummary)
+		if !ok {
+			return nil, fmt.Errorf("%s unsupported network type: %T", net, mo_network.Summary)
+		}
+
+		backing := &types.VirtualEthernetCardOpaqueNetworkBackingInfo{
+			OpaqueNetworkId:   summary.OpaqueNetworkId,
+			OpaqueNetworkType: summary.OpaqueNetworkType,
+		}
+		return backing, nil
+
+	} else {
+		// govmomi has helpers that allow the easy fetching of a network's backing
+		// info, once we actually know what that backing is.
+		// Set all of that stuff up now.
+		log.Printf("[DEBUG] Prepare backing for standard network %s", network_id)
+		net, err := network.FromID(r.client, network_id)
+		if err != nil {
+			return nil, err
+		}
+		bctx, bcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+		defer bcancel()
+		return net.EthernetCardBackingInfo(bctx)
+	}
+}
+
 // Create creates a vsphere_virtual_machine network_interface sub-resource.
 func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] %s: Running create", r)
@@ -581,19 +637,11 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 		return nil, err
 	}
 
-	// govmomi has helpers that allow the easy fetching of a network's backing
-	// info, once we actually know what that backing is. Set all of that stuff up
-	// now.
-	net, err := network.FromID(r.client, r.Get("network_id").(string))
+	backing, err := r.GetBacking()
 	if err != nil {
 		return nil, err
 	}
-	bctx, bcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
-	defer bcancel()
-	backing, err := net.EthernetCardBackingInfo(bctx)
-	if err != nil {
-		return nil, err
-	}
+
 	device, err := l.CreateEthernetCard(r.Get("adapter_type").(string), backing)
 	if err != nil {
 		return nil, err
@@ -671,6 +719,7 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
 
 	// Determine the network
 	var netID string
+	isOpaque := false
 	switch backing := card.Backing.(type) {
 	case *types.VirtualEthernetCardNetworkBackingInfo:
 		if backing.Network == nil {
@@ -678,11 +727,8 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
 		}
 		netID = backing.Network.Value
 	case *types.VirtualEthernetCardOpaqueNetworkBackingInfo:
-		onet, err := nsx.OpaqueNetworkFromNetworkID(r.client, backing.OpaqueNetworkId)
-		if err != nil {
-			return err
-		}
-		netID = onet.Reference().Value
+		isOpaque = true
+		netID = backing.OpaqueNetworkId
 	case *types.VirtualEthernetCardDistributedVirtualPortBackingInfo:
 		pg, err := dvportgroup.FromKey(r.client, backing.Port.SwitchUuid, backing.Port.PortgroupKey)
 		if err != nil {
@@ -693,6 +739,7 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
 		return fmt.Errorf("unknown network interface backing %T", card.Backing)
 	}
 	r.Set("network_id", netID)
+	r.Set("is_opaque", isOpaque)
 
 	r.Set("use_static_mac", card.AddressType == string(types.VirtualEthernetCardMacTypeManual))
 	r.Set("mac_address", card.MacAddress)
@@ -783,13 +830,7 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 
 	// Has the backing changed?
 	if r.HasChange("network_id") {
-		net, err := network.FromID(r.client, r.Get("network_id").(string))
-		if err != nil {
-			return nil, err
-		}
-		bctx, bcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
-		defer bcancel()
-		backing, err := net.EthernetCardBackingInfo(bctx)
+		backing, err := r.GetBacking()
 		if err != nil {
 			return nil, err
 		}
