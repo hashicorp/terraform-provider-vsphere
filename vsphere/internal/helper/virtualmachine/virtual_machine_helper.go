@@ -127,10 +127,19 @@ func virtualMachineFromContainerView(ctx context.Context, client *govmomi.Client
 		}
 	}()
 
-	var vms []mo.VirtualMachine
-	err = v.RetrieveWithFilter(ctx, []string{"VirtualMachine"}, []string{"summary"}, &vms, property.Filter{"config.uuid": uuid})
+	var vms, results []mo.VirtualMachine
+	err = v.Retrieve(ctx, []string{"VirtualMachine"}, []string{"config.uuid"}, &results)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, result := range results {
+		if result.Config == nil {
+			continue
+		}
+		if result.Config.Uuid == uuid {
+			vms = append(vms, result)
+		}
 	}
 
 	switch {
