@@ -1,4 +1,14 @@
 ## 1.3.2 (Unreleased)
+
+BUG FIXES:
+
+* `resource/vsphere_virtual_machine`: Changed the update implemented in [GH-377]
+  to use a local filter implementation. This corrects situations where virtual
+  machines in inventory with orphaned or otherwise corrupt configurations were
+  interfering with UUID searches, creating erroneous duplicate UUID errors. This
+  fix applies to vSphere 6.0 and lower only. vSphere 6.5 was not affected.
+  [GH-391]
+
 ## 1.3.1 (February 01, 2018)
 
 BUG FIXES:
