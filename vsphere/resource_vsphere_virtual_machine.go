@@ -176,7 +176,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		"moid": &schema.Schema{
 			Type:        schema.TypeString,
 			Computed:    true,
-			Description: "",
+			Description: "The machine object ID from VMWare",
 		},
 		vSphereTagAttributeKey:    tagsSchema(),
 		customattribute.ConfigKey: customattribute.ConfigSchema(),
