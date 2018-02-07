@@ -271,12 +271,10 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("error fetching VM properties: %s", err)
 	}
 
-	err = d.Set("moid", vm.Reference().Value)
-	if err != nil {
-		return fmt.Errorf("Invalid moid to set: %#v", vm.Reference().Value)
-	} else {
-		log.Printf("[DEBUG] Set the moid: %#v", vm.Reference().Value)
-	}
+	// Get out the machine object id
+	moid := vm.Reference().Value
+	d.Set("moid", moid)
+	log.Printf("[DEBUG] MOID for VM %q is %q", vm.InventoryPath, moid)
 
 	// Reset reboot_required. This is an update only variable and should not be
 	// set across TF runs.
