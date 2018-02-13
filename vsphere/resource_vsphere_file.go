@@ -183,7 +183,7 @@ func createFile(client *govmomi.Client, f *file) error {
 		}
 
 		p := soap.DefaultUpload
-		err = client.Client.UploadFile(f.sourceFile, dsurl, &p)
+		err = client.Client.UploadFile(context.TODO(), f.sourceFile, dsurl, &p)
 		if err != nil {
 			return fmt.Errorf("error %s", err)
 		}

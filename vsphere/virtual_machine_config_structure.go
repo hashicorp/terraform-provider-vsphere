@@ -758,10 +758,10 @@ func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualM
 	if err := flattenVirtualMachineFlagInfo(d, &obj.Flags); err != nil {
 		return err
 	}
-	if err := flattenVirtualMachineResourceAllocation(d, obj.CpuAllocation.(*types.ResourceAllocationInfo), "cpu"); err != nil {
+	if err := flattenVirtualMachineResourceAllocation(d, obj.CpuAllocation, "cpu"); err != nil {
 		return err
 	}
-	if err := flattenVirtualMachineResourceAllocation(d, obj.MemoryAllocation.(*types.ResourceAllocationInfo), "memory"); err != nil {
+	if err := flattenVirtualMachineResourceAllocation(d, obj.MemoryAllocation, "memory"); err != nil {
 		return err
 	}
 	if err := flattenExtraConfig(d, obj.ExtraConfig); err != nil {

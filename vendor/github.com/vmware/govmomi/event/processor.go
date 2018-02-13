@@ -28,22 +28,24 @@ import (
 type tailInfo struct {
 	t         *eventTailer
 	obj       types.ManagedObjectReference
-	collector types.ManagedObjectReference
+	collector *HistoryCollector
 }
 
 type eventProcessor struct {
 	mgr      Manager
 	pageSize int32
+	kind     []string
 	tailers  map[types.ManagedObjectReference]*tailInfo // tailers by collector ref
 	callback func(types.ManagedObjectReference, []types.BaseEvent) error
 }
 
-func newEventProcessor(mgr Manager, pageSize int32, callback func(types.ManagedObjectReference, []types.BaseEvent) error) *eventProcessor {
+func newEventProcessor(mgr Manager, pageSize int32, callback func(types.ManagedObjectReference, []types.BaseEvent) error, kind []string) *eventProcessor {
 	return &eventProcessor{
 		mgr:      mgr,
 		tailers:  make(map[types.ManagedObjectReference]*tailInfo),
 		callback: callback,
 		pageSize: pageSize,
+		kind:     kind,
 	}
 }
 
@@ -53,6 +55,7 @@ func (p *eventProcessor) addObject(ctx context.Context, obj types.ManagedObjectR
 			Entity:    obj,
 			Recursion: types.EventFilterSpecRecursionOptionAll,
 		},
+		EventTypeId: p.kind,
 	}
 
 	collector, err := p.mgr.CreateCollectorForEvents(ctx, filter)
@@ -68,10 +71,16 @@ func (p *eventProcessor) addObject(ctx context.Context, obj types.ManagedObjectR
 	p.tailers[collector.Reference()] = &tailInfo{
 		t:         newEventTailer(),
 		obj:       obj,
-		collector: collector.Reference(),
+		collector: collector,
 	}
 
 	return nil
+}
+
+func (p *eventProcessor) destroy() {
+	for _, info := range p.tailers {
+		_ = info.collector.Destroy(context.Background())
+	}
 }
 
 func (p *eventProcessor) run(ctx context.Context, tail bool) error {
@@ -80,8 +89,8 @@ func (p *eventProcessor) run(ctx context.Context, tail bool) error {
 	}
 
 	var collectors []types.ManagedObjectReference
-	for _, t := range p.tailers {
-		collectors = append(collectors, t.collector)
+	for ref := range p.tailers {
+		collectors = append(collectors, ref)
 	}
 
 	c := property.DefaultCollector(p.mgr.Client())

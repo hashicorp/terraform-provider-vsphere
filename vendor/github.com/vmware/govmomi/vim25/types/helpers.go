@@ -17,7 +17,9 @@ limitations under the License.
 package types
 
 import (
+	"reflect"
 	"strings"
+	"time"
 )
 
 func NewBool(v bool) *bool {
@@ -29,6 +31,10 @@ func NewInt32(v int32) *int32 {
 }
 
 func NewInt64(v int64) *int64 {
+	return &v
+}
+
+func NewTime(v time.Time) *time.Time {
 	return &v
 }
 
@@ -61,8 +67,8 @@ func (c *PerfCounterInfo) Name() string {
 	return c.GroupInfo.GetElementDescription().Key + "." + c.NameInfo.GetElementDescription().Key + "." + string(c.RollupType)
 }
 
-func defaultResourceAllocationInfo() *ResourceAllocationInfo {
-	return &ResourceAllocationInfo{
+func defaultResourceAllocationInfo() ResourceAllocationInfo {
+	return ResourceAllocationInfo{
 		Reservation:           NewInt64(0),
 		ExpandableReservation: NewBool(true),
 		Limit: NewInt64(-1),
@@ -80,4 +86,10 @@ func DefaultResourceConfigSpec() ResourceConfigSpec {
 		CpuAllocation:    defaultResourceAllocationInfo(),
 		MemoryAllocation: defaultResourceAllocationInfo(),
 	}
+}
+
+func init() {
+	// Known 6.5 issue where this event type is sent even though it is internal.
+	// This workaround allows us to unmarshal and avoid NPEs.
+	t["HostSubSpecificationUpdateEvent"] = reflect.TypeOf((*HostEvent)(nil)).Elem()
 }

@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path"
 
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25"
@@ -121,6 +122,28 @@ func (l *Lease) newLeaseInfo(li *types.HttpNfcLeaseInfo, items []types.OvfFileIt
 			l.c.SetThumbprint(u.Host, device.SslThumbprint)
 		}
 
+		if len(items) == 0 {
+			// this is an export
+			item := types.OvfFileItem{
+				DeviceId: device.Key,
+				Path:     device.TargetId,
+				Size:     device.FileSize,
+			}
+
+			if item.Size == 0 {
+				item.Size = li.TotalDiskCapacityInKB * 1024
+			}
+
+			if item.Path == "" {
+				item.Path = path.Base(device.Url)
+			}
+
+			info.Items = append(info.Items, NewFileItem(u, item))
+
+			continue
+		}
+
+		// this is an import
 		for _, item := range items {
 			if device.ImportKey == item.DeviceId {
 				info.Items = append(info.Items, NewFileItem(u, item))
@@ -201,5 +224,15 @@ func (l *Lease) Upload(ctx context.Context, item FileItem, f io.Reader, opts soa
 		opts.Type = "application/x-vnd.vmware-streamVmdk"
 	}
 
-	return l.c.Upload(f, item.URL, &opts)
+	return l.c.Upload(ctx, f, item.URL, &opts)
+}
+
+func (l *Lease) DownloadFile(ctx context.Context, file string, item FileItem, opts soap.Download) error {
+	if opts.Progress == nil {
+		opts.Progress = item
+	} else {
+		opts.Progress = progress.Tee(item, opts.Progress)
+	}
+
+	return l.c.DownloadFile(ctx, file, item.URL, &opts)
 }
