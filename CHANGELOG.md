@@ -1,4 +1,11 @@
 ## 1.3.3 (Unreleased)
+
+BUG FIXES:
+
+* `resource/vsphere_virtual_machine`: Opaque networks, such as those coming from
+  NSX, should now be able to be correctly added as networks for virtual
+  machines. [GH-398]
+
 ## 1.3.2 (February 07, 2018)
 
 BUG FIXES:
