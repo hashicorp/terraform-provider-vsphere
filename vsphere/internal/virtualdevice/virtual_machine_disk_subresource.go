@@ -1175,9 +1175,13 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	r.Set("disk_mode", b.DiskMode)
 	r.Set("write_through", b.WriteThrough)
 
-	// Only use disk_sharing if we are on vSphere 6.0 and higher
+	// Only use disk_sharing if we are on vSphere 6.0 and higher. In addition,
+	// skip if the value is unset - this prevents spurious diffs during upgrade
+	// situations where the VM hardware version does not actually allow disk
+	// sharing. In this situation, the value will be blank, and setting it will
+	// actually result in an error.
 	version := viapi.ParseVersionFromClient(r.client)
-	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) && b.Sharing != "" {
 		r.Set("disk_sharing", b.Sharing)
 	}
 
