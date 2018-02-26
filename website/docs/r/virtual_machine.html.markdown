@@ -1274,6 +1274,10 @@ The following attributes are exported on the base level of this resource:
 * `guest_ip_addresses` - The current list of IP addresses on this machine,
   including the value of `default_ip_address`. If VMware tools is not running
   on the virtual machine, or if the VM is powered off, this list will be empty.
+* `moid`: The [managed object reference ID][docs-about-morefs] of the created
+  virtual machine.
+
+[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
 ## Importing 
 
