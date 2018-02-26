@@ -271,7 +271,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("error fetching VM properties: %s", err)
 	}
 
-	// Get out the machine object id
+	// Set the managed object id.
 	moid := vm.Reference().Value
 	d.Set("moid", moid)
 	log.Printf("[DEBUG] MOID for VM %q is %q", vm.InventoryPath, moid)

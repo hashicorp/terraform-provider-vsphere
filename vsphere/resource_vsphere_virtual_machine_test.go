@@ -55,6 +55,7 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
 						Check: resource.ComposeTestCheckFunc(
 							testAccResourceVSphereVirtualMachineCheckExists(true),
+							resource.TestMatchResourceAttr("vsphere_virtual_machine.vm", "moid", regexp.MustCompile("^vm-")),
 						),
 					},
 				},
