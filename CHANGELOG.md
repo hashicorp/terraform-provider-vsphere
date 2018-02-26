@@ -2,6 +2,9 @@
 
 BUG FIXES:
 
+* `resource/vsphere_virtual_machine`: The `moid` attribute has now be re-added
+  to the resource, exporting the managed object ID of the virtual machine.
+  [GH-390]
 * `resource/vsphere_virtual_machine`: Opaque networks, such as those coming from
   NSX, should now be able to be correctly added as networks for virtual
   machines. [GH-398]
