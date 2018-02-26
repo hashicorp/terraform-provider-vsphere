@@ -1094,7 +1094,7 @@ func ReadDiskAttrsForDataSource(l object.VirtualDeviceList, count int) ([]map[st
 		if backing.ThinProvisioned != nil {
 			thin = *backing.ThinProvisioned
 		}
-		m["size"] = int(structure.ByteToGiB(disk.CapacityInBytes).(int64))
+		m["size"] = diskCapacityInGiB(disk)
 		m["eagerly_scrub"] = eager
 		m["thin_provisioned"] = thin
 		out = append(out, m)
@@ -1175,9 +1175,13 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	r.Set("disk_mode", b.DiskMode)
 	r.Set("write_through", b.WriteThrough)
 
-	// Only use disk_sharing if we are on vSphere 6.0 and higher
+	// Only use disk_sharing if we are on vSphere 6.0 and higher. In addition,
+	// skip if the value is unset - this prevents spurious diffs during upgrade
+	// situations where the VM hardware version does not actually allow disk
+	// sharing. In this situation, the value will be blank, and setting it will
+	// actually result in an error.
 	version := viapi.ParseVersionFromClient(r.client)
-	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) && b.Sharing != "" {
 		r.Set("disk_sharing", b.Sharing)
 	}
 
@@ -1194,7 +1198,7 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 			return fmt.Errorf("could not parse path from filename: %s", b.FileName)
 		}
 		r.Set("path", dp.Path)
-		r.Set("size", structure.ByteToGiB(disk.CapacityInBytes))
+		r.Set("size", diskCapacityInGiB(disk))
 	}
 
 	if allocation := disk.StorageIOAllocation; allocation != nil {
@@ -1875,4 +1879,19 @@ func diskUUIDMatch(device types.BaseVirtualDevice, uuid string) bool {
 		return false
 	}
 	return true
+}
+
+// diskCapacityInGiB reports the supplied disk's capacity, by first checking
+// CapacityInBytes, and then falling back to CapacityInKB if that value is
+// unavailable. This helps correct some situations where the former value's
+// data gets cleared, which seems to happen on upgrades.
+func diskCapacityInGiB(disk *types.VirtualDisk) int {
+	if disk.CapacityInBytes > 0 {
+		return int(structure.ByteToGiB(disk.CapacityInBytes).(int64))
+	}
+	log.Printf(
+		"[DEBUG] diskCapacityInGiB: capacityInBytes missing for for %s, falling back to capacityInKB",
+		object.VirtualDeviceList{}.Name(disk),
+	)
+	return int(structure.ByteToGiB(disk.CapacityInKB * 1024).(int64))
 }
