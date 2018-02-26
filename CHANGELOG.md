@@ -2,6 +2,8 @@
 
 BUG FIXES:
 
+* `resource/vsphere_virtual_machine`: Corrected an issue reading disk capacity
+  values after a vCenter or ESXi upgrade. [GH-405]
 * `resource/vsphere_virtual_machine`: The `moid` attribute has now be re-added
   to the resource, exporting the managed object ID of the virtual machine.
   [GH-390]
