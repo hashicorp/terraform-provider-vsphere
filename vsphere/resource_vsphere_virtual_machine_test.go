@@ -803,10 +803,6 @@ func TestAccResourceVSphereVirtualMachine(t *testing.T) {
 						Config:      testAccResourceVSphereVirtualMachineConfigBasicEmptyCluster(),
 						ExpectError: regexp.MustCompile("compute resource .* is missing an Environment Browser\\. Check host, cluster, and vSphere license health of all associated resources and try again"),
 					},
-					{
-						Config: testAccResourceVSphereEmpty,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
 				},
 			},
 		},
