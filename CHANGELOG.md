@@ -2,6 +2,9 @@
 
 BUG FIXES:
 
+* `resource/vsphere_virtual_machine`: Fixed a crash scenario that can happen
+  when a virtual machine is deployed to a cluster that does not have any hosts,
+  or under certain circumstances such an expired vCenter license. [GH-414]
 * `resource/vsphere_virtual_machine`: Corrected an issue reading disk capacity
   values after a vCenter or ESXi upgrade. [GH-405]
 * `resource/vsphere_virtual_machine`: The `moid` attribute has now be re-added
