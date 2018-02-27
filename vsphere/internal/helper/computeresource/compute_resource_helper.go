@@ -32,6 +32,7 @@ type BaseComputeResource interface {
 	Name() string
 	Properties(context.Context, types.ManagedObjectReference, []string, interface{}) error
 	Reference() types.ManagedObjectReference
+	String() string
 }
 
 // StandaloneFromID locates a ComputeResource by its managed object reference ID.
@@ -139,11 +140,10 @@ func BasePropertiesFromReference(client *govmomi.Client, ref types.ManagedObject
 // specific compute resource from a supplied managed object reference.
 func DefaultDevicesFromReference(client *govmomi.Client, ref types.ManagedObjectReference, guest string) (object.VirtualDeviceList, error) {
 	log.Printf("[DEBUG] Fetching default device list for object reference %q for OS type %q", ref.Value, guest)
-	props, err := BasePropertiesFromReference(client, ref)
+	b, err := EnvironmentBrowserFromReference(client, ref)
 	if err != nil {
 		return nil, err
 	}
-	b := envbrowse.NewEnvironmentBrowser(client.Client, *props.EnvironmentBrowser)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	return b.DefaultDevices(ctx, "", nil)
@@ -152,12 +152,37 @@ func DefaultDevicesFromReference(client *govmomi.Client, ref types.ManagedObject
 // OSFamily uses the compute resource's environment browser to get the OS family
 // for a specific guest ID.
 func OSFamily(client *govmomi.Client, ref types.ManagedObjectReference, guest string) (string, error) {
-	props, err := BasePropertiesFromReference(client, ref)
+	b, err := EnvironmentBrowserFromReference(client, ref)
 	if err != nil {
 		return "", err
 	}
-	b := envbrowse.NewEnvironmentBrowser(client.Client, *props.EnvironmentBrowser)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	return b.OSFamily(ctx, guest)
+}
+
+// EnvironmentBrowserFromReference loads an environment browser for the
+// specific compute resource reference. The reference can be either a
+// standalone host or cluster.
+//
+// As an added safety feature if the compute resource properties come back with
+// an unset environmentBrowser attribute, this function will return an error.
+// This is to protect against cases where this may come up such as licensing
+// issues or clusters without hosts.
+func EnvironmentBrowserFromReference(client *govmomi.Client, ref types.ManagedObjectReference) (*envbrowse.EnvironmentBrowser, error) {
+	cr, err := BaseFromReference(client, ref)
+	if err != nil {
+		return nil, err
+	}
+	props, err := BaseProperties(cr)
+	if err != nil {
+		return nil, err
+	}
+	if props.EnvironmentBrowser == nil {
+		return nil, fmt.Errorf(
+			"compute resource %q is missing an Environment Browser. Check host, cluster, and vSphere license health of all associated resources and try again",
+			cr,
+		)
+	}
+	return envbrowse.NewEnvironmentBrowser(client.Client, *props.EnvironmentBrowser), nil
 }
