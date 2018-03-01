@@ -11,196 +11,180 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccResourceVSphereHostVirtualSwitch(t *testing.T) {
-	var tp *testing.T
-	testAccResourceVSphereHostVirtualSwitchCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"basic",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereHostVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereHostVirtualSwitchConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereHostVirtualSwitchExists(true),
-						),
-					},
-				},
+func TestAccResourceVSphereHostVirtualSwitch_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereHostVirtualSwitchConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereHostVirtualSwitchExists(true),
+				),
 			},
 		},
-		{
-			"basic, then remove a NIC",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereHostVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereHostVirtualSwitchConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereHostVirtualSwitchExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereHostVirtualSwitchConfigSingleNIC(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereHostVirtualSwitchExists(true),
-						),
-					},
-				},
-			},
-		},
-		{
-			"create with no NICs",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereHostVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereHostVirtualSwitchConfigNoNIC(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereHostVirtualSwitchExists(true),
-							testAccResourceVSphereHostVirtualSwitchNoBridge(),
-						),
-					},
-				},
-			},
-		},
-		{
-			"bad active NIC list",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereHostVirtualSwitchPreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      testAccResourceVSphereHostVirtualSwitchConfigBadActive(),
-						ExpectError: regexp.MustCompile(fmt.Sprintf("active NIC entry %q not present in network_adapters list", os.Getenv("VSPHERE_HOST_NIC0"))),
-						PlanOnly:    true,
-					},
-					{
-						Config: testAccResourceVSphereEmpty,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-				},
-			},
-		},
-		{
-			"bad standby NIC list",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereHostVirtualSwitchPreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      testAccResourceVSphereHostVirtualSwitchConfigBadStandby(),
-						ExpectError: regexp.MustCompile(fmt.Sprintf("standby NIC entry %q not present in network_adapters list", os.Getenv("VSPHERE_HOST_NIC0"))),
-						PlanOnly:    true,
-					},
-					{
-						Config: testAccResourceVSphereEmpty,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-				},
-			},
-		},
-		{
-			"basic, then remove all NICs",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereHostVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereHostVirtualSwitchConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereHostVirtualSwitchExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereHostVirtualSwitchConfigNoNIC(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereHostVirtualSwitchExists(true),
-							testAccResourceVSphereHostVirtualSwitchNoBridge(),
-						),
-					},
-				},
-			},
-		},
-		{
-			"standby with explicit failover order",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereHostVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereHostVirtualSwitchConfigStandbyLink(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereHostVirtualSwitchExists(true),
-						),
-					},
-				},
-			},
-		},
-		{
-			"basic, then change to standby with failover order",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereHostVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereHostVirtualSwitchConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereHostVirtualSwitchExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereHostVirtualSwitchConfigStandbyLink(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereHostVirtualSwitchExists(true),
-						),
-					},
-				},
-			},
-		},
-	}
+	})
+}
 
-	for _, tc := range testAccResourceVSphereHostVirtualSwitchCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+func TestAccResourceVSphereHostVirtualSwitch_removeNIC(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereHostVirtualSwitchConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereHostVirtualSwitchExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereHostVirtualSwitchConfigSingleNIC(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereHostVirtualSwitchExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereHostVirtualSwitch_noNICs(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereHostVirtualSwitchConfigNoNIC(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereHostVirtualSwitchExists(true),
+					testAccResourceVSphereHostVirtualSwitchNoBridge(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereHostVirtualSwitch_badActiveNICList(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereHostVirtualSwitchConfigBadActive(),
+				ExpectError: regexp.MustCompile(fmt.Sprintf("active NIC entry %q not present in network_adapters list", os.Getenv("VSPHERE_HOST_NIC0"))),
+				PlanOnly:    true,
+			},
+			{
+				Config: testAccResourceVSphereEmpty,
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereHostVirtualSwitch_badStandbyNICList(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereHostVirtualSwitchConfigBadStandby(),
+				ExpectError: regexp.MustCompile(fmt.Sprintf("standby NIC entry %q not present in network_adapters list", os.Getenv("VSPHERE_HOST_NIC0"))),
+				PlanOnly:    true,
+			},
+			{
+				Config: testAccResourceVSphereEmpty,
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereHostVirtualSwitch_removeAllNICs(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereHostVirtualSwitchConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereHostVirtualSwitchExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereHostVirtualSwitchConfigNoNIC(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereHostVirtualSwitchExists(true),
+					testAccResourceVSphereHostVirtualSwitchNoBridge(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereHostVirtualSwitch_standbyWithExplicitFailoverOrder(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereHostVirtualSwitchConfigStandbyLink(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereHostVirtualSwitchExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereHostVirtualSwitch_changeToStandby(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereHostVirtualSwitchConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereHostVirtualSwitchExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereHostVirtualSwitchConfigStandbyLink(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereHostVirtualSwitchExists(true),
+				),
+			},
+		},
+	})
 }
 
 func testAccResourceVSphereHostVirtualSwitchPreCheck(t *testing.T) {
