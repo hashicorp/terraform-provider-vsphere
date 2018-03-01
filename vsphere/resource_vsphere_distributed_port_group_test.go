@@ -11,221 +11,205 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-func TestAccResourceVSphereDistributedPortGroup(t *testing.T) {
-	var tp *testing.T
-	testAccResourceVSphereDistributedPortGroupCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"basic",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedPortGroupPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedPortGroupConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedPortGroupExists(true),
-						),
-					},
-				},
+func TestAccResourceVSphereDistributedPortGroup_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedPortGroupPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedPortGroupConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedPortGroupExists(true),
+				),
 			},
 		},
-		{
-			"inherit policy diff check",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedPortGroupPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedPortGroupConfigPolicyInherit(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedPortGroupExists(true),
-						),
-					},
-				},
-			},
-		},
-		{
-			"inherit policy diff check (vlan range - typeset edition)",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedPortGroupPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedPortGroupConfigPolicyInheritVLANRange(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedPortGroupExists(true),
-						),
-					},
-				},
-			},
-		},
-		{
-			"override vlan",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedPortGroupPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedPortGroupConfigOverrideVLAN(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedPortGroupExists(true),
-							testAccResourceVSphereDistributedVirtualSwitchHasVlanRange(1000, 1999),
-							testAccResourceVSphereDistributedPortGroupHasVlanRange(3000, 3999),
-						),
-					},
-				},
-			},
-		},
-		{
-			"single tag",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedPortGroupPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedPortGroupConfigSingleTag(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedPortGroupExists(true),
-							testAccResourceVSphereDistributedPortGroupCheckTags("terraform-test-tag"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"multi tag",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedPortGroupPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedPortGroupConfigMultiTag(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedPortGroupExists(true),
-							testAccResourceVSphereDistributedPortGroupCheckTags("terraform-test-tags-alt"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"import",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedPortGroupPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedPortGroupConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedPortGroupExists(true),
-						),
-					},
-					{
-						ResourceName:            "vsphere_distributed_port_group.pg",
-						ImportState:             true,
-						ImportStateVerify:       true,
-						ImportStateVerifyIgnore: []string{"vlan_range"},
-						ImportStateIdFunc: func(s *terraform.State) (string, error) {
-							pg, err := testGetDVPortgroup(s, "pg")
-							if err != nil {
-								return "", err
-							}
-							return pg.InventoryPath, nil
-						},
-						Config: testAccResourceVSphereDistributedPortGroupConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedPortGroupExists(true),
-						),
-					},
-				},
-			},
-		},
-		{
-			"single custom attribute",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedPortGroupPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedPortGroupConfigSingleCustomAttribute(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedPortGroupExists(true),
-							testAccResourceVSphereDistributedPortGroupCheckCustomAttributes(),
-						),
-					},
-				},
-			},
-		},
-		{
-			"multi custom attribute",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedPortGroupPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedPortGroupConfigSingleCustomAttribute(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedPortGroupExists(true),
-							testAccResourceVSphereDistributedPortGroupCheckCustomAttributes(),
-						),
-					},
-					{
-						Config: testAccResourceVSphereDistributedPortGroupConfigMultiCustomAttribute(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedPortGroupExists(true),
-							testAccResourceVSphereDistributedPortGroupCheckCustomAttributes(),
-						),
-					},
-				},
-			},
-		},
-	}
+	})
+}
 
-	for _, tc := range testAccResourceVSphereDistributedPortGroupCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+func TestAccResourceVSphereDistributedPortGroup_inheritPolicyDiffCheck(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedPortGroupPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedPortGroupConfigPolicyInherit(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedPortGroupExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedPortGroup_inheritPolicyDiffCheckVlanRangeTypeSetEdition(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedPortGroupPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedPortGroupConfigPolicyInheritVLANRange(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedPortGroupExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedPortGroup_overrideVlan(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedPortGroupPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedPortGroupConfigOverrideVLAN(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedPortGroupExists(true),
+					testAccResourceVSphereDistributedVirtualSwitchHasVlanRange(1000, 1999),
+					testAccResourceVSphereDistributedPortGroupHasVlanRange(3000, 3999),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedPortGroup_singleTag(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedPortGroupPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedPortGroupConfigSingleTag(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedPortGroupExists(true),
+					testAccResourceVSphereDistributedPortGroupCheckTags("terraform-test-tag"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedPortGroup_multiTag(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedPortGroupPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedPortGroupConfigMultiTag(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedPortGroupExists(true),
+					testAccResourceVSphereDistributedPortGroupCheckTags("terraform-test-tags-alt"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedPortGroup_import(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedPortGroupPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedPortGroupConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedPortGroupExists(true),
+				),
+			},
+			{
+				ResourceName:            "vsphere_distributed_port_group.pg",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"vlan_range"},
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					pg, err := testGetDVPortgroup(s, "pg")
+					if err != nil {
+						return "", err
+					}
+					return pg.InventoryPath, nil
+				},
+				Config: testAccResourceVSphereDistributedPortGroupConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedPortGroupExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedPortGroup_singleCustomAttribute(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedPortGroupPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedPortGroupConfigSingleCustomAttribute(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedPortGroupExists(true),
+					testAccResourceVSphereDistributedPortGroupCheckCustomAttributes(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedPortGroup_multiCustomAttribute(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedPortGroupPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedPortGroupConfigSingleCustomAttribute(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedPortGroupExists(true),
+					testAccResourceVSphereDistributedPortGroupCheckCustomAttributes(),
+				),
+			},
+			{
+				Config: testAccResourceVSphereDistributedPortGroupConfigMultiCustomAttribute(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedPortGroupExists(true),
+					testAccResourceVSphereDistributedPortGroupCheckCustomAttributes(),
+				),
+			},
+		},
+	})
 }
 
 func testAccResourceVSphereDistributedPortGroupPreCheck(t *testing.T) {
