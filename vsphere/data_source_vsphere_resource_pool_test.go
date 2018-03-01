@@ -9,99 +9,83 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccDataSourceVSphereResourcePool(t *testing.T) {
-	var tp *testing.T
-	testAccDataSourceVSphereResourcePoolCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"basic",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccDataSourceVSphereResourcePoolPreCheck(tp)
-					testAccSkipIfEsxi(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereResourcePoolConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestMatchResourceAttr("data.vsphere_resource_pool.pool", "id", regexp.MustCompile("^resgroup-")),
-						),
-					},
-				},
+func TestAccDataSourceVSphereResourcePool_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereResourcePoolPreCheck(t)
+			testAccSkipIfEsxi(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereResourcePoolConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr("data.vsphere_resource_pool.pool", "id", regexp.MustCompile("^resgroup-")),
+				),
 			},
 		},
-		{
-			"no datacenter and absolute path",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccDataSourceVSphereResourcePoolPreCheck(tp)
-					testAccSkipIfEsxi(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereResourcePoolConfigAbsolutePath(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestMatchResourceAttr("data.vsphere_resource_pool.pool", "id", regexp.MustCompile("^resgroup-")),
-						),
-					},
-				},
-			},
-		},
-		{
-			"default resource pool for ESXi",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccDataSourceVSphereResourcePoolPreCheck(tp)
-					testAccSkipIfNotEsxi(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereResourcePoolConfigDefault,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestMatchResourceAttr("data.vsphere_resource_pool.pool", "id", regexp.MustCompile("^ha-root-pool$")),
-						),
-					},
-				},
-			},
-		},
-		{
-			"empty name on vCenter, should error",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccDataSourceVSphereResourcePoolPreCheck(tp)
-					testAccSkipIfEsxi(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      testAccDataSourceVSphereResourcePoolConfigDefault,
-						ExpectError: regexp.MustCompile("name cannot be empty when using vCenter"),
-						PlanOnly:    true,
-					},
-					{
-						Config: testAccResourceVSphereEmpty,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-				},
-			},
-		},
-	}
+	})
+}
 
-	for _, tc := range testAccDataSourceVSphereResourcePoolCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+func TestAccDataSourceVSphereResourcePool_noDatacenterAndAbsolutePath(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereResourcePoolPreCheck(t)
+			testAccSkipIfEsxi(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereResourcePoolConfigAbsolutePath(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr("data.vsphere_resource_pool.pool", "id", regexp.MustCompile("^resgroup-")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDataSourceVSphereResourcePool_defaultResourcePoolForESXi(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereResourcePoolPreCheck(t)
+			testAccSkipIfNotEsxi(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereResourcePoolConfigDefault,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr("data.vsphere_resource_pool.pool", "id", regexp.MustCompile("^ha-root-pool$")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDataSourceVSphereResourcePool_emptyNameOnVCenterShouldError(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereResourcePoolPreCheck(t)
+			testAccSkipIfEsxi(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccDataSourceVSphereResourcePoolConfigDefault,
+				ExpectError: regexp.MustCompile("name cannot be empty when using vCenter"),
+				PlanOnly:    true,
+			},
+			{
+				Config: testAccResourceVSphereEmpty,
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
 }
 
 func testAccDataSourceVSphereResourcePoolPreCheck(t *testing.T) {
