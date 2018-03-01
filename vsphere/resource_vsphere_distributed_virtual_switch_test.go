@@ -15,432 +15,416 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-func TestAccResourceVSphereDistributedVirtualSwitch(t *testing.T) {
-	var tp *testing.T
-	testAccResourceVSphereDistributedVirtualSwitchCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"basic",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-						),
-					},
-				},
+func TestAccResourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+				),
 			},
 		},
-		{
-			"no hosts",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfigNoHosts(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-						),
-					},
-				},
-			},
-		},
-		{
-			"remove a NIC",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfigSingleNIC(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-						),
-					},
-				},
-			},
-		},
-		{
-			"standby with explicit failover order",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfigStandbyLink(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-							testAccResourceVSphereDistributedVirtualSwitchHasUplinks([]string{"tfup1", "tfup2"}),
-							testAccResourceVSphereDistributedVirtualSwitchHasActiveUplinks([]string{"tfup1"}),
-							testAccResourceVSphereDistributedVirtualSwitchHasStandbyUplinks([]string{"tfup2"}),
-						),
-					},
-				},
-			},
-		},
-		{
-			"basic, then change to standby with failover order",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfigStandbyLink(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-							testAccResourceVSphereDistributedVirtualSwitchHasUplinks([]string{"tfup1", "tfup2"}),
-							testAccResourceVSphereDistributedVirtualSwitchHasActiveUplinks([]string{"tfup1"}),
-							testAccResourceVSphereDistributedVirtualSwitchHasStandbyUplinks([]string{"tfup2"}),
-						),
-					},
-				},
-			},
-		},
-		{
-			"upgrade version",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfigStaticVersion("6.0.0"),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-							testAccResourceVSphereDistributedVirtualSwitchHasVersion("6.0.0"),
-						),
-					},
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfigStaticVersion("6.5.0"),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-							testAccResourceVSphereDistributedVirtualSwitchHasVersion("6.5.0"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"network resource control",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfigNetworkResourceControl(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-							testAccResourceVSphereDistributedVirtualSwitchHasNetworkResourceControlEnabled(),
-							testAccResourceVSphereDistributedVirtualSwitchHasNetworkResourceControlVersion(
-								types.DistributedVirtualSwitchNetworkResourceControlVersionVersion3,
-							),
-						),
-					},
-				},
-			},
-		},
-		{
-			"explicit uplinks",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfigUplinks(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-							testAccResourceVSphereDistributedVirtualSwitchHasUplinks([]string{"tfup1", "tfup2"}),
-						),
-					},
-				},
-			},
-		},
-		{
-			"modify uplinks",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-							testAccResourceVSphereDistributedVirtualSwitchHasUplinks(
-								[]string{
-									"uplink1",
-									"uplink2",
-									"uplink3",
-									"uplink4",
-								},
-							),
-						),
-					},
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfigStandbyLink(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-							testAccResourceVSphereDistributedVirtualSwitchHasUplinks(
-								[]string{
-									"tfup1",
-									"tfup2",
-								},
-							),
-						),
-					},
-				},
-			},
-		},
-		{
-			"in folder",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfigInFolder(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-							testAccResourceVSphereDistributedVirtualSwitchMatchInventoryPath("tf-network-folder"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"single tag",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfigSingleTag(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-							testAccResourceVSphereDistributedVirtualSwitchCheckTags("terraform-test-tag"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"modify tags",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfigSingleTag(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-							testAccResourceVSphereDistributedVirtualSwitchCheckTags("terraform-test-tag"),
-						),
-					},
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfigMultiTag(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-							testAccResourceVSphereDistributedVirtualSwitchCheckTags("terraform-test-tags-alt"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"netflow",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfigNetflow(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-							testAccResourceVSphereDistributedVirtualSwitchHasNetflow(),
-						),
-					},
-				},
-			},
-		},
-		{
-			"vlan ranges",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfigMultiVlanRange(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-							testAccResourceVSphereDistributedVirtualSwitchHasVlanRange(1000, 1999),
-							testAccResourceVSphereDistributedVirtualSwitchHasVlanRange(3000, 3999),
-						),
-					},
-				},
-			},
-		},
-		{
-			"import",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-						),
-					},
-					{
-						ResourceName:      "vsphere_distributed_virtual_switch.dvs",
-						ImportState:       true,
-						ImportStateVerify: true,
-						ImportStateIdFunc: func(s *terraform.State) (string, error) {
-							dvs, err := testGetDVS(s, "dvs")
-							if err != nil {
-								return "", err
-							}
-							return dvs.InventoryPath, nil
-						},
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-						),
-					},
-				},
-			},
-		},
-		{
-			"single custom attribute",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfigSingleCustomAttribute(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-							testAccResourceVSphereDistributedVirtualSwitchCheckCustomAttributes(),
-						),
-					},
-				},
-			},
-		},
-		{
-			"multi custom attribute",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereDistributedVirtualSwitchPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfigSingleCustomAttribute(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-							testAccResourceVSphereDistributedVirtualSwitchCheckCustomAttributes(),
-						),
-					},
-					{
-						Config: testAccResourceVSphereDistributedVirtualSwitchConfigMultiCustomAttribute(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereDistributedVirtualSwitchExists(true),
-							testAccResourceVSphereDistributedVirtualSwitchCheckCustomAttributes(),
-						),
-					},
-				},
-			},
-		},
-	}
+	})
+}
 
-	for _, tc := range testAccResourceVSphereDistributedVirtualSwitchCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+func TestAccResourceVSphereDistributedVirtualSwitch_noHosts(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigNoHosts(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedVirtualSwitch_removeNIC(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigSingleNIC(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedVirtualSwitch_standbyWithExplicitFailoverOrder(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigStandbyLink(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+					testAccResourceVSphereDistributedVirtualSwitchHasUplinks([]string{"tfup1", "tfup2"}),
+					testAccResourceVSphereDistributedVirtualSwitchHasActiveUplinks([]string{"tfup1"}),
+					testAccResourceVSphereDistributedVirtualSwitchHasStandbyUplinks([]string{"tfup2"}),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedVirtualSwitch_basicToStandbyWithFailover(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigStandbyLink(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+					testAccResourceVSphereDistributedVirtualSwitchHasUplinks([]string{"tfup1", "tfup2"}),
+					testAccResourceVSphereDistributedVirtualSwitchHasActiveUplinks([]string{"tfup1"}),
+					testAccResourceVSphereDistributedVirtualSwitchHasStandbyUplinks([]string{"tfup2"}),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedVirtualSwitch_upgradeVersion(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigStaticVersion("6.0.0"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+					testAccResourceVSphereDistributedVirtualSwitchHasVersion("6.0.0"),
+				),
+			},
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigStaticVersion("6.5.0"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+					testAccResourceVSphereDistributedVirtualSwitchHasVersion("6.5.0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedVirtualSwitch_networkResourceControl(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigNetworkResourceControl(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+					testAccResourceVSphereDistributedVirtualSwitchHasNetworkResourceControlEnabled(),
+					testAccResourceVSphereDistributedVirtualSwitchHasNetworkResourceControlVersion(
+						types.DistributedVirtualSwitchNetworkResourceControlVersionVersion3,
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedVirtualSwitch_explicitUplinks(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigUplinks(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+					testAccResourceVSphereDistributedVirtualSwitchHasUplinks([]string{"tfup1", "tfup2"}),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedVirtualSwitch_modifyUplinks(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+					testAccResourceVSphereDistributedVirtualSwitchHasUplinks(
+						[]string{
+							"uplink1",
+							"uplink2",
+							"uplink3",
+							"uplink4",
+						},
+					),
+				),
+			},
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigStandbyLink(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+					testAccResourceVSphereDistributedVirtualSwitchHasUplinks(
+						[]string{
+							"tfup1",
+							"tfup2",
+						},
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedVirtualSwitch_inFolder(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigInFolder(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+					testAccResourceVSphereDistributedVirtualSwitchMatchInventoryPath("tf-network-folder"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedVirtualSwitch_singleTag(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigSingleTag(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+					testAccResourceVSphereDistributedVirtualSwitchCheckTags("terraform-test-tag"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedVirtualSwitch_modifyTags(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigSingleTag(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+					testAccResourceVSphereDistributedVirtualSwitchCheckTags("terraform-test-tag"),
+				),
+			},
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigMultiTag(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+					testAccResourceVSphereDistributedVirtualSwitchCheckTags("terraform-test-tags-alt"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedVirtualSwitch_netflow(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigNetflow(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+					testAccResourceVSphereDistributedVirtualSwitchHasNetflow(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedVirtualSwitch_vlanRanges(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigMultiVlanRange(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+					testAccResourceVSphereDistributedVirtualSwitchHasVlanRange(1000, 1999),
+					testAccResourceVSphereDistributedVirtualSwitchHasVlanRange(3000, 3999),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedVirtualSwitch_import(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+				),
+			},
+			{
+				ResourceName:      "vsphere_distributed_virtual_switch.dvs",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					dvs, err := testGetDVS(s, "dvs")
+					if err != nil {
+						return "", err
+					}
+					return dvs.InventoryPath, nil
+				},
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedVirtualSwitch_singleCustomAttribute(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigSingleCustomAttribute(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+					testAccResourceVSphereDistributedVirtualSwitchCheckCustomAttributes(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDistributedVirtualSwitch_multiCustomAttribute(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigSingleCustomAttribute(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+					testAccResourceVSphereDistributedVirtualSwitchCheckCustomAttributes(),
+				),
+			},
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigMultiCustomAttribute(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+					testAccResourceVSphereDistributedVirtualSwitchCheckCustomAttributes(),
+				),
+			},
+		},
+	})
 }
 
 func testAccResourceVSphereDistributedVirtualSwitchPreCheck(t *testing.T) {
