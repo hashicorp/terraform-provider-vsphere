@@ -20,7 +20,7 @@ resource "vsphere_license" "foo" {
 }
 `
 
-func TestAccVSphereLicenseBasic(t *testing.T) {
+func TestAccResourceVSphereLicense_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -41,7 +41,7 @@ func TestAccVSphereLicenseBasic(t *testing.T) {
 
 }
 
-func TestAccVSphereLicenseInvalid(t *testing.T) {
+func TestAccResourceVSphereLicense_invalid(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -61,7 +61,7 @@ func TestAccVSphereLicenseInvalid(t *testing.T) {
 
 }
 
-func TestAccVSphereLicenseWithLabelsOnVCenter(t *testing.T) {
+func TestAccResourceVSphereLicense_withLabelsOnVCenter(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -82,7 +82,7 @@ func TestAccVSphereLicenseWithLabelsOnVCenter(t *testing.T) {
 
 }
 
-func TestAccVSphereLicenseWithLabelsOnESXiServer(t *testing.T) {
+func TestAccResourceVSphereLicense_withLabelsOnESXiServer(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
