@@ -361,9 +361,10 @@ func TestAccResourceVSphereDistributedVirtualSwitch_import(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      "vsphere_distributed_virtual_switch.dvs",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "vsphere_distributed_virtual_switch.dvs",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"vlan_range"},
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					dvs, err := testGetDVS(s, "dvs")
 					if err != nil {
