@@ -8,126 +8,110 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccDataSourceVSphereDistributedVirtualSwitch(t *testing.T) {
-	var tp *testing.T
-	testAccDataSourceVSphereDistributedVirtualSwitchCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"basic",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereDistributedVirtualSwitchConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								"data.vsphere_distributed_virtual_switch.dvs-data",
-								"uplinks.#",
-								"2",
-							),
-							resource.TestCheckResourceAttr(
-								"data.vsphere_distributed_virtual_switch.dvs-data",
-								"uplinks.0",
-								"tfup1",
-							),
-							resource.TestCheckResourceAttr(
-								"data.vsphere_distributed_virtual_switch.dvs-data",
-								"uplinks.1",
-								"tfup2",
-							),
-							resource.TestCheckResourceAttrPair(
-								"data.vsphere_distributed_virtual_switch.dvs-data", "id",
-								"vsphere_distributed_virtual_switch.dvs", "id",
-							),
-						),
-					},
-				},
+func TestAccDataSourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereDistributedVirtualSwitchConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"data.vsphere_distributed_virtual_switch.dvs-data",
+						"uplinks.#",
+						"2",
+					),
+					resource.TestCheckResourceAttr(
+						"data.vsphere_distributed_virtual_switch.dvs-data",
+						"uplinks.0",
+						"tfup1",
+					),
+					resource.TestCheckResourceAttr(
+						"data.vsphere_distributed_virtual_switch.dvs-data",
+						"uplinks.1",
+						"tfup2",
+					),
+					resource.TestCheckResourceAttrPair(
+						"data.vsphere_distributed_virtual_switch.dvs-data", "id",
+						"vsphere_distributed_virtual_switch.dvs", "id",
+					),
+				),
 			},
 		},
-		{
-			"absolute path - no datacenter specified",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereDistributedVirtualSwitchConfigAbsolute(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								"data.vsphere_distributed_virtual_switch.dvs-data",
-								"uplinks.#",
-								"2",
-							),
-							resource.TestCheckResourceAttr(
-								"data.vsphere_distributed_virtual_switch.dvs-data",
-								"uplinks.0",
-								"tfup1",
-							),
-							resource.TestCheckResourceAttr(
-								"data.vsphere_distributed_virtual_switch.dvs-data",
-								"uplinks.1",
-								"tfup2",
-							),
-							resource.TestCheckResourceAttrPair(
-								"data.vsphere_distributed_virtual_switch.dvs-data", "id",
-								"vsphere_distributed_virtual_switch.dvs", "id",
-							),
-						),
-					},
-				},
-			},
-		},
-		{
-			"create portgroup",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereDistributedVirtualSwitchConfigWithPortgroup(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								"vsphere_distributed_port_group.pg",
-								"active_uplinks.#",
-								"1",
-							),
-							resource.TestCheckResourceAttr(
-								"vsphere_distributed_port_group.pg",
-								"standby_uplinks.#",
-								"1",
-							),
-							resource.TestCheckResourceAttr(
-								"vsphere_distributed_port_group.pg",
-								"active_uplinks.0",
-								"tfup1",
-							),
-							resource.TestCheckResourceAttr(
-								"vsphere_distributed_port_group.pg",
-								"standby_uplinks.0",
-								"tfup2",
-							),
-						),
-					},
-				},
-			},
-		},
-	}
+	})
+}
 
-	for _, tc := range testAccDataSourceVSphereDistributedVirtualSwitchCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+func TestAccDataSourceVSphereDistributedVirtualSwitch_absolutePathNoDatacenterSpecified(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereDistributedVirtualSwitchConfigAbsolute(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"data.vsphere_distributed_virtual_switch.dvs-data",
+						"uplinks.#",
+						"2",
+					),
+					resource.TestCheckResourceAttr(
+						"data.vsphere_distributed_virtual_switch.dvs-data",
+						"uplinks.0",
+						"tfup1",
+					),
+					resource.TestCheckResourceAttr(
+						"data.vsphere_distributed_virtual_switch.dvs-data",
+						"uplinks.1",
+						"tfup2",
+					),
+					resource.TestCheckResourceAttrPair(
+						"data.vsphere_distributed_virtual_switch.dvs-data", "id",
+						"vsphere_distributed_virtual_switch.dvs", "id",
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDataSourceVSphereDistributedVirtualSwitch_CreatePortgroup(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereDistributedVirtualSwitchConfigWithPortgroup(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"vsphere_distributed_port_group.pg",
+						"active_uplinks.#",
+						"1",
+					),
+					resource.TestCheckResourceAttr(
+						"vsphere_distributed_port_group.pg",
+						"standby_uplinks.#",
+						"1",
+					),
+					resource.TestCheckResourceAttr(
+						"vsphere_distributed_port_group.pg",
+						"active_uplinks.0",
+						"tfup1",
+					),
+					resource.TestCheckResourceAttr(
+						"vsphere_distributed_port_group.pg",
+						"standby_uplinks.0",
+						"tfup2",
+					),
+				),
+			},
+		},
+	})
 }
 
 func testAccDataSourceVSphereDistributedVirtualSwitchConfig() string {
