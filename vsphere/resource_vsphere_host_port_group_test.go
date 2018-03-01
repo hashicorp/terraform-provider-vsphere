@@ -10,91 +10,75 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccResourceVSphereHostPortGroup(t *testing.T) {
-	var tp *testing.T
-	testAccResourceVSphereHostPortGroupCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"basic, inherited policy",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereHostPortGroupPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereHostPortGroupExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereHostPortGroupConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereHostPortGroupExists(true),
-						),
-					},
-				},
+func TestAccResourceVSphereHostPortGroup_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereHostPortGroupPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereHostPortGroupExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereHostPortGroupConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereHostPortGroupExists(true),
+				),
 			},
 		},
-		{
-			"more complex configuration and overridden attributes",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereHostPortGroupPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereHostPortGroupExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereHostPortGroupConfigWithOverrides(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereHostPortGroupExists(true),
-							testAccResourceVSphereHostPortGroupCheckVlan(1000),
-							testAccResourceVSphereHostPortGroupCheckEffectiveActive([]string{os.Getenv("VSPHERE_HOST_NIC0")}),
-							testAccResourceVSphereHostPortGroupCheckEffectiveStandby([]string{os.Getenv("VSPHERE_HOST_NIC1")}),
-							testAccResourceVSphereHostPortGroupCheckEffectivePromisc(true),
-						),
-					},
-				},
-			},
-		},
-		{
-			"basic, then complex config",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereHostPortGroupPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereHostPortGroupExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereHostPortGroupConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereHostPortGroupExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereHostPortGroupConfigWithOverrides(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereHostPortGroupExists(true),
-							testAccResourceVSphereHostPortGroupCheckVlan(1000),
-							testAccResourceVSphereHostPortGroupCheckEffectiveActive([]string{os.Getenv("VSPHERE_HOST_NIC0")}),
-							testAccResourceVSphereHostPortGroupCheckEffectiveStandby([]string{os.Getenv("VSPHERE_HOST_NIC1")}),
-							testAccResourceVSphereHostPortGroupCheckEffectivePromisc(true),
-						),
-					},
-				},
-			},
-		},
-	}
+	})
+}
 
-	for _, tc := range testAccResourceVSphereHostPortGroupCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+func TestAccResourceVSphereHostPortGroup_complexWithOverrides(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereHostPortGroupPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereHostPortGroupExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereHostPortGroupConfigWithOverrides(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereHostPortGroupExists(true),
+					testAccResourceVSphereHostPortGroupCheckVlan(1000),
+					testAccResourceVSphereHostPortGroupCheckEffectiveActive([]string{os.Getenv("VSPHERE_HOST_NIC0")}),
+					testAccResourceVSphereHostPortGroupCheckEffectiveStandby([]string{os.Getenv("VSPHERE_HOST_NIC1")}),
+					testAccResourceVSphereHostPortGroupCheckEffectivePromisc(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereHostPortGroup_basicToComplex(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereHostPortGroupPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereHostPortGroupExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereHostPortGroupConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereHostPortGroupExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereHostPortGroupConfigWithOverrides(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereHostPortGroupExists(true),
+					testAccResourceVSphereHostPortGroupCheckVlan(1000),
+					testAccResourceVSphereHostPortGroupCheckEffectiveActive([]string{os.Getenv("VSPHERE_HOST_NIC0")}),
+					testAccResourceVSphereHostPortGroupCheckEffectiveStandby([]string{os.Getenv("VSPHERE_HOST_NIC1")}),
+					testAccResourceVSphereHostPortGroupCheckEffectivePromisc(true),
+				),
+			},
+		},
+	})
 }
 
 func testAccResourceVSphereHostPortGroupPreCheck(t *testing.T) {
