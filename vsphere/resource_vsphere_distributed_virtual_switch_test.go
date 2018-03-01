@@ -607,7 +607,7 @@ func testAccResourceVSphereDistributedVirtualSwitchMatchInventoryPath(expected s
 			return err
 		}
 
-		expected, err := folder.RootPathParticleNetwork.PathFromNewRoot(dvs.InventoryPath, folder.RootPathParticleNetwork, expected)
+		expected, err = folder.RootPathParticleNetwork.PathFromNewRoot(dvs.InventoryPath, folder.RootPathParticleNetwork, expected)
 		actual := path.Dir(dvs.InventoryPath)
 		if err != nil {
 			return fmt.Errorf("bad: %s", err)
