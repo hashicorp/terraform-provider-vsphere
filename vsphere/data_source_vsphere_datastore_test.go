@@ -8,62 +8,46 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccDataSourceVSphereDatastore(t *testing.T) {
-	var tp *testing.T
-	testAccDataSourceVSphereDatastoreCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"basic",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccDataSourceVSphereDatastorePreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereDatastoreConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttrPair(
-								"data.vsphere_datastore.datastore_data", "id",
-								"vsphere_nas_datastore.datastore", "id",
-							),
-						),
-					},
-				},
+func TestAccDataSourceVSphereDatastore_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereDatastorePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereDatastoreConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrPair(
+						"data.vsphere_datastore.datastore_data", "id",
+						"vsphere_nas_datastore.datastore", "id",
+					),
+				),
 			},
 		},
-		{
-			"no datacenter and absolute path",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccDataSourceVSphereDatastorePreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereDatastoreConfigAbsolutePath(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttrPair(
-								"data.vsphere_datastore.datastore_data", "id",
-								"vsphere_nas_datastore.datastore", "id",
-							),
-						),
-					},
-				},
-			},
-		},
-	}
+	})
+}
 
-	for _, tc := range testAccDataSourceVSphereDatastoreCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+func TestAccDataSourceVSphereDatastore_noDatacenterAndAbsolutePath(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereDatastorePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereDatastoreConfigAbsolutePath(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrPair(
+						"data.vsphere_datastore.datastore_data", "id",
+						"vsphere_nas_datastore.datastore", "id",
+					),
+				),
+			},
+		},
+	})
 }
 
 func testAccDataSourceVSphereDatastorePreCheck(t *testing.T) {
