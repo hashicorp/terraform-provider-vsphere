@@ -1,6 +1,12 @@
 ## 1.3.4 (Unreleased)
 ## 1.3.3 (March 01, 2018)
 
+IMPROVEMENTS:
+
+* `resource/vsphere_virtual_machine`: The `moid` attribute has now be re-added
+  to the resource, exporting the managed object ID of the virtual machine.
+  ([#390](https://github.com/terraform-providers/terraform-provider-vsphere/issues/390))
+
 BUG FIXES:
 
 * `resource/vsphere_virtual_machine`: Fixed a crash scenario that can happen
@@ -8,9 +14,6 @@ BUG FIXES:
   or under certain circumstances such an expired vCenter license. ([#414](https://github.com/terraform-providers/terraform-provider-vsphere/issues/414))
 * `resource/vsphere_virtual_machine`: Corrected an issue reading disk capacity
   values after a vCenter or ESXi upgrade. ([#405](https://github.com/terraform-providers/terraform-provider-vsphere/issues/405))
-* `resource/vsphere_virtual_machine`: The `moid` attribute has now be re-added
-  to the resource, exporting the managed object ID of the virtual machine.
-  ([#390](https://github.com/terraform-providers/terraform-provider-vsphere/issues/390))
 * `resource/vsphere_virtual_machine`: Opaque networks, such as those coming from
   NSX, should now be able to be correctly added as networks for virtual
   machines. ([#398](https://github.com/terraform-providers/terraform-provider-vsphere/issues/398))
