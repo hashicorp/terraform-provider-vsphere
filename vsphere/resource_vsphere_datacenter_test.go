@@ -285,7 +285,6 @@ func testAccCheckVSphereDatacenterDestroy(s *terraform.State) error {
 		if err != nil {
 			switch err.(type) {
 			case *find.NotFoundError:
-				fmt.Printf("Expected error received: %s\n", err)
 				return nil
 			default:
 				return err
@@ -323,7 +322,6 @@ func testAccCheckVSphereDatacenterExists(n string, exists bool) resource.TestChe
 				if exists {
 					return fmt.Errorf("datacenter does not exist: %s", e.Error())
 				}
-				fmt.Printf("Expected error received: %s\n", e.Error())
 				return nil
 			default:
 				return err
