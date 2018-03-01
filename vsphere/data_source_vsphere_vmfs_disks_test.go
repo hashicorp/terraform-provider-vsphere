@@ -117,7 +117,7 @@ data "vsphere_vmfs_disks" "available" {
 }
 
 output "expected_length" {
-  value = "${length(data.vsphere_vmfs_disks.available.disks) == 2 ? "true" : "false" }"
+  value = "${length(data.vsphere_vmfs_disks.available.disks) == 3 ? "true" : "false" }"
 }
 `, os.Getenv("VSPHERE_VMFS_REGEXP"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
 }
