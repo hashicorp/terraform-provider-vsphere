@@ -364,7 +364,7 @@ func testAccResourceVSphereNasDatastoreMatchInventoryPath(expected string) resou
 			return err
 		}
 
-		expected, err := folder.RootPathParticleDatastore.PathFromNewRoot(ds.InventoryPath, folder.RootPathParticleDatastore, expected)
+		expected, err = folder.RootPathParticleDatastore.PathFromNewRoot(ds.InventoryPath, folder.RootPathParticleDatastore, expected)
 		actual := path.Dir(ds.InventoryPath)
 		if err != nil {
 			return fmt.Errorf("bad: %s", err)
