@@ -123,7 +123,7 @@ resource "vsphere_datacenter" "testDC" {
 `
 
 // Create a datacenter on the root folder
-func TestAccVSphereDatacenter_createOnRootFolder(t *testing.T) {
+func TestAccResourceVSphereDatacenter_createOnRootFolder(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -139,7 +139,7 @@ func TestAccVSphereDatacenter_createOnRootFolder(t *testing.T) {
 }
 
 // Create a datacenter on a subfolder
-func TestAccVSphereDatacenter_createOnSubfolder(t *testing.T) {
+func TestAccResourceVSphereDatacenter_createOnSubfolder(t *testing.T) {
 	dcFolder := os.Getenv("VSPHERE_DC_FOLDER")
 
 	resource.Test(t, resource.TestCase{
@@ -160,144 +160,112 @@ func TestAccVSphereDatacenter_createOnSubfolder(t *testing.T) {
 	})
 }
 
-func TestAccVSphereDatacenterTags(t *testing.T) {
-	var tp *testing.T
-	testAccResourceVSphereNasDatastoreCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"single tag",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccCheckVSphereDatacenterDestroy,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccCheckVSphereDatacenterConfigTags,
-						Check: resource.ComposeTestCheckFunc(
-							testAccCheckVSphereDatacenterExists(
-								testAccCheckVSphereDatacenterResourceName,
-								true,
-							),
-							testAccResourceVSphereDatacenterCheckTags("terraform-test-tag"),
-						),
-					},
-				},
+func TestAccResourceVSphereDatacenter_singleTag(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereDatacenterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckVSphereDatacenterConfigTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereDatacenterExists(
+						testAccCheckVSphereDatacenterResourceName,
+						true,
+					),
+					testAccResourceVSphereDatacenterCheckTags("terraform-test-tag"),
+				),
 			},
 		},
-		{
-			"modify tags",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccCheckVSphereDatacenterDestroy,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccCheckVSphereDatacenterConfigTags,
-						Check: resource.ComposeTestCheckFunc(
-							testAccCheckVSphereDatacenterExists(
-								testAccCheckVSphereDatacenterResourceName,
-								true,
-							),
-							testAccResourceVSphereDatacenterCheckTags("terraform-test-tag"),
-						),
-					},
-					{
-						Config: testAccCheckVSphereDatacenterConfigMultiTags,
-						Check: resource.ComposeTestCheckFunc(
-							testAccCheckVSphereDatacenterExists(
-								testAccCheckVSphereDatacenterResourceName,
-								true,
-							),
-							testAccResourceVSphereDatacenterCheckTags("terraform-test-tags-alt"),
-						),
-					},
-				},
-			},
-		},
-	}
-
-	for _, tc := range testAccResourceVSphereNasDatastoreCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+	})
 }
 
-func TestAccVSphereDatacenterCustomAttributes(t *testing.T) {
-	var tp *testing.T
-	testAccResourceCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"single custom attribute",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccCheckVSphereDatacenterDestroy,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccCheckVSphereDatacenterConfigCustomAttributes,
-						Check: resource.ComposeTestCheckFunc(
-							testAccCheckVSphereDatacenterExists(
-								testAccCheckVSphereDatacenterResourceName,
-								true,
-							),
-							testAccResourceVSphereDatacenterHasCustomAttributes(),
-						),
-					},
-				},
+func TestAccResourceVSphereDatacenter_modifyTags(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereDatacenterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckVSphereDatacenterConfigTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereDatacenterExists(
+						testAccCheckVSphereDatacenterResourceName,
+						true,
+					),
+					testAccResourceVSphereDatacenterCheckTags("terraform-test-tag"),
+				),
+			},
+			{
+				Config: testAccCheckVSphereDatacenterConfigMultiTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereDatacenterExists(
+						testAccCheckVSphereDatacenterResourceName,
+						true,
+					),
+					testAccResourceVSphereDatacenterCheckTags("terraform-test-tags-alt"),
+				),
 			},
 		},
-		{
-			"modify custom attribute",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccCheckVSphereDatacenterDestroy,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccCheckVSphereDatacenterConfigCustomAttributes,
-						Check: resource.ComposeTestCheckFunc(
-							testAccCheckVSphereDatacenterExists(
-								testAccCheckVSphereDatacenterResourceName,
-								true,
-							),
-							testAccResourceVSphereDatacenterHasCustomAttributes(),
-						),
-					},
-					{
-						Config: testAccCheckVSphereDatacenterConfigMultiCustomAttributes,
-						Check: resource.ComposeTestCheckFunc(
-							testAccCheckVSphereDatacenterExists(
-								testAccCheckVSphereDatacenterResourceName,
-								true,
-							),
-							testAccResourceVSphereDatacenterHasCustomAttributes(),
-						),
-					},
-				},
-			},
-		},
-	}
+	})
+}
 
-	for _, tc := range testAccResourceCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+func TestAccResourceVSphereDatacenter_singleCustomAttribute(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereDatacenterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckVSphereDatacenterConfigCustomAttributes,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereDatacenterExists(
+						testAccCheckVSphereDatacenterResourceName,
+						true,
+					),
+					testAccResourceVSphereDatacenterHasCustomAttributes(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereDatacenter_modifyCustomAttribute(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereDatacenterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckVSphereDatacenterConfigCustomAttributes,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereDatacenterExists(
+						testAccCheckVSphereDatacenterResourceName,
+						true,
+					),
+					testAccResourceVSphereDatacenterHasCustomAttributes(),
+				),
+			},
+			{
+				Config: testAccCheckVSphereDatacenterConfigMultiCustomAttributes,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereDatacenterExists(
+						testAccCheckVSphereDatacenterResourceName,
+						true,
+					),
+					testAccResourceVSphereDatacenterHasCustomAttributes(),
+				),
+			},
+		},
+	})
 }
 
 func testAccCheckVSphereDatacenterDestroy(s *terraform.State) error {
@@ -317,7 +285,6 @@ func testAccCheckVSphereDatacenterDestroy(s *terraform.State) error {
 		if err != nil {
 			switch err.(type) {
 			case *find.NotFoundError:
-				fmt.Printf("Expected error received: %s\n", err)
 				return nil
 			default:
 				return err
@@ -355,7 +322,6 @@ func testAccCheckVSphereDatacenterExists(n string, exists bool) resource.TestChe
 				if exists {
 					return fmt.Errorf("datacenter does not exist: %s", e.Error())
 				}
-				fmt.Printf("Expected error received: %s\n", e.Error())
 				return nil
 			default:
 				return err

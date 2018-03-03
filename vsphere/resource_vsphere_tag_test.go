@@ -12,162 +12,146 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccResourceVSphereTag(t *testing.T) {
-	var tp *testing.T
-	testAccResourceVSphereTagCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"basic",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereTagExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereTagConfigBasic,
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereTagExists(true),
-							testAccResourceVSphereTagHasName("terraform-test-tag"),
-							testAccResourceVSphereTagHasDescription("Managed by Terraform"),
-							testAccResourceVSphereTagHasCategory(),
-						),
-					},
-				},
+func TestAccResourceVSphereTag_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereTagExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereTagConfigBasic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagExists(true),
+					testAccResourceVSphereTagHasName("terraform-test-tag"),
+					testAccResourceVSphereTagHasDescription("Managed by Terraform"),
+					testAccResourceVSphereTagHasCategory(),
+				),
 			},
 		},
-		{
-			"change name",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereTagExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereTagConfigBasic,
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereTagExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereTagConfigAltName,
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereTagExists(true),
-							testAccResourceVSphereTagHasName("terraform-test-tag-renamed"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"change description",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereTagExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereTagConfigBasic,
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereTagExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereTagConfigAltDescription,
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereTagExists(true),
-							testAccResourceVSphereTagHasDescription("Still managed by Terraform"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"detach all tags",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereTagExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereTagConfigOnFolderAttached(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereTagExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereTagConfigOnFolderNotAttached(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereTagExists(true),
-							testAccResourceVSphereFolderCheckNoTags(),
-						),
-					},
-				},
-			},
-		},
-		{
-			"import",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereTagExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereTagConfigBasic,
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereTagExists(true),
-						),
-					},
-					{
-						ResourceName:      "vsphere_tag.terraform-test-tag",
-						ImportState:       true,
-						ImportStateVerify: true,
-						ImportStateIdFunc: func(s *terraform.State) (string, error) {
-							cat, err := testGetTagCategory(s, "terraform-test-category")
-							if err != nil {
-								return "", err
-							}
-							tag, err := testGetTag(s, "terraform-test-tag")
-							if err != nil {
-								return "", err
-							}
-							m := make(map[string]string)
-							m["category_name"] = cat.Name
-							m["tag_name"] = tag.Name
-							b, err := json.Marshal(m)
-							if err != nil {
-								return "", err
-							}
+	})
+}
 
-							return string(b), nil
-						},
-						Config: testAccResourceVSphereTagConfigBasic,
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereTagExists(true),
-						),
-					},
-				},
+func TestAccResourceVSphereTag_changeName(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereTagExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereTagConfigBasic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereTagConfigAltName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagExists(true),
+					testAccResourceVSphereTagHasName("terraform-test-tag-renamed"),
+				),
 			},
 		},
-	}
+	})
+}
 
-	for _, tc := range testAccResourceVSphereTagCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+func TestAccResourceVSphereTag_changeDescription(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereTagExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereTagConfigBasic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereTagConfigAltDescription,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagExists(true),
+					testAccResourceVSphereTagHasDescription("Still managed by Terraform"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereTag_detachAllTags(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereTagExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereTagConfigOnFolderAttached(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereTagConfigOnFolderNotAttached(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagExists(true),
+					testAccResourceVSphereFolderCheckNoTags(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereTag_import(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereTagExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereTagConfigBasic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagExists(true),
+				),
+			},
+			{
+				ResourceName:      "vsphere_tag.terraform-test-tag",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					cat, err := testGetTagCategory(s, "terraform-test-category")
+					if err != nil {
+						return "", err
+					}
+					tag, err := testGetTag(s, "terraform-test-tag")
+					if err != nil {
+						return "", err
+					}
+					m := make(map[string]string)
+					m["category_name"] = cat.Name
+					m["tag_name"] = tag.Name
+					b, err := json.Marshal(m)
+					if err != nil {
+						return "", err
+					}
+
+					return string(b), nil
+				},
+				Config: testAccResourceVSphereTagConfigBasic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagExists(true),
+				),
+			},
+		},
+	})
 }
 
 func testAccResourceVSphereTagExists(expected bool) resource.TestCheckFunc {

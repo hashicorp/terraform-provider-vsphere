@@ -11,64 +11,48 @@ import (
 
 var testAccDataSourceVSphereDatacenterExpectedRegexp = regexp.MustCompile("^datacenter-")
 
-func TestAccDataSourceVSphereDatacenter(t *testing.T) {
-	var tp *testing.T
-	testAccDataSourceVSphereDatacenterCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"basic",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccDataSourceVSphereDatacenterPreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereDatacenterConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestMatchResourceAttr(
-								"data.vsphere_datacenter.dc",
-								"id",
-								testAccDataSourceVSphereDatacenterExpectedRegexp,
-							),
-						),
-					},
-				},
+func TestAccDataSourceVSphereDatacenter_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereDatacenterPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereDatacenterConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr(
+						"data.vsphere_datacenter.dc",
+						"id",
+						testAccDataSourceVSphereDatacenterExpectedRegexp,
+					),
+				),
 			},
 		},
-		{
-			"default",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccDataSourceVSphereDatacenterPreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereDatacenterConfigDefault,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestMatchResourceAttr(
-								"data.vsphere_datacenter.dc",
-								"id",
-								testAccDataSourceVSphereDatacenterExpectedRegexp,
-							),
-						),
-					},
-				},
-			},
-		},
-	}
+	})
+}
 
-	for _, tc := range testAccDataSourceVSphereDatacenterCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+func TestAccDataSourceVSphereDatacenter_defaultDatacenter(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereDatacenterPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereDatacenterConfigDefault,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr(
+						"data.vsphere_datacenter.dc",
+						"id",
+						testAccDataSourceVSphereDatacenterExpectedRegexp,
+					),
+				),
+			},
+		},
+	})
 }
 
 func testAccDataSourceVSphereDatacenterPreCheck(t *testing.T) {

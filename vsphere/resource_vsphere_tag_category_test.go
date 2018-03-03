@@ -13,174 +13,177 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccResourceVSphereTagCategory(t *testing.T) {
-	var tp *testing.T
-	testAccResourceVSphereTagCategoryCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"basic",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereTagCategoryExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereTagCategoryConfigBasic,
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereTagCategoryExists(true),
-							testAccResourceVSphereTagCategoryHasName("terraform-test-category"),
-							testAccResourceVSphereTagCategoryHasCardinality(vSphereTagCategoryCardinalitySingle),
-							testAccResourceVSphereTagCategoryHasTypes([]string{
-								vSphereTagTypeVirtualMachine,
-							}),
-						),
-					},
-				},
+func TestAccResourceVSphereTagCategory_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereTagCategoryExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereTagCategoryConfigBasic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagCategoryExists(true),
+					testAccResourceVSphereTagCategoryHasName("terraform-test-category"),
+					testAccResourceVSphereTagCategoryHasCardinality(vSphereTagCategoryCardinalitySingle),
+					testAccResourceVSphereTagCategoryHasTypes([]string{
+						vSphereTagTypeVirtualMachine,
+					}),
+				),
 			},
 		},
-		{
-			"add type",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereTagCategoryExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereTagCategoryConfigBasic,
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereTagCategoryExists(true),
-							testAccResourceVSphereTagCategoryHasTypes([]string{
-								vSphereTagTypeVirtualMachine,
-							}),
-						),
-					},
-					{
-						Config: testAccResourceVSphereTagCategoryConfigMultiType,
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereTagCategoryExists(true),
-							testAccResourceVSphereTagCategoryHasTypes([]string{
-								vSphereTagTypeVirtualMachine,
-								vSphereTagTypeDatastore,
-							}),
-						),
-					},
-				},
-			},
-		},
-		{
-			"remove type, should error",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereTagCategoryExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereTagCategoryConfigMultiType,
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereTagCategoryExists(true),
-						),
-					},
-					{
-						Config:      testAccResourceVSphereTagCategoryConfigBasic,
-						ExpectError: regexp.MustCompile("removal of associable types is not supported"),
-					},
-				},
-			},
-		},
-		{
-			"rename",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereTagCategoryExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereTagCategoryConfigBasic,
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereTagCategoryExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereTagCategoryConfigAltName,
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereTagCategoryExists(true),
-							testAccResourceVSphereTagCategoryHasName("terraform-test-category-renamed"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"single cardinality",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereTagCategoryExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereTagCategoryConfigSingleCardinality,
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereTagCategoryExists(true),
-							testAccResourceVSphereTagCategoryHasCardinality(vSphereTagCategoryCardinalitySingle),
-						),
-					},
-				},
-			},
-		},
-		{
-			"import",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereTagCategoryExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereTagCategoryConfigBasic,
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereTagCategoryExists(true),
-						),
-					},
-					{
-						ResourceName:      "vsphere_tag_category.terraform-test-category",
-						ImportState:       true,
-						ImportStateVerify: true,
-						ImportStateIdFunc: func(s *terraform.State) (string, error) {
-							cat, err := testGetTagCategory(s, "terraform-test-category")
-							if err != nil {
-								return "", err
-							}
-							return cat.Name, nil
-						},
-						Config: testAccResourceVSphereTagCategoryConfigBasic,
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereTagCategoryExists(true),
-						),
-					},
-				},
-			},
-		},
-	}
+	})
+}
 
-	for _, tc := range testAccResourceVSphereTagCategoryCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+func TestAccResourceVSphereTagCategory_addType(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereTagCategoryExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereTagCategoryConfigBasic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagCategoryExists(true),
+					testAccResourceVSphereTagCategoryHasTypes([]string{
+						vSphereTagTypeVirtualMachine,
+					}),
+				),
+			},
+			{
+				Config: testAccResourceVSphereTagCategoryConfigMultiType,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagCategoryExists(true),
+					testAccResourceVSphereTagCategoryHasTypes([]string{
+						vSphereTagTypeVirtualMachine,
+						vSphereTagTypeDatastore,
+					}),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereTagCategory_removeTypeShouldError(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereTagCategoryExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereTagCategoryConfigMultiType,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagCategoryExists(true),
+				),
+			},
+			{
+				Config:      testAccResourceVSphereTagCategoryConfigBasic,
+				ExpectError: regexp.MustCompile("removal of associable types is not supported"),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereTagCategory_rename(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereTagCategoryExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereTagCategoryConfigBasic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagCategoryExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereTagCategoryConfigAltName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagCategoryExists(true),
+					testAccResourceVSphereTagCategoryHasName("terraform-test-category-renamed"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereTagCategory_singleCardinality(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereTagCategoryExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereTagCategoryConfigSingleCardinality,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagCategoryExists(true),
+					testAccResourceVSphereTagCategoryHasCardinality(vSphereTagCategoryCardinalitySingle),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereTagCategory_multiCardinality(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereTagCategoryExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereTagCategoryConfigMultiCardinality,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagCategoryExists(true),
+					testAccResourceVSphereTagCategoryHasCardinality(vSphereTagCategoryCardinalityMultiple),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereTagCategory_import(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereTagCategoryExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereTagCategoryConfigBasic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagCategoryExists(true),
+				),
+			},
+			{
+				ResourceName:      "vsphere_tag_category.terraform-test-category",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					cat, err := testGetTagCategory(s, "terraform-test-category")
+					if err != nil {
+						return "", err
+					}
+					return cat.Name, nil
+				},
+				Config: testAccResourceVSphereTagCategoryConfigBasic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagCategoryExists(true),
+				),
+			},
+		},
+	})
 }
 
 func testAccResourceVSphereTagCategoryExists(expected bool) resource.TestCheckFunc {

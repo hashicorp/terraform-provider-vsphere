@@ -9,65 +9,49 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccDataSourceVSphereHost(t *testing.T) {
-	var tp *testing.T
-	testAccDataSourceVSphereHostCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"basic",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccDataSourceVSphereHostPreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereHostConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestMatchResourceAttr(
-								"data.vsphere_host.host",
-								"id",
-								testAccDataSourceVSphereHostExpectedRegexp(),
-							),
-						),
-					},
-				},
+func TestAccDataSourceVSphereHost_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereHostPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereHostConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr(
+						"data.vsphere_host.host",
+						"id",
+						testAccDataSourceVSphereHostExpectedRegexp(),
+					),
+				),
 			},
 		},
-		{
-			"default",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccDataSourceVSphereHostPreCheck(tp)
-					testAccSkipIfNotEsxi(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereHostConfigDefault,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestMatchResourceAttr(
-								"data.vsphere_host.host",
-								"id",
-								testAccDataSourceVSphereHostExpectedRegexp(),
-							),
-						),
-					},
-				},
-			},
-		},
-	}
+	})
+}
 
-	for _, tc := range testAccDataSourceVSphereHostCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+func TestAccDataSourceVSphereHost_defaultHost(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereHostPreCheck(t)
+			testAccSkipIfNotEsxi(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereHostConfigDefault,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr(
+						"data.vsphere_host.host",
+						"id",
+						testAccDataSourceVSphereHostExpectedRegexp(),
+					),
+				),
+			},
+		},
+	})
 }
 
 func testAccDataSourceVSphereHostPreCheck(t *testing.T) {

@@ -8,106 +8,90 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccDataSourceVSphereNetwork(t *testing.T) {
-	var tp *testing.T
-	testAccDataSourceVSphereNetworkCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"DVS portgroup",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccDataSourceVSphereNetworkPreCheck(tp)
-					testAccSkipIfEsxi(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereNetworkConfigDVSPortgroup(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr("data.vsphere_network.net", "type", "DistributedVirtualPortgroup"),
-							resource.TestCheckResourceAttrPair(
-								"data.vsphere_network.net", "id",
-								"vsphere_distributed_port_group.pg", "id",
-							),
-						),
-					},
-				},
+func TestAccDataSourceVSphereNetwork_dvsPortgroup(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereNetworkPreCheck(t)
+			testAccSkipIfEsxi(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereNetworkConfigDVSPortgroup(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.vsphere_network.net", "type", "DistributedVirtualPortgroup"),
+					resource.TestCheckResourceAttrPair(
+						"data.vsphere_network.net", "id",
+						"vsphere_distributed_port_group.pg", "id",
+					),
+				),
 			},
 		},
-		{
-			"absolute path - no datacenter",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccDataSourceVSphereNetworkPreCheck(tp)
-					testAccSkipIfEsxi(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereNetworkConfigDVSPortgroupAbsolute(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr("data.vsphere_network.net", "type", "DistributedVirtualPortgroup"),
-							resource.TestCheckResourceAttrPair(
-								"data.vsphere_network.net", "id",
-								"vsphere_distributed_port_group.pg", "id",
-							),
-						),
-					},
-				},
-			},
-		},
-		{
-			"host portgroups",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccDataSourceVSphereNetworkPreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereNetworkConfigHostPortgroup(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr("data.vsphere_network.net", "type", "Network"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"absolute path ending in the same name - govmomi #875",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccDataSourceVSphereNetworkPreCheck(tp)
-					testAccSkipIfEsxi(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereNetworkConfigSimilarNet(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttrPair(
-								"data.vsphere_network.net", "id",
-								"vsphere_distributed_port_group.pg1", "id",
-							),
-						),
-					},
-				},
-			},
-		},
-	}
+	})
+}
 
-	for _, tc := range testAccDataSourceVSphereNetworkCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+func TestAccDataSourceVSphereNetwork_absolutePathNoDatacenter(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereNetworkPreCheck(t)
+			testAccSkipIfEsxi(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereNetworkConfigDVSPortgroupAbsolute(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.vsphere_network.net", "type", "DistributedVirtualPortgroup"),
+					resource.TestCheckResourceAttrPair(
+						"data.vsphere_network.net", "id",
+						"vsphere_distributed_port_group.pg", "id",
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDataSourceVSphereNetwork_hostPortgroups(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereNetworkPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereNetworkConfigHostPortgroup(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.vsphere_network.net", "type", "Network"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDataSourceVSphereNetwork_absolutePathEndingInSameName(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereNetworkPreCheck(t)
+			testAccSkipIfEsxi(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereNetworkConfigSimilarNet(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrPair(
+						"data.vsphere_network.net", "id",
+						"vsphere_distributed_port_group.pg1", "id",
+					),
+				),
+			},
+		},
+	})
 }
 
 func testAccDataSourceVSphereNetworkPreCheck(t *testing.T) {
