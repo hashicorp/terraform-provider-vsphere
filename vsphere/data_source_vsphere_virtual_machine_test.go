@@ -9,76 +9,60 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccDataSourceVSphereVirtualMachine(t *testing.T) {
-	var tp *testing.T
-	testAccDataSourceVSphereVirtualMachineCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"basic",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccDataSourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereVirtualMachineConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestMatchResourceAttr(
-								"data.vsphere_virtual_machine.template",
-								"id",
-								regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$")),
-							resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "guest_id"),
-							resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "scsi_type"),
-							resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.#"),
-							resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.size"),
-							resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.eagerly_scrub"),
-							resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.thin_provisioned"),
-							resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interface_types.#"),
-						),
-					},
-				},
+func TestAccDataSourceVSphereVirtualMachine_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereVirtualMachineConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr(
+						"data.vsphere_virtual_machine.template",
+						"id",
+						regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$")),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "guest_id"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "scsi_type"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.#"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.size"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.eagerly_scrub"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.thin_provisioned"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interface_types.#"),
+				),
 			},
 		},
-		{
-			"no datacenter and absolute path",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccDataSourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereVirtualMachineConfigAbsolutePath(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestMatchResourceAttr(
-								"data.vsphere_virtual_machine.template",
-								"id",
-								regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$")),
-							resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "guest_id"),
-							resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "scsi_type"),
-							resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.#"),
-							resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.size"),
-							resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.eagerly_scrub"),
-							resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.thin_provisioned"),
-							resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interface_types.#"),
-						),
-					},
-				},
-			},
-		},
-	}
+	})
+}
 
-	for _, tc := range testAccDataSourceVSphereVirtualMachineCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+func TestAccDataSourceVSphereVirtualMachine_noDatacenterAndAbsolutePath(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereVirtualMachineConfigAbsolutePath(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr(
+						"data.vsphere_virtual_machine.template",
+						"id",
+						regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$")),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "guest_id"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "scsi_type"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.#"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.size"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.eagerly_scrub"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.thin_provisioned"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interface_types.#"),
+				),
+			},
+		},
+	})
 }
 
 func testAccDataSourceVSphereVirtualMachinePreCheck(t *testing.T) {

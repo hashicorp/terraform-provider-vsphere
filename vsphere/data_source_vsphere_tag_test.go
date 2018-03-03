@@ -7,54 +7,38 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccDataSourceVSphereTag(t *testing.T) {
-	var tp *testing.T
-	testAccDataSourceVSphereTagCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"basic",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereTagConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								"data.vsphere_tag.terraform-test-tag-data",
-								"name",
-								testAccDataSourceVSphereTagConfigName,
-							),
-							resource.TestCheckResourceAttr(
-								"data.vsphere_tag.terraform-test-tag-data",
-								"description",
-								testAccDataSourceVSphereTagConfigDescription,
-							),
-							resource.TestCheckResourceAttrPair(
-								"data.vsphere_tag.terraform-test-tag-data", "id",
-								"vsphere_tag.terraform-test-tag", "id",
-							),
-							resource.TestCheckResourceAttrPair(
-								"data.vsphere_tag.terraform-test-tag-data", "category_id",
-								"vsphere_tag_category.terraform-test-category", "id",
-							),
-						),
-					},
-				},
+func TestAccDataSourceVSphereTag_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereTagConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"data.vsphere_tag.terraform-test-tag-data",
+						"name",
+						testAccDataSourceVSphereTagConfigName,
+					),
+					resource.TestCheckResourceAttr(
+						"data.vsphere_tag.terraform-test-tag-data",
+						"description",
+						testAccDataSourceVSphereTagConfigDescription,
+					),
+					resource.TestCheckResourceAttrPair(
+						"data.vsphere_tag.terraform-test-tag-data", "id",
+						"vsphere_tag.terraform-test-tag", "id",
+					),
+					resource.TestCheckResourceAttrPair(
+						"data.vsphere_tag.terraform-test-tag-data", "category_id",
+						"vsphere_tag_category.terraform-test-category", "id",
+					),
+				),
 			},
 		},
-	}
-
-	for _, tc := range testAccDataSourceVSphereTagCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+	})
 }
 
 const testAccDataSourceVSphereTagConfigName = "terraform-test-tag"

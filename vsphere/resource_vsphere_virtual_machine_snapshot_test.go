@@ -11,7 +11,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 )
 
-func TestAccResourceVSphereVirtualMachineSnapshot_Basic(t *testing.T) {
+func TestAccResourceVSphereVirtualMachineSnapshot_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)

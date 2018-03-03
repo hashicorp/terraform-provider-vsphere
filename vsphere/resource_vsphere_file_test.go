@@ -14,7 +14,7 @@ import (
 )
 
 // Basic file creation (upload to vSphere)
-func TestAccVSphereFile_basic(t *testing.T) {
+func TestAccResourceVSphereFile_basic(t *testing.T) {
 	testVmdkFileData := []byte("# Disk DescriptorFile\n")
 	testVmdkFile := "/tmp/tf_test.vmdk"
 	err := ioutil.WriteFile(testVmdkFile, testVmdkFileData, 0644)
@@ -55,7 +55,7 @@ func TestAccVSphereFile_basic(t *testing.T) {
 }
 
 // Basic file copy within vSphere
-func TestAccVSphereFile_basicUploadAndCopy(t *testing.T) {
+func TestAccResourceVSphereFile_basicUploadAndCopy(t *testing.T) {
 	testVmdkFileData := []byte("# Disk DescriptorFile\n")
 	sourceFile := "/tmp/tf_test.vmdk"
 	uploadResourceName := "myfileupload"
@@ -108,7 +108,7 @@ func TestAccVSphereFile_basicUploadAndCopy(t *testing.T) {
 }
 
 // file creation followed by a rename of file (update)
-func TestAccVSphereFile_renamePostCreation(t *testing.T) {
+func TestAccResourceVSphereFile_renamePostCreation(t *testing.T) {
 	testVmdkFileData := []byte("# Disk DescriptorFile\n")
 	testVmdkFile := "/tmp/tf_test.vmdk"
 	err := ioutil.WriteFile(testVmdkFile, testVmdkFileData, 0644)
@@ -166,7 +166,7 @@ func TestAccVSphereFile_renamePostCreation(t *testing.T) {
 }
 
 // file upload, then copy, finally the copy is renamed (moved) (update)
-func TestAccVSphereFile_uploadAndCopyAndUpdate(t *testing.T) {
+func TestAccResourceVSphereFile_uploadAndCopyAndUpdate(t *testing.T) {
 	testVmdkFileData := []byte("# Disk DescriptorFile\n")
 	sourceFile := "/tmp/tf_test.vmdk"
 	uploadResourceName := "myfileupload"
@@ -266,9 +266,8 @@ func testAccCheckVSphereFileDestroy(s *terraform.State) error {
 
 		_, err = ds.Stat(context.TODO(), rs.Primary.Attributes["destination_file"])
 		if err != nil {
-			switch e := err.(type) {
+			switch err.(type) {
 			case object.DatastoreNoSuchFileError:
-				fmt.Printf("Expected error received: %s\n", e.Error())
 				return nil
 			default:
 				return err
@@ -313,7 +312,6 @@ func testAccCheckVSphereFileExists(n string, df string, exists bool) resource.Te
 				if exists {
 					return fmt.Errorf("File does not exist: %s", e.Error())
 				}
-				fmt.Printf("Expected error received: %s\n", e.Error())
 				return nil
 			default:
 				return err

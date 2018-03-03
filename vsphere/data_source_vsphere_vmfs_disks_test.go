@@ -8,56 +8,40 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccDataSourceVSphereVmfsDisks(t *testing.T) {
-	var tp *testing.T
-	testAccDataSourceVSphereVmfsDisksCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"basic",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccDataSourceVSphereVmfsDisksPreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereVmfsDisksConfig(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckOutput("found", "true"),
-						),
-					},
-				},
+func TestAccDataSourceVSphereVmfsDisks_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereVmfsDisksPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereVmfsDisksConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckOutput("found", "true"),
+				),
 			},
 		},
-		{
-			"with regular expression",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccDataSourceVSphereVmfsDisksPreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccDataSourceVSphereVmfsDisksConfigRegexp(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckOutput("expected_length", "true"),
-						),
-					},
-				},
-			},
-		},
-	}
+	})
+}
 
-	for _, tc := range testAccDataSourceVSphereVmfsDisksCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+func TestAccDataSourceVSphereVmfsDisks_withRegularExpression(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereVmfsDisksPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereVmfsDisksConfigRegexp(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckOutput("expected_length", "true"),
+				),
+			},
+		},
+	})
 }
 
 func testAccDataSourceVSphereVmfsDisksPreCheck(t *testing.T) {
@@ -117,7 +101,7 @@ data "vsphere_vmfs_disks" "available" {
 }
 
 output "expected_length" {
-  value = "${length(data.vsphere_vmfs_disks.available.disks) == 2 ? "true" : "false" }"
+  value = "${length(data.vsphere_vmfs_disks.available.disks) == 3 ? "true" : "false" }"
 }
 `, os.Getenv("VSPHERE_VMFS_REGEXP"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
 }

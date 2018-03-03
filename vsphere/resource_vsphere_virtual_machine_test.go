@@ -34,1809 +34,1810 @@ const (
 	testAccResourceVSphereVirtualMachineAnnotation        = "Managed by Terraform"
 )
 
-func TestAccResourceVSphereVirtualMachine(t *testing.T) {
-	var tp *testing.T
-	var state *terraform.State
-	testAccResourceVSphereVirtualMachineCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"basic",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							resource.TestMatchResourceAttr("vsphere_virtual_machine.vm", "moid", regexp.MustCompile("^vm-")),
-						),
-					},
-				},
-			},
-		},
-		{
-			"ESXi-only test",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-					testAccSkipIfNotEsxi(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBasicESXiOnly(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-				},
-			},
-		},
-		{
-			"shutdown OK",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							copyStatePtr(&state),
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-					{
-						PreConfig: func() {
-							if err := testPowerOffVM(state, "vm"); err != nil {
-								panic(err)
-							}
-						},
-						PlanOnly: true,
-						Config:   testAccResourceVSphereVirtualMachineConfigBasic(),
-					},
-				},
-			},
-		},
-		{
-			"re-create on deletion",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							copyState(&state),
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-					{
-						PreConfig: func() {
-							if err := testDeleteVM(state, "vm"); err != nil {
-								panic(err)
-							}
-						},
-						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							func(s *terraform.State) error {
-								oldID := state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.ID
-								return testCheckResourceNotAttr("vsphere_virtual_machine.vm", "id", oldID)(s)
-							},
-						),
-					},
-				},
-			},
-		},
-		{
-			"multi-device",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigMultiDevice(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, true, true}, []bool{true, true, true}),
-						),
-					},
-				},
-			},
-		},
-		{
-			"add devices",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigMultiDevice(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, true, true}, []bool{true, true, true}),
-						),
-					},
-				},
-			},
-		},
-		{
-			"remove middle devices",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigMultiDevice(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, true, true}, []bool{true, true, true}),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigRemoveMiddle(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, false, true}, []bool{true, false, true}),
-						),
-					},
-				},
-			},
-		},
-		{
-			"remove middle devices, change disk unit",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigMultiDevice(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, true, true}, []bool{true, true, true}),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigRemoveMiddleChangeUnit(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, false, true}, []bool{true, false, true}),
-						),
-					},
-				},
-			},
-		},
-		{
-			"high disk unit numbers",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigMultiHighBus(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test.vmdk", 0, 0),
-							testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_1.vmdk", 1, 0),
-							testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_2.vmdk", 2, 1),
-						),
-					},
-				},
-			},
-		},
-		{
-			"high disk units to regular single controller",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigMultiHighBus(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test.vmdk", 0, 0),
-							testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_1.vmdk", 1, 0),
-							testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_2.vmdk", 2, 1),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigMultiDevice(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test.vmdk", 0, 0),
-							testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_1.vmdk", 0, 1),
-							testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_2.vmdk", 0, 2),
-						),
-					},
-				},
-			},
-		},
-		{
-			"cdrom",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigCdrom(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCdrom(),
-						),
-					},
-				},
-			},
-		},
-		{
-			"maximum number of nics",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigMaxNIC(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckNICCount(10),
-						),
-					},
-				},
-			},
-		},
-		{
-			"upgrade cpu and ram",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBeefy(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCPUMem(4, 8192),
-							// Since hot-add should be off, we expect that the VM was powered
-							// off as a part of this step. This helps check the functionality
-							// of the check for later tests as well.
-							testAccResourceVSphereVirtualMachineCheckPowerOffEvent(true),
-						),
-					},
-				},
-			},
-		},
-		{
-			"modify annotation",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBasicAnnotation(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckAnnotation(),
-							testAccResourceVSphereVirtualMachineCheckPowerOffEvent(false),
-						),
-					},
-				},
-			},
-		},
-		{
-			"grow disk",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigGrowDisk(10),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckDiskSize(10),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigGrowDisk(20),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckDiskSize(20),
-						),
-					},
-				},
-			},
-		},
-		{
-			"swap scsi bus",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckSCSIBus(virtualdevice.SubresourceControllerTypeParaVirtual),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigLsiLogicSAS(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckSCSIBus(virtualdevice.SubresourceControllerTypeLsiLogicSAS),
-						),
-					},
-				},
-			},
-		},
-		{
-			"extraconfig",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigExtraConfig("foo", "bar"),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckExtraConfig("foo", "bar"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"extraconfig swap keys",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigExtraConfig("foo", "bar"),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckExtraConfig("foo", "bar"),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigExtraConfig("baz", "qux"),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckExtraConfig("baz", "qux"),
-							testAccResourceVSphereVirtualMachineCheckExtraConfigKeyMissing("foo"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"attach existing vmdk",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigExistingVmdk(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckExistingVmdk(),
-						),
-					},
-				},
-			},
-		},
-		{
-			"in folder",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigInFolder(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckFolder("terraform-test-vms"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"move to folder",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigInFolder(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckFolder("terraform-test-vms"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"static mac",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigStaticMAC(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckStaticMACAddr(),
-						),
-					},
-				},
-			},
-		},
-		{
-			"single tag",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigSingleTag(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckTags("terraform-test-tag"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"multiple tags",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigMultiTag(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckTags("terraform-test-tags-alt"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"switch tags",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigSingleTag(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckTags("terraform-test-tag"),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigMultiTag(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckTags("terraform-test-tags-alt"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"orphaned (renamed) disk in place of existing",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							copyStatePtr(&state),
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-					{
-						PreConfig: func() {
-							if err := testRenameVMFirstDisk(state, "vm", "foobar.vmdk"); err != nil {
-								panic(err)
-							}
-						},
-						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							// The only real way we can check to see if this is actually
-							// functional in the current test framework is by checking that
-							// the file we renamed to was not deleted (this is due to a lack
-							// of ability to check diff in the test framework right now).
-							testCheckVMDiskFileExists("terraform-test.vmdk"),
-							testCheckVMDiskFileExists("foobar.vmdk"),
-						),
-					},
-					// The last step is a cleanup step. This assumes the test is
-					// functional as the orphaned disk will be now detached and not
-					// deleted when the VM is destroyed.
-					{
-						PreConfig: func() {
-							if err := testDeleteVMDisk(state, "vm", "foobar.vmdk"); err != nil {
-								panic(err)
-							}
-						},
-						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-				},
-			},
-		},
-		{
-			"block computed disk name",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      testAccResourceVSphereVirtualMachineConfigComputedDisk(),
-						ExpectError: regexp.MustCompile("disk label or name must be defined and cannot be computed"),
-						PlanOnly:    true,
-					},
-					{
-						Config: testAccResourceVSphereEmpty,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-				},
-			},
-		},
-		{
-			"block vapp settings on non-clones",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      testAccResourceVSphereVirtualMachineVAppPropertiesNonClone(),
-						ExpectError: regexp.MustCompile("vApp properties can only be set on cloned virtual machines"),
-					},
-					{
-						Config: testAccResourceVSphereEmpty,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-				},
-			},
-		},
-		{
-			"block vapp settings on non-clones after creation",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-					{
-						Config:      testAccResourceVSphereVirtualMachineVAppPropertiesNonClone(),
-						ExpectError: regexp.MustCompile("this VM lacks a vApp configuration and cannot have vApp properties set on it"),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-				},
-			},
-		},
-		{
-			"block disk label starting with orphaned prefix",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      testAccResourceVSphereVirtualMachineConfigBadOrphanedLabel(),
-						ExpectError: regexp.MustCompile(regexp.QuoteMeta(`disk label "orphaned_disk_0" cannot start with "orphaned_disk_"`)),
-						PlanOnly:    true,
-					},
-					{
-						Config: testAccResourceVSphereEmpty,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-				},
-			},
-		},
-		{
-			"create into empty cluster, no environment browser",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      testAccResourceVSphereVirtualMachineConfigBasicEmptyCluster(),
-						ExpectError: regexp.MustCompile("compute resource .* is missing an Environment Browser\\. Check host, cluster, and vSphere license health of all associated resources and try again"),
-					},
-				},
-			},
-		},
-		{
-			"clone from template",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigClone(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "default_ip_address", os.Getenv("VSPHERE_IPV4_ADDRESS")),
-						),
-					},
-				},
-			},
-		},
-		{
-			"clone, modify disk and SCSI type at same time",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigCloneChangeDiskAndSCSI(),
-						Check: resource.ComposeTestCheckFunc(
-							copyStatePtr(&state),
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							func(s *terraform.State) error {
-								oldSize, _ := strconv.Atoi(state.RootModule().Resources["data.vsphere_virtual_machine.template"].Primary.Attributes["disks.0.size"])
-								newSize := oldSize * 2
-								return resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "disk.0.size", strconv.Itoa(newSize))(s)
-							},
-							func(s *terraform.State) error {
-								oldBus := state.RootModule().Resources["data.vsphere_virtual_machine.template"].Primary.Attributes["scsi_type"]
-								var expected string
-								if oldBus == virtualdevice.SubresourceControllerTypeParaVirtual {
-									expected = virtualdevice.SubresourceControllerTypeLsiLogicSAS
-								} else {
-									expected = virtualdevice.SubresourceControllerTypeParaVirtual
-								}
-								return resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "scsi_type", expected)(s)
-							},
-						),
-					},
-				},
-			},
-		},
-		{
-			"clone, multi-nic (template should have one)",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigCloneMultiNIC(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "default_ip_address", os.Getenv("VSPHERE_IPV4_ADDRESS")),
-						),
-					},
-				},
-			},
-		},
-		{
-			"clone with different timezone",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigCloneTimeZone("America/Vancouver"),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-				},
-			},
-		},
-		{
-			"clone with bad timezone",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      testAccResourceVSphereVirtualMachineConfigCloneTimeZone("Pacific Standard Time"),
-						ExpectError: regexp.MustCompile("must be similar to America/Los_Angeles or other Linux/Unix TZ format"),
-						PlanOnly:    true,
-					},
-					{
-						Config: testAccResourceVSphereEmpty,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-				},
-			},
-		},
-		{
-			"clone with bad eagerly_scrub with linked_clone",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      testAccResourceVSphereVirtualMachineConfigBadEager(),
-						ExpectError: regexp.MustCompile("must have same value for eagerly_scrub as source when using linked_clone"),
-						PlanOnly:    true,
-					},
-					{
-						Config: testAccResourceVSphereEmpty,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-				},
-			},
-		},
-		{
-			"clone with bad thin_provisioned with linked_clone",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      testAccResourceVSphereVirtualMachineConfigBadThin(),
-						ExpectError: regexp.MustCompile("must have same value for thin_provisioned as source when using linked_clone"),
-						PlanOnly:    true,
-					},
-					{
-						Config: testAccResourceVSphereEmpty,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-				},
-			},
-		},
-		{
-			"clone with bad size with linked_clone",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      testAccResourceVSphereVirtualMachineConfigBadSizeLinked(),
-						ExpectError: regexp.MustCompile("must be the exact size of source when using linked_clone"),
-						PlanOnly:    true,
-					},
-					{
-						Config: testAccResourceVSphereEmpty,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-				},
-			},
-		},
-		{
-			"clone with bad size without linked_clone",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      testAccResourceVSphereVirtualMachineConfigBadSizeUnlinked(),
-						ExpectError: regexp.MustCompile("must be at least the same size of source when cloning"),
-						PlanOnly:    true,
-					},
-					{
-						Config: testAccResourceVSphereEmpty,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-				},
-			},
-		},
-		{
-			"clone - attempt to add vapp properties to a VM that does not support them - create",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      testAccResourceVSphereVirtualMachineConfigCloneBadVAppSettings(),
-						ExpectError: regexp.MustCompile("this VM lacks a vApp configuration and cannot have vApp properties set on it"),
-					},
-				},
-			},
-		},
-		{
-			"clone - attempt to add vapp properties to a VM that does not support them - update",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigClone(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-					{
-						Config:      testAccResourceVSphereVirtualMachineConfigCloneBadVAppSettings(),
-						ExpectError: regexp.MustCompile("this VM lacks a vApp configuration and cannot have vApp properties set on it"),
-					},
-				},
-			},
-		},
-		{
-			"clone into empty cluster, no environment browser (fails on plan)",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      testAccResourceVSphereVirtualMachineConfigCloneEmptyCluster(),
-						ExpectError: regexp.MustCompile("compute resource .* is missing an Environment Browser\\. Check host, cluster, and vSphere license health of all associated resources and try again"),
-						PlanOnly:    true,
-					},
-					{
-						Config: testAccResourceVSphereEmpty,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-				},
-			},
-		},
-		{
-			"clone with different hostname",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigCloneHostname(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckHostname("terraform-test-renamed"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"clone with extra disks",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigCloneExtraDisks(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckExtraDisks(),
-						),
-					},
-				},
-			},
-		},
-		{
-			"clone with cdrom",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigCloneWithCdrom(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCdrom(),
-						),
-					},
-				},
-			},
-		},
-		{
-			"clone with vapp properties",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigCloneWithVAppProperties(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.hostname", "terraform-test.test.internal"),
-							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.0", os.Getenv("VSPHERE_DNS")),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigCloneUpdatingVAppProperties(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.hostname", "terraform-test.test.internal"),
-							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.0", os.Getenv("VSPHERE_DNS")),
-							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.1", "8.8.8.8"),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigCloneWithVAppProperties(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.hostname", "terraform-test.test.internal"),
-							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.0", os.Getenv("VSPHERE_DNS")),
-							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.1", ""),
-						),
-					},
-				},
-			},
-		},
-		{
-			"bad vapp property - clone create",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      testAccResourceVSphereVirtualMachineConfigCloneVAppPropertiesBadKey(),
-						ExpectError: regexp.MustCompile(regexp.QuoteMeta("unsupported vApp properties in vapp.properties: [foo]")),
-					},
-					{
-						Config: testAccResourceVSphereEmpty,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-				},
-			},
-		},
-		{
-			"bad vapp property - clone update",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigCloneWithVAppProperties(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.hostname", "terraform-test.test.internal"),
-							testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.0", os.Getenv("VSPHERE_DNS")),
-						),
-					},
-					{
-						Config:      testAccResourceVSphereVirtualMachineConfigCloneVAppPropertiesBadKey(),
-						ExpectError: regexp.MustCompile(regexp.QuoteMeta("unsupported vApp properties in vapp.properties: [foo]")),
-					},
-				},
-			},
-		},
-		{
-			"cpu hot add",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						// Starting config
-						Config: testAccResourceVSphereVirtualMachineConfigWithHotAdd(2, 2048, true, false, true),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCPUMem(2, 2048),
-						),
-					},
-					{
-						// Add CPU w/hot-add
-						Config: testAccResourceVSphereVirtualMachineConfigWithHotAdd(4, 2048, true, false, true),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCPUMem(4, 2048),
-							testAccResourceVSphereVirtualMachineCheckPowerOffEvent(false),
-						),
-					},
-				},
-			},
-		},
-		{
-			"memory hot add",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						// Starting config
-						Config: testAccResourceVSphereVirtualMachineConfigWithHotAdd(2, 2048, true, false, true),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCPUMem(2, 2048),
-						),
-					},
-					{
-						// Add memory with hot-add
-						Config: testAccResourceVSphereVirtualMachineConfigWithHotAdd(2, 3072, true, false, true),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCPUMem(2, 3072),
-							testAccResourceVSphereVirtualMachineCheckPowerOffEvent(false),
-						),
-					},
-				},
-			},
-		},
-		{
-			"dual-stack ipv4 and ipv6",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigDualStack(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckNet("fd00::2", "32", "fd00::1"),
-							testAccResourceVSphereVirtualMachineCheckNet(
-								os.Getenv("VSPHERE_IPV4_ADDRESS"),
-								os.Getenv("VSPHERE_IPV4_PREFIX"),
-								os.Getenv("VSPHERE_IPV4_GATEWAY"),
-							),
-							resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "default_ip_address", os.Getenv("VSPHERE_IPV4_ADDRESS")),
-						),
-					},
-				},
-			},
-		},
-		{
-			"ipv6 only",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigIPv6Only(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckNet("fd00::2", "32", "fd00::1"),
-							resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "default_ip_address", "fd00::2"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"windows template, customization events and proper IP",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigWindows(),
-						Check: resource.ComposeTestCheckFunc(
-							copyStatePtr(&state),
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCustomizationSucceeded(),
-							testAccResourceVSphereVirtualMachineCheckNet(
-								os.Getenv("VSPHERE_IPV4_ADDRESS"),
-								os.Getenv("VSPHERE_IPV4_PREFIX"),
-								os.Getenv("VSPHERE_IPV4_GATEWAY"),
-							),
-						),
-					},
-				},
-			},
-		},
-		{
-			"host vmotion",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigHostVMotion(os.Getenv("VSPHERE_ESXI_HOST")),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckHost(os.Getenv("VSPHERE_ESXI_HOST")),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigHostVMotion(os.Getenv("VSPHERE_ESXI_HOST2")),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckHost(os.Getenv("VSPHERE_ESXI_HOST2")),
-						),
-					},
-				},
-			},
-		},
-		{
-			"resource pool vmotion",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigResourcePoolVMotion(os.Getenv("VSPHERE_RESOURCE_POOL")),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckResourcePool(os.Getenv("VSPHERE_RESOURCE_POOL")),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigResourcePoolVMotion(fmt.Sprintf("%s/Resources", os.Getenv("VSPHERE_CLUSTER"))),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckResourcePool(fmt.Sprintf("%s/Resources", os.Getenv("VSPHERE_CLUSTER"))),
-						),
-					},
-				},
-			},
-		},
-		{
-			"storage vmotion - global setting",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionGlobal(os.Getenv("VSPHERE_DATASTORE")),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
-							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionGlobal(os.Getenv("VSPHERE_DATASTORE2")),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE2")),
-							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE2")),
-						),
-					},
-				},
-			},
-		},
-		{
-			"storage vmotion - single disk",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionSingleDisk(os.Getenv("VSPHERE_DATASTORE")),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
-							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
-							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_1.vmdk", os.Getenv("VSPHERE_DATASTORE")),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionSingleDisk(os.Getenv("VSPHERE_DATASTORE2")),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
-							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
-							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_1.vmdk", os.Getenv("VSPHERE_DATASTORE2")),
-						),
-					},
-				},
-			},
-		},
-		{
-			"storage vmotion - pin datastore",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionPinDatastore(os.Getenv("VSPHERE_DATASTORE")),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
-							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
-							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_1.vmdk", os.Getenv("VSPHERE_DATASTORE")),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionPinDatastore(os.Getenv("VSPHERE_DATASTORE2")),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE2")),
-							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE2")),
-							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_1.vmdk", os.Getenv("VSPHERE_DATASTORE")),
-						),
-					},
-				},
-			},
-		},
-		{
-			"storage vmotion - renamed virtual machine",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("terraform-test", os.Getenv("VSPHERE_DATASTORE")),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
-							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("foobar-test", os.Getenv("VSPHERE_DATASTORE")),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
-							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("foobar-test", os.Getenv("VSPHERE_DATASTORE2")),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE2")),
-							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("foobar-test.vmdk", os.Getenv("VSPHERE_DATASTORE2")),
-						),
-					},
-				},
-			},
-		},
-		{
-			"storage vmotion - linked clones",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionLinkedClone(os.Getenv("VSPHERE_DATASTORE")),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
-							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionLinkedClone(os.Getenv("VSPHERE_DATASTORE2")),
-						Check: resource.ComposeTestCheckFunc(
-							copyStatePtr(&state),
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE2")),
-							func(s *terraform.State) error {
-								filename := path.Base(state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.Attributes["disk.0.path"])
-								return testAccResourceVSphereVirtualMachineCheckVmdkDatastore(filename, os.Getenv("VSPHERE_DATASTORE2"))(s)
-							},
-						),
-					},
-				},
-			},
-		},
-		{
-			"storage vmotion - block externally attached disks",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionAttachedDisk(os.Getenv("VSPHERE_DATASTORE")),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
-							testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionAttachedDisk(os.Getenv("VSPHERE_DATASTORE2")),
-						ExpectError: regexp.MustCompile(regexp.QuoteMeta(
-							fmt.Sprintf("externally attached disk %q cannot be migrated", testAccResourceVSphereVirtualMachineDiskNameExtraVmdk),
-						)),
-					},
-				},
-			},
-		},
-		{
-			"single custom attribute",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigWithCustomAttribute(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCustomAttributes(),
-						),
-					},
-				},
-			},
-		},
-		{
-			"multi custom attribute",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigWithMultiCustomAttribute(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCustomAttributes(),
-						),
-					},
-				},
-			},
-		},
-		{
-			"switch custom attribute",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigWithCustomAttribute(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCustomAttributes(),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigWithMultiCustomAttribute(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							testAccResourceVSphereVirtualMachineCheckCustomAttributes(),
-						),
-					},
-				},
-			},
-		},
-		// TODO: Remove this test in 2.0
-		{
-			"transition to label",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBasicDiskNameOrLabel("name"),
-						Check: resource.ComposeTestCheckFunc(
-							copyState(&state),
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBasicDiskNameOrLabel("label"),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							func(s *terraform.State) error {
-								uuid := state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.Attributes["disk.0.uuid"]
-								return resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "disk.0.uuid", uuid)(s)
-							},
-						),
-					},
-				},
-			},
-		},
-		// TODO: Remove this test in 2.0
-		{
-			"prevent revert to name",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBasicDiskNameOrLabel("name"),
-						Check: resource.ComposeTestCheckFunc(
-							copyState(&state),
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBasicDiskNameOrLabel("label"),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							func(s *terraform.State) error {
-								uuid := state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.Attributes["disk.0.uuid"]
-								return resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "disk.0.uuid", uuid)(s)
-							},
-						),
-					},
-					{
-						Config:      testAccResourceVSphereVirtualMachineConfigBasicDiskNameOrLabel("name"),
-						ExpectError: regexp.MustCompile("cannot migrate from label to name"),
-					},
-				},
-			},
-		},
-		// TODO: Remove this test in 2.0
-		{
-			"transition to label - attached disk",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigExistingVmdkWithName(),
-						Check: resource.ComposeTestCheckFunc(
-							copyState(&state),
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigExistingVmdkWithLabel(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-							func(s *terraform.State) error {
-								uuid := state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.Attributes["disk.1.uuid"]
-								if err := resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "disk.1.uuid", uuid)(s); err != nil {
-									return err
-								}
-								return resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "disk.1.attach", "true")(s)
-							},
-						),
-					},
-				},
-			},
-		},
-		{
-			"import",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-					{
-						ResourceName:      "vsphere_virtual_machine.vm",
-						ImportState:       true,
-						ImportStateVerify: true,
-						ImportStateVerifyIgnore: []string{
-							"disk",
-							"imported",
-						},
-						ImportStateIdFunc: func(s *terraform.State) (string, error) {
-							vm, err := testGetVirtualMachine(s, "vm")
-							if err != nil {
-								return "", err
-							}
-							return vm.InventoryPath, nil
-						},
-						Config: testAccResourceVSphereVirtualMachineConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-				},
-			},
-		},
-		{
-			"import with multiple disks at different SCSI slots",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereVirtualMachinePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereVirtualMachineConfigMultiHighBus(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-					{
-						ResourceName:      "vsphere_virtual_machine.vm",
-						ImportState:       true,
-						ImportStateVerify: true,
-						ImportStateVerifyIgnore: []string{
-							"disk",
-							"imported",
-						},
-						ImportStateIdFunc: func(s *terraform.State) (string, error) {
-							vm, err := testGetVirtualMachine(s, "vm")
-							if err != nil {
-								return "", err
-							}
-							return vm.InventoryPath, nil
-						},
-						Config: testAccResourceVSphereVirtualMachineConfigMultiHighBus(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereVirtualMachineCheckExists(true),
-						),
-					},
-				},
-			},
-		},
-	}
+func TestAccResourceVSphereVirtualMachine_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					resource.TestMatchResourceAttr("vsphere_virtual_machine.vm", "moid", regexp.MustCompile("^vm-")),
+				),
+			},
+		},
+	})
+}
 
-	for _, tc := range testAccResourceVSphereVirtualMachineCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+func TestAccResourceVSphereVirtualMachine_ESXiOnly(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+			testAccSkipIfNotEsxi(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasicESXiOnly(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_shutdownOK(t *testing.T) {
+	var state *terraform.State
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					copyStatePtr(&state),
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+			{
+				PreConfig: func() {
+					if err := testPowerOffVM(state, "vm"); err != nil {
+						panic(err)
+					}
+				},
+				PlanOnly: true,
+				Config:   testAccResourceVSphereVirtualMachineConfigBasic(),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_reCreateOnDeletion(t *testing.T) {
+	var state *terraform.State
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					copyState(&state),
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+			{
+				PreConfig: func() {
+					if err := testDeleteVM(state, "vm"); err != nil {
+						panic(err)
+					}
+				},
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					func(s *terraform.State) error {
+						oldID := state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.ID
+						return testCheckResourceNotAttr("vsphere_virtual_machine.vm", "id", oldID)(s)
+					},
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_multiDevice(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigMultiDevice(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, true, true}, []bool{true, true, true}),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_addDevices(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigMultiDevice(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, true, true}, []bool{true, true, true}),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_removeMiddleDevices(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigMultiDevice(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, true, true}, []bool{true, true, true}),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigRemoveMiddle(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, false, true}, []bool{true, false, true}),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_removeMiddleDevicesChangeDiskUnit(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigMultiDevice(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, true, true}, []bool{true, true, true}),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigRemoveMiddleChangeUnit(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, false, true}, []bool{true, false, true}),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_highDiskUnitNumbers(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigMultiHighBus(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test.vmdk", 0, 0),
+					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_1.vmdk", 1, 0),
+					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_2.vmdk", 2, 1),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_highDiskUnitsToRegularSingleController(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigMultiHighBus(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test.vmdk", 0, 0),
+					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_1.vmdk", 1, 0),
+					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_2.vmdk", 2, 1),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigMultiDevice(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test.vmdk", 0, 0),
+					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_1.vmdk", 0, 1),
+					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_2.vmdk", 0, 2),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cdrom(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCdrom(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckCdrom(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_maximumNumberOfNICs(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigMaxNIC(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckNICCount(10),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_upgradeCPUAndRam(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBeefy(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckCPUMem(4, 8192),
+					// Since hot-add should be off, we expect that the VM was powered
+					// off as a part of this step. This helps check the functionality
+					// of the check for later tests as well.
+					testAccResourceVSphereVirtualMachineCheckPowerOffEvent(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_modifyAnnotation(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasicAnnotation(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckAnnotation(),
+					testAccResourceVSphereVirtualMachineCheckPowerOffEvent(false),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_growDisk(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigGrowDisk(10),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckDiskSize(10),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigGrowDisk(20),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckDiskSize(20),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_swapSCSIBus(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckSCSIBus(virtualdevice.SubresourceControllerTypeParaVirtual),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigLsiLogicSAS(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckSCSIBus(virtualdevice.SubresourceControllerTypeLsiLogicSAS),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_extraConfig(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigExtraConfig("foo", "bar"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckExtraConfig("foo", "bar"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_extraConfigSwapKeys(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigExtraConfig("foo", "bar"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckExtraConfig("foo", "bar"),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigExtraConfig("baz", "qux"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckExtraConfig("baz", "qux"),
+					testAccResourceVSphereVirtualMachineCheckExtraConfigKeyMissing("foo"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_attachExistingVmdk(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigExistingVmdk(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckExistingVmdk(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_inFolder(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigInFolder(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckFolder("terraform-test-vms"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_moveToFolder(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigInFolder(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckFolder("terraform-test-vms"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_staticMAC(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigStaticMAC(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckStaticMACAddr(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_singleTag(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigSingleTag(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckTags("terraform-test-tag"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_multipleTags(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigMultiTag(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckTags("terraform-test-tags-alt"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_switchTags(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigSingleTag(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckTags("terraform-test-tag"),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigMultiTag(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckTags("terraform-test-tags-alt"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_renamedDiskInPlaceOfExisting(t *testing.T) {
+	var state *terraform.State
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					copyStatePtr(&state),
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+			{
+				PreConfig: func() {
+					if err := testRenameVMFirstDisk(state, "vm", "foobar.vmdk"); err != nil {
+						panic(err)
+					}
+				},
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					// The only real way we can check to see if this is actually
+					// functional in the current test framework is by checking that
+					// the file we renamed to was not deleted (this is due to a lack
+					// of ability to check diff in the test framework right now).
+					testCheckVMDiskFileExists("terraform-test.vmdk"),
+					testCheckVMDiskFileExists("foobar.vmdk"),
+				),
+			},
+			// The last step is a cleanup step. This assumes the test is
+			// functional as the orphaned disk will be now detached and not
+			// deleted when the VM is destroyed.
+			{
+				PreConfig: func() {
+					if err := testDeleteVMDisk(state, "vm", "foobar.vmdk"); err != nil {
+						panic(err)
+					}
+				},
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_blockComputedDiskName(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigComputedDisk(),
+				ExpectError: regexp.MustCompile("disk label or name must be defined and cannot be computed"),
+				PlanOnly:    true,
+			},
+			{
+				Config: testAccResourceVSphereEmpty,
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_blockVAppSettingsOnNonClones(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereVirtualMachineVAppPropertiesNonClone(),
+				ExpectError: regexp.MustCompile("vApp properties can only be set on cloned virtual machines"),
+			},
+			{
+				Config: testAccResourceVSphereEmpty,
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_blockVAppSettingsOnNonClonesAfterCreation(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+			{
+				Config:      testAccResourceVSphereVirtualMachineVAppPropertiesNonClone(),
+				ExpectError: regexp.MustCompile("this VM lacks a vApp configuration and cannot have vApp properties set on it"),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_blockDiskLabelStartingWithOrphanedPrefix(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigBadOrphanedLabel(),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta(`disk label "orphaned_disk_0" cannot start with "orphaned_disk_"`)),
+				PlanOnly:    true,
+			},
+			{
+				Config: testAccResourceVSphereEmpty,
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_createIntoEmptyClusterNoEnvironmentBrowser(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigBasicEmptyCluster(),
+				ExpectError: regexp.MustCompile("compute resource .* is missing an Environment Browser\\. Check host, cluster, and vSphere license health of all associated resources and try again"),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneFromTemplate(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigClone(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "default_ip_address", os.Getenv("VSPHERE_IPV4_ADDRESS")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneModifyDiskAndSCSITypeAtSameTime(t *testing.T) {
+	var state *terraform.State
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneChangeDiskAndSCSI(),
+				Check: resource.ComposeTestCheckFunc(
+					copyStatePtr(&state),
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					func(s *terraform.State) error {
+						oldSize, _ := strconv.Atoi(state.RootModule().Resources["data.vsphere_virtual_machine.template"].Primary.Attributes["disks.0.size"])
+						newSize := oldSize * 2
+						return resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "disk.0.size", strconv.Itoa(newSize))(s)
+					},
+					func(s *terraform.State) error {
+						oldBus := state.RootModule().Resources["data.vsphere_virtual_machine.template"].Primary.Attributes["scsi_type"]
+						var expected string
+						if oldBus == virtualdevice.SubresourceControllerTypeParaVirtual {
+							expected = virtualdevice.SubresourceControllerTypeLsiLogicSAS
+						} else {
+							expected = virtualdevice.SubresourceControllerTypeParaVirtual
+						}
+						return resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "scsi_type", expected)(s)
+					},
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneMultiNICFromSingleNICTemplate(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneMultiNIC(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "default_ip_address", os.Getenv("VSPHERE_IPV4_ADDRESS")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneWithDifferentTimezone(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneTimeZone("America/Vancouver"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneWithBadTimezone(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigCloneTimeZone("Pacific Standard Time"),
+				ExpectError: regexp.MustCompile("must be similar to America/Los_Angeles or other Linux/Unix TZ format"),
+				PlanOnly:    true,
+			},
+			{
+				Config: testAccResourceVSphereEmpty,
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneWithBadEagerlyScrubWithLinkedClone(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigBadEager(),
+				ExpectError: regexp.MustCompile("must have same value for eagerly_scrub as source when using linked_clone"),
+				PlanOnly:    true,
+			},
+			{
+				Config: testAccResourceVSphereEmpty,
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneWithBadThinProvisionedWithLinkedClone(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigBadThin(),
+				ExpectError: regexp.MustCompile("must have same value for thin_provisioned as source when using linked_clone"),
+				PlanOnly:    true,
+			},
+			{
+				Config: testAccResourceVSphereEmpty,
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithLinkedClone(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigBadSizeLinked(),
+				ExpectError: regexp.MustCompile("must be the exact size of source when using linked_clone"),
+				PlanOnly:    true,
+			},
+			{
+				Config: testAccResourceVSphereEmpty,
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithoutLinkedClone(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigBadSizeUnlinked(),
+				ExpectError: regexp.MustCompile("must be at least the same size of source when cloning"),
+				PlanOnly:    true,
+			},
+			{
+				Config: testAccResourceVSphereEmpty,
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneUnsupportedVAppPropertiesOnCreate(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigCloneBadVAppSettings(),
+				ExpectError: regexp.MustCompile("this VM lacks a vApp configuration and cannot have vApp properties set on it"),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneUnsupportedVAppPropertiesOnUpdate(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigClone(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigCloneBadVAppSettings(),
+				ExpectError: regexp.MustCompile("this VM lacks a vApp configuration and cannot have vApp properties set on it"),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneIntoEmptyCluster(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigCloneEmptyCluster(),
+				ExpectError: regexp.MustCompile("compute resource .* is missing an Environment Browser\\. Check host, cluster, and vSphere license health of all associated resources and try again"),
+				PlanOnly:    true,
+			},
+			{
+				Config: testAccResourceVSphereEmpty,
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneWithDifferentHostname(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneHostname(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckHostname("terraform-test-renamed"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneWithExtraDisks(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneExtraDisks(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckExtraDisks(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneWithCdrom(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneWithCdrom(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckCdrom(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneWithVAppProperties(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneWithVAppProperties(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.hostname", "terraform-test.test.internal"),
+					testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.0", os.Getenv("VSPHERE_DNS")),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneUpdatingVAppProperties(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.hostname", "terraform-test.test.internal"),
+					testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.0", os.Getenv("VSPHERE_DNS")),
+					testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.1", "8.8.8.8"),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneWithVAppProperties(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.hostname", "terraform-test.test.internal"),
+					testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.0", os.Getenv("VSPHERE_DNS")),
+					testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.1", ""),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneWithBadVAppPropertyOnCreate(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigCloneVAppPropertiesBadKey(),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta("unsupported vApp properties in vapp.properties: [foo]")),
+			},
+			{
+				Config: testAccResourceVSphereEmpty,
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneWithBadVAppPropertyOnUpdate(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneWithVAppProperties(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.hostname", "terraform-test.test.internal"),
+					testAccResourceVSphereVirtualMachineCheckVAppConfigKey("guestinfo.dns.server.0", os.Getenv("VSPHERE_DNS")),
+				),
+			},
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigCloneVAppPropertiesBadKey(),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta("unsupported vApp properties in vapp.properties: [foo]")),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cpuHotAdd(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				// Starting config
+				Config: testAccResourceVSphereVirtualMachineConfigWithHotAdd(2, 2048, true, false, true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckCPUMem(2, 2048),
+				),
+			},
+			{
+				// Add CPU w/hot-add
+				Config: testAccResourceVSphereVirtualMachineConfigWithHotAdd(4, 2048, true, false, true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckCPUMem(4, 2048),
+					testAccResourceVSphereVirtualMachineCheckPowerOffEvent(false),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_memoryHotAdd(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				// Starting config
+				Config: testAccResourceVSphereVirtualMachineConfigWithHotAdd(2, 2048, true, false, true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckCPUMem(2, 2048),
+				),
+			},
+			{
+				// Add memory with hot-add
+				Config: testAccResourceVSphereVirtualMachineConfigWithHotAdd(2, 3072, true, false, true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckCPUMem(2, 3072),
+					testAccResourceVSphereVirtualMachineCheckPowerOffEvent(false),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_dualStackIPv4AndIPv6(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigDualStack(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckNet("fd00::2", "32", "fd00::1"),
+					testAccResourceVSphereVirtualMachineCheckNet(
+						os.Getenv("VSPHERE_IPV4_ADDRESS"),
+						os.Getenv("VSPHERE_IPV4_PREFIX"),
+						os.Getenv("VSPHERE_IPV4_GATEWAY"),
+					),
+					resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "default_ip_address", os.Getenv("VSPHERE_IPV4_ADDRESS")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_IPv6Only(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigIPv6Only(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckNet("fd00::2", "32", "fd00::1"),
+					resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "default_ip_address", "fd00::2"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_windowsTemplateCustomizationEventsAndProperIP(t *testing.T) {
+	var state *terraform.State
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigWindows(),
+				Check: resource.ComposeTestCheckFunc(
+					copyStatePtr(&state),
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckCustomizationSucceeded(),
+					testAccResourceVSphereVirtualMachineCheckNet(
+						os.Getenv("VSPHERE_IPV4_ADDRESS"),
+						os.Getenv("VSPHERE_IPV4_PREFIX"),
+						os.Getenv("VSPHERE_IPV4_GATEWAY"),
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_hostVMotion(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigHostVMotion(os.Getenv("VSPHERE_ESXI_HOST")),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckHost(os.Getenv("VSPHERE_ESXI_HOST")),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigHostVMotion(os.Getenv("VSPHERE_ESXI_HOST2")),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckHost(os.Getenv("VSPHERE_ESXI_HOST2")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_resourcePoolVMotion(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigResourcePoolVMotion(os.Getenv("VSPHERE_RESOURCE_POOL")),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckResourcePool(os.Getenv("VSPHERE_RESOURCE_POOL")),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigResourcePoolVMotion(fmt.Sprintf("%s/Resources", os.Getenv("VSPHERE_CLUSTER"))),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckResourcePool(fmt.Sprintf("%s/Resources", os.Getenv("VSPHERE_CLUSTER"))),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_storageVMotionGlobalSetting(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionGlobal(os.Getenv("VSPHERE_DATASTORE")),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionGlobal(os.Getenv("VSPHERE_DATASTORE2")),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE2")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE2")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_storageVMotionSingleDisk(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionSingleDisk(os.Getenv("VSPHERE_DATASTORE")),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_1.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionSingleDisk(os.Getenv("VSPHERE_DATASTORE2")),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_1.vmdk", os.Getenv("VSPHERE_DATASTORE2")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_storageVMotionPinDatastore(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionPinDatastore(os.Getenv("VSPHERE_DATASTORE")),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_1.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionPinDatastore(os.Getenv("VSPHERE_DATASTORE2")),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE2")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE2")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_1.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_storageVMotionRenamedVirtualMachine(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("terraform-test", os.Getenv("VSPHERE_DATASTORE")),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("foobar-test", os.Getenv("VSPHERE_DATASTORE")),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("foobar-test", os.Getenv("VSPHERE_DATASTORE2")),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE2")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("foobar-test.vmdk", os.Getenv("VSPHERE_DATASTORE2")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_storageVMotionLinkedClones(t *testing.T) {
+	var state *terraform.State
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionLinkedClone(os.Getenv("VSPHERE_DATASTORE")),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionLinkedClone(os.Getenv("VSPHERE_DATASTORE2")),
+				Check: resource.ComposeTestCheckFunc(
+					copyStatePtr(&state),
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE2")),
+					func(s *terraform.State) error {
+						filename := path.Base(state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.Attributes["disk.0.path"])
+						return testAccResourceVSphereVirtualMachineCheckVmdkDatastore(filename, os.Getenv("VSPHERE_DATASTORE2"))(s)
+					},
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_storageVMotionBlockExternallyAttachedDisks(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionAttachedDisk(os.Getenv("VSPHERE_DATASTORE")),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionAttachedDisk(os.Getenv("VSPHERE_DATASTORE2")),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta(
+					fmt.Sprintf("externally attached disk %q cannot be migrated", testAccResourceVSphereVirtualMachineDiskNameExtraVmdk),
+				)),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_singleCustomAttribute(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigWithCustomAttribute(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckCustomAttributes(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_multiCustomAttribute(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigWithMultiCustomAttribute(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckCustomAttributes(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_switchCustomAttribute(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigWithCustomAttribute(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckCustomAttributes(),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigWithMultiCustomAttribute(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckCustomAttributes(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_transitionToLabel(t *testing.T) {
+	// TODO: Remove this test in 2.0
+	var state *terraform.State
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasicDiskNameOrLabel("name"),
+				Check: resource.ComposeTestCheckFunc(
+					copyState(&state),
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasicDiskNameOrLabel("label"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					func(s *terraform.State) error {
+						uuid := state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.Attributes["disk.0.uuid"]
+						return resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "disk.0.uuid", uuid)(s)
+					},
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_preventRevertToName(t *testing.T) {
+	// TODO: Remove this test in 2.0
+	var state *terraform.State
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasicDiskNameOrLabel("name"),
+				Check: resource.ComposeTestCheckFunc(
+					copyState(&state),
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasicDiskNameOrLabel("label"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					func(s *terraform.State) error {
+						uuid := state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.Attributes["disk.0.uuid"]
+						return resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "disk.0.uuid", uuid)(s)
+					},
+				),
+			},
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigBasicDiskNameOrLabel("name"),
+				ExpectError: regexp.MustCompile("cannot migrate from label to name"),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_transitionToLabelAttachedDisk(t *testing.T) {
+	// TODO: Remove this test in 2.0
+	var state *terraform.State
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigExistingVmdkWithName(),
+				Check: resource.ComposeTestCheckFunc(
+					copyState(&state),
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigExistingVmdkWithLabel(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					func(s *terraform.State) error {
+						uuid := state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.Attributes["disk.1.uuid"]
+						if err := resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "disk.1.uuid", uuid)(s); err != nil {
+							return err
+						}
+						return resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "disk.1.attach", "true")(s)
+					},
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_import(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+			{
+				ResourceName:      "vsphere_virtual_machine.vm",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"disk",
+					"imported",
+				},
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					vm, err := testGetVirtualMachine(s, "vm")
+					if err != nil {
+						return "", err
+					}
+					return vm.InventoryPath, nil
+				},
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_importWithMultipleDisksAtDifferentSCSISlots(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigMultiHighBus(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+			{
+				ResourceName:      "vsphere_virtual_machine.vm",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"disk",
+					"imported",
+				},
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					vm, err := testGetVirtualMachine(s, "vm")
+					if err != nil {
+						return "", err
+					}
+					return vm.InventoryPath, nil
+				},
+				Config: testAccResourceVSphereVirtualMachineConfigMultiHighBus(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+		},
+	})
 }
 
 func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {

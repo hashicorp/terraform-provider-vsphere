@@ -13,306 +13,290 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
 
-func TestAccResourceVSphereNasDatastore(t *testing.T) {
-	var tp *testing.T
-	testAccResourceVSphereNasDatastoreCases := []struct {
-		name     string
-		testCase resource.TestCase
-	}{
-		{
-			"basic",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereNasDatastorePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereNasDatastoreConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereNasDatastoreExists(true),
-						),
-					},
-				},
+func TestAccResourceVSphereNasDatastore_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereNasDatastorePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+				),
 			},
 		},
-		{
-			"multi-host",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereNasDatastorePreCheck(tp)
-					testAccSkipIfEsxi(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereNasDatastoreConfigMultiHost(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereNasDatastoreExists(true),
-						),
-					},
-				},
-			},
-		},
-		{
-			"basic, then multi-host",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereNasDatastorePreCheck(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereNasDatastoreConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereNasDatastoreExists(true),
-						),
-					},
-					{
-						Config:      testAccResourceVSphereNasDatastoreConfigMultiHost(),
-						ExpectError: expectErrorIfNotVirtualCenter(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereNasDatastoreExists(true),
-						),
-					},
-				},
-			},
-		},
-		{
-			"multi-host, then basic",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereNasDatastorePreCheck(tp)
-					testAccSkipIfEsxi(tp)
-				},
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereNasDatastoreConfigMultiHost(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereNasDatastoreExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereNasDatastoreConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereNasDatastoreExists(true),
-						),
-					},
-				},
-			},
-		},
-		{
-			"rename datastore",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereNasDatastorePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereNasDatastoreConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereNasDatastoreExists(true),
-						),
-					},
-					{
-						Config: testAccResourceVSphereNasDatastoreConfigBasicAltName(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereNasDatastoreExists(true),
-							testAccResourceVSphereNasDatastoreHasName("terraform-test-nas-renamed"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"with folder",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereNasDatastorePreCheck(tp)
-					// NOTE: This test can't run on ESXi without giving a "dangling
-					// resource" error during testing - "move to folder after" hits the
-					// error on the same path of the call stack that triggers an error in
-					// both create and update and should provide adequate coverage
-					// barring manual testing.
-					testAccSkipIfEsxi(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereNasDatastoreConfigBasicFolder(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereNasDatastoreExists(true),
-							testAccResourceVSphereNasDatastoreMatchInventoryPath(os.Getenv("VSPHERE_DS_FOLDER")),
-						),
-					},
-				},
-			},
-		},
-		{
-			"move to folder after",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereNasDatastorePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereNasDatastoreConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereNasDatastoreExists(true),
-						),
-					},
-					{
-						Config:      testAccResourceVSphereNasDatastoreConfigBasicFolder(),
-						ExpectError: expectErrorIfNotVirtualCenter(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereNasDatastoreExists(true),
-							testAccResourceVSphereNasDatastoreMatchInventoryPath(os.Getenv("VSPHERE_DS_FOLDER")),
-						),
-					},
-				},
-			},
-		},
-		{
-			"single tag",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereNasDatastorePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereNasDatastoreConfigBasicTags(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereNasDatastoreExists(true),
-							testAccResourceVSphereDatastoreCheckTags("vsphere_nas_datastore.datastore", "terraform-test-tag"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"modify tags",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereNasDatastorePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereNasDatastoreConfigBasicTags(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereNasDatastoreExists(true),
-							testAccResourceVSphereDatastoreCheckTags("vsphere_nas_datastore.datastore", "terraform-test-tag"),
-						),
-					},
-					{
-						Config: testAccResourceVSphereNasDatastoreConfigMultiTags(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereNasDatastoreExists(true),
-							testAccResourceVSphereDatastoreCheckTags("vsphere_nas_datastore.datastore", "terraform-test-tags-alt"),
-						),
-					},
-				},
-			},
-		},
-		{
-			"import",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereNasDatastorePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereNasDatastoreConfigBasic(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereNasDatastoreExists(true),
-						),
-					},
-					{
-						Config:            testAccResourceVSphereNasDatastoreConfigBasic(),
-						ImportState:       true,
-						ResourceName:      "vsphere_nas_datastore.datastore",
-						ImportStateVerify: true,
-					},
-				},
-			},
-		},
-		{
-			"single custom attribute",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereNasDatastorePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereNasDatastoreConfigSingleCustomAttribute(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereNasDatastoreExists(true),
-							testAccResourceVSphereNasDatastoreHasCustomAttributes(),
-						),
-					},
-				},
-			},
-		},
-		{
-			"multi custom attribute",
-			resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(tp)
-					testAccResourceVSphereNasDatastorePreCheck(tp)
-				},
-				Providers:    testAccProviders,
-				CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
-				Steps: []resource.TestStep{
-					{
-						Config: testAccResourceVSphereNasDatastoreConfigSingleCustomAttribute(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereNasDatastoreExists(true),
-							testAccResourceVSphereNasDatastoreHasCustomAttributes(),
-						),
-					},
-					{
-						Config: testAccResourceVSphereNasDatastoreConfigMultiCustomAttributes(),
-						Check: resource.ComposeTestCheckFunc(
-							testAccResourceVSphereNasDatastoreExists(true),
-							testAccResourceVSphereNasDatastoreHasCustomAttributes(),
-						),
-					},
-				},
-			},
-		},
-	}
+	})
+}
 
-	for _, tc := range testAccResourceVSphereNasDatastoreCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tp = t
-			resource.Test(t, tc.testCase)
-		})
-	}
+func TestAccResourceVSphereNasDatastore_multiHost(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereNasDatastorePreCheck(t)
+			testAccSkipIfEsxi(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigMultiHost(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereNasDatastore_basicToMultiHost(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereNasDatastorePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+				),
+			},
+			{
+				Config:      testAccResourceVSphereNasDatastoreConfigMultiHost(),
+				ExpectError: expectErrorIfNotVirtualCenter(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereNasDatastore_multiHostToBasic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereNasDatastorePreCheck(t)
+			testAccSkipIfEsxi(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigMultiHost(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereNasDatastore_renameDatastore(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereNasDatastorePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigBasicAltName(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+					testAccResourceVSphereNasDatastoreHasName("terraform-test-nas-renamed"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereNasDatastore_inFolder(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereNasDatastorePreCheck(t)
+			// NOTE: This test can't run on ESXi without giving a "dangling
+			// resource" error during testing - "move to folder after" hits the
+			// error on the same path of the call stack that triggers an error in
+			// both create and update and should provide adequate coverage
+			// barring manual testing.
+			testAccSkipIfEsxi(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigBasicFolder(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+					testAccResourceVSphereNasDatastoreMatchInventoryPath(os.Getenv("VSPHERE_DS_FOLDER")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereNasDatastore_moveToFolder(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereNasDatastorePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+				),
+			},
+			{
+				Config:      testAccResourceVSphereNasDatastoreConfigBasicFolder(),
+				ExpectError: expectErrorIfNotVirtualCenter(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+					testAccResourceVSphereNasDatastoreMatchInventoryPath(os.Getenv("VSPHERE_DS_FOLDER")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereNasDatastore_singleTag(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereNasDatastorePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigBasicTags(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+					testAccResourceVSphereDatastoreCheckTags("vsphere_nas_datastore.datastore", "terraform-test-tag"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereNasDatastore_modifyTags(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereNasDatastorePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigBasicTags(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+					testAccResourceVSphereDatastoreCheckTags("vsphere_nas_datastore.datastore", "terraform-test-tag"),
+				),
+			},
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigMultiTags(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+					testAccResourceVSphereDatastoreCheckTags("vsphere_nas_datastore.datastore", "terraform-test-tags-alt"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereNasDatastore_import(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereNasDatastorePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+				),
+			},
+			{
+				Config:            testAccResourceVSphereNasDatastoreConfigBasic(),
+				ImportState:       true,
+				ResourceName:      "vsphere_nas_datastore.datastore",
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereNasDatastore_singleCustomAttribute(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereNasDatastorePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigSingleCustomAttribute(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+					testAccResourceVSphereNasDatastoreHasCustomAttributes(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereNasDatastore_multiCustomAttribute(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereNasDatastorePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigSingleCustomAttribute(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+					testAccResourceVSphereNasDatastoreHasCustomAttributes(),
+				),
+			},
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigMultiCustomAttributes(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+					testAccResourceVSphereNasDatastoreHasCustomAttributes(),
+				),
+			},
+		},
+	})
 }
 
 func testAccResourceVSphereNasDatastorePreCheck(t *testing.T) {
@@ -380,7 +364,7 @@ func testAccResourceVSphereNasDatastoreMatchInventoryPath(expected string) resou
 			return err
 		}
 
-		expected, err := folder.RootPathParticleDatastore.PathFromNewRoot(ds.InventoryPath, folder.RootPathParticleDatastore, expected)
+		expected, err = folder.RootPathParticleDatastore.PathFromNewRoot(ds.InventoryPath, folder.RootPathParticleDatastore, expected)
 		actual := path.Dir(ds.InventoryPath)
 		if err != nil {
 			return fmt.Errorf("bad: %s", err)

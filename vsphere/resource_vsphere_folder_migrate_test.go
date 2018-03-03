@@ -18,7 +18,7 @@ func testAccResourceVSphereFolderMigrateStatePreCheck(t *testing.T) {
 	}
 }
 
-func TestAccResourceVSphereFolderMigrateState(t *testing.T) {
+func TestAccResourceVSphereFolderMigrateState_basic(t *testing.T) {
 	testAccResourceVSphereFolderMigrateStatePreCheck(t)
 	testAccPreCheck(t)
 
