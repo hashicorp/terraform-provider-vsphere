@@ -2,6 +2,8 @@ package vsphere
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -66,11 +68,29 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CLIENT_DEBUG_PATH", ""),
 				Description: "govomomi debug path for debug",
 			},
+			"persist_session": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CLIENT_DEBUG_PATH", false),
+				Description: "Persist vSphere client sessions to disk ",
+			},
+			"vim_session_directory": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_VIM_SESSION_PATH", filepath.Join(os.Getenv("HOME"), ".govmomi", "sessions")),
+				Description: "The directory to save vSphere SOAP API sessions to",
+			},
+			"cis_session_directory": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CIS_SESSION_PATH", filepath.Join(os.Getenv("HOME"), ".govmomi", "cis_sessions")),
+				Description: "The directory to save vSphere CIS (REST) API sessions to",
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
 			"vsphere_custom_attribute":           resourceVSphereCustomAttribute(),
-			"vsphere_datacenter":                 resourceVSphereDatacenter(),
+			"vgphere_datacenter":                 resourceVSphereDatacenter(),
 			"vsphere_distributed_port_group":     resourceVSphereDistributedPortGroup(),
 			"vsphere_distributed_virtual_switch": resourceVSphereDistributedVirtualSwitch(),
 			"vsphere_file":                       resourceVSphereFile(),
