@@ -120,7 +120,7 @@ func (c *Config) Client() (*VSphereClient, error) {
 		if err != nil {
 			return nil, err
 		}
-		log.Println("[DEBUG] CIS REST login successful")
+		log.Println("[DEBUG] CIS REST client configuration successful")
 	} else {
 		// Just print a log message so that we know that tags are not available on
 		// this connection.
@@ -423,6 +423,7 @@ func (c *Config) LoadRestClient(ctx context.Context, u *url.URL) (*tags.RestClie
 		return client, false, nil
 	}
 
+	log.Println("[DEBUG] Cached REST client session loaded successfully")
 	return client, true, nil
 }
 
@@ -437,10 +438,12 @@ func (c *Config) SavedVimSessionOrNew(u *url.URL) (*govmomi.Client, error) {
 		return nil, fmt.Errorf("error trying to load vSphere SOAP session from disk: %s", err)
 	}
 	if client == nil {
+		log.Printf("[DEBUG] Creating new SOAP API session on endpoint %s", c.VSphereServer)
 		client, err = govmomi.NewClient(ctx, u, c.InsecureFlag)
 		if err != nil {
 			return nil, fmt.Errorf("error setting up new vSphere SOAP client: %s", err)
 		}
+		log.Println("[DEBUG] SOAP API session creation successful")
 	}
 	return client, nil
 }
@@ -456,10 +459,11 @@ func (c *Config) SavedRestSessionOrNew(u *url.URL) (*tags.RestClient, error) {
 		return nil, fmt.Errorf("error trying to load vSphere REST session from disk: %s", err)
 	}
 	if !valid {
-		log.Printf("[DEBUG] Logging in to CIS REST API endpoint on %s", c.VSphereServer)
+		log.Printf("[DEBUG] Creating new CIS REST API session on endpoint %s", c.VSphereServer)
 		if err := client.Login(ctx); err != nil {
 			return nil, fmt.Errorf("Error connecting to CIS REST endpoint: %s", err)
 		}
+		log.Println("[DEBUG] CIS REST API session creation successful")
 	}
 	return client, nil
 }

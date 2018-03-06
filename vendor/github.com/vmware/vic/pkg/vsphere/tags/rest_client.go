@@ -262,7 +262,7 @@ func (c *RestClient) Valid(ctx context.Context) bool {
 	sessionID := c.SessionID()
 	Logger.Debugf("Checking if session ID %q is still valid", sessionID)
 
-	_, _, statusCode, err := c.clientRequest(ctx, "GET", loginURL+"?~action=get", nil, nil)
+	_, _, statusCode, err := c.clientRequest(ctx, "POST", loginURL+"?~action=get", nil, nil)
 	if err != nil {
 		Logger.Debugf("Error getting current session information for ID %q - session is invalid (%d - %s)", sessionID, statusCode, err)
 	}
