@@ -90,7 +90,7 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"vsphere_custom_attribute":           resourceVSphereCustomAttribute(),
-			"vgphere_datacenter":                 resourceVSphereDatacenter(),
+			"vsphere_datacenter":                 resourceVSphereDatacenter(),
 			"vsphere_distributed_port_group":     resourceVSphereDistributedPortGroup(),
 			"vsphere_distributed_virtual_switch": resourceVSphereDistributedVirtualSwitch(),
 			"vsphere_file":                       resourceVSphereFile(),
