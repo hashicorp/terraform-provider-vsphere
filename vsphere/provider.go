@@ -71,20 +71,20 @@ func Provider() terraform.ResourceProvider {
 			"persist_session": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CLIENT_DEBUG_PATH", false),
-				Description: "Persist vSphere client sessions to disk ",
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_PERSIST_SESSION", false),
+				Description: "Persist vSphere client sessions to disk",
 			},
 			"vim_session_directory": &schema.Schema{
-				Type:        schema.TypeBool,
+				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_VIM_SESSION_PATH", filepath.Join(os.Getenv("HOME"), ".govmomi", "sessions")),
 				Description: "The directory to save vSphere SOAP API sessions to",
 			},
-			"cis_session_directory": &schema.Schema{
-				Type:        schema.TypeBool,
+			"rest_session_directory": &schema.Schema{
+				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CIS_SESSION_PATH", filepath.Join(os.Getenv("HOME"), ".govmomi", "cis_sessions")),
-				Description: "The directory to save vSphere CIS (REST) API sessions to",
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CIS_SESSION_PATH", filepath.Join(os.Getenv("HOME"), ".govmomi", "rest_sessions")),
+				Description: "The directory to save vSphere REST API sessions to",
 			},
 		},
 
@@ -141,13 +141,16 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	config := Config{
-		User:          d.Get("user").(string),
-		Password:      d.Get("password").(string),
-		InsecureFlag:  d.Get("allow_unverified_ssl").(bool),
-		VSphereServer: server,
-		Debug:         d.Get("client_debug").(bool),
-		DebugPathRun:  d.Get("client_debug_path_run").(string),
-		DebugPath:     d.Get("client_debug_path").(string),
+		User:            d.Get("user").(string),
+		Password:        d.Get("password").(string),
+		InsecureFlag:    d.Get("allow_unverified_ssl").(bool),
+		VSphereServer:   server,
+		Debug:           d.Get("client_debug").(bool),
+		DebugPathRun:    d.Get("client_debug_path_run").(string),
+		DebugPath:       d.Get("client_debug_path").(string),
+		Persist:         d.Get("persist_session").(bool),
+		VimSessionPath:  d.Get("vim_session_directory").(string),
+		RestSessionPath: d.Get("rest_session_directory").(string),
 	}
 
 	return config.Client()

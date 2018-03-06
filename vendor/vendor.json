@@ -944,11 +944,11 @@
 			"revisionTime": "2018-02-13T04:10:52Z"
 		},
 		{
-			"checksumSHA1": "jxajBXMRa5ObHWsnT1ANtYvpMAQ=",
+			"checksumSHA1": "w1g/h1AznfM2qahg4+l+N0bZ5Y0=",
 			"origin": "github.com/vancluever/vic/pkg/vsphere/tags",
 			"path": "github.com/vmware/vic/pkg/vsphere/tags",
-			"revision": "b2171f171d8d190d3cff1d779b339a848b32b8a7",
-			"revisionTime": "2017-09-20T22:12:48Z"
+			"revision": "e25dadd4f90308dddb230fa56bf9ef4ac021965f",
+			"revisionTime": "2018-03-05T22:51:57Z"
 		},
 		{
 			"checksumSHA1": "R9ayYqxeUsPcIbs6KXCVwDIdf6M=",
