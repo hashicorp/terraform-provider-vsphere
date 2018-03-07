@@ -295,7 +295,7 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitsToRegularSingleController
 	})
 }
 
-func TestAccResourceVSphereVirtualMachine_iso_cdrom(t *testing.T) {
+func TestAccResourceVSphereVirtualMachine_cdromIsoMapping(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -314,7 +314,7 @@ func TestAccResourceVSphereVirtualMachine_iso_cdrom(t *testing.T) {
 	})
 }
 
-func TestAccResourceVSphereVirtualMachine_client_cdrom(t *testing.T) {
+func TestAccResourceVSphereVirtualMachine_cdromClientMapping(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -334,7 +334,7 @@ func TestAccResourceVSphereVirtualMachine_client_cdrom(t *testing.T) {
 	})
 }
 
-func TestAccResourceVSphereVirtualMachine_no_cdrom_parameters(t *testing.T) {
+func TestAccResourceVSphereVirtualMachine_cdromNoParameters(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -353,7 +353,7 @@ func TestAccResourceVSphereVirtualMachine_no_cdrom_parameters(t *testing.T) {
 	})
 }
 
-func TestAccResourceVSphereVirtualMachine_conflicting_cdrom_parameters(t *testing.T) {
+func TestAccResourceVSphereVirtualMachine_cdromConflictingParameters(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -372,7 +372,7 @@ func TestAccResourceVSphereVirtualMachine_conflicting_cdrom_parameters(t *testin
 	})
 }
 
-func TestAccResourceVSphereVirtualMachine_change_cdrom_backing(t *testing.T) {
+func TestAccResourceVSphereVirtualMachine_cdromChangeMapping(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
