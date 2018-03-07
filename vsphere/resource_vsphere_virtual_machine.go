@@ -536,6 +536,11 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 		}
 	}
 
+	// Validate cdrom sub-resources
+	if err := virtualdevice.CdromDiffOperation(d, client); err != nil {
+		return err
+	}
+
 	// Validate network device sub-resources
 	if err := virtualdevice.NetworkInterfaceDiffOperation(d, client); err != nil {
 		return err

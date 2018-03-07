@@ -301,8 +301,7 @@ func TestAccResourceVSphereVirtualMachine_iso_cdrom(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVirtualMachineConfigIsoCdrom(),
@@ -341,8 +340,12 @@ func TestAccResourceVSphereVirtualMachine_no_cdrom_parameters(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigClientCdrom(),
+			},
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigNoCdromParameters(),
 				ExpectError: regexp.MustCompile("Either client_device or datastore_id and path must be set"),
@@ -359,6 +362,9 @@ func TestAccResourceVSphereVirtualMachine_conflicting_cdrom_parameters(t *testin
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigClientCdrom(),
+			},
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigConflictingCdromParameters(),
 				ExpectError: regexp.MustCompile("Cannot have both client_device parameter and ISO file parameters"),
@@ -2451,7 +2457,7 @@ func testAccResourceVSphereVirtualMachineCheckIsoCdrom() resource.TestCheckFunc 
 }
 
 // testAccResourceVSphereVirtualMachineCheckClientCdrom checks to make sure that the
-// subject VM has a CDROM device configured with remote client backing.
+// subject VM has a CDROM device mapped to a client device.
 func testAccResourceVSphereVirtualMachineCheckClientCdrom() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		props, err := testGetVirtualMachineProperties(s, "vm")
@@ -3337,7 +3343,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   cdrom {
-		client_device = true
+    client_device = true
   }
 }
 `,
@@ -3405,8 +3411,7 @@ resource "vsphere_virtual_machine" "vm" {
     size  = 20
   }
 
-  cdrom {
-  }
+  cdrom {}
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
@@ -3487,9 +3492,9 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   cdrom {
-		datastore_id = "${data.vsphere_datastore.iso_datastore.id}"
-		path         = "${var.iso_path}"
-		client_device = true
+    datastore_id  = "${data.vsphere_datastore.iso_datastore.id}"
+    path          = "${var.iso_path}"
+    client_device = true
   }
 }
 `,

@@ -32,7 +32,7 @@ func CdromSubresourceSchema() map[string]*schema.Schema {
 		"client_device": {
 			Type:        schema.TypeBool,
 			Optional:    true,
-			Description: "Indicates whether the device should be backed by remote client device",
+			Description: "Indicates whether the device should be mapped to a remote client device",
 		},
 	}
 	structure.MergeSchema(s, subresourceSchema())
@@ -384,22 +384,39 @@ func CdromPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object
 	return l, spec, nil
 }
 
-// ValidateCdromConfig takes a CdromSubresource and ensures that the associated configuration is valid
-func (r *CdromSubresource) ValidateCdromConfig() error {
-	log.Printf("[DEBUG] ValidateCdromConfig: Beginning CDROM configuration validation")
+// CdromDiffOperation performs operations relevant to managing the
+// diff on cdrom sub-resources
+func CdromDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
+	log.Printf("[DEBUG] CdromDiffOperation: Beginning diff validation")
+	cr := d.Get(subresourceTypeCdrom)
+	for ci, ce := range cr.([]interface{}) {
+		cm := ce.(map[string]interface{})
+		r := NewCdromSubresource(c, d, cm, nil, ci)
+		if err := r.ValidateDiff(); err != nil {
+			return fmt.Errorf("%s: %s", r.Addr(), err)
+		}
+	}
+	log.Printf("[DEBUG] CdromDiffOperation: Diff validation complete")
+	return nil
+}
+
+// ValidateDiff performs any complex validation of an individual
+// cdrom sub-resource that can't be done in schema alone.
+func (r *CdromSubresource) ValidateDiff() error {
+	log.Printf("[DEBUG] %s: Beginning CDROM configuration validation", r)
 	dsID := r.Get("datastore_id").(string)
 	path := r.Get("path").(string)
 	clientDevice := r.Get("client_device").(bool)
 	if clientDevice {
 		if dsID != "" || path != "" {
-			return fmt.Errorf("ValidateCdromConfig: Cannot have both client_device parameter and ISO file parameters (datastore_id, path) set")
+			return fmt.Errorf("Cannot have both client_device parameter and ISO file parameters (datastore_id, path) set")
 		}
 	} else {
 		if dsID == "" || path == "" {
-			return fmt.Errorf("ValidateCdromConfig: Either client_device or datastore_id and path must be set")
+			return fmt.Errorf("Either client_device or datastore_id and path must be set")
 		}
 	}
-	log.Printf("[DEBUG] ValidateCdromConfig: Config validation complete")
+	log.Printf("[DEBUG] %s: Config validation complete", r)
 	return nil
 }
 
@@ -414,40 +431,12 @@ func (r *CdromSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtu
 	}
 
 	// We now have the controller on which we can create our device on.
-	err = r.ValidateCdromConfig()
-	if err != nil {
-		return nil, err
-	}
-	dsID := r.Get("datastore_id").(string)
-	path := r.Get("path").(string)
-	clientDevice := r.Get("client_device").(bool)
 	device, err := l.CreateCdrom(ctlr.(*types.VirtualIDEController))
 	if err != nil {
 		return nil, err
 	}
-	if dsID != "" && path != "" {
-		// If the datastore ID and path are both set, the CDROM will be backed by a file on a datastore
-		ds, err := datastore.FromID(r.client, dsID)
-		if err != nil {
-			return nil, fmt.Errorf("cannot find datastore: %s", err)
-		}
-		dsProps, err := datastore.Properties(ds)
-		if err != nil {
-			return nil, fmt.Errorf("could not get properties for datastore: %s", err)
-		}
-		dsName := dsProps.Name
-		dsPath := &object.DatastorePath{
-			Datastore: dsName,
-			Path:      path,
-		}
-		device = l.InsertIso(device, dsPath.String())
-		l.Connect(device)
-	} else if clientDevice {
-		// If set to use the client device, then the CDROM will be backed by a remote device
-		device.Backing = &types.VirtualCdromRemoteAtapiBackingInfo{
-			VirtualDeviceRemoteDeviceBackingInfo: types.VirtualDeviceRemoteDeviceBackingInfo{},
-		}
-	}
+	// Map the CDROM to the correct device
+	r.mapCdrom(device, l)
 	// Done here. Save IDs, push the device to the new device list and return.
 	if err := r.SaveDevIDs(device, ctlr); err != nil {
 		return nil, err
@@ -474,15 +463,18 @@ func (r *CdromSubresource) Read(l object.VirtualDeviceList) error {
 		return fmt.Errorf("device at %q is not a virtual CDROM device", l.Name(d))
 	}
 	// Only read backing info if it's available.
-	if _, ok := device.Backing.(*types.VirtualCdromRemoteAtapiBackingInfo); ok {
+	switch backing := device.Backing.(type) {
+	case *types.VirtualCdromRemoteAtapiBackingInfo:
 		r.Set("client_device", true)
-	} else if backing, ok := device.Backing.(*types.VirtualCdromIsoBackingInfo); ok {
+	case *types.VirtualCdromIsoBackingInfo:
 		dp := &object.DatastorePath{}
 		if ok := dp.FromString(backing.FileName); !ok {
 			return fmt.Errorf("could not read datastore path in backing %q", backing.FileName)
 		}
 		r.Set("datastore_id", backing.Datastore.Value)
 		r.Set("path", dp.Path)
+	default:
+		return fmt.Errorf("%s: Unknown CDROM type %s", r, backing)
 	}
 	// Save the device key and address data
 	ctlr, err := findControllerForDevice(l, d)
@@ -508,39 +500,8 @@ func (r *CdromSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtu
 		return nil, fmt.Errorf("device at %q is not a virtual CDROM device", l.Name(d))
 	}
 
-	dsID := r.Get("datastore_id").(string)
-	path := r.Get("path").(string)
-	clientDevice := r.Get("client_device").(bool)
-	err = r.ValidateCdromConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	if dsID != "" && path != "" {
-		// If the datastore ID and path are both set, the CDROM will be backed by a file on a datastore
-		// To update, we just re-insert the ISO as per create, and send it as an edit.
-		ds, err := datastore.FromID(r.client, dsID)
-		if err != nil {
-			return nil, fmt.Errorf("cannot find datastore: %s", err)
-		}
-		dsProps, err := datastore.Properties(ds)
-		if err != nil {
-			return nil, fmt.Errorf("could not get properties for datastore: %s", err)
-		}
-		dsName := dsProps.Name
-
-		dsPath := &object.DatastorePath{
-			Datastore: dsName,
-			Path:      path,
-		}
-		device = l.InsertIso(device, dsPath.String())
-		l.Connect(device)
-	} else if clientDevice {
-		// If set to use the client device, then the CDROM will be backed by a remote device
-		device.Backing = &types.VirtualCdromRemoteAtapiBackingInfo{
-			VirtualDeviceRemoteDeviceBackingInfo: types.VirtualDeviceRemoteDeviceBackingInfo{},
-		}
-	}
+	// Map the CDROM to the correct device
+	r.mapCdrom(device, l)
 	spec, err := object.VirtualDeviceList{device}.ConfigSpec(types.VirtualDeviceConfigSpecOperationEdit)
 	if err != nil {
 		return nil, err
@@ -568,4 +529,38 @@ func (r *CdromSubresource) Delete(l object.VirtualDeviceList) ([]types.BaseVirtu
 	log.Printf("[DEBUG] %s: Device config operations from update: %s", r, DeviceChangeString(deleteSpec))
 	log.Printf("[DEBUG] %s: Delete completed", r)
 	return deleteSpec, nil
+}
+
+// mapCdrom takes a CdromSubresource and attaches either a client device or a datastore ISO.
+func (r *CdromSubresource) mapCdrom(device *types.VirtualCdrom, l object.VirtualDeviceList) error {
+	dsID := r.Get("datastore_id").(string)
+	path := r.Get("path").(string)
+	clientDevice := r.Get("client_device").(bool)
+	switch {
+	case dsID != "" && path != "":
+		// If the datastore ID and path are both set, the CDROM will be mapped to a file on a datastore.
+		ds, err := datastore.FromID(r.client, dsID)
+		if err != nil {
+			return fmt.Errorf("cannot find datastore: %s", err)
+		}
+		dsProps, err := datastore.Properties(ds)
+		if err != nil {
+			return fmt.Errorf("could not get properties for datastore: %s", err)
+		}
+		dsName := dsProps.Name
+		dsPath := &object.DatastorePath{
+			Datastore: dsName,
+			Path:      path,
+		}
+		device = l.InsertIso(device, dsPath.String())
+		l.Connect(device)
+		return nil
+	case clientDevice == true:
+		// If set to use the client device, then the CDROM will be mapped to a remote device.
+		device.Backing = &types.VirtualCdromRemoteAtapiBackingInfo{
+			VirtualDeviceRemoteDeviceBackingInfo: types.VirtualDeviceRemoteDeviceBackingInfo{},
+		}
+		return nil
+	}
+	panic(fmt.Sprintf("%s: no CDROM types specified", r))
 }
