@@ -74,16 +74,16 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_PERSIST_SESSION", false),
 				Description: "Persist vSphere client sessions to disk",
 			},
-			"vim_session_directory": &schema.Schema{
+			"vim_session_path": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_VIM_SESSION_PATH", filepath.Join(os.Getenv("HOME"), ".govmomi", "sessions")),
 				Description: "The directory to save vSphere SOAP API sessions to",
 			},
-			"rest_session_directory": &schema.Schema{
+			"rest_session_path": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CIS_SESSION_PATH", filepath.Join(os.Getenv("HOME"), ".govmomi", "rest_sessions")),
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_REST_SESSION_PATH", filepath.Join(os.Getenv("HOME"), ".govmomi", "rest_sessions")),
 				Description: "The directory to save vSphere REST API sessions to",
 			},
 		},
