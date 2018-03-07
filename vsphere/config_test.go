@@ -8,8 +8,14 @@ import (
 	"testing"
 )
 
-func testAccClientGenerateConfig(t *testing.T) *Config {
+func testAccClientPreCheck(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("set TF_ACC to run vsphere_virtual_machine state migration tests (provider connection is required)")
+	}
 	testAccPreCheck(t)
+}
+
+func testAccClientGenerateConfig(t *testing.T) *Config {
 	insecure, _ := strconv.ParseBool(os.Getenv("VSPHERE_ALLOW_UNVERIFIED_SSL"))
 	debug, _ := strconv.ParseBool(os.Getenv("VSPHERE_CLIENT_DEBUG"))
 
@@ -65,6 +71,8 @@ func testAccClientCheckStatNoExist(t *testing.T, p string) {
 }
 
 func TestAccClient_persistence(t *testing.T) {
+	testAccClientPreCheck(t)
+
 	vimSessionDir, err := ioutil.TempDir("", "tf-vsphere-test-vimsessiondir")
 	if err != nil {
 		t.Fatalf("error creating VIM session temp directory: %s", err)
@@ -77,6 +85,8 @@ func TestAccClient_persistence(t *testing.T) {
 		if err = os.RemoveAll(vimSessionDir); err != nil {
 			log.Printf("[DEBUG] Error removing test VIM session directory %q: %s", vimSessionDir, err)
 		}
+	}()
+	defer func() {
 		if err = os.RemoveAll(restSessionDir); err != nil {
 			log.Printf("[DEBUG] Error removing test REST session directory %q: %s", restSessionDir, err)
 		}
@@ -101,6 +111,8 @@ func TestAccClient_persistence(t *testing.T) {
 }
 
 func TestAccClient_noPersistence(t *testing.T) {
+	testAccClientPreCheck(t)
+
 	vimSessionDir, err := ioutil.TempDir("", "tf-vsphere-test-vimsessiondir")
 	if err != nil {
 		t.Fatalf("error creating VIM session temp directory: %s", err)
@@ -113,6 +125,8 @@ func TestAccClient_noPersistence(t *testing.T) {
 		if err = os.RemoveAll(vimSessionDir); err != nil {
 			log.Printf("[DEBUG] Error removing test VIM session directory %q: %s", vimSessionDir, err)
 		}
+	}()
+	defer func() {
 		if err = os.RemoveAll(restSessionDir); err != nil {
 			log.Printf("[DEBUG] Error removing test REST session directory %q: %s", restSessionDir, err)
 		}
