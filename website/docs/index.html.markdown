@@ -48,7 +48,7 @@ provider "vsphere" {
   password       = "${var.vsphere_password}"
   vsphere_server = "${var.vsphere_server}"
 
-  # if you have a self-signed cert
+  # If you have a self-signed cert
   allow_unverified_ssl = true
 }
 
@@ -110,6 +110,31 @@ The following arguments are used to configure the VMware vSphere Provider:
   could allow an attacker to intercept your auth token. If omitted, default
   value is `false`. Can also be specified with the `VSPHERE_ALLOW_UNVERIFIED_SSL`
   environment variable.
+
+### Session persistence options
+
+The provider also provides session persistence options that can be configured
+below. These can help when using Terraform in a way where session limits could
+be normally reached by creating a new session for every run, such as a large
+amount of concurrent or consecutive Terraform runs in a short period of time.
+
+~> **NOTE:** Session keys are as good as user credentials for as long as the
+session is valid for - handle them with care and delete them when you know you
+will no longer need them.
+
+* `persist_session` - (Optional) Persist the SOAP and REST client sessions to
+  disk. Default: `false`.
+* `vim_session_directory` - (Optional) The direcotry to save the VIM SOAP API
+  session to. Default: `${HOME}/.govmomi/sessions`.
+* `rest_session_directory` - (Optional) The directory to save the REST API
+  session (used for tags) to. Default: `${HOME}/.govmomi/rest_sessions`.
+
+#### govc/Terraform session interoperability
+
+Note that the session format used to save VIM SOAP sessions is the same used
+with [govc][docs-govc]. If you use govc as part of your provisioning
+process, Terraform will use the saved session if present and if
+`persist_session` is enabled.
 
 ### Debugging options
 
