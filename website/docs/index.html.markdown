@@ -123,11 +123,14 @@ session is valid for - handle them with care and delete them when you know you
 will no longer need them.
 
 * `persist_session` - (Optional) Persist the SOAP and REST client sessions to
-  disk. Default: `false`.
-* `vim_session_directory` - (Optional) The direcotry to save the VIM SOAP API
-  session to. Default: `${HOME}/.govmomi/sessions`.
-* `rest_session_directory` - (Optional) The directory to save the REST API
-  session (used for tags) to. Default: `${HOME}/.govmomi/rest_sessions`.
+  disk. Default: `false`. Can also be specified by the
+  `VSPHERE_PERSIST_SESSION` environment variable.
+* `vim_session_path` - (Optional) The direcotry to save the VIM SOAP API
+  session to. Default: `${HOME}/.govmomi/sessions`. Can also be specified by
+  the `VSPHERE_VIM_SESSION_PATH` environment variable.
+* `rest_session_path` - (Optional) The directory to save the REST API session
+  (used for tags) to. Default: `${HOME}/.govmomi/rest_sessions`. Can also be
+  specified by the `VSPHERE_REST_SESSION_PATH` environment variable.
 
 #### govc/Terraform session interoperability
 
