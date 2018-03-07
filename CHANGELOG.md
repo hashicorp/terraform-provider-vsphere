@@ -7,7 +7,7 @@ IMPROVEMENTS:
   at once. See the [provider
   documentation](https://www.terraform.io/docs/providers/vsphere/index.html) for
   more details. [GH-422]
-* `resource/vsphere_virtual_machine`: Add support for client mapped CDROM
+* `resource/vsphere_virtual_machine`: Added support for client mapped CDROM
   devices. [GH-421]
 
 ## 1.3.3 (March 01, 2018)
