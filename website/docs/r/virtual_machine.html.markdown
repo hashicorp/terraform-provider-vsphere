@@ -754,7 +754,8 @@ The options are:
 ### CDROM options
 
 A single virtual CDROM device can be created and attached to the virtual
-machine. The resource only supports attaching a CDROM from a datastore ISO.
+machine. The resource supports attaching a CDROM from a datastore ISO or
+using a remote client device.
 
 An example is below:
 
@@ -771,8 +772,15 @@ resource "vsphere_virtual_machine" "vm" {
 
 The options are:
 
-* `datastore_id` - (Required) The datastore ID that the ISO is located in.
-* `path` - (Required) The path to the ISO file.
+* `client_device` - (Optional) Indicates whether the device should be backed by
+  remote client device. Conflicts with datastore_id and path.
+* `datastore_id` - (Optional) The datastore ID that the ISO is located in.
+  Requried for using a datastore ISO. Conflicts with client_device.
+* `path` - (Optional) The path to the ISO file. Requried for using a datastore
+  ISO. Conflicts with client_device.
+
+-> **NOTE:** Either client_device (for a remote backed CDROM) or datastore_id
+and path (for a datastore ISO backed CDROM) are required.
 
 ### Virtual device computed options
 

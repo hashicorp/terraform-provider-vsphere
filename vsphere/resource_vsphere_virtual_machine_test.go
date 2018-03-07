@@ -295,7 +295,26 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitsToRegularSingleController
 	})
 }
 
-func TestAccResourceVSphereVirtualMachine_cdrom(t *testing.T) {
+func TestAccResourceVSphereVirtualMachine_cdromIsoMapping(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigIsoCdrom(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckIsoCdrom(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cdromClientMapping(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -305,10 +324,94 @@ func TestAccResourceVSphereVirtualMachine_cdrom(t *testing.T) {
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigCdrom(),
+				Config: testAccResourceVSphereVirtualMachineConfigClientCdrom(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					testAccResourceVSphereVirtualMachineCheckCdrom(),
+					testAccResourceVSphereVirtualMachineCheckClientCdrom(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cdromClientMappingClone(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigClientCdromClone(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckClientCdrom(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cdromNoParameters(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigNoCdromParameters(),
+				ExpectError: regexp.MustCompile("Either client_device or datastore_id and path must be set"),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigClientCdrom(),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cdromConflictingParameters(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigConflictingCdromParameters(),
+				ExpectError: regexp.MustCompile("Cannot have both client_device parameter and ISO file parameters"),
+			},
+			{
+				Config: testAccResourceVSphereEmpty,
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cdromChangeMapping(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigIsoCdrom(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckIsoCdrom(),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigClientCdrom(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckClientCdrom(),
 				),
 			},
 		},
@@ -1119,7 +1222,7 @@ func TestAccResourceVSphereVirtualMachine_cloneWithCdrom(t *testing.T) {
 				Config: testAccResourceVSphereVirtualMachineConfigCloneWithCdrom(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					testAccResourceVSphereVirtualMachineCheckCdrom(),
+					testAccResourceVSphereVirtualMachineCheckIsoCdrom(),
 				),
 			},
 		},
@@ -2339,9 +2442,9 @@ func testAccResourceVSphereVirtualMachineCheckMultiDevice(expectedD, expectedN [
 	}
 }
 
-// testAccResourceVSphereVirtualMachineCheckCdrom checks to make sure that the
-// subject VM has a CDROM device configured and connected.
-func testAccResourceVSphereVirtualMachineCheckCdrom() resource.TestCheckFunc {
+// testAccResourceVSphereVirtualMachineCheckIsoCdrom checks to make sure that the
+// subject VM has a CDROM device configured with iso backing and is connected.
+func testAccResourceVSphereVirtualMachineCheckIsoCdrom() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		props, err := testGetVirtualMachineProperties(s, "vm")
 		if err != nil {
@@ -2366,6 +2469,37 @@ func testAccResourceVSphereVirtualMachineCheckCdrom() resource.TestCheckFunc {
 					return nil
 				}
 				return errors.New("could not locate proper backing file on CDROM device")
+			}
+		}
+		return errors.New("could not locate CDROM device on VM")
+	}
+}
+
+// testAccResourceVSphereVirtualMachineCheckClientCdrom checks to make sure that the
+// subject VM has a CDROM device mapped to a client device.
+func testAccResourceVSphereVirtualMachineCheckClientCdrom() resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVirtualMachineProperties(s, "vm")
+		if err != nil {
+			return err
+		}
+
+		for _, dev := range props.Config.Hardware.Device {
+			if cdrom, ok := dev.(*types.VirtualCdrom); ok {
+				if backing, ok := cdrom.Backing.(*types.VirtualCdromRemoteAtapiBackingInfo); ok {
+					useAutoDetect := false
+					expected := &types.VirtualCdromRemoteAtapiBackingInfo{
+						VirtualDeviceRemoteDeviceBackingInfo: types.VirtualDeviceRemoteDeviceBackingInfo{
+							UseAutoDetect: &useAutoDetect,
+							DeviceName:    "",
+						},
+					}
+					if !reflect.DeepEqual(expected, backing) {
+						return fmt.Errorf("expected %#v, got %#v", expected, backing)
+					}
+					return nil
+				}
+				return errors.New("could not find CDROM with correct backing device")
 			}
 		}
 		return errors.New("could not locate CDROM device on VM")
@@ -3085,7 +3219,7 @@ resource "vsphere_virtual_machine" "vm" {
 	)
 }
 
-func testAccResourceVSphereVirtualMachineConfigCdrom() string {
+func testAccResourceVSphereVirtualMachineConfigIsoCdrom() string {
 	return fmt.Sprintf(`
 variable "datacenter" {
   default = "%s"
@@ -3158,6 +3292,354 @@ resource "vsphere_virtual_machine" "vm" {
   cdrom {
     datastore_id = "${data.vsphere_datastore.iso_datastore.id}"
     path         = "${var.iso_path}"
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_ISO_DATASTORE"),
+		os.Getenv("VSPHERE_ISO_FILE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigClientCdromClone() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "ipv4_address" {
+  default = "%s"
+}
+
+variable "ipv4_netmask" {
+  default = "%s"
+}
+
+variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "dns_server" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "template" {
+  default = "%s"
+}
+
+variable "linked_clone" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_virtual_machine" "template" {
+  name          = "${var.template}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+
+  network_interface {
+    network_id   = "${data.vsphere_network.network.id}"
+    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+  }
+
+  disk {
+    label            = "disk0"
+    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
+    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+  }
+
+  cdrom {
+    client_device = true
+  }
+
+  clone {
+    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+
+    customize {
+      linux_options {
+        host_name = "terraform-test"
+        domain    = "test.internal"
+      }
+
+      network_interface {
+        ipv4_address = "${var.ipv4_address}"
+        ipv4_netmask = "${var.ipv4_netmask}"
+      }
+
+      ipv4_gateway    = "${var.ipv4_gateway}"
+      dns_server_list = ["${var.dns_server}"]
+      dns_suffix_list = ["test.internal"]
+    }
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL"),
+		os.Getenv("VSPHERE_IPV4_ADDRESS"),
+		os.Getenv("VSPHERE_IPV4_PREFIX"),
+		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DNS"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_TEMPLATE"),
+		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigClientCdrom() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinux64Guest"
+
+  wait_for_guest_net_timeout = -1
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
+
+  cdrom {
+    client_device = true
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_DATASTORE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigNoCdromParameters() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinux64Guest"
+
+  wait_for_guest_net_timeout = -1
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
+
+  cdrom {}
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_DATASTORE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigConflictingCdromParameters() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "iso_datastore" {
+  default = "%s"
+}
+
+variable "iso_path" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_datastore" "iso_datastore" {
+  name          = "${var.iso_datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinux64Guest"
+
+  wait_for_guest_net_timeout = -1
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
+
+  cdrom {
+    datastore_id  = "${data.vsphere_datastore.iso_datastore.id}"
+    path          = "${var.iso_path}"
+    client_device = true
   }
 }
 `,
