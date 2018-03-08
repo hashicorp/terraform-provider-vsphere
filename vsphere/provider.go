@@ -1,7 +1,6 @@
 package vsphere
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -126,32 +125,9 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	// Handle backcompat support for vcenter_server; once that is removed,
-	// vsphere_server can just become a Required field that is referenced inline
-	// in Config below.
-	server := d.Get("vsphere_server").(string)
-
-	if server == "" {
-		server = d.Get("vcenter_server").(string)
+	c, err := NewConfig(d)
+	if err != nil {
+		return nil, err
 	}
-
-	if server == "" {
-		return nil, fmt.Errorf(
-			"One of vsphere_server or [deprecated] vcenter_server must be provided.")
-	}
-
-	config := Config{
-		User:            d.Get("user").(string),
-		Password:        d.Get("password").(string),
-		InsecureFlag:    d.Get("allow_unverified_ssl").(bool),
-		VSphereServer:   server,
-		Debug:           d.Get("client_debug").(bool),
-		DebugPathRun:    d.Get("client_debug_path_run").(string),
-		DebugPath:       d.Get("client_debug_path").(string),
-		Persist:         d.Get("persist_session").(bool),
-		VimSessionPath:  d.Get("vim_session_directory").(string),
-		RestSessionPath: d.Get("rest_session_directory").(string),
-	}
-
-	return config.Client()
+	return c.Client()
 }

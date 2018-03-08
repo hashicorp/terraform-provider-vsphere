@@ -4,8 +4,11 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"reflect"
 	"strconv"
 	"testing"
+
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func testAccClientPreCheck(t *testing.T) {
@@ -154,4 +157,40 @@ func TestAccClient_noPersistence(t *testing.T) {
 
 	testAccClientCheckStatNoExist(t, vimSessionFile)
 	testAccClientCheckStatNoExist(t, restSessionFile)
+}
+
+func TestNewConfig(t *testing.T) {
+	expected := &Config{
+		User:            "foo",
+		Password:        "bar",
+		InsecureFlag:    true,
+		VSphereServer:   "vsphere.foo.internal",
+		Debug:           true,
+		DebugPathRun:    "./foo",
+		DebugPath:       "./bar",
+		Persist:         true,
+		VimSessionPath:  "./baz",
+		RestSessionPath: "./qux",
+	}
+
+	r := &schema.Resource{Schema: Provider().(*schema.Provider).Schema}
+	d := r.Data(nil)
+	d.Set("user", expected.User)
+	d.Set("password", expected.Password)
+	d.Set("allow_unverified_ssl", expected.InsecureFlag)
+	d.Set("vsphere_server", expected.VSphereServer)
+	d.Set("client_debug", expected.Debug)
+	d.Set("client_debug_path_run", expected.DebugPathRun)
+	d.Set("client_debug_path", expected.DebugPath)
+	d.Set("persist_session", expected.Persist)
+	d.Set("vim_session_path", expected.VimSessionPath)
+	d.Set("rest_session_path", expected.RestSessionPath)
+
+	actual, err := NewConfig(d)
+	if err != nil {
+		t.Fatalf("error creating new configuration: %s", err)
+	}
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("expected %#v, got %#v", expected, actual)
+	}
 }
