@@ -463,6 +463,8 @@ func (r *CdromSubresource) Read(l object.VirtualDeviceList) error {
 	switch backing := device.Backing.(type) {
 	case *types.VirtualCdromRemoteAtapiBackingInfo:
 		r.Set("client_device", true)
+	case *types.VirtualCdromRemotePassthroughBackingInfo:
+		r.Set("client_device", true)
 	case *types.VirtualCdromIsoBackingInfo:
 		dp := &object.DatastorePath{}
 		if ok := dp.FromString(backing.FileName); !ok {

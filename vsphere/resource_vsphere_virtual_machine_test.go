@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -2499,11 +2500,82 @@ func testAccResourceVSphereVirtualMachineCheckClientCdrom() resource.TestCheckFu
 					}
 					return nil
 				}
+				if backing, ok := cdrom.Backing.(*types.VirtualCdromRemotePassthroughBackingInfo); ok {
+					useAutoDetect := false
+					expected := &types.VirtualCdromRemotePassthroughBackingInfo{
+						VirtualDeviceRemoteDeviceBackingInfo: types.VirtualDeviceRemoteDeviceBackingInfo{
+							UseAutoDetect: &useAutoDetect,
+							DeviceName:    "",
+						},
+					}
+					if !reflect.DeepEqual(expected, backing) {
+						return fmt.Errorf("expected %#v, got %#v", expected, backing)
+					}
+					return nil
+				}
 				return errors.New("could not find CDROM with correct backing device")
 			}
 		}
 		return errors.New("could not locate CDROM device on VM")
 	}
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneWithVAppPropertiesOvfEnvironmentTransportIso(t *testing.T) {
+	var state *terraform.State
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:                 testAccProviders,
+		PreventPostDestroyRefresh: true,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineCloneWithOvfEnvironmentTransport(),
+				Check: resource.ComposeTestCheckFunc(
+					copyStatePtr(&state),
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckClientCdrom(),
+				),
+			},
+			// This step sets the OvfEnvironmentTransport to "iso" and cycles the power.
+			// It also makes Terraform ignore the changes in the plan so that it does not try
+			// to modify the VM.
+			{
+				PreConfig: func() {
+					if err := testSetOvfEnvironmentTransportIso(state, "vm"); err != nil {
+						panic(err)
+					}
+				},
+				Config:      testAccResourceVSphereVirtualMachineCloneWithOvfEnvironmentTransport(),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile("After applying this step, the plan was not empty"),
+			},
+			// This step is peculiar, vSphere will not change the ISO to [] without this.  It works
+			// as low as 6 seconds, but higher duration just to ensure the test covers the fault.
+			{
+				PreConfig: func() {
+					duration := time.Duration(30) * time.Second
+					time.Sleep(duration)
+				},
+				Config:      testAccResourceVSphereVirtualMachineCloneWithOvfEnvironmentTransport(),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile("After applying this step, the plan was not empty"),
+			},
+			{
+				ResourceName: "vsphere_virtual_machine.vm",
+				ImportState:  true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					vm, err := testGetVirtualMachine(s, "vm")
+					if err != nil {
+						return "", err
+					}
+					return vm.InventoryPath, nil
+				},
+			},
+		},
+	})
 }
 
 // testAccResourceVSphereVirtualMachineCheckPowerOffEvent is a check to see if
@@ -8252,6 +8324,120 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineCloneWithOvfEnvironmentTransport() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "ipv4_address" {
+  default = "%s"
+}
+
+variable "ipv4_netmask" {
+  default = "%s"
+}
+
+variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "dns_server" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "template" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_virtual_machine" "template" {
+  name          = "${var.template}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  num_cpus         = 2
+  memory           = 2048
+  guest_id         = "${data.vsphere_virtual_machine.template.guest_id}"
+
+  network_interface {
+    network_id   = "${data.vsphere_network.network.id}"
+    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = "${data.vsphere_virtual_machine.template.disks.0.size}"
+  }
+
+  cdrom {
+	client_device = true
+  }
+
+  clone {
+    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+  }
+
+  vapp {
+    properties {
+      "guestinfo.hostname"                        = "terraform-test.test.internal"
+      "guestinfo.interface.0.name"                = "ens192"
+      "guestinfo.interface.0.ip.0.address"        = "${var.ipv4_address}/${var.ipv4_netmask}"
+      "guestinfo.interface.0.route.0.gateway"     = "${var.ipv4_gateway}"
+      "guestinfo.interface.0.route.0.destination" = "0.0.0.0/0"
+      "guestinfo.dns.server.0"                    = "${var.dns_server}"
+      "guestinfo.dns.server.1"                    = "8.8.8.8"
+    }
+  }
+}
+`,
+
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL"),
+		os.Getenv("VSPHERE_IPV4_ADDRESS"),
+		os.Getenv("VSPHERE_IPV4_PREFIX"),
+		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DNS"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_TEMPLATE_COREOS"),
 	)
 }
 
