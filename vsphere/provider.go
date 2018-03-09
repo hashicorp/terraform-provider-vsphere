@@ -1,7 +1,8 @@
 package vsphere
 
 import (
-	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -66,6 +67,24 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CLIENT_DEBUG_PATH", ""),
 				Description: "govomomi debug path for debug",
 			},
+			"persist_session": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_PERSIST_SESSION", false),
+				Description: "Persist vSphere client sessions to disk",
+			},
+			"vim_session_path": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_VIM_SESSION_PATH", filepath.Join(os.Getenv("HOME"), ".govmomi", "sessions")),
+				Description: "The directory to save vSphere SOAP API sessions to",
+			},
+			"rest_session_path": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_REST_SESSION_PATH", filepath.Join(os.Getenv("HOME"), ".govmomi", "rest_sessions")),
+				Description: "The directory to save vSphere REST API sessions to",
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -106,29 +125,9 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	// Handle backcompat support for vcenter_server; once that is removed,
-	// vsphere_server can just become a Required field that is referenced inline
-	// in Config below.
-	server := d.Get("vsphere_server").(string)
-
-	if server == "" {
-		server = d.Get("vcenter_server").(string)
+	c, err := NewConfig(d)
+	if err != nil {
+		return nil, err
 	}
-
-	if server == "" {
-		return nil, fmt.Errorf(
-			"One of vsphere_server or [deprecated] vcenter_server must be provided.")
-	}
-
-	config := Config{
-		User:          d.Get("user").(string),
-		Password:      d.Get("password").(string),
-		InsecureFlag:  d.Get("allow_unverified_ssl").(bool),
-		VSphereServer: server,
-		Debug:         d.Get("client_debug").(bool),
-		DebugPathRun:  d.Get("client_debug_path_run").(string),
-		DebugPath:     d.Get("client_debug_path").(string),
-	}
-
-	return config.Client()
+	return c.Client()
 }

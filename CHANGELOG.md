@@ -1,4 +1,15 @@
-## 1.3.4 (Unreleased)
+## 1.4.0 (Unreleased)
+
+IMPROVEMENTS:
+
+* The provider now has the ability to persist sessions to disk, which can help
+  when running large amounts of consecutive or concurrent Terraform operations
+  at once. See the [provider
+  documentation](https://www.terraform.io/docs/providers/vsphere/index.html) for
+  more details. [GH-422]
+* `resource/vsphere_virtual_machine`: Added support for client mapped CDROM
+  devices. [GH-421]
+
 ## 1.3.3 (March 01, 2018)
 
 IMPROVEMENTS:
