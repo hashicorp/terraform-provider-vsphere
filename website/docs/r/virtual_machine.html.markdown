@@ -773,14 +773,19 @@ resource "vsphere_virtual_machine" "vm" {
 The options are:
 
 * `client_device` - (Optional) Indicates whether the device should be backed by
-  remote client device. Conflicts with datastore_id and path.
+  remote client device. Conflicts with `datastore_id` and `path`.
 * `datastore_id` - (Optional) The datastore ID that the ISO is located in.
-  Requried for using a datastore ISO. Conflicts with client_device.
+  Requried for using a datastore ISO. Conflicts with `client_device`.
 * `path` - (Optional) The path to the ISO file. Requried for using a datastore
-  ISO. Conflicts with client_device.
+  ISO. Conflicts with `client_device`.
 
--> **NOTE:** Either client_device (for a remote backed CDROM) or datastore_id
+~> **NOTE:** Either `client_device` (for a remote backed CDROM) or `datastore_id`
 and path (for a datastore ISO backed CDROM) are required.
+
+~> **NOTE:** Some CDROM drive types are currently unsupported by this resource,
+such as pass-through devices. If these drives are present in a cloned template,
+or added outside of Terraform, they will have their configurations corrected to
+that of the defined device, or removed if no `cdrom` sub-resource is present.
 
 ### Virtual device computed options
 
