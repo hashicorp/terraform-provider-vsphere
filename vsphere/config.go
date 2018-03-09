@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/session"
@@ -78,6 +79,37 @@ type Config struct {
 	DebugPathRun    string
 	VimSessionPath  string
 	RestSessionPath string
+}
+
+// NewConfig returns a new Config from a supplied ResourceData.
+func NewConfig(d *schema.ResourceData) (*Config, error) {
+	// Handle backcompat support for vcenter_server; once that is removed,
+	// vsphere_server can just become a Required field that is referenced inline
+	// in Config below.
+	server := d.Get("vsphere_server").(string)
+
+	if server == "" {
+		server = d.Get("vcenter_server").(string)
+	}
+
+	if server == "" {
+		return nil, fmt.Errorf("one of vsphere_server or [deprecated] vcenter_server must be provided")
+	}
+
+	c := &Config{
+		User:            d.Get("user").(string),
+		Password:        d.Get("password").(string),
+		InsecureFlag:    d.Get("allow_unverified_ssl").(bool),
+		VSphereServer:   server,
+		Debug:           d.Get("client_debug").(bool),
+		DebugPathRun:    d.Get("client_debug_path_run").(string),
+		DebugPath:       d.Get("client_debug_path").(string),
+		Persist:         d.Get("persist_session").(bool),
+		VimSessionPath:  d.Get("vim_session_path").(string),
+		RestSessionPath: d.Get("rest_session_path").(string),
+	}
+
+	return c, nil
 }
 
 // vimURL returns a URL to pass to the VIM SOAP client.
