@@ -855,7 +855,6 @@
 		},
 		{
 			"checksumSHA1": "fN5DkuYd23OoshmfLeB3064H7OI=",
-			"comment": "v0.15.0",
 			"path": "github.com/vmware/govmomi/object",
 			"revision": "8872366d5b156a8cbef4b7291cd6e9026b8129a5",
 			"revisionTime": "2018-03-12T20:19:01Z"
