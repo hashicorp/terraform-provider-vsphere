@@ -15,6 +15,8 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+const resourceVSphereDatastoreClusterName = "vsphere_datastore_cluster"
+
 var storageDrsPodConfigInfoBehaviorAllowedValues = []string{
 	string(types.StorageDrsPodConfigInfoBehaviorManual),
 	string(types.StorageDrsPodConfigInfoBehaviorAutomated),
@@ -31,6 +33,9 @@ func resourceVSphereDatastoreCluster() *schema.Resource {
 		Read:   resourceVSphereDatastoreClusterRead,
 		Update: resourceVSphereDatastoreClusterUpdate,
 		Delete: resourceVSphereDatastoreClusterDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceVSphereDistributedVirtualSwitchImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -215,19 +220,81 @@ func resourceVSphereDatastoreClusterRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
+	if err := resourceVSphereDatastoreClusterSaveNameAndPath(d, pod); err != nil {
+		return err
+	}
+
 	if err := resourceVSphereDatastoreClusterFlattenSDRSData(d, meta, pod); err != nil {
 		return err
 	}
 
+	if err := resourceVSphereDatastoreClusterReadTags(d, meta, pod); err != nil {
+		return err
+	}
+
+	if err := resourceVSphereDatastoreClusterReadCustomAttributes(d, meta, pod); err != nil {
+		return err
+	}
+
+	log.Printf("[DEBUG] %s: Read completed successfully", resourceVSphereDatastoreClusterIDString(d))
 	return nil
 }
 
 func resourceVSphereDatastoreClusterUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning update", resourceVSphereDatastoreClusterIDString(d))
+	pod, err := resourceVSphereDatastoreClusterGetPod(d, meta)
+	if err != nil {
+		return err
+	}
+
+	pod, err = resourceVSphereDatastoreClusterApplyNameChange(d, meta, pod)
+	if err != nil {
+		return err
+	}
+	pod, err = resourceVSphereDatastoreClusterApplyFolderChange(d, meta, pod)
+	if err != nil {
+		return err
+	}
+
+	if err := resourceVSphereDatastoreClusterApplySDRSConfig(d, meta, pod); err != nil {
+		return err
+	}
+
+	log.Printf("[DEBUG] %s: Update finished successfully", resourceVSphereDatastoreClusterIDString(d))
 	return resourceVSphereDatastoreClusterRead(d, meta)
 }
 
 func resourceVSphereDatastoreClusterDelete(d *schema.ResourceData, meta interface{}) error {
+	resourceIDString := resourceVSphereDatastoreClusterIDString(d)
+	log.Printf("[DEBUG] %s: Beginning delete", resourceIDString)
+	pod, err := resourceVSphereDatastoreClusterGetPod(d, meta)
+	if err != nil {
+		return err
+	}
+
+	// Very similar to how we handle folders, we don't delete a storage pod if
+	// there is child items in it. If there is, we fail with an error that
+	// mentions this restriction.
+	if err := resourceVSphereDatastoreClusterValidateEmptyCluster(d, pod); err != nil {
+		return err
+	}
+
+	if err := resourceVSphereDatastoreClusterApplyDelete(d, pod); err != nil {
+		return err
+	}
+
+	log.Printf("[DEBUG] %s: Deleted successfully", resourceIDString)
 	return nil
+}
+
+func resourceVSphereDatastoreClusterImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	p := d.Id()
+	pod, err := resourceVSphereDatastoreClusterGetPodFromPath(meta, p, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error loading datastore cluster: %s", err)
+	}
+	d.SetId(pod.Reference().Value)
+	return []*schema.ResourceData{d}, nil
 }
 
 // resourceVSphereDatastoreClusterApplyCreate processes the creation part of
@@ -355,8 +422,8 @@ func resourceVSphereDatastoreClusterApplySDRSConfig(d *schema.ResourceData, meta
 	return storagepod.ApplyDRSConfiguration(client, pod, spec)
 }
 
-// resourceVSphereDatastoreClusterGetPod gets the StoragePod from the ID in the
-// supplied ResourceData.
+// resourceVSphereDatastoreClusterGetPodFromID gets the StoragePod from the ID
+// in the supplied ResourceData.
 func resourceVSphereDatastoreClusterGetPod(d structure.ResourceIDStringer, meta interface{}) (*object.StoragePod, error) {
 	log.Printf("[DEBUG] %s: Fetching StoragePod object from resource ID", resourceVSphereDatastoreClusterIDString(d))
 	client := meta.(*VSphereClient).vimClient
@@ -365,6 +432,22 @@ func resourceVSphereDatastoreClusterGetPod(d structure.ResourceIDStringer, meta 
 	}
 
 	return storagepod.FromID(client, d.Id())
+}
+
+// resourceVSphereDatastoreClusterGetPodFromPath gets the StoragePod from a
+// supplied path. If no datacenter is supplied, the path must be a full path.
+func resourceVSphereDatastoreClusterGetPodFromPath(meta interface{}, path string, dc *object.Datacenter) (*object.StoragePod, error) {
+	if dc != nil {
+		log.Printf("[DEBUG] Looking for datastore cluster %q in datacenter %q", path, dc.InventoryPath)
+	} else {
+		log.Printf("[DEBUG] Fetching datastore cluster at path %q", path)
+	}
+	client := meta.(*VSphereClient).vimClient
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
+		return nil, err
+	}
+
+	return storagepod.FromPath(client, path, dc)
 }
 
 // resourceVSphereDatastoreClusterSaveNameAndPath saves the name and path of a
@@ -387,6 +470,118 @@ func resourceVSphereDatastoreClusterSaveNameAndPath(d *schema.ResourceData, pod 
 	if err := d.Set("folder", folder.NormalizePath(f)); err != nil {
 		return fmt.Errorf("error saving folder: %s", err)
 	}
+	return nil
+}
+
+// resourceVSphereDatastoreClusterApplyNameChange applies any changes to a
+// StoragePod's name.
+func resourceVSphereDatastoreClusterApplyNameChange(
+	d *schema.ResourceData,
+	meta interface{},
+	pod *object.StoragePod,
+) (*object.StoragePod, error) {
+	log.Printf(
+		"[DEBUG] %s: Applying any name changes (old path = %q)",
+		resourceVSphereDatastoreClusterIDString(d),
+		pod.InventoryPath,
+	)
+
+	var changed bool
+	var err error
+
+	if d.HasChange("name") {
+		if err = storagepod.Rename(pod, d.Get("name").(string)); err != nil {
+			return nil, fmt.Errorf("error renaming datastore cluster: %s", err)
+		}
+		changed = true
+	}
+
+	if changed {
+		// Update the pod so that we have the new inventory path for logging and
+		// other things
+		pod, err = resourceVSphereDatastoreClusterGetPod(d, meta)
+		if err != nil {
+			return nil, fmt.Errorf("error refreshing pod after name change: %s", err)
+		}
+		log.Printf(
+			"[DEBUG] %s: Name changed, new path = %q",
+			resourceVSphereDatastoreClusterIDString(d),
+			pod.InventoryPath,
+		)
+	}
+
+	return pod, nil
+}
+
+// resourceVSphereDatastoreClusterApplyFolderChange applies any changes to a
+// StoragePod's folder location.
+func resourceVSphereDatastoreClusterApplyFolderChange(
+	d *schema.ResourceData,
+	meta interface{},
+	pod *object.StoragePod,
+) (*object.StoragePod, error) {
+	log.Printf(
+		"[DEBUG] %s: Applying any folder changes (old path = %q)",
+		resourceVSphereDatastoreClusterIDString(d),
+		pod.InventoryPath,
+	)
+
+	var changed bool
+	var err error
+
+	if d.HasChange("folder") {
+		f := d.Get("folder").(string)
+		client := meta.(*VSphereClient).vimClient
+		if err = storagepod.MoveToFolder(client, pod, f); err != nil {
+			return nil, fmt.Errorf("could not move datastore to folder %q: %s", f, err)
+		}
+		changed = true
+	}
+
+	if changed {
+		// Update the pod so that we have the new inventory path for logging and
+		// other things
+		pod, err = resourceVSphereDatastoreClusterGetPod(d, meta)
+		if err != nil {
+			return nil, fmt.Errorf("error refreshing pod after folder change: %s", err)
+		}
+		log.Printf(
+			"[DEBUG] %s: Folder changed, new path = %q",
+			resourceVSphereDatastoreClusterIDString(d),
+			pod.InventoryPath,
+		)
+	}
+
+	return pod, nil
+}
+
+// resourceVSphereDatastoreClusterValidateEmptyCluster validates that the
+// datastore cluster is empty. This is used to ensure a safe deletion of the
+// cluster - we do not allow deletion of clusters that still have datastores in
+// them.
+func resourceVSphereDatastoreClusterValidateEmptyCluster(d structure.ResourceIDStringer, pod *object.StoragePod) error {
+	log.Printf("[DEBUG] %s: Checking to ensure that datastore cluster is empty", resourceVSphereDatastoreClusterIDString(d))
+	ne, err := storagepod.HasChildren(pod)
+	if err != nil {
+		return fmt.Errorf("error checking for datastore folder contents: %s", err)
+	}
+	if ne {
+		return fmt.Errorf(
+			"datastore cluster %q still has datastores. Please move or remove all datastores before deleting",
+			pod.InventoryPath,
+		)
+	}
+	return nil
+}
+
+// resourceVSphereDatastoreClusterApplyDelete process the removal of a
+// datastore cluster.
+func resourceVSphereDatastoreClusterApplyDelete(d *schema.ResourceData, pod *object.StoragePod) error {
+	log.Printf("[DEBUG] %s: Proceeding with datastore cluster deletion", resourceVSphereDatastoreClusterIDString(d))
+	if err := storagepod.Delete(pod); err != nil {
+		return err
+	}
+	d.SetId("")
 	return nil
 }
 
@@ -435,7 +630,8 @@ func expandStorageDrsPodConfigSpec(d *schema.ResourceData, version viapi.VSphere
 	return obj
 }
 
-// flattenStorageDrsPodConfigInfo saves a StorageDrsPodConfigInfo into the supplied ResourceData.
+// flattenStorageDrsPodConfigInfo saves a StorageDrsPodConfigInfo into the
+// supplied ResourceData.
 func flattenStorageDrsPodConfigInfo(d *schema.ResourceData, obj types.StorageDrsPodConfigInfo, version viapi.VSphereVersion) error {
 	attrs := map[string]interface{}{
 		"sdrs_default_intra_vm_affinity": obj.DefaultIntraVmAffinity,
@@ -447,6 +643,24 @@ func flattenStorageDrsPodConfigInfo(d *schema.ResourceData, obj types.StorageDrs
 	for k, v := range attrs {
 		if err := d.Set(k, v); err != nil {
 			return fmt.Errorf("error setting attribute %q: %s", k, err)
+		}
+	}
+
+	if err := flattenStorageDrsIoLoadBalanceConfig(d, obj.IoLoadBalanceConfig, version); err != nil {
+		return err
+	}
+
+	if err := flattenStorageDrsSpaceLoadBalanceConfig(d, obj.SpaceLoadBalanceConfig, version); err != nil {
+		return err
+	}
+
+	if err := flattenStorageDrsOptionSpec(d, obj.Option); err != nil {
+		return err
+	}
+
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+		if err := flattenStorageDrsAutomationConfig(d, obj.AutomationOverrides); err != nil {
+			return err
 		}
 	}
 
@@ -466,6 +680,24 @@ func expandStorageDrsAutomationConfig(d *schema.ResourceData) *types.StorageDrsA
 	return obj
 }
 
+// flattenStorageDrsAutomationConfig saves a StorageDrsAutomationConfig into
+// the supplied ResourceData.
+func flattenStorageDrsAutomationConfig(d *schema.ResourceData, obj *types.StorageDrsAutomationConfig) error {
+	attrs := map[string]interface{}{
+		"sdrs_io_balance_automation_level":         obj.IoLoadBalanceAutomationMode,
+		"sdrs_policy_enforcement_automation_level": obj.PolicyEnforcementAutomationMode,
+		"sdrs_rule_enforcement_automation_level":   obj.RuleEnforcementAutomationMode,
+		"sdrs_space_balance_automation_level":      obj.SpaceLoadBalanceAutomationMode,
+		"sdrs_vm_evacuation_automation_level":      obj.VmEvacuationAutomationMode,
+	}
+	for k, v := range attrs {
+		if err := d.Set(k, v); err != nil {
+			return fmt.Errorf("error setting attribute %q: %s", k, err)
+		}
+	}
+	return nil
+}
+
 // expandStorageDrsIoLoadBalanceConfig reads certain ResourceData keys and returns
 // a StorageDrsIoLoadBalanceConfig.
 func expandStorageDrsIoLoadBalanceConfig(d *schema.ResourceData, version viapi.VSphereVersion) *types.StorageDrsIoLoadBalanceConfig {
@@ -481,6 +713,32 @@ func expandStorageDrsIoLoadBalanceConfig(d *schema.ResourceData, version viapi.V
 	}
 
 	return obj
+}
+
+// flattenStorageDrsIoLoadBalanceConfig saves a StorageDrsIoLoadBalanceConfig
+// into the supplied ResourceData.
+func flattenStorageDrsIoLoadBalanceConfig(
+	d *schema.ResourceData,
+	obj *types.StorageDrsIoLoadBalanceConfig,
+	version viapi.VSphereVersion,
+) error {
+	attrs := map[string]interface{}{
+		"sdrs_io_latency_threshold":        obj.IoLatencyThreshold,
+		"sdrs_io_load_imbalance_threshold": obj.IoLoadImbalanceThreshold,
+	}
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+		attrs["sdrs_io_reservable_iops_threshold"] = obj.ReservableIopsThreshold
+		attrs["sdrs_io_reservable_percent_threshold"] = obj.ReservablePercentThreshold
+		attrs["sdrs_io_reservable_threshold_mode"] = obj.ReservableThresholdMode
+	}
+
+	for k, v := range attrs {
+		if err := d.Set(k, v); err != nil {
+			return fmt.Errorf("error setting attribute %q: %s", k, err)
+		}
+	}
+
+	return nil
 }
 
 // expandStorageDrsSpaceLoadBalanceConfig reads certain ResourceData keys and returns
@@ -502,6 +760,31 @@ func expandStorageDrsSpaceLoadBalanceConfig(
 	return obj
 }
 
+// flattenStorageDrsSpaceLoadBalanceConfig saves a
+// StorageDrsSpaceLoadBalanceConfig into the supplied ResourceData.
+func flattenStorageDrsSpaceLoadBalanceConfig(
+	d *schema.ResourceData,
+	obj *types.StorageDrsSpaceLoadBalanceConfig,
+	version viapi.VSphereVersion,
+) error {
+	attrs := map[string]interface{}{
+		"sdrs_free_space_utilization_difference": obj.MinSpaceUtilizationDifference,
+		"sdrs_space_utilization_threshold":       obj.SpaceUtilizationThreshold,
+	}
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+		attrs["sdrs_free_space_threshold"] = obj.FreeSpaceThresholdGB
+		attrs["sdrs_free_space_threshold_mode"] = obj.SpaceThresholdMode
+	}
+
+	for k, v := range attrs {
+		if err := d.Set(k, v); err != nil {
+			return fmt.Errorf("error setting attribute %q: %s", k, err)
+		}
+	}
+
+	return nil
+}
+
 // expandStorageDrsOptionSpec reads certain ResourceData keys and returns
 // a StorageDrsOptionSpec.
 func expandStorageDrsOptionSpec(d *schema.ResourceData) []types.StorageDrsOptionSpec {
@@ -519,8 +802,19 @@ func expandStorageDrsOptionSpec(d *schema.ResourceData) []types.StorageDrsOption
 	return opts
 }
 
+// flattenStorageDrsOptionSpec saves a StorageDrsOptionSpec into the supplied
+// ResourceData.
+func flattenStorageDrsOptionSpec(d *schema.ResourceData, opts []types.BaseOptionValue) error {
+	m := make(map[string]interface{})
+	for _, opt := range opts {
+		m[opt.GetOptionValue().Key] = opt.GetOptionValue().Value
+	}
+
+	return d.Set("sdrs_advanced_options", m)
+}
+
 // resourceVSphereDatastoreClusterIDString prints a friendly string for the
 // vsphere_datastore_cluster resource.
 func resourceVSphereDatastoreClusterIDString(d structure.ResourceIDStringer) string {
-	return structure.ResourceIDString(d, "vsphere_datastore_cluster")
+	return structure.ResourceIDString(d, resourceVSphereDatastoreClusterName)
 }
