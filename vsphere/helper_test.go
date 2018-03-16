@@ -18,6 +18,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualdisk"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
@@ -662,4 +663,24 @@ func testResourceHasCustomAttributeValues(s *terraform.State, resourceType strin
 		return fmt.Errorf("expected custom attributes to be %q, got %q", expectedAttrs, actualAttrs)
 	}
 	return nil
+}
+
+// testGetDatastoreCluster is a convenience method to fetch a datastore cluster by
+// resource name.
+func testGetDatastoreCluster(s *terraform.State, resourceName string) (*object.StoragePod, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereDatastoreClusterName, resourceName))
+	if err != nil {
+		return nil, err
+	}
+	return storagepod.FromID(vars.client, vars.resourceID)
+}
+
+// testGetDatastoreClusterProperties is a convenience method that adds an extra
+// step to testGetDatastoreCluster to get the properties of a StoragePod.
+func testGetDatastoreClusterProperties(s *terraform.State, resourceName string) (*mo.StoragePod, error) {
+	pod, err := testGetDatastoreCluster(s, resourceName)
+	if err != nil {
+		return nil, err
+	}
+	return storagepod.Properties(pod)
 }

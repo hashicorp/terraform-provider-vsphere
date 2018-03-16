@@ -34,7 +34,7 @@ func resourceVSphereDatastoreCluster() *schema.Resource {
 		Update: resourceVSphereDatastoreClusterUpdate,
 		Delete: resourceVSphereDatastoreClusterDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceVSphereDistributedVirtualSwitchImport,
+			State: resourceVSphereDatastoreClusterImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -46,8 +46,8 @@ func resourceVSphereDatastoreCluster() *schema.Resource {
 			},
 			"datacenter_id": {
 				Type:        schema.TypeString,
-				Description: "The managed object ID of the datacenter to put the datastore cluster in.",
 				Required:    true,
+				Description: "The managed object ID of the datacenter to put the datastore cluster in.",
 			},
 			"folder": {
 				Type:        schema.TypeString,
@@ -313,7 +313,7 @@ func resourceVSphereDatastoreClusterApplyCreate(d *schema.ResourceData, meta int
 
 	// Find the folder based off the path to the datacenter. This is where we
 	// create the datastore cluster.
-	f, err := folder.DatastoreFolderFromObject(client, dc, d.Get("folder").(string))
+	f, err := folder.FromPath(client, d.Get("folder").(string), folder.VSphereFolderTypeDatastore, dc)
 	if err != nil {
 		return nil, fmt.Errorf("cannot locate folder: %s", err)
 	}
@@ -772,8 +772,10 @@ func flattenStorageDrsSpaceLoadBalanceConfig(
 		"sdrs_space_utilization_threshold":       obj.SpaceUtilizationThreshold,
 	}
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
-		attrs["sdrs_free_space_threshold"] = obj.FreeSpaceThresholdGB
 		attrs["sdrs_free_space_threshold_mode"] = obj.SpaceThresholdMode
+		if obj.SpaceThresholdMode == string(types.StorageDrsSpaceLoadBalanceConfigSpaceThresholdModeFreeSpace) {
+			attrs["sdrs_free_space_threshold"] = obj.FreeSpaceThresholdGB
+		}
 	}
 
 	for k, v := range attrs {
