@@ -47,6 +47,7 @@ func resourceVSphereDatastoreCluster() *schema.Resource {
 			"datacenter_id": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "The managed object ID of the datacenter to put the datastore cluster in.",
 			},
 			"folder": {
@@ -260,6 +261,14 @@ func resourceVSphereDatastoreClusterUpdate(d *schema.ResourceData, meta interfac
 		return err
 	}
 
+	if err := resourceVSphereDatastoreClusterApplyTags(d, meta, pod); err != nil {
+		return err
+	}
+
+	if err := resourceVSphereDatastoreClusterApplyCustomAttributes(d, meta, pod); err != nil {
+		return err
+	}
+
 	log.Printf("[DEBUG] %s: Update finished successfully", resourceVSphereDatastoreClusterIDString(d))
 	return resourceVSphereDatastoreClusterRead(d, meta)
 }
@@ -402,8 +411,15 @@ func resourceVSphereDatastoreClusterReadCustomAttributes(d *schema.ResourceData,
 	return nil
 }
 
-// resourceVSphereDatastoreClusterApplySDRSConfig applies the SDRS configuration to a datastore cluster.
+// resourceVSphereDatastoreClusterApplySDRSConfig applies the SDRS
+// configuration to a datastore cluster.
 func resourceVSphereDatastoreClusterApplySDRSConfig(d *schema.ResourceData, meta interface{}, pod *object.StoragePod) error {
+	// This is a no-op if there is no SDRS config changed
+	if !resourceVSphereDatastoreClusterHasSDRSConfigChange(d) {
+		log.Printf("[DEBUG] %s: No SDRS configuration attributes have changed", resourceVSphereDatastoreClusterIDString(d))
+		return nil
+	}
+
 	log.Printf("[DEBUG] %s: Applying SDRS configuration", resourceVSphereDatastoreClusterIDString(d))
 	client := meta.(*VSphereClient).vimClient
 	if err := viapi.ValidateVirtualCenter(client); err != nil {
@@ -420,6 +436,44 @@ func resourceVSphereDatastoreClusterApplySDRSConfig(d *schema.ResourceData, meta
 	}
 
 	return storagepod.ApplyDRSConfiguration(client, pod, spec)
+}
+
+// resourceVSphereDatastoreClusterHasSDRSConfigChange checks all resource keys
+// associated with storage DRS to see if there has been a change in the
+// configuration of those keys. This helper is designed to detect no-ops in a
+// SDRS configuration to see if we really need to send a configure API call to
+// vSphere.
+func resourceVSphereDatastoreClusterHasSDRSConfigChange(d *schema.ResourceData) bool {
+	for k := range resourceVSphereDatastoreCluster().Schema {
+		switch {
+		case resourceVSphereDatastoreClusterHasSDRSConfigChangeExcluded(k):
+			continue
+		case d.HasChange(k):
+			return true
+		}
+	}
+
+	return false
+}
+
+func resourceVSphereDatastoreClusterHasSDRSConfigChangeExcluded(k string) bool {
+	// It's easier to track which keys don't belong to storage DRS versus the
+	// ones that do.
+	excludeKeys := []string{
+		"name",
+		"datacenter_id",
+		"folder",
+		vSphereTagAttributeKey,
+		customattribute.ConfigKey,
+	}
+
+	for _, exclude := range excludeKeys {
+		if k == exclude {
+			return true
+		}
+	}
+
+	return false
 }
 
 // resourceVSphereDatastoreClusterGetPodFromID gets the StoragePod from the ID
@@ -727,9 +781,12 @@ func flattenStorageDrsIoLoadBalanceConfig(
 		"sdrs_io_load_imbalance_threshold": obj.IoLoadImbalanceThreshold,
 	}
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
-		attrs["sdrs_io_reservable_iops_threshold"] = obj.ReservableIopsThreshold
-		attrs["sdrs_io_reservable_percent_threshold"] = obj.ReservablePercentThreshold
 		attrs["sdrs_io_reservable_threshold_mode"] = obj.ReservableThresholdMode
+		if obj.ReservableThresholdMode == string(types.StorageDrsPodConfigInfoBehaviorManual) {
+			attrs["sdrs_io_reservable_iops_threshold"] = obj.ReservableIopsThreshold
+		} else {
+			attrs["sdrs_io_reservable_percent_threshold"] = obj.ReservablePercentThreshold
+		}
 	}
 
 	for k, v := range attrs {
@@ -769,13 +826,14 @@ func flattenStorageDrsSpaceLoadBalanceConfig(
 ) error {
 	attrs := map[string]interface{}{
 		"sdrs_free_space_utilization_difference": obj.MinSpaceUtilizationDifference,
-		"sdrs_space_utilization_threshold":       obj.SpaceUtilizationThreshold,
+		"sdrs_free_space_threshold_mode":         obj.SpaceThresholdMode,
 	}
-	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
-		attrs["sdrs_free_space_threshold_mode"] = obj.SpaceThresholdMode
-		if obj.SpaceThresholdMode == string(types.StorageDrsSpaceLoadBalanceConfigSpaceThresholdModeFreeSpace) {
-			attrs["sdrs_free_space_threshold"] = obj.FreeSpaceThresholdGB
-		}
+
+	freeSpaceSupported := version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6})
+	if freeSpaceSupported && obj.SpaceThresholdMode == string(types.StorageDrsSpaceLoadBalanceConfigSpaceThresholdModeFreeSpace) {
+		attrs["sdrs_free_space_threshold"] = obj.FreeSpaceThresholdGB
+	} else {
+		attrs["sdrs_space_utilization_threshold"] = obj.SpaceUtilizationThreshold
 	}
 
 	for k, v := range attrs {
