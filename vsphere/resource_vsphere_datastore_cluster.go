@@ -42,7 +42,6 @@ func resourceVSphereDatastoreCluster() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Name for the new storage pod.",
-				StateFunc:   folder.NormalizePath,
 			},
 			"datacenter_id": {
 				Type:        schema.TypeString,
