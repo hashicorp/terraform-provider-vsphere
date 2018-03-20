@@ -3,6 +3,7 @@
 FEATURES:
 
 * **New Resource:** `vsphere_datastore_cluster` [GH-436]
+* **New Data Source:** `vsphere_datastore_cluster` [GH-437]
 
 IMPROVEMENTS:
 
