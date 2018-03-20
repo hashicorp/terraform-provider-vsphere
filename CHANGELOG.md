@@ -1,5 +1,9 @@
 ## 1.4.0 (Unreleased)
 
+FEATURES:
+
+* **New Resource:** `vsphere_datastore_cluster` [GH-436]
+
 IMPROVEMENTS:
 
 * The provider now has the ability to persist sessions to disk, which can help
