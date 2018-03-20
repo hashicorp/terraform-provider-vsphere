@@ -986,19 +986,8 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 	return spec, nil
 }
 
-// resourceVSphereVirtualMachineIDStringInterface is a small interface so
-// that we can take ResourceData and ResourceDiff in
-// resourceVSphereVirtualMachineIDString.
-type resourceVSphereVirtualMachineIDStringInterface interface {
-	Id() string
-}
-
 // resourceVSphereVirtualMachineIDString prints a friendly string for the
 // vsphere_virtual_machine resource.
-func resourceVSphereVirtualMachineIDString(d resourceVSphereVirtualMachineIDStringInterface) string {
-	id := d.Id()
-	if id == "" {
-		id = "<new resource>"
-	}
-	return fmt.Sprintf("vsphere_virtual_machine (ID = %s)", id)
+func resourceVSphereVirtualMachineIDString(d structure.ResourceIDStringer) string {
+	return structure.ResourceIDString(d, "vsphere_virtual_machine")
 }

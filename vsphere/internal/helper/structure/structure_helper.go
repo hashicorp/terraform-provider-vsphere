@@ -9,6 +9,22 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+// ResourceIDStringer is a small interface that can be used to supply
+// ResourceData and ResourceDiff to functions that need to print the ID of a
+// resource, namely used by logging.
+type ResourceIDStringer interface {
+	Id() string
+}
+
+// ResourceIDString prints a friendly string for a resource, supplied by name.
+func ResourceIDString(d ResourceIDStringer, name string) string {
+	id := d.Id()
+	if id == "" {
+		id = "<new resource>"
+	}
+	return fmt.Sprintf("%s (ID = %s)", name, id)
+}
+
 // SliceInterfacesToStrings converts an interface slice to a string slice. The
 // function does not attempt to do any sanity checking and will panic if one of
 // the items in the slice is not a string.
@@ -38,6 +54,40 @@ func MergeSchema(dst, src map[string]*schema.Schema) {
 		}
 		dst[k] = v
 	}
+}
+
+// StringPtr makes a *string out of the value passed in through v.
+//
+// vSphere uses nil values in strings to omit values in the SOAP XML request,
+// and helps denote inheritance in certain cases.
+func StringPtr(v string) *string {
+	return &v
+}
+
+// GetStringPtr reads a ResourceData and returns an appropriate *string for the
+// state of the definition. nil is returned if it does not exist.
+func GetStringPtr(d *schema.ResourceData, key string) *string {
+	v, e := d.GetOkExists(key)
+	if e {
+		return StringPtr(v.(string))
+	}
+	return nil
+}
+
+// GetString reads a ResourceData and returns a *string. This differs from
+// GetStringPtr in that a nil value is never returned.
+func GetString(d *schema.ResourceData, key string) *string {
+	return StringPtr(d.Get(key).(string))
+}
+
+// SetStringPtr sets a ResourceData field depending on if a *string exists or
+// not.  The field is not set if it's nil.
+func SetStringPtr(d *schema.ResourceData, key string, val *string) error {
+	if val == nil {
+		return nil
+	}
+	err := d.Set(key, val)
+	return err
 }
 
 // BoolPtr makes a *bool out of the value passed in through v.
