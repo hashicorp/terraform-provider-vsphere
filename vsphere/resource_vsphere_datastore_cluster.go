@@ -297,7 +297,7 @@ func resourceVSphereDatastoreClusterDelete(d *schema.ResourceData, meta interfac
 
 func resourceVSphereDatastoreClusterImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	p := d.Id()
-	pod, err := resourceVSphereDatastoreClusterGetPodFromPath(meta, p, nil)
+	pod, err := resourceVSphereDatastoreClusterGetPodFromPath(meta, p, "")
 	if err != nil {
 		return nil, fmt.Errorf("error loading datastore cluster: %s", err)
 	}
@@ -489,13 +489,19 @@ func resourceVSphereDatastoreClusterGetPod(d structure.ResourceIDStringer, meta 
 
 // resourceVSphereDatastoreClusterGetPodFromPath gets the StoragePod from a
 // supplied path. If no datacenter is supplied, the path must be a full path.
-func resourceVSphereDatastoreClusterGetPodFromPath(meta interface{}, path string, dc *object.Datacenter) (*object.StoragePod, error) {
-	if dc != nil {
+func resourceVSphereDatastoreClusterGetPodFromPath(meta interface{}, path string, dcID string) (*object.StoragePod, error) {
+	client := meta.(*VSphereClient).vimClient
+	var dc *object.Datacenter
+	if dcID != "" {
+		var err error
+		dc, err = datacenterFromID(client, dcID)
+		if err != nil {
+			return nil, fmt.Errorf("cannot locate datacenter: %s", err)
+		}
 		log.Printf("[DEBUG] Looking for datastore cluster %q in datacenter %q", path, dc.InventoryPath)
 	} else {
 		log.Printf("[DEBUG] Fetching datastore cluster at path %q", path)
 	}
-	client := meta.(*VSphereClient).vimClient
 	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return nil, err
 	}

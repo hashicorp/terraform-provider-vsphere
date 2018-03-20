@@ -25,6 +25,7 @@ func TestAccResourceVSphereDatastoreCluster_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -44,6 +45,7 @@ func TestAccResourceVSphereDatastoreCluster_sdrsEnabled(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -63,6 +65,7 @@ func TestAccResourceVSphereDatastoreCluster_rename(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -89,6 +92,7 @@ func TestAccResourceVSphereDatastoreCluster_inFolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -108,6 +112,7 @@ func TestAccResourceVSphereDatastoreCluster_moveToFolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -134,6 +139,7 @@ func TestAccResourceVSphereDatastoreCluster_sdrsOverrides(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -155,6 +161,7 @@ func TestAccResourceVSphereDatastoreCluster_miscTweaks(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -180,6 +187,7 @@ func TestAccResourceVSphereDatastoreCluster_reservableIops(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -214,6 +222,7 @@ func TestAccResourceVSphereDatastoreCluster_freeSpace(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -248,6 +257,7 @@ func TestAccResourceVSphereDatastoreCluster_singleTag(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -267,6 +277,7 @@ func TestAccResourceVSphereDatastoreCluster_multipleTags(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -286,6 +297,7 @@ func TestAccResourceVSphereDatastoreCluster_switchTags(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -312,6 +324,7 @@ func TestAccResourceVSphereDatastoreCluster_singleCustomAttribute(t *testing.T) 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -331,6 +344,7 @@ func TestAccResourceVSphereDatastoreCluster_multipleCustomAttribute(t *testing.T
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -350,6 +364,7 @@ func TestAccResourceVSphereDatastoreCluster_switchCustomAttribute(t *testing.T) 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -376,6 +391,7 @@ func TestAccResourceVSphereDatastoreCluster_import(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -407,6 +423,12 @@ func TestAccResourceVSphereDatastoreCluster_import(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccResourceVSphereDatastoreClusterPreCheck(t *testing.T) {
+	if os.Getenv("VSPHERE_DATACENTER") == "" {
+		t.Skip("set VSPHERE_DATACENTER to run vsphere_datastore_cluster acceptance tests")
+	}
 }
 
 func testAccResourceVSphereDatastoreClusterCheckExists(expected bool) resource.TestCheckFunc {

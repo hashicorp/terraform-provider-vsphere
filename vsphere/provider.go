@@ -111,6 +111,7 @@ func Provider() terraform.ResourceProvider {
 			"vsphere_custom_attribute":           dataSourceVSphereCustomAttribute(),
 			"vsphere_datacenter":                 dataSourceVSphereDatacenter(),
 			"vsphere_datastore":                  dataSourceVSphereDatastore(),
+			"vsphere_datastore_cluster":          dataSourceVSphereDatastoreCluster(),
 			"vsphere_distributed_virtual_switch": dataSourceVSphereDistributedVirtualSwitch(),
 			"vsphere_host":                       dataSourceVSphereHost(),
 			"vsphere_network":                    dataSourceVSphereNetwork(),
