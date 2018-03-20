@@ -8,8 +8,10 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
+	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -32,10 +34,17 @@ func resourceVSphereNasDatastore() *schema.Resource {
 			Required:    true,
 		},
 		"folder": &schema.Schema{
-			Type:        schema.TypeString,
-			Description: "The path to the datastore folder to put the datastore in.",
-			Optional:    true,
-			StateFunc:   folder.NormalizePath,
+			Type:          schema.TypeString,
+			Description:   "The path to the datastore folder to put the datastore in.",
+			Optional:      true,
+			ConflictsWith: []string{"datastore_cluster_id"},
+			StateFunc:     folder.NormalizePath,
+		},
+		"datastore_cluster_id": &schema.Schema{
+			Type:          schema.TypeString,
+			Description:   "The managed object ID of the datastore cluster to place the datastore in.",
+			Optional:      true,
+			ConflictsWith: []string{"folder"},
 		},
 	}
 	structure.MergeSchema(s, schemaHostNasVolumeSpec())
@@ -88,8 +97,12 @@ func resourceVSphereNasDatastoreCreate(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("error mounting datastore: %s", err)
 	}
 
-	// Move the datastore to the correct folder first, if specified.
-	f := d.Get("folder").(string)
+	// Move the datastore to the correct folder or datastore cluster first, if
+	// specified.
+	f, err := resourceVSphereDatastoreApplyFolderOrStorageClusterPath(d, meta)
+	if err != nil {
+		return err
+	}
 	if !folder.PathIsEmpty(f) {
 		if err := datastore.MoveToFolderRelativeHostSystemID(client, ds, hosts[0], f); err != nil {
 			return fmt.Errorf("error moving datastore to folder: %s", err)
@@ -130,11 +143,9 @@ func resourceVSphereNasDatastoreRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	// Set the folder
-	f, err := folder.RootPathParticleDatastore.SplitRelativeFolder(ds.InventoryPath)
-	if err != nil {
-		return fmt.Errorf("error parsing datastore path %q: %s", ds.InventoryPath, err)
+	if err := resourceVSphereDatastoreReadFolderOrStorageClusterPath(d, ds); err != nil {
+		return err
 	}
-	d.Set("folder", folder.NormalizePath(f))
 
 	// Update NAS spec
 	if err := flattenHostNasVolume(d, props.Info.(*types.NasDatastoreInfo).Nas); err != nil {
@@ -193,11 +204,14 @@ func resourceVSphereNasDatastoreUpdate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
-	// Update folder if necessary
-	if d.HasChange("folder") {
-		folder := d.Get("folder").(string)
-		if err := datastore.MoveToFolder(client, ds, folder); err != nil {
-			return fmt.Errorf("could not move datastore to folder %q: %s", folder, err)
+	// Update folder or datastore cluster if necessary
+	if d.HasChange("folder") || d.HasChange("datastore_cluster_id") {
+		f, err := resourceVSphereDatastoreApplyFolderOrStorageClusterPath(d, meta)
+		if err != nil {
+			return err
+		}
+		if err := datastore.MoveToFolder(client, ds, f); err != nil {
+			return fmt.Errorf("could not move datastore to folder %q: %s", f, err)
 		}
 	}
 
@@ -298,4 +312,68 @@ func resourceVSphereNasDatastoreImport(d *schema.ResourceData, meta interface{})
 	d.Set("access_mode", accessMode)
 	d.Set("type", t)
 	return []*schema.ResourceData{d}, nil
+}
+
+// resourceVSphereDatastoreApplyFolderOrStorageClusterPath returns a path to a
+// folder or a datastore cluster, depending on what has been selected in the
+// resource.
+func resourceVSphereDatastoreApplyFolderOrStorageClusterPath(d *schema.ResourceData, meta interface{}) (string, error) {
+	var path string
+	fvalue, fok := d.GetOk("folder")
+	cvalue, cok := d.GetOk("datastore_cluster_id")
+	switch {
+	case fok:
+		path = fvalue.(string)
+	case cok:
+		var err error
+		path, err = resourceVSphereDatastoreStorageClusterPathNormalized(meta, cvalue.(string))
+		if err != nil {
+			return "", err
+		}
+	}
+	return path, nil
+}
+
+func resourceVSphereDatastoreStorageClusterPathNormalized(meta interface{}, id string) (string, error) {
+	client := meta.(*VSphereClient).vimClient
+	pod, err := storagepod.FromID(client, id)
+	if err != nil {
+		return "", err
+	}
+	return folder.RootPathParticleDatastore.SplitRelative(pod.InventoryPath)
+}
+
+// resourceVSphereDatastoreReadFolderOrStorageClusterPath checks the inventory
+// path of the supplied datastore and checks to see if it is a normal folder or
+// if it's a datastore cluster, and saves the attributes accordingly.
+func resourceVSphereDatastoreReadFolderOrStorageClusterPath(d *schema.ResourceData, ds *object.Datastore) error {
+	props, err := datastore.Properties(ds)
+	if err != nil {
+		return fmt.Errorf("error fetching datastore properties while parsing path: %s", err)
+	}
+	switch props.Parent.Type {
+	case "Folder":
+		return resourceVSphereDatastoreReadFolderOrStorageClusterPathAsFolder(d, ds)
+	case "StoragePod":
+		return resourceVSphereDatastoreReadFolderOrStorageClusterPathSetAttributes(d, "", props.Parent.Value)
+	}
+	return fmt.Errorf("unknown datastore parent type %q while parsing inventory path", props.Parent.Type)
+}
+
+func resourceVSphereDatastoreReadFolderOrStorageClusterPathAsFolder(d *schema.ResourceData, ds *object.Datastore) error {
+	f, err := folder.RootPathParticleDatastore.SplitRelativeFolder(ds.InventoryPath)
+	if err != nil {
+		return fmt.Errorf("error parsing datastore path %q: %s", ds.InventoryPath, err)
+	}
+	return resourceVSphereDatastoreReadFolderOrStorageClusterPathSetAttributes(d, folder.NormalizePath(f), "")
+}
+
+func resourceVSphereDatastoreReadFolderOrStorageClusterPathSetAttributes(d *schema.ResourceData, f, c string) error {
+	if err := d.Set("folder", f); err != nil {
+		return fmt.Errorf("error setting folder attribute: %s", err)
+	}
+	if err := d.Set("datastore_cluster_id", c); err != nil {
+		return fmt.Errorf("error setting datastore_cluster_id attribute: %s", err)
+	}
+	return nil
 }
