@@ -9,11 +9,10 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/cluster"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/clusterrule"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/computeresource"
-	"github.com/vmware/govmomi"
-	"github.com/vmware/govmomi/find"
-	"github.com/vmware/govmomi/object"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -168,34 +167,100 @@ func createClusterRule(d *schema.ResourceData) (*clusterRule, error) {
 	return &cr, nil
 }
 
-//TODO move to internal/helper/virtualmachine/virtual_machine_helper.go
-func getVmsRefFromPaths(client *govmomi.Client, paths []string, dc *object.Datacenter) ([]types.ManagedObjectReference, error) {
+func resourceVSphereClusterRuleCreate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[INFO] Create Cluster Rule")
+	client := meta.(*VSphereClient).vimClient
+
+	cr, err := createClusterRule(d)
+	if err != nil {
+		return err
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultAPITimeout)
 	defer cancel()
-	finder := find.NewFinder(client.Client, true)
-	finder.SetDatacenter(dc)
-
-	var refVMs []types.ManagedObjectReference
-	for _, path := range paths {
-
-		vms, err := finder.VirtualMachineList(ctx, path)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, vm := range vms {
-			ref := types.ManagedObjectReference{
-				Type:  "VirtualMachine",
-				Value: vm.Reference().Value,
-			}
-			refVMs = append(refVMs, ref)
-		}
+	//Get datacenter
+	dc, err := datacenterFromID(client, cr.DatacenterID)
+	if err != nil {
+		return err
 	}
-	return refVMs, nil
+	//Get cluster
+	ccr, err := computeresource.ClusterFromID(client, cr.ClusterComputeResourceID)
+	if err != nil {
+		return err
+	}
 
+	//Check rule existance
+	//Issue github.com/vmware/govmomi/issues/980
+	ok, err := clusterrule.CheckExist(ctx, ccr, cr.Name)
+	if err != nil {
+		return err
+	}
+
+	if ok {
+		return fmt.Errorf("Rule name already exists")
+	}
+
+	//create
+	var rule types.BaseClusterRuleInfo
+	switch cr.ClusterRuleType {
+	case "antiaffinity":
+		aarule := &types.ClusterAntiAffinityRuleSpec{}
+		refvms, err := virtualmachine.GetVmsRefFromPaths(client, cr.VirtualMachines, dc)
+		if err != nil {
+			return err
+		}
+		aarule.Vm = refvms
+		rule = aarule
+	case "affinity":
+		arule := &types.ClusterAffinityRuleSpec{}
+		refvms, err := virtualmachine.GetVmsRefFromPaths(client, cr.VirtualMachines, dc)
+		if err != nil {
+			return err
+		}
+		arule.Vm = refvms
+		rule = arule
+	case "vmhostaffine":
+		vmhrule := &types.ClusterVmHostRuleInfo{}
+		vmhrule.VmGroupName = cr.VmGroupName
+		vmhrule.AffineHostGroupName = cr.HostGroupName
+		rule = vmhrule
+	case "vmhostantiaffine":
+		vmhrule := &types.ClusterVmHostRuleInfo{}
+		vmhrule.VmGroupName = cr.VmGroupName
+		vmhrule.AntiAffineHostGroupName = cr.HostGroupName
+		rule = vmhrule
+
+	}
+
+	ruleinfo := rule.GetClusterRuleInfo()
+	ruleinfo.Name = cr.Name
+	ruleinfo.Mandatory = &cr.Mandatory
+	ruleinfo.Enabled = &cr.Enabled
+
+	spec := types.ClusterRuleSpec{}
+	spec.Operation = types.ArrayUpdateOperationAdd
+	spec.Info = rule
+
+	clusterSpec := &types.ClusterConfigSpecEx{
+		RulesSpec: []types.ClusterRuleSpec{
+			spec,
+		},
+	}
+
+	task, err := ccr.Reconfigure(ctx, clusterSpec, true)
+	if err != nil {
+		return err
+	}
+	_, err = task.WaitForResult(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	return resourceVSphereClusterRuleRead(d, meta)
 }
-func resourceVSphereClusterRuleCreate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[INFO] Creating Cluster Rule")
+
+func resourceVSphereClusterRuleUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] Update Cluster Rule.")
 	client := meta.(*VSphereClient).vimClient
 
 	cr, err := createClusterRule(d)
@@ -206,65 +271,63 @@ func resourceVSphereClusterRuleCreate(d *schema.ResourceData, meta interface{}) 
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultAPITimeout)
 	defer cancel()
 
+	//Get datacenter
 	dc, err := datacenterFromID(client, cr.DatacenterID)
 	if err != nil {
 		return err
 	}
 
-	//var ruleSpecs []types.ClusterRuleSpec
-	var rule types.BaseClusterRuleInfo
-	switch cr.ClusterRuleType {
-	case "antiaffinity":
-		aaRule := &types.ClusterAntiAffinityRuleSpec{}
-		refVMs, err := getVmsRefFromPaths(client, cr.VirtualMachines, dc)
-		if err != nil {
-			return err
-		}
-		aaRule.Vm = refVMs
-		rule = aaRule
-	case "affinity":
-		aRule := &types.ClusterAffinityRuleSpec{}
-		refVMs, err := getVmsRefFromPaths(client, cr.VirtualMachines, dc)
-		if err != nil {
-			return err
-		}
-		aRule.Vm = refVMs
-		rule = aRule
-	case "vmhostaffine":
-		vmhRule := &types.ClusterVmHostRuleInfo{}
-		vmhRule.VmGroupName = cr.VmGroupName
-		vmhRule.AffineHostGroupName = cr.HostGroupName
-		rule = vmhRule
-	case "vmhostantiaffine":
-		vmhRule := &types.ClusterVmHostRuleInfo{}
-		vmhRule.VmGroupName = cr.VmGroupName
-		vmhRule.AntiAffineHostGroupName = cr.HostGroupName
-		rule = vmhRule
-
-	}
-
+	//Get cluster
 	ccr, err := computeresource.ClusterFromID(client, cr.ClusterComputeResourceID)
 	if err != nil {
 		return err
 	}
 
-	//Issue github.com/vmware/govmomi/issues/980
-	ok, err := clusterrule.CheckExist(ctx, ccr, cr.Name)
+	//Update
+	cluserConfig, err := cluster.GetClusterConfigInfo(client, cr.ClusterComputeResourceID)
 	if err != nil {
 		return err
 	}
-	if ok {
-		return fmt.Errorf("Rule name already exists")
+
+	var crule types.BaseClusterRuleInfo
+	for _, crule = range cluserConfig.Rule {
+		info := crule.GetClusterRuleInfo()
+		if cr.Id == info.Key {
+			info.Name = cr.Name
+			info.Mandatory = &cr.Mandatory
+			info.Enabled = &cr.Enabled
+			break
+			//Update and push
+		}
+	}
+	if crule == nil {
+		return fmt.Errorf("Could not find rule key : %v\n", cr.Id)
 	}
 
-	ruleInfo := rule.GetClusterRuleInfo()
-	ruleInfo.Name = cr.Name
-	ruleInfo.Mandatory = &cr.Mandatory
-	ruleInfo.Enabled = &cr.Enabled
+	switch crule.(type) {
+	case *types.ClusterAntiAffinityRuleSpec:
+		refvms, err := virtualmachine.GetVmsRefFromPaths(client, cr.VirtualMachines, dc)
+		if err != nil {
+			return err
+		}
+		crule.(*types.ClusterAntiAffinityRuleSpec).Vm = refvms
+
+	case *types.ClusterAffinityRuleSpec:
+		refvms, err := virtualmachine.GetVmsRefFromPaths(client, cr.VirtualMachines, dc)
+		if err != nil {
+			return err
+		}
+		crule.(*types.ClusterAffinityRuleSpec).Vm = refvms
+
+	case *types.ClusterVmHostRuleInfo:
+		crule.(*types.ClusterVmHostRuleInfo).VmGroupName = cr.VmGroupName
+		crule.(*types.ClusterVmHostRuleInfo).AffineHostGroupName = cr.HostGroupName
+		crule.(*types.ClusterVmHostRuleInfo).AntiAffineHostGroupName = cr.HostGroupName
+	}
 
 	spec := types.ClusterRuleSpec{}
-	spec.Operation = types.ArrayUpdateOperationAdd
-	spec.Info = rule
+	spec.Operation = types.ArrayUpdateOperationEdit
+	spec.Info = crule
 
 	clusterSpec := &types.ClusterConfigSpecEx{
 		RulesSpec: []types.ClusterRuleSpec{
@@ -293,42 +356,58 @@ func resourceVSphereClusterRuleRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	ccr, err := computeresource.ClusterFromID(client, cr.ClusterComputeResourceID)
+	cluserConfig, err := cluster.GetClusterConfigInfo(client, cr.ClusterComputeResourceID)
 	if err != nil {
 		return err
 	}
 
-	//Get rule Key
-	resRule, err := clusterrule.GetRuleByName(ccr, cr.Name)
-	if err != nil {
-		return err
+	for _, crule := range cluserConfig.Rule {
+		info := crule.GetClusterRuleInfo()
+		if cr.Name == info.Name {
+			d.SetId(fmt.Sprint(info.Key))
+			d.Set("name", info.Name)
+			d.Set("mandatory", *info.Mandatory)
+			d.Set("enabled", *info.Enabled)
+			d.Set("status", info.Status)
+			switch v := crule.(type) {
+			case *types.ClusterAntiAffinityRuleSpec:
+				d.Set("type", "antiaffinity")
+				vmNames, err := virtualmachine.ConvertManagedObjectReferenceToName(client, crule.(*types.ClusterAntiAffinityRuleSpec).Vm)
+				if err != nil {
+					return err
+				}
+				d.Set("virtual_machines", vmNames)
+
+			case *types.ClusterAffinityRuleSpec:
+				d.Set("type", "affinity")
+				vmNames, err := virtualmachine.ConvertManagedObjectReferenceToName(client, crule.(*types.ClusterAffinityRuleSpec).Vm)
+				if err != nil {
+					return err
+				}
+
+				d.Set("virtual_machines", vmNames)
+
+			case *types.ClusterVmHostRuleInfo:
+				cri := crule.(*types.ClusterVmHostRuleInfo)
+				d.Set("vm_group_name", cri.VmGroupName)
+				if cri.AntiAffineHostGroupName != "" && cri.AffineHostGroupName == "" {
+					d.Set("type", "vmhostantiaffine")
+					d.Set("host_group_name", cri.AntiAffineHostGroupName)
+				}
+				if cri.AntiAffineHostGroupName == "" && cri.AffineHostGroupName != "" {
+					d.Set("type", "vmhostaffine")
+					d.Set("host_group_name", cri.AffineHostGroupName)
+				}
+			default:
+				return fmt.Errorf("Error during reading ClusterRule type : unknown %v", v)
+
+			}
+		}
 	}
 
-	cri := resRule.GetClusterRuleInfo()
-	log.Printf("READ >>>> %+v\n", cri)
-
-	d.SetId(fmt.Sprint(cri.Key))
-	d.Set("name", cri.Name)
-	d.Set("mandatory", *cri.Mandatory)
-	d.Set("enabled", *cri.Enabled)
-	d.Set("status", cri.Status)
-	//TODO reverse lookup
-	//d.Set("virtual_machines", cri.VirtualMachines)
-	//TODO switch type
-	//d.Set("cluster_rule_type", cri.ClusterRuleType)
-	//d.Set("vm_group_name", cri.VmGroupName)
-	//d.Set("host_group_name", cri.AntiAffineHostGroupName)
 	return nil
 
 }
-
-func resourceVSphereClusterRuleUpdate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] Reading Cluster Rule.")
-	//client := meta.(*VSphereClient).vimClient
-	//TODO
-	return nil
-}
-
 func resourceVSphereClusterRuleDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Deleting Cluster Rule")
 	client := meta.(*VSphereClient).vimClient
@@ -364,7 +443,7 @@ func resourceVSphereClusterRuleDelete(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	d.SetId(cr.Name)
+	d.SetId("")
 
 	return nil
 }

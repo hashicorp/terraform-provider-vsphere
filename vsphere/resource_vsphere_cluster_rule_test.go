@@ -31,6 +31,12 @@ func TestAccResourceVSphereClusterRule(t *testing.T) {
 							testAccResourceVSphereClusterRuleExists(),
 						),
 					},
+					{
+						Config: testAccResourceVSphereClusterRuleAffinityConfigUpdate(),
+						Check: resource.ComposeTestCheckFunc(
+							testAccResourceVSphereClusterRuleExists(),
+						),
+					},
 				},
 			},
 		},
@@ -112,6 +118,23 @@ resource "vsphere_cluster_rule" "foo" {
 `, os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_CLUSTER"), os.Getenv("VSPHERE_VM_V1_PATH"))
 }
 
+func testAccResourceVSphereClusterRuleAffinityConfigUpdate() string {
+	return fmt.Sprintf(`
+
+resource "vsphere_cluster_rule" "foo" {
+  name = "terraform-cluster-rule"
+  type = "affinity"
+
+  datacenter_id               = "%s"
+  cluster_compute_resource_id = "%s"
+
+  virtual_machines = [
+    "%s",
+  ]
+}
+`, os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_CLUSTER"), os.Getenv("VSPHERE_VM_V2_PATH"))
+}
+
 func testAccResourceVSphereClusterRuleAntiAffinityConfigBasic() string {
 	return fmt.Sprintf(`
 
@@ -173,6 +196,7 @@ func testAccResourceVSphereClusterRuleExists() resource.TestCheckFunc {
 			return fmt.Errorf("No ID is set")
 		}
 
+		fmt.Printf("%v\n", rs.Primary.Attributes)
 		client := testAccProvider.Meta().(*VSphereClient).vimClient
 		ccr, err := computeresource.ClusterFromID(client, rs.Primary.Attributes["cluster_compute_resource_id"])
 		if err != nil {

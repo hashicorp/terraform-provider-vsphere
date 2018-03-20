@@ -495,3 +495,47 @@ func Destroy(vm *object.VirtualMachine) error {
 	defer tcancel()
 	return task.Wait(tctx)
 }
+
+// Get a list of virtual marchines references a from list of path
+func GetVmsRefFromPaths(client *govmomi.Client, paths []string, dc *object.Datacenter) ([]types.ManagedObjectReference, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	finder := find.NewFinder(client.Client, true)
+	finder.SetDatacenter(dc)
+
+	var refVMs []types.ManagedObjectReference
+	for _, path := range paths {
+
+		vms, err := finder.VirtualMachineList(ctx, path)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, vm := range vms {
+			ref := types.ManagedObjectReference{
+				Type:  "VirtualMachine",
+				Value: vm.Reference().Value,
+			}
+			refVMs = append(refVMs, ref)
+		}
+	}
+	return refVMs, nil
+
+}
+
+// Convert a list of virtual machines references to a list of virtual machines names
+func ConvertManagedObjectReferenceToName(client *govmomi.Client, vmsRef []types.ManagedObjectReference) ([]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+
+	finder := find.NewFinder(client.Client, true)
+	vmNames := []string{}
+	for _, vmref := range vmsRef {
+		vm, err := finder.ObjectReference(ctx, vmref)
+		if err != nil {
+			return nil, err
+		}
+		vmNames = append(vmNames, vm.(*object.VirtualMachine).Name())
+	}
+	return vmNames, nil
+}
