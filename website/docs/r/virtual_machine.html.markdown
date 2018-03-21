@@ -753,7 +753,7 @@ The options are:
 
 ### CDROM options
 
-A single virtual CDROM device can be created and attached to the virtual
+Up to two virtual CDROM devices can be created and attached to the virtual
 machine. The resource supports attaching a CDROM from a datastore ISO or
 using a remote client device.
 
@@ -1121,7 +1121,9 @@ included if the other is specified.
 Alternative to the settings in `customize`, one can use the settings in the
 `properties` section of the `vapp` sub-resource to supply configuration
 parameters to a virtual machine cloned from a template that came from an
-imported OVF or OVA file.
+imported OVF or OVA file. Both GuestInfo and ISO transport methods are
+supported. For templates that use ISO transport, a CDROM backed by client
+device is required. See [CDROM options](#cdrom-options) for details. 
 
 ~> **NOTE:** The only supported usage path for vApp properties is for existing
 user-configurable keys. These generally come from an existing template that was
