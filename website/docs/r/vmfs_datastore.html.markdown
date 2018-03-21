@@ -133,7 +133,11 @@ The following arguments are supported:
   Example: for the `dc1` datacenter, and a provided `folder` of `foo/bar`,
   Terraform will place a datastore named `terraform-test` in a datastore folder
   located at `/dc1/datastore/foo/bar`, with the final inventory path being
-  `/dc1/datastore/foo/bar/terraform-test`.
+  `/dc1/datastore/foo/bar/terraform-test`. Conflicts with
+  `datastore_cluster_id`.
+* `datastore_cluster_id` - (Optional) The [managed object
+  ID][docs-about-morefs] of a datastore cluster to put this datastore in.
+  Conflicts with `folder`.
 * `tags` - (Optional) The IDs of any tags to attach to this resource. See
   [here][docs-applying-tags] for a reference on how to apply tags.
 

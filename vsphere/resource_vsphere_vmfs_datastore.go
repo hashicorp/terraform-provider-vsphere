@@ -27,33 +27,11 @@ const (
 	waitForDeleteError     = "waitForDeleteError"
 )
 
-// formatVmfsDatastoreCreateRollbackErrorFolder defines the verbose error for moving a
-// datastore to a folder on creation where rollback was not possible.
-const formatVmfsDatastoreCreateRollbackErrorFolder = `
-WARNING: Dangling resource!
-There was an error moving your datastore to the desired folder %q:
-%s
-Additionally, there was an error removing the created datastore:
-%s
-You will need to remove this datastore manually before trying again.
-`
-
 // formatVmfsDatastoreCreateRollbackErrorUpdate defines the verbose error for extending a
 // disk on creation where rollback is not possible.
 const formatVmfsDatastoreCreateRollbackErrorUpdate = `
 WARNING: Dangling resource!
 There was an error extending your datastore with disk: %q:
-%s
-Additionally, there was an error removing the created datastore:
-%s
-You will need to remove this datastore manually before trying again.
-`
-
-// formatVmfsDatastoreCreateRollbackError defines the verbose error for extending a disk on
-// creation where rollback is not possible.
-const formatVmfsDatastoreCreateRollbackErrorProperties = `
-WARNING: Dangling resource!
-After creating the datastore, there was an error fetching its properties:
 %s
 Additionally, there was an error removing the created datastore:
 %s
@@ -74,10 +52,17 @@ func resourceVSphereVmfsDatastore() *schema.Resource {
 			Required:    true,
 		},
 		"folder": &schema.Schema{
-			Type:        schema.TypeString,
-			Description: "The path to the datastore folder to put the datastore in.",
-			Optional:    true,
-			StateFunc:   folder.NormalizePath,
+			Type:          schema.TypeString,
+			Description:   "The path to the datastore folder to put the datastore in.",
+			Optional:      true,
+			ConflictsWith: []string{"datastore_cluster_id"},
+			StateFunc:     folder.NormalizePath,
+		},
+		"datastore_cluster_id": &schema.Schema{
+			Type:          schema.TypeString,
+			Description:   "The managed object ID of the datastore cluster to place the datastore in.",
+			Optional:      true,
+			ConflictsWith: []string{"folder"},
 		},
 		"disks": &schema.Schema{
 			Type:        schema.TypeList,
@@ -145,16 +130,44 @@ func resourceVSphereVmfsDatastoreCreate(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("error creating datastore with disk %s: %s", disk, err)
 	}
 
-	// Move the datastore to the correct folder first, if specified.
-	f := d.Get("folder").(string)
-	if !folder.PathIsEmpty(f) {
-		if err := datastore.MoveToFolderRelativeHostSystemID(client, ds, hsID, f); err != nil {
+	// Add any remaining disks.
+	for _, disk := range disks[1:] {
+		var extendSpec *types.VmfsDatastoreExtendSpec
+		extendSpec, err = diskSpecForExtend(dss, ds, disk.(string))
+		if err != nil {
+			// We have to destroy the created datastore here.
 			if remErr := removeDatastore(dss, ds); remErr != nil {
 				// We could not destroy the created datastore and there is now a dangling
 				// resource. We need to instruct the user to remove the datastore
 				// manually.
-				return fmt.Errorf(formatVmfsDatastoreCreateRollbackErrorFolder, f, err, remErr)
+				return fmt.Errorf(formatVmfsDatastoreCreateRollbackErrorUpdate, disk, err, remErr)
 			}
+			return fmt.Errorf("error fetching datastore extend spec for disk %q: %s", disk, err)
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+		defer cancel()
+		if _, err = extendVmfsDatastore(ctx, dss, ds, *extendSpec); err != nil {
+			if remErr := removeDatastore(dss, ds); remErr != nil {
+				// We could not destroy the created datastore and there is now a dangling
+				// resource. We need to instruct the user to remove the datastore
+				// manually.
+				return fmt.Errorf(formatVmfsDatastoreCreateRollbackErrorUpdate, disk, err, remErr)
+			}
+			return fmt.Errorf("error extending datastore with disk %q: %s", disk, err)
+		}
+	}
+
+	// Set the ID here now as most other issues here can be applied on an update,
+	// so we don't need to roll back on failure.
+	d.SetId(ds.Reference().Value)
+
+	// Move the datastore to the correct folder first, if specified.
+	f, err := resourceVSphereDatastoreApplyFolderOrStorageClusterPath(d, meta)
+	if err != nil {
+		return err
+	}
+	if !folder.PathIsEmpty(f) {
+		if err := datastore.MoveToFolderRelativeHostSystemID(client, ds, hsID, f); err != nil {
 			return fmt.Errorf("could not move datastore to folder %q: %s", f, err)
 		}
 	}
@@ -172,34 +185,6 @@ func resourceVSphereVmfsDatastoreCreate(d *schema.ResourceData, meta interface{}
 			return err
 		}
 	}
-
-	// Now add any remaining disks.
-	for _, disk := range disks[1:] {
-		spec, err := diskSpecForExtend(dss, ds, disk.(string))
-		if err != nil {
-			// We have to destroy the created datastore here.
-			if remErr := removeDatastore(dss, ds); remErr != nil {
-				// We could not destroy the created datastore and there is now a dangling
-				// resource. We need to instruct the user to remove the datastore
-				// manually.
-				return fmt.Errorf(formatVmfsDatastoreCreateRollbackErrorUpdate, disk, err, remErr)
-			}
-			return fmt.Errorf("error fetching datastore extend spec for disk %q: %s", disk, err)
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
-		defer cancel()
-		if _, err := extendVmfsDatastore(ctx, dss, ds, *spec); err != nil {
-			if remErr := removeDatastore(dss, ds); remErr != nil {
-				// We could not destroy the created datastore and there is now a dangling
-				// resource. We need to instruct the user to remove the datastore
-				// manually.
-				return fmt.Errorf(formatVmfsDatastoreCreateRollbackErrorUpdate, disk, err, remErr)
-			}
-			return fmt.Errorf("error extending datastore with disk %q: %s", disk, err)
-		}
-	}
-
-	d.SetId(ds.Reference().Value)
 
 	// Done
 	return resourceVSphereVmfsDatastoreRead(d, meta)
@@ -221,11 +206,9 @@ func resourceVSphereVmfsDatastoreRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	// Set the folder
-	f, err := folder.RootPathParticleDatastore.SplitRelativeFolder(ds.InventoryPath)
-	if err != nil {
-		return fmt.Errorf("error parsing datastore path %q: %s", ds.InventoryPath, err)
+	if err := resourceVSphereDatastoreReadFolderOrStorageClusterPath(d, ds); err != nil {
+		return err
 	}
-	d.Set("folder", folder.NormalizePath(f))
 
 	// We also need to update the disk list from the summary.
 	var disks []string
@@ -285,11 +268,14 @@ func resourceVSphereVmfsDatastoreUpdate(d *schema.ResourceData, meta interface{}
 		}
 	}
 
-	// Update folder if necessary
-	if d.HasChange("folder") {
-		folder := d.Get("folder").(string)
-		if err := datastore.MoveToFolder(client, ds, folder); err != nil {
-			return fmt.Errorf("Could not move datastore to folder %q: %s", folder, err)
+	// Update folder or datastore cluster if necessary
+	if d.HasChange("folder") || d.HasChange("datastore_cluster_id") {
+		f, err := resourceVSphereDatastoreApplyFolderOrStorageClusterPath(d, meta)
+		if err != nil {
+			return err
+		}
+		if err := datastore.MoveToFolder(client, ds, f); err != nil {
+			return fmt.Errorf("could not move datastore to folder %q: %s", f, err)
 		}
 	}
 
