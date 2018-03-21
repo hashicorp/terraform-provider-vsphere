@@ -1,8 +1,14 @@
 package vsphere
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -68,6 +74,70 @@ func flattenDatastoreSummary(d *schema.ResourceData, obj *types.DatastoreSummary
 	// here we check for errors
 	if err := d.Set("name", obj.Name); err != nil {
 		return err
+	}
+	return nil
+}
+
+// resourceVSphereDatastoreApplyFolderOrStorageClusterPath returns a path to a
+// folder or a datastore cluster, depending on what has been selected in the
+// resource.
+func resourceVSphereDatastoreApplyFolderOrStorageClusterPath(d *schema.ResourceData, meta interface{}) (string, error) {
+	var path string
+	fvalue, fok := d.GetOk("folder")
+	cvalue, cok := d.GetOk("datastore_cluster_id")
+	switch {
+	case fok:
+		path = fvalue.(string)
+	case cok:
+		var err error
+		path, err = resourceVSphereDatastoreStorageClusterPathNormalized(meta, cvalue.(string))
+		if err != nil {
+			return "", err
+		}
+	}
+	return path, nil
+}
+
+func resourceVSphereDatastoreStorageClusterPathNormalized(meta interface{}, id string) (string, error) {
+	client := meta.(*VSphereClient).vimClient
+	pod, err := storagepod.FromID(client, id)
+	if err != nil {
+		return "", err
+	}
+	return folder.RootPathParticleDatastore.SplitRelative(pod.InventoryPath)
+}
+
+// resourceVSphereDatastoreReadFolderOrStorageClusterPath checks the inventory
+// path of the supplied datastore and checks to see if it is a normal folder or
+// if it's a datastore cluster, and saves the attributes accordingly.
+func resourceVSphereDatastoreReadFolderOrStorageClusterPath(d *schema.ResourceData, ds *object.Datastore) error {
+	props, err := datastore.Properties(ds)
+	if err != nil {
+		return fmt.Errorf("error fetching datastore properties while parsing path: %s", err)
+	}
+	switch props.Parent.Type {
+	case "Folder":
+		return resourceVSphereDatastoreReadFolderOrStorageClusterPathAsFolder(d, ds)
+	case "StoragePod":
+		return resourceVSphereDatastoreReadFolderOrStorageClusterPathSetAttributes(d, "", props.Parent.Value)
+	}
+	return fmt.Errorf("unknown datastore parent type %q while parsing inventory path", props.Parent.Type)
+}
+
+func resourceVSphereDatastoreReadFolderOrStorageClusterPathAsFolder(d *schema.ResourceData, ds *object.Datastore) error {
+	f, err := folder.RootPathParticleDatastore.SplitRelativeFolder(ds.InventoryPath)
+	if err != nil {
+		return fmt.Errorf("error parsing datastore path %q: %s", ds.InventoryPath, err)
+	}
+	return resourceVSphereDatastoreReadFolderOrStorageClusterPathSetAttributes(d, folder.NormalizePath(f), "")
+}
+
+func resourceVSphereDatastoreReadFolderOrStorageClusterPathSetAttributes(d *schema.ResourceData, f, c string) error {
+	if err := d.Set("folder", f); err != nil {
+		return fmt.Errorf("error setting folder attribute: %s", err)
+	}
+	if err := d.Set("datastore_cluster_id", c); err != nil {
+		return fmt.Errorf("error setting datastore_cluster_id attribute: %s", err)
 	}
 	return nil
 }
