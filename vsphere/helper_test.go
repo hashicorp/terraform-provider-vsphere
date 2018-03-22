@@ -686,23 +686,23 @@ func testGetDatastoreClusterProperties(s *terraform.State, resourceName string) 
 }
 
 func testSetOvfEnvironmentTransportIso(s *terraform.State, resourceName string) error {
-    vm, err := testGetVirtualMachine(s, resourceName)
-    if err != nil {
-        return err
-    }
-    if err := testPowerOffVM(s, resourceName); err != nil {
-        return err
-    }
+	vm, err := testGetVirtualMachine(s, resourceName)
+	if err != nil {
+		return err
+	}
+	if err := testPowerOffVM(s, resourceName); err != nil {
+		return err
+	}
 
-    spec := types.VirtualMachineConfigSpec{
-        VAppConfig: &types.VmConfigSpec{
-            OvfEnvironmentTransport: []string{"iso"},
-        },
-    }
-    virtualmachine.Reconfigure(vm, spec)
-    virtualmachine.PowerOn(vm)
-    if err := testPowerOffVM(s, resourceName); err != nil {
-        return err
-    }
-    return nil
+	spec := types.VirtualMachineConfigSpec{
+		VAppConfig: &types.VmConfigSpec{
+			OvfEnvironmentTransport: []string{"iso"},
+		},
+	}
+	virtualmachine.Reconfigure(vm, spec)
+	virtualmachine.PowerOn(vm)
+	if err := testPowerOffVM(s, resourceName); err != nil {
+		return err
+	}
+	return nil
 }
