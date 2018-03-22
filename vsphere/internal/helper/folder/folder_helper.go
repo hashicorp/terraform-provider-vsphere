@@ -191,6 +191,8 @@ func folderFromObject(client *govmomi.Client, obj interface{}, folderType RootPa
 		p, err = RootPathParticleNetwork.PathFromNewRoot(o.InventoryPath, folderType, relative)
 	case *object.Datastore:
 		p, err = RootPathParticleDatastore.PathFromNewRoot(o.InventoryPath, folderType, relative)
+	case *object.StoragePod:
+		p, err = RootPathParticleDatastore.PathFromNewRoot(o.InventoryPath, folderType, relative)
 	case *object.HostSystem:
 		p, err = RootPathParticleHost.PathFromNewRoot(o.InventoryPath, folderType, relative)
 	case *object.ResourcePool:

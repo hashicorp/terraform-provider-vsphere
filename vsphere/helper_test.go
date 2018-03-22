@@ -18,6 +18,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualdisk"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
@@ -664,24 +665,44 @@ func testResourceHasCustomAttributeValues(s *terraform.State, resourceType strin
 	return nil
 }
 
-func testSetOvfEnvironmentTransportIso(s *terraform.State, resourceName string) error {
-	vm, err := testGetVirtualMachine(s, resourceName)
+// testGetDatastoreCluster is a convenience method to fetch a datastore cluster by
+// resource name.
+func testGetDatastoreCluster(s *terraform.State, resourceName string) (*object.StoragePod, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereDatastoreClusterName, resourceName))
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if err := testPowerOffVM(s, resourceName); err != nil {
-		return err
-	}
+	return storagepod.FromID(vars.client, vars.resourceID)
+}
 
-	spec := types.VirtualMachineConfigSpec{
-		VAppConfig: &types.VmConfigSpec{
-			OvfEnvironmentTransport: []string{"iso"},
-		},
+// testGetDatastoreClusterProperties is a convenience method that adds an extra
+// step to testGetDatastoreCluster to get the properties of a StoragePod.
+func testGetDatastoreClusterProperties(s *terraform.State, resourceName string) (*mo.StoragePod, error) {
+	pod, err := testGetDatastoreCluster(s, resourceName)
+	if err != nil {
+		return nil, err
 	}
-	virtualmachine.Reconfigure(vm, spec)
-	virtualmachine.PowerOn(vm)
-	if err := testPowerOffVM(s, resourceName); err != nil {
-		return err
-	}
-	return nil
+	return storagepod.Properties(pod)
+}
+
+func testSetOvfEnvironmentTransportIso(s *terraform.State, resourceName string) error {
+    vm, err := testGetVirtualMachine(s, resourceName)
+    if err != nil {
+        return err
+    }
+    if err := testPowerOffVM(s, resourceName); err != nil {
+        return err
+    }
+
+    spec := types.VirtualMachineConfigSpec{
+        VAppConfig: &types.VmConfigSpec{
+            OvfEnvironmentTransport: []string{"iso"},
+        },
+    }
+    virtualmachine.Reconfigure(vm, spec)
+    virtualmachine.PowerOn(vm)
+    if err := testPowerOffVM(s, resourceName); err != nil {
+        return err
+    }
+    return nil
 }

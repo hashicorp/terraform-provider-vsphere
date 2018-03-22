@@ -190,6 +190,7 @@ func TestAccResourceVSphereVirtualMachine_addDevices(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_removeMiddleDevices(t *testing.T) {
+	var state *terraform.State
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -201,11 +202,22 @@ func TestAccResourceVSphereVirtualMachine_removeMiddleDevices(t *testing.T) {
 			{
 				Config: testAccResourceVSphereVirtualMachineConfigMultiDevice(),
 				Check: resource.ComposeTestCheckFunc(
+					copyStatePtr(&state),
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, true, true}, []bool{true, true, true}),
 				),
 			},
 			{
+				PreConfig: func() {
+					// As sometimes the OS image that we are using to test "bare metal"
+					// changes in how well it integrates VMware tools, we power down the
+					// VM for this operation. This is not necessarily checking that a
+					// hot-remove operation happened so it's not essential it's powered
+					// on.
+					if err := testPowerOffVM(state, "vm"); err != nil {
+						panic(err)
+					}
+				},
 				Config: testAccResourceVSphereVirtualMachineConfigRemoveMiddle(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
@@ -7932,8 +7944,10 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    label = "disk0"
-    size  = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    label            = "disk0"
+    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
   }
 
   vapp {
@@ -8047,8 +8061,10 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    label = "disk0"
-    size  = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    label            = "disk0"
+    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
   }
 
   vapp {
@@ -8163,8 +8179,10 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    label = "disk0"
-    size  = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    label            = "disk0"
+    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
   }
 
   vapp {

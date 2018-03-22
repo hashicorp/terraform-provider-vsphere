@@ -476,7 +476,16 @@ func (r *CdromSubresource) Read(l object.VirtualDeviceList) error {
 		}
 		r.Set("path", dp.Path)
 	default:
-		return fmt.Errorf("%s: Unknown CDROM type %s", r, backing)
+		// This is an unsupported entry, so we clear all attributes in the
+		// subresource (except for the device address and key, of course).  In
+		// addition to making sure correct diffs get created for these kinds of
+		// devices, this ensures we don't fail on CDROM device types we don't
+		// support right now, such as passthrough devices. We might support these
+		// later.
+		log.Printf("%s: [DEBUG] Unknown CDROM type %T, clearing all attributes", r, backing)
+		r.Set("datastore_id", "")
+		r.Set("path", "")
+		r.Set("client_device", false)
 	}
 	// Save the device key and address data
 	ctlr, err := findControllerForDevice(l, d)

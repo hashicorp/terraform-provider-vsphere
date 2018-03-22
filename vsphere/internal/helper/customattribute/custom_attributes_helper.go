@@ -52,6 +52,10 @@ func IsSupported(client *govmomi.Client) bool {
 	return VerifySupport(client) == nil
 }
 
+// ReadFromResource reads the custom attributes from an object and saves the
+// data into the supplied ResourceData.
+//
+// TODO: Add error handling and reporting to this method.
 func ReadFromResource(client *govmomi.Client, entity *mo.ManagedEntity, d *schema.ResourceData) {
 	customAttrs := make(map[string]interface{})
 	if len(entity.CustomValue) > 0 {
