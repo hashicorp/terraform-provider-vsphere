@@ -180,6 +180,53 @@ func TestAccResourceVSphereNasDatastore_moveToFolder(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereNasDatastore_inDatastoreCluster(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereNasDatastorePreCheck(t)
+			testAccSkipIfEsxi(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigDatastoreCluster(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+					testAccResourceVSphereNasDatastoreMatchInventoryPath(testAccResourceVSphereDatastoreClusterNameStandard),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereNasDatastore_moveToDatastoreCluster(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereNasDatastorePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereNasDatastoreConfigDatastoreCluster(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereNasDatastoreExists(true),
+					testAccResourceVSphereNasDatastoreMatchInventoryPath(testAccResourceVSphereDatastoreClusterNameStandard),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereNasDatastore_singleTag(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -732,4 +779,47 @@ resource "vsphere_nas_datastore" "datastore" {
   custom_attributes = "${local.nas_attrs}"
 }
 `, os.Getenv("VSPHERE_NAS_HOST"), os.Getenv("VSPHERE_NFS_PATH"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+}
+
+func testAccResourceVSphereNasDatastoreConfigDatastoreCluster() string {
+	return fmt.Sprintf(`
+variable "nfs_host" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "nfs_path" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "folder" {
+  type    = "string"
+  default = "%s"
+}
+
+data "vsphere_datacenter" "datacenter" {
+  name = "%s"
+}
+
+data "vsphere_host" "esxi_host" {
+  name          = "%s"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
+resource "vsphere_datastore_cluster" "datastore_cluster" {
+  name          = "terraform-datastore-cluster-test"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
+resource "vsphere_nas_datastore" "datastore" {
+  name                 = "terraform-test-nas"
+  host_system_ids      = ["${data.vsphere_host.esxi_host.id}"]
+  datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
+
+  type         = "NFS"
+  remote_hosts = ["${var.nfs_host}"]
+  remote_path  = "${var.nfs_path}"
+}
+`, os.Getenv("VSPHERE_NAS_HOST"), os.Getenv("VSPHERE_NFS_PATH"), os.Getenv("VSPHERE_DS_FOLDER"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
 }

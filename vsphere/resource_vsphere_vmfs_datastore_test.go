@@ -175,6 +175,53 @@ func TestAccResourceVSphereVmfsDatastore_moveToFolderAfter(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereVmfsDatastore_withDatastoreCluster(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVmfsDatastorePreCheck(t)
+			testAccSkipIfEsxi(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVmfsDatastoreExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVmfsDatastoreConfigDatastoreCluster(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVmfsDatastoreExists(true),
+					testAccResourceVSphereVmfsDatastoreMatchInventoryPath(testAccResourceVSphereDatastoreClusterNameStandard),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVmfsDatastore_moveToDatastoreClusterAfter(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVmfsDatastorePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVmfsDatastoreExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVmfsDatastoreConfigStaticSingle(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVmfsDatastoreExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVmfsDatastoreConfigDatastoreCluster(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVmfsDatastoreExists(true),
+					testAccResourceVSphereVmfsDatastoreMatchInventoryPath(testAccResourceVSphereDatastoreClusterNameStandard),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVmfsDatastore_singleTag(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -840,4 +887,42 @@ resource "vsphere_vmfs_datastore" "datastore" {
   custom_attributes = "${local.vmfs_attrs}"
 }
 `, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+}
+
+func testAccResourceVSphereVmfsDatastoreConfigDatastoreCluster() string {
+	return fmt.Sprintf(`
+variable "disk0" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "folder" {
+  type    = "string"
+  default = "%s"
+}
+
+data "vsphere_datacenter" "datacenter" {
+  name = "%s"
+}
+
+data "vsphere_host" "esxi_host" {
+  name          = "%s"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
+resource "vsphere_datastore_cluster" "datastore_cluster" {
+  name          = "terraform-datastore-cluster-test"
+  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+}
+
+resource "vsphere_vmfs_datastore" "datastore" {
+  name                 = "terraform-test"
+  host_system_id       = "${data.vsphere_host.esxi_host.id}"
+  datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
+
+  disks = [
+    "${var.disk0}",
+  ]
+}
+`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DS_FOLDER"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
 }

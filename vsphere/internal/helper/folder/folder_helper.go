@@ -378,21 +378,18 @@ func FindType(folder *object.Folder) (VSphereFolderType, error) {
 		return ft, err
 	}
 
-	ct := props.ChildType
-
-	// Supporting a special case here - ESXi's childtype for its root folder for
-	// creating virtual machines is always VirtualMachine first. If that's what
-	// we have, just return here with the folder, as the folder is necessary to
-	// call CreateVM_Task on.
-	if ct[0] == "VirtualMachine" {
-		return VSphereFolderTypeVM, nil
+	// Depending on the container type, the actual folder type may be contained
+	// in either the first or second element, the former for clusters, datastore
+	// clusters, or standalone ESXi for VMs, and the latter in the case of actual
+	// folders that can contain subfolders.
+	var ct string
+	if props.ChildType[0] != "Folder" {
+		ct = props.ChildType[0]
+	} else {
+		ct = props.ChildType[1]
 	}
 
-	if ct[0] != "Folder" {
-		return ft, fmt.Errorf("expected first childtype node to be Folder, got %s", ct[0])
-	}
-
-	switch ct[1] {
+	switch ct {
 	case "Datacenter":
 		ft = VSphereFolderTypeDatacenter
 	case "ComputeResource":
@@ -404,7 +401,7 @@ func FindType(folder *object.Folder) (VSphereFolderType, error) {
 	case "Network":
 		ft = VSphereFolderTypeNetwork
 	default:
-		return ft, fmt.Errorf("unknown folder type: %#v", ct[1])
+		return ft, fmt.Errorf("unknown folder type: %#v", ct)
 	}
 
 	return ft, nil

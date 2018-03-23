@@ -32,10 +32,17 @@ func resourceVSphereNasDatastore() *schema.Resource {
 			Required:    true,
 		},
 		"folder": &schema.Schema{
-			Type:        schema.TypeString,
-			Description: "The path to the datastore folder to put the datastore in.",
-			Optional:    true,
-			StateFunc:   folder.NormalizePath,
+			Type:          schema.TypeString,
+			Description:   "The path to the datastore folder to put the datastore in.",
+			Optional:      true,
+			ConflictsWith: []string{"datastore_cluster_id"},
+			StateFunc:     folder.NormalizePath,
+		},
+		"datastore_cluster_id": &schema.Schema{
+			Type:          schema.TypeString,
+			Description:   "The managed object ID of the datastore cluster to place the datastore in.",
+			Optional:      true,
+			ConflictsWith: []string{"folder"},
 		},
 	}
 	structure.MergeSchema(s, schemaHostNasVolumeSpec())
@@ -88,8 +95,12 @@ func resourceVSphereNasDatastoreCreate(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("error mounting datastore: %s", err)
 	}
 
-	// Move the datastore to the correct folder first, if specified.
-	f := d.Get("folder").(string)
+	// Move the datastore to the correct folder or datastore cluster first, if
+	// specified.
+	f, err := resourceVSphereDatastoreApplyFolderOrStorageClusterPath(d, meta)
+	if err != nil {
+		return err
+	}
 	if !folder.PathIsEmpty(f) {
 		if err := datastore.MoveToFolderRelativeHostSystemID(client, ds, hosts[0], f); err != nil {
 			return fmt.Errorf("error moving datastore to folder: %s", err)
@@ -130,11 +141,9 @@ func resourceVSphereNasDatastoreRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	// Set the folder
-	f, err := folder.RootPathParticleDatastore.SplitRelativeFolder(ds.InventoryPath)
-	if err != nil {
-		return fmt.Errorf("error parsing datastore path %q: %s", ds.InventoryPath, err)
+	if err := resourceVSphereDatastoreReadFolderOrStorageClusterPath(d, ds); err != nil {
+		return err
 	}
-	d.Set("folder", folder.NormalizePath(f))
 
 	// Update NAS spec
 	if err := flattenHostNasVolume(d, props.Info.(*types.NasDatastoreInfo).Nas); err != nil {
@@ -193,11 +202,14 @@ func resourceVSphereNasDatastoreUpdate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
-	// Update folder if necessary
-	if d.HasChange("folder") {
-		folder := d.Get("folder").(string)
-		if err := datastore.MoveToFolder(client, ds, folder); err != nil {
-			return fmt.Errorf("could not move datastore to folder %q: %s", folder, err)
+	// Update folder or datastore cluster if necessary
+	if d.HasChange("folder") || d.HasChange("datastore_cluster_id") {
+		f, err := resourceVSphereDatastoreApplyFolderOrStorageClusterPath(d, meta)
+		if err != nil {
+			return err
+		}
+		if err := datastore.MoveToFolder(client, ds, f); err != nil {
+			return fmt.Errorf("could not move datastore to folder %q: %s", f, err)
 		}
 	}
 
