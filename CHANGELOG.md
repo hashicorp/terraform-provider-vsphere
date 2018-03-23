@@ -7,6 +7,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* `resource/vsphere_nas_datastore`: Now supports datastore clusters. [GH-439]
+* `resource/vsphere_vmfs_datastore`: Now supports datastore clusters. [GH-439]
 * The provider now has the ability to persist sessions to disk, which can help
   when running large amounts of consecutive or concurrent Terraform operations
   at once. See the [provider
