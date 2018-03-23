@@ -753,7 +753,7 @@ The options are:
 
 ### CDROM options
 
-Up to two virtual CDROM devices can be created and attached to the virtual
+A single virtual CDROM device can be created and attached to the virtual
 machine. The resource supports attaching a CDROM from a datastore ISO or
 using a remote client device.
 
