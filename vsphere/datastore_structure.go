@@ -89,11 +89,7 @@ func resourceVSphereDatastoreApplyFolderOrStorageClusterPath(d *schema.ResourceD
 	case fok:
 		path = fvalue.(string)
 	case cok:
-		var err error
-		path, err = resourceVSphereDatastoreStorageClusterPathNormalized(meta, cvalue.(string))
-		if err != nil {
-			return "", err
-		}
+		return resourceVSphereDatastoreStorageClusterPathNormalized(meta, cvalue.(string))
 	}
 	return path, nil
 }
