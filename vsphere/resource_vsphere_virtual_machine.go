@@ -64,9 +64,17 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Description: "The ID of a resource pool to put the virtual machine in.",
 		},
 		"datastore_id": {
-			Type:        schema.TypeString,
-			Required:    true,
-			Description: "The ID of the virtual machine's datastore. The virtual machine configuration is placed here, along with any virtual disks that are created without datastores.",
+			Type:          schema.TypeString,
+			Optional:      true,
+			Computed:      true,
+			ConflictsWith: []string{"datastore_cluster_id"},
+			Description:   "The ID of the virtual machine's datastore. The virtual machine configuration is placed here, along with any virtual disks that are created without datastores.",
+		},
+		"datastore_cluster_id": {
+			Type:          schema.TypeString,
+			Optional:      true,
+			ConflictsWith: []string{"datastore_id"},
+			Description:   "The ID of a datastore cluster to put the virtual machine in.",
 		},
 		"folder": {
 			Type:        schema.TypeString,

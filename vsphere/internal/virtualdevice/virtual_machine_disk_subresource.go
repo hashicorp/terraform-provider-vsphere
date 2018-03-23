@@ -71,9 +71,10 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 	s := map[string]*schema.Schema{
 		// VirtualDiskFlatVer2BackingInfo
 		"datastore_id": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			Description: "The datastore ID for this virtual disk, if different than the virtual machine.",
+			Type:          schema.TypeString,
+			Optional:      true,
+			ConflictsWith: []string{"datastore_cluster_id"},
+			Description:   "The datastore ID for this virtual disk, if different than the virtual machine.",
 		},
 		"name": {
 			Type:        schema.TypeString,
@@ -201,10 +202,11 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 			Description: "Set to true to keep the underlying VMDK file when removing this virtual disk from configuration.",
 		},
 		"attach": {
-			Type:        schema.TypeBool,
-			Optional:    true,
-			Default:     false,
-			Description: "If this is true, the disk is attached instead of created. Implies keep_on_remove.",
+			Type:          schema.TypeBool,
+			Optional:      true,
+			Default:       false,
+			ConflictsWith: []string{"datastore_cluster_id"},
+			Description:   "If this is true, the disk is attached instead of created. Implies keep_on_remove.",
 		},
 	}
 	structure.MergeSchema(s, subresourceSchema())
