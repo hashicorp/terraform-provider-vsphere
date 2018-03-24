@@ -463,12 +463,17 @@ func (r *CdromSubresource) Read(l object.VirtualDeviceList) error {
 	switch backing := device.Backing.(type) {
 	case *types.VirtualCdromRemoteAtapiBackingInfo:
 		r.Set("client_device", true)
+	case *types.VirtualCdromRemotePassthroughBackingInfo:
+		r.Set("client_device", true)
 	case *types.VirtualCdromIsoBackingInfo:
 		dp := &object.DatastorePath{}
 		if ok := dp.FromString(backing.FileName); !ok {
 			return fmt.Errorf("could not read datastore path in backing %q", backing.FileName)
 		}
-		r.Set("datastore_id", backing.Datastore.Value)
+		// It's possible to have an invalid ISO file due to OVF environment loading
+		if backing.Datastore != nil {
+			r.Set("datastore_id", backing.Datastore.Value)
+		}
 		r.Set("path", dp.Path)
 	default:
 		// This is an unsupported entry, so we clear all attributes in the
