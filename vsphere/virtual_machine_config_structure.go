@@ -628,11 +628,16 @@ func flattenVAppConfig(d *schema.ResourceData, config types.BaseVmConfigInfo) er
 			vac[v.Id] = v.Value
 		}
 	}
-	return d.Set("vapp", []interface{}{
-		map[string]interface{}{
-			"properties": vac,
-		},
-	})
+	// Only set if properties exist to prevent creating an unnecessary diff
+	if len(vac) > 0 {
+		return d.Set("vapp", []interface{}{
+			map[string]interface{}{
+				"properties": vac,
+			},
+		})
+	} else {
+		return nil
+	}
 }
 
 // expandCPUCountConfig is a helper for expandVirtualMachineConfigSpec that

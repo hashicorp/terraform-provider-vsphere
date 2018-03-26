@@ -13,6 +13,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/vapp"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
@@ -538,6 +539,11 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 
 	// Validate cdrom sub-resources
 	if err := virtualdevice.CdromDiffOperation(d, client); err != nil {
+		return err
+	}
+
+	// Validate that the config has the necessary components for vApp support
+	if err := vapp.VerifyVAppTransport(d, client); err != nil {
 		return err
 	}
 

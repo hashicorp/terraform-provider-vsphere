@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"regexp"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/copystructure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
-	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/vapp"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
@@ -225,7 +224,7 @@ func CdromRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.V
 			}
 			// We should have our device -> resource match, so read now.
 			r := NewCdromSubresource(c, d, m, nil, n)
-			vApp, err := IsVAppCdrom(d, device.(*types.VirtualCdrom), l, c)
+			vApp, err := vapp.VerifyVAppCdrom(d, device.(*types.VirtualCdrom), l, c)
 			if err != nil {
 				return err
 			}
@@ -275,64 +274,6 @@ func CdromRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.V
 	log.Printf("[DEBUG] CdromRefreshOperation: Resource set to write after adding orphaned devices: %s", subresourceListString(newSet))
 	log.Printf("[DEBUG] CdromRefreshOperation: Refresh operation complete, sending new resource set")
 	return d.Set(subresourceTypeCdrom, newSet)
-}
-
-// IsVAppCdrom takes VirtualCdrom and determines if it is needed for vApp ISO
-// transport. It does this by first checking if it has an ISO inserted that
-// matches the vApp ISO naming pattern. If it does, then the next step is to
-// see if vApp ISO transport is supported on the VM. If both of those
-// conditions are met, then the CDROM is considered in use for vApp transport.
-func IsVAppCdrom(d *schema.ResourceData, device *types.VirtualCdrom, l object.VirtualDeviceList, c *govmomi.Client) (bool, error) {
-	log.Printf("[DEBUG] IsVAppCdrom: Checking if CDROM is using a vApp ISO")
-	// If the CDROM is using VirtualCdromIsoBackingInfo and matches the ISO
-	// naming pattern, it has been used as a vApp CDROM, and we can move on to
-	// checking if the parent VM supports ISO transport.
-	if backing, ok := device.Backing.(*types.VirtualCdromIsoBackingInfo); ok {
-		dp := &object.DatastorePath{}
-		if ok := dp.FromString(backing.FileName); !ok {
-			// If the ISO path can not be read, we can't tell if a vApp ISO is
-			// connected.
-			log.Printf("[DEBUG] IsVAppCdrom: Cannot read ISO path, cannot determine if CDROM is used for vApp")
-			return false, nil
-		}
-		// The pattern used for vApp ISO naming is
-		// "<vmname>/_ovfenv-<vmname>.iso"
-		re := regexp.MustCompile(".*/_ovfenv-.*.iso")
-		if !re.MatchString(dp.Path) {
-			log.Printf("[DEBUG] IsVAppCdrom: ISO is name does not match vApp ISO naming pattern (<vmname>/_ovfenv-<vmname>.iso): %s", dp.Path)
-			return false, nil
-		}
-	} else {
-		// vApp CDROMs must be backed by an ISO.
-		log.Printf("[DEBUG] IsVAppCdrom: CDROM is not backed by an ISO")
-		return false, nil
-	}
-	log.Printf("[DEBUG] IsVAppCdrom: CDROM has a vApp ISO inserted")
-
-	// Check if ISO transport method is supported
-	vm, err := virtualmachine.FromUUID(c, d.Id())
-	if err != nil {
-		return false, err
-	}
-	vprops, err := virtualmachine.Properties(vm)
-	if err != nil {
-		return false, err
-	}
-	vconfig := vprops.Config.VAppConfig
-	// If the VM doesn't support vApp properties, this will be nil.
-	if vconfig != nil {
-		for _, t := range vconfig.GetVmConfigInfo().OvfEnvironmentTransport {
-			if t == "iso" {
-				log.Printf("[DEBUG] IsVAppCdrom: vApp ISO transport is supported")
-				return true, nil
-			}
-		}
-		log.Printf("[DEBUG] IsVAppCdrom: Parent VM does not support vApp ISO transport")
-	} else {
-		log.Printf("[DEBUG] IsVAppCdrom: Parent VM does not have vApp properties")
-	}
-	log.Printf("[DEBUG] IsVAppCdrom: vApp ISO transport is not required")
-	return false, nil
 }
 
 // CdromPostCloneOperation normalizes CDROM devices on a freshly-cloned virtual
