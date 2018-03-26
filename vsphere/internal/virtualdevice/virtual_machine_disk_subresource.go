@@ -531,7 +531,7 @@ func DiskDestroyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", r.Addr(), err)
 		}
-		applyDeviceChange(l, dspec)
+		l = applyDeviceChange(l, dspec)
 		spec = append(spec, dspec...)
 	}
 
