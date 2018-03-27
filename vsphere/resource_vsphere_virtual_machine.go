@@ -12,6 +12,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
@@ -690,15 +691,6 @@ func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interf
 		return nil, fmt.Errorf("error in virtual machine configuration: %s", err)
 	}
 
-	// Set the datastore for the VM.
-	ds, err := datastore.FromID(client, d.Get("datastore_id").(string))
-	if err != nil {
-		return nil, fmt.Errorf("error locating datastore for VM: %s", err)
-	}
-	spec.Files = &types.VirtualMachineFileInfo{
-		VmPathName: fmt.Sprintf("[%s]", ds.Name()),
-	}
-
 	// Now we need to get the default device set - this is available in the
 	// environment info in the resource pool, which we can then filter through
 	// our device CRUD lifecycles to get a full deviceChange attribute for our
@@ -713,11 +705,18 @@ func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interf
 		return nil, err
 	}
 
-	// We should now have a complete configSpec! Attempt to create the VM now.
-	vm, err := virtualmachine.Create(client, fo, spec, pool, hs)
-	if err != nil {
-		return nil, fmt.Errorf("error creating virtual machine: %s", err)
+	// Create the VM according the right API path - if we have a datastore
+	// cluster, use the SDRS API, if not, use the standard API.
+	var vm *object.VirtualMachine
+	if _, ok := d.GetOk("datastore_cluster_id"); ok {
+		vm, err = resourceVSphereVirtualMachineCreateBareWithSDRS(d, meta, fo, spec, pool, hs)
+	} else {
+		vm, err = resourceVSphereVirtualMachineCreateBareStandard(d, meta, fo, spec, pool, hs)
 	}
+	if err != nil {
+		return nil, err
+	}
+
 	// VM is created. Set the ID now before proceeding, in case the rest of the
 	// process here fails.
 	vprops, err := virtualmachine.Properties(vm)
@@ -730,6 +729,66 @@ func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interf
 	// Start the virtual machine
 	if err := virtualmachine.PowerOn(vm); err != nil {
 		return nil, fmt.Errorf("error powering on virtual machine: %s", err)
+	}
+	return vm, nil
+}
+
+// resourceVSphereVirtualMachineCreateBareWithSDRS runs the creation part of
+// resourceVSphereVirtualMachineCreateBare through storage DRS. It's designed
+// to be run when a storage cluster is specified, versus simply specifying
+// datastores.
+func resourceVSphereVirtualMachineCreateBareWithSDRS(
+	d *schema.ResourceData,
+	meta interface{},
+	fo *object.Folder,
+	spec types.VirtualMachineConfigSpec,
+	pool *object.ResourcePool,
+	hs *object.HostSystem,
+) (*object.VirtualMachine, error) {
+	client := meta.(*VSphereClient).vimClient
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
+		return nil, fmt.Errorf("connection ineligible to use datastore_cluster_id: %s", err)
+	}
+
+	log.Printf("[DEBUG] %s: Creating virtual machine through Storage DRS API", resourceVSphereVirtualMachineIDString(d))
+	pod, err := storagepod.FromID(client, d.Get("datastore_cluster_id").(string))
+	if err != nil {
+		return nil, fmt.Errorf("error getting datastore cluster: %s", err)
+	}
+
+	vm, err := storagepod.CreateVM(client, fo, spec, pool, hs, pod)
+	if err != nil {
+		return nil, fmt.Errorf("error creating virtual machine on datastore cluster %q: %s", pod.Name(), err)
+	}
+
+	return vm, nil
+}
+
+// resourceVSphereVirtualMachineCreateBareStandard performs the steps necessary
+// during resourceVSphereVirtualMachineCreateBare to create a virtual machine
+// when a datastore cluster is not supplied.
+func resourceVSphereVirtualMachineCreateBareStandard(
+	d *schema.ResourceData,
+	meta interface{},
+	fo *object.Folder,
+	spec types.VirtualMachineConfigSpec,
+	pool *object.ResourcePool,
+	hs *object.HostSystem,
+) (*object.VirtualMachine, error) {
+	client := meta.(*VSphereClient).vimClient
+
+	// Set the datastore for the VM.
+	ds, err := datastore.FromID(client, d.Get("datastore_id").(string))
+	if err != nil {
+		return nil, fmt.Errorf("error locating datastore for VM: %s", err)
+	}
+	spec.Files = &types.VirtualMachineFileInfo{
+		VmPathName: fmt.Sprintf("[%s]", ds.Name()),
+	}
+
+	vm, err := virtualmachine.Create(client, fo, spec, pool, hs)
+	if err != nil {
+		return nil, fmt.Errorf("error creating virtual machine: %s", err)
 	}
 	return vm, nil
 }

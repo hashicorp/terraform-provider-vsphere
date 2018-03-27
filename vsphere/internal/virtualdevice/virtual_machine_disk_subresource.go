@@ -1557,14 +1557,29 @@ func (r *DiskSubresource) expandDiskSettings(disk *types.VirtualDisk) error {
 
 // createDisk performs all of the logic for a base virtual disk creation.
 func (r *DiskSubresource) createDisk(l object.VirtualDeviceList) (*types.VirtualDisk, error) {
+	disk := new(types.VirtualDisk)
+	disk.Backing = new(types.VirtualDiskFlatVer2BackingInfo)
+
 	dsID := r.Get("datastore_id").(string)
 	if dsID == "" {
 		// Default to the default datastore
 		dsID = r.rdd.Get("datastore_id").(string)
 	}
+	if dsID != "" {
+		if err := r.assignBackingInfo(disk, dsID); err != nil {
+			return nil, err
+		}
+	}
+
+	// Set a new device key for this device
+	disk.Key = l.NewKey()
+	return disk, nil
+}
+
+func (r *DiskSubresource) assignBackingInfo(disk *types.VirtualDisk, dsID string) error {
 	ds, err := datastore.FromID(r.client, dsID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	dsref := ds.Reference()
 
@@ -1576,19 +1591,11 @@ func (r *DiskSubresource) createDisk(l object.VirtualDeviceList) (*types.Virtual
 		diskName = diskPathOrName(r.data)
 	}
 
-	disk := &types.VirtualDisk{
-		VirtualDevice: types.VirtualDevice{
-			Backing: &types.VirtualDiskFlatVer2BackingInfo{
-				VirtualDeviceFileBackingInfo: types.VirtualDeviceFileBackingInfo{
-					FileName:  ds.Path(diskName),
-					Datastore: &dsref,
-				},
-			},
-		},
-	}
-	// Set a new device key for this device
-	disk.Key = l.NewKey()
-	return disk, nil
+	backing := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+	backing.FileName = ds.Path(diskName)
+	backing.Datastore = &dsref
+
+	return nil
 }
 
 // assignDisk takes a unit number and assigns it correctly to a controller on

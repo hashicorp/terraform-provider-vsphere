@@ -7,6 +7,7 @@ import (
 
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -133,4 +134,97 @@ func Delete(pod *object.StoragePod) error {
 		return err
 	}
 	return task.Wait(ctx)
+}
+
+// CreateVM creates a virtual machine on a datastore cluster via the
+// StorageResourceManager API. It mimics our helper in the virtualmachine
+// package in functionality, returning a VM helper object on success.
+func CreateVM(
+	client *govmomi.Client,
+	fo *object.Folder,
+	spec types.VirtualMachineConfigSpec,
+	pool *object.ResourcePool,
+	host *object.HostSystem,
+	pod *object.StoragePod,
+) (*object.VirtualMachine, error) {
+	log.Printf(
+		"[DEBUG] Creating virtual machine %q on datastore cluster %q",
+		fmt.Sprintf("%s/%s", fo.InventoryPath, spec.Name),
+		pod.Name(),
+	)
+
+	// This part has been largely adapted from govc. Rather than directly
+	// applying the recommendations to the create spec though, we apply through
+	// the storage DRS API.
+	podSelectionSpec := types.StorageDrsPodSelectionSpec{
+		StoragePod: types.NewReference(pod.Reference()),
+	}
+
+	// We need to go over our device list, looking for our virtual disks. We want
+	// to make sure we skip any disks that are actually currently present. Note
+	// that we don't technically support attaching external disks with storage
+	// DRS right now, but in the event that we do in the future, we want to make
+	// sure we exclude those disks from the placement specs.
+	for _, deviceConfigSpec := range spec.DeviceChange {
+		s := deviceConfigSpec.GetVirtualDeviceConfigSpec()
+		if s.Operation != types.VirtualDeviceConfigSpecOperationAdd {
+			continue
+		}
+
+		if s.FileOperation != types.VirtualDeviceConfigSpecFileOperationCreate {
+			continue
+		}
+
+		d, ok := s.Device.(*types.VirtualDisk)
+		if !ok {
+			continue
+		}
+
+		podConfigForPlacement := types.VmPodConfigForPlacement{
+			StoragePod: pod.Reference(),
+			Disk: []types.PodDiskLocator{
+				{
+					DiskId:          d.Key,
+					DiskBackingInfo: d.Backing,
+				},
+			},
+		}
+
+		podSelectionSpec.InitialVmConfig = append(podSelectionSpec.InitialVmConfig, podConfigForPlacement)
+	}
+
+	sps := types.StoragePlacementSpec{
+		Type:             string(types.StoragePlacementSpecPlacementTypeCreate),
+		ResourcePool:     types.NewReference(pool.Reference()),
+		PodSelectionSpec: podSelectionSpec,
+		ConfigSpec:       &spec,
+		Folder:           types.NewReference(fo.Reference()),
+	}
+	if host != nil {
+		sps.Host = types.NewReference(host.Reference())
+	}
+
+	// Should be good to get recommendations now.
+	srm := object.NewStorageResourceManager(client.Client)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	placement, err := srm.RecommendDatastores(ctx, sps)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(placement.Recommendations) < 1 {
+		return nil, fmt.Errorf("no storage DRS recommendations were found for creation on datastore cluster %q", pod.Name())
+	}
+
+	// Apply the first recommendation, which should create the virtual machine.
+	task, err := srm.ApplyStorageDrsRecommendation(ctx, []string{placement.Recommendations[0].Key})
+	if err != nil {
+		return nil, err
+	}
+	result, err := task.WaitForResult(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	return virtualmachine.FromMOID(client, result.Result.(types.ApplyStorageRecommendationResult).Vm.Value)
 }
