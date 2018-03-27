@@ -232,7 +232,9 @@ func CloneVM(
 
 // ReconfigureVM reconfigures a virtual machine via the StorageResourceManager
 // API, applying any disk modifications that will require going through Storage
-// DRS. It mimics our helper in the virtualmachine package in functionality.
+// DRS. It mimics our helper in the virtualmachine package in functionality,
+// and actually defers to its counterpart in the event there are no disk
+// operations.
 func ReconfigureVM(
 	client *govmomi.Client,
 	vm *object.VirtualMachine,
@@ -246,6 +248,15 @@ func ReconfigureVM(
 	if !sdrsEnabled {
 		return fmt.Errorf("storage DRS is not enabled on datastore cluster %q", pod.Name())
 	}
+
+	// Expand the initialVmConfig field now and check to see if we actually have
+	// operations. If we don't, just defer to the standard reconfigure method.
+	initialVMConfigs := expandVMPodConfigForPlacement(spec.DeviceChange, pod)
+	if len(initialVMConfigs) < 1 {
+		log.Printf("[DEBUG] No disk operations for reconfiguration of VM %q, deferring to standard API", vm.InventoryPath)
+		return virtualmachine.Reconfigure(vm, spec)
+	}
+
 	log.Printf(
 		"[DEBUG] Reconfiguring virtual machine %q through Storage DRS API, on datastore cluster %q",
 		vm.InventoryPath,
@@ -255,7 +266,7 @@ func ReconfigureVM(
 	sps := types.StoragePlacementSpec{
 		Type: string(types.StoragePlacementSpecPlacementTypeReconfigure),
 		PodSelectionSpec: types.StorageDrsPodSelectionSpec{
-			InitialVmConfig: expandVMPodConfigForPlacement(spec.DeviceChange, pod),
+			InitialVmConfig: initialVMConfigs,
 		},
 		Vm:         types.NewReference(vm.Reference()),
 		ConfigSpec: &spec,
@@ -303,6 +314,7 @@ func recommendAndApplySDRS(client *govmomi.Client, sps types.StoragePlacementSpe
 	}
 	return vm, nil
 }
+
 func expandVMPodConfigForPlacement(dc []types.BaseVirtualDeviceConfigSpec, pod *object.StoragePod) []types.VmPodConfigForPlacement {
 	var initialVMConfig []types.VmPodConfigForPlacement
 

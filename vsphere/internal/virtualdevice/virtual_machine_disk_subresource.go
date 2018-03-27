@@ -871,6 +871,14 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 			return nil, fmt.Errorf("error computing device address: %s", err)
 		}
 		r := NewDiskSubresource(c, d, m, nil, i)
+		// A disk locator is only useful if a target datastore is available. If we
+		// don't have a datastore specified (ie: when Storage DRS is in use), then
+		// we just need to skip this disk. The disk will be migrated properly
+		// through the SDRS API.
+		if dsID := r.Get("datastore_id"); dsID == "" {
+			continue
+		}
+		// Otherwise, proceed with generating and appending the locator.
 		relocator, err := r.Relocate(l, true)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", r.Addr(), err)

@@ -157,12 +157,17 @@ func validateCloneSnapshots(props *mo.VirtualMachine) error {
 func ExpandVirtualMachineCloneSpec(d *schema.ResourceData, c *govmomi.Client) (types.VirtualMachineCloneSpec, *object.VirtualMachine, error) {
 	var spec types.VirtualMachineCloneSpec
 	log.Printf("[DEBUG] ExpandVirtualMachineCloneSpec: Preparing clone spec for VM")
-	ds, err := datastore.FromID(c, d.Get("datastore_id").(string))
-	if err != nil {
-		return spec, nil, fmt.Errorf("error locating datastore for VM: %s", err)
+
+	// Populate the datastore only if we have a datastore ID. The ID may not be
+	// specified in the event a datastore cluster is specified instead.
+	if dsID, ok := d.GetOk("datastore_id"); ok {
+		ds, err := datastore.FromID(c, dsID.(string))
+		if err != nil {
+			return spec, nil, fmt.Errorf("error locating datastore for VM: %s", err)
+		}
+		spec.Location.Datastore = types.NewReference(ds.Reference())
 	}
-	dsRef := ds.Reference()
-	spec.Location.Datastore = &dsRef
+
 	tUUID := d.Get("clone.0.template_uuid").(string)
 	log.Printf("[DEBUG] ExpandVirtualMachineCloneSpec: Cloning from UUID: %s", tUUID)
 	vm, err := virtualmachine.FromUUID(c, tUUID)
