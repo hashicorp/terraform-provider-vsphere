@@ -381,6 +381,9 @@ resource directly.
   imported from OVF or OVA files. See [Using vApp properties to supply OVF/OVA
   configuration](#using-vapp-properties-to-supply-ovf-ova-configuration) for
   more details.
+* `vapp_transport` - Computed value which is only valid for cloned virtual
+  machines. A list of vApp transport methods supported by the source virtual
+  machine or template.
 * `guest_id` - (Optional) The guest ID for the operating system type. For a
   full list of possible values, see [here][vmware-docs-guest-ids]. Default: `other-64`.
 
