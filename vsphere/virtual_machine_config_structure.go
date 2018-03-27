@@ -246,6 +246,13 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			MaxItems:    1,
 			Elem:        &schema.Resource{Schema: vAppSubresourceSchema()},
 		},
+		"vapp_transport": {
+			Type:        schema.TypeList,
+			Computed:    true,
+			Description: "vApp transport methods supported by virtual machine.",
+			MaxItems:    1,
+			Elem:        &schema.Schema{Type: schema.TypeString},
+		},
 		"change_version": {
 			Type:        schema.TypeString,
 			Computed:    true,
@@ -635,9 +642,8 @@ func flattenVAppConfig(d *schema.ResourceData, config types.BaseVmConfigInfo) er
 				"properties": vac,
 			},
 		})
-	} else {
-		return nil
 	}
+	return nil
 }
 
 // expandCPUCountConfig is a helper for expandVirtualMachineConfigSpec that

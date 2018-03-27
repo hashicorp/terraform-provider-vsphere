@@ -13,7 +13,6 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
-	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/vapp"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
@@ -543,7 +542,7 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 	}
 
 	// Validate that the config has the necessary components for vApp support
-	if err := vapp.VerifyVAppTransport(d, client); err != nil {
+	if err := virtualdevice.VerifyVAppTransport(d, client); err != nil {
 		return err
 	}
 
@@ -652,6 +651,9 @@ func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interf
 	if err != nil {
 		return nil, fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
 	}
+
+	// Set `vapp_transport` to an empty list since it is only needed for clones.
+	d.Set("vapp_transport", []string{})
 
 	// Find the folder based off the path to the resource pool. Basically what we
 	// are saying here is that the VM folder that we are placing this VM in needs
@@ -832,7 +834,15 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 			return nil, fmt.Errorf("error sending customization spec: %s", err)
 		}
 	}
-
+	// Now that validation has passed, set `vapp_transport` while the virtual
+	// machine properties are available.
+	vconfig := vprops.Config.VAppConfig
+	// If the VM doesn't support vApp properties, vconfig will be nil.
+	if vconfig != nil {
+		d.Set("vapp_transport", vconfig.GetVmConfigInfo().OvfEnvironmentTransport)
+	} else {
+		d.Set("vapp_transport", []string{})
+	}
 	// Finally time to power on the virtual machine!
 	if err := virtualmachine.PowerOn(vm); err != nil {
 		return nil, fmt.Errorf("error powering on virtual machine: %s", err)

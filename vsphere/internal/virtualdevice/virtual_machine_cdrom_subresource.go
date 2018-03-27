@@ -4,16 +4,18 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"regexp"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/copystructure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
-	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/vapp"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 )
+
+const vAppTransportIso = "iso"
 
 // CdromSubresourceSchema represents the schema for the cdrom sub-resource.
 func CdromSubresourceSchema() map[string]*schema.Schema {
@@ -224,7 +226,7 @@ func CdromRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.V
 			}
 			// We should have our device -> resource match, so read now.
 			r := NewCdromSubresource(c, d, m, nil, n)
-			vApp, err := vapp.VerifyVAppCdrom(d, device.(*types.VirtualCdrom), l, c)
+			vApp, err := verifyVAppCdromIso(d, device.(*types.VirtualCdrom), l, c)
 			if err != nil {
 				return err
 			}
@@ -586,4 +588,71 @@ func (r *CdromSubresource) mapCdrom(device *types.VirtualCdrom, l object.Virtual
 		return nil
 	}
 	panic(fmt.Sprintf("%s: no CDROM types specified", r))
+}
+
+// VerifyVAppTransport validates that all the required components are included in
+// the virtual machine configuration if vApp properties are set.
+func VerifyVAppTransport(d *schema.ResourceDiff, c *govmomi.Client) error {
+	log.Printf("[DEBUG] VAppDiffOperation: Verifying configuration meets requirements for vApp transport")
+	// Check if there is a client CDROM device configured.
+	cl := d.Get("cdrom")
+	for _, c := range cl.([]interface{}) {
+		if c.(map[string]interface{})["client_device"].(bool) == true {
+			// There is a device configured that can support vApp ISO transport if needed
+			log.Printf("[DEBUG] VAppDiffOperation: Client CDROM device exists which can support ISO transport")
+			return nil
+		}
+	}
+	// Iterate over each transport and see if ISO transport is supported.
+	tm := d.Get("vapp_transport").([]interface{})
+	for _, m := range tm {
+		if m.(string) == vAppTransportIso && len(tm) == 1 {
+			return fmt.Errorf("this virtual machine requires a client CDROM device to deliver vApp properties")
+		}
+	}
+	log.Printf("[DEBUG] VAppDiffOperation: ISO transport is not supported on this virtual machine or multiple transport options exist")
+	return nil
+}
+
+// verifyVAppCdromIso takes VirtualCdrom and determines if it is needed for
+// vApp ISO transport. It does this by first checking if it has an ISO inserted
+// that matches the vApp ISO naming pattern. If it does, then the next step is
+// to see if vApp ISO transport is supported on the VM. If both of those
+// conditions are met, then the CDROM is considered in use for vApp transport.
+func verifyVAppCdromIso(d *schema.ResourceData, device *types.VirtualCdrom, l object.VirtualDeviceList, c *govmomi.Client) (bool, error) {
+	log.Printf("[DEBUG] IsVAppCdrom: Checking if CDROM is using a vApp ISO")
+	// If the CDROM is using VirtualCdromIsoBackingInfo and matches the ISO
+	// naming pattern, it has been used as a vApp CDROM, and we can move on to
+	// checking if the parent VM supports ISO transport.
+	if backing, ok := device.Backing.(*types.VirtualCdromIsoBackingInfo); ok {
+		dp := &object.DatastorePath{}
+		if ok := dp.FromString(backing.FileName); !ok {
+			// If the ISO path can not be read, we can't tell if a vApp ISO is
+			// connected.
+			log.Printf("[DEBUG] IsVAppCdrom: Cannot read ISO path, cannot determine if CDROM is used for vApp")
+			return false, nil
+		}
+		// The pattern used for vApp ISO naming is
+		// "<vmname>/_ovfenv-<vmname>.iso"
+		re := regexp.MustCompile(".*/_ovfenv-.*.iso")
+		if !re.MatchString(dp.Path) {
+			log.Printf("[DEBUG] IsVAppCdrom: ISO is name does not match vApp ISO naming pattern (<vmname>/_ovfenv-<vmname>.iso): %s", dp.Path)
+			return false, nil
+		}
+	} else {
+		// vApp CDROMs must be backed by an ISO.
+		log.Printf("[DEBUG] IsVAppCdrom: CDROM is not backed by an ISO")
+		return false, nil
+	}
+	log.Printf("[DEBUG] IsVAppCdrom: CDROM has a vApp ISO inserted")
+	// Set the vApp transport methods
+	tm := d.Get("vapp_transport").([]interface{})
+	for _, t := range tm {
+		if t.(string) == "iso" {
+			log.Printf("[DEBUG] IsVAppCdrom: vApp ISO transport is supported")
+			return true, nil
+		}
+	}
+	log.Printf("[DEBUG] IsVAppCdrom: vApp ISO transport is not required")
+	return false, nil
 }
