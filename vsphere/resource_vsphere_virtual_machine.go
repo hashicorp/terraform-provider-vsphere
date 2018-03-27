@@ -455,8 +455,13 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 				return fmt.Errorf("error shutting down virtual machine: %s", err)
 			}
 		}
-		// Perform updates
-		if err := virtualmachine.Reconfigure(vm, spec); err != nil {
+		// Perform updates.
+		if _, ok := d.GetOk("datastore_cluster_id"); ok {
+			err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, spec)
+		} else {
+			err = virtualmachine.Reconfigure(vm, spec)
+		}
+		if err != nil {
 			return fmt.Errorf("error reconfiguring virtual machine: %s", err)
 		}
 		// Re-fetch properties
@@ -488,6 +493,34 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	// All done with updates.
 	log.Printf("[DEBUG] %s: Update complete", resourceVSphereVirtualMachineIDString(d))
 	return resourceVSphereVirtualMachineRead(d, meta)
+}
+
+// resourceVSphereVirtualMachineUpdateReconfigureWithSDRS runs the reconfigure
+// part of resourceVSphereVirtualMachineUpdate through storage DRS. It's
+// designed to be run when a storage cluster is specified, versus simply
+// specifying datastores.
+func resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(
+	d *schema.ResourceData,
+	meta interface{},
+	vm *object.VirtualMachine,
+	spec types.VirtualMachineConfigSpec,
+) error {
+	client := meta.(*VSphereClient).vimClient
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
+		return fmt.Errorf("connection ineligible to use datastore_cluster_id: %s", err)
+	}
+
+	log.Printf("[DEBUG] %s: Reconfiguring virtual machine through Storage DRS API", resourceVSphereVirtualMachineIDString(d))
+	pod, err := storagepod.FromID(client, d.Get("datastore_cluster_id").(string))
+	if err != nil {
+		return fmt.Errorf("error getting datastore cluster: %s", err)
+	}
+
+	err = storagepod.ReconfigureVM(client, vm, spec, pod)
+	if err != nil {
+		return fmt.Errorf("error reconfiguring VM on datastore cluster %q: %s", pod.Name(), err)
+	}
+	return nil
 }
 
 func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{}) error {
@@ -822,12 +855,17 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	// Start the clone
 	name := d.Get("name").(string)
 	timeout := d.Get("clone.0.timeout").(int)
-	vm, err := virtualmachine.Clone(client, srcVM, fo, name, cloneSpec, timeout)
+	var vm *object.VirtualMachine
+	if _, ok := d.GetOk("datastore_cluster_id"); ok {
+		vm, err = resourceVSphereVirtualMachineCreateCloneWithSDRS(d, meta, srcVM, fo, name, cloneSpec, timeout)
+	} else {
+		vm, err = virtualmachine.Clone(client, srcVM, fo, name, cloneSpec, timeout)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("error cloning virtual machine: %s", err)
 	}
 
-	// VM is created and updated. It's save to set the ID here now, in case the
+	// VM is created and updated. It's safe to set the ID here now, in case the
 	// rest of the process here fails.
 	vprops, err := virtualmachine.Properties(vm)
 	if err != nil {
@@ -878,7 +916,12 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	log.Printf("[DEBUG] %s: Final device change cfgSpec: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceChangeString(cfgSpec.DeviceChange))
 
 	// Perform updates
-	if err := virtualmachine.Reconfigure(vm, cfgSpec); err != nil {
+	if _, ok := d.GetOk("datastore_cluster_id"); ok {
+		err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, cfgSpec)
+	} else {
+		err = virtualmachine.Reconfigure(vm, cfgSpec)
+	}
+	if err != nil {
 		return nil, resourceVSphereVirtualMachineRollbackCreate(d, meta, vm, fmt.Errorf("error reconfiguring virtual machine: %s", err))
 	}
 
@@ -913,6 +956,38 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 		}
 	}
 	// Clone is complete and ready to return
+	return vm, nil
+}
+
+// resourceVSphereVirtualMachineCreateCloneWithSDRS runs the clone part of
+// resourceVSphereVirtualMachineCreateClone through storage DRS. It's designed
+// to be run when a storage cluster is specified, versus simply specifying
+// datastores.
+func resourceVSphereVirtualMachineCreateCloneWithSDRS(
+	d *schema.ResourceData,
+	meta interface{},
+	srcVM *object.VirtualMachine,
+	fo *object.Folder,
+	name string,
+	spec types.VirtualMachineCloneSpec,
+	timeout int,
+) (*object.VirtualMachine, error) {
+	client := meta.(*VSphereClient).vimClient
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
+		return nil, fmt.Errorf("connection ineligible to use datastore_cluster_id: %s", err)
+	}
+
+	log.Printf("[DEBUG] %s: Cloning virtual machine through Storage DRS API", resourceVSphereVirtualMachineIDString(d))
+	pod, err := storagepod.FromID(client, d.Get("datastore_cluster_id").(string))
+	if err != nil {
+		return nil, fmt.Errorf("error getting datastore cluster: %s", err)
+	}
+
+	vm, err := storagepod.CloneVM(client, srcVM, fo, name, spec, timeout, pod)
+	if err != nil {
+		return nil, fmt.Errorf("error cloning on datastore cluster %q: %s", pod.Name(), err)
+	}
+
 	return vm, nil
 }
 

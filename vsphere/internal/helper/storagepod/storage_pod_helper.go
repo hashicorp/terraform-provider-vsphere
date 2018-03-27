@@ -173,58 +173,96 @@ func CreateVM(
 		pod.Name(),
 	)
 
-	// This part has been largely adapted from govc. Rather than directly
-	// applying the recommendations to the create spec though, we apply through
-	// the storage DRS API.
-	podSelectionSpec := types.StorageDrsPodSelectionSpec{
-		StoragePod: types.NewReference(pod.Reference()),
-	}
-
-	// We need to go over our device list, looking for our virtual disks. We want
-	// to make sure we skip any disks that are actually currently present. Note
-	// that we don't technically support attaching external disks with storage
-	// DRS right now, but in the event that we do in the future, we want to make
-	// sure we exclude those disks from the placement specs.
-	for _, deviceConfigSpec := range spec.DeviceChange {
-		s := deviceConfigSpec.GetVirtualDeviceConfigSpec()
-		if s.Operation != types.VirtualDeviceConfigSpecOperationAdd {
-			continue
-		}
-
-		if s.FileOperation != types.VirtualDeviceConfigSpecFileOperationCreate {
-			continue
-		}
-
-		d, ok := s.Device.(*types.VirtualDisk)
-		if !ok {
-			continue
-		}
-
-		podConfigForPlacement := types.VmPodConfigForPlacement{
-			StoragePod: pod.Reference(),
-			Disk: []types.PodDiskLocator{
-				{
-					DiskId:          d.Key,
-					DiskBackingInfo: d.Backing,
-				},
-			},
-		}
-
-		podSelectionSpec.InitialVmConfig = append(podSelectionSpec.InitialVmConfig, podConfigForPlacement)
-	}
-
 	sps := types.StoragePlacementSpec{
-		Type:             string(types.StoragePlacementSpecPlacementTypeCreate),
-		ResourcePool:     types.NewReference(pool.Reference()),
-		PodSelectionSpec: podSelectionSpec,
-		ConfigSpec:       &spec,
-		Folder:           types.NewReference(fo.Reference()),
+		Type:         string(types.StoragePlacementSpecPlacementTypeCreate),
+		ResourcePool: types.NewReference(pool.Reference()),
+		PodSelectionSpec: types.StorageDrsPodSelectionSpec{
+			StoragePod:      types.NewReference(pod.Reference()),
+			InitialVmConfig: expandVMPodConfigForPlacement(spec.DeviceChange, pod),
+		},
+		ConfigSpec: &spec,
+		Folder:     types.NewReference(fo.Reference()),
 	}
 	if host != nil {
 		sps.Host = types.NewReference(host.Reference())
 	}
 
 	return recommendAndApplySDRS(client, sps)
+}
+
+// CloneVM clones a virtual machine to a datastore cluster via the
+// StorageResourceManager API. It mimics our helper in the virtualmachine
+// package in functionality, returning a VM helper object on success.
+func CloneVM(
+	client *govmomi.Client,
+	src *object.VirtualMachine,
+	fo *object.Folder,
+	name string,
+	spec types.VirtualMachineCloneSpec,
+	timeout int,
+	pod *object.StoragePod,
+) (*object.VirtualMachine, error) {
+	sdrsEnabled, err := StorageDRSEnabled(pod)
+	if err != nil {
+		return nil, err
+	}
+	if !sdrsEnabled {
+		return nil, fmt.Errorf("storage DRS is not enabled on datastore cluster %q", pod.Name())
+	}
+	log.Printf(
+		"[DEBUG] Cloning virtual machine %q to %q on datastore cluster %q",
+		src.InventoryPath,
+		fmt.Sprintf("%s/%s", fo.InventoryPath, name),
+		pod.Name(),
+	)
+
+	sps := types.StoragePlacementSpec{
+		Folder:    types.NewReference(fo.Reference()),
+		Vm:        types.NewReference(src.Reference()),
+		CloneName: name,
+		CloneSpec: &spec,
+		PodSelectionSpec: types.StorageDrsPodSelectionSpec{
+			StoragePod: types.NewReference(pod.Reference()),
+		},
+		Type: string(types.StoragePlacementSpecPlacementTypeClone),
+	}
+
+	return recommendAndApplySDRS(client, sps)
+}
+
+// ReconfigureVM reconfigures a virtual machine via the StorageResourceManager
+// API, applying any disk modifications that will require going through Storage
+// DRS. It mimics our helper in the virtualmachine package in functionality.
+func ReconfigureVM(
+	client *govmomi.Client,
+	vm *object.VirtualMachine,
+	spec types.VirtualMachineConfigSpec,
+	pod *object.StoragePod,
+) error {
+	sdrsEnabled, err := StorageDRSEnabled(pod)
+	if err != nil {
+		return err
+	}
+	if !sdrsEnabled {
+		return fmt.Errorf("storage DRS is not enabled on datastore cluster %q", pod.Name())
+	}
+	log.Printf(
+		"[DEBUG] Reconfiguring virtual machine %q through Storage DRS API, on datastore cluster %q",
+		vm.InventoryPath,
+		pod.Name(),
+	)
+
+	sps := types.StoragePlacementSpec{
+		Type: string(types.StoragePlacementSpecPlacementTypeReconfigure),
+		PodSelectionSpec: types.StorageDrsPodSelectionSpec{
+			InitialVmConfig: expandVMPodConfigForPlacement(spec.DeviceChange, pod),
+		},
+		Vm:         types.NewReference(vm.Reference()),
+		ConfigSpec: &spec,
+	}
+
+	_, err = recommendAndApplySDRS(client, sps)
+	return err
 }
 
 func recommendAndApplySDRS(client *govmomi.Client, sps types.StoragePlacementSpec) (*object.VirtualMachine, error) {
@@ -264,4 +302,37 @@ func recommendAndApplySDRS(client *govmomi.Client, sps types.StoragePlacementSpe
 		}
 	}
 	return vm, nil
+}
+func expandVMPodConfigForPlacement(dc []types.BaseVirtualDeviceConfigSpec, pod *object.StoragePod) []types.VmPodConfigForPlacement {
+	var initialVMConfig []types.VmPodConfigForPlacement
+
+	for _, deviceConfigSpec := range dc {
+		s := deviceConfigSpec.GetVirtualDeviceConfigSpec()
+		if s.Operation != types.VirtualDeviceConfigSpecOperationAdd {
+			continue
+		}
+
+		if s.FileOperation != types.VirtualDeviceConfigSpecFileOperationCreate {
+			continue
+		}
+
+		d, ok := s.Device.(*types.VirtualDisk)
+		if !ok {
+			continue
+		}
+
+		podConfigForPlacement := types.VmPodConfigForPlacement{
+			StoragePod: pod.Reference(),
+			Disk: []types.PodDiskLocator{
+				{
+					DiskId:          d.Key,
+					DiskBackingInfo: d.Backing,
+				},
+			},
+		}
+
+		initialVMConfig = append(initialVMConfig, podConfigForPlacement)
+	}
+
+	return initialVMConfig
 }
