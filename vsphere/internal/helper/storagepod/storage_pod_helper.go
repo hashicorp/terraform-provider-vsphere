@@ -2,6 +2,7 @@ package storagepod
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
@@ -136,6 +137,18 @@ func Delete(pod *object.StoragePod) error {
 	return task.Wait(ctx)
 }
 
+// StorageDRSEnabled checks a StoragePod to see if Storage DRS is enabled.
+func StorageDRSEnabled(pod *object.StoragePod) (bool, error) {
+	props, err := Properties(pod)
+	if err != nil {
+		return false, err
+	}
+	if props.PodStorageDrsEntry == nil {
+		return false, nil
+	}
+	return props.PodStorageDrsEntry.StorageDrsConfig.PodConfig.Enabled, nil
+}
+
 // CreateVM creates a virtual machine on a datastore cluster via the
 // StorageResourceManager API. It mimics our helper in the virtualmachine
 // package in functionality, returning a VM helper object on success.
@@ -147,6 +160,13 @@ func CreateVM(
 	host *object.HostSystem,
 	pod *object.StoragePod,
 ) (*object.VirtualMachine, error) {
+	sdrsEnabled, err := StorageDRSEnabled(pod)
+	if err != nil {
+		return nil, err
+	}
+	if !sdrsEnabled {
+		return nil, fmt.Errorf("storage DRS is not enabled on datastore cluster %q", pod.Name())
+	}
 	log.Printf(
 		"[DEBUG] Creating virtual machine %q on datastore cluster %q",
 		fmt.Sprintf("%s/%s", fo.InventoryPath, spec.Name),
@@ -204,7 +224,11 @@ func CreateVM(
 		sps.Host = types.NewReference(host.Reference())
 	}
 
-	// Should be good to get recommendations now.
+	return recommendAndApplySDRS(client, sps)
+}
+
+func recommendAndApplySDRS(client *govmomi.Client, sps types.StoragePlacementSpec) (*object.VirtualMachine, error) {
+	log.Println("[DEBUG] Acquiring and applying Storage DRS recommendations")
 	srm := object.NewStorageResourceManager(client.Client)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
@@ -214,10 +238,10 @@ func CreateVM(
 	}
 
 	if len(placement.Recommendations) < 1 {
-		return nil, fmt.Errorf("no storage DRS recommendations were found for creation on datastore cluster %q", pod.Name())
+		return nil, errors.New("no storage DRS recommendations were found for the requested operation")
 	}
 
-	// Apply the first recommendation, which should create the virtual machine.
+	// Apply the first recommendation
 	task, err := srm.ApplyStorageDrsRecommendation(ctx, []string{placement.Recommendations[0].Key})
 	if err != nil {
 		return nil, err
@@ -226,5 +250,18 @@ func CreateVM(
 	if err != nil {
 		return nil, err
 	}
-	return virtualmachine.FromMOID(client, result.Result.(types.ApplyStorageRecommendationResult).Vm.Value)
+
+	// If the outer caller was for an operation that could produce a virtual
+	// machine, we want to return a full helper object. Check the result and
+	// fetch the VM if a reference exists.
+	var vm *object.VirtualMachine
+	vmRef := result.Result.(types.ApplyStorageRecommendationResult).Vm
+	if vmRef != nil {
+		log.Printf("[DEBUG] Storage DRS operation returned virtual machine reference: %s", vmRef)
+		vm, err = virtualmachine.FromMOID(client, vmRef.Value)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return vm, nil
 }
