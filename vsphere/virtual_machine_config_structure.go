@@ -250,7 +250,6 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Type:        schema.TypeList,
 			Computed:    true,
 			Description: "vApp transport methods supported by virtual machine.",
-			MaxItems:    1,
 			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
 		"change_version": {
