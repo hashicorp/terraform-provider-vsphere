@@ -7,13 +7,13 @@ FEATURES:
 
 IMPROVEMENTS:
 
-* `resource/vsphere_nas_datastore`: Now supports datastore clusters. [GH-439]
-* `resource/vsphere_vmfs_datastore`: Now supports datastore clusters. [GH-439]
 * The provider now has the ability to persist sessions to disk, which can help
   when running large amounts of consecutive or concurrent Terraform operations
   at once. See the [provider
   documentation](https://www.terraform.io/docs/providers/vsphere/index.html) for
   more details. [GH-422]
+* `resource/vsphere_nas_datastore`: Now supports datastore clusters. [GH-439]
+* `resource/vsphere_vmfs_datastore`: Now supports datastore clusters. [GH-439]
 * `resource/vsphere_virtual_machine`: Added support for client mapped CDROM
   devices. [GH-421]
 * `resource/vsphere_virtual_machine`: Added support for ISO transport of vApp
