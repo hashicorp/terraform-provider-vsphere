@@ -381,9 +381,6 @@ resource directly.
   imported from OVF or OVA files. See [Using vApp properties to supply OVF/OVA
   configuration](#using-vapp-properties-to-supply-ovf-ova-configuration) for
   more details.
-* `vapp_transport` - Computed value which is only valid for cloned virtual
-  machines. A list of vApp transport methods supported by the source virtual
-  machine or template.
 * `guest_id` - (Optional) The guest ID for the operating system type. For a
   full list of possible values, see [here][vmware-docs-guest-ids]. Default: `other-64`.
 
@@ -1294,6 +1291,9 @@ The following attributes are exported on the base level of this resource:
   on the virtual machine, or if the VM is powered off, this list will be empty.
 * `moid`: The [managed object reference ID][docs-about-morefs] of the created
   virtual machine.
+* `vapp_transport` - Computed value which is only valid for cloned virtual
+  machines. A list of vApp transport methods supported by the source virtual
+  machine or template.
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
