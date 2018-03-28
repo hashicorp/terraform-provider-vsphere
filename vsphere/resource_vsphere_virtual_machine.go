@@ -654,9 +654,6 @@ func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interf
 		return nil, fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
 	}
 
-	// Set `vapp_transport` to an empty list since it is only needed for clones.
-	d.Set("vapp_transport", []string{})
-
 	// Find the folder based off the path to the resource pool. Basically what we
 	// are saying here is that the VM folder that we are placing this VM in needs
 	// to be in the same hierarchy as the resource pool - so in other words, the
