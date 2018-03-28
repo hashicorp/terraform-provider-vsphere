@@ -246,6 +246,12 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			MaxItems:    1,
 			Elem:        &schema.Resource{Schema: vAppSubresourceSchema()},
 		},
+		"vapp_transport": {
+			Type:        schema.TypeList,
+			Computed:    true,
+			Description: "vApp transport methods supported by virtual machine.",
+			Elem:        &schema.Schema{Type: schema.TypeString},
+		},
 		"change_version": {
 			Type:        schema.TypeString,
 			Computed:    true,
@@ -615,8 +621,12 @@ func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) (*types.Vm
 // and sets all keys in vapp.
 func flattenVAppConfig(d *schema.ResourceData, config types.BaseVmConfigInfo) error {
 	if config == nil {
+		d.Set("vapp_transport", []string{})
 		return nil
 	}
+	// Set `vapp_config here while config is available to avoid extra API calls
+	d.Set("vapp_transport", config.GetVmConfigInfo().OvfEnvironmentTransport)
+
 	props := config.GetVmConfigInfo().Property
 	if len(props) < 1 {
 		// No props to read is a no-op
@@ -628,11 +638,15 @@ func flattenVAppConfig(d *schema.ResourceData, config types.BaseVmConfigInfo) er
 			vac[v.Id] = v.Value
 		}
 	}
-	return d.Set("vapp", []interface{}{
-		map[string]interface{}{
-			"properties": vac,
-		},
-	})
+	// Only set if properties exist to prevent creating an unnecessary diff
+	if len(vac) > 0 {
+		return d.Set("vapp", []interface{}{
+			map[string]interface{}{
+				"properties": vac,
+			},
+		})
+	}
+	return nil
 }
 
 // expandCPUCountConfig is a helper for expandVirtualMachineConfigSpec that

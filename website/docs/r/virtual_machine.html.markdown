@@ -1121,7 +1121,9 @@ included if the other is specified.
 Alternative to the settings in `customize`, one can use the settings in the
 `properties` section of the `vapp` sub-resource to supply configuration
 parameters to a virtual machine cloned from a template that came from an
-imported OVF or OVA file.
+imported OVF or OVA file. Both GuestInfo and ISO transport methods are
+supported. For templates that use ISO transport, a CDROM backed by client
+device is required. See [CDROM options](#cdrom-options) for details. 
 
 ~> **NOTE:** The only supported usage path for vApp properties is for existing
 user-configurable keys. These generally come from an existing template that was
@@ -1289,6 +1291,9 @@ The following attributes are exported on the base level of this resource:
   on the virtual machine, or if the VM is powered off, this list will be empty.
 * `moid`: The [managed object reference ID][docs-about-morefs] of the created
   virtual machine.
+* `vapp_transport` - Computed value which is only valid for cloned virtual
+  machines. A list of vApp transport methods supported by the source virtual
+  machine or template.
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
