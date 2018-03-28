@@ -1,6 +1,6 @@
 {
 	"comment": "",
-	"ignore": "appengine test github.com/hashicorp/nomad/ github.com/hashicorp/terraform/backend",
+	"ignore": "test",
 	"package": [
 		{
 			"checksumSHA1": "9cl7+wv0GvxpQV+HOtV93F9pbmE=",
@@ -814,11 +814,11 @@
 			"revisionTime": "2017-06-05T21:53:11Z"
 		},
 		{
-			"checksumSHA1": "9HVQCrdK7g+uAOTjC5cwgXjLRSI=",
+			"checksumSHA1": "kWXjQH/N08DfQ/AZmf6xQn+xZYE=",
 			"comment": "v0.15.0",
 			"path": "github.com/vmware/govmomi",
-			"revision": "bb8ff8d53171157123ae812088fd06223d8d90a3",
-			"revisionTime": "2018-02-13T04:10:52Z"
+			"revision": "8872366d5b156a8cbef4b7291cd6e9026b8129a5",
+			"revisionTime": "2018-03-12T20:19:01Z"
 		},
 		{
 			"checksumSHA1": "mgU2Bt/F2KP3m70BE3PDqWxfJfQ=",
@@ -854,11 +854,10 @@
 			"revisionTime": "2018-02-13T04:10:52Z"
 		},
 		{
-			"checksumSHA1": "oud0H9GjZpIT04TOABWdgTVfk3Q=",
-			"comment": "v0.15.0",
+			"checksumSHA1": "fN5DkuYd23OoshmfLeB3064H7OI=",
 			"path": "github.com/vmware/govmomi/object",
-			"revision": "bb8ff8d53171157123ae812088fd06223d8d90a3",
-			"revisionTime": "2018-02-13T04:10:52Z"
+			"revision": "8872366d5b156a8cbef4b7291cd6e9026b8129a5",
+			"revisionTime": "2018-03-12T20:19:01Z"
 		},
 		{
 			"checksumSHA1": "viXROfTFdDMpqFTln9JFC60E8jY=",
