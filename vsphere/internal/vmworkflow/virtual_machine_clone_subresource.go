@@ -114,6 +114,13 @@ func ValidateVirtualMachineClone(d *schema.ResourceDiff, c *govmomi.Client) erro
 			return err
 		}
 	}
+	vconfig := vprops.Config.VAppConfig
+	if vconfig != nil {
+		// We need to set the vApp transport types here so that it is available
+		// later in CustomizeDiff where transport requirements are validated in
+		// ValidateVAppTransport
+		d.SetNew("vapp_transport", vconfig.GetVmConfigInfo().OvfEnvironmentTransport)
+	}
 
 	log.Printf("[DEBUG] ValidateVirtualMachineClone: Source VM/template %s is a suitable source for cloning", tUUID)
 	return nil

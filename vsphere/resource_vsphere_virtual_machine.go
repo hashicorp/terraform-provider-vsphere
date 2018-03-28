@@ -541,11 +541,6 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 		return err
 	}
 
-	// Validate that the config has the necessary components for vApp support
-	if err := virtualdevice.VerifyVAppTransport(d, client); err != nil {
-		return err
-	}
-
 	// Validate network device sub-resources
 	if err := virtualdevice.NetworkInterfaceDiffOperation(d, client); err != nil {
 		return err
@@ -567,6 +562,13 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 			return errors.New("this resource was imported or migrated from a previous version and does not support cloning. Please remove the \"clone\" block from its configuration")
 		}
 	}
+	// Validate that the config has the necessary components for vApp support.
+	// Note that for clones the data is prepopulated in
+	// ValidateVirtualMachineClone.
+	if err := virtualdevice.VerifyVAppTransport(d, client); err != nil {
+		return err
+	}
+
 	log.Printf("[DEBUG] %s: Diff customization and validation complete", resourceVSphereVirtualMachineIDString(d))
 	return nil
 }
