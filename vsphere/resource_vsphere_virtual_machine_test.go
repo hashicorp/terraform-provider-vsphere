@@ -2154,6 +2154,9 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_TEMPLATE") == "" {
 		t.Skip("set VSPHERE_TEMPLATE to run vsphere_virtual_machine acceptance tests")
 	}
+	if os.Getenv("VSPHERE_TEMPLATE_ISO_TRANSPORT") == "" {
+		t.Skip("set VSPHERE_TEMPLATE_ISO_TRANSPORT to run vsphere_virtual_machine acceptance tests")
+	}
 	if os.Getenv("VSPHERE_TEMPLATE_WINDOWS") == "" {
 		t.Skip("set VSPHERE_TEMPLATE_WINDOWS to run vsphere_virtual_machine acceptance tests")
 	}
