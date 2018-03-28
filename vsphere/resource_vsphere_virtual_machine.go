@@ -836,15 +836,6 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 			return nil, fmt.Errorf("error sending customization spec: %s", err)
 		}
 	}
-	// Now that validation has passed, set `vapp_transport` while the virtual
-	// machine properties are available.
-	vconfig := vprops.Config.VAppConfig
-	// If the VM doesn't support vApp properties, vconfig will be nil.
-	if vconfig != nil {
-		d.Set("vapp_transport", vconfig.GetVmConfigInfo().OvfEnvironmentTransport)
-	} else {
-		d.Set("vapp_transport", []string{})
-	}
 	// Finally time to power on the virtual machine!
 	if err := virtualmachine.PowerOn(vm); err != nil {
 		return nil, fmt.Errorf("error powering on virtual machine: %s", err)

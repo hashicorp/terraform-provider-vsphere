@@ -621,8 +621,12 @@ func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) (*types.Vm
 // and sets all keys in vapp.
 func flattenVAppConfig(d *schema.ResourceData, config types.BaseVmConfigInfo) error {
 	if config == nil {
+		d.Set("vapp_transport", []string{})
 		return nil
 	}
+	// Set `vapp_config here while config is available to avoid extra API calls
+	d.Set("vapp_transport", config.GetVmConfigInfo().OvfEnvironmentTransport)
+
 	props := config.GetVmConfigInfo().Property
 	if len(props) < 1 {
 		// No props to read is a no-op
