@@ -249,14 +249,6 @@ func ReconfigureVM(
 		return fmt.Errorf("storage DRS is not enabled on datastore cluster %q", pod.Name())
 	}
 
-	// Expand the initialVmConfig field now and check to see if we actually have
-	// operations. If we don't, just defer to the standard reconfigure method.
-	initialVMConfigs := expandVMPodConfigForPlacement(spec.DeviceChange, pod)
-	if len(initialVMConfigs) < 1 {
-		log.Printf("[DEBUG] No disk operations for reconfiguration of VM %q, deferring to standard API", vm.InventoryPath)
-		return virtualmachine.Reconfigure(vm, spec)
-	}
-
 	log.Printf(
 		"[DEBUG] Reconfiguring virtual machine %q through Storage DRS API, on datastore cluster %q",
 		vm.InventoryPath,
@@ -266,7 +258,7 @@ func ReconfigureVM(
 	sps := types.StoragePlacementSpec{
 		Type: string(types.StoragePlacementSpecPlacementTypeReconfigure),
 		PodSelectionSpec: types.StorageDrsPodSelectionSpec{
-			InitialVmConfig: initialVMConfigs,
+			InitialVmConfig: expandVMPodConfigForPlacement(spec.DeviceChange, pod),
 		},
 		Vm:         types.NewReference(vm.Reference()),
 		ConfigSpec: &spec,
@@ -315,20 +307,40 @@ func recommendAndApplySDRS(client *govmomi.Client, sps types.StoragePlacementSpe
 	return vm, nil
 }
 
+// HasDiskCreationOperations is an exported function that checks a list of
+// device changes to see if there are any disk creation operations. This should
+// be used to check if ReconfigureVM should be done through the Storage DRS
+// API, as a Reconfig operation done through SDRS without new disk operations
+// will fail.
+func HasDiskCreationOperations(dc []types.BaseVirtualDeviceConfigSpec) bool {
+	for _, deviceConfigSpec := range dc {
+		if _, ok := virtualDiskFromDeviceConfigSpecForPlacement(deviceConfigSpec); ok {
+			return true
+		}
+	}
+
+	return false
+}
+
+func virtualDiskFromDeviceConfigSpecForPlacement(spec types.BaseVirtualDeviceConfigSpec) (*types.VirtualDisk, bool) {
+	s := spec.GetVirtualDeviceConfigSpec()
+
+	switch {
+	case s.Operation != types.VirtualDeviceConfigSpecOperationAdd:
+		fallthrough
+	case s.FileOperation != types.VirtualDeviceConfigSpecFileOperationCreate:
+		return nil, false
+	}
+
+	d, ok := s.Device.(*types.VirtualDisk)
+	return d, ok
+}
+
 func expandVMPodConfigForPlacement(dc []types.BaseVirtualDeviceConfigSpec, pod *object.StoragePod) []types.VmPodConfigForPlacement {
 	var initialVMConfig []types.VmPodConfigForPlacement
 
 	for _, deviceConfigSpec := range dc {
-		s := deviceConfigSpec.GetVirtualDeviceConfigSpec()
-		if s.Operation != types.VirtualDeviceConfigSpecOperationAdd {
-			continue
-		}
-
-		if s.FileOperation != types.VirtualDeviceConfigSpecFileOperationCreate {
-			continue
-		}
-
-		d, ok := s.Device.(*types.VirtualDisk)
+		d, ok := virtualDiskFromDeviceConfigSpecForPlacement(deviceConfigSpec)
 		if !ok {
 			continue
 		}

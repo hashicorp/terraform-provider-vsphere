@@ -505,6 +505,13 @@ func resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(
 	vm *object.VirtualMachine,
 	spec types.VirtualMachineConfigSpec,
 ) error {
+	// Check to see if we have any disk creation operations first, as sending an
+	// update through SDRS without any disk creation operations will fail.
+	if !storagepod.HasDiskCreationOperations(spec.DeviceChange) {
+		log.Printf("[DEBUG] No disk operations for reconfiguration of VM %q, deferring to standard API", vm.InventoryPath)
+		return virtualmachine.Reconfigure(vm, spec)
+	}
+
 	client := meta.(*VSphereClient).vimClient
 	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return fmt.Errorf("connection ineligible to use datastore_cluster_id: %s", err)
