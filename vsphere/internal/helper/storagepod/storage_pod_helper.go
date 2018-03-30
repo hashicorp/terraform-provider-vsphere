@@ -2,10 +2,11 @@ package storagepod
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
@@ -187,7 +188,7 @@ func CreateVM(
 		sps.Host = types.NewReference(host.Reference())
 	}
 
-	return recommendAndApplySDRS(client, sps)
+	return recommendAndApplySDRS(client, sps, provider.DefaultAPITimeout)
 }
 
 // CloneVM clones a virtual machine to a datastore cluster via the
@@ -227,14 +228,17 @@ func CloneVM(
 		Type: string(types.StoragePlacementSpecPlacementTypeClone),
 	}
 
-	return recommendAndApplySDRS(client, sps)
+	return recommendAndApplySDRS(client, sps, time.Minute*time.Duration(timeout))
 }
 
 // ReconfigureVM reconfigures a virtual machine via the StorageResourceManager
 // API, applying any disk modifications that will require going through Storage
-// DRS. It mimics our helper in the virtualmachine package in functionality,
-// and actually defers to its counterpart in the event there are no disk
-// operations.
+// DRS. It mimics our helper in the virtualmachine package in functionality.
+//
+// Note that this function will fail if there are no new disks in the spec,
+// check this first before using this function. If no disk create operations
+// are necessary, use the regular Reconfigure function in the virtualmachine
+// helper package.
 func ReconfigureVM(
 	client *govmomi.Client,
 	vm *object.VirtualMachine,
@@ -264,14 +268,55 @@ func ReconfigureVM(
 		ConfigSpec: &spec,
 	}
 
-	_, err = recommendAndApplySDRS(client, sps)
+	_, err = recommendAndApplySDRS(client, sps, provider.DefaultAPITimeout)
 	return err
 }
 
-func recommendAndApplySDRS(client *govmomi.Client, sps types.StoragePlacementSpec) (*object.VirtualMachine, error) {
-	log.Println("[DEBUG] Acquiring and applying Storage DRS recommendations")
+// RelocateVM migrates a virtual machine to a datastore cluster via the
+// StorageResourceManager API. It mimics our helper in the virtualmachine
+// package in functionality.
+func RelocateVM(
+	client *govmomi.Client,
+	vm *object.VirtualMachine,
+	spec types.VirtualMachineRelocateSpec,
+	timeout int,
+	pod *object.StoragePod,
+) error {
+	sdrsEnabled, err := StorageDRSEnabled(pod)
+	if err != nil {
+		return err
+	}
+	if !sdrsEnabled {
+		return fmt.Errorf("storage DRS is not enabled on datastore cluster %q", pod.Name())
+	}
+	log.Printf(
+		"[DEBUG] Relocating virtual machine %q to datastore cluster %q",
+		vm.InventoryPath,
+		pod.Name(),
+	)
+
+	sps := types.StoragePlacementSpec{
+		Vm: types.NewReference(vm.Reference()),
+		PodSelectionSpec: types.StorageDrsPodSelectionSpec{
+			StoragePod: types.NewReference(pod.Reference()),
+		},
+		Priority:     types.VirtualMachineMovePriorityDefaultPriority,
+		RelocateSpec: &spec,
+		Type:         string(types.StoragePlacementSpecPlacementTypeRelocate),
+	}
+
+	_, err = recommendAndApplySDRS(client, sps, time.Minute*time.Duration(timeout))
+	return err
+}
+
+func recommendAndApplySDRS(
+	client *govmomi.Client,
+	sps types.StoragePlacementSpec,
+	timeout time.Duration,
+) (*object.VirtualMachine, error) {
+	log.Printf("[DEBUG] Acquiring and applying Storage DRS recommendations (type: %q)", sps.Type)
 	srm := object.NewStorageResourceManager(client.Client)
-	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	placement, err := srm.RecommendDatastores(ctx, sps)
 	if err != nil {
@@ -279,7 +324,7 @@ func recommendAndApplySDRS(client *govmomi.Client, sps types.StoragePlacementSpe
 	}
 
 	if len(placement.Recommendations) < 1 {
-		return nil, errors.New("no storage DRS recommendations were found for the requested operation")
+		return nil, fmt.Errorf("no storage DRS recommendations were found for the requested action (type: %q)", sps.Type)
 	}
 
 	// Apply the first recommendation
@@ -289,6 +334,10 @@ func recommendAndApplySDRS(client *govmomi.Client, sps types.StoragePlacementSpe
 	}
 	result, err := task.WaitForResult(ctx, nil)
 	if err != nil {
+		// Provide a friendly error message for timeouts
+		if ctx.Err() == context.DeadlineExceeded {
+			return nil, fmt.Errorf("timeout waiting for Storage DRS migration to complete (type: %q)", sps.Type)
+		}
 		return nil, err
 	}
 
@@ -359,4 +408,23 @@ func expandVMPodConfigForPlacement(dc []types.BaseVirtualDeviceConfigSpec, pod *
 	}
 
 	return initialVMConfig
+}
+
+// IsMember checks to see if a datastore is a member of the datastore cluster
+// in question.
+//
+// This is a pretty basic operation that checks that the parent of the
+// datastore is the StoragePod.
+func IsMember(pod *object.StoragePod, ds *object.Datastore) (bool, error) {
+	dprops, err := datastore.Properties(ds)
+	if err != nil {
+		return false, fmt.Errorf("error getting properties for datastore %q: %s", ds.Name(), err)
+	}
+	if dprops.Parent == nil {
+		return false, nil
+	}
+	if *dprops.Parent != pod.Reference() {
+		return false, nil
+	}
+	return true, nil
 }

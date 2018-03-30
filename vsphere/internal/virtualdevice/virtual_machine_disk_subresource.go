@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/mitchellh/copystructure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
@@ -37,6 +38,10 @@ documentation for the label attribute at:
 
 https://www.terraform.io/docs/providers/vsphere/r/virtual_machine.html#label
 `
+
+// diskDatastoreComputedName is a friendly display for disks with datastores
+// marked as computed. This happens in datastore cluster workflows.
+const diskDatastoreComputedName = "<computed>"
 
 // diskDeletedName is a placeholder name for deleted disks. This is to assist
 // with user-friendliness in the diff.
@@ -591,7 +596,6 @@ func DiskDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 		}
 		names[name] = struct{}{}
 		units[nm["unit_number"].(int)] = struct{}{}
-		// Run the resource through a pre-validate function. This does some single-value validation that is required before
 	}
 	if _, ok := units[0]; !ok {
 		return errors.New("at least one disk must have a unit_number of 0")
@@ -807,6 +811,13 @@ func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l o
 				if nm["datastore_id"] == om["datastore_id"] && !d.HasChange("datastore_id") {
 					break
 				}
+				// A disk locator is only useful if a target datastore is available. If we
+				// don't have a datastore specified (ie: when Storage DRS is in use), then
+				// we just need to skip this disk. The disk will be migrated properly
+				// through the SDRS API.
+				if nm["datastore_id"] == "" || nm["datastore_id"] == diskDatastoreComputedName {
+					break
+				}
 				r := NewDiskSubresource(c, d, nm, om, ni)
 				relocator, err := r.Relocate(l, false)
 				if err != nil {
@@ -875,7 +886,7 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 		// don't have a datastore specified (ie: when Storage DRS is in use), then
 		// we just need to skip this disk. The disk will be migrated properly
 		// through the SDRS API.
-		if dsID := r.Get("datastore_id"); dsID == "" {
+		if dsID := r.Get("datastore_id"); dsID == "" || dsID == diskDatastoreComputedName {
 			continue
 		}
 		// Otherwise, proceed with generating and appending the locator.
@@ -1363,10 +1374,16 @@ func (r *DiskSubresource) Diff() error {
 			// full storage vMotion no-op, an implicit migration, and a migration
 			// where we will need to generate a relocate spec for the individual disk
 			// to ensure it stays at a datastore it might be pinned on.
-			r.Set("datastore_id", r.rdd.Get("datastore_id"))
+			dsID := r.rdd.Get("datastore_id").(string)
+			if dsID == "" {
+				r.Set("datastore_id", diskDatastoreComputedName)
+			} else {
+				r.Set("datastore_id", dsID)
+			}
 		default:
-			odsid, _ := r.GetChange("datastore_id")
-			r.Set("datastore_id", odsid)
+			if err := r.normalizeDiskDatastore(); err != nil {
+				return err
+			}
 		}
 	}
 	// Preserve the share value if we don't have custom shares set
@@ -1413,6 +1430,55 @@ func (r *DiskSubresource) Diff() error {
 	}
 
 	log.Printf("[DEBUG] %s: Diff validation and normalization complete", r)
+	return nil
+}
+
+// normalizeDiskDatastore normalizes the datastore_id field in a disk
+// sub-resource. If the VM has a datastore cluster defined, it checks to make
+// sure the datastore in the current state of the disk is a member of the
+// currently defined datastore cluster, and if it is not, it marks the disk as
+// computed so that it can be migrated back to the datastore cluster on the
+// next update.
+func (r *DiskSubresource) normalizeDiskDatastore() error {
+	podID := r.rdd.Get("datastore_cluster_id").(string)
+	dsID, _ := r.GetChange("datastore_id")
+
+	if podID != "" {
+		// We don't have a storage pod, just set the old ID and exit. We don't need
+		// to worry about whether or not the storage pod is computed here as if it
+		// is, the VM datastore will have been marked as computed and this function
+		// will have never ran.
+		r.Set("datastore_id", dsID)
+		return nil
+	}
+
+	log.Printf("[DEBUG] %s: Checking datastore cluster membership of disk", r)
+
+	pod, err := storagepod.FromID(r.client, podID)
+	if err != nil {
+		return fmt.Errorf("error fetching datastore cluster ID %q: %s", podID, err)
+	}
+
+	ds, err := datastore.FromID(r.client, dsID.(string))
+	if err != nil {
+		return fmt.Errorf("error fetching datastore ID %q: %s", dsID, err)
+	}
+
+	isMember, err := storagepod.IsMember(pod, ds)
+	if err != nil {
+		return fmt.Errorf("error checking storage pod membership: %s", err)
+	}
+	if !isMember {
+		log.Printf(
+			"[DEBUG] %s: Disk's datastore %q not a member of cluster %q, marking datastore ID as computed",
+			r,
+			ds.Name(),
+			pod.Name(),
+		)
+		dsID = diskDatastoreComputedName
+	}
+
+	r.Set("datastore_id", dsID)
 	return nil
 }
 

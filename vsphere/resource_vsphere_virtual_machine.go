@@ -595,6 +595,11 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 		return err
 	}
 
+	// Normalize datastore cluster vs datastore
+	if err := datastoreClusterDiffOperation(d, client); err != nil {
+		return err
+	}
+
 	// Validate and normalize disk sub-resources
 	if err := virtualdevice.DiskDiffOperation(d, client); err != nil {
 		return err
@@ -619,6 +624,61 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 	}
 
 	log.Printf("[DEBUG] %s: Diff customization and validation complete", resourceVSphereVirtualMachineIDString(d))
+	return nil
+}
+
+func datastoreClusterDiffOperation(d *schema.ResourceDiff, client *govmomi.Client) error {
+	podID, podOk := d.GetOk("datastore_cluster_id")
+	podKnown := d.NewValueKnown("datastore_cluster_id")
+	dsID, dsOk := d.GetOk("datastore_id")
+
+	if podKnown && !podOk {
+		// No datastore cluster
+		return nil
+	}
+
+	if !dsOk {
+		// No datastore, we don't need to touch it
+		return nil
+	}
+
+	log.Printf("[DEBUG] %s: Checking VM datastore cluster membership", resourceVSphereVirtualMachineIDString(d))
+
+	if !podKnown {
+		// Datastore cluster ID changing but we don't know it yet. Mark the datastore ID as computed
+		log.Printf("[DEBUG] %s: Datastore cluster ID unknown, marking VM datastore as computed", resourceVSphereVirtualMachineIDString(d))
+		return d.SetNewComputed("datastore_id")
+	}
+
+	// Otherwise, we need to determine if the current datastore from state is a
+	// member of the current datastore cluster.
+	pod, err := storagepod.FromID(client, podID.(string))
+	if err != nil {
+		return fmt.Errorf("error fetching datastore cluster ID %q: %s", podID, err)
+	}
+
+	ds, err := datastore.FromID(client, dsID.(string))
+	if err != nil {
+		return fmt.Errorf("error fetching datastore ID %q: %s", dsID, err)
+	}
+
+	isMember, err := storagepod.IsMember(pod, ds)
+	if err != nil {
+		return fmt.Errorf("error checking storage pod membership: %s", err)
+	}
+	if !isMember {
+		// If the current datastore in state is not a member of the cluster, we
+		// need to trigger a migration. Do this by setting the datastore ID to
+		// computed so that it's picked up in the next update.
+		log.Printf(
+			"[DEBUG] %s: Datastore %q not a member of cluster %q, marking VM datastore as computed",
+			resourceVSphereVirtualMachineIDString(d),
+			ds.Name(),
+			pod.Name(),
+		)
+		return d.SetNewComputed("datastore_id")
+	}
+
 	return nil
 }
 
@@ -1052,7 +1112,7 @@ func resourceVSphereVirtualMachineUpdateLocation(d *schema.ResourceData, meta in
 		return err
 	}
 	// If we don't have any changes, stop here.
-	if !d.HasChange("resource_pool_id") && !d.HasChange("host_system_id") && !d.HasChange("datastore_id") && len(relocators) < 1 {
+	if !d.HasChange("resource_pool_id") && !d.HasChange("host_system_id") && !d.HasChange("datastore_cluster_id") && !d.HasChange("datastore_id") && len(relocators) < 1 {
 		log.Printf("[DEBUG] %s: No migration operations found", resourceVSphereVirtualMachineIDString(d))
 		return nil
 	}
@@ -1076,19 +1136,20 @@ func resourceVSphereVirtualMachineUpdateLocation(d *schema.ResourceData, meta in
 		return err
 	}
 
-	// Fetch the datastore
-	ds, err := datastore.FromID(client, d.Get("datastore_id").(string))
-	if err != nil {
-		return fmt.Errorf("error locating datastore for VM: %s", err)
-	}
-
-	dsRef := ds.Reference()
-	pRef := pool.Reference()
 	// Start building the spec
 	spec := types.VirtualMachineRelocateSpec{
-		Datastore: &dsRef,
-		Pool:      &pRef,
+		Pool: types.NewReference(pool.Reference()),
 	}
+
+	// Fetch the datastore
+	if dsID, ok := d.GetOk("datastore_id"); ok {
+		ds, err := datastore.FromID(client, dsID.(string))
+		if err != nil {
+			return fmt.Errorf("error locating datastore for VM: %s", err)
+		}
+		spec.Datastore = types.NewReference(ds.Reference())
+	}
+
 	if hs != nil {
 		hsRef := hs.Reference()
 		spec.Host = &hsRef
@@ -1096,8 +1157,43 @@ func resourceVSphereVirtualMachineUpdateLocation(d *schema.ResourceData, meta in
 
 	spec.Disk = relocators
 
-	// Ready to perform migration. Only do this if necessary.
-	return virtualmachine.Relocate(vm, spec, d.Get("migrate_wait_timeout").(int))
+	// Ready to perform migration
+	timeout := d.Get("migrate_wait_timeout").(int)
+	if _, ok := d.GetOk("datastore_cluster_id"); ok {
+		err = resourceVSphereVirtualMachineUpdateLocationRelocateWithSDRS(d, meta, vm, spec, timeout)
+	} else {
+		err = virtualmachine.Relocate(vm, spec, timeout)
+	}
+	return err
+}
+
+// resourceVSphereVirtualMachineUpdateLocationRelocateWithSDRS runs the storage vMotion
+// part of resourceVSphereVirtualMachineUpdateLocation through storage DRS.
+// It's designed to be run when a storage cluster is specified, versus simply
+// specifying datastores.
+func resourceVSphereVirtualMachineUpdateLocationRelocateWithSDRS(
+	d *schema.ResourceData,
+	meta interface{},
+	vm *object.VirtualMachine,
+	spec types.VirtualMachineRelocateSpec,
+	timeout int,
+) error {
+	client := meta.(*VSphereClient).vimClient
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
+		return fmt.Errorf("connection ineligible to use datastore_cluster_id: %s", err)
+	}
+
+	log.Printf("[DEBUG] %s: Running virtual machine relocate Storage DRS API", resourceVSphereVirtualMachineIDString(d))
+	pod, err := storagepod.FromID(client, d.Get("datastore_cluster_id").(string))
+	if err != nil {
+		return fmt.Errorf("error getting datastore cluster: %s", err)
+	}
+
+	err = storagepod.RelocateVM(client, vm, spec, timeout, pod)
+	if err != nil {
+		return fmt.Errorf("error running vMotion on datastore cluster %q: %s", pod.Name(), err)
+	}
+	return nil
 }
 
 // applyVirtualDevices is used by Create and Update to build a list of virtual
