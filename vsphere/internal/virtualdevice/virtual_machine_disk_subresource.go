@@ -1443,7 +1443,7 @@ func (r *DiskSubresource) normalizeDiskDatastore() error {
 	podID := r.rdd.Get("datastore_cluster_id").(string)
 	dsID, _ := r.GetChange("datastore_id")
 
-	if podID != "" {
+	if podID == "" {
 		// We don't have a storage pod, just set the old ID and exit. We don't need
 		// to worry about whether or not the storage pod is computed here as if it
 		// is, the VM datastore will have been marked as computed and this function
