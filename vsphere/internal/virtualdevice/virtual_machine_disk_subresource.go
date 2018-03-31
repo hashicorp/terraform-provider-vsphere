@@ -94,10 +94,11 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 			Deprecated: diskNameDeprecationNotice,
 		},
 		"path": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			Computed:    true,
-			Description: "The full path of the virtual disk. This can only be provided if attach is set to true, otherwise it is a read-only value.",
+			Type:          schema.TypeString,
+			Optional:      true,
+			Computed:      true,
+			ConflictsWith: []string{"datastore_cluster_id"},
+			Description:   "The full path of the virtual disk. This can only be provided if attach is set to true, otherwise it is a read-only value.",
 			ValidateFunc: func(v interface{}, _ string) ([]string, []error) {
 				if path.Ext(v.(string)) != ".vmdk" {
 					return nil, []error{fmt.Errorf("disk path %s must end in .vmdk", v.(string))}

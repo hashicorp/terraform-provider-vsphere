@@ -632,32 +632,38 @@ func datastoreClusterDiffOperation(d *schema.ResourceDiff, client *govmomi.Clien
 	podKnown := d.NewValueKnown("datastore_cluster_id")
 	dsID, dsOk := d.GetOk("datastore_id")
 
-	if podKnown && !podOk {
+	switch {
+	case podKnown && !podOk && !dsOk:
+		// No root-level datastore option was available. This can happen on new
+		// configs where the user has not supplied either option, so we need to
+		// block this.
+		return errors.New("one of datastore_id datastore_cluster_id must be specified")
+	case podKnown && !podOk:
 		// No datastore cluster
 		return nil
-	}
-
-	if !dsOk {
+	case !dsOk:
 		// No datastore, we don't need to touch it
 		return nil
-	}
-
-	log.Printf("[DEBUG] %s: Checking VM datastore cluster membership", resourceVSphereVirtualMachineIDString(d))
-
-	if !podKnown {
+	case !podKnown:
 		// Datastore cluster ID changing but we don't know it yet. Mark the datastore ID as computed
 		log.Printf("[DEBUG] %s: Datastore cluster ID unknown, marking VM datastore as computed", resourceVSphereVirtualMachineIDString(d))
 		return d.SetNewComputed("datastore_id")
 	}
 
-	// Otherwise, we need to determine if the current datastore from state is a
-	// member of the current datastore cluster.
-	pod, err := storagepod.FromID(client, podID.(string))
+	return datastoreClusterDiffOperationCheckMembership(d, client, podID.(string), dsID.(string))
+}
+
+func datastoreClusterDiffOperationCheckMembership(d *schema.ResourceDiff, client *govmomi.Client, podID, dsID string) error {
+	log.Printf("[DEBUG] %s: Checking VM datastore cluster membership", resourceVSphereVirtualMachineIDString(d))
+
+	// Determine if the current datastore from state is a member of the current
+	// datastore cluster.
+	pod, err := storagepod.FromID(client, podID)
 	if err != nil {
 		return fmt.Errorf("error fetching datastore cluster ID %q: %s", podID, err)
 	}
 
-	ds, err := datastore.FromID(client, dsID.(string))
+	ds, err := datastore.FromID(client, dsID)
 	if err != nil {
 		return fmt.Errorf("error fetching datastore ID %q: %s", dsID, err)
 	}

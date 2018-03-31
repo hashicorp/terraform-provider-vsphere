@@ -325,6 +325,73 @@ resource "vsphere_virtual_machine" "vm" {
 }
 ```
 
+### Using Storage DRS
+
+The `vsphere_virtual_machine` resource also supports Storage DRS, allowing the
+assignment of virtual machines to datastore clusters. When assigned to a
+datastore cluster, changes to a virtual machine's underlying datastores are
+ignored unless disks drift outside of the datastore cluster. The example below
+makes use of the [`vsphere_datastore_cluster` data
+source][tf-vsphere-datastore-cluster-data-source], and the
+[`datastore_clsuter_id`](#datastore_cluster_id) configuration setting. Note
+that the [`vsphere_datastore_cluster`
+resource][tf-vsphere-datastore-cluster-resource] also exists to allow for
+management of datastore clusters directly in Terraform.
+
+[tf-vsphere-datastore-cluster-data-source]: /docs/providers/vsphere/d/datastore_cluster.html
+[tf-vsphere-datastore-cluster-resource]: /docs/providers/vsphere/r/datastore_cluster.html
+
+~> **NOTE:** When managing datastore clusters, member datastores, and virtual
+machines within the same Terraform configuration, race conditions can apply.
+This is because datastore clusters must be created before datastores can be
+assigned to them, and the respective `vsphere_virtual_machine` resources will
+no longer have an implicit dependency on the specific datastore resources. Use
+[`depends_on`][tf-docs-depends-on] to create an explicit dependency on the
+datastores in the cluster, or manage datastore clusters and datastores in a
+separate configuration.
+
+[tf-docs-depends-on]: /docs/configuration/resources.html#depends_on
+
+```hcl
+data "vsphere_datacenter" "dc" {
+  name = "dc1"
+}
+
+data "vsphere_datastore_cluster" "datastore_cluster" {
+  name          = "datastore-cluster1"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "cluster1/Resources"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "public"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name                 = "terraform-test"
+  resource_pool_id     = "${data.vsphere_resource_pool.pool.id}"
+  datastore_cluster_id = "${data.vsphere_datastore_cluster.datastore_cluster.id}"
+
+  num_cpus = 2
+  memory   = 1024
+  guest_id = "other3xLinux64Guest"
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -351,12 +418,28 @@ resource directly.
 
 [docs-resource-pool-cluster-default]: /docs/providers/vsphere/d/resource_pool.html#specifying-the-default-resource-pool-for-a-cluster
 
-* `datastore_id` - (Required) The [managed object reference
+* `datastore_id` - (Optional) The [managed object reference
   ID][docs-about-morefs] of the virtual machine's datastore. The virtual
   machine configuration is placed here, along with any virtual disks that are
   created where a datastore is not explicitly specified. See the section on
   [virtual machine migration](#virtual-machine-migration) for details on
   changing this value.
+* `datastore_cluster_id` - (Optional) The [managed object reference
+  ID][docs-about-morefs] of the datastore cluster ID to use. This setting
+  applies to entire virtual machine and implies that you wish to use Storage
+  DRS with this virtual machine. See the section on [virtual machine
+  migration](#virtual-machine-migration) for details on changing this value.
+
+~> **NOTE:** One of `datastore_id` or `datastore_cluster_id` must be specified.
+
+~> **NOTE:** Use of `datastore_cluster_id` requires Storage DRS to be enabled
+on that cluster. 
+
+~> **NOTE:** The `datastore_cluster_id` setting applies to the entire virtual
+machine - you cannot assign individual datastore clusters to individual disks.
+In addition to this, you cannot use the [`attach`](#attach) setting to attach
+external disks on virtual machines that are assigned to datastore clusters.
+
 * `folder` - (Optional) The path to the folder to put this virtual machine in,
   relative to the datacenter that the resource pool is in.
 * `host_system_id` - (Optional) An optional [managed object reference
@@ -628,9 +711,17 @@ externally with `attach` when the `path` field is not specified.
   to use the datastore of the virtual machine. See the section on [virtual
   machine migration](#virtual-machine-migration) for details on changing this
   value.
+
+~> **NOTE:** Datastores cannot be assigned to individual disks when
+[`datastore_cluster_id`](#datastore_cluster_id) is in use.
+
 * `attach` - (Optional) Attach an external disk instead of creating a new one.
   Implies and conflicts with `keep_on_remove`. If set, you cannot set `size`,
   `eagerly_scrub`, or `thin_provisioned`. Must set `path` if used.
+
+~> **NOTE:** External disks cannot be attached when
+[`datastore_cluster_id`](#datastore_cluster_id) is in use.
+
 * `path` - (Optional) When using `attach`, this parameter controls the path of
   a virtual disk to attach externally. Otherwise, it is a computed attribute
   that contains the virtual disk's current filename.
@@ -1216,6 +1307,12 @@ Storage migration can be done on two levels:
 * Global datastore migration can be handled by changing the global
   `datastore_id` attribute. This triggers a storage migration for all disks
   that do not have an explicit `datastore_id` specified.
+* When using Storage DRS through the `datastore_cluster_id` attribute, the
+  entire virtual machine can be migrated from one datastore cluster to another
+  by changing the value of this setting. In addition, when
+  `datastore_cluster_id` is in use, any disks that drift to datastores outside
+  of the datastore cluster via such actions as manual modification will be
+  migrated back to the datastore cluster on the next apply.
 * An individual `disk` sub-resource can be migrated by manually specifying the
   `datastore_id` in its sub-resource. This also pins it to the specific
   datastore that is specified - if at a later time the VM and any unpinned
