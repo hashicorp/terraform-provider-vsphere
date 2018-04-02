@@ -13,6 +13,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
+	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -66,113 +67,14 @@ func resourceVSphereStorageDrsVMConfig() *schema.Resource {
 func resourceVSphereStorageDrsVMConfigCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] %s: Beginning create", resourceVSphereStorageDrsVMConfigIDString(d))
 
-	if err := resourceVSphereStorageDrsVMConfigApplyCreate(d, meta); err != nil {
-		return err
-	}
-
-	log.Printf("[DEBUG] %s: Create finished successfully", resourceVSphereStorageDrsVMConfigIDString(d))
-	return resourceVSphereStorageDrsVMConfigRead(d, meta)
-}
-
-func resourceVSphereStorageDrsVMConfigRead(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Beginning read", resourceVSphereStorageDrsVMConfigIDString(d))
-	info, err := resourceVSphereStorageDrsVMConfigGetEntry(d, meta)
+	client, err := resourceVSphereStorageDrsVMConfigClient(meta)
 	if err != nil {
 		return err
 	}
 
-	if info == nil {
-		// resourceVSphereStorageDrsVMConfigGetEntry return nil when there was no
-		// entry, this is a re-creation scenario.
-		d.SetId("")
-		return nil
-	}
-
-	if err := flattenStorageDrsVMConfigInfo(d, info); err != nil {
+	pod, vm, err := resourceVSphereStorageDrsVMConfigObjects(d, meta)
+	if err != nil {
 		return err
-	}
-
-	log.Printf("[DEBUG] %s: Read completed successfully", resourceVSphereStorageDrsVMConfigIDString(d))
-	return nil
-}
-
-func resourceVSphereStorageDrsVMConfigUpdate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Beginning update", resourceVSphereStorageDrsVMConfigIDString(d))
-
-	if err := resourceVSphereStorageDrsVMConfigApplyUpdate(d, meta); err != nil {
-		return err
-	}
-
-	log.Printf("[DEBUG] %s: Update finished successfully", resourceVSphereStorageDrsVMConfigIDString(d))
-	return resourceVSphereStorageDrsVMConfigRead(d, meta)
-}
-
-func resourceVSphereStorageDrsVMConfigDelete(d *schema.ResourceData, meta interface{}) error {
-	resourceIDString := resourceVSphereStorageDrsVMConfigIDString(d)
-	log.Printf("[DEBUG] %s: Beginning delete", resourceIDString)
-
-	if err := resourceVSphereStorageDrsVMConfigApplyDelete(d, meta); err != nil {
-		return err
-	}
-
-	log.Printf("[DEBUG] %s: Deleted successfully", resourceIDString)
-	return nil
-}
-
-func resourceVSphereStorageDrsVMConfigImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	var data map[string]string
-	if err := json.Unmarshal([]byte(d.Id()), &data); err != nil {
-		return nil, err
-	}
-	podPath, ok := data["datastore_cluster_path"]
-	if !ok {
-		return nil, errors.New("missing datastore_cluster_path in input data")
-	}
-	vmPath, ok := data["virtual_machine_path"]
-	if !ok {
-		return nil, errors.New("missing virtual_machine_path in input data")
-	}
-
-	client := meta.(*VSphereClient).vimClient
-	if err := viapi.ValidateVirtualCenter(client); err != nil {
-		return nil, err
-	}
-
-	pod, err := storagepod.FromPath(client, podPath, nil)
-	if err != nil {
-		return nil, fmt.Errorf("cannot locate datastore cluster %q: %s", podPath, err)
-	}
-
-	vm, err := virtualmachine.FromPath(client, vmPath, nil)
-	if err != nil {
-		return nil, fmt.Errorf("cannot locate virtual machine %q: %s", vmPath, err)
-	}
-
-	id, err := resourceVSphereStorageDrsVMConfigFlattenID(pod, vm)
-	if err != nil {
-		return nil, fmt.Errorf("cannot compute ID of imported resource: %s", err)
-	}
-	d.SetId(id)
-	return []*schema.ResourceData{d}, nil
-}
-
-// resourceVSphereStorageDrsVMConfigApplyCreate processes the creation part of
-// resourceVSphereStorageDrsVMConfigCreate.
-func resourceVSphereStorageDrsVMConfigApplyCreate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Processing datastore cluster VM setting creation", resourceVSphereStorageDrsVMConfigIDString(d))
-	client := meta.(*VSphereClient).vimClient
-	if err := viapi.ValidateVirtualCenter(client); err != nil {
-		return err
-	}
-
-	pod, err := storagepod.FromID(client, d.Get("datastore_cluster_id").(string))
-	if err != nil {
-		return fmt.Errorf("cannot locate datastore cluster: %s", err)
-	}
-
-	vm, err := virtualmachine.FromUUID(client, d.Get("virtual_machine_id").(string))
-	if err != nil {
-		return fmt.Errorf("cannot locate virtual machine: %s", err)
 	}
 
 	spec := types.StorageDrsConfigSpec{
@@ -196,26 +98,57 @@ func resourceVSphereStorageDrsVMConfigApplyCreate(d *schema.ResourceData, meta i
 	}
 	d.SetId(id)
 
-	return nil
+	log.Printf("[DEBUG] %s: Create finished successfully", resourceVSphereStorageDrsVMConfigIDString(d))
+	return resourceVSphereStorageDrsVMConfigRead(d, meta)
 }
 
-// resourceVSphereStorageDrsVMConfigApplyUpdate processes the creation part of
-// resourceVSphereStorageDrsVMConfigUpdate.
-func resourceVSphereStorageDrsVMConfigApplyUpdate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Processing datastore cluster VM setting updates", resourceVSphereStorageDrsVMConfigIDString(d))
-	client := meta.(*VSphereClient).vimClient
-	if err := viapi.ValidateVirtualCenter(client); err != nil {
+func resourceVSphereStorageDrsVMConfigRead(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning read", resourceVSphereStorageDrsVMConfigIDString(d))
+
+	pod, vm, err := resourceVSphereStorageDrsVMConfigObjects(d, meta)
+	if err != nil {
 		return err
 	}
 
-	pod, err := storagepod.FromID(client, d.Get("datastore_cluster_id").(string))
+	props, err := storagepod.Properties(pod)
 	if err != nil {
-		return fmt.Errorf("cannot locate datastore cluster: %s", err)
+		return fmt.Errorf("error fetching datastore cluster properties: %s", err)
 	}
 
-	vm, err := virtualmachine.FromUUID(client, d.Get("virtual_machine_id").(string))
+	var info *types.StorageDrsVmConfigInfo
+
+	for _, ci := range props.PodStorageDrsEntry.StorageDrsConfig.VmConfig {
+		if *ci.Vm == vm.Reference() {
+			log.Printf("[DEBUG] %s: Found storage DRS config info for pod/VM combination", resourceVSphereStorageDrsVMConfigIDString(d))
+			info = &ci
+		}
+	}
+
+	if info == nil {
+		log.Printf("[DEBUG] %s: No storage DRS config info found for pod/VM combination", resourceVSphereStorageDrsVMConfigIDString(d))
+		d.SetId("")
+		return nil
+	}
+
+	if err := flattenStorageDrsVMConfigInfo(d, info); err != nil {
+		return err
+	}
+
+	log.Printf("[DEBUG] %s: Read completed successfully", resourceVSphereStorageDrsVMConfigIDString(d))
+	return nil
+}
+
+func resourceVSphereStorageDrsVMConfigUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning update", resourceVSphereStorageDrsVMConfigIDString(d))
+
+	client, err := resourceVSphereStorageDrsVMConfigClient(meta)
 	if err != nil {
-		return fmt.Errorf("cannot locate virtual machine: %s", err)
+		return err
+	}
+
+	pod, vm, err := resourceVSphereStorageDrsVMConfigObjects(d, meta)
+	if err != nil {
+		return err
 	}
 
 	spec := types.StorageDrsConfigSpec{
@@ -233,26 +166,22 @@ func resourceVSphereStorageDrsVMConfigApplyUpdate(d *schema.ResourceData, meta i
 		return err
 	}
 
-	return nil
+	log.Printf("[DEBUG] %s: Update finished successfully", resourceVSphereStorageDrsVMConfigIDString(d))
+	return resourceVSphereStorageDrsVMConfigRead(d, meta)
 }
 
-// resourceVSphereStorageDrsVMConfigApplyDelete processes the creation part of
-// resourceVSphereStorageDrsVMConfigDelete.
-func resourceVSphereStorageDrsVMConfigApplyDelete(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Processing datastore cluster VM setting removal", resourceVSphereStorageDrsVMConfigIDString(d))
-	client := meta.(*VSphereClient).vimClient
-	if err := viapi.ValidateVirtualCenter(client); err != nil {
+func resourceVSphereStorageDrsVMConfigDelete(d *schema.ResourceData, meta interface{}) error {
+	resourceIDString := resourceVSphereStorageDrsVMConfigIDString(d)
+	log.Printf("[DEBUG] %s: Beginning delete", resourceIDString)
+
+	client, err := resourceVSphereStorageDrsVMConfigClient(meta)
+	if err != nil {
 		return err
 	}
 
-	pod, err := storagepod.FromID(client, d.Get("datastore_cluster_id").(string))
+	pod, vm, err := resourceVSphereStorageDrsVMConfigObjects(d, meta)
 	if err != nil {
-		return fmt.Errorf("cannot locate datastore cluster: %s", err)
-	}
-
-	vm, err := virtualmachine.FromUUID(client, d.Get("virtual_machine_id").(string))
-	if err != nil {
-		return fmt.Errorf("cannot locate virtual machine: %s", err)
+		return err
 	}
 
 	spec := types.StorageDrsConfigSpec{
@@ -272,48 +201,45 @@ func resourceVSphereStorageDrsVMConfigApplyDelete(d *schema.ResourceData, meta i
 
 	d.SetId("")
 
+	log.Printf("[DEBUG] %s: Deleted successfully", resourceIDString)
 	return nil
 }
 
-// resourceVSphereStorageDrsVMConfigGetEntry gets the StorageDrsVmConfigInfo
-// entry for the specific StoragePod/VM combination. nil is returned if the
-// entry was not found.
-func resourceVSphereStorageDrsVMConfigGetEntry(d structure.ResourceIDStringer, meta interface{}) (*types.StorageDrsVmConfigInfo, error) {
-	log.Printf("[DEBUG] %s: Fetching config info object from resource ID", resourceVSphereStorageDrsVMConfigIDString(d))
-	client := meta.(*VSphereClient).vimClient
-	if err := viapi.ValidateVirtualCenter(client); err != nil {
+func resourceVSphereStorageDrsVMConfigImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	var data map[string]string
+	if err := json.Unmarshal([]byte(d.Id()), &data); err != nil {
+		return nil, err
+	}
+	podPath, ok := data["datastore_cluster_path"]
+	if !ok {
+		return nil, errors.New("missing datastore_cluster_path in input data")
+	}
+	vmPath, ok := data["virtual_machine_path"]
+	if !ok {
+		return nil, errors.New("missing virtual_machine_path in input data")
+	}
+
+	client, err := resourceVSphereStorageDrsVMConfigClient(meta)
+	if err != nil {
 		return nil, err
 	}
 
-	podID, vmID, err := resourceVSphereStorageDrsVMConfigParseID(d.Id())
+	pod, err := storagepod.FromPath(client, podPath, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot locate datastore cluster %q: %s", podPath, err)
 	}
 
-	pod, err := storagepod.FromID(client, podID)
+	vm, err := virtualmachine.FromPath(client, vmPath, nil)
 	if err != nil {
-		return nil, fmt.Errorf("cannot locate datastore cluster: %s", err)
+		return nil, fmt.Errorf("cannot locate virtual machine %q: %s", vmPath, err)
 	}
 
-	vm, err := virtualmachine.FromUUID(client, vmID)
+	id, err := resourceVSphereStorageDrsVMConfigFlattenID(pod, vm)
 	if err != nil {
-		return nil, fmt.Errorf("cannot locate virtual machine: %s", err)
+		return nil, fmt.Errorf("cannot compute ID of imported resource: %s", err)
 	}
-
-	props, err := storagepod.Properties(pod)
-	if err != nil {
-		return nil, fmt.Errorf("error fetching datastore cluster properties: %s", err)
-	}
-
-	for _, info := range props.PodStorageDrsEntry.StorageDrsConfig.VmConfig {
-		if *info.Vm == vm.Reference() {
-			log.Printf("[DEBUG] %s: Found storage DRS config info for pod/VM combination", resourceVSphereStorageDrsVMConfigIDString(d))
-			return &info, nil
-		}
-	}
-
-	log.Printf("[DEBUG] %s: No storage DRS config info found for pod/VM combination", resourceVSphereStorageDrsVMConfigIDString(d))
-	return nil, nil
+	d.SetId(id)
+	return []*schema.ResourceData{d}, nil
 }
 
 // expandStorageDrsVMConfigInfo reads certain ResourceData keys and returns a
@@ -374,4 +300,77 @@ func resourceVSphereStorageDrsVMConfigParseID(id string) (string, string, error)
 		return "", "", fmt.Errorf("bad ID %q", id)
 	}
 	return parts[0], parts[1], nil
+}
+
+// resourceVSphereStorageDrsVMConfigObjects handles the fetching of the
+// datastore cluster and virtual machine depending on what attributes are
+// available:
+// * If the resource ID is available, the data is derived from the ID.
+// * If not, it's derived from the datastore_cluster_id and virtual_machine_id
+// attributes.
+func resourceVSphereStorageDrsVMConfigObjects(
+	d *schema.ResourceData,
+	meta interface{},
+) (*object.StoragePod, *object.VirtualMachine, error) {
+	if d.Id() != "" {
+		return resourceVSphereStorageDrsVMConfigObjectsFromID(d, meta)
+	}
+	return resourceVSphereStorageDrsVMConfigObjectsFromAttributes(d, meta)
+}
+
+func resourceVSphereStorageDrsVMConfigObjectsFromAttributes(
+	d *schema.ResourceData,
+	meta interface{},
+) (*object.StoragePod, *object.VirtualMachine, error) {
+	return resourceVSphereStorageDrsVMConfigFetchObjects(
+		meta,
+		d.Get("datastore_cluster_id").(string),
+		d.Get("virtual_machine_id").(string),
+	)
+}
+
+func resourceVSphereStorageDrsVMConfigObjectsFromID(
+	d structure.ResourceIDStringer,
+	meta interface{},
+) (*object.StoragePod, *object.VirtualMachine, error) {
+	// Note that this function uses structure.ResourceIDStringer to satisfy
+	// interfacer. Adding exceptions in the comments does not seem to work.
+	// Change this back to ResourceData if it's needed in the future.
+	podID, vmID, err := resourceVSphereStorageDrsVMConfigParseID(d.Id())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return resourceVSphereStorageDrsVMConfigFetchObjects(meta, podID, vmID)
+}
+
+func resourceVSphereStorageDrsVMConfigFetchObjects(
+	meta interface{},
+	podID string,
+	vmID string,
+) (*object.StoragePod, *object.VirtualMachine, error) {
+	client, err := resourceVSphereStorageDrsVMConfigClient(meta)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pod, err := storagepod.FromID(client, podID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot locate datastore cluster: %s", err)
+	}
+
+	vm, err := virtualmachine.FromUUID(client, vmID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot locate virtual machine: %s", err)
+	}
+
+	return pod, vm, nil
+}
+
+func resourceVSphereStorageDrsVMConfigClient(meta interface{}) (*govmomi.Client, error) {
+	client := meta.(*VSphereClient).vimClient
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
+		return nil, err
+	}
+	return client, nil
 }
