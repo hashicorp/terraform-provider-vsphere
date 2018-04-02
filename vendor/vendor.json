@@ -556,6 +556,12 @@
 			"revisionTime": "2017-12-11T22:18:55Z"
 		},
 		{
+			"checksumSHA1": "ImyqbHM/xe3eAT2moIjLI8ksuks=",
+			"path": "github.com/hashicorp/terraform/helper/pathorcontents",
+			"revision": "db5ed5170391380c9cfa54adeffac135e7011102",
+			"revisionTime": "2018-04-02T14:32:04Z"
+		},
+		{
 			"checksumSHA1": "q8/06zMLNOv3LhwRqaK4yTIKKJk=",
 			"path": "github.com/hashicorp/terraform/helper/resource",
 			"revision": "85119304b3e9c74347af627aac005dfd951365ee",
@@ -788,6 +794,12 @@
 			"path": "github.com/terraform-providers/terraform-provider-random/random",
 			"revision": "e6526ec8369cf8a96edee186f9e427dd9a9fb0b2",
 			"revisionTime": "2017-12-07T14:23:19Z"
+		},
+		{
+			"checksumSHA1": "EUR26b2t3XDPxiEMwDBtn8Ajp8A=",
+			"path": "github.com/terraform-providers/terraform-provider-template/template",
+			"revision": "c28e0cec248a704ddbd5127bf47358609f1491aa",
+			"revisionTime": "2018-02-21T20:54:09Z"
 		},
 		{
 			"checksumSHA1": "qgMa75aMGbkFY0jIqqqgVnCUoNA=",
