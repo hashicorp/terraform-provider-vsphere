@@ -705,12 +705,12 @@ func testGetDatastoreClusterSDRSVMConfig(s *terraform.State, resourceName string
 
 	pod, err := storagepod.FromID(vars.client, podID)
 	if err != nil {
-		return nil, fmt.Errorf("cannot locate datastore cluster: %s", err)
+		return nil, err
 	}
 
 	vm, err := virtualmachine.FromUUID(vars.client, vmID)
 	if err != nil {
-		return nil, fmt.Errorf("cannot locate virtual machine: %s", err)
+		return nil, err
 	}
 
 	return resourceVSphereStorageDrsVMConfigFindEntry(pod, vm)

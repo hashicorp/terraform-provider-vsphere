@@ -7,9 +7,11 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -84,6 +86,13 @@ func testAccResourceVSphereStorageDrsVMConfigExists(expected bool) resource.Test
 	return func(s *terraform.State) error {
 		info, err := testGetDatastoreClusterSDRSVMConfig(s, "drs_vm_config")
 		if err != nil {
+			if viapi.IsManagedObjectNotFoundError(err) && expected == false {
+				// This is not necessarily a missing override, but more than likely a
+				// missing datastore cluster, which happens during destroy as the
+				// dependent resources will be missing as well, so want to treat this
+				// as a deleted override as well.
+				return nil
+			}
 			return err
 		}
 
@@ -117,10 +126,11 @@ func testAccResourceVSphereStorageDrsVMConfigMatch(behavior string, enabled, int
 			Behavior:        behavior,
 			Enabled:         enabled,
 			IntraVmAffinity: intraVMAffinity,
+			Vm:              actual.Vm,
 		}
 
 		if !reflect.DeepEqual(expected, actual) {
-			return fmt.Errorf("expected %#v, got %#v", expected, actual)
+			return spew.Errorf("expected %#v got %#v", expected, actual)
 		}
 
 		return nil
