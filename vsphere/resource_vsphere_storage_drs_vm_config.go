@@ -51,7 +51,6 @@ func resourceVSphereStorageDrsVMConfig() *schema.Resource {
 			"sdrs_automation_level": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Default:      string(types.StorageDrsPodConfigInfoBehaviorAutomated),
 				Description:  "Overrides any Storage DRS automation levels for this virtual machine.",
 				ValidateFunc: validation.StringInSlice(storageDrsPodConfigInfoBehaviorAllowedValues, false),
 			},
@@ -110,22 +109,13 @@ func resourceVSphereStorageDrsVMConfigRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	props, err := storagepod.Properties(pod)
+	info, err := resourceVSphereStorageDrsVMConfigFindEntry(pod, vm)
 	if err != nil {
-		return fmt.Errorf("error fetching datastore cluster properties: %s", err)
-	}
-
-	var info *types.StorageDrsVmConfigInfo
-
-	for _, ci := range props.PodStorageDrsEntry.StorageDrsConfig.VmConfig {
-		if *ci.Vm == vm.Reference() {
-			log.Printf("[DEBUG] %s: Found storage DRS config info for pod/VM combination", resourceVSphereStorageDrsVMConfigIDString(d))
-			info = &ci
-		}
+		return err
 	}
 
 	if info == nil {
-		log.Printf("[DEBUG] %s: No storage DRS config info found for pod/VM combination", resourceVSphereStorageDrsVMConfigIDString(d))
+		// The configuration is missing, blank out the ID so it can be re-created.
 		d.SetId("")
 		return nil
 	}
@@ -300,6 +290,29 @@ func resourceVSphereStorageDrsVMConfigParseID(id string) (string, string, error)
 		return "", "", fmt.Errorf("bad ID %q", id)
 	}
 	return parts[0], parts[1], nil
+}
+
+// resourceVSphereStorageDrsVMConfigFindEntry attempts to locate an existing VM
+// config in a Storage Pod's DRS configuration. It's used by the resource's
+// read functionality and tests. nil is returned if the entry cannot be found.
+func resourceVSphereStorageDrsVMConfigFindEntry(
+	pod *object.StoragePod,
+	vm *object.VirtualMachine,
+) (*types.StorageDrsVmConfigInfo, error) {
+	props, err := storagepod.Properties(pod)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching datastore cluster properties: %s", err)
+	}
+
+	for _, info := range props.PodStorageDrsEntry.StorageDrsConfig.VmConfig {
+		if *info.Vm == vm.Reference() {
+			log.Printf("[DEBUG] Found storage DRS config info for VM %q in datastore cluster %q", vm.Name(), pod.Name())
+			return &info, nil
+		}
+	}
+
+	log.Printf("[DEBUG] No storage DRS config info found for VM %q in datastore cluster %q", vm.Name(), pod.Name())
+	return nil, nil
 }
 
 // resourceVSphereStorageDrsVMConfigObjects handles the fetching of the
