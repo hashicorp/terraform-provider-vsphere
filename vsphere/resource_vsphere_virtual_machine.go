@@ -631,9 +631,10 @@ func datastoreClusterDiffOperation(d *schema.ResourceDiff, client *govmomi.Clien
 	podID, podOk := d.GetOk("datastore_cluster_id")
 	podKnown := d.NewValueKnown("datastore_cluster_id")
 	dsID, dsOk := d.GetOk("datastore_id")
+	dsKnown := d.NewValueKnown("datastore_id")
 
 	switch {
-	case podKnown && !podOk && !dsOk:
+	case podKnown && dsKnown && !podOk && !dsOk:
 		// No root-level datastore option was available. This can happen on new
 		// configs where the user has not supplied either option, so we need to
 		// block this.
