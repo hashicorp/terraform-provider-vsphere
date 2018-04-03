@@ -786,11 +786,12 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 // DiskMigrateRelocateOperation assembles the
 // VirtualMachineRelocateSpecDiskLocator slice for a virtual machine migration
 // operation, otherwise known as storage vMotion.
-func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) ([]types.VirtualMachineRelocateSpecDiskLocator, error) {
+func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) ([]types.VirtualMachineRelocateSpecDiskLocator, bool, error) {
 	log.Printf("[DEBUG] DiskMigrateRelocateOperation: Generating any necessary disk relocate specs")
 	ods, nds := d.GetChange(subresourceTypeDisk)
 
 	var relocators []types.VirtualMachineRelocateSpecDiskLocator
+	var relocateOK bool
 
 	// We are only concerned with resources that would normally be updated, as
 	// incoming or outgoing disks obviously won't need migrating. Hence, this is
@@ -800,7 +801,7 @@ func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l o
 		var name string
 		var err error
 		if name, err = diskLabelOrName(nm); err != nil {
-			return nil, fmt.Errorf("disk.%d: %s", ni, err)
+			return nil, false, fmt.Errorf("disk.%d: %s", ni, err)
 		}
 		if name == diskDeletedName || name == diskDetachedName {
 			continue
@@ -812,6 +813,10 @@ func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l o
 				if nm["datastore_id"] == om["datastore_id"] && !d.HasChange("datastore_id") {
 					break
 				}
+				// If we got this far, some sort of datastore migration will be
+				// necessary. Flag this now.
+				relocateOK = true
+
 				// A disk locator is only useful if a target datastore is available. If we
 				// don't have a datastore specified (ie: when Storage DRS is in use), then
 				// we just need to skip this disk. The disk will be migrated properly
@@ -822,7 +827,7 @@ func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l o
 				r := NewDiskSubresource(c, d, nm, om, ni)
 				relocator, err := r.Relocate(l, false)
 				if err != nil {
-					return nil, fmt.Errorf("%s: %s", r.Addr(), err)
+					return nil, false, fmt.Errorf("%s: %s", r.Addr(), err)
 				}
 				if d.Get("datastore_id").(string) == relocator.Datastore.Value {
 					log.Printf("[DEBUG] %s: Datastore in spec is same as default, dropping in favor of implicit relocation", r.Addr())
@@ -833,9 +838,14 @@ func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l o
 		}
 	}
 
+	if !relocateOK {
+		log.Printf("[DEBUG] DiskMigrateRelocateOperation: Disk relocation not necessary")
+		return nil, false, nil
+	}
+
 	log.Printf("[DEBUG] DiskMigrateRelocateOperation: Disk relocator list: %s", diskRelocateListString(relocators))
 	log.Printf("[DEBUG] DiskMigrateRelocateOperation: Disk relocator generation complete")
-	return relocators, nil
+	return relocators, true, nil
 }
 
 // DiskCloneRelocateOperation assembles the

@@ -1114,12 +1114,12 @@ func resourceVSphereVirtualMachineUpdateLocation(d *schema.ResourceData, meta in
 		return fmt.Errorf("error fetching VM properties: %s", err)
 	}
 	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
-	relocators, err := virtualdevice.DiskMigrateRelocateOperation(d, client, devices)
+	relocators, diskRelocateOK, err := virtualdevice.DiskMigrateRelocateOperation(d, client, devices)
 	if err != nil {
 		return err
 	}
 	// If we don't have any changes, stop here.
-	if !d.HasChange("resource_pool_id") && !d.HasChange("host_system_id") && !d.HasChange("datastore_cluster_id") && !d.HasChange("datastore_id") && len(relocators) < 1 {
+	if !d.HasChange("resource_pool_id") && !d.HasChange("host_system_id") && !d.HasChange("datastore_id") && !diskRelocateOK {
 		log.Printf("[DEBUG] %s: No migration operations found", resourceVSphereVirtualMachineIDString(d))
 		return nil
 	}
