@@ -3570,6 +3570,23 @@ data "vsphere_datastore" "cdrom_datastore" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
+data "template_file" "config_data" {
+	template = <<EOS
+#!/bin/sh
+cat > /etc/network/interfaces << EOT
+auto lo
+iface lo inet loopback
+
+auto ens192
+iface ens192 inet static
+    address ${var.ipv4_address}
+    netmask ${cidrnetmask("${var.ipv4_address}/${var.ipv4_netmask}")}
+    gateway ${var.ipv4_gateway}
+EOT
+reboot
+EOS
+}
+
 resource "vsphere_virtual_machine" "vm" {
   name             = "terraform-test"
   resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
@@ -3598,6 +3615,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   vapp {
     properties {
+      "user-data" = "${base64encode(data.template_file.config_data.rendered)}"
       "hostname" = "custom-hostname"
     }
   }
@@ -3610,7 +3628,7 @@ resource "vsphere_virtual_machine" "vm" {
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
-		os.Getenv("VSPHERE_NETWORK_LABEL_DHCP"),
+		os.Getenv("VSPHERE_NETWORK_LABEL"),
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
@@ -3689,6 +3707,23 @@ data "vsphere_virtual_machine" "template" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
+data "template_file" "config_data" {
+	template = <<EOS
+#!/bin/sh
+cat > /etc/network/interfaces << EOT
+auto lo
+iface lo inet loopback
+
+auto ens192
+iface ens192 inet static
+    address ${var.ipv4_address}
+    netmask ${cidrnetmask("${var.ipv4_address}/${var.ipv4_netmask}")}
+    gateway ${var.ipv4_gateway}
+EOT
+reboot
+EOS
+}
+
 resource "vsphere_virtual_machine" "vm" {
   name             = "terraform-test"
   resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
@@ -3712,6 +3747,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   vapp {
     properties {
+      "user-data" = "${base64encode(data.template_file.config_data.rendered)}"
       "hostname" = "custom-hostname"
     }
   }
@@ -3724,7 +3760,7 @@ resource "vsphere_virtual_machine" "vm" {
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
-		os.Getenv("VSPHERE_NETWORK_LABEL_DHCP"),
+		os.Getenv("VSPHERE_NETWORK_LABEL"),
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
@@ -3801,6 +3837,23 @@ data "vsphere_virtual_machine" "template" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
+data "template_file" "config_data" {
+	template = <<EOS
+#!/bin/sh
+cat > /etc/network/interfaces << EOT
+auto lo
+iface lo inet loopback
+
+auto ens192
+iface ens192 inet static
+    address ${var.ipv4_address}
+    netmask ${cidrnetmask("${var.ipv4_address}/${var.ipv4_netmask}")}
+    gateway ${var.ipv4_gateway}
+EOT
+reboot
+EOS
+}
+
 resource "vsphere_virtual_machine" "vm" {
   name             = "terraform-test"
   resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
@@ -3828,6 +3881,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   vapp {
     properties {
+      "user-data" = "${base64encode(data.template_file.config_data.rendered)}"
       "hostname" = "custom-hostname"
     }
   }
@@ -3840,7 +3894,7 @@ resource "vsphere_virtual_machine" "vm" {
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
-		os.Getenv("VSPHERE_NETWORK_LABEL_DHCP"),
+		os.Getenv("VSPHERE_NETWORK_LABEL"),
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
