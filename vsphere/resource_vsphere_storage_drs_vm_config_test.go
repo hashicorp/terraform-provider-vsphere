@@ -1,6 +1,7 @@
 package vsphere
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -49,6 +50,83 @@ func TestAccResourceVSphereStorageDrsVMConfig_overrides(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereStorageDrsVMConfigExists(true),
 					testAccResourceVSphereStorageDrsVMConfigMatch("manual", nil, structure.BoolPtr(false)),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereStorageDrsVMConfig_update(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereStorageDrsVMConfigPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereStorageDrsVMConfigExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereStorageDrsVMConfigConfigOverrides(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereStorageDrsVMConfigExists(true),
+					testAccResourceVSphereStorageDrsVMConfigMatch("manual", nil, structure.BoolPtr(false)),
+				),
+			},
+			{
+				Config: testAccResourceVSphereStorageDrsVMConfigConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereStorageDrsVMConfigExists(true),
+					testAccResourceVSphereStorageDrsVMConfigMatch("", structure.BoolPtr(false), nil),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereStorageDrsVMConfig_import(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereStorageDrsVMConfigPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereStorageDrsVMConfigExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereStorageDrsVMConfigConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereStorageDrsVMConfigExists(true),
+					testAccResourceVSphereStorageDrsVMConfigMatch("", structure.BoolPtr(false), nil),
+				),
+			},
+			{
+				ResourceName:      "vsphere_storage_drs_vm_config.drs_vm_config",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					pod, err := testGetDatastoreCluster(s, "datastore_cluster")
+					if err != nil {
+						return "", err
+					}
+					vm, err := testGetVirtualMachine(s, "vm")
+					if err != nil {
+						return "", err
+					}
+
+					m := make(map[string]string)
+					m["datastore_cluster_path"] = pod.InventoryPath
+					m["virtual_machine_path"] = vm.InventoryPath
+					b, err := json.Marshal(m)
+					if err != nil {
+						return "", err
+					}
+
+					return string(b), nil
+				},
+				Config: testAccResourceVSphereStorageDrsVMConfigConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereStorageDrsVMConfigExists(true),
+					testAccResourceVSphereStorageDrsVMConfigMatch("", structure.BoolPtr(false), nil),
 				),
 			},
 		},

@@ -120,7 +120,22 @@ func resourceVSphereStorageDrsVMConfigRead(d *schema.ResourceData, meta interfac
 		return nil
 	}
 
-	if err := flattenStorageDrsVMConfigInfo(d, info); err != nil {
+	// Save the datastore_cluster_id and virtual_machine_id here. These are
+	// ForceNew, but we set these for completeness on import so that if the wrong
+	// datastore cluster/VM combo was used, it will be noted.
+	if err = d.Set("datastore_cluster_id", pod.Reference().Value); err != nil {
+		return err
+	}
+
+	props, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return fmt.Errorf("error getting properties of virtual machine: %s", err)
+	}
+	if err = d.Set("virtual_machine_id", props.Config.Uuid); err != nil {
+		return err
+	}
+
+	if err = flattenStorageDrsVMConfigInfo(d, info); err != nil {
 		return err
 	}
 

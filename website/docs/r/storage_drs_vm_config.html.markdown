@@ -111,7 +111,7 @@ The following arguments are supported:
 [tf-vsphere-datastore-cluster-sdrs-levels]: /docs/providers/vsphere/r/datastore_cluster.html#storage-drs-automation-options
 
 * `sdrs_intra_vm_affinity` - (Optional) Overrides the intra-VM affinity setting
-  for this virtual machine. When true, all disks for this virtual machine will
+  for this virtual machine. When `true`, all disks for this virtual machine will
   be kept on the same datastore. When not specified, the datastore cluster's
   settings are used.
 
