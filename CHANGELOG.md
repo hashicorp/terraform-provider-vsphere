@@ -12,6 +12,11 @@ IMPROVEMENTS:
   at once. See the [provider
   documentation](https://www.terraform.io/docs/providers/vsphere/index.html) for
   more details. [GH-422]
+* `resource/vsphere_virtual_machine`: Now supports datastore clusters. Virtual
+  machines placed in a datastore cluster will use Storage DRS recommendations
+  for initial placement, virtual disk creation, and migration between datastore
+  clusters. Migrations made by Storage DRS outside of Terraform will no longer
+  create diffs when datastore clusters are in use. [GH-447]
 * `resource/vsphere_nas_datastore`: Now supports datastore clusters. [GH-439]
 * `resource/vsphere_vmfs_datastore`: Now supports datastore clusters. [GH-439]
 * `resource/vsphere_virtual_machine`: Added support for client mapped CDROM
