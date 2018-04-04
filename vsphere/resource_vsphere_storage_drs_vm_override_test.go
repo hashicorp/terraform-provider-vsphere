@@ -49,7 +49,7 @@ func TestAccResourceVSphereStorageDrsVMOverride_overrides(t *testing.T) {
 				Config: testAccResourceVSphereStorageDrsVMOverrideConfigOverrides(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereStorageDrsVMOverrideExists(true),
-					testAccResourceVSphereStorageDrsVMOverrideMatch("manual", nil, structure.BoolPtr(false)),
+					testAccResourceVSphereStorageDrsVMOverrideMatch("automated", nil, structure.BoolPtr(false)),
 				),
 			},
 		},
@@ -407,7 +407,7 @@ resource "vsphere_virtual_machine" "vm" {
 resource "vsphere_storage_drs_vm_override" "drs_vm_override" {
   datastore_cluster_id   = "${vsphere_datastore_cluster.datastore_cluster.id}"
   virtual_machine_id     = "${vsphere_virtual_machine.vm.id}"
-  sdrs_automation_level  = "manual"
+  sdrs_automation_level  = "automated"
   sdrs_intra_vm_affinity = false
 }
 `,
