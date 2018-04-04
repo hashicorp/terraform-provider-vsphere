@@ -568,10 +568,10 @@
 			"revisionTime": "2017-12-11T22:18:55Z"
 		},
 		{
-			"checksumSHA1": "VP/4uFbLZK6FIgb3MhQz98+Av2c=",
+			"checksumSHA1": "/rNstiXuXL6pz1yr6rU0fQlN1Xk=",
 			"path": "github.com/hashicorp/terraform/helper/schema",
-			"revision": "85119304b3e9c74347af627aac005dfd951365ee",
-			"revisionTime": "2017-12-11T22:18:55Z"
+			"revision": "fdfe89ed1d296bf7ca99fad0f4af1e5fbd7446b1",
+			"revisionTime": "2018-03-29T22:13:26Z"
 		},
 		{
 			"checksumSHA1": "1yCGh/Wl4H4ODBBRmIRFcV025b0=",

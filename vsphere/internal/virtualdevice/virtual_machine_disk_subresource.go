@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/mitchellh/copystructure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
@@ -37,6 +38,10 @@ documentation for the label attribute at:
 
 https://www.terraform.io/docs/providers/vsphere/r/virtual_machine.html#label
 `
+
+// diskDatastoreComputedName is a friendly display for disks with datastores
+// marked as computed. This happens in datastore cluster workflows.
+const diskDatastoreComputedName = "<computed>"
 
 // diskDeletedName is a placeholder name for deleted disks. This is to assist
 // with user-friendliness in the diff.
@@ -71,9 +76,10 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 	s := map[string]*schema.Schema{
 		// VirtualDiskFlatVer2BackingInfo
 		"datastore_id": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			Description: "The datastore ID for this virtual disk, if different than the virtual machine.",
+			Type:          schema.TypeString,
+			Optional:      true,
+			ConflictsWith: []string{"datastore_cluster_id"},
+			Description:   "The datastore ID for this virtual disk, if different than the virtual machine.",
 		},
 		"name": {
 			Type:        schema.TypeString,
@@ -88,10 +94,11 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 			Deprecated: diskNameDeprecationNotice,
 		},
 		"path": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			Computed:    true,
-			Description: "The full path of the virtual disk. This can only be provided if attach is set to true, otherwise it is a read-only value.",
+			Type:          schema.TypeString,
+			Optional:      true,
+			Computed:      true,
+			ConflictsWith: []string{"datastore_cluster_id"},
+			Description:   "The full path of the virtual disk. This can only be provided if attach is set to true, otherwise it is a read-only value.",
 			ValidateFunc: func(v interface{}, _ string) ([]string, []error) {
 				if path.Ext(v.(string)) != ".vmdk" {
 					return nil, []error{fmt.Errorf("disk path %s must end in .vmdk", v.(string))}
@@ -201,10 +208,11 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 			Description: "Set to true to keep the underlying VMDK file when removing this virtual disk from configuration.",
 		},
 		"attach": {
-			Type:        schema.TypeBool,
-			Optional:    true,
-			Default:     false,
-			Description: "If this is true, the disk is attached instead of created. Implies keep_on_remove.",
+			Type:          schema.TypeBool,
+			Optional:      true,
+			Default:       false,
+			ConflictsWith: []string{"datastore_cluster_id"},
+			Description:   "If this is true, the disk is attached instead of created. Implies keep_on_remove.",
 		},
 	}
 	structure.MergeSchema(s, subresourceSchema())
@@ -589,7 +597,6 @@ func DiskDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 		}
 		names[name] = struct{}{}
 		units[nm["unit_number"].(int)] = struct{}{}
-		// Run the resource through a pre-validate function. This does some single-value validation that is required before
 	}
 	if _, ok := units[0]; !ok {
 		return errors.New("at least one disk must have a unit_number of 0")
@@ -779,11 +786,12 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 // DiskMigrateRelocateOperation assembles the
 // VirtualMachineRelocateSpecDiskLocator slice for a virtual machine migration
 // operation, otherwise known as storage vMotion.
-func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) ([]types.VirtualMachineRelocateSpecDiskLocator, error) {
+func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) ([]types.VirtualMachineRelocateSpecDiskLocator, bool, error) {
 	log.Printf("[DEBUG] DiskMigrateRelocateOperation: Generating any necessary disk relocate specs")
 	ods, nds := d.GetChange(subresourceTypeDisk)
 
 	var relocators []types.VirtualMachineRelocateSpecDiskLocator
+	var relocateOK bool
 
 	// We are only concerned with resources that would normally be updated, as
 	// incoming or outgoing disks obviously won't need migrating. Hence, this is
@@ -793,7 +801,7 @@ func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l o
 		var name string
 		var err error
 		if name, err = diskLabelOrName(nm); err != nil {
-			return nil, fmt.Errorf("disk.%d: %s", ni, err)
+			return nil, false, fmt.Errorf("disk.%d: %s", ni, err)
 		}
 		if name == diskDeletedName || name == diskDetachedName {
 			continue
@@ -805,10 +813,21 @@ func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l o
 				if nm["datastore_id"] == om["datastore_id"] && !d.HasChange("datastore_id") {
 					break
 				}
+				// If we got this far, some sort of datastore migration will be
+				// necessary. Flag this now.
+				relocateOK = true
+
+				// A disk locator is only useful if a target datastore is available. If we
+				// don't have a datastore specified (ie: when Storage DRS is in use), then
+				// we just need to skip this disk. The disk will be migrated properly
+				// through the SDRS API.
+				if nm["datastore_id"] == "" || nm["datastore_id"] == diskDatastoreComputedName {
+					break
+				}
 				r := NewDiskSubresource(c, d, nm, om, ni)
 				relocator, err := r.Relocate(l, false)
 				if err != nil {
-					return nil, fmt.Errorf("%s: %s", r.Addr(), err)
+					return nil, false, fmt.Errorf("%s: %s", r.Addr(), err)
 				}
 				if d.Get("datastore_id").(string) == relocator.Datastore.Value {
 					log.Printf("[DEBUG] %s: Datastore in spec is same as default, dropping in favor of implicit relocation", r.Addr())
@@ -819,9 +838,14 @@ func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l o
 		}
 	}
 
+	if !relocateOK {
+		log.Printf("[DEBUG] DiskMigrateRelocateOperation: Disk relocation not necessary")
+		return nil, false, nil
+	}
+
 	log.Printf("[DEBUG] DiskMigrateRelocateOperation: Disk relocator list: %s", diskRelocateListString(relocators))
 	log.Printf("[DEBUG] DiskMigrateRelocateOperation: Disk relocator generation complete")
-	return relocators, nil
+	return relocators, true, nil
 }
 
 // DiskCloneRelocateOperation assembles the
@@ -869,6 +893,14 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 			return nil, fmt.Errorf("error computing device address: %s", err)
 		}
 		r := NewDiskSubresource(c, d, m, nil, i)
+		// A disk locator is only useful if a target datastore is available. If we
+		// don't have a datastore specified (ie: when Storage DRS is in use), then
+		// we just need to skip this disk. The disk will be migrated properly
+		// through the SDRS API.
+		if dsID := r.Get("datastore_id"); dsID == "" || dsID == diskDatastoreComputedName {
+			continue
+		}
+		// Otherwise, proceed with generating and appending the locator.
 		relocator, err := r.Relocate(l, true)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -1353,10 +1385,16 @@ func (r *DiskSubresource) Diff() error {
 			// full storage vMotion no-op, an implicit migration, and a migration
 			// where we will need to generate a relocate spec for the individual disk
 			// to ensure it stays at a datastore it might be pinned on.
-			r.Set("datastore_id", r.rdd.Get("datastore_id"))
+			dsID := r.rdd.Get("datastore_id").(string)
+			if dsID == "" {
+				r.Set("datastore_id", diskDatastoreComputedName)
+			} else {
+				r.Set("datastore_id", dsID)
+			}
 		default:
-			odsid, _ := r.GetChange("datastore_id")
-			r.Set("datastore_id", odsid)
+			if err := r.normalizeDiskDatastore(); err != nil {
+				return err
+			}
 		}
 	}
 	// Preserve the share value if we don't have custom shares set
@@ -1403,6 +1441,55 @@ func (r *DiskSubresource) Diff() error {
 	}
 
 	log.Printf("[DEBUG] %s: Diff validation and normalization complete", r)
+	return nil
+}
+
+// normalizeDiskDatastore normalizes the datastore_id field in a disk
+// sub-resource. If the VM has a datastore cluster defined, it checks to make
+// sure the datastore in the current state of the disk is a member of the
+// currently defined datastore cluster, and if it is not, it marks the disk as
+// computed so that it can be migrated back to the datastore cluster on the
+// next update.
+func (r *DiskSubresource) normalizeDiskDatastore() error {
+	podID := r.rdd.Get("datastore_cluster_id").(string)
+	dsID, _ := r.GetChange("datastore_id")
+
+	if podID == "" {
+		// We don't have a storage pod, just set the old ID and exit. We don't need
+		// to worry about whether or not the storage pod is computed here as if it
+		// is, the VM datastore will have been marked as computed and this function
+		// will have never ran.
+		r.Set("datastore_id", dsID)
+		return nil
+	}
+
+	log.Printf("[DEBUG] %s: Checking datastore cluster membership of disk", r)
+
+	pod, err := storagepod.FromID(r.client, podID)
+	if err != nil {
+		return fmt.Errorf("error fetching datastore cluster ID %q: %s", podID, err)
+	}
+
+	ds, err := datastore.FromID(r.client, dsID.(string))
+	if err != nil {
+		return fmt.Errorf("error fetching datastore ID %q: %s", dsID, err)
+	}
+
+	isMember, err := storagepod.IsMember(pod, ds)
+	if err != nil {
+		return fmt.Errorf("error checking storage pod membership: %s", err)
+	}
+	if !isMember {
+		log.Printf(
+			"[DEBUG] %s: Disk's datastore %q not a member of cluster %q, marking datastore ID as computed",
+			r,
+			ds.Name(),
+			pod.Name(),
+		)
+		dsID = diskDatastoreComputedName
+	}
+
+	r.Set("datastore_id", dsID)
 	return nil
 }
 
@@ -1555,14 +1642,29 @@ func (r *DiskSubresource) expandDiskSettings(disk *types.VirtualDisk) error {
 
 // createDisk performs all of the logic for a base virtual disk creation.
 func (r *DiskSubresource) createDisk(l object.VirtualDeviceList) (*types.VirtualDisk, error) {
+	disk := new(types.VirtualDisk)
+	disk.Backing = new(types.VirtualDiskFlatVer2BackingInfo)
+
 	dsID := r.Get("datastore_id").(string)
 	if dsID == "" {
 		// Default to the default datastore
 		dsID = r.rdd.Get("datastore_id").(string)
 	}
+	if dsID != "" {
+		if err := r.assignBackingInfo(disk, dsID); err != nil {
+			return nil, err
+		}
+	}
+
+	// Set a new device key for this device
+	disk.Key = l.NewKey()
+	return disk, nil
+}
+
+func (r *DiskSubresource) assignBackingInfo(disk *types.VirtualDisk, dsID string) error {
 	ds, err := datastore.FromID(r.client, dsID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	dsref := ds.Reference()
 
@@ -1574,19 +1676,11 @@ func (r *DiskSubresource) createDisk(l object.VirtualDeviceList) (*types.Virtual
 		diskName = diskPathOrName(r.data)
 	}
 
-	disk := &types.VirtualDisk{
-		VirtualDevice: types.VirtualDevice{
-			Backing: &types.VirtualDiskFlatVer2BackingInfo{
-				VirtualDeviceFileBackingInfo: types.VirtualDeviceFileBackingInfo{
-					FileName:  ds.Path(diskName),
-					Datastore: &dsref,
-				},
-			},
-		},
-	}
-	// Set a new device key for this device
-	disk.Key = l.NewKey()
-	return disk, nil
+	backing := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+	backing.FileName = ds.Path(diskName)
+	backing.Datastore = &dsref
+
+	return nil
 }
 
 // assignDisk takes a unit number and assigns it correctly to a controller on

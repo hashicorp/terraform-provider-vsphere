@@ -12,6 +12,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
@@ -64,9 +65,17 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Description: "The ID of a resource pool to put the virtual machine in.",
 		},
 		"datastore_id": {
-			Type:        schema.TypeString,
-			Required:    true,
-			Description: "The ID of the virtual machine's datastore. The virtual machine configuration is placed here, along with any virtual disks that are created without datastores.",
+			Type:          schema.TypeString,
+			Optional:      true,
+			Computed:      true,
+			ConflictsWith: []string{"datastore_cluster_id"},
+			Description:   "The ID of the virtual machine's datastore. The virtual machine configuration is placed here, along with any virtual disks that are created without datastores.",
+		},
+		"datastore_cluster_id": {
+			Type:          schema.TypeString,
+			Optional:      true,
+			ConflictsWith: []string{"datastore_id"},
+			Description:   "The ID of a datastore cluster to put the virtual machine in.",
 		},
 		"folder": {
 			Type:        schema.TypeString,
@@ -446,8 +455,13 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 				return fmt.Errorf("error shutting down virtual machine: %s", err)
 			}
 		}
-		// Perform updates
-		if err := virtualmachine.Reconfigure(vm, spec); err != nil {
+		// Perform updates.
+		if _, ok := d.GetOk("datastore_cluster_id"); ok {
+			err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, spec)
+		} else {
+			err = virtualmachine.Reconfigure(vm, spec)
+		}
+		if err != nil {
 			return fmt.Errorf("error reconfiguring virtual machine: %s", err)
 		}
 		// Re-fetch properties
@@ -479,6 +493,41 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	// All done with updates.
 	log.Printf("[DEBUG] %s: Update complete", resourceVSphereVirtualMachineIDString(d))
 	return resourceVSphereVirtualMachineRead(d, meta)
+}
+
+// resourceVSphereVirtualMachineUpdateReconfigureWithSDRS runs the reconfigure
+// part of resourceVSphereVirtualMachineUpdate through storage DRS. It's
+// designed to be run when a storage cluster is specified, versus simply
+// specifying datastores.
+func resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(
+	d *schema.ResourceData,
+	meta interface{},
+	vm *object.VirtualMachine,
+	spec types.VirtualMachineConfigSpec,
+) error {
+	// Check to see if we have any disk creation operations first, as sending an
+	// update through SDRS without any disk creation operations will fail.
+	if !storagepod.HasDiskCreationOperations(spec.DeviceChange) {
+		log.Printf("[DEBUG] No disk operations for reconfiguration of VM %q, deferring to standard API", vm.InventoryPath)
+		return virtualmachine.Reconfigure(vm, spec)
+	}
+
+	client := meta.(*VSphereClient).vimClient
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
+		return fmt.Errorf("connection ineligible to use datastore_cluster_id: %s", err)
+	}
+
+	log.Printf("[DEBUG] %s: Reconfiguring virtual machine through Storage DRS API", resourceVSphereVirtualMachineIDString(d))
+	pod, err := storagepod.FromID(client, d.Get("datastore_cluster_id").(string))
+	if err != nil {
+		return fmt.Errorf("error getting datastore cluster: %s", err)
+	}
+
+	err = storagepod.ReconfigureVM(client, vm, spec, pod)
+	if err != nil {
+		return fmt.Errorf("error reconfiguring VM on datastore cluster %q: %s", pod.Name(), err)
+	}
+	return nil
 }
 
 func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{}) error {
@@ -546,6 +595,11 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 		return err
 	}
 
+	// Normalize datastore cluster vs datastore
+	if err := datastoreClusterDiffOperation(d, client); err != nil {
+		return err
+	}
+
 	// Validate and normalize disk sub-resources
 	if err := virtualdevice.DiskDiffOperation(d, client); err != nil {
 		return err
@@ -570,6 +624,68 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 	}
 
 	log.Printf("[DEBUG] %s: Diff customization and validation complete", resourceVSphereVirtualMachineIDString(d))
+	return nil
+}
+
+func datastoreClusterDiffOperation(d *schema.ResourceDiff, client *govmomi.Client) error {
+	podID, podOk := d.GetOk("datastore_cluster_id")
+	podKnown := d.NewValueKnown("datastore_cluster_id")
+	dsID, dsOk := d.GetOk("datastore_id")
+	dsKnown := d.NewValueKnown("datastore_id")
+
+	switch {
+	case podKnown && dsKnown && !podOk && !dsOk:
+		// No root-level datastore option was available. This can happen on new
+		// configs where the user has not supplied either option, so we need to
+		// block this.
+		return errors.New("one of datastore_id datastore_cluster_id must be specified")
+	case podKnown && !podOk:
+		// No datastore cluster
+		return nil
+	case !dsOk:
+		// No datastore, we don't need to touch it
+		return nil
+	case !podKnown:
+		// Datastore cluster ID changing but we don't know it yet. Mark the datastore ID as computed
+		log.Printf("[DEBUG] %s: Datastore cluster ID unknown, marking VM datastore as computed", resourceVSphereVirtualMachineIDString(d))
+		return d.SetNewComputed("datastore_id")
+	}
+
+	return datastoreClusterDiffOperationCheckMembership(d, client, podID.(string), dsID.(string))
+}
+
+func datastoreClusterDiffOperationCheckMembership(d *schema.ResourceDiff, client *govmomi.Client, podID, dsID string) error {
+	log.Printf("[DEBUG] %s: Checking VM datastore cluster membership", resourceVSphereVirtualMachineIDString(d))
+
+	// Determine if the current datastore from state is a member of the current
+	// datastore cluster.
+	pod, err := storagepod.FromID(client, podID)
+	if err != nil {
+		return fmt.Errorf("error fetching datastore cluster ID %q: %s", podID, err)
+	}
+
+	ds, err := datastore.FromID(client, dsID)
+	if err != nil {
+		return fmt.Errorf("error fetching datastore ID %q: %s", dsID, err)
+	}
+
+	isMember, err := storagepod.IsMember(pod, ds)
+	if err != nil {
+		return fmt.Errorf("error checking storage pod membership: %s", err)
+	}
+	if !isMember {
+		// If the current datastore in state is not a member of the cluster, we
+		// need to trigger a migration. Do this by setting the datastore ID to
+		// computed so that it's picked up in the next update.
+		log.Printf(
+			"[DEBUG] %s: Datastore %q not a member of cluster %q, marking VM datastore as computed",
+			resourceVSphereVirtualMachineIDString(d),
+			ds.Name(),
+			pod.Name(),
+		)
+		return d.SetNewComputed("datastore_id")
+	}
+
 	return nil
 }
 
@@ -682,15 +798,6 @@ func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interf
 		return nil, fmt.Errorf("error in virtual machine configuration: %s", err)
 	}
 
-	// Set the datastore for the VM.
-	ds, err := datastore.FromID(client, d.Get("datastore_id").(string))
-	if err != nil {
-		return nil, fmt.Errorf("error locating datastore for VM: %s", err)
-	}
-	spec.Files = &types.VirtualMachineFileInfo{
-		VmPathName: fmt.Sprintf("[%s]", ds.Name()),
-	}
-
 	// Now we need to get the default device set - this is available in the
 	// environment info in the resource pool, which we can then filter through
 	// our device CRUD lifecycles to get a full deviceChange attribute for our
@@ -705,11 +812,18 @@ func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interf
 		return nil, err
 	}
 
-	// We should now have a complete configSpec! Attempt to create the VM now.
-	vm, err := virtualmachine.Create(client, fo, spec, pool, hs)
-	if err != nil {
-		return nil, fmt.Errorf("error creating virtual machine: %s", err)
+	// Create the VM according the right API path - if we have a datastore
+	// cluster, use the SDRS API, if not, use the standard API.
+	var vm *object.VirtualMachine
+	if _, ok := d.GetOk("datastore_cluster_id"); ok {
+		vm, err = resourceVSphereVirtualMachineCreateBareWithSDRS(d, meta, fo, spec, pool, hs)
+	} else {
+		vm, err = resourceVSphereVirtualMachineCreateBareStandard(d, meta, fo, spec, pool, hs)
 	}
+	if err != nil {
+		return nil, err
+	}
+
 	// VM is created. Set the ID now before proceeding, in case the rest of the
 	// process here fails.
 	vprops, err := virtualmachine.Properties(vm)
@@ -722,6 +836,66 @@ func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interf
 	// Start the virtual machine
 	if err := virtualmachine.PowerOn(vm); err != nil {
 		return nil, fmt.Errorf("error powering on virtual machine: %s", err)
+	}
+	return vm, nil
+}
+
+// resourceVSphereVirtualMachineCreateBareWithSDRS runs the creation part of
+// resourceVSphereVirtualMachineCreateBare through storage DRS. It's designed
+// to be run when a storage cluster is specified, versus simply specifying
+// datastores.
+func resourceVSphereVirtualMachineCreateBareWithSDRS(
+	d *schema.ResourceData,
+	meta interface{},
+	fo *object.Folder,
+	spec types.VirtualMachineConfigSpec,
+	pool *object.ResourcePool,
+	hs *object.HostSystem,
+) (*object.VirtualMachine, error) {
+	client := meta.(*VSphereClient).vimClient
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
+		return nil, fmt.Errorf("connection ineligible to use datastore_cluster_id: %s", err)
+	}
+
+	log.Printf("[DEBUG] %s: Creating virtual machine through Storage DRS API", resourceVSphereVirtualMachineIDString(d))
+	pod, err := storagepod.FromID(client, d.Get("datastore_cluster_id").(string))
+	if err != nil {
+		return nil, fmt.Errorf("error getting datastore cluster: %s", err)
+	}
+
+	vm, err := storagepod.CreateVM(client, fo, spec, pool, hs, pod)
+	if err != nil {
+		return nil, fmt.Errorf("error creating virtual machine on datastore cluster %q: %s", pod.Name(), err)
+	}
+
+	return vm, nil
+}
+
+// resourceVSphereVirtualMachineCreateBareStandard performs the steps necessary
+// during resourceVSphereVirtualMachineCreateBare to create a virtual machine
+// when a datastore cluster is not supplied.
+func resourceVSphereVirtualMachineCreateBareStandard(
+	d *schema.ResourceData,
+	meta interface{},
+	fo *object.Folder,
+	spec types.VirtualMachineConfigSpec,
+	pool *object.ResourcePool,
+	hs *object.HostSystem,
+) (*object.VirtualMachine, error) {
+	client := meta.(*VSphereClient).vimClient
+
+	// Set the datastore for the VM.
+	ds, err := datastore.FromID(client, d.Get("datastore_id").(string))
+	if err != nil {
+		return nil, fmt.Errorf("error locating datastore for VM: %s", err)
+	}
+	spec.Files = &types.VirtualMachineFileInfo{
+		VmPathName: fmt.Sprintf("[%s]", ds.Name()),
+	}
+
+	vm, err := virtualmachine.Create(client, fo, spec, pool, hs)
+	if err != nil {
+		return nil, fmt.Errorf("error creating virtual machine: %s", err)
 	}
 	return vm, nil
 }
@@ -755,12 +929,17 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	// Start the clone
 	name := d.Get("name").(string)
 	timeout := d.Get("clone.0.timeout").(int)
-	vm, err := virtualmachine.Clone(client, srcVM, fo, name, cloneSpec, timeout)
+	var vm *object.VirtualMachine
+	if _, ok := d.GetOk("datastore_cluster_id"); ok {
+		vm, err = resourceVSphereVirtualMachineCreateCloneWithSDRS(d, meta, srcVM, fo, name, cloneSpec, timeout)
+	} else {
+		vm, err = virtualmachine.Clone(client, srcVM, fo, name, cloneSpec, timeout)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("error cloning virtual machine: %s", err)
 	}
 
-	// VM is created and updated. It's save to set the ID here now, in case the
+	// VM is created and updated. It's safe to set the ID here now, in case the
 	// rest of the process here fails.
 	vprops, err := virtualmachine.Properties(vm)
 	if err != nil {
@@ -811,7 +990,12 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	log.Printf("[DEBUG] %s: Final device change cfgSpec: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceChangeString(cfgSpec.DeviceChange))
 
 	// Perform updates
-	if err := virtualmachine.Reconfigure(vm, cfgSpec); err != nil {
+	if _, ok := d.GetOk("datastore_cluster_id"); ok {
+		err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, cfgSpec)
+	} else {
+		err = virtualmachine.Reconfigure(vm, cfgSpec)
+	}
+	if err != nil {
 		return nil, resourceVSphereVirtualMachineRollbackCreate(d, meta, vm, fmt.Errorf("error reconfiguring virtual machine: %s", err))
 	}
 
@@ -846,6 +1030,38 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 		}
 	}
 	// Clone is complete and ready to return
+	return vm, nil
+}
+
+// resourceVSphereVirtualMachineCreateCloneWithSDRS runs the clone part of
+// resourceVSphereVirtualMachineCreateClone through storage DRS. It's designed
+// to be run when a storage cluster is specified, versus simply specifying
+// datastores.
+func resourceVSphereVirtualMachineCreateCloneWithSDRS(
+	d *schema.ResourceData,
+	meta interface{},
+	srcVM *object.VirtualMachine,
+	fo *object.Folder,
+	name string,
+	spec types.VirtualMachineCloneSpec,
+	timeout int,
+) (*object.VirtualMachine, error) {
+	client := meta.(*VSphereClient).vimClient
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
+		return nil, fmt.Errorf("connection ineligible to use datastore_cluster_id: %s", err)
+	}
+
+	log.Printf("[DEBUG] %s: Cloning virtual machine through Storage DRS API", resourceVSphereVirtualMachineIDString(d))
+	pod, err := storagepod.FromID(client, d.Get("datastore_cluster_id").(string))
+	if err != nil {
+		return nil, fmt.Errorf("error getting datastore cluster: %s", err)
+	}
+
+	vm, err := storagepod.CloneVM(client, srcVM, fo, name, spec, timeout, pod)
+	if err != nil {
+		return nil, fmt.Errorf("error cloning on datastore cluster %q: %s", pod.Name(), err)
+	}
+
 	return vm, nil
 }
 
@@ -898,12 +1114,12 @@ func resourceVSphereVirtualMachineUpdateLocation(d *schema.ResourceData, meta in
 		return fmt.Errorf("error fetching VM properties: %s", err)
 	}
 	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
-	relocators, err := virtualdevice.DiskMigrateRelocateOperation(d, client, devices)
+	relocators, diskRelocateOK, err := virtualdevice.DiskMigrateRelocateOperation(d, client, devices)
 	if err != nil {
 		return err
 	}
 	// If we don't have any changes, stop here.
-	if !d.HasChange("resource_pool_id") && !d.HasChange("host_system_id") && !d.HasChange("datastore_id") && len(relocators) < 1 {
+	if !d.HasChange("resource_pool_id") && !d.HasChange("host_system_id") && !d.HasChange("datastore_id") && !diskRelocateOK {
 		log.Printf("[DEBUG] %s: No migration operations found", resourceVSphereVirtualMachineIDString(d))
 		return nil
 	}
@@ -927,19 +1143,20 @@ func resourceVSphereVirtualMachineUpdateLocation(d *schema.ResourceData, meta in
 		return err
 	}
 
-	// Fetch the datastore
-	ds, err := datastore.FromID(client, d.Get("datastore_id").(string))
-	if err != nil {
-		return fmt.Errorf("error locating datastore for VM: %s", err)
-	}
-
-	dsRef := ds.Reference()
-	pRef := pool.Reference()
 	// Start building the spec
 	spec := types.VirtualMachineRelocateSpec{
-		Datastore: &dsRef,
-		Pool:      &pRef,
+		Pool: types.NewReference(pool.Reference()),
 	}
+
+	// Fetch the datastore
+	if dsID, ok := d.GetOk("datastore_id"); ok {
+		ds, err := datastore.FromID(client, dsID.(string))
+		if err != nil {
+			return fmt.Errorf("error locating datastore for VM: %s", err)
+		}
+		spec.Datastore = types.NewReference(ds.Reference())
+	}
+
 	if hs != nil {
 		hsRef := hs.Reference()
 		spec.Host = &hsRef
@@ -947,8 +1164,43 @@ func resourceVSphereVirtualMachineUpdateLocation(d *schema.ResourceData, meta in
 
 	spec.Disk = relocators
 
-	// Ready to perform migration. Only do this if necessary.
-	return virtualmachine.Relocate(vm, spec, d.Get("migrate_wait_timeout").(int))
+	// Ready to perform migration
+	timeout := d.Get("migrate_wait_timeout").(int)
+	if _, ok := d.GetOk("datastore_cluster_id"); ok {
+		err = resourceVSphereVirtualMachineUpdateLocationRelocateWithSDRS(d, meta, vm, spec, timeout)
+	} else {
+		err = virtualmachine.Relocate(vm, spec, timeout)
+	}
+	return err
+}
+
+// resourceVSphereVirtualMachineUpdateLocationRelocateWithSDRS runs the storage vMotion
+// part of resourceVSphereVirtualMachineUpdateLocation through storage DRS.
+// It's designed to be run when a storage cluster is specified, versus simply
+// specifying datastores.
+func resourceVSphereVirtualMachineUpdateLocationRelocateWithSDRS(
+	d *schema.ResourceData,
+	meta interface{},
+	vm *object.VirtualMachine,
+	spec types.VirtualMachineRelocateSpec,
+	timeout int,
+) error {
+	client := meta.(*VSphereClient).vimClient
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
+		return fmt.Errorf("connection ineligible to use datastore_cluster_id: %s", err)
+	}
+
+	log.Printf("[DEBUG] %s: Running virtual machine relocate Storage DRS API", resourceVSphereVirtualMachineIDString(d))
+	pod, err := storagepod.FromID(client, d.Get("datastore_cluster_id").(string))
+	if err != nil {
+		return fmt.Errorf("error getting datastore cluster: %s", err)
+	}
+
+	err = storagepod.RelocateVM(client, vm, spec, timeout, pod)
+	if err != nil {
+		return fmt.Errorf("error running vMotion on datastore cluster %q: %s", pod.Name(), err)
+	}
+	return nil
 }
 
 // applyVirtualDevices is used by Create and Update to build a list of virtual
