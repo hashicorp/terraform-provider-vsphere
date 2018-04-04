@@ -336,7 +336,7 @@ func recommendAndApplySDRS(
 	if err != nil {
 		// Provide a friendly error message for timeouts
 		if ctx.Err() == context.DeadlineExceeded {
-			return nil, fmt.Errorf("timeout waiting for Storage DRS migration to complete (type: %q)", sps.Type)
+			return nil, fmt.Errorf("timeout waiting for Storage DRS operation to complete (type: %q)", sps.Type)
 		}
 		return nil, err
 	}
