@@ -64,7 +64,7 @@ func resourceVSphereDatastoreCluster() *schema.Resource {
 			"sdrs_automation_level": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Default:      string(types.StorageDrsPodConfigInfoBehaviorAutomated),
+				Default:      string(types.StorageDrsPodConfigInfoBehaviorManual),
 				Description:  "The default automation level for all virtual machines in this storage cluster.",
 				ValidateFunc: validation.StringInSlice(storageDrsPodConfigInfoBehaviorAllowedValues, false),
 			},
