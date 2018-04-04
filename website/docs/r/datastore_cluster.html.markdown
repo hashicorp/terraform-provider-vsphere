@@ -126,8 +126,8 @@ Specifying an override will set the automation level for that part of Storage
 DRS to the respective level. Not specifying an override infers that you want to
 use the cluster default automation level.
 
-* `sdrs_automation_level` - (Optional) The default automation level for all
-  virtual machines in this datastore cluster.
+* `sdrs_automation_level` - (Optional) The global automation level for all
+  virtual machines in this datastore cluster. Default: `manual`.
 * `sdrs_space_balance_automation_level` - (Optional) Overrides the default
   automation settings when correcting disk space imbalances.
 * `sdrs_io_balance_automation_level` - (Optional) Overrides the default
