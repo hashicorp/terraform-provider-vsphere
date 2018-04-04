@@ -44,9 +44,11 @@ func resourceVSphereStorageDrsVMConfig() *schema.Resource {
 				Description: "The managed object ID of the virtual machine.",
 			},
 			"sdrs_enabled": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Overrides the default Storage DRS setting for this virtual machine.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "Overrides the default Storage DRS setting for this virtual machine.",
+				ValidateFunc: structure.ValidateBoolStringPtr(),
+				StateFunc:    structure.BoolStringPtrState,
 			},
 			"sdrs_automation_level": {
 				Type:         schema.TypeString,
@@ -55,9 +57,11 @@ func resourceVSphereStorageDrsVMConfig() *schema.Resource {
 				ValidateFunc: validation.StringInSlice(storageDrsPodConfigInfoBehaviorAllowedValues, false),
 			},
 			"sdrs_intra_vm_affinity": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Overrides the intra-VM affinity setting for this virtual machine.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "Overrides the intra-VM affinity setting for this virtual machine.",
+				ValidateFunc: structure.ValidateBoolStringPtr(),
+				StateFunc:    structure.BoolStringPtrState,
 			},
 		},
 	}
@@ -76,13 +80,17 @@ func resourceVSphereStorageDrsVMConfigCreate(d *schema.ResourceData, meta interf
 		return err
 	}
 
+	info, err := expandStorageDrsVMConfigInfo(d, vm)
+	if err != nil {
+		return err
+	}
 	spec := types.StorageDrsConfigSpec{
 		VmConfigSpec: []types.StorageDrsVmConfigSpec{
 			{
 				ArrayUpdateSpec: types.ArrayUpdateSpec{
 					Operation: types.ArrayUpdateOperationAdd,
 				},
-				Info: expandStorageDrsVMConfigInfo(d, vm),
+				Info: info,
 			},
 		},
 	}
@@ -124,7 +132,7 @@ func resourceVSphereStorageDrsVMConfigRead(d *schema.ResourceData, meta interfac
 	// ForceNew, but we set these for completeness on import so that if the wrong
 	// datastore cluster/VM combo was used, it will be noted.
 	if err = d.Set("datastore_cluster_id", pod.Reference().Value); err != nil {
-		return err
+		return fmt.Errorf("error setting attribute \"datastore_cluster_id\": %s", err)
 	}
 
 	props, err := virtualmachine.Properties(vm)
@@ -132,7 +140,7 @@ func resourceVSphereStorageDrsVMConfigRead(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("error getting properties of virtual machine: %s", err)
 	}
 	if err = d.Set("virtual_machine_id", props.Config.Uuid); err != nil {
-		return err
+		return fmt.Errorf("error setting attribute \"virtual_machine_id\": %s", err)
 	}
 
 	if err = flattenStorageDrsVMConfigInfo(d, info); err != nil {
@@ -156,13 +164,21 @@ func resourceVSphereStorageDrsVMConfigUpdate(d *schema.ResourceData, meta interf
 		return err
 	}
 
+	info, err := expandStorageDrsVMConfigInfo(d, vm)
+	if err != nil {
+		return err
+	}
 	spec := types.StorageDrsConfigSpec{
 		VmConfigSpec: []types.StorageDrsVmConfigSpec{
 			{
 				ArrayUpdateSpec: types.ArrayUpdateSpec{
-					Operation: types.ArrayUpdateOperationEdit,
+					// NOTE: ArrayUpdateOperationAdd here replaces existing entries,
+					// versus adding duplicates. This is not documented in
+					// StorageDrsVmConfigSpec but it is in the counterpart
+					// ClusterDrsVmConfigSpec (used for compute DRS).
+					Operation: types.ArrayUpdateOperationAdd,
 				},
-				Info: expandStorageDrsVMConfigInfo(d, vm),
+				Info: info,
 			},
 		},
 	}
@@ -249,31 +265,37 @@ func resourceVSphereStorageDrsVMConfigImport(d *schema.ResourceData, meta interf
 
 // expandStorageDrsVMConfigInfo reads certain ResourceData keys and returns a
 // StorageDrsVmConfigInfo.
-func expandStorageDrsVMConfigInfo(d *schema.ResourceData, vm *object.VirtualMachine) *types.StorageDrsVmConfigInfo {
+func expandStorageDrsVMConfigInfo(d *schema.ResourceData, vm *object.VirtualMachine) (*types.StorageDrsVmConfigInfo, error) {
+	enabled, err := structure.GetBoolStringPtr(d, "sdrs_enabled")
+	if err != nil {
+		return nil, fmt.Errorf("error parsing field \"sdrs_enabled\": %s", err)
+	}
+	intraVMAffinity, err := structure.GetBoolStringPtr(d, "sdrs_intra_vm_affinity")
+	if err != nil {
+		return nil, fmt.Errorf("error parsing field \"sdrs_intra_vm_affinity\": %s", err)
+	}
+
 	obj := &types.StorageDrsVmConfigInfo{
 		Behavior:        d.Get("sdrs_automation_level").(string),
-		Enabled:         structure.GetBoolPtr(d, "sdrs_enabled"),
-		IntraVmAffinity: structure.GetBoolPtr(d, "sdrs_intra_vm_affinity"),
+		Enabled:         enabled,
+		IntraVmAffinity: intraVMAffinity,
 		Vm:              types.NewReference(vm.Reference()),
 	}
 
-	return obj
+	return obj, nil
 }
 
 // flattenStorageDrsVmConfigInfo saves a StorageDrsVmConfigInfo into the
 // supplied ResourceData.
 func flattenStorageDrsVMConfigInfo(d *schema.ResourceData, obj *types.StorageDrsVmConfigInfo) error {
-	attrs := map[string]interface{}{
-		"sdrs_automation_level":  obj.Behavior,
-		"sdrs_enabled":           obj.Enabled,
-		"sdrs_intra_vm_affinity": obj.IntraVmAffinity,
+	if err := d.Set("sdrs_automation_level", obj.Behavior); err != nil {
+		return fmt.Errorf("error setting attribute \"sdrs_automation_level\": %s", err)
 	}
-	for k, p := range attrs {
-		if v := structure.DeRef(p); v != nil {
-			if err := d.Set(k, v); err != nil {
-				return fmt.Errorf("error setting attribute %q: %s", k, err)
-			}
-		}
+	if err := structure.SetBoolStringPtr(d, "sdrs_enabled", obj.Enabled); err != nil {
+		return fmt.Errorf("error setting attribute \"sdrs_enabled\": %s", err)
+	}
+	if err := structure.SetBoolStringPtr(d, "sdrs_intra_vm_affinity", obj.IntraVmAffinity); err != nil {
+		return fmt.Errorf("error setting attribute \"sdrs_automation_level\": %s", err)
 	}
 
 	return nil

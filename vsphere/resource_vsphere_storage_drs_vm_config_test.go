@@ -66,17 +66,17 @@ func TestAccResourceVSphereStorageDrsVMConfig_update(t *testing.T) {
 		CheckDestroy: testAccResourceVSphereStorageDrsVMConfigExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereStorageDrsVMConfigConfigOverrides(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereStorageDrsVMConfigExists(true),
-					testAccResourceVSphereStorageDrsVMConfigMatch("manual", nil, structure.BoolPtr(false)),
-				),
-			},
-			{
 				Config: testAccResourceVSphereStorageDrsVMConfigConfigBasic(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereStorageDrsVMConfigExists(true),
 					testAccResourceVSphereStorageDrsVMConfigMatch("", structure.BoolPtr(false), nil),
+				),
+			},
+			{
+				Config: testAccResourceVSphereStorageDrsVMConfigConfigOverrides(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereStorageDrsVMConfigExists(true),
+					testAccResourceVSphereStorageDrsVMConfigMatch("manual", nil, structure.BoolPtr(false)),
 				),
 			},
 		},
