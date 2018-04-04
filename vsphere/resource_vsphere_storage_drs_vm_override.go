@@ -18,16 +18,16 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-const resourceVSphereStorageDrsVMConfigName = "vsphere_storage_drs_vm_config"
+const resourceVSphereStorageDrsVMOverrideName = "vsphere_storage_drs_vm_override"
 
-func resourceVSphereStorageDrsVMConfig() *schema.Resource {
+func resourceVSphereStorageDrsVMOverride() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceVSphereStorageDrsVMConfigCreate,
-		Read:   resourceVSphereStorageDrsVMConfigRead,
-		Update: resourceVSphereStorageDrsVMConfigUpdate,
-		Delete: resourceVSphereStorageDrsVMConfigDelete,
+		Create: resourceVSphereStorageDrsVMOverrideCreate,
+		Read:   resourceVSphereStorageDrsVMOverrideRead,
+		Update: resourceVSphereStorageDrsVMOverrideUpdate,
+		Delete: resourceVSphereStorageDrsVMOverrideDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceVSphereStorageDrsVMConfigImport,
+			State: resourceVSphereStorageDrsVMOverrideImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -67,15 +67,15 @@ func resourceVSphereStorageDrsVMConfig() *schema.Resource {
 	}
 }
 
-func resourceVSphereStorageDrsVMConfigCreate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Beginning create", resourceVSphereStorageDrsVMConfigIDString(d))
+func resourceVSphereStorageDrsVMOverrideCreate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning create", resourceVSphereStorageDrsVMOverrideIDString(d))
 
-	client, err := resourceVSphereStorageDrsVMConfigClient(meta)
+	client, err := resourceVSphereStorageDrsVMOverrideClient(meta)
 	if err != nil {
 		return err
 	}
 
-	pod, vm, err := resourceVSphereStorageDrsVMConfigObjects(d, meta)
+	pod, vm, err := resourceVSphereStorageDrsVMOverrideObjects(d, meta)
 	if err != nil {
 		return err
 	}
@@ -99,25 +99,25 @@ func resourceVSphereStorageDrsVMConfigCreate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	id, err := resourceVSphereStorageDrsVMConfigFlattenID(pod, vm)
+	id, err := resourceVSphereStorageDrsVMOverrideFlattenID(pod, vm)
 	if err != nil {
 		return fmt.Errorf("cannot compute ID of imported resource: %s", err)
 	}
 	d.SetId(id)
 
-	log.Printf("[DEBUG] %s: Create finished successfully", resourceVSphereStorageDrsVMConfigIDString(d))
-	return resourceVSphereStorageDrsVMConfigRead(d, meta)
+	log.Printf("[DEBUG] %s: Create finished successfully", resourceVSphereStorageDrsVMOverrideIDString(d))
+	return resourceVSphereStorageDrsVMOverrideRead(d, meta)
 }
 
-func resourceVSphereStorageDrsVMConfigRead(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Beginning read", resourceVSphereStorageDrsVMConfigIDString(d))
+func resourceVSphereStorageDrsVMOverrideRead(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning read", resourceVSphereStorageDrsVMOverrideIDString(d))
 
-	pod, vm, err := resourceVSphereStorageDrsVMConfigObjects(d, meta)
+	pod, vm, err := resourceVSphereStorageDrsVMOverrideObjects(d, meta)
 	if err != nil {
 		return err
 	}
 
-	info, err := resourceVSphereStorageDrsVMConfigFindEntry(pod, vm)
+	info, err := resourceVSphereStorageDrsVMOverrideFindEntry(pod, vm)
 	if err != nil {
 		return err
 	}
@@ -147,19 +147,19 @@ func resourceVSphereStorageDrsVMConfigRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	log.Printf("[DEBUG] %s: Read completed successfully", resourceVSphereStorageDrsVMConfigIDString(d))
+	log.Printf("[DEBUG] %s: Read completed successfully", resourceVSphereStorageDrsVMOverrideIDString(d))
 	return nil
 }
 
-func resourceVSphereStorageDrsVMConfigUpdate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Beginning update", resourceVSphereStorageDrsVMConfigIDString(d))
+func resourceVSphereStorageDrsVMOverrideUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning update", resourceVSphereStorageDrsVMOverrideIDString(d))
 
-	client, err := resourceVSphereStorageDrsVMConfigClient(meta)
+	client, err := resourceVSphereStorageDrsVMOverrideClient(meta)
 	if err != nil {
 		return err
 	}
 
-	pod, vm, err := resourceVSphereStorageDrsVMConfigObjects(d, meta)
+	pod, vm, err := resourceVSphereStorageDrsVMOverrideObjects(d, meta)
 	if err != nil {
 		return err
 	}
@@ -187,20 +187,20 @@ func resourceVSphereStorageDrsVMConfigUpdate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	log.Printf("[DEBUG] %s: Update finished successfully", resourceVSphereStorageDrsVMConfigIDString(d))
-	return resourceVSphereStorageDrsVMConfigRead(d, meta)
+	log.Printf("[DEBUG] %s: Update finished successfully", resourceVSphereStorageDrsVMOverrideIDString(d))
+	return resourceVSphereStorageDrsVMOverrideRead(d, meta)
 }
 
-func resourceVSphereStorageDrsVMConfigDelete(d *schema.ResourceData, meta interface{}) error {
-	resourceIDString := resourceVSphereStorageDrsVMConfigIDString(d)
+func resourceVSphereStorageDrsVMOverrideDelete(d *schema.ResourceData, meta interface{}) error {
+	resourceIDString := resourceVSphereStorageDrsVMOverrideIDString(d)
 	log.Printf("[DEBUG] %s: Beginning delete", resourceIDString)
 
-	client, err := resourceVSphereStorageDrsVMConfigClient(meta)
+	client, err := resourceVSphereStorageDrsVMOverrideClient(meta)
 	if err != nil {
 		return err
 	}
 
-	pod, vm, err := resourceVSphereStorageDrsVMConfigObjects(d, meta)
+	pod, vm, err := resourceVSphereStorageDrsVMOverrideObjects(d, meta)
 	if err != nil {
 		return err
 	}
@@ -226,7 +226,7 @@ func resourceVSphereStorageDrsVMConfigDelete(d *schema.ResourceData, meta interf
 	return nil
 }
 
-func resourceVSphereStorageDrsVMConfigImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceVSphereStorageDrsVMOverrideImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	var data map[string]string
 	if err := json.Unmarshal([]byte(d.Id()), &data); err != nil {
 		return nil, err
@@ -240,7 +240,7 @@ func resourceVSphereStorageDrsVMConfigImport(d *schema.ResourceData, meta interf
 		return nil, errors.New("missing virtual_machine_path in input data")
 	}
 
-	client, err := resourceVSphereStorageDrsVMConfigClient(meta)
+	client, err := resourceVSphereStorageDrsVMOverrideClient(meta)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +255,7 @@ func resourceVSphereStorageDrsVMConfigImport(d *schema.ResourceData, meta interf
 		return nil, fmt.Errorf("cannot locate virtual machine %q: %s", vmPath, err)
 	}
 
-	id, err := resourceVSphereStorageDrsVMConfigFlattenID(pod, vm)
+	id, err := resourceVSphereStorageDrsVMOverrideFlattenID(pod, vm)
 	if err != nil {
 		return nil, fmt.Errorf("cannot compute ID of imported resource: %s", err)
 	}
@@ -301,15 +301,15 @@ func flattenStorageDrsVMConfigInfo(d *schema.ResourceData, obj *types.StorageDrs
 	return nil
 }
 
-// resourceVSphereStorageDrsVMConfigIDString prints a friendly string for the
+// resourceVSphereStorageDrsVMOverrideIDString prints a friendly string for the
 // vsphere_storage_drs_vm_config resource.
-func resourceVSphereStorageDrsVMConfigIDString(d structure.ResourceIDStringer) string {
-	return structure.ResourceIDString(d, resourceVSphereStorageDrsVMConfigName)
+func resourceVSphereStorageDrsVMOverrideIDString(d structure.ResourceIDStringer) string {
+	return structure.ResourceIDString(d, resourceVSphereStorageDrsVMOverrideName)
 }
 
-// resourceVSphereStorageDrsVMConfigFlattenID makes an ID for the
+// resourceVSphereStorageDrsVMOverrideFlattenID makes an ID for the
 // vsphere_storage_drs_vm_config resource.
-func resourceVSphereStorageDrsVMConfigFlattenID(pod *object.StoragePod, vm *object.VirtualMachine) (string, error) {
+func resourceVSphereStorageDrsVMOverrideFlattenID(pod *object.StoragePod, vm *object.VirtualMachine) (string, error) {
 	podID := pod.Reference().Value
 	props, err := virtualmachine.Properties(vm)
 	if err != nil {
@@ -319,9 +319,9 @@ func resourceVSphereStorageDrsVMConfigFlattenID(pod *object.StoragePod, vm *obje
 	return strings.Join([]string{podID, vmID}, ":"), nil
 }
 
-// resourceVSphereStorageDrsVMConfigParseID parses an ID for the
+// resourceVSphereStorageDrsVMOverrideParseID parses an ID for the
 // vsphere_storage_drs_vm_config and outputs its parts.
-func resourceVSphereStorageDrsVMConfigParseID(id string) (string, string, error) {
+func resourceVSphereStorageDrsVMOverrideParseID(id string) (string, string, error) {
 	parts := strings.SplitN(id, ":", 3)
 	if len(parts) < 2 {
 		return "", "", fmt.Errorf("bad ID %q", id)
@@ -329,10 +329,10 @@ func resourceVSphereStorageDrsVMConfigParseID(id string) (string, string, error)
 	return parts[0], parts[1], nil
 }
 
-// resourceVSphereStorageDrsVMConfigFindEntry attempts to locate an existing VM
+// resourceVSphereStorageDrsVMOverrideFindEntry attempts to locate an existing VM
 // config in a Storage Pod's DRS configuration. It's used by the resource's
 // read functionality and tests. nil is returned if the entry cannot be found.
-func resourceVSphereStorageDrsVMConfigFindEntry(
+func resourceVSphereStorageDrsVMOverrideFindEntry(
 	pod *object.StoragePod,
 	vm *object.VirtualMachine,
 ) (*types.StorageDrsVmConfigInfo, error) {
@@ -352,54 +352,54 @@ func resourceVSphereStorageDrsVMConfigFindEntry(
 	return nil, nil
 }
 
-// resourceVSphereStorageDrsVMConfigObjects handles the fetching of the
+// resourceVSphereStorageDrsVMOverrideObjects handles the fetching of the
 // datastore cluster and virtual machine depending on what attributes are
 // available:
 // * If the resource ID is available, the data is derived from the ID.
 // * If not, it's derived from the datastore_cluster_id and virtual_machine_id
 // attributes.
-func resourceVSphereStorageDrsVMConfigObjects(
+func resourceVSphereStorageDrsVMOverrideObjects(
 	d *schema.ResourceData,
 	meta interface{},
 ) (*object.StoragePod, *object.VirtualMachine, error) {
 	if d.Id() != "" {
-		return resourceVSphereStorageDrsVMConfigObjectsFromID(d, meta)
+		return resourceVSphereStorageDrsVMOverrideObjectsFromID(d, meta)
 	}
-	return resourceVSphereStorageDrsVMConfigObjectsFromAttributes(d, meta)
+	return resourceVSphereStorageDrsVMOverrideObjectsFromAttributes(d, meta)
 }
 
-func resourceVSphereStorageDrsVMConfigObjectsFromAttributes(
+func resourceVSphereStorageDrsVMOverrideObjectsFromAttributes(
 	d *schema.ResourceData,
 	meta interface{},
 ) (*object.StoragePod, *object.VirtualMachine, error) {
-	return resourceVSphereStorageDrsVMConfigFetchObjects(
+	return resourceVSphereStorageDrsVMOverrideFetchObjects(
 		meta,
 		d.Get("datastore_cluster_id").(string),
 		d.Get("virtual_machine_id").(string),
 	)
 }
 
-func resourceVSphereStorageDrsVMConfigObjectsFromID(
+func resourceVSphereStorageDrsVMOverrideObjectsFromID(
 	d structure.ResourceIDStringer,
 	meta interface{},
 ) (*object.StoragePod, *object.VirtualMachine, error) {
 	// Note that this function uses structure.ResourceIDStringer to satisfy
 	// interfacer. Adding exceptions in the comments does not seem to work.
 	// Change this back to ResourceData if it's needed in the future.
-	podID, vmID, err := resourceVSphereStorageDrsVMConfigParseID(d.Id())
+	podID, vmID, err := resourceVSphereStorageDrsVMOverrideParseID(d.Id())
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return resourceVSphereStorageDrsVMConfigFetchObjects(meta, podID, vmID)
+	return resourceVSphereStorageDrsVMOverrideFetchObjects(meta, podID, vmID)
 }
 
-func resourceVSphereStorageDrsVMConfigFetchObjects(
+func resourceVSphereStorageDrsVMOverrideFetchObjects(
 	meta interface{},
 	podID string,
 	vmID string,
 ) (*object.StoragePod, *object.VirtualMachine, error) {
-	client, err := resourceVSphereStorageDrsVMConfigClient(meta)
+	client, err := resourceVSphereStorageDrsVMOverrideClient(meta)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -417,7 +417,7 @@ func resourceVSphereStorageDrsVMConfigFetchObjects(
 	return pod, vm, nil
 }
 
-func resourceVSphereStorageDrsVMConfigClient(meta interface{}) (*govmomi.Client, error) {
+func resourceVSphereStorageDrsVMOverrideClient(meta interface{}) (*govmomi.Client, error) {
 	client := meta.(*VSphereClient).vimClient
 	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return nil, err

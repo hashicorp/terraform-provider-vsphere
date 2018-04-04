@@ -1,14 +1,14 @@
 ---
 layout: "vsphere"
-page_title: "VMware vSphere: vsphere_storage_drs_vm_config"
-sidebar_current: "docs-vsphere-resource-storage-storage-drs-vm-config"
+page_title: "VMware vSphere: vsphere_storage_drs_vm_override"
+sidebar_current: "docs-vsphere-resource-storage-storage-drs-vm-override"
 description: |-
   Provides a VMware vSphere Storage DRS virtual machine override resource. This can be used to override Storage DRS settings in a datastore cluster.
 ---
 
-# vsphere\_storage\_drs\_vm\_config
+# vsphere\_storage\_drs\_vm\_override
 
-The `vsphere_storage_drs_vm_config` resource can be used to add a Storage DRS
+The `vsphere_storage_drs_vm_override` resource can be used to add a Storage DRS
 override to a datastore cluster for a specific virtual machine. With this
 resource, one can enable or disable Storage DRS, and control the automation
 level and disk affinity for a single virtual machine without affecting the rest
@@ -26,10 +26,10 @@ example][tf-vsphere-vm-storage-drs-example] in the `vsphere_virtual_machine`
 resource. However, rather than use the output of the
 [`vsphere_datastore_cluster` data
 source][tf-vsphere-datastore-cluster-data-source] for the location of the
-virtual machine, we instead get what is assumed to be a member datastore with
+virtual machine, we instead get what is assumed to be a member datastore using
 the [`vsphere_datastore` data source][tf-vsphere-datastore-data-source] and put
-the virtual machine in there instead. We then use the
-`vsphere_storage_drs_vm_config` resource to ensure that Storage DRS does not
+the virtual machine there instead. We then use the
+`vsphere_storage_drs_vm_override` resource to ensure that Storage DRS does not
 apply to this virtual machine, and hence the VM will never be migrated off of
 the datastore.
 
@@ -81,7 +81,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 
-resource "vsphere_storage_drs_vm_config" "drs_vm_config" {
+resource "vsphere_storage_drs_vm_override" "drs_vm_override" {
   datastore_cluster_id = "${data.vsphere_datastore_cluster.datastore_cluster.id}"
   virtual_machine_id   = "${vsphere_virtual_machine.vm.id}"
   sdrs_enabled         = false
@@ -111,9 +111,10 @@ The following arguments are supported:
 [tf-vsphere-datastore-cluster-sdrs-levels]: /docs/providers/vsphere/r/datastore_cluster.html#storage-drs-automation-options
 
 * `sdrs_intra_vm_affinity` - (Optional) Overrides the intra-VM affinity setting
-  for this virtual machine. When `true`, all disks for this virtual machine will
-  be kept on the same datastore. When not specified, the datastore cluster's
-  settings are used.
+  for this virtual machine. When `true`, all disks for this virtual machine
+  will be kept on the same datastore. When `false`, Storage DRS may locate
+  individual disks on different datastores if it helps satisfy cluster
+  requirements. When not specified, the datastore cluster's settings are used.
 
 ## Attribute Reference
 
@@ -133,7 +134,7 @@ An example is below:
 [docs-import]: https://www.terraform.io/docs/import/index.html
 
 ```
-terraform import vsphere_storage_drs_vm_config.drs_vm_config \
+terraform import vsphere_storage_drs_vm_override.drs_vm_override \
   '{"datastore_cluster_path": "/dc1/datastore/ds-cluster", \
   "virtual_machine_path": "/dc1/vm/srv1"}'
 ```

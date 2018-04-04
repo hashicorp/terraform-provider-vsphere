@@ -16,91 +16,91 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-func TestAccResourceVSphereStorageDrsVMConfig_basic(t *testing.T) {
+func TestAccResourceVSphereStorageDrsVMOverride_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccResourceVSphereStorageDrsVMConfigPreCheck(t)
+			testAccResourceVSphereStorageDrsVMOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereStorageDrsVMConfigExists(false),
+		CheckDestroy: testAccResourceVSphereStorageDrsVMOverrideExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereStorageDrsVMConfigConfigBasic(),
+				Config: testAccResourceVSphereStorageDrsVMOverrideConfigBasic(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereStorageDrsVMConfigExists(true),
-					testAccResourceVSphereStorageDrsVMConfigMatch("", structure.BoolPtr(false), nil),
+					testAccResourceVSphereStorageDrsVMOverrideExists(true),
+					testAccResourceVSphereStorageDrsVMOverrideMatch("", structure.BoolPtr(false), nil),
 				),
 			},
 		},
 	})
 }
 
-func TestAccResourceVSphereStorageDrsVMConfig_overrides(t *testing.T) {
+func TestAccResourceVSphereStorageDrsVMOverride_overrides(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccResourceVSphereStorageDrsVMConfigPreCheck(t)
+			testAccResourceVSphereStorageDrsVMOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereStorageDrsVMConfigExists(false),
+		CheckDestroy: testAccResourceVSphereStorageDrsVMOverrideExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereStorageDrsVMConfigConfigOverrides(),
+				Config: testAccResourceVSphereStorageDrsVMOverrideConfigOverrides(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereStorageDrsVMConfigExists(true),
-					testAccResourceVSphereStorageDrsVMConfigMatch("manual", nil, structure.BoolPtr(false)),
+					testAccResourceVSphereStorageDrsVMOverrideExists(true),
+					testAccResourceVSphereStorageDrsVMOverrideMatch("manual", nil, structure.BoolPtr(false)),
 				),
 			},
 		},
 	})
 }
 
-func TestAccResourceVSphereStorageDrsVMConfig_update(t *testing.T) {
+func TestAccResourceVSphereStorageDrsVMOverride_update(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccResourceVSphereStorageDrsVMConfigPreCheck(t)
+			testAccResourceVSphereStorageDrsVMOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereStorageDrsVMConfigExists(false),
+		CheckDestroy: testAccResourceVSphereStorageDrsVMOverrideExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereStorageDrsVMConfigConfigBasic(),
+				Config: testAccResourceVSphereStorageDrsVMOverrideConfigBasic(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereStorageDrsVMConfigExists(true),
-					testAccResourceVSphereStorageDrsVMConfigMatch("", structure.BoolPtr(false), nil),
+					testAccResourceVSphereStorageDrsVMOverrideExists(true),
+					testAccResourceVSphereStorageDrsVMOverrideMatch("", structure.BoolPtr(false), nil),
 				),
 			},
 			{
-				Config: testAccResourceVSphereStorageDrsVMConfigConfigOverrides(),
+				Config: testAccResourceVSphereStorageDrsVMOverrideConfigOverrides(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereStorageDrsVMConfigExists(true),
-					testAccResourceVSphereStorageDrsVMConfigMatch("manual", nil, structure.BoolPtr(false)),
+					testAccResourceVSphereStorageDrsVMOverrideExists(true),
+					testAccResourceVSphereStorageDrsVMOverrideMatch("manual", nil, structure.BoolPtr(false)),
 				),
 			},
 		},
 	})
 }
 
-func TestAccResourceVSphereStorageDrsVMConfig_import(t *testing.T) {
+func TestAccResourceVSphereStorageDrsVMOverride_import(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccResourceVSphereStorageDrsVMConfigPreCheck(t)
+			testAccResourceVSphereStorageDrsVMOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereStorageDrsVMConfigExists(false),
+		CheckDestroy: testAccResourceVSphereStorageDrsVMOverrideExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereStorageDrsVMConfigConfigBasic(),
+				Config: testAccResourceVSphereStorageDrsVMOverrideConfigBasic(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereStorageDrsVMConfigExists(true),
-					testAccResourceVSphereStorageDrsVMConfigMatch("", structure.BoolPtr(false), nil),
+					testAccResourceVSphereStorageDrsVMOverrideExists(true),
+					testAccResourceVSphereStorageDrsVMOverrideMatch("", structure.BoolPtr(false), nil),
 				),
 			},
 			{
-				ResourceName:      "vsphere_storage_drs_vm_config.drs_vm_config",
+				ResourceName:      "vsphere_storage_drs_vm_override.drs_vm_override",
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
@@ -123,46 +123,46 @@ func TestAccResourceVSphereStorageDrsVMConfig_import(t *testing.T) {
 
 					return string(b), nil
 				},
-				Config: testAccResourceVSphereStorageDrsVMConfigConfigBasic(),
+				Config: testAccResourceVSphereStorageDrsVMOverrideConfigBasic(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereStorageDrsVMConfigExists(true),
-					testAccResourceVSphereStorageDrsVMConfigMatch("", structure.BoolPtr(false), nil),
+					testAccResourceVSphereStorageDrsVMOverrideExists(true),
+					testAccResourceVSphereStorageDrsVMOverrideMatch("", structure.BoolPtr(false), nil),
 				),
 			},
 		},
 	})
 }
 
-func testAccResourceVSphereStorageDrsVMConfigPreCheck(t *testing.T) {
+func testAccResourceVSphereStorageDrsVMOverridePreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_DATACENTER") == "" {
-		t.Skip("set VSPHERE_DATACENTER to run vsphere_storage_drs_vm_config acceptance tests")
+		t.Skip("set VSPHERE_DATACENTER to run vsphere_storage_drs_vm_override acceptance tests")
 	}
 	if os.Getenv("VSPHERE_NAS_HOST") == "" {
-		t.Skip("set VSPHERE_NAS_HOST to run vsphere_storage_drs_vm_config acceptance tests")
+		t.Skip("set VSPHERE_NAS_HOST to run vsphere_storage_drs_vm_override acceptance tests")
 	}
 	if os.Getenv("VSPHERE_NFS_PATH") == "" {
-		t.Skip("set VSPHERE_NFS_PATH to run vsphere_storage_drs_vm_config acceptance tests")
+		t.Skip("set VSPHERE_NFS_PATH to run vsphere_storage_drs_vm_override acceptance tests")
 	}
 	if os.Getenv("VSPHERE_ESXI_HOST") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST to run vsphere_storage_drs_vm_config acceptance tests")
+		t.Skip("set VSPHERE_ESXI_HOST to run vsphere_storage_drs_vm_override acceptance tests")
 	}
 	if os.Getenv("VSPHERE_ESXI_HOST2") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST2 to run vsphere_storage_drs_vm_config acceptance tests")
+		t.Skip("set VSPHERE_ESXI_HOST2 to run vsphere_storage_drs_vm_override acceptance tests")
 	}
 	if os.Getenv("VSPHERE_ESXI_HOST3") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST3 to run vsphere_storage_drs_vm_config acceptance tests")
+		t.Skip("set VSPHERE_ESXI_HOST3 to run vsphere_storage_drs_vm_override acceptance tests")
 	}
 	if os.Getenv("VSPHERE_RESOURCE_POOL") == "" {
-		t.Skip("set VSPHERE_RESOURCE_POOL to run vsphere_storage_drs_vm_config acceptance tests")
+		t.Skip("set VSPHERE_RESOURCE_POOL to run vsphere_storage_drs_vm_override acceptance tests")
 	}
 	if os.Getenv("VSPHERE_NETWORK_LABEL_PXE") == "" {
-		t.Skip("set VSPHERE_NETWORK_LABEL_PXE to run vsphere_storage_drs_vm_config acceptance tests")
+		t.Skip("set VSPHERE_NETWORK_LABEL_PXE to run vsphere_storage_drs_vm_override acceptance tests")
 	}
 }
 
-func testAccResourceVSphereStorageDrsVMConfigExists(expected bool) resource.TestCheckFunc {
+func testAccResourceVSphereStorageDrsVMOverrideExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		info, err := testGetDatastoreClusterSDRSVMConfig(s, "drs_vm_config")
+		info, err := testGetDatastoreClusterSDRSVMConfig(s, "drs_vm_override")
 		if err != nil {
 			if viapi.IsManagedObjectNotFoundError(err) && expected == false {
 				// This is not necessarily a missing override, but more than likely a
@@ -189,9 +189,9 @@ func testAccResourceVSphereStorageDrsVMConfigExists(expected bool) resource.Test
 	}
 }
 
-func testAccResourceVSphereStorageDrsVMConfigMatch(behavior string, enabled, intraVMAffinity *bool) resource.TestCheckFunc {
+func testAccResourceVSphereStorageDrsVMOverrideMatch(behavior string, enabled, intraVMAffinity *bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		actual, err := testGetDatastoreClusterSDRSVMConfig(s, "drs_vm_config")
+		actual, err := testGetDatastoreClusterSDRSVMConfig(s, "drs_vm_override")
 		if err != nil {
 			return err
 		}
@@ -215,7 +215,7 @@ func testAccResourceVSphereStorageDrsVMConfigMatch(behavior string, enabled, int
 	}
 }
 
-func testAccResourceVSphereStorageDrsVMConfigConfigBasic() string {
+func testAccResourceVSphereStorageDrsVMOverrideConfigBasic() string {
 	return fmt.Sprintf(`
 variable "datacenter" {
   default = "%s"
@@ -300,7 +300,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 
-resource "vsphere_storage_drs_vm_config" "drs_vm_config" {
+resource "vsphere_storage_drs_vm_override" "drs_vm_override" {
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
   virtual_machine_id   = "${vsphere_virtual_machine.vm.id}"
   sdrs_enabled         = false
@@ -317,7 +317,7 @@ resource "vsphere_storage_drs_vm_config" "drs_vm_config" {
 	)
 }
 
-func testAccResourceVSphereStorageDrsVMConfigConfigOverrides() string {
+func testAccResourceVSphereStorageDrsVMOverrideConfigOverrides() string {
 	return fmt.Sprintf(`
 variable "datacenter" {
   default = "%s"
@@ -404,7 +404,7 @@ resource "vsphere_virtual_machine" "vm" {
   depends_on = ["vsphere_nas_datastore.datastore"]
 }
 
-resource "vsphere_storage_drs_vm_config" "drs_vm_config" {
+resource "vsphere_storage_drs_vm_override" "drs_vm_override" {
   datastore_cluster_id   = "${vsphere_datastore_cluster.datastore_cluster.id}"
   virtual_machine_id     = "${vsphere_virtual_machine.vm.id}"
   sdrs_automation_level  = "manual"

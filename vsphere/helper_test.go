@@ -689,7 +689,7 @@ func testGetDatastoreClusterProperties(s *terraform.State, resourceName string) 
 // testGetDatastoreClusterSDRSVMConfig is a convenience method to fetch a VM's
 // SDRS override in a datastore cluster.
 func testGetDatastoreClusterSDRSVMConfig(s *terraform.State, resourceName string) (*types.StorageDrsVmConfigInfo, error) {
-	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereStorageDrsVMConfigName, resourceName))
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereStorageDrsVMOverrideName, resourceName))
 	if err != nil {
 		return nil, err
 	}
@@ -698,7 +698,7 @@ func testGetDatastoreClusterSDRSVMConfig(s *terraform.State, resourceName string
 		return nil, errors.New("resource ID is empty")
 	}
 
-	podID, vmID, err := resourceVSphereStorageDrsVMConfigParseID(vars.resourceID)
+	podID, vmID, err := resourceVSphereStorageDrsVMOverrideParseID(vars.resourceID)
 	if err != nil {
 		return nil, err
 	}
@@ -713,5 +713,5 @@ func testGetDatastoreClusterSDRSVMConfig(s *terraform.State, resourceName string
 		return nil, err
 	}
 
-	return resourceVSphereStorageDrsVMConfigFindEntry(pod, vm)
+	return resourceVSphereStorageDrsVMOverrideFindEntry(pod, vm)
 }
