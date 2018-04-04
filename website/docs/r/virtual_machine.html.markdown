@@ -333,7 +333,7 @@ datastore cluster, changes to a virtual machine's underlying datastores are
 ignored unless disks drift outside of the datastore cluster. The example below
 makes use of the [`vsphere_datastore_cluster` data
 source][tf-vsphere-datastore-cluster-data-source], and the
-[`datastore_clsuter_id`](#datastore_cluster_id) configuration setting. Note
+[`datastore_cluster_id`](#datastore_cluster_id) configuration setting. Note
 that the [`vsphere_datastore_cluster`
 resource][tf-vsphere-datastore-cluster-resource] also exists to allow for
 management of datastore clusters directly in Terraform.
