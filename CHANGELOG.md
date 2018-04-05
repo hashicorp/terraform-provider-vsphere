@@ -2,6 +2,7 @@
 
 FEATURES:
 
+* **New Resource:** `vsphere_storage_drs_vm_override` [GH-450]
 * **New Resource:** `vsphere_datastore_cluster` [GH-436]
 * **New Data Source:** `vsphere_datastore_cluster` [GH-437]
 
