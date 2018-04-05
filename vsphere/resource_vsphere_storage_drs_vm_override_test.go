@@ -76,7 +76,7 @@ func TestAccResourceVSphereStorageDrsVMOverride_update(t *testing.T) {
 				Config: testAccResourceVSphereStorageDrsVMOverrideConfigOverrides(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereStorageDrsVMOverrideExists(true),
-					testAccResourceVSphereStorageDrsVMOverrideMatch("manual", nil, structure.BoolPtr(false)),
+					testAccResourceVSphereStorageDrsVMOverrideMatch("automated", nil, structure.BoolPtr(false)),
 				),
 			},
 		},
