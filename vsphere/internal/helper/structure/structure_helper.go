@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi/vim25/types"
@@ -122,6 +123,84 @@ func SetBoolPtr(d *schema.ResourceData, key string, val *bool) error {
 	}
 	err := d.Set(key, val)
 	return err
+}
+
+// GetBoolStringPtr reads a ResourceData *string* field. This field is handled
+// in the following way:
+//
+// * If it's empty, nil is returned.
+// * The string is then sent through ParseBool. This will return a valid value
+// for anything ParseBool returns a value for.
+// * If it's anything else, an error is returned.
+//
+// This is designed to address the current lack of HCL and Terraform to be able
+// to distinguish between nil states and zero values properly. This is a
+// systemic issue that affects reading, writing, and diffing of these values.
+// These issues will eventually be addressed in HCL2.
+func GetBoolStringPtr(d *schema.ResourceData, key string) (*bool, error) {
+	v, ok := d.GetOk(key)
+	if !ok {
+		return nil, nil
+	}
+	b, err := strconv.ParseBool(v.(string))
+	if err != nil {
+		return nil, err
+	}
+	return &b, nil
+}
+
+// SetBoolStringPtr sets a stringified ResoruceData bool field. This is a field
+// that is supposed to behave like a bool (true/false), but needs to be a
+// string to represent a nil state as well.
+//
+// This is designed to address the current lack of HCL and Terraform to be able
+// to distinguish between nil states and zero values properly. This is a
+// systemic issue that affects reading, writing, and diffing of these values.
+// These issues will eventually be addressed in HCL2.
+func SetBoolStringPtr(d *schema.ResourceData, key string, val *bool) error {
+	var s string
+	if val != nil {
+		s = strconv.FormatBool(*val)
+	}
+	return d.Set(key, s)
+}
+
+// BoolStringPtrState is a state normalization function for stringified 3-state
+// bool pointers.
+//
+// The function silently drops any result that can't be parsed with ParseBool,
+// and will return an empty string for these cases.
+//
+// This is designed to address the current lack of HCL and Terraform to be able
+// to distinguish between nil states and zero values properly. This is a
+// systemic issue that affects reading, writing, and diffing of these values.
+// These issues will eventually be addressed in HCL2.
+func BoolStringPtrState(v interface{}) string {
+	b, err := strconv.ParseBool(v.(string))
+	if err != nil {
+		return ""
+	}
+	return strconv.FormatBool(b)
+}
+
+// ValidateBoolStringPtr validates that the input value can be parsed by
+// ParseBool. It also succeeds on empty strings.
+//
+// This is designed to address the current lack of HCL and Terraform to be able
+// to distinguish between nil states and zero values properly. This is a
+// systemic issue that affects reading, writing, and diffing of these values.
+// These issues will eventually be addressed in HCL2.
+func ValidateBoolStringPtr() schema.SchemaValidateFunc {
+	return func(i interface{}, k string) (s []string, es []error) {
+		v := i.(string)
+		if v == "" {
+			return
+		}
+		if _, err := strconv.ParseBool(v); err != nil {
+			es = append(es, err)
+		}
+		return
+	}
 }
 
 // Int64Ptr makes an *int64 out of the value passed in through v.

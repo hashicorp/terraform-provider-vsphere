@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -683,4 +684,34 @@ func testGetDatastoreClusterProperties(s *terraform.State, resourceName string) 
 		return nil, err
 	}
 	return storagepod.Properties(pod)
+}
+
+// testGetDatastoreClusterSDRSVMConfig is a convenience method to fetch a VM's
+// SDRS override in a datastore cluster.
+func testGetDatastoreClusterSDRSVMConfig(s *terraform.State, resourceName string) (*types.StorageDrsVmConfigInfo, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereStorageDrsVMOverrideName, resourceName))
+	if err != nil {
+		return nil, err
+	}
+
+	if vars.resourceID == "" {
+		return nil, errors.New("resource ID is empty")
+	}
+
+	podID, vmID, err := resourceVSphereStorageDrsVMOverrideParseID(vars.resourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	pod, err := storagepod.FromID(vars.client, podID)
+	if err != nil {
+		return nil, err
+	}
+
+	vm, err := virtualmachine.FromUUID(vars.client, vmID)
+	if err != nil {
+		return nil, err
+	}
+
+	return resourceVSphereStorageDrsVMOverrideFindEntry(pod, vm)
 }
