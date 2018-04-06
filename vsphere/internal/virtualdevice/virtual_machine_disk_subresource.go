@@ -1645,13 +1645,10 @@ func (r *DiskSubresource) createDisk(l object.VirtualDeviceList) (*types.Virtual
 	disk := new(types.VirtualDisk)
 	disk.Backing = new(types.VirtualDiskFlatVer2BackingInfo)
 
-	dsID := r.Get("datastore_id").(string)
-	if dsID == "" {
-		// Default to the default datastore
-		dsID = r.rdd.Get("datastore_id").(string)
-	}
-	if dsID != "" {
-		if err := r.assignBackingInfo(disk, dsID); err != nil {
+	// Only assign backing info if a datastore cluster is not specified. If one
+	// is, skip this step.
+	if r.rdd.Get("datastore_cluster_id").(string) == "" {
+		if err := r.assignBackingInfo(disk); err != nil {
 			return nil, err
 		}
 	}
@@ -1661,7 +1658,13 @@ func (r *DiskSubresource) createDisk(l object.VirtualDeviceList) (*types.Virtual
 	return disk, nil
 }
 
-func (r *DiskSubresource) assignBackingInfo(disk *types.VirtualDisk, dsID string) error {
+func (r *DiskSubresource) assignBackingInfo(disk *types.VirtualDisk) error {
+	dsID := r.Get("datastore_id").(string)
+	if dsID == "" {
+		// Default to the default datastore
+		dsID = r.rdd.Get("datastore_id").(string)
+	}
+
 	ds, err := datastore.FromID(r.client, dsID)
 	if err != nil {
 		return err
