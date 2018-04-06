@@ -3933,6 +3933,8 @@ resource "vsphere_virtual_machine" "vm" {
   memory   = 2048
   guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
 
+  wait_for_guest_net_timeout = 10
+
   network_interface {
     network_id   = "${data.vsphere_network.network.id}"
     adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
@@ -3946,14 +3948,14 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   cdrom {
-    datastore_id  = "${data.vsphere_datastore.cdrom_datastore.id}"
-    path          = "${var.cdrom_iso}"
+    datastore_id = "${data.vsphere_datastore.cdrom_datastore.id}"
+    path         = "${var.cdrom_iso}"
   }
 
   vapp {
     properties {
       "user-data" = "${base64encode(data.template_file.config_data.rendered)}"
-      "hostname" = "custom-hostname"
+      "hostname"  = "custom-hostname"
     }
   }
 
@@ -4070,6 +4072,8 @@ resource "vsphere_virtual_machine" "vm" {
   memory   = 2048
   guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
 
+  wait_for_guest_net_timeout = 10
+
   network_interface {
     network_id   = "${data.vsphere_network.network.id}"
     adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
@@ -4085,7 +4089,7 @@ resource "vsphere_virtual_machine" "vm" {
   vapp {
     properties {
       "user-data" = "${base64encode(data.template_file.config_data.rendered)}"
-      "hostname" = "custom-hostname"
+      "hostname"  = "custom-hostname"
     }
   }
 
@@ -4200,6 +4204,8 @@ resource "vsphere_virtual_machine" "vm" {
   memory   = 2048
   guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
 
+  wait_for_guest_net_timeout = 10
+
   network_interface {
     network_id   = "${data.vsphere_network.network.id}"
     adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
@@ -4219,7 +4225,7 @@ resource "vsphere_virtual_machine" "vm" {
   vapp {
     properties {
       "user-data" = "${base64encode(data.template_file.config_data.rendered)}"
-      "hostname" = "custom-hostname"
+      "hostname"  = "custom-hostname"
     }
   }
 
