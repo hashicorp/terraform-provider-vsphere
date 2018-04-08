@@ -96,10 +96,11 @@ to the [import](#importing) path, with the exception that the `terraform
 import` command does not need to be run. See that section for details on what
 is required before you run `terraform plan` on a state that requires migration.
 
-A successful import usually only results in a diff where configured disks
-transition their [`keep_on_remove`](#keep_on_remove) settings from `true` to
-`false`. This operation does not perform any virtual machine operations and is
-safe to run while the virtual machine is running.
+A successful migration usually only results in a configuration-only diff - that
+is, Terraform reconciles some configuration settings that cannot be set during
+the migration process with state. In this event, no reconfiguration operations
+are sent to the vSphere server during the next `terraform apply`.  See the
+[importing](#importing) section for more details.
 
 ## Example Usage
 
@@ -1368,9 +1369,9 @@ The following attributes are exported on the base level of this resource:
 * `vmx_path` - The path of the virtual machine's configuration file in the VM's
   datastore.
 * `imported` - This is flagged if the virtual machine has been imported, or the
-  state has been migrated from a previous version of the resource, and blocks
-  the `clone` configuration option from being set. See the section on
-  [importing](#importing) below.
+  state has been migrated from a previous version of the resource. It
+  influences the behavior of the first post-import apply operation. See the
+  section on [importing](#importing) below.
 * `change_version` - A unique identifier for a given version of the last
   configuration applied, such the timestamp of the last update to the
   configuration.
@@ -1428,10 +1429,6 @@ In addition to these rules, the following extra rules apply to importing:
   until the first `terraform apply` runs, which will remove the setting for
   known disks. This is an extra safeguard against naming or accounting mistakes
   in the disk configuration.
-* You cannot use the [`clone`](#clone) sub-resource on any imported VM. If you
-  need to clone a new virtual machine or want a working configuration with
-  `clone` features, you will need to create a new resource and destroy the old
-  one.
 * The [`scsi_controller_count`](#scsi_controller_count) for the resource is set
   to the number of contiguous SCSI controllers found, starting with the SCSI
   controller at bus number 0. If no SCSI controllers are found, the VM is not
@@ -1441,9 +1438,25 @@ In addition to these rules, the following extra rules apply to importing:
 
 After importing, you should run `terraform plan`. Unless you have changed
 anything else in configuration that would be causing other attributes to
-change, the only difference should be the transition of
-[`keep_on_remove`](#keep_on_remove) of known disks from `true` to `false`. The
-operation only updates Terraform state when applied, and is safe to run when
-the virtual machine is running. If more settings are being modified, you may
-need to plan maintenance accordingly for any necessary re-configuration of the
-virtual machine.
+change, the only difference should be configuration-only changes, usually
+comprising of:
+
+* The [`imported`](#imported) flag will transition from `true` to `false`.
+* [`keep_on_remove`](#keep_on_remove) of known disks will transition from
+  `true` to `false`. 
+* Configuration for the [`clone`](#clone) sub-resource block, if supplied, will
+  be persisted to state. This initial persistence operation does not perform
+  any cloning or customization actions, nor does it force a new resource. After
+  the first apply operation, further changes to `clone` will force a new
+  resource as per normal operation.
+
+~> **NOTE:** Further to the above, do not make any configuration changes to
+`clone` after importing or upgrading from a legacy version of the provider
+before doing an initial `terraform apply` as these changes will not correctly
+force a new resource, and your changes will have persisted to state, preventing
+further plans from correctly triggering a diff.
+
+These changes only update Terraform state when applied, hence it is safe to run
+when the virtual machine is running. If more settings are being modified, you
+may need to plan maintenance accordingly for any necessary re-configuration of
+the virtual machine.

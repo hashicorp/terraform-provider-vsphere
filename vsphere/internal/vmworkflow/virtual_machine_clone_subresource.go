@@ -27,19 +27,16 @@ func VirtualMachineCloneSchema() map[string]*schema.Schema {
 		"template_uuid": {
 			Type:        schema.TypeString,
 			Required:    true,
-			ForceNew:    true,
 			Description: "The UUID of the source virtual machine or template.",
 		},
 		"linked_clone": {
 			Type:        schema.TypeBool,
 			Optional:    true,
-			ForceNew:    true,
 			Description: "Whether or not to create a linked clone when cloning. When this option is used, the source VM must have a single snapshot associated with it.",
 		},
 		"timeout": {
 			Type:         schema.TypeInt,
 			Optional:     true,
-			ForceNew:     true,
 			Default:      30,
 			Description:  "The timeout, in minutes, to wait for the virtual machine clone to complete.",
 			ValidateFunc: validation.IntAtLeast(10),
@@ -47,7 +44,6 @@ func VirtualMachineCloneSchema() map[string]*schema.Schema {
 		"customize": {
 			Type:        schema.TypeList,
 			Optional:    true,
-			ForceNew:    true,
 			MaxItems:    1,
 			Description: "The customization spec for this clone. This allows the user to configure the virtual machine post-clone.",
 			Elem:        &schema.Resource{Schema: VirtualMachineCustomizeSchema()},

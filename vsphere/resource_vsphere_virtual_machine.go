@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -180,7 +181,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		"imported": {
 			Type:        schema.TypeBool,
 			Computed:    true,
-			Description: "A flag internal to Terraform that indicates that this resource was either imported or came from a earlier major version of this resource.",
+			Description: "A flag internal to Terraform that indicates that this resource was either imported or came from a earlier major version of this resource. Reset after the first post-import or post-upgrade apply.",
 		},
 		"moid": &schema.Schema{
 			Type:        schema.TypeString,
@@ -569,6 +570,7 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 	if err := virtualmachine.Destroy(vm); err != nil {
 		return fmt.Errorf("error destroying virtual machine: %s", err)
 	}
+	d.SetId("")
 	log.Printf("[DEBUG] %s: Delete complete", resourceVSphereVirtualMachineIDString(d))
 	return nil
 }
@@ -608,12 +610,26 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 	// operations.
 	if len(d.Get("clone").([]interface{})) > 0 {
 		switch {
+		case d.Get("imported").(bool):
+			// Imported workflows need to have the configuration of the clone
+			// sub-resource block persisted to state without forcing a new resource.
+			// Any changes after that will be properly tracked as a ForceNew, by
+			// flagging the imported flag to off.
+			d.SetNew("imported", false)
 		case d.Id() == "":
 			if err := vmworkflow.ValidateVirtualMachineClone(d, client); err != nil {
 				return err
 			}
-		case d.Get("imported").(bool):
-			return errors.New("this resource was imported or migrated from a previous version and does not support cloning. Please remove the \"clone\" block from its configuration")
+			fallthrough
+		default:
+			// For most cases (all non-imported workflows), any changed attribute in
+			// the clone configuration namespace is a ForceNew. Flag those now.
+			for _, k := range d.GetChangedKeysPrefix("clone.0") {
+				if strings.HasSuffix(k, ".#") {
+					k = strings.TrimSuffix(k, ".#")
+				}
+				d.ForceNew(k)
+			}
 		}
 	}
 	// Validate that the config has the necessary components for vApp support.
