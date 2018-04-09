@@ -14,7 +14,7 @@ folders, host and cluster folders, virtual machine folders, datastore folders,
 and network folders.
 
 Paths are always relative to the specific type of folder you are creating.
-Subfolders are discovered by parsing the relative path specified in `name`, so
+Subfolders are discovered by parsing the relative path specified in `path`, so
 `foo/bar` will create a folder named `bar` in the parent folder `foo`, as long
 as that folder exists.
 
@@ -38,7 +38,7 @@ resource "vsphere_folder" "folder" {
 The below example builds off of the above by first creating a folder named
 `terraform-test-parent`, and then locating `terraform-test-folder` in that
 folder. To ensure the parent is created first, we create an interpolation
-dependency off the parent's `name` attribute.
+dependency off the parent's `path` attribute.
 
 Note that if you change parents (for example, went from the above basic
 configuration to this one), your folder will be moved to be under the correct
@@ -54,7 +54,7 @@ resource "vsphere_folder" "parent" {
 }
 
 resource "vsphere_folder" "folder" {
-  path          = "${vsphere_folder.parent.name}/terraform-test-folder"
+  path          = "${vsphere_folder.parent.path}/terraform-test-folder"
   type          = "vm"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
