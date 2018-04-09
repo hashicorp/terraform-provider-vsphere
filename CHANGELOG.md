@@ -13,6 +13,12 @@ IMPROVEMENTS:
   at once. See the [provider
   documentation](https://www.terraform.io/docs/providers/vsphere/index.html) for
   more details. [GH-422]
+* `resource/vsphere_virtual_machine`: This resource now supports import of
+  resources or migrations from legacy versions of the provider (provider version
+  0.4.2 or earlier) into configurations that have the `clone` block specified.
+  See [Additional requirements and notes for
+  importing](https://www.terraform.io/docs/providers/vsphere/r/virtual_machine.html#additional-requirements-and-notes-for-importing)
+  in the resource documentation for more details. [GH-460]
 * `resource/vsphere_virtual_machine`: Now supports datastore clusters. Virtual
   machines placed in a datastore cluster will use Storage DRS recommendations
   for initial placement, virtual disk creation, and migration between datastore
