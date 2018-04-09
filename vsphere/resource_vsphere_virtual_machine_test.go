@@ -314,14 +314,21 @@ func TestAccResourceVSphereVirtualMachine_disksKeepOnRemove(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereVirtualMachineDeletePersistentDisks(&disks),
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVirtualMachineConfigKeepDisksOnRemove(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachinePersistentDiskInfo(&disks),
 					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+			{
+				Destroy: true,
+				Config:  testAccResourceVSphereVirtualMachineConfigKeepDisksOnRemove(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(false),
+					testAccResourceVSphereVirtualMachineDeletePersistentDisks(&disks),
 				),
 			},
 		},
