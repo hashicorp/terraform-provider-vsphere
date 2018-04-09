@@ -390,6 +390,34 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitsToRegularSingleController
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_disksKeepOnRemove(t *testing.T) {
+	var disks []map[string]string
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigKeepDisksOnRemove(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachinePersistentDiskInfo(&disks),
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+			{
+				Destroy: true,
+				Config:  testAccResourceVSphereVirtualMachineConfigKeepDisksOnRemove(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(false),
+					testAccResourceVSphereVirtualMachineDeletePersistentDisks(&disks),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVirtualMachine_cdromIsoMapping(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -3044,6 +3072,69 @@ func testAccResourceVSphereVirtualMachineCheckClientCdrom() resource.TestCheckFu
 	}
 }
 
+// testAccResourceVSphereVirtualMachinePersistentDiskInfo goes through the
+// current state and creates a slice of maps containing information on disks
+// which have `keep_on_remove` set to true.  This list can later be used to
+// examine disks that have been removed from the virtual machine configuration.
+func testAccResourceVSphereVirtualMachinePersistentDiskInfo(disks *[]map[string]string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		vms := s.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.Attributes
+		dn, err := strconv.Atoi(vms["disk.#"])
+		if err != nil {
+			return err
+		}
+		for i := 0; i < dn; i++ {
+			if vms[fmt.Sprintf("disk.%s.keep_on_remove", strconv.Itoa(i))] == "true" {
+				disk := map[string]string{
+					"path":         vms[fmt.Sprintf("disk.%s.path", strconv.Itoa(i))],
+					"datastore_id": vms[fmt.Sprintf("disk.%s.datastore_id", strconv.Itoa(i))],
+				}
+				*disks = append(*disks, disk)
+			}
+		}
+		return nil
+	}
+}
+
+// testAccResourceVSphereVirtualMachineDeletePersistentDisks goes through a
+// list of disks and deletes the files backing those disks. This process also
+// checks that the backing files exist in the deletion process. If the files
+// don't exist, an error will be raised during deletion. The folder containing
+// the disks will also be deleted. If the folder is not empty, all remaining
+// files will be deleted.
+func testAccResourceVSphereVirtualMachineDeletePersistentDisks(disks *[]map[string]string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		client := testAccProvider.Meta().(*VSphereClient).vimClient
+		reFlat := regexp.MustCompile("\\.vmdk$")
+		reVM := regexp.MustCompile("\\/.*?\\.vmdk$")
+		var vmFolder string
+		var dsID string
+		for _, disk := range *disks {
+			ds, err := datastore.FromID(client, disk["datastore_id"])
+			if err != nil {
+				return err
+			}
+			path := fmt.Sprintf("[%s] %s", ds.Name(), disk["path"])
+			flat := reFlat.ReplaceAllString(path, "-flat.vmdk")
+			vmFolder = reVM.ReplaceAllString(path, "")
+			dsID = disk["datastore_id"]
+			err = testDeleteDatastoreFile(client, dsID, path)
+			if err != nil {
+				return err
+			}
+			// Ignore errors here as the _flat files only exist for thin provisioned
+			// disks.
+			_ = testDeleteDatastoreFile(client, dsID, flat)
+		}
+		// Delete the VM folder now that we've checked and cleaned up the disk.
+		err := testDeleteDatastoreFile(client, dsID, vmFolder)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
 // testAccResourceVSphereVirtualMachineCheckPowerOffEvent is a check to see if
 // the VM has been powered off at any point in time.
 func testAccResourceVSphereVirtualMachineCheckPowerOffEvent(expected bool) resource.TestCheckFunc {
@@ -3474,6 +3565,147 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigKeepDisksOnRemove() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "ipv4_address" {
+  default = "%s"
+}
+
+variable "ipv4_netmask" {
+  default = "%s"
+}
+
+variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "dns_server" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "template" {
+  default = "%s"
+}
+
+variable "linked_clone" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_virtual_machine" "template" {
+  name          = "${var.template}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+
+  network_interface {
+    network_id   = "${data.vsphere_network.network.id}"
+    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+  }
+
+  wait_for_guest_net_timeout = -1
+
+  disk {
+    label            = "disk0"
+    unit_number      = 0
+    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
+    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+  }
+
+  disk {
+    label            = "disk1"
+    unit_number      = 1
+    size             = 1
+    thin_provisioned = true
+    keep_on_remove   = true
+  }
+
+  disk {
+    label            = "disk2"
+    unit_number      = 2
+    size             = 1
+    thin_provisioned = true
+    keep_on_remove   = true
+  }
+
+  clone {
+    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+
+    customize {
+      linux_options {
+        host_name = "terraform-test"
+        domain    = "test.internal"
+      }
+
+      network_interface {
+        ipv4_address = "${var.ipv4_address}"
+        ipv4_netmask = "${var.ipv4_netmask}"
+      }
+
+      ipv4_gateway    = "${var.ipv4_gateway}"
+      dns_server_list = ["${var.dns_server}"]
+      dns_suffix_list = ["test.internal"]
+    }
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL"),
+		os.Getenv("VSPHERE_IPV4_ADDRESS"),
+		os.Getenv("VSPHERE_IPV4_PREFIX"),
+		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DNS"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_TEMPLATE"),
+		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
 	)
 }
 

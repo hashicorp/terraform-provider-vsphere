@@ -666,6 +666,28 @@ func testResourceHasCustomAttributeValues(s *terraform.State, resourceType strin
 	return nil
 }
 
+// testDeleteDatastoreFile deletes the specified file from a datastore. If the
+// file does not exist, an error is returned.
+func testDeleteDatastoreFile(client *govmomi.Client, dsID string, path string) error {
+	ds, err := datastore.FromID(client, dsID)
+	if err != nil {
+		return err
+	}
+	dc, err := getDatacenter(client, ds.DatacenterPath)
+	if err != nil {
+		return err
+	}
+	fm := object.NewFileManager(client.Client)
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	task, err := fm.DeleteDatastoreFile(ctx, path, dc)
+	if err != nil {
+		return err
+	}
+	return task.Wait(context.TODO())
+}
+
 // testGetDatastoreCluster is a convenience method to fetch a datastore cluster by
 // resource name.
 func testGetDatastoreCluster(s *terraform.State, resourceName string) (*object.StoragePod, error) {
