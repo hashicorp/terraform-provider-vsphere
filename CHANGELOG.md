@@ -24,12 +24,17 @@ IMPROVEMENTS:
   for initial placement, virtual disk creation, and migration between datastore
   clusters. Migrations made by Storage DRS outside of Terraform will no longer
   create diffs when datastore clusters are in use. [GH-447]
-* `resource/vsphere_nas_datastore`: Now supports datastore clusters. [GH-439]
-* `resource/vsphere_vmfs_datastore`: Now supports datastore clusters. [GH-439]
+* `resource/vsphere_virtual_machine`: Added support for ISO transport of vApp
+  properties. The resource should now behave better with virtual machines cloned
+  from OVF/OVA templates that use the ISO transport to supply configuration
+  settings. [GH-381]
 * `resource/vsphere_virtual_machine`: Added support for client mapped CDROM
   devices. [GH-421]
-* `resource/vsphere_virtual_machine`: Added support for ISO transport of vApp
-  properties [GH-381]
+* `resource/vsphere_virtual_machine`: Destroying a VM that currently has
+  external disks attached should now function correctly and not give a duplicate
+  UUID error. [GH-442]
+* `resource/vsphere_nas_datastore`: Now supports datastore clusters. [GH-439]
+* `resource/vsphere_vmfs_datastore`: Now supports datastore clusters. [GH-439]
 
 ## 1.3.3 (March 01, 2018)
 
