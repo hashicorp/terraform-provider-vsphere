@@ -2419,6 +2419,39 @@ func TestAccResourceVSphereVirtualMachine_importClone(t *testing.T) {
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 				),
 			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigClone(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					func(s *terraform.State) error {
+						// This simulates an import scenario, as ImportStateVerify does not
+						// actually do a full TF run after import, and hence the above import
+						// check does not actually test to see Terraform will be able to
+						// plan. Hence we actually remove the clone configuration from the
+						// state and ensure that imported is flagged. This allows the next
+						// step to properly simulate the post-imported state.
+						rs, ok := s.RootModule().Resources["vsphere_virtual_machine.vm"]
+						if !ok {
+							return errors.New("vsphere_virtual_machine.vm not found in state")
+						}
+						for k := range rs.Primary.Attributes {
+							if strings.HasPrefix(k, "clone") {
+								delete(rs.Primary.Attributes, k)
+							}
+						}
+						rs.Primary.Attributes["imported"] = "true"
+
+						return nil
+					},
+				),
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigClone(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
 		},
 	})
 }
