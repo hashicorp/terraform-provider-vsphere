@@ -100,6 +100,10 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("error fetching virtual machine properties: %s", err)
 	}
 
+	if props.Config == nil {
+		return fmt.Errorf("no configuration returned for virtual machine %q", vm.InventoryPath)
+	}
+
 	d.SetId(props.Config.Uuid)
 	d.Set("guest_id", props.Config.GuestId)
 	d.Set("alternate_guest_name", props.Config.AlternateGuestName)
