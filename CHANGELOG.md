@@ -1,10 +1,10 @@
-## 1.4.0 (Unreleased)
+## 1.4.0 (April 10, 2018)
 
 FEATURES:
 
-* **New Resource:** `vsphere_storage_drs_vm_override` [GH-450]
-* **New Resource:** `vsphere_datastore_cluster` [GH-436]
-* **New Data Source:** `vsphere_datastore_cluster` [GH-437]
+* **New Resource:** `vsphere_storage_drs_vm_override` ([#450](https://github.com/terraform-providers/terraform-provider-vsphere/issues/450))
+* **New Resource:** `vsphere_datastore_cluster` ([#436](https://github.com/terraform-providers/terraform-provider-vsphere/issues/436))
+* **New Data Source:** `vsphere_datastore_cluster` ([#437](https://github.com/terraform-providers/terraform-provider-vsphere/issues/437))
 
 IMPROVEMENTS:
 
@@ -12,29 +12,29 @@ IMPROVEMENTS:
   when running large amounts of consecutive or concurrent Terraform operations
   at once. See the [provider
   documentation](https://www.terraform.io/docs/providers/vsphere/index.html) for
-  more details. [GH-422]
+  more details. ([#422](https://github.com/terraform-providers/terraform-provider-vsphere/issues/422))
 * `resource/vsphere_virtual_machine`: This resource now supports import of
   resources or migrations from legacy versions of the provider (provider version
   0.4.2 or earlier) into configurations that have the `clone` block specified.
   See [Additional requirements and notes for
   importing](https://www.terraform.io/docs/providers/vsphere/r/virtual_machine.html#additional-requirements-and-notes-for-importing)
-  in the resource documentation for more details. [GH-460]
+  in the resource documentation for more details. ([#460](https://github.com/terraform-providers/terraform-provider-vsphere/issues/460))
 * `resource/vsphere_virtual_machine`: Now supports datastore clusters. Virtual
   machines placed in a datastore cluster will use Storage DRS recommendations
   for initial placement, virtual disk creation, and migration between datastore
   clusters. Migrations made by Storage DRS outside of Terraform will no longer
-  create diffs when datastore clusters are in use. [GH-447]
+  create diffs when datastore clusters are in use. ([#447](https://github.com/terraform-providers/terraform-provider-vsphere/issues/447))
 * `resource/vsphere_virtual_machine`: Added support for ISO transport of vApp
   properties. The resource should now behave better with virtual machines cloned
   from OVF/OVA templates that use the ISO transport to supply configuration
-  settings. [GH-381]
+  settings. ([#381](https://github.com/terraform-providers/terraform-provider-vsphere/issues/381))
 * `resource/vsphere_virtual_machine`: Added support for client mapped CDROM
-  devices. [GH-421]
+  devices. ([#421](https://github.com/terraform-providers/terraform-provider-vsphere/issues/421))
 * `resource/vsphere_virtual_machine`: Destroying a VM that currently has
   external disks attached should now function correctly and not give a duplicate
-  UUID error. [GH-442]
-* `resource/vsphere_nas_datastore`: Now supports datastore clusters. [GH-439]
-* `resource/vsphere_vmfs_datastore`: Now supports datastore clusters. [GH-439]
+  UUID error. ([#442](https://github.com/terraform-providers/terraform-provider-vsphere/issues/442))
+* `resource/vsphere_nas_datastore`: Now supports datastore clusters. ([#439](https://github.com/terraform-providers/terraform-provider-vsphere/issues/439))
+* `resource/vsphere_vmfs_datastore`: Now supports datastore clusters. ([#439](https://github.com/terraform-providers/terraform-provider-vsphere/issues/439))
 
 ## 1.3.3 (March 01, 2018)
 
