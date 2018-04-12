@@ -955,14 +955,19 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 		return nil, fmt.Errorf("error cloning virtual machine: %s", err)
 	}
 
-	// VM is created and updated. It's safe to set the ID here now, in case the
-	// rest of the process here fails.
+	// The VM has been created. We still need to do post-clone configuration, and
+	// the resource cannot have an ID until this is done. All of the operations
+	// here need to roll back if there is an error.
 	vprops, err := virtualmachine.Properties(vm)
 	if err != nil {
-		return nil, fmt.Errorf("cannot fetch properties of created virtual machine: %s", err)
+		return nil, resourceVSphereVirtualMachineRollbackCreate(
+			d,
+			meta,
+			vm,
+			fmt.Errorf("cannot fetch properties of created virtual machine: %s", err),
+		)
 	}
 	log.Printf("[DEBUG] VM %q - UUID is %q", vm.InventoryPath, vprops.Config.Uuid)
-	d.SetId(vprops.Config.Uuid)
 
 	// Before starting or proceeding any further, we need to normalize the
 	// configuration of the newly cloned VM. This is basically a subset of update
@@ -970,7 +975,12 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	// along.
 	cfgSpec, err := expandVirtualMachineConfigSpec(d, client)
 	if err != nil {
-		return nil, resourceVSphereVirtualMachineRollbackCreate(d, meta, vm, fmt.Errorf("error in virtual machine configuration: %s", err))
+		return nil, resourceVSphereVirtualMachineRollbackCreate(
+			d,
+			meta,
+			vm,
+			fmt.Errorf("error in virtual machine configuration: %s", err),
+		)
 	}
 
 	// To apply device changes, we need the current devicecfgSpec from the config
@@ -981,25 +991,45 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	// First check the state of our SCSI bus. Normalize it if we need to.
 	devices, delta, err = virtualdevice.NormalizeSCSIBus(devices, d.Get("scsi_type").(string), d.Get("scsi_controller_count").(int))
 	if err != nil {
-		return nil, err
+		return nil, resourceVSphereVirtualMachineRollbackCreate(
+			d,
+			meta,
+			vm,
+			fmt.Errorf("error normalizing SCSI bus post-clone: %s", err),
+		)
 	}
 	cfgSpec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec.DeviceChange, delta...)
 	// Disks
 	devices, delta, err = virtualdevice.DiskPostCloneOperation(d, client, devices)
 	if err != nil {
-		return nil, err
+		return nil, resourceVSphereVirtualMachineRollbackCreate(
+			d,
+			meta,
+			vm,
+			fmt.Errorf("error processing disk changes post-clone: %s", err),
+		)
 	}
 	cfgSpec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec.DeviceChange, delta...)
 	// Network devices
 	devices, delta, err = virtualdevice.NetworkInterfacePostCloneOperation(d, client, devices)
 	if err != nil {
-		return nil, err
+		return nil, resourceVSphereVirtualMachineRollbackCreate(
+			d,
+			meta,
+			vm,
+			fmt.Errorf("error processing network device changes post-clone: %s", err),
+		)
 	}
 	cfgSpec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec.DeviceChange, delta...)
 	// CDROM
 	devices, delta, err = virtualdevice.CdromPostCloneOperation(d, client, devices)
 	if err != nil {
-		return nil, err
+		return nil, resourceVSphereVirtualMachineRollbackCreate(
+			d,
+			meta,
+			vm,
+			fmt.Errorf("error processing CDROM device changes post-clone: %s", err),
+		)
 	}
 	cfgSpec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec.DeviceChange, delta...)
 	log.Printf("[DEBUG] %s: Final device list: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceListString(devices))
@@ -1012,8 +1042,17 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 		err = virtualmachine.Reconfigure(vm, cfgSpec)
 	}
 	if err != nil {
-		return nil, resourceVSphereVirtualMachineRollbackCreate(d, meta, vm, fmt.Errorf("error reconfiguring virtual machine: %s", err))
+		return nil, resourceVSphereVirtualMachineRollbackCreate(
+			d,
+			meta,
+			vm,
+			fmt.Errorf("error reconfiguring virtual machine: %s", err),
+		)
 	}
+
+	// It's safe to set the UUID here now. Any changes past this should not
+	// create any irrecoverable state issues.
+	d.SetId(vprops.Config.Uuid)
 
 	var cw *virtualMachineCustomizationWaiter
 	// Send customization spec if any has been defined.
@@ -1102,7 +1141,6 @@ func resourceVSphereVirtualMachineRollbackCreate(
 	if err := resourceVSphereVirtualMachineDelete(d, meta); err != nil {
 		return fmt.Errorf(formatVirtualMachinePostCloneRollbackError, vm.InventoryPath, origErr, err)
 	}
-	d.SetId("")
 	return fmt.Errorf("error reconfiguring virtual machine: %s", origErr)
 }
 
