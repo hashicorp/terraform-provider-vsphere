@@ -75,14 +75,14 @@ Two waiters of note are:
   the timeout or turn it off. This can be controlled by the
   [`timeout`](#timeout-1) setting in the [customization
   settings](#virtual-machine-customization) block.
-* **The network waiter:** This waiter waits for a _routeable_ interface to show
-  up on a guest virtual machine close to the end of both VM creation and
-  update. This waiter is necessary to ensure that correct IP information gets
-  reported to the guest virtual machine, mainly to facilitate the availability
-  of a valid, routeable default IP address for any
-  [provisioners][tf-docs-provisioners]. This option can be managed or turned
-  off via the [`wait_for_guest_net_timeout`](#wait_for_guest_net_timeout)
-  top-level setting.
+* **The network waiter:** This waiter waits for interfaces to show up on a
+  guest virtual machine close to the end of both VM creation and update. This
+  waiter is necessary to ensure that correct IP information gets reported to
+  the guest virtual machine, mainly to facilitate the availability of a valid,
+  reachable default IP address for any [provisioners][tf-docs-provisioners].
+  The behavior of the waiter can be controlled with the
+  [`wait_for_guest_net_timeout`](#wait_for_guest_net_timeout) and
+  [`wait_for_guest_net_routable`](#wait_for_guest_net_routable) settings.
 
 [tf-docs-provisioners]: /docs/provisioners/index.html
 
@@ -621,8 +621,12 @@ behavior.
   virtual machine. Can be one of `inherit`, `hostLocal`, or `vmDirectory`.
   Default: `inherit`.
 * `wait_for_guest_net_timeout` - (Optional) The amount of time, in minutes, to
-  wait for a routeable IP address on this virtual machine. A value less than 1
-  disables the waiter. Defualt: 5 minutes.
+  wait for an available IP address on this virtual machine. A value less than 1
+  disables the waiter. Default: 5 minutes.
+* `wait_for_guest_net_routable` - (Optional) Controls whether or not the guest
+  network waiter waits for a routable address. When `false`, the waiter does
+  not wait for a default gateway, nor are IP addresses checked against any
+  discovered default gateways as part of its success criteria. Default: `true`.
 * `shutdown_wait_timeout` - (Optional) The amount of time, in minutes, to wait
   for a graceful guest shutdown when making necessary updates to the virtual
   machine. If `force_power_off` is set to true, the VM will be force powered-off

@@ -199,19 +199,24 @@ func Properties(vm *object.VirtualMachine) (*mo.VirtualMachine, error) {
 	return &props, nil
 }
 
-// WaitForGuestNet waits for a virtual machine to have routeable network
+// WaitForGuestNet waits for a virtual machine to have routable network
 // access. This is denoted as a gateway, and at least one IP address that can
 // reach that gateway. This function supports both IPv4 and IPv6, and returns
-// the moment either stack is routeable - it doesn't wait for both.
+// the moment either stack is routable - it doesn't wait for both.
 //
 // The timeout is specified in minutes. If zero or a negative value is passed,
 // the waiter returns without error immediately.
-func WaitForGuestNet(client *govmomi.Client, vm *object.VirtualMachine, timeout int) error {
+func WaitForGuestNet(client *govmomi.Client, vm *object.VirtualMachine, routable bool, timeout int) error {
 	if timeout < 1 {
 		log.Printf("[DEBUG] Skipping network waiter for VM %q", vm.InventoryPath)
 		return nil
 	}
-	log.Printf("[DEBUG] Waiting for routeable address on VM %q (timeout = %dm)", vm.InventoryPath, timeout)
+	log.Printf(
+		"[DEBUG] Waiting for an available IP address on VM %q (routable= %t, timeout = %dm)",
+		vm.InventoryPath,
+		routable,
+		timeout,
+	)
 	var v4gw, v6gw net.IP
 
 	p := client.PropertyCollector()
@@ -243,6 +248,15 @@ func WaitForGuestNet(client *govmomi.Client, vm *object.VirtualMachine, timeout 
 					if n.IpConfig != nil {
 						for _, addr := range n.IpConfig.IpAddress {
 							ip := net.ParseIP(addr.IpAddress)
+							if skipIPAddrForWaiter(ip) {
+								continue
+							}
+							if !routable {
+								// We are done. The rest of this block concerns itself with
+								// checking for a routable address, but the waiter has been
+								// flagged to not wait for one.
+								return true
+							}
 							var mask net.IPMask
 							if ip.To4() != nil {
 								mask = net.CIDRMask(int(addr.PrefixLength), 32)
@@ -262,15 +276,29 @@ func WaitForGuestNet(client *govmomi.Client, vm *object.VirtualMachine, timeout 
 	})
 
 	if err != nil {
-		// Provide a friendly error message if we timed out waiting for a routeable IP.
+		// Provide a friendly error message if we timed out waiting for a routable IP.
 		if ctx.Err() == context.DeadlineExceeded {
-			return errors.New("timeout waiting for a routeable interface")
+			return errors.New("timeout waiting for an available IP address")
 		}
 		return err
 	}
 
-	log.Printf("[DEBUG] Routeable address available for VM %q", vm.InventoryPath)
+	log.Printf("[DEBUG] IP address(es) is/are now available for VM %q", vm.InventoryPath)
 	return nil
+}
+
+func skipIPAddrForWaiter(ip net.IP) bool {
+	switch {
+	case ip.IsLinkLocalMulticast():
+		fallthrough
+	case ip.IsLinkLocalUnicast():
+		fallthrough
+	case ip.IsLoopback():
+		fallthrough
+	case ip.IsMulticast():
+		return true
+	}
+	return false
 }
 
 // Create wraps the creation of a virtual machine and the subsequent waiting of
