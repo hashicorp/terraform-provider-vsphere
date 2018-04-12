@@ -13,6 +13,23 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+// MissingPortGroupReferenceError is an error that gets returned when a port
+// group lookup succeeds but does not return a MO to a
+// DistributedVirtualPortgroup.
+type MissingPortGroupReferenceError struct {
+	message string
+}
+
+// NewMissingPortGroupReferenceError returns a MissingPortGroupReferenceError
+// with the supplied message.
+func NewMissingPortGroupReferenceError(message string) error {
+	return &MissingPortGroupReferenceError{message}
+}
+
+func (e *MissingPortGroupReferenceError) Error() string {
+	return e.message
+}
+
 // FromKey gets a portgroup object from its key.
 func FromKey(client *govmomi.Client, dvsUUID, pgKey string) (*object.DistributedVirtualPortgroup, error) {
 	dvsm := types.ManagedObjectReference{Type: "DistributedVirtualSwitchManager", Value: "DVSManager"}
@@ -26,6 +43,16 @@ func FromKey(client *govmomi.Client, dvsUUID, pgKey string) (*object.Distributed
 	resp, err := methods.DVSManagerLookupDvPortGroup(ctx, client, req)
 	if err != nil {
 		return nil, err
+	}
+
+	if resp.Returnval == nil {
+		return nil, NewMissingPortGroupReferenceError(
+			fmt.Sprintf(
+				"portgroup lookup by key returned nil result for DVS UUID %q and portgroup key %q",
+				dvsUUID,
+				pgKey,
+			),
+		)
 	}
 
 	return FromMOID(client, resp.Returnval.Reference().Value)
