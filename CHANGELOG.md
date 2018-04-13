@@ -1,4 +1,11 @@
 ## 1.4.1 (Unreleased)
+
+BUG FIXES:
+
+* `resource/vsphere_virtual_machine`: Corrected some issues where some
+  post-clone configuration errors were leaving the resource half-completed and
+  irrecoverable without direct modification of the state. [GH-467]
+
 ## 1.4.0 (April 10, 2018)
 
 FEATURES:
