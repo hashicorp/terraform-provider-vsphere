@@ -211,6 +211,7 @@ func migrateVSphereVirtualMachineStateV2(is *terraform.InstanceState, meta inter
 	is.Attributes["migrate_wait_timeout"] = fmt.Sprintf("%v", rs["migrate_wait_timeout"].Default)
 	is.Attributes["shutdown_wait_timeout"] = fmt.Sprintf("%v", rs["shutdown_wait_timeout"].Default)
 	is.Attributes["wait_for_guest_net_timeout"] = guestNetTimeout
+	is.Attributes["wait_for_guest_net_routable"] = fmt.Sprintf("%v", rs["wait_for_guest_net_routable"].Default)
 	is.Attributes["scsi_controller_count"] = fmt.Sprintf("%v", maxBus+1)
 
 	// Populate our disk data from the fake state.
