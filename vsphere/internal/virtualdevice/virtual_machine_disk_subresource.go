@@ -78,7 +78,6 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 		"datastore_id": {
 			Type:          schema.TypeString,
 			Optional:      true,
-			Computed:      true,
 			ConflictsWith: []string{"datastore_cluster_id"},
 			Description:   "The datastore ID for this virtual disk, if different than the virtual machine.",
 		},
@@ -641,6 +640,9 @@ nextNew:
 		nm["uuid"] = ""
 		if a, ok := nm["attach"]; !ok || !a.(bool) {
 			nm["path"] = ""
+		}
+		if dsID, ok := nm["datastore_id"]; !ok || dsID == "" {
+			nm["datastore_id"] = diskDatastoreComputedName
 		}
 		normalized = append(normalized, nm)
 	}
@@ -1661,7 +1663,7 @@ func (r *DiskSubresource) createDisk(l object.VirtualDeviceList) (*types.Virtual
 
 func (r *DiskSubresource) assignBackingInfo(disk *types.VirtualDisk) error {
 	dsID := r.Get("datastore_id").(string)
-	if dsID == "" {
+	if dsID == "" || dsID == diskDatastoreComputedName {
 		// Default to the default datastore
 		dsID = r.rdd.Get("datastore_id").(string)
 	}
