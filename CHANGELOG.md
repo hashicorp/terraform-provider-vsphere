@@ -9,6 +9,10 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* `resource/vsphere_virtual_machine`: Corrected an issue where changing
+  datastore information and cloning/customization parameters (which forces a new
+  resource) at the same time was creating a diff mismatch after destroying the
+  old virtual machine. [GH-469]
 * `resource/vsphere_virtual_machine`: Corrected a crash that can come up from an
   incomplete lookup of network information during network device management.
   [GH-456]
