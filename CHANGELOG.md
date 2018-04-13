@@ -2,6 +2,9 @@
 
 BUG FIXES:
 
+* `resource/vsphere_virtual_machine`: Corrected a crash that can come up from an
+  incomplete lookup of network information during network device management.
+  [GH-456]
 * `resource/vsphere_virtual_machine`: Corrected some issues where some
   post-clone configuration errors were leaving the resource half-completed and
   irrecoverable without direct modification of the state. [GH-467]
