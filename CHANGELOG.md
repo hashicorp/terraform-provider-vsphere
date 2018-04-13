@@ -1,5 +1,12 @@
 ## 1.4.1 (Unreleased)
 
+IMPROVEMENTS:
+
+* `resource/vsphere_virtual_machine`: Introduced the
+  `wait_for_guest_net_routable` setting, which controls whether or not the guest
+  network waiter waits on an address that matches the virtual machine's
+  configured default gateway. [GH-470]
+
 BUG FIXES:
 
 * `resource/vsphere_virtual_machine`: Corrected a crash that can come up from an
