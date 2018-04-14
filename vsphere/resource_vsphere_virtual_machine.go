@@ -615,6 +615,11 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 		return err
 	}
 
+	// Process changes to resource pool
+	if err := resourceVSphereVirtualMachineCustomizeDiffResourcePoolOperation(d); err != nil {
+		return err
+	}
+
 	// Normalize datastore cluster vs datastore
 	if err := datastoreClusterDiffOperation(d, client); err != nil {
 		return err
@@ -658,6 +663,19 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 	}
 
 	log.Printf("[DEBUG] %s: Diff customization and validation complete", resourceVSphereVirtualMachineIDString(d))
+	return nil
+}
+
+func resourceVSphereVirtualMachineCustomizeDiffResourcePoolOperation(d *schema.ResourceDiff) error {
+	if d.HasChange("resource_pool_id") && !d.HasChange("host_system_id") {
+		log.Printf(
+			"[DEBUG] %s: resource_pool_id modified without change to host_system_id, marking as computed",
+			resourceVSphereVirtualMachineIDString(d),
+		)
+		if err := d.SetNewComputed("host_system_id"); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

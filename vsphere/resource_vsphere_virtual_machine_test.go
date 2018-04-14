@@ -1902,6 +1902,33 @@ func TestAccResourceVSphereVirtualMachine_resourcePoolVMotion(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_clusterVMotion(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigResourcePoolVMotion(os.Getenv("VSPHERE_RESOURCE_POOL")),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckResourcePool(os.Getenv("VSPHERE_RESOURCE_POOL")),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigResourcePoolVMotion(fmt.Sprintf("%s/Resources", os.Getenv("VSPHERE_CLUSTER2"))),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckResourcePool(fmt.Sprintf("%s/Resources", os.Getenv("VSPHERE_CLUSTER2"))),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVirtualMachine_storageVMotionGlobalSetting(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -2558,6 +2585,9 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	}
 	if os.Getenv("VSPHERE_CLUSTER") == "" {
 		t.Skip("set VSPHERE_CLUSTER to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("VSPHERE_CLUSTER2") == "" {
+		t.Skip("set VSPHERE_CLUSTER2 to run vsphere_virtual_machine acceptance tests")
 	}
 	if os.Getenv("VSPHERE_RESOURCE_POOL") == "" {
 		t.Skip("set VSPHERE_RESOURCE_POOL to run vsphere_virtual_machine acceptance tests")
