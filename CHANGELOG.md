@@ -9,6 +9,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* `resource/vsphere_virtual_machine`: Corrected an issue that was preventing VMs
+  from being migrated from one cluster to another. [GH-474]
 * `resource/vsphere_virtual_machine`: Corrected an issue where changing
   datastore information and cloning/customization parameters (which forces a new
   resource) at the same time was creating a diff mismatch after destroying the
