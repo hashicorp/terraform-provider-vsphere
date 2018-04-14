@@ -993,8 +993,12 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	}
 
 	// The VM has been created. We still need to do post-clone configuration, and
-	// the resource cannot have an ID until this is done. All of the operations
-	// here need to roll back if there is an error.
+	// while the resource should have an ID until this is done, we need it to go
+	// through post-clone rollback workflows. All rollback functions will remove
+	// the ID after it has done its rollback.
+	//
+	// It's generally safe to not rollback after the initial re-configuration is
+	// fully complete and we move on to sending the customization spec.
 	vprops, err := virtualmachine.Properties(vm)
 	if err != nil {
 		return nil, resourceVSphereVirtualMachineRollbackCreate(
@@ -1005,6 +1009,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 		)
 	}
 	log.Printf("[DEBUG] VM %q - UUID is %q", vm.InventoryPath, vprops.Config.Uuid)
+	d.SetId(vprops.Config.Uuid)
 
 	// Before starting or proceeding any further, we need to normalize the
 	// configuration of the newly cloned VM. This is basically a subset of update
@@ -1087,10 +1092,6 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 		)
 	}
 
-	// It's safe to set the UUID here now. Any changes past this should not
-	// create any irrecoverable state issues.
-	d.SetId(vprops.Config.Uuid)
-
 	var cw *virtualMachineCustomizationWaiter
 	// Send customization spec if any has been defined.
 	if len(d.Get("clone.0.customize").([]interface{})) > 0 {
@@ -1171,6 +1172,7 @@ func resourceVSphereVirtualMachineRollbackCreate(
 	vm *object.VirtualMachine,
 	origErr error,
 ) error {
+	defer d.SetId("")
 	// Updates are largely atomic, so more than likely no disks with
 	// keep_on_remove were attached, but just in case, we run this through delete
 	// to make sure to safely remove any disk that may have been attached as part
