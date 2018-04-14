@@ -627,6 +627,10 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 	// If this is a new resource and we are cloning, perform all clone validation
 	// operations.
 	if len(d.Get("clone").([]interface{})) > 0 {
+		if err := viapi.ValidateVirtualCenter(client); err != nil {
+			return errors.New("use of the clone sub-resource block requires vCenter")
+		}
+
 		switch {
 		case d.Get("imported").(bool):
 			// Imported workflows need to have the configuration of the clone
