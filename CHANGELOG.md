@@ -9,6 +9,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* `resource/vsphere_virtual_machine`: The resource now correctly blocks `clone`
+  workflows on direct ESXi connections, where cloning is not supported. [GH-476]
 * `resource/vsphere_virtual_machine`: Corrected an issue that was preventing VMs
   from being migrated from one cluster to another. [GH-474]
 * `resource/vsphere_virtual_machine`: Corrected an issue where changing
