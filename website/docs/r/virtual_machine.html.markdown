@@ -172,6 +172,9 @@ Windows machines), and disk attributes.
 
 [tf-vsphere-virtual-machine-ds]: /docs/providers/vsphere/d/virtual_machine.html
 
+~> **NOTE:** Cloning requires vCenter and is not supported on direct ESXi
+connections.
+
 ```hcl
 data "vsphere_datacenter" "dc" {
   name = "dc1"
@@ -460,6 +463,10 @@ external disks on virtual machines that are assigned to datastore clusters.
   specified template. Optional customization options can be submitted as well.
   See [creating a virtual machine from a
   template](#creating-a-virtual-machine-from-a-template) for more details.
+
+~> **NOTE:** Cloning requires vCenter and is not supported on direct ESXi
+connections.
+
 * `vapp` - (Optional) Optional vApp configuration. The only sub-key available
   is `properties`, which is a key/value map of properties for virtual machines
   imported from OVF or OVA files. See [Using vApp properties to supply OVF/OVA
@@ -907,6 +914,9 @@ example](#cloning-and-customization-example) for a usage synopsis.
 
 ~> **NOTE:** Changing any option in `clone` after creation forces a new
 resource.
+
+~> **NOTE:** Cloning requires vCenter and is not supported on direct ESXi
+connections.
 
 The options available in the `clone` sub-resource are:
 

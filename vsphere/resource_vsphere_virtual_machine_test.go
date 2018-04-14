@@ -1404,6 +1404,28 @@ func TestAccResourceVSphereVirtualMachine_cloneWithDifferentTimezone(t *testing.
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_cloneBlockESXi(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+			testAccSkipIfNotEsxi(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigClone(),
+				ExpectError: regexp.MustCompile("use of the clone sub-resource block requires vCenter"),
+				PlanOnly:    true,
+			},
+			{
+				Config: testAccResourceVSphereEmpty,
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVirtualMachine_cloneWithBadTimezone(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
