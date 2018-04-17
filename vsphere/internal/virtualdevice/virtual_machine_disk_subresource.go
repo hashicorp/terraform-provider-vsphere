@@ -597,6 +597,10 @@ func DiskDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 		}
 		names[name] = struct{}{}
 		units[nm["unit_number"].(int)] = struct{}{}
+		r := NewDiskSubresource(c, d, nm, nil, ni)
+		if err := r.ValidateDiff(); err != nil {
+			return fmt.Errorf("%s: %s", r.Addr(), err)
+		}
 	}
 	if _, ok := units[0]; !ok {
 		return errors.New("at least one disk must have a unit_number of 0")
@@ -609,7 +613,7 @@ func DiskDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 
 	normalized := make([]interface{}, len(ods))
 nextNew:
-	for ni, ne := range nds {
+	for _, ne := range nds {
 		nm := ne.(map[string]interface{})
 		for oi, oe := range ods {
 			om := oe.(map[string]interface{})
@@ -627,9 +631,6 @@ nextNew:
 				if err := r.NormalizeDiff(); err != nil {
 					return fmt.Errorf("%s: %s", r.Addr(), err)
 				}
-				if err = r.ValidateDiff(); err != nil {
-					return fmt.Errorf("%s: %s", r.Addr(), err)
-				}
 				normalized[oi] = r.Data()
 				continue nextNew
 			}
@@ -643,10 +644,6 @@ nextNew:
 		nm["uuid"] = ""
 		if a, ok := nm["attach"]; !ok || !a.(bool) {
 			nm["path"] = ""
-		}
-		r := NewDiskSubresource(c, d, nm, nil, ni)
-		if err := r.ValidateDiff(); err != nil {
-			return fmt.Errorf("%s: %s", r.Addr(), err)
 		}
 		if dsID, ok := nm["datastore_id"]; !ok || dsID == "" {
 			nm["datastore_id"] = diskDatastoreComputedName
