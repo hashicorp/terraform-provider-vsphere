@@ -598,7 +598,7 @@ func DiskDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 		names[name] = struct{}{}
 		units[nm["unit_number"].(int)] = struct{}{}
 		r := NewDiskSubresource(c, d, nm, nil, ni)
-		if err := r.ValidateDiff(); err != nil {
+		if err := r.GeneralDiff(); err != nil {
 			return fmt.Errorf("%s: %s", r.Addr(), err)
 		}
 	}
@@ -628,7 +628,7 @@ nextNew:
 			// We extrapolate using the label as a "primary key" of sorts.
 			if nname == oname {
 				r := NewDiskSubresource(c, d, nm, om, oi)
-				if err := r.NormalizeDiff(); err != nil {
+				if err := r.ExistingDiskDiff(); err != nil {
 					return fmt.Errorf("%s: %s", r.Addr(), err)
 				}
 				normalized[oi] = r.Data()
@@ -1320,15 +1320,29 @@ func (r *DiskSubresource) Delete(l object.VirtualDeviceList) ([]types.BaseVirtua
 	return deleteSpec, nil
 }
 
-// NormalizeDiff normalizes the fields for an existing disk sub-resource.  It
-// handles carrying over existing values, so this should not be used on disks
-// that have not been successfully matched up between current and old diffs.
-func (r *DiskSubresource) NormalizeDiff() error {
+// ExistingDiskDiff validates and normalizes the fields for an existing disk
+// sub-resource.  It handles carrying over existing values, so this should not
+// be used on disks that have not been successfully matched up between current
+// and old diffs.
+func (r *DiskSubresource) ExistingDiskDiff() error {
 	log.Printf("[DEBUG] %s: Beginning normalization of existing disk", r)
 	name, err := diskLabelOrName(r.data)
 	if err != nil {
 		return err
 	}
+	// Prevent a backward migration of label -> name. TODO: Remove this after
+	// 2.0.
+	olabel, nlabel := r.GetChange("label")
+	if olabel != "" && nlabel == "" {
+		return errors.New("cannot migrate from label to name")
+	}
+	// Carry forward the name attribute like we used to if no label is defined.
+	// TODO: Remove this after 2.0.
+	if nlabel == "" {
+		oname, _ := r.GetChange("name")
+		r.Set("name", oname.(string))
+	}
+
 	// set some computed fields: key, device_address, and uuid will always be
 	// non-populated, so copy those.
 	okey, _ := r.GetChange("key")
@@ -1338,13 +1352,6 @@ func (r *DiskSubresource) NormalizeDiff() error {
 	r.Set("device_address", odaddr)
 	r.Set("uuid", ouuid)
 
-	// Carry forward the name attribute like we used to if no label is defined.
-	// TODO: Remove this after 2.0.
-	label := r.Get("label")
-	if label == "" {
-		name := r.Get("name")
-		r.Set("name", name.(string))
-	}
 	if !r.Get("attach").(bool) {
 		// Carry forward path when attach is not set
 		opath, _ := r.GetChange("path")
@@ -1412,20 +1419,13 @@ func (r *DiskSubresource) NormalizeDiff() error {
 	return nil
 }
 
-// ValidateDiff performs complex validation of an individual disk sub-resource
-// that can't be done in schema alone.
-func (r *DiskSubresource) ValidateDiff() error {
+// GeneralDiff performs complex validation of an individual disk sub-resource
+// that can't be done in schema alone. Can be applied to new or existing disks.
+func (r *DiskSubresource) GeneralDiff() error {
 	log.Printf("[DEBUG] %s: Beginning diff validation", r)
 	name, err := diskLabelOrName(r.data)
 	if err != nil {
 		return err
-	}
-
-	// Prevent a backward migration of label -> name. TODO: Remove this after
-	// 2.0.
-	olabel, nlabel := r.GetChange("label")
-	if olabel != "" && nlabel == "" {
-		return errors.New("cannot migrate from label to name")
 	}
 
 	// Enforce the maximum unit number, which is the current value of
