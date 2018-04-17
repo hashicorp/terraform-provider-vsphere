@@ -598,7 +598,7 @@ func DiskDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 		names[name] = struct{}{}
 		units[nm["unit_number"].(int)] = struct{}{}
 		r := NewDiskSubresource(c, d, nm, nil, ni)
-		if err := r.GeneralDiff(); err != nil {
+		if err := r.DiffGeneral(); err != nil {
 			return fmt.Errorf("%s: %s", r.Addr(), err)
 		}
 	}
@@ -628,7 +628,7 @@ nextNew:
 			// We extrapolate using the label as a "primary key" of sorts.
 			if nname == oname {
 				r := NewDiskSubresource(c, d, nm, om, oi)
-				if err := r.ExistingDiskDiff(); err != nil {
+				if err := r.DiffExisting(); err != nil {
 					return fmt.Errorf("%s: %s", r.Addr(), err)
 				}
 				normalized[oi] = r.Data()
@@ -1320,11 +1320,11 @@ func (r *DiskSubresource) Delete(l object.VirtualDeviceList) ([]types.BaseVirtua
 	return deleteSpec, nil
 }
 
-// ExistingDiskDiff validates and normalizes the fields for an existing disk
+// DiffExisting validates and normalizes the fields for an existing disk
 // sub-resource.  It handles carrying over existing values, so this should not
 // be used on disks that have not been successfully matched up between current
 // and old diffs.
-func (r *DiskSubresource) ExistingDiskDiff() error {
+func (r *DiskSubresource) DiffExisting() error {
 	log.Printf("[DEBUG] %s: Beginning normalization of existing disk", r)
 	name, err := diskLabelOrName(r.data)
 	if err != nil {
@@ -1419,9 +1419,9 @@ func (r *DiskSubresource) ExistingDiskDiff() error {
 	return nil
 }
 
-// GeneralDiff performs complex validation of an individual disk sub-resource
-// that can't be done in schema alone. Can be applied to new or existing disks.
-func (r *DiskSubresource) GeneralDiff() error {
+// DiffGeneral performs complex validation of an individual disk sub-resource
+// that can't be done in schema alone. Should be run on new and existing disks.
+func (r *DiskSubresource) DiffGeneral() error {
 	log.Printf("[DEBUG] %s: Beginning diff validation", r)
 	name, err := diskLabelOrName(r.data)
 	if err != nil {
