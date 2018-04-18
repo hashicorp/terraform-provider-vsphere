@@ -379,6 +379,46 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitInsufficientBus(t *testing
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_highDiskUnitInsufficientBusAddAfterCreation(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check:  testAccResourceVSphereVirtualMachineCheckExists(true),
+			},
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigMultiHighBusInsufficientBus(),
+				ExpectError: regexp.MustCompile("unit_number on disk \"disk1\" too high \\(15\\) - maximum value is 14 with 1 SCSI controller\\(s\\)"),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_diskAddAfterCreation(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check:  testAccResourceVSphereVirtualMachineCheckExists(true),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigMultiDevice(),
+				Check:  testAccResourceVSphereVirtualMachineCheckExists(true),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVirtualMachine_highDiskUnitsToRegularSingleController(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
