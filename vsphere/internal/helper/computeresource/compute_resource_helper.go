@@ -186,3 +186,28 @@ func EnvironmentBrowserFromReference(client *govmomi.Client, ref types.ManagedOb
 	}
 	return envbrowse.NewEnvironmentBrowser(client.Client, *props.EnvironmentBrowser), nil
 }
+
+// Reconfigure reconfigures any BaseComputeResource that uses a
+// BaseComputeResourceConfigSpec as configuration (example: standalone hosts,
+// or clusters). Modify is always set.
+func Reconfigure(obj BaseComputeResource, spec types.BaseComputeResourceConfigSpec) error {
+	var c *object.ComputeResource
+	switch t := obj.(type) {
+	case *object.ComputeResource:
+		log.Printf("[DEBUG] Reconfiguring standalone host %q", t.Name())
+		c = t
+	case *object.ClusterComputeResource:
+		log.Printf("[DEBUG] Reconfiguring cluster %q", t.Name())
+		c = &t.ComputeResource
+	default:
+		return fmt.Errorf("unsupported type for reconfigure: %T", t)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	task, err := c.Reconfigure(ctx, spec, true)
+	if err != nil {
+		return err
+	}
+	return task.Wait(ctx)
+}

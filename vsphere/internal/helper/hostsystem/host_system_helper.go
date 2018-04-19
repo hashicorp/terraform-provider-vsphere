@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -54,6 +57,18 @@ func FromID(client *govmomi.Client, id string) (*object.HostSystem, error) {
 	return hs.(*object.HostSystem), nil
 }
 
+// Properties is a convenience method that wraps fetching the HostSystem MO
+// from its higher-level object.
+func Properties(host *object.HostSystem) (*mo.HostSystem, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	var props mo.HostSystem
+	if err := host.Properties(ctx, host.Reference(), nil, &props); err != nil {
+		return nil, err
+	}
+	return &props, nil
+}
+
 // hostSystemNameFromID returns the name of a host via its its managed object
 // reference ID.
 func hostSystemNameFromID(client *govmomi.Client, id string) (string, error) {
@@ -73,4 +88,43 @@ func NameOrID(client *govmomi.Client, id string) string {
 		return id
 	}
 	return name
+}
+
+// EnterMaintenanceMode puts a host into maintenance mode. If evacuate is set
+// to true, all powered off VMs will be removed from the host, or the task will
+// block until this is the case, depending on whether or not DRS is on or off
+// for the host's cluster. This parameter is ignored on direct ESXi.
+func EnterMaintenanceMode(host *object.HostSystem, timeout int, evacuate bool) error {
+	if err := viapi.VimValidateVirtualCenter(host.Client()); err != nil {
+		evacuate = false
+	}
+
+	log.Printf("[DEBUG] Host %q is entering maintenance mode (evacuate: %t)", host.Name(), evacuate)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(timeout))
+	defer cancel()
+	task, err := host.EnterMaintenanceMode(ctx, int32(timeout), evacuate, nil)
+	if err != nil {
+		return err
+	}
+
+	return task.Wait(ctx)
+}
+
+// ExitMaintenanceMode takes a host out of maintenance mode.
+func ExitMaintenanceMode(host *object.HostSystem, timeout int) error {
+	log.Printf("[DEBUG] Host %q is exiting maintenance mode", host.Name())
+
+	// Add 5 minutes to timeout for the context timeout to allow for any issues
+	// with the request after.
+	// TODO: Fix this so that it ultimately uses the provider context.
+	ctxTimeout := timeout + 300
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(ctxTimeout))
+	defer cancel()
+	task, err := host.ExitMaintenanceMode(ctx, int32(timeout))
+	if err != nil {
+		return err
+	}
+
+	return task.Wait(ctx)
 }

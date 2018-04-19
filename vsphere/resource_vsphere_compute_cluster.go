@@ -1,13 +1,20 @@
 package vsphere
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/clustercomputeresource"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/computeresource"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
+	"github.com/vmware/govmomi"
+	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -123,11 +130,24 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				ForceNew:    true,
 				Description: "The managed object ID of the datacenter to put the cluster in.",
 			},
+			"host_system_ids": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				MaxItems:    64,
+				Description: "The managed object IDs of the hosts to put in the cluster.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
 			"folder": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The name of the folder to locate the cluster in.",
 				StateFunc:   folder.NormalizePath,
+			},
+			"host_cluster_exit_timeout": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     3600,
+				Description: "The timeout for each host maintenance mode operation when removing hosts from a cluster.",
 			},
 			// DRS - General/automation
 			"drs_enabled": {
@@ -237,34 +257,42 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Description:  "The action to take on virtual machines when a host has detected that it has been isolated from the rest of the cluster. Can be one of none, powerOff, or shutdown.",
 				ValidateFunc: validation.StringInSlice(computeClusterDasVMSettingsIsolationResponseAllowedValues, false),
 			},
-			// Datastore monitoring - Permanent Device Loss
+			// VM component protection
+			"ha_vm_component_protection": {
+				Type:         schema.TypeBool,
+				Optional:     true,
+				Default:      string(types.ClusterDasConfigInfoServiceStateEnabled),
+				Description:  "Controls vSphere VM component protection for virtual machines in this cluster. This allows vSphere HA to react to failures between hosts and specific virtual machine components, such as datastores. Can be one of enabled or disabled.",
+				ValidateFunc: validation.StringInSlice(clusterDasConfigInfoServiceStateAllowedValues, false),
+			},
+			// VM component protection - datastore monitoring - Permanent Device Loss
 			"ha_datastore_pdl_response": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      string(types.ClusterVmComponentProtectionSettingsStorageVmReactionDisabled),
-				Description:  "The action to take on virtual machines when the cluster had detected a permanent device loss to a relevant datastore. Can be one of none, warning, or restartAggressive.",
+				Description:  "When ha_vm_component_protection is enabled, controls the action to take on virtual machines when the cluster had detected a permanent device loss to a relevant datastore. Can be one of none, warning, or restartAggressive.",
 				ValidateFunc: validation.StringInSlice(computeClusterVMStorageProtectionForPDLAllowedValues, false),
 			},
-			// Datastore monitoring - All Paths Down
+			// VM component protection - datastore monitoring - All Paths Down
 			"ha_datastore_apd_response": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      string(types.ClusterVmComponentProtectionSettingsStorageVmReactionDisabled),
-				Description:  "The action to take on virtual machines when the cluster had detected loss to all paths to a relevant datastore. Can be one of none, warning, restartConservative, or restartAggressive.",
+				Description:  "When ha_vm_component_protection is enabled, controls the action to take on virtual machines when the cluster had detected loss to all paths to a relevant datastore. Can be one of none, warning, restartConservative, or restartAggressive.",
 				ValidateFunc: validation.StringInSlice(computeClusterVMStorageProtectionForAPDAllowedValues, false),
 			},
 			"ha_datastore_apd_recovery_action": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedNone),
-				Description:  "The action to take on virtual machines if an APD status on an affected datastore clears in the middle of an APD event. Can be one of none or reset.",
+				Description:  "When ha_vm_component_protection is enabled, controls the action to take on virtual machines if an APD status on an affected datastore clears in the middle of an APD event. Can be one of none or reset.",
 				ValidateFunc: validation.StringInSlice(computeClusterVMReactionOnAPDClearedAllowedValues, false),
 			},
 			"ha_datastore_apd_response_delay": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     3,
-				Description: "The delay in minutes to wait after an APD timeout event to execute the response action defined in ha_datastore_apd_response.",
+				Description: "When ha_vm_component_protection is enabled, controls the delay in minutes to wait after an APD timeout event to execute the response action defined in ha_datastore_apd_response.",
 			},
 			// VM monitoring
 			"ha_vm_monitoring": {
@@ -370,7 +398,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Description:  "The selection policy for HA heartbeat datastores. Can be one of allFeasibleDs, userSelectedDs, or allFeasibleDsWithUserPreference.",
 				ValidateFunc: validation.StringInSlice(clusterDasConfigInfoHBDatastoreCandidateAllowedValues, false),
 			},
-			"ha_heartbeat_datastores": {
+			"ha_heartbeat_datastore_ids": {
 				Type:        schema.TypeSet,
 				Optional:    true,
 				Description: "The list of managed object IDs for preferred datastores to use for HA heartbeating. This setting is only useful when ha_heartbeat_datastore_policy is set to either userSelectedDs or allFeasibleDsWithUserPreference.",
@@ -425,6 +453,34 @@ func resourceVSphereComputeCluster() *schema.Resource {
 func resourceVSphereComputeClusterCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] %s: Beginning create", resourceVSphereComputeClusterIDString(d))
 
+	// We create the cluster here. This function creates a cluster with no
+	// configuration, as we want to add the hosts before applying the full
+	// configuration.
+	cluster, err := resourceVSphereComputeClusterApplyCreate(d, meta)
+	if err != nil {
+		return err
+	}
+
+	// The cluster can be tagged here now.
+	if err := resourceVSphereComputeClusterApplyTags(d, meta, cluster); err != nil {
+		return err
+	}
+	if err := resourceVSphereComputeClusterApplyCustomAttributes(d, meta, cluster); err != nil {
+		return err
+	}
+
+	// Move the hosts in now.
+	if err := resourceVSphereComputeClusterProcessHostUpdate(d, meta, cluster); err != nil {
+		return err
+	}
+
+	// Now that all the hosts that will be in the cluster have been added, apply
+	// the cluster configuration.
+	if err := resourceVSphereComputeClusterApplyClusterConfiguration(d, meta, cluster); err != nil {
+		return err
+	}
+
+	// All done!
 	log.Printf("[DEBUG] %s: Create finished successfully", resourceVSphereComputeClusterIDString(d))
 	return resourceVSphereComputeClusterRead(d, meta)
 }
@@ -451,8 +507,563 @@ func resourceVSphereComputeClusterDelete(d *schema.ResourceData, meta interface{
 	return nil
 }
 
+// resourceVSphereComputeClusterApplyCreate processes the creation part of
+// resourceVSphereComputeClusterCreate.
+func resourceVSphereComputeClusterApplyCreate(d *schema.ResourceData, meta interface{}) (*object.ClusterComputeResource, error) {
+	log.Printf("[DEBUG] %s: Processing compute cluster creation", resourceVSphereComputeClusterIDString(d))
+	client, err := resourceVSphereComputeClusterClient(meta)
+	if err != nil {
+		return nil, err
+	}
+
+	dc, err := datacenterFromID(client, d.Get("datacenter_id").(string))
+	if err != nil {
+		return nil, fmt.Errorf("cannot locate datacenter: %s", err)
+	}
+
+	// Find the folder based off the path to the datacenter. This is where we
+	// create the datastore cluster.
+	f, err := folder.FromPath(client, d.Get("folder").(string), folder.VSphereFolderTypeDatastore, dc)
+	if err != nil {
+		return nil, fmt.Errorf("cannot locate folder: %s", err)
+	}
+
+	// Create the cluster. We use an empty config spec so that we can move the
+	// necessary hosts into the cluster *before* we send the full configuration,
+	// ensuring that any host-dependent configuration does not break.
+	cluster, err := clustercomputeresource.Create(f, d.Get("name").(string), types.ClusterConfigSpecEx{})
+	if err != nil {
+		return nil, fmt.Errorf("error creating cluster: %s", err)
+	}
+
+	// Set the ID now before proceeding any further. Any other operation past
+	// this point is recoverable.
+	d.SetId(cluster.Reference().Value)
+
+	return cluster, nil
+}
+
+// resourceVSphereComputeClusterProcessHostUpdate processes any changes in host
+// membership in the cluster.
+//
+// Note that this has implications for interoperability with any future host
+// resources that we may set up in Terraform. This namely exists to support the
+// fact that some cluster configuration settings depend on hosts actually
+// existing in the cluster before they can be carried out, in addition to the
+// fact that we don't have any actual host resources at this point in time, and
+// may actually not in the future as the addition of hosts will require
+// passwords to be supplied to Terraform, which will propagate to state and
+// have security implications.
+//
+// Currently, this process expects the hosts supplied to host_system_ids to be
+// already added to vSphere - the recommended method would be to add these
+// hosts OOB as standalone hosts to the datacenter that the cluster is being
+// deployed to, and then use the vsphere_host data source to get the necessary
+// ID to pass into the vsphere_compute_cluster resource.
+//
+// Hosts moved *out* of the cluster will be moved to the root host folder of
+// the datacenter the cluster belongs to. This will create a ComputeResource MO
+// for this host OOB from Terraform. Conversely, moving a host into a cluster
+// removes the ComputeResource MO for that host, in addition to moving any VMs
+// into the cluster at the root cluster resource pool, removing any resource
+// pools that exist on the standalone host.
+//
+// Hosts being removed are placed into maintenance mode. It is up to the
+// operator to determine what the implications of this are - if DRS is set up
+// correctly and sufficient resources exist, placing a host into maintenance
+// mode *should* migrate powered on VMs off the cluster. Powered off VMs will
+// be migrated as well, leaving the host as empty as possible after it leaves
+// the cluster. The host will be taken out of maintenance mode after being
+// removed.
+func resourceVSphereComputeClusterProcessHostUpdate(
+	d *schema.ResourceData,
+	meta interface{},
+	cluster *object.ClusterComputeResource,
+) error {
+	log.Printf("[DEBUG] %s: Processing any necessary host addition/removal operations", resourceVSphereComputeClusterIDString(d))
+	client, err := resourceVSphereComputeClusterClient(meta)
+	if err != nil {
+		return err
+	}
+
+	o, n := d.GetChange("host_system_ids")
+	var newHosts, oldHosts []*object.HostSystem
+
+	for _, hsID := range n.(*schema.Set).Intersection(o.(*schema.Set)).Difference(n.(*schema.Set)).List() {
+		hs, err := hostsystem.FromID(client, hsID.(string))
+		if err != nil {
+			return fmt.Errorf("error locating host system ID %q: %s", hsID, err)
+		}
+		newHosts = append(newHosts, hs)
+	}
+
+	for _, hsID := range n.(*schema.Set).Intersection(o.(*schema.Set)).Difference(o.(*schema.Set)).List() {
+		hs, err := hostsystem.FromID(client, hsID.(string))
+		if err != nil {
+			return fmt.Errorf("error locating host system ID %q: %s", hsID, err)
+		}
+		oldHosts = append(oldHosts, hs)
+	}
+
+	// Add new hosts first
+	if err := clustercomputeresource.MoveHostsInto(cluster, newHosts); err != nil {
+		return fmt.Errorf("error moving new hosts into cluster: %s", err)
+	}
+
+	// Remove hosts next
+	if err := clustercomputeresource.MoveHostsOutOf(cluster, oldHosts, d.Get("host_cluster_exit_timeout").(int)); err != nil {
+		return fmt.Errorf("error moving old hosts out of cluster: %s", err)
+	}
+
+	return nil
+}
+
+func resourceVSphereComputeClusterApplyClusterConfiguration(
+	d *schema.ResourceData,
+	meta interface{},
+	cluster *object.ClusterComputeResource,
+) error {
+	// This is a no-op if there is no config changed
+	if !resourceVSphereComputeClusterHasClusterConfigChange(d) {
+		log.Printf("[DEBUG] %s: No cluster-specific configuration attributes have changed", resourceVSphereComputeClusterIDString(d))
+		return nil
+	}
+
+	log.Printf("[DEBUG] %s: Applying cluster configuration", resourceVSphereComputeClusterIDString(d))
+
+	client, err := resourceVSphereComputeClusterClient(meta)
+	if err != nil {
+		return err
+	}
+
+	// Get the version of the vSphere connection to help determine what
+	// attributes we need to set
+	version := viapi.ParseVersionFromClient(client)
+
+	// Expand the cluster configuration.
+	spec := expandClusterConfigSpecEx(d, version)
+
+	// Note that the reconfigure for a cluster is the same as a standalone host,
+	// hence we send this to the computeresource helper's Reconfigure function.
+	return computeresource.Reconfigure(cluster, spec)
+}
+
+// resourceVSphereComputeClusterApplyTags processes the tags step for both
+// create and update for vsphere_compute_cluster.
+func resourceVSphereComputeClusterApplyTags(d *schema.ResourceData, meta interface{}, cluster *object.ClusterComputeResource) error {
+	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+
+	// Apply any pending tags now
+	if tagsClient == nil {
+		log.Printf("[DEBUG] %s: Tags unsupported on this connection, skipping", resourceVSphereComputeClusterIDString(d))
+		return nil
+	}
+
+	log.Printf("[DEBUG] %s: Applying any pending tags", resourceVSphereComputeClusterIDString(d))
+	return processTagDiff(tagsClient, d, cluster)
+}
+
+// resourceVSphereComputeClusterReadTags reads the tags for
+// vsphere_compute_cluster.
+func resourceVSphereComputeClusterReadTags(d *schema.ResourceData, meta interface{}, cluster *object.ClusterComputeResource) error {
+	if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
+		log.Printf("[DEBUG] %s: Reading tags", resourceVSphereComputeClusterIDString(d))
+		if err := readTagsForResource(tagsClient, cluster, d); err != nil {
+			return err
+		}
+	} else {
+		log.Printf("[DEBUG] %s: Tags unsupported on this connection, skipping tag read", resourceVSphereComputeClusterIDString(d))
+	}
+	return nil
+}
+
+// resourceVSphereComputeClusterApplyCustomAttributes processes the custom
+// attributes step for both create and update for vsphere_compute_cluster.
+func resourceVSphereComputeClusterApplyCustomAttributes(
+	d *schema.ResourceData,
+	meta interface{},
+	cluster *object.ClusterComputeResource,
+) error {
+	client := meta.(*VSphereClient).vimClient
+	// Verify a proper vCenter before proceeding if custom attributes are defined
+	attrsProcessor, err := customattribute.GetDiffProcessorIfAttributesDefined(client, d)
+	if err != nil {
+		return err
+	}
+
+	if attrsProcessor == nil {
+		log.Printf("[DEBUG] %s: Custom attributes unsupported on this connection, skipping", resourceVSphereComputeClusterIDString(d))
+		return nil
+	}
+
+	log.Printf("[DEBUG] %s: Applying any pending custom attributes", resourceVSphereComputeClusterIDString(d))
+	return attrsProcessor.ProcessDiff(cluster)
+}
+
+// resourceVSphereComputeClusterReadCustomAttributes reads the custom
+// attributes for vsphere_compute_cluster.
+func resourceVSphereComputeClusterReadCustomAttributes(
+	d *schema.ResourceData,
+	meta interface{},
+	cluster *object.ClusterComputeResource,
+) error {
+	client := meta.(*VSphereClient).vimClient
+	// Read custom attributes
+	if customattribute.IsSupported(client) {
+		log.Printf("[DEBUG] %s: Reading custom attributes", resourceVSphereComputeClusterIDString(d))
+		props, err := clustercomputeresource.Properties(cluster)
+		if err != nil {
+			return err
+		}
+		customattribute.ReadFromResource(client, props.Entity(), d)
+	} else {
+		log.Printf("[DEBUG] %s: Custom attributes unsupported on this connection, skipping", resourceVSphereComputeClusterIDString(d))
+	}
+
+	return nil
+}
+
+// expandClusterConfigSpecEx reads certain ResourceData keys and returns a
+// ClusterConfigSpecEx.
+func expandClusterConfigSpecEx(d *schema.ResourceData, version viapi.VSphereVersion) *types.ClusterConfigSpecEx {
+	obj := &types.ClusterConfigSpecEx{
+		DasConfig: expandClusterDasConfigInfo(d, version),
+		DpmConfig: expandClusterDpmConfigInfo(d),
+		DrsConfig: expandClusterDrsConfigInfo(d),
+	}
+
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
+		obj.InfraUpdateHaConfig = expandClusterInfraUpdateHaConfigInfo(d)
+	}
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
+		obj.Orchestration = expandClusterOrchestrationInfo(d)
+	}
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
+		obj.ProactiveDrsConfig = expandClusterProactiveDrsConfigInfo(d)
+	}
+
+	return obj
+}
+
+// expandClusterDasConfigInfo reads certain ResourceData keys and returns a
+// ClusterDasConfigInfo.
+func expandClusterDasConfigInfo(d *schema.ResourceData, version viapi.VSphereVersion) *types.ClusterDasConfigInfo {
+	obj := &types.ClusterDasConfigInfo{
+		DefaultVmSettings:          expandClusterDasVMSettings(d, version),
+		Enabled:                    structure.GetBool(d, "ha_enabled"),
+		HBDatastoreCandidatePolicy: d.Get("ha_heartbeat_datastore_policy").(string),
+		HostMonitoring:             d.Get("ha_host_monitoring").(string),
+		Option:                     expandResourceVSphereComputeClusterDasAdvancedOptions(d),
+		VmMonitoring:               d.Get("ha_vm_monitoring").(string),
+		HeartbeatDatastore: structure.SliceInterfacesToManagedObjectReferences(
+			d.Get("ha_heartbeat_datastore_ids").(*schema.Set).List(),
+			"Datastore",
+		),
+	}
+
+	policy := d.Get("ha_admission_control_policy").(string)
+	if policy != clusterAdmissionControlTypeDisabled {
+		obj.AdmissionControlEnabled = structure.BoolPtr(true)
+	} else {
+		obj.AdmissionControlEnabled = structure.BoolPtr(false)
+	}
+	obj.AdmissionControlPolicy = expandBaseClusterDasAdmissionControlPolicy(d, policy, version)
+
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+		obj.VmComponentProtecting = d.Get("ha_vm_component_protection").(string)
+	}
+
+	return obj
+}
+
+// expandBaseClusterDasAdmissionControlPolicy reads certain ResourceData keys
+// and returns a BaseClusterDasAdmissionControlPolicy.
+func expandBaseClusterDasAdmissionControlPolicy(
+	d *schema.ResourceData,
+	policy string,
+	version viapi.VSphereVersion,
+) types.BaseClusterDasAdmissionControlPolicy {
+	var obj types.BaseClusterDasAdmissionControlPolicy
+
+	switch policy {
+	case clusterAdmissionControlTypeResourcePercentage:
+		obj = expandClusterFailoverResourcesAdmissionControlPolicy(d, version)
+	case clusterAdmissionControlTypeSlotPolicy:
+		obj = expandClusterFailoverLevelAdmissionControlPolicy(d)
+	case clusterAdmissionControlTypeFailoverHosts:
+		obj = expandClusterFailoverHostAdmissionControlPolicy(d, version)
+	}
+
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
+		obj.GetClusterDasAdmissionControlPolicy().ResourceReductionToToleratePercent = int32(d.Get("ha_admission_control_host_failure_tolerance").(int))
+	}
+
+	return obj
+}
+
+// expandClusterFailoverResourcesAdmissionControlPolicy reads certain
+// ResourceData keys and returns a
+// ClusterFailoverResourcesAdmissionControlPolicy.
+func expandClusterFailoverResourcesAdmissionControlPolicy(
+	d *schema.ResourceData,
+	version viapi.VSphereVersion,
+) *types.ClusterFailoverResourcesAdmissionControlPolicy {
+	obj := &types.ClusterFailoverResourcesAdmissionControlPolicy{
+		CpuFailoverResourcesPercent:    int32(d.Get("ha_admission_control_resource_percentage_cpu").(int)),
+		MemoryFailoverResourcesPercent: int32(d.Get("ha_admission_control_resource_percentage_memory").(int)),
+	}
+
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
+		obj.AutoComputePercentages = structure.GetBool(d, "ha_admission_control_resource_percentage_auto_compute")
+		obj.FailoverLevel = int32(d.Get("ha_admission_control_host_failure_tolerance").(int))
+	}
+
+	return obj
+}
+
+// expandClusterFailoverLevelAdmissionControlPolicy reads certain ResourceData
+// keys and returns a ClusterFailoverLevelAdmissionControlPolicy.
+func expandClusterFailoverLevelAdmissionControlPolicy(d *schema.ResourceData) *types.ClusterFailoverLevelAdmissionControlPolicy {
+	obj := &types.ClusterFailoverLevelAdmissionControlPolicy{
+		FailoverLevel: int32(d.Get("ha_admission_control_host_failure_tolerance").(int)),
+	}
+
+	if d.Get("ha_admission_control_slot_policy_use_explicit_size").(bool) {
+		obj.SlotPolicy = &types.ClusterFixedSizeSlotPolicy{
+			Cpu:    int32(d.Get("ha_admission_control_resource_percentage_memory").(int)),
+			Memory: int32(d.Get("ha_admission_control_resource_percentage_memory").(int)),
+		}
+	}
+
+	return obj
+}
+
+// expandClusterFailoverHostAdmissionControlPolicy reads certain ResourceData
+// keys and returns a ClusterFailoverHostAdmissionControlPolicy.
+func expandClusterFailoverHostAdmissionControlPolicy(
+	d *schema.ResourceData,
+	version viapi.VSphereVersion,
+) *types.ClusterFailoverHostAdmissionControlPolicy {
+	obj := &types.ClusterFailoverHostAdmissionControlPolicy{
+		FailoverHosts: structure.SliceInterfacesToManagedObjectReferences(
+			d.Get("ha_admission_control_failover_host_system_ids").(*schema.Set).List(),
+			"HostSystem",
+		),
+	}
+
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
+		obj.FailoverLevel = int32(d.Get("ha_admission_control_host_failure_tolerance").(int))
+	}
+
+	return obj
+}
+
+// expandClusterDasVMSettings reads certain ResourceData keys and returns a
+// ClusterDasVmSettings.
+func expandClusterDasVMSettings(d *schema.ResourceData, version viapi.VSphereVersion) *types.ClusterDasVmSettings {
+	obj := &types.ClusterDasVmSettings{
+		IsolationResponse:         d.Get("ha_host_isolation_response").(string),
+		RestartPriority:           d.Get("ha_default_vm_restart_priority").(string),
+		VmToolsMonitoringSettings: expandClusterVMToolsMonitoringSettings(d),
+	}
+
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+		obj.VmComponentProtectionSettings = expandClusterVMComponentProtectionSettings(d)
+	}
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
+		obj.RestartPriorityTimeout = int32(d.Get("ha_default_vm_restart_timeout").(int))
+	}
+
+	return obj
+}
+
+// expandClusterVMComponentProtectionSettings reads certain ResourceData keys and returns a
+// ClusterVmComponentProtectionSettings.
+func expandClusterVMComponentProtectionSettings(d *schema.ResourceData) *types.ClusterVmComponentProtectionSettings {
+	obj := &types.ClusterVmComponentProtectionSettings{
+		VmReactionOnAPDCleared:    d.Get("ha_datastore_apd_recovery_action").(string),
+		VmStorageProtectionForAPD: d.Get("ha_datastore_apd_response").(string),
+		VmStorageProtectionForPDL: d.Get("ha_datastore_pdl_response").(string),
+		VmTerminateDelayForAPDSec: int32(d.Get("ha_datastore_apd_response_delay").(int)),
+	}
+
+	if d.Get("ha_datastore_apd_response").(string) != string(types.ClusterVmComponentProtectionSettingsStorageVmReactionDisabled) {
+		// Flag EnableAPDTimeoutForHosts to ensure that APD is enabled for all
+		// hosts in the cluster and our other settings here will be effective. Note
+		// that this setting is not persisted to state or the vSphere backend and
+		// is actually a host operation, not a cluster operation. It's here to
+		// ensure that the settings specified here are otherwise effective. We may
+		// need to revisit this if we introduce more robust host management
+		// capabilities in the provider.
+		obj.EnableAPDTimeoutForHosts = structure.BoolPtr(true)
+	}
+
+	return obj
+}
+
+// expandClusterVMToolsMonitoringSettings reads certain ResourceData keys and returns a
+// ClusterVmToolsMonitoringSettings.
+func expandClusterVMToolsMonitoringSettings(d *schema.ResourceData) *types.ClusterVmToolsMonitoringSettings {
+	obj := &types.ClusterVmToolsMonitoringSettings{
+		FailureInterval:  int32(d.Get("ha_vm_failure_interval").(int)),
+		MaxFailures:      int32(d.Get("ha_vm_maximum_resets").(int)),
+		MaxFailureWindow: int32(d.Get("ha_vm_maximum_failure_window").(int)),
+		MinUpTime:        int32(d.Get("ha_vm_minimum_uptime").(int)),
+		VmMonitoring:     d.Get("ha_vm_monitoring").(string),
+	}
+
+	return obj
+}
+
+// expandResourceVSphereComputeClusterDasAdvancedOptions reads certain
+// ResourceData keys and returns a BaseOptionValue list designed for use as DAS
+// (vSphere HA) advanced options.
+func expandResourceVSphereComputeClusterDasAdvancedOptions(d *schema.ResourceData) []types.BaseOptionValue {
+	var opts []types.BaseOptionValue
+
+	m := d.Get("ha_advanced_options").(map[string]interface{})
+	for k, v := range m {
+		opts = append(opts, &types.OptionValue{
+			Key:   k,
+			Value: types.AnyType(v),
+		})
+	}
+	return opts
+}
+
+// expandClusterDpmConfigInfo reads certain ResourceData keys and returns a
+// ClusterDpmConfigInfo.
+func expandClusterDpmConfigInfo(d *schema.ResourceData) *types.ClusterDpmConfigInfo {
+	obj := &types.ClusterDpmConfigInfo{
+		DefaultDpmBehavior:  types.DpmBehavior(d.Get("dpm_automation_level").(string)),
+		Enabled:             structure.GetBool(d, "dpm_enabled"),
+		HostPowerActionRate: int32(d.Get("dpm_threshold").(int)),
+	}
+
+	return obj
+}
+
+// expandClusterDrsConfigInfo reads certain ResourceData keys and returns a
+// ClusterDrsConfigInfo.
+func expandClusterDrsConfigInfo(d *schema.ResourceData) *types.ClusterDrsConfigInfo {
+	obj := &types.ClusterDrsConfigInfo{
+		DefaultVmBehavior:         types.DrsBehavior(d.Get("drs_automation_level").(string)),
+		Enabled:                   structure.GetBool(d, "drs_enabled"),
+		EnableVmBehaviorOverrides: structure.GetBool(d, "drs_enable_vm_overrides"),
+		VmotionRate:               int32(d.Get("drs_migration_threshold").(int)),
+		Option:                    expandResourceVSphereComputeClusterDrsAdvancedOptions(d),
+	}
+
+	return obj
+}
+
+// expandResourceVSphereComputeClusterDrsAdvancedOptions reads certain
+// ResourceData keys and returns a BaseOptionValue list designed for use as DRS
+// advanced options.
+func expandResourceVSphereComputeClusterDrsAdvancedOptions(d *schema.ResourceData) []types.BaseOptionValue {
+	var opts []types.BaseOptionValue
+
+	m := d.Get("drs_advanced_options").(map[string]interface{})
+	for k, v := range m {
+		opts = append(opts, &types.OptionValue{
+			Key:   k,
+			Value: types.AnyType(v),
+		})
+	}
+	return opts
+}
+
+// expandClusterInfraUpdateHaConfigInfo reads certain ResourceData keys and returns a
+// ClusterInfraUpdateHaConfigInfo.
+func expandClusterInfraUpdateHaConfigInfo(d *schema.ResourceData) *types.ClusterInfraUpdateHaConfigInfo {
+	obj := &types.ClusterInfraUpdateHaConfigInfo{
+		Behavior:            d.Get("proactive_ha_behavior").(string),
+		Enabled:             structure.GetBool(d, "proactive_ha_enabled"),
+		ModerateRemediation: d.Get("proactive_ha_moderate_remediation").(string),
+		Providers:           structure.SliceInterfacesToStrings(d.Get("proactive_ha_provider_ids").(*schema.Set).List()),
+		SevereRemediation:   d.Get("proactive_ha_severe_remediation").(string),
+	}
+
+	return obj
+}
+
+// expandClusterOrchestrationInfo reads certain ResourceData keys and returns a
+// ClusterOrchestrationInfo.
+func expandClusterOrchestrationInfo(d *schema.ResourceData) *types.ClusterOrchestrationInfo {
+	obj := &types.ClusterOrchestrationInfo{
+		DefaultVmReadiness: &types.ClusterVmReadiness{
+			PostReadyDelay: int32(d.Get("ha_vm_restart_additional_delay").(int)),
+			ReadyCondition: d.Get("ha_vm_dependency_restart_condition").(string),
+		},
+	}
+
+	return obj
+}
+
+// expandClusterProactiveDrsConfigInfo reads certain ResourceData keys and returns a
+// ClusterProactiveDrsConfigInfo.
+func expandClusterProactiveDrsConfigInfo(d *schema.ResourceData) *types.ClusterProactiveDrsConfigInfo {
+	obj := &types.ClusterProactiveDrsConfigInfo{
+		Enabled: structure.GetBool(d, "drs_enable_predictive_drs"),
+	}
+
+	return obj
+}
+
 // resourceVSphereComputeClusterIDString prints a friendly string for the
 // vsphere_compute_cluster resource.
 func resourceVSphereComputeClusterIDString(d structure.ResourceIDStringer) string {
 	return structure.ResourceIDString(d, resourceVSphereComputeClusterName)
+}
+
+func resourceVSphereComputeClusterClient(meta interface{}) (*govmomi.Client, error) {
+	client := meta.(*VSphereClient).vimClient
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+// resourceVSphereComputeClusterHasClusterConfigChange checks all resource keys
+// associated with cluster configuration (and not, for example, member hosts,
+// folder, tags, etc) to see if there has been a change in the configuration of
+// those keys. This helper is designed to detect no-ops in a cluster
+// configuration to see if we really need to send a configure API call to
+// vSphere.
+func resourceVSphereComputeClusterHasClusterConfigChange(d *schema.ResourceData) bool {
+	for k := range resourceVSphereComputeCluster().Schema {
+		switch {
+		case resourceVSphereComputeClusterHasClusterConfigChangeExcluded(k):
+			continue
+		case d.HasChange(k):
+			return true
+		}
+	}
+
+	return false
+}
+
+func resourceVSphereComputeClusterHasClusterConfigChangeExcluded(k string) bool {
+	// It's easier to track which keys don't belong to storage DRS versus the
+	// ones that do.
+	excludeKeys := []string{
+		"name",
+		"datacenter_id",
+		"host_system_ids",
+		"folder",
+		"host_cluster_exit_timeout",
+		vSphereTagAttributeKey,
+		customattribute.ConfigKey,
+	}
+
+	for _, exclude := range excludeKeys {
+		if k == exclude {
+			return true
+		}
+	}
+
+	return false
 }

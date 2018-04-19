@@ -11,6 +11,7 @@ import (
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/task"
+	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
@@ -138,6 +139,15 @@ func RenameObject(client *govmomi.Client, ref types.ManagedObjectReference, new 
 
 // ValidateVirtualCenter ensures that the client is connected to vCenter.
 func ValidateVirtualCenter(c *govmomi.Client) error {
+	return VimValidateVirtualCenter(c.Client)
+}
+
+// VimValidateVirtualCenter ensures that the client is connected to vCenter.
+//
+// This is a lower-level method that does not take the wrapped client from the
+// higher-level govmomi object, and can be used to facilitate validation when
+// it's not available.
+func VimValidateVirtualCenter(c *vim25.Client) error {
 	if c.ServiceContent.About.ApiType != "VirtualCenter" {
 		return errors.New(ErrVirtualCenterOnly)
 	}

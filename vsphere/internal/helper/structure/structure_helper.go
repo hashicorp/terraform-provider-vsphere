@@ -46,6 +46,19 @@ func SliceStringsToInterfaces(s []string) []interface{} {
 	return d
 }
 
+// SliceInterfacesToManagedObjectReferences converts an interface slice into a
+// slice of ManagedObjectReferences with the type of t
+func SliceInterfacesToManagedObjectReferences(s []interface{}, t string) []types.ManagedObjectReference {
+	var d []types.ManagedObjectReference
+	for _, v := range s {
+		d = append(d, types.ManagedObjectReference{
+			Type:  t,
+			Value: v.(string),
+		})
+	}
+	return d
+}
+
 // MergeSchema merges the map[string]*schema.Schema from src into dst. Safety
 // against conflicts is enforced by panicing.
 func MergeSchema(dst, src map[string]*schema.Schema) {
