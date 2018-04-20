@@ -117,6 +117,9 @@ func resourceVSphereComputeCluster() *schema.Resource {
 		Read:   resourceVSphereComputeClusterRead,
 		Update: resourceVSphereComputeClusterUpdate,
 		Delete: resourceVSphereComputeClusterDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceVSphereComputeClusterImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -443,6 +446,11 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Description: "The list of IDs for health update providers configured for this cluster.",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
+			"resource_pool_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The managed object ID of the cluster's root resource pool.",
+			},
 
 			vSphereTagAttributeKey:    tagsSchema(),
 			customattribute.ConfigKey: customattribute.ConfigSchema(),
@@ -488,12 +496,59 @@ func resourceVSphereComputeClusterCreate(d *schema.ResourceData, meta interface{
 func resourceVSphereComputeClusterRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] %s: Beginning read", resourceVSphereComputeClusterIDString(d))
 
+	cluster, err := resourceVSphereComputeClusterGetCluster(d, meta)
+	if err != nil {
+		return err
+	}
+
+	if err := resourceVSphereComputeClusterSaveNameAndPath(d, cluster); err != nil {
+		return err
+	}
+
+	if err := resourceVSphereComputeClusterFlattenData(d, meta, cluster); err != nil {
+		return err
+	}
+
+	if err := resourceVSphereComputeClusterReadTags(d, meta, cluster); err != nil {
+		return err
+	}
+
+	if err := resourceVSphereComputeClusterReadCustomAttributes(d, meta, cluster); err != nil {
+		return err
+	}
+
 	log.Printf("[DEBUG] %s: Read completed successfully", resourceVSphereComputeClusterIDString(d))
 	return nil
 }
 
 func resourceVSphereComputeClusterUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] %s: Beginning update", resourceVSphereComputeClusterIDString(d))
+
+	cluster, err := resourceVSphereComputeClusterGetCluster(d, meta)
+	if err != nil {
+		return err
+	}
+
+	cluster, err = resourceVSphereComputeClusterApplyNameChange(d, meta, cluster)
+	if err != nil {
+		return err
+	}
+	cluster, err = resourceVSphereComputeClusterApplyFolderChange(d, meta, cluster)
+	if err != nil {
+		return err
+	}
+
+	if err := resourceVSphereComputeClusterApplyClusterConfiguration(d, meta, cluster); err != nil {
+		return err
+	}
+
+	if err := resourceVSphereComputeClusterApplyTags(d, meta, cluster); err != nil {
+		return err
+	}
+
+	if err := resourceVSphereComputeClusterApplyCustomAttributes(d, meta, cluster); err != nil {
+		return err
+	}
 
 	log.Printf("[DEBUG] %s: Update finished successfully", resourceVSphereComputeClusterIDString(d))
 	return resourceVSphereComputeClusterRead(d, meta)
@@ -502,9 +557,34 @@ func resourceVSphereComputeClusterUpdate(d *schema.ResourceData, meta interface{
 func resourceVSphereComputeClusterDelete(d *schema.ResourceData, meta interface{}) error {
 	resourceIDString := resourceVSphereComputeClusterIDString(d)
 	log.Printf("[DEBUG] %s: Beginning delete", resourceIDString)
+	cluster, err := resourceVSphereComputeClusterGetCluster(d, meta)
+	if err != nil {
+		return err
+	}
+
+	// Very similar to how we handle folders, we don't delete a cluster if there
+	// is child items in it. If there is, we fail with an error that mentions
+	// this restriction.
+	if err := resourceVSphereComputeClusterValidateEmptyCluster(d, cluster); err != nil {
+		return err
+	}
+
+	if err := resourceVSphereComputeClusterApplyDelete(d, cluster); err != nil {
+		return err
+	}
 
 	log.Printf("[DEBUG] %s: Deleted successfully", resourceIDString)
 	return nil
+}
+
+func resourceVSphereComputeClusterImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	p := d.Id()
+	cluster, err := resourceVSphereComputeClusterGetClusterFromPath(meta, p, "")
+	if err != nil {
+		return nil, fmt.Errorf("error loading cluster: %s", err)
+	}
+	d.SetId(cluster.Reference().Value)
+	return []*schema.ResourceData{d}, nil
 }
 
 // resourceVSphereComputeClusterApplyCreate processes the creation part of
@@ -726,6 +806,218 @@ func resourceVSphereComputeClusterReadCustomAttributes(
 	return nil
 }
 
+// resourceVSphereComputeClusterGetCluster gets the ComputeClusterResource from the ID
+// in the supplied ResourceData.
+func resourceVSphereComputeClusterGetCluster(
+	d structure.ResourceIDStringer,
+	meta interface{},
+) (*object.ClusterComputeResource, error) {
+	log.Printf("[DEBUG] %s: Fetching ComputeClusterResource object from resource ID", resourceVSphereComputeClusterIDString(d))
+	client, err := resourceVSphereComputeClusterClient(meta)
+	if err != nil {
+		return nil, err
+	}
+
+	return clustercomputeresource.FromID(client, d.Id())
+}
+
+// resourceVSphereComputeClusterGetClusterFromPath gets the ComputeClusterResource from a
+// supplied path. If no datacenter is supplied, the path must be a full path.
+func resourceVSphereComputeClusterGetClusterFromPath(
+	meta interface{},
+	path string,
+	dcID string,
+) (*object.ClusterComputeResource, error) {
+	client, err := resourceVSphereComputeClusterClient(meta)
+	if err != nil {
+		return nil, err
+	}
+	var dc *object.Datacenter
+	if dcID != "" {
+		var err error
+		dc, err = datacenterFromID(client, dcID)
+		if err != nil {
+			return nil, fmt.Errorf("cannot locate datacenter: %s", err)
+		}
+		log.Printf("[DEBUG] Looking for cluster %q in datacenter %q", path, dc.InventoryPath)
+	} else {
+		log.Printf("[DEBUG] Fetching cluster at path %q", path)
+	}
+
+	return clustercomputeresource.FromPath(client, path, dc)
+}
+
+// resourceVSphereComputeClusterSaveNameAndPath saves the name and path of a
+// StoragePod into the supplied ResourceData.
+func resourceVSphereComputeClusterSaveNameAndPath(d *schema.ResourceData, cluster *object.ClusterComputeResource) error {
+	log.Printf(
+		"[DEBUG] %s: Saving name and path data for cluster %q",
+		resourceVSphereComputeClusterIDString(d),
+		cluster.InventoryPath,
+	)
+
+	if err := d.Set("name", cluster.Name()); err != nil {
+		return fmt.Errorf("error saving name: %s", err)
+	}
+
+	f, err := folder.RootPathParticleHost.SplitRelativeFolder(cluster.InventoryPath)
+	if err != nil {
+		return fmt.Errorf("error parsing cluster path %q: %s", cluster.InventoryPath, err)
+	}
+	if err := d.Set("folder", folder.NormalizePath(f)); err != nil {
+		return fmt.Errorf("error saving folder: %s", err)
+	}
+	return nil
+}
+
+// resourceVSphereComputeClusterApplyNameChange applies any changes to a
+// ClusterComputeResource's name.
+func resourceVSphereComputeClusterApplyNameChange(
+	d *schema.ResourceData,
+	meta interface{},
+	cluster *object.ClusterComputeResource,
+) (*object.ClusterComputeResource, error) {
+	log.Printf(
+		"[DEBUG] %s: Applying any name changes (old path = %q)",
+		resourceVSphereComputeClusterIDString(d),
+		cluster.InventoryPath,
+	)
+
+	var changed bool
+	var err error
+
+	if d.HasChange("name") {
+		if err = clustercomputeresource.Rename(cluster, d.Get("name").(string)); err != nil {
+			return nil, fmt.Errorf("error renaming cluster: %s", err)
+		}
+		changed = true
+	}
+
+	if changed {
+		// Update the cluster so that we have the new inventory path for logging and
+		// other things
+		cluster, err = resourceVSphereComputeClusterGetCluster(d, meta)
+		if err != nil {
+			return nil, fmt.Errorf("error refreshing cluster after name change: %s", err)
+		}
+		log.Printf(
+			"[DEBUG] %s: Name changed, new path = %q",
+			resourceVSphereComputeClusterIDString(d),
+			cluster.InventoryPath,
+		)
+	}
+
+	return cluster, nil
+}
+
+// resourceVSphereComputeClusterApplyFolderChange applies any changes to a
+// ClusterComputeResource's folder location.
+func resourceVSphereComputeClusterApplyFolderChange(
+	d *schema.ResourceData,
+	meta interface{},
+	cluster *object.ClusterComputeResource,
+) (*object.ClusterComputeResource, error) {
+	log.Printf(
+		"[DEBUG] %s: Applying any folder changes (old path = %q)",
+		resourceVSphereComputeClusterIDString(d),
+		cluster.InventoryPath,
+	)
+
+	var changed bool
+	var err error
+
+	if d.HasChange("folder") {
+		f := d.Get("folder").(string)
+		client := meta.(*VSphereClient).vimClient
+		if err = clustercomputeresource.MoveToFolder(client, cluster, f); err != nil {
+			return nil, fmt.Errorf("could not move cluster to folder %q: %s", f, err)
+		}
+		changed = true
+	}
+
+	if changed {
+		// Update the cluster so that we have the new inventory path for logging and
+		// other things
+		cluster, err = resourceVSphereComputeClusterGetCluster(d, meta)
+		if err != nil {
+			return nil, fmt.Errorf("error refreshing cluster after folder change: %s", err)
+		}
+		log.Printf(
+			"[DEBUG] %s: Folder changed, new path = %q",
+			resourceVSphereComputeClusterIDString(d),
+			cluster.InventoryPath,
+		)
+	}
+
+	return cluster, nil
+}
+
+// resourceVSphereComputeClusterValidateEmptyCluster validates that the cluster
+// is empty. This is used to ensure a safe deletion of the cluster - we do not
+// allow deletion of clusters that still virtual machines or hosts in them.
+func resourceVSphereComputeClusterValidateEmptyCluster(
+	d structure.ResourceIDStringer,
+	cluster *object.ClusterComputeResource,
+) error {
+	log.Printf("[DEBUG] %s: Checking to ensure that cluster is empty", resourceVSphereComputeClusterIDString(d))
+	ne, err := clustercomputeresource.HasChildren(cluster)
+	if err != nil {
+		return fmt.Errorf("error checking for cluster contents: %s", err)
+	}
+	if ne {
+		return fmt.Errorf(
+			"cluster %q still has hosts or virtual machines. Please move or remove all items before deleting",
+			cluster.InventoryPath,
+		)
+	}
+	return nil
+}
+
+// resourceVSphereComputeClusterApplyDelete process the removal of a
+// cluster.
+func resourceVSphereComputeClusterApplyDelete(d structure.ResourceIDStringer, cluster *object.ClusterComputeResource) error {
+	log.Printf("[DEBUG] %s: Proceeding with cluster deletion", resourceVSphereComputeClusterIDString(d))
+	if err := clustercomputeresource.Delete(cluster); err != nil {
+		return err
+	}
+	return nil
+}
+
+// resourceVSphereComputeClusterFlattenData saves the configuration attributes
+// from a ClusterComputeResource into the supplied ResourceData. It also saves
+// the root resource pool for the cluster in resource_pool_id.
+//
+// Note that other functions handle other non-configuration related items, such
+// as path, name, tags, and custom attributes.
+func resourceVSphereComputeClusterFlattenData(
+	d *schema.ResourceData,
+	meta interface{},
+	cluster *object.ClusterComputeResource,
+) error {
+	log.Printf("[DEBUG] %s: Saving cluster attributes", resourceVSphereComputeClusterIDString(d))
+	client, err := resourceVSphereComputeClusterClient(meta)
+	if err != nil {
+		return err
+	}
+
+	// Get the version of the vSphere connection to help determine what
+	// attributes we need to set
+	version := viapi.ParseVersionFromClient(client)
+
+	props, err := clustercomputeresource.Properties(cluster)
+	if err != nil {
+		return err
+	}
+
+	// Save the root resource pool ID so that it can be passed on to other
+	// resources without having to resort to the data source.
+	if err := d.Set("resource_pool_id", props.ResourcePool); err != nil {
+		return err
+	}
+
+	return flattenClusterConfigSpecEx(d, props.ConfigurationEx.(*types.ClusterConfigInfoEx), version)
+}
+
 // expandClusterConfigSpecEx reads certain ResourceData keys and returns a
 // ClusterConfigSpecEx.
 func expandClusterConfigSpecEx(d *schema.ResourceData, version viapi.VSphereVersion) *types.ClusterConfigSpecEx {
@@ -750,11 +1042,11 @@ func expandClusterConfigSpecEx(d *schema.ResourceData, version viapi.VSphereVers
 
 // flattenClusterConfigSpecEx saves a ClusterConfigSpecEx into the supplied
 // ResourceData.
-func flattenClusterConfigSpecEx(d *schema.ResourceData, obj *types.ClusterConfigSpecEx, version viapi.VSphereVersion) error {
+func flattenClusterConfigSpecEx(d *schema.ResourceData, obj *types.ClusterConfigInfoEx, version viapi.VSphereVersion) error {
 	if err := flattenClusterDasConfigInfo(d, obj.DasConfig, version); err != nil {
 		return err
 	}
-	if err := flattenClusterDpmConfigInfo(d, obj.DpmConfig); err != nil {
+	if err := flattenClusterDpmConfigInfo(d, obj.DpmConfigInfo); err != nil {
 		return err
 	}
 	if err := flattenClusterDrsConfigInfo(d, obj.DrsConfig); err != nil {
@@ -811,7 +1103,7 @@ func expandClusterDasConfigInfo(d *schema.ResourceData, version viapi.VSphereVer
 
 // flattenClusterDasConfigInfo saves a ClusterDasConfigInfo into the supplied
 // ResourceData.
-func flattenClusterDasConfigInfo(d *schema.ResourceData, obj *types.ClusterDasConfigInfo, version viapi.VSphereVersion) error {
+func flattenClusterDasConfigInfo(d *schema.ResourceData, obj types.ClusterDasConfigInfo, version viapi.VSphereVersion) error {
 	var dsIDs []string
 	for _, v := range obj.HeartbeatDatastore {
 		dsIDs = append(dsIDs, v.Value)
@@ -1200,7 +1492,7 @@ func expandClusterDrsConfigInfo(d *schema.ResourceData) *types.ClusterDrsConfigI
 
 // flattenClusterDrsConfigInfo saves a ClusterDrsConfigInfo into the supplied
 // ResourceData.
-func flattenClusterDrsConfigInfo(d *schema.ResourceData, obj *types.ClusterDrsConfigInfo) error {
+func flattenClusterDrsConfigInfo(d *schema.ResourceData, obj types.ClusterDrsConfigInfo) error {
 	err := structure.SetBatch(d, map[string]interface{}{
 		"drs_automation_level":    obj.DefaultVmBehavior,
 		"drs_enabled":             obj.Enabled,

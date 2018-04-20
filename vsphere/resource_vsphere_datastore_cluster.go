@@ -475,7 +475,7 @@ func resourceVSphereDatastoreClusterHasSDRSConfigChangeExcluded(k string) bool {
 	return false
 }
 
-// resourceVSphereDatastoreClusterGetPodFromID gets the StoragePod from the ID
+// resourceVSphereDatastoreClusterGetPod gets the StoragePod from the ID
 // in the supplied ResourceData.
 func resourceVSphereDatastoreClusterGetPod(d structure.ResourceIDStringer, meta interface{}) (*object.StoragePod, error) {
 	log.Printf("[DEBUG] %s: Fetching StoragePod object from resource ID", resourceVSphereDatastoreClusterIDString(d))
@@ -560,7 +560,7 @@ func resourceVSphereDatastoreClusterApplyNameChange(
 		// other things
 		pod, err = resourceVSphereDatastoreClusterGetPod(d, meta)
 		if err != nil {
-			return nil, fmt.Errorf("error refreshing pod after name change: %s", err)
+			return nil, fmt.Errorf("error refreshing datastore cluster after name change: %s", err)
 		}
 		log.Printf(
 			"[DEBUG] %s: Name changed, new path = %q",
@@ -592,7 +592,7 @@ func resourceVSphereDatastoreClusterApplyFolderChange(
 		f := d.Get("folder").(string)
 		client := meta.(*VSphereClient).vimClient
 		if err = storagepod.MoveToFolder(client, pod, f); err != nil {
-			return nil, fmt.Errorf("could not move datastore to folder %q: %s", f, err)
+			return nil, fmt.Errorf("could not move datastore cluster to folder %q: %s", f, err)
 		}
 		changed = true
 	}
@@ -622,7 +622,7 @@ func resourceVSphereDatastoreClusterValidateEmptyCluster(d structure.ResourceIDS
 	log.Printf("[DEBUG] %s: Checking to ensure that datastore cluster is empty", resourceVSphereDatastoreClusterIDString(d))
 	ne, err := storagepod.HasChildren(pod)
 	if err != nil {
-		return fmt.Errorf("error checking for datastore folder contents: %s", err)
+		return fmt.Errorf("error checking for datastore cluster contents: %s", err)
 	}
 	if ne {
 		return fmt.Errorf(

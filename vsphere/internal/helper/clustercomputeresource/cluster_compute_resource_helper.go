@@ -108,8 +108,8 @@ func MoveToFolder(client *govmomi.Client, cluster *object.ClusterComputeResource
 // compute cluster in vSphere destroys *all* children if at all possible
 // (including removing hosts and virtual machines), so extra verification is
 // necessary to prevent accidental removal.
-func HasChildren(client *govmomi.Client, cluster *object.ClusterComputeResource) (bool, error) {
-	f, err := folder.FromAbsolutePath(client, cluster.InventoryPath)
+func HasChildren(cluster *object.ClusterComputeResource) (bool, error) {
+	f, err := folder.FromAbsolutePath(&govmomi.Client{Client: cluster.Client()}, cluster.InventoryPath)
 	if err != nil {
 		return false, err
 	}
