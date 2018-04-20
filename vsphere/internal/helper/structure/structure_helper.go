@@ -542,3 +542,31 @@ func LogCond(c bool, t, f interface{}) interface{} {
 	}
 	return f
 }
+
+// SetBatch takes a map of values and sets the appropriate top-level attributes
+// for each item.
+//
+// attrs is a map[string]interface{} that follows a pattern in the example
+// below:
+//
+//   err := SetBatch(d, map[string]interface{}{
+//  	"foo": obj.Foo,
+//  	"bar": obj.Bar,
+//   })
+//   if err != nil {
+//  	return err
+//   }
+//
+// For best results, supplied values should be or have concrete values that map
+// to the correct values for the respective type in helper/schema. This is
+// enforced by way of checking each Set call for errors. If there is an error
+// setting a particular key, processing stops immediately.
+func SetBatch(d *schema.ResourceData, attrs map[string]interface{}) error {
+	for k, v := range attrs {
+		if err := d.Set(k, v); err != nil {
+			return fmt.Errorf("error setting attribute %q: %s", k, err)
+		}
+	}
+
+	return nil
+}
