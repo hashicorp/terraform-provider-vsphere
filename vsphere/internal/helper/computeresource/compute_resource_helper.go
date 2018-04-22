@@ -211,3 +211,21 @@ func Reconfigure(obj BaseComputeResource, spec types.BaseComputeResourceConfigSp
 	}
 	return task.Wait(ctx)
 }
+
+// HasChildren checks to see if a compute resource has any child items (hosts
+// and virtual machines) and returns true if that is the case. This is useful
+// when checking to see if a compute cluster is safe to delete - destroying a
+// compute resource in vSphere destroys *all* children if at all possible
+// (including removing hosts and virtual machines), so extra verification is
+// necessary to prevent accidental removal.
+func HasChildren(obj BaseComputeResource) (bool, error) {
+	props, err := BaseProperties(obj)
+	if err != nil {
+		return false, err
+	}
+
+	// We calculate if there is children based on host count alone as
+	// technically, if a compute resource has no hosts, it can't have virtual
+	// machines either.
+	return props.Summary.GetComputeResourceSummary().NumHosts > 0, nil
+}

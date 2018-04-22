@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/clustercomputeresource"
-	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/computeresource"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
@@ -147,7 +146,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				StateFunc:   folder.NormalizePath,
 			},
 			"host_cluster_exit_timeout": {
-				Type:        schema.TypeString,
+				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     3600,
 				Description: "The timeout for each host maintenance mode operation when removing hosts from a cluster.",
@@ -262,7 +261,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 			},
 			// VM component protection
 			"ha_vm_component_protection": {
-				Type:         schema.TypeBool,
+				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      string(types.ClusterDasConfigInfoServiceStateEnabled),
 				Description:  "Controls vSphere VM component protection for virtual machines in this cluster. This allows vSphere HA to react to failures between hosts and specific virtual machine components, such as datastores. Can be one of enabled or disabled.",
@@ -603,7 +602,7 @@ func resourceVSphereComputeClusterApplyCreate(d *schema.ResourceData, meta inter
 
 	// Find the folder based off the path to the datacenter. This is where we
 	// create the datastore cluster.
-	f, err := folder.FromPath(client, d.Get("folder").(string), folder.VSphereFolderTypeDatastore, dc)
+	f, err := folder.FromPath(client, d.Get("folder").(string), folder.VSphereFolderTypeHost, dc)
 	if err != nil {
 		return nil, fmt.Errorf("cannot locate folder: %s", err)
 	}
@@ -669,7 +668,7 @@ func resourceVSphereComputeClusterProcessHostUpdate(
 	o, n := d.GetChange("host_system_ids")
 	var newHosts, oldHosts []*object.HostSystem
 
-	for _, hsID := range n.(*schema.Set).Intersection(o.(*schema.Set)).Difference(n.(*schema.Set)).List() {
+	for _, hsID := range n.(*schema.Set).Difference(o.(*schema.Set)).List() {
 		hs, err := hostsystem.FromID(client, hsID.(string))
 		if err != nil {
 			return fmt.Errorf("error locating host system ID %q: %s", hsID, err)
@@ -677,7 +676,7 @@ func resourceVSphereComputeClusterProcessHostUpdate(
 		newHosts = append(newHosts, hs)
 	}
 
-	for _, hsID := range n.(*schema.Set).Intersection(o.(*schema.Set)).Difference(o.(*schema.Set)).List() {
+	for _, hsID := range o.(*schema.Set).Difference(n.(*schema.Set)).List() {
 		hs, err := hostsystem.FromID(client, hsID.(string))
 		if err != nil {
 			return fmt.Errorf("error locating host system ID %q: %s", hsID, err)
@@ -686,8 +685,10 @@ func resourceVSphereComputeClusterProcessHostUpdate(
 	}
 
 	// Add new hosts first
-	if err := clustercomputeresource.MoveHostsInto(cluster, newHosts); err != nil {
-		return fmt.Errorf("error moving new hosts into cluster: %s", err)
+	if len(newHosts) > 0 {
+		if err := clustercomputeresource.MoveHostsInto(cluster, newHosts); err != nil {
+			return fmt.Errorf("error moving new hosts into cluster: %s", err)
+		}
 	}
 
 	// Remove hosts next
@@ -725,7 +726,7 @@ func resourceVSphereComputeClusterApplyClusterConfiguration(
 
 	// Note that the reconfigure for a cluster is the same as a standalone host,
 	// hence we send this to the computeresource helper's Reconfigure function.
-	return computeresource.Reconfigure(cluster, spec)
+	return clustercomputeresource.Reconfigure(cluster, spec)
 }
 
 // resourceVSphereComputeClusterApplyTags processes the tags step for both
@@ -1011,7 +1012,7 @@ func resourceVSphereComputeClusterFlattenData(
 
 	// Save the root resource pool ID so that it can be passed on to other
 	// resources without having to resort to the data source.
-	if err := d.Set("resource_pool_id", props.ResourcePool); err != nil {
+	if err := d.Set("resource_pool_id", props.ResourcePool.Value); err != nil {
 		return err
 	}
 

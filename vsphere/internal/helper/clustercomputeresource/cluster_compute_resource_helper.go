@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/computeresource"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
@@ -109,11 +110,13 @@ func MoveToFolder(client *govmomi.Client, cluster *object.ClusterComputeResource
 // (including removing hosts and virtual machines), so extra verification is
 // necessary to prevent accidental removal.
 func HasChildren(cluster *object.ClusterComputeResource) (bool, error) {
-	f, err := folder.FromAbsolutePath(&govmomi.Client{Client: cluster.Client()}, cluster.InventoryPath)
-	if err != nil {
-		return false, err
-	}
-	return folder.HasChildren(f)
+	return computeresource.HasChildren(cluster)
+}
+
+// Reconfigure reconfigures a cluster. This just gets dispatched to
+// computeresource as both methods are the same.
+func Reconfigure(cluster *object.ClusterComputeResource, spec *types.ClusterConfigSpecEx) error {
+	return computeresource.Reconfigure(cluster, spec)
 }
 
 // Delete destroys a ClusterComputeResource.
