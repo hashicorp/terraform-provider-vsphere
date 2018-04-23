@@ -359,6 +359,26 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitNumbers(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_highDiskUnitInsufficientBus(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigMultiHighBusInsufficientBus(),
+				ExpectError: regexp.MustCompile("unit_number on disk \"disk1\" too high \\(15\\) - maximum value is 14 with 1 SCSI controller\\(s\\)"),
+			},
+			{
+				Config: testAccResourceVSphereEmpty,
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVirtualMachine_highDiskUnitsToRegularSingleController(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -3949,6 +3969,94 @@ resource "vsphere_virtual_machine" "vm" {
   disk {
     label       = "disk2"
     unit_number = 2
+    size        = 5
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_DATASTORE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigMultiHighBusInsufficientBus() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  scsi_controller_count = 1
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinux64Guest"
+
+  network_interface {
+    network_id            = "${data.vsphere_network.network.id}"
+    bandwidth_share_level = "normal"
+  }
+
+  network_interface {
+    network_id            = "${data.vsphere_network.network.id}"
+    bandwidth_share_level = "high"
+  }
+
+  network_interface {
+    network_id            = "${data.vsphere_network.network.id}"
+    bandwidth_share_level = "low"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
+
+  disk {
+    label       = "disk1"
+    unit_number = 15
+    size        = 10
+  }
+
+  disk {
+    label       = "disk2"
+    unit_number = 31
     size        = 5
   }
 }
