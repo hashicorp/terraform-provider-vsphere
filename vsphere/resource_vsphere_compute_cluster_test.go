@@ -10,14 +10,15 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
 const (
-	testAccResourceVSphereComputeClusterNameStandard = "terraform-datastore-cluster-test"
-	testAccResourceVSphereComputeClusterNameRenamed  = "terraform-datastore-cluster-test-renamed"
-	testAccResourceVSphereComputeClusterFolder       = "datastore-cluster-folder-test"
+	testAccResourceVSphereComputeClusterNameStandard = "terraform-compute-cluster-test"
+	testAccResourceVSphereComputeClusterNameRenamed  = "terraform-compute-cluster-test-renamed"
+	testAccResourceVSphereComputeClusterFolder       = "compute-cluster-folder-test"
 )
 
 func TestAccResourceVSphereComputeCluster_basic(t *testing.T) {
@@ -50,6 +51,39 @@ func TestAccResourceVSphereComputeCluster_drsHAEnabled(t *testing.T) {
 		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
 		Steps: []resource.TestStep{
 			{
+				Config: testAccResourceVSphereComputeClusterConfigDRSHABasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					testAccResourceVSphereComputeClusterCheckDRSEnabled(true),
+					testAccResourceVSphereComputeClusterCheckHAEnabled(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereComputeCluster_explicitFailoverHost(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterConfigDRSHABasicExplicitFailoverHost(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					testAccResourceVSphereComputeClusterCheckDRSEnabled(true),
+					testAccResourceVSphereComputeClusterCheckHAEnabled(true),
+					testAccResourceVSphereComputeClusterCheckAdmissionControlMode(clusterAdmissionControlTypeFailoverHosts),
+					testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(os.Getenv("VSPHERE_ESXI_HOST5")),
+				),
+			},
+			{
+				// This step is required to remove the dedicated failover host in
+				// admission control - otherwise cleanup will fail.
 				Config: testAccResourceVSphereComputeClusterConfigDRSHABasic(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
@@ -118,7 +152,7 @@ func TestAccResourceVSphereComputeCluster_moveToFolder(t *testing.T) {
 		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereComputeClusterConfigBasic(),
+				Config: testAccResourceVSphereComputeClusterConfigEmpty(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
 					testAccResourceVSphereComputeClusterMatchInventoryPath(""),
@@ -367,6 +401,66 @@ func testAccResourceVSphereComputeClusterCheckHAEnabled(expected bool) resource.
 	}
 }
 
+func testAccResourceVSphereComputeClusterCheckAdmissionControlMode(expected string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetComputeClusterProperties(s, "compute_cluster")
+		if err != nil {
+			return err
+		}
+
+		var actual string
+		switch props.ConfigurationEx.(*types.ClusterConfigInfoEx).DasConfig.AdmissionControlPolicy.(type) {
+		case *types.ClusterFailoverResourcesAdmissionControlPolicy:
+			actual = clusterAdmissionControlTypeResourcePercentage
+		case *types.ClusterFailoverLevelAdmissionControlPolicy:
+			actual = clusterAdmissionControlTypeSlotPolicy
+		case *types.ClusterFailoverHostAdmissionControlPolicy:
+			actual = clusterAdmissionControlTypeFailoverHosts
+		default:
+			actual = clusterAdmissionControlTypeDisabled
+		}
+		if expected != actual {
+			return fmt.Errorf("expected admission control policy to be %s, got %s", expected, actual)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(expected string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetComputeClusterProperties(s, "compute_cluster")
+		if err != nil {
+			return err
+		}
+
+		failoverHostsPolicy, ok := props.ConfigurationEx.(*types.ClusterConfigInfoEx).DasConfig.AdmissionControlPolicy.(*types.ClusterFailoverHostAdmissionControlPolicy)
+		if !ok {
+			return fmt.Errorf(
+				"admission control policy is not *types.ClusterFailoverHostAdmissionControlPolicy (actual: %T)",
+				props.ConfigurationEx.(*types.ClusterConfigInfoEx).DasConfig.AdmissionControlPolicy,
+			)
+		}
+
+		// We just test the first host. The fixture this check is designed to be
+		// used with currently only sets one failover host.
+		if len(failoverHostsPolicy.FailoverHosts) < 1 {
+			return errors.New("no failover hosts")
+		}
+
+		client := testAccProvider.Meta().(*VSphereClient).vimClient
+		hs, err := hostsystem.FromID(client, failoverHostsPolicy.FailoverHosts[0].Value)
+		if err != nil {
+			return err
+		}
+
+		actual := hs.Name()
+		if expected != actual {
+			return fmt.Errorf("expected failover host name to be %s, got %s", expected, actual)
+		}
+		return nil
+	}
+}
+
 func testAccResourceVSphereComputeClusterCheckName(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		cluster, err := testGetComputeCluster(s, "compute_cluster")
@@ -540,6 +634,52 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 	)
 }
 
+func testAccResourceVSphereComputeClusterConfigDRSHABasicExplicitFailoverHost() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "hosts" {
+  default = [
+    "%s",
+    "%s",
+    "%s",
+  ]
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_host" "hosts" {
+  count         = "${length(var.hosts)}"
+  name          = "${var.hosts[count.index]}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name            = "terraform-compute-cluster-test"
+  datacenter_id   = "${data.vsphere_datacenter.dc.id}"
+  host_system_ids = ["${data.vsphere_host.hosts.*.id}"]
+
+  drs_enabled          = true
+  drs_automation_level = "fullyAutomated"
+
+  ha_enabled                                    = true
+  ha_admission_control_policy                   = "failoverHosts"
+  ha_admission_control_failover_host_system_ids = ["${data.vsphere_host.hosts.0.id}"]
+
+  force_evacuate_on_destroy = true
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_ESXI_HOST5"),
+		os.Getenv("VSPHERE_ESXI_HOST6"),
+		os.Getenv("VSPHERE_ESXI_HOST7"),
+	)
+}
+
 func testAccResourceVSphereComputeClusterConfigWithName(name string) string {
 	return fmt.Sprintf(`
 variable "datacenter" {
@@ -576,132 +716,18 @@ data "vsphere_datacenter" "dc" {
 
 resource "vsphere_folder" "compute_cluster_folder" {
   path          = "${var.folder}"
-  type          = "datastore"
+  type          = "host"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name          = "terraform-datastore-cluster-test"
+  name          = "terraform-compute-cluster-test"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
   folder        = "${vsphere_folder.compute_cluster_folder.path}"
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
 		f,
-	)
-}
-
-func testAccResourceVSphereComputeClusterConfigSDRSOverrides() string {
-	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_compute_cluster" "compute_cluster" {
-  name                                     = "terraform-datastore-cluster-test"
-  datacenter_id                            = "${data.vsphere_datacenter.dc.id}"
-  sdrs_enabled                             = true
-  sdrs_automation_level                    = "manual"
-  sdrs_space_balance_automation_level      = "automated"
-  sdrs_io_balance_automation_level         = "automated"
-  sdrs_rule_enforcement_automation_level   = "automated"
-  sdrs_policy_enforcement_automation_level = "automated"
-  sdrs_vm_evacuation_automation_level      = "automated"
-}
-`,
-		os.Getenv("VSPHERE_DATACENTER"),
-	)
-}
-
-func testAccResourceVSphereComputeClusterConfigSDRSMiscTweaks() string {
-	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_compute_cluster" "compute_cluster" {
-  name                             = "terraform-datastore-cluster-test"
-  datacenter_id                    = "${data.vsphere_datacenter.dc.id}"
-  sdrs_enabled                     = true
-  sdrs_default_intra_vm_affinity   = false
-  sdrs_io_latency_threshold        = 5
-  sdrs_space_utilization_threshold = 50
-}
-`,
-		os.Getenv("VSPHERE_DATACENTER"),
-	)
-}
-
-func testAccResourceVSphereComputeClusterConfigReservableIopsManual() string {
-	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_compute_cluster" "compute_cluster" {
-  name                              = "terraform-datastore-cluster-test"
-  datacenter_id                     = "${data.vsphere_datacenter.dc.id}"
-  sdrs_enabled                      = true
-  sdrs_io_reservable_threshold_mode = "manual"
-  sdrs_io_reservable_iops_threshold = 5000
-}
-`,
-		os.Getenv("VSPHERE_DATACENTER"),
-	)
-}
-
-func testAccResourceVSphereComputeClusterConfigReservableIopsAutomatic() string {
-	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_compute_cluster" "compute_cluster" {
-  name                                 = "terraform-datastore-cluster-test"
-  datacenter_id                        = "${data.vsphere_datacenter.dc.id}"
-  sdrs_enabled                         = true
-  sdrs_io_reservable_percent_threshold = 40
-}
-`,
-		os.Getenv("VSPHERE_DATACENTER"),
-	)
-}
-
-func testAccResourceVSphereComputeClusterConfigSpaceManual() string {
-	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_compute_cluster" "compute_cluster" {
-  name                           = "terraform-datastore-cluster-test"
-  datacenter_id                  = "${data.vsphere_datacenter.dc.id}"
-  sdrs_enabled                   = true
-  sdrs_free_space_threshold_mode = "freeSpace"
-  sdrs_free_space_threshold      = 500
-}
-`,
-		os.Getenv("VSPHERE_DATACENTER"),
 	)
 }
 
@@ -720,7 +746,7 @@ resource "vsphere_tag_category" "terraform-test-category" {
   cardinality = "MULTIPLE"
 
   associable_types = [
-    "StoragePod",
+    "ClusterComputeResource",
   ]
 }
 
@@ -730,7 +756,7 @@ resource "vsphere_tag" "terraform-test-tag" {
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name          = "terraform-datastore-cluster-test"
+  name          = "terraform-compute-cluster-test"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 
   tags = [
@@ -764,7 +790,7 @@ resource "vsphere_tag_category" "terraform-test-category" {
   cardinality = "MULTIPLE"
 
   associable_types = [
-    "StoragePod",
+    "ClusterComputeResource",
   ]
 }
 
@@ -780,7 +806,7 @@ resource "vsphere_tag" "terraform-test-tags-alt" {
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name          = "terraform-datastore-cluster-test"
+  name          = "terraform-compute-cluster-test"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 
   tags = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
@@ -802,7 +828,7 @@ data "vsphere_datacenter" "dc" {
 
 resource "vsphere_custom_attribute" "terraform-test-attribute" {
   name                = "terraform-test-attribute"
-  managed_object_type = "StoragePod"
+  managed_object_type = "ClusterComputeResource"
 }
 
 locals {
@@ -812,7 +838,7 @@ locals {
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name          = "terraform-datastore-cluster-test"
+  name          = "terraform-compute-cluster-test"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 
   custom_attributes = "${local.attrs}"
@@ -834,12 +860,12 @@ data "vsphere_datacenter" "dc" {
 
 resource "vsphere_custom_attribute" "terraform-test-attribute" {
   name                = "terraform-test-attribute"
-  managed_object_type = "StoragePod"
+  managed_object_type = "ClusterComputeResource"
 }
 
 resource "vsphere_custom_attribute" "terraform-test-attribute-2" {
   name                = "terraform-test-attribute-2"
-  managed_object_type = "StoragePod"
+  managed_object_type = "ClusterComputeResource"
 }
 
 locals {
@@ -850,7 +876,7 @@ locals {
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name          = "terraform-datastore-cluster-test"
+  name          = "terraform-compute-cluster-test"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 
   custom_attributes = "${local.attrs}"

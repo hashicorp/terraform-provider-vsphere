@@ -1245,7 +1245,7 @@ func flattenBaseClusterDasAdmissionControlPolicy(
 		if err := flattenClusterFailoverHostAdmissionControlPolicy(d, t, version); err != nil {
 			return err
 		}
-		policy = clusterAdmissionControlTypeSlotPolicy
+		policy = clusterAdmissionControlTypeFailoverHosts
 	default:
 		policy = clusterAdmissionControlTypeDisabled
 	}
