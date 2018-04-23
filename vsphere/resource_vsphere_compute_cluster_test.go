@@ -303,6 +303,28 @@ func TestAccResourceVSphereComputeCluster_switchCustomAttribute(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereComputeCluster_createVM(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterConfigCreateVM(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					testAccResourceVSphereComputeClusterCheckDRSEnabled(true),
+					testAccResourceVSphereComputeClusterCheckHAEnabled(true),
+					testAccResourceVSphereVirtualMachineCheckResourcePool("terraform-compute-cluster-test/Resources"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereComputeCluster_import(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -313,17 +335,15 @@ func TestAccResourceVSphereComputeCluster_import(t *testing.T) {
 		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereComputeClusterConfigBasic(),
+				Config: testAccResourceVSphereComputeClusterConfigEmpty(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckDRSEnabled(false),
 				),
 			},
 			{
-				ResourceName:            "vsphere_compute_cluster.compute_cluster",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"datacenter_id", "sdrs_free_space_threshold"},
+				ResourceName:      "vsphere_compute_cluster.compute_cluster",
+				ImportState:       true,
+				ImportStateVerify: true,
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					cluster, err := testGetComputeCluster(s, "compute_cluster")
 					if err != nil {
@@ -331,10 +351,9 @@ func TestAccResourceVSphereComputeCluster_import(t *testing.T) {
 					}
 					return cluster.InventoryPath, nil
 				},
-				Config: testAccResourceVSphereComputeClusterConfigBasic(),
+				Config: testAccResourceVSphereComputeClusterConfigEmpty(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckDRSEnabled(false),
 				),
 			},
 		},
@@ -353,6 +372,12 @@ func testAccResourceVSphereComputeClusterPreCheck(t *testing.T) {
 	}
 	if os.Getenv("VSPHERE_ESXI_HOST7") == "" {
 		t.Skip("set VSPHERE_ESXI_HOST7 to run vsphere_compute_cluster acceptance tests")
+	}
+	if os.Getenv("VSPHERE_NETWORK_LABEL_PXE") == "" {
+		t.Skip("set VSPHERE_NETWORK_LABEL_PXE to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("VSPHERE_DATASTORE") == "" {
+		t.Skip("set VSPHERE_DATASTORE to run vsphere_virtual_machine acceptance tests")
 	}
 }
 
@@ -883,5 +908,88 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
+	)
+}
+
+func testAccResourceVSphereComputeClusterConfigCreateVM() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "hosts" {
+  default = [
+    "%s",
+    "%s",
+    "%s",
+  ]
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_host" "hosts" {
+  count         = "${length(var.hosts)}"
+  name          = "${var.hosts[count.index]}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name            = "terraform-compute-cluster-test"
+  datacenter_id   = "${data.vsphere_datacenter.dc.id}"
+  host_system_ids = ["${data.vsphere_host.hosts.*.id}"]
+
+  drs_enabled          = true
+  drs_automation_level = "fullyAutomated"
+
+  ha_enabled = true
+  
+	force_evacuate_on_destroy = true
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${vsphere_compute_cluster.compute_cluster.resource_pool_id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinux64Guest"
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_ESXI_HOST5"),
+		os.Getenv("VSPHERE_ESXI_HOST6"),
+		os.Getenv("VSPHERE_ESXI_HOST7"),
+		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_DATASTORE"),
 	)
 }
