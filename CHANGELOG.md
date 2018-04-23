@@ -1,31 +1,31 @@
-## 1.4.1 (Unreleased)
+## 1.4.1 (April 23, 2018)
 
 IMPROVEMENTS:
 
 * `resource/vsphere_virtual_machine`: Introduced the
   `wait_for_guest_net_routable` setting, which controls whether or not the guest
   network waiter waits on an address that matches the virtual machine's
-  configured default gateway. [GH-470]
+  configured default gateway. ([#470](https://github.com/terraform-providers/terraform-provider-vsphere/issues/470))
 
 BUG FIXES:
 
 * `resource/vsphere_virtual_machine`: The resource now correctly blocks `clone`
-  workflows on direct ESXi connections, where cloning is not supported. [GH-476]
+  workflows on direct ESXi connections, where cloning is not supported. ([#476](https://github.com/terraform-providers/terraform-provider-vsphere/issues/476))
 * `resource/vsphere_virtual_machine`: Corrected an issue that was preventing VMs
-  from being migrated from one cluster to another. [GH-474]
+  from being migrated from one cluster to another. ([#474](https://github.com/terraform-providers/terraform-provider-vsphere/issues/474))
 * `resource/vsphere_virtual_machine`: Corrected an issue where changing
   datastore information and cloning/customization parameters (which forces a new
   resource) at the same time was creating a diff mismatch after destroying the
-  old virtual machine. [GH-469]
+  old virtual machine. ([#469](https://github.com/terraform-providers/terraform-provider-vsphere/issues/469))
 * `resource/vsphere_virtual_machine`: Corrected a crash that can come up from an
   incomplete lookup of network information during network device management.
-  [GH-456]
+  ([#456](https://github.com/terraform-providers/terraform-provider-vsphere/issues/456))
 * `resource/vsphere_virtual_machine`: Corrected some issues where some
   post-clone configuration errors were leaving the resource half-completed and
-  irrecoverable without direct modification of the state. [GH-467]
+  irrecoverable without direct modification of the state. ([#467](https://github.com/terraform-providers/terraform-provider-vsphere/issues/467))
 * `resource/vsphere_virtual_machine`: Corrected a crash that can come up when a
   retrieved virtual machine has no lower-level configuration object in the API.
-  [GH-463]
+  ([#463](https://github.com/terraform-providers/terraform-provider-vsphere/issues/463))
 
 ## 1.4.0 (April 10, 2018)
 
