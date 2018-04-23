@@ -236,7 +236,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 			"ha_vm_dependency_restart_condition": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Default:      string(types.ClusterDasVmSettingsRestartPriorityMedium),
+				Default:      string(types.ClusterVmReadinessReadyConditionNone),
 				Description:  "The condition used to determine whether or not VMs in a certain restart priority class are online, allowing HA to move on to restarting VMs on the next priority. Can be one of none, poweredOn, guestHbStatusGreen, or appHbStatusGreen.",
 				ValidateFunc: validation.StringInSlice(computeClusterVMReadinessReadyConditionAllowedValues, false),
 			},
@@ -534,6 +534,10 @@ func resourceVSphereComputeClusterUpdate(d *schema.ResourceData, meta interface{
 	}
 	cluster, err = resourceVSphereComputeClusterApplyFolderChange(d, meta, cluster)
 	if err != nil {
+		return err
+	}
+
+	if err := resourceVSphereComputeClusterProcessHostUpdate(d, meta, cluster); err != nil {
 		return err
 	}
 
@@ -1222,12 +1226,18 @@ func flattenClusterFailoverResourcesAdmissionControlPolicy(
 	obj *types.ClusterFailoverResourcesAdmissionControlPolicy,
 	version viapi.VSphereVersion,
 ) error {
-	err := structure.SetBatch(d, map[string]interface{}{
-		"ha_admission_control_resource_percentage_cpu":    obj.CpuFailoverResourcesPercent,
-		"ha_admission_control_resource_percentage_memory": obj.MemoryFailoverResourcesPercent,
-	})
-	if err != nil {
-		return err
+	// AutoComputePercentages is a vSphere >= 6.5 feature, but when it's
+	// enabled the admission control CPU/memory values will be auto-set and
+	// caused spurious diffs, so do a nil check to see if we have the value or
+	// if it's disabled before we set the values.
+	if obj.AutoComputePercentages == nil || !*obj.AutoComputePercentages {
+		err := structure.SetBatch(d, map[string]interface{}{
+			"ha_admission_control_resource_percentage_cpu":    obj.CpuFailoverResourcesPercent,
+			"ha_admission_control_resource_percentage_memory": obj.MemoryFailoverResourcesPercent,
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
