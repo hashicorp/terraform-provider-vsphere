@@ -151,6 +151,11 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Default:     3600,
 				Description: "The timeout for each host maintenance mode operation when removing hosts from a cluster.",
 			},
+			"force_evacuate_on_destroy": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Force removal of all hosts in the cluster during destroy and make them standalone hosts. Use of this flag mainly exists for testing and is not recommended in normal use.",
+			},
 			// DRS - General/automation
 			"drs_enabled": {
 				Type:        schema.TypeBool,
@@ -162,7 +167,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      string(types.DrsBehaviorManual),
-				Description:  "The default automation level for all virtual machines in this cluster.",
+				Description:  "The default automation level for all virtual machines in this cluster. Can be one of manual, partiallyAutomated, or fullyAutomated.",
 				ValidateFunc: validation.StringInSlice(drsBehaviorAllowedValues, false),
 			},
 			"drs_migration_threshold": {
@@ -558,16 +563,16 @@ func resourceVSphereComputeClusterUpdate(d *schema.ResourceData, meta interface{
 }
 
 func resourceVSphereComputeClusterDelete(d *schema.ResourceData, meta interface{}) error {
-	resourceIDString := resourceVSphereComputeClusterIDString(d)
-	log.Printf("[DEBUG] %s: Beginning delete", resourceIDString)
+	log.Printf("[DEBUG] %s: Beginning delete", resourceVSphereComputeClusterIDString(d))
 	cluster, err := resourceVSphereComputeClusterGetCluster(d, meta)
 	if err != nil {
 		return err
 	}
 
-	// Very similar to how we handle folders, we don't delete a cluster if there
-	// is child items in it. If there is, we fail with an error that mentions
-	// this restriction.
+	if err := resourceVSphereComputeClusterDeleteProcessForceRemoveHosts(d, meta, cluster); err != nil {
+		return err
+	}
+
 	if err := resourceVSphereComputeClusterValidateEmptyCluster(d, cluster); err != nil {
 		return err
 	}
@@ -576,7 +581,7 @@ func resourceVSphereComputeClusterDelete(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	log.Printf("[DEBUG] %s: Deleted successfully", resourceIDString)
+	log.Printf("[DEBUG] %s: Deleted successfully", resourceVSphereComputeClusterIDString(d))
 	return nil
 }
 
@@ -670,22 +675,21 @@ func resourceVSphereComputeClusterProcessHostUpdate(
 	}
 
 	o, n := d.GetChange("host_system_ids")
-	var newHosts, oldHosts []*object.HostSystem
 
-	for _, hsID := range n.(*schema.Set).Difference(o.(*schema.Set)).List() {
-		hs, err := hostsystem.FromID(client, hsID.(string))
-		if err != nil {
-			return fmt.Errorf("error locating host system ID %q: %s", hsID, err)
-		}
-		newHosts = append(newHosts, hs)
+	newHosts, err := resourceVSphereComputeClusterGetHostSystemObjects(
+		client,
+		structure.SliceInterfacesToStrings(n.(*schema.Set).Difference(o.(*schema.Set)).List()),
+	)
+	if err != nil {
+		return err
 	}
 
-	for _, hsID := range o.(*schema.Set).Difference(n.(*schema.Set)).List() {
-		hs, err := hostsystem.FromID(client, hsID.(string))
-		if err != nil {
-			return fmt.Errorf("error locating host system ID %q: %s", hsID, err)
-		}
-		oldHosts = append(oldHosts, hs)
+	oldHosts, err := resourceVSphereComputeClusterGetHostSystemObjects(
+		client,
+		structure.SliceInterfacesToStrings(o.(*schema.Set).Difference(n.(*schema.Set)).List()),
+	)
+	if err != nil {
+		return err
 	}
 
 	// Add new hosts first
@@ -701,6 +705,20 @@ func resourceVSphereComputeClusterProcessHostUpdate(
 	}
 
 	return nil
+}
+
+func resourceVSphereComputeClusterGetHostSystemObjects(client *govmomi.Client, hsIDs []string) ([]*object.HostSystem, error) {
+	var hosts []*object.HostSystem
+
+	for _, hsID := range hsIDs {
+		hs, err := hostsystem.FromID(client, hsID)
+		if err != nil {
+			return nil, fmt.Errorf("error locating host system ID %q: %s", hsID, err)
+		}
+		hosts = append(hosts, hs)
+	}
+
+	return hosts, nil
 }
 
 func resourceVSphereComputeClusterApplyClusterConfiguration(
@@ -975,6 +993,43 @@ func resourceVSphereComputeClusterValidateEmptyCluster(
 			cluster.InventoryPath,
 		)
 	}
+	return nil
+}
+
+// resourceVSphereComputeClusterDeleteProcessForceRemoveHosts process
+// force-evacuation if the resource has been configured to do so.
+//
+// NOTE: As documented, this should only be used in testing. Improper use
+// of this option can lead to service disruptions and/or may fail to
+// actually succeed depending on the resources actually in use in the
+// cluster, and specific constraints that exist in the cluster.
+func resourceVSphereComputeClusterDeleteProcessForceRemoveHosts(
+	d *schema.ResourceData,
+	meta interface{},
+	cluster *object.ClusterComputeResource,
+) error {
+	if !d.Get("force_evacuate_on_destroy").(bool) {
+		return nil
+	}
+
+	client, err := resourceVSphereComputeClusterClient(meta)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("[DEBUG] %s: Force-evacuating hosts in cluster before removal", resourceVSphereComputeClusterIDString(d))
+	hosts, err := resourceVSphereComputeClusterGetHostSystemObjects(
+		client,
+		structure.SliceInterfacesToStrings(d.Get("host_system_ids").(*schema.Set).List()),
+	)
+	if err != nil {
+		return err
+	}
+
+	if err := clustercomputeresource.MoveHostsOutOf(cluster, hosts, d.Get("host_cluster_exit_timeout").(int)); err != nil {
+		return fmt.Errorf("error force-removing old hosts out of cluster: %s", err)
+	}
+
 	return nil
 }
 
@@ -1653,6 +1708,7 @@ func resourceVSphereComputeClusterHasClusterConfigChangeExcluded(k string) bool 
 		"host_system_ids",
 		"folder",
 		"host_cluster_exit_timeout",
+		"force_evacuate_on_destroy",
 		vSphereTagAttributeKey,
 		customattribute.ConfigKey,
 	}

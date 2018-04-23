@@ -36,21 +36,11 @@ func TestAccResourceVSphereComputeCluster_basic(t *testing.T) {
 					testAccResourceVSphereComputeClusterCheckDRSEnabled(false),
 				),
 			},
-			{
-				// This step is necessary to empty the cluster. We don't allow
-				// non-empty clusters to be destroyed, nor do we include any automatic
-				// non-emptying features as these workflows may be complex.
-				Config: testAccResourceVSphereComputeClusterConfigEmpty(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckDRSEnabled(false),
-				),
-			},
 		},
 	})
 }
 
-func TestAccResourceVSphereComputeCluster_drsEnabled(t *testing.T) {
+func TestAccResourceVSphereComputeCluster_drsHAEnabled(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -60,10 +50,11 @@ func TestAccResourceVSphereComputeCluster_drsEnabled(t *testing.T) {
 		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereComputeClusterConfigSDRSBasic(),
+				Config: testAccResourceVSphereComputeClusterConfigDRSHABasic(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
 					testAccResourceVSphereComputeClusterCheckDRSEnabled(true),
+					testAccResourceVSphereComputeClusterCheckHAEnabled(true),
 				),
 			},
 		},
@@ -362,6 +353,20 @@ func testAccResourceVSphereComputeClusterCheckDRSEnabled(expected bool) resource
 	}
 }
 
+func testAccResourceVSphereComputeClusterCheckHAEnabled(expected bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetComputeClusterProperties(s, "compute_cluster")
+		if err != nil {
+			return err
+		}
+		actual := *props.ConfigurationEx.(*types.ClusterConfigInfoEx).DasConfig.Enabled
+		if expected != actual {
+			return fmt.Errorf("expected enabled to be %t, got %t", expected, actual)
+		}
+		return nil
+	}
+}
+
 func testAccResourceVSphereComputeClusterCheckName(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		cluster, err := testGetComputeCluster(s, "compute_cluster")
@@ -480,6 +485,8 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   name            = "terraform-compute-cluster-test"
   datacenter_id   = "${data.vsphere_datacenter.dc.id}"
   host_system_ids = ["${data.vsphere_host.hosts.*.id}"]
+
+  force_evacuate_on_destroy = true
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
@@ -489,23 +496,47 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 	)
 }
 
-func testAccResourceVSphereComputeClusterConfigSDRSBasic() string {
+func testAccResourceVSphereComputeClusterConfigDRSHABasic() string {
 	return fmt.Sprintf(`
 variable "datacenter" {
   default = "%s"
+}
+
+variable "hosts" {
+  default = [
+    "%s",
+    "%s",
+    "%s",
+  ]
 }
 
 data "vsphere_datacenter" "dc" {
   name = "${var.datacenter}"
 }
 
-resource "vsphere_compute_cluster" "compute_cluster" {
-  name          = "terraform-datastore-cluster-test"
+data "vsphere_host" "hosts" {
+  count         = "${length(var.hosts)}"
+  name          = "${var.hosts[count.index]}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
-  sdrs_enabled  = true
+}
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name            = "terraform-compute-cluster-test"
+  datacenter_id   = "${data.vsphere_datacenter.dc.id}"
+  host_system_ids = ["${data.vsphere_host.hosts.*.id}"]
+
+  drs_enabled          = true
+  drs_automation_level = "fullyAutomated"
+
+  ha_enabled = true
+  
+	force_evacuate_on_destroy = true
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_ESXI_HOST5"),
+		os.Getenv("VSPHERE_ESXI_HOST6"),
+		os.Getenv("VSPHERE_ESXI_HOST7"),
 	)
 }
 
