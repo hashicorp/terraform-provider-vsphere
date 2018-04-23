@@ -909,7 +909,7 @@ existing virtual machine or template. The resource supports both making a
 complete copy of a virtual machine, or cloning from a snapshot (otherwise known
 as a linked clone).
 
-For see the [cloning and customization
+See the [cloning and customization
 example](#cloning-and-customization-example) for a usage synopsis.
 
 ~> **NOTE:** Changing any option in `clone` after creation forces a new
