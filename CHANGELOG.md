@@ -27,6 +27,9 @@ BUG FIXES:
 * `resource/vsphere_virtual_machine`: Corrected a crash that can come up when a
   retrieved virtual machine has no lower-level configuration object in the API.
   ([#463](https://github.com/terraform-providers/terraform-provider-vsphere/issues/463))
+* `resource/vsphere_virtual_machine`: Fixed an issue where disk sub-resource
+  configurations were not being checked for newly created disks.
+  ([#481](https://github.com/terraform-providers/terraform-provider-vsphere/issues/481))
 
 ## 1.4.0 (April 10, 2018)
 
