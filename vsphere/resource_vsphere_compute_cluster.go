@@ -174,7 +174,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Default:      3,
-				Description:  "A value between 1 to 5 indicating the threshold of imbalance tolerated between hosts. A lower setting will tolerate more imbalance while a higher setting will tolerate less.",
+				Description:  "A value between 1 and 5 indicating the threshold of imbalance tolerated between hosts. A lower setting will tolerate more imbalance while a higher setting will tolerate less.",
 				ValidateFunc: validation.IntBetween(1, 5),
 			},
 			"drs_enable_vm_overrides": {
@@ -199,14 +199,14 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      string(types.DpmBehaviorManual),
-				Description:  "The automation level for host power operations in this cluster.",
+				Description:  "The automation level for host power operations in this cluster. Can be one of manual or automated.",
 				ValidateFunc: validation.StringInSlice(dpmBehaviorAllowedValues, false),
 			},
 			"dpm_threshold": {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Default:      3,
-				Description:  "A value between 1 to 5 indicating the threshold of load within the cluster that influences host power operations. This affects both power on and power off operations - a lower setting will tolerate more of a surplus/deficit than a higher setting.",
+				Description:  "A value between 1 and 5 indicating the threshold of load within the cluster that influences host power operations. This affects both power on and power off operations - a lower setting will tolerate more of a surplus/deficit than a higher setting.",
 				ValidateFunc: validation.IntBetween(1, 5),
 			},
 			// DRS - Advanced options
@@ -277,7 +277,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      string(types.ClusterVmComponentProtectionSettingsStorageVmReactionDisabled),
-				Description:  "When ha_vm_component_protection is enabled, controls the action to take on virtual machines when the cluster had detected a permanent device loss to a relevant datastore. Can be one of none, warning, or restartAggressive.",
+				Description:  "When ha_vm_component_protection is enabled, controls the action to take on virtual machines when the cluster has detected a permanent device loss to a relevant datastore. Can be one of disabled, warning, or restartAggressive.",
 				ValidateFunc: validation.StringInSlice(computeClusterVMStorageProtectionForPDLAllowedValues, false),
 			},
 			// VM component protection - datastore monitoring - All Paths Down
@@ -285,7 +285,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      string(types.ClusterVmComponentProtectionSettingsStorageVmReactionDisabled),
-				Description:  "When ha_vm_component_protection is enabled, controls the action to take on virtual machines when the cluster had detected loss to all paths to a relevant datastore. Can be one of none, warning, restartConservative, or restartAggressive.",
+				Description:  "When ha_vm_component_protection is enabled, controls the action to take on virtual machines when the cluster has detected loss to all paths to a relevant datastore. Can be one of disabled, warning, restartConservative, or restartAggressive.",
 				ValidateFunc: validation.StringInSlice(computeClusterVMStorageProtectionForAPDAllowedValues, false),
 			},
 			"ha_datastore_apd_recovery_action": {
@@ -338,7 +338,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      clusterAdmissionControlTypeResourcePercentage,
-				Description:  "The type of admission control policy to use with vSphere HA, which controls whether or specific VM operations are permitted in the cluster in order to protect the reliability of the cluster. Can be one of resourcePercentage, slotPolicy, failoverHosts, or disabled. Note that disabling admission control is not recommended and can lead to service issues.",
+				Description:  "The type of admission control policy to use with vSphere HA, which controls whether or not specific VM operations are permitted in the cluster in order to protect the reliability of the cluster. Can be one of resourcePercentage, slotPolicy, failoverHosts, or disabled. Note that disabling admission control is not recommended and can lead to service issues.",
 				ValidateFunc: validation.StringInSlice(clusterAdmissionControlTypeAllowedValues, false),
 			},
 			"ha_admission_control_host_failure_tolerance": {
@@ -347,7 +347,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Default:     1,
 				Description: "The maximum number of failed hosts that admission control tolerates when making decisions on whether to permit virtual machine operations. The maximum is one less than the number of hosts in the cluster.",
 			},
-			"ha_admission_control_performace_tolerance": {
+			"ha_admission_control_performance_tolerance": {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Default:      100,
@@ -371,7 +371,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Default:      100,
-				Description:  "When ha_admission_control_policy is resourcePercentage, this controls the user-defined percentage of CPU resources in the cluster to reserve for failover.",
+				Description:  "When ha_admission_control_policy is resourcePercentage, this controls the user-defined percentage of memory resources in the cluster to reserve for failover.",
 				ValidateFunc: validation.IntBetween(1, 100),
 			},
 			"ha_admission_control_slot_policy_use_explicit_size": {
@@ -423,7 +423,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Optional:    true,
 				Description: "Enables proactive HA, allowing for vSphere to get HA data from external providers and use DRS to perform remediation.",
 			},
-			"proactive_ha_behavior": {
+			"proactive_ha_automation_level": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      string(types.ClusterInfraUpdateHaConfigInfoBehaviorTypeManual),
@@ -1604,7 +1604,7 @@ func flattenResourceVSphereComputeClusterDrsAdvancedOptions(d *schema.ResourceDa
 // ClusterInfraUpdateHaConfigInfo.
 func expandClusterInfraUpdateHaConfigInfo(d *schema.ResourceData) *types.ClusterInfraUpdateHaConfigInfo {
 	obj := &types.ClusterInfraUpdateHaConfigInfo{
-		Behavior:            d.Get("proactive_ha_behavior").(string),
+		Behavior:            d.Get("proactive_ha_automation_level").(string),
 		Enabled:             structure.GetBool(d, "proactive_ha_enabled"),
 		ModerateRemediation: d.Get("proactive_ha_moderate_remediation").(string),
 		Providers:           structure.SliceInterfacesToStrings(d.Get("proactive_ha_provider_ids").(*schema.Set).List()),
@@ -1618,7 +1618,7 @@ func expandClusterInfraUpdateHaConfigInfo(d *schema.ResourceData) *types.Cluster
 // supplied ResourceData.
 func flattenClusterInfraUpdateHaConfigInfo(d *schema.ResourceData, obj *types.ClusterInfraUpdateHaConfigInfo) error {
 	return structure.SetBatch(d, map[string]interface{}{
-		"proactive_ha_behavior":             obj.Behavior,
+		"proactive_ha_automation_level":     obj.Behavior,
 		"proactive_ha_enabled":              obj.Enabled,
 		"proactive_ha_moderate_remediation": obj.ModerateRemediation,
 		"proactive_ha_provider_ids":         obj.Providers,
