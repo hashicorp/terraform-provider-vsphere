@@ -36,6 +36,11 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 				Description: "The guest ID of the virtual machine.",
 				Computed:    true,
 			},
+			"firmware": {
+				Type:        schema.TypeString,
+				Description: "The firmware type for this virtual machine.",
+				Computed:    true,
+			},
 			"alternate_guest_name": {
 				Type:        schema.TypeString,
 				Description: "The alternate guest name of the virtual machine when guest_id is a non-specific operating system, like otherGuest.",
@@ -108,6 +113,7 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 	d.Set("guest_id", props.Config.GuestId)
 	d.Set("alternate_guest_name", props.Config.AlternateGuestName)
 	d.Set("scsi_type", virtualdevice.ReadSCSIBusState(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int)))
+	d.Set("firmware", props.Config.Firmware)
 	disks, err := virtualdevice.ReadDiskAttrsForDataSource(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int))
 	if err != nil {
 		return fmt.Errorf("error reading disk sizes: %s", err)
