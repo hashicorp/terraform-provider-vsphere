@@ -505,6 +505,10 @@ func resourceVSphereComputeClusterRead(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
+	if err := resourceVSphereComputeClusterSaveDatacenter(d, meta, cluster); err != nil {
+		return err
+	}
+
 	if err := resourceVSphereComputeClusterSaveNameAndPath(d, cluster); err != nil {
 		return err
 	}
@@ -591,8 +595,29 @@ func resourceVSphereComputeClusterImport(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return nil, fmt.Errorf("error loading cluster: %s", err)
 	}
+
 	d.SetId(cluster.Reference().Value)
+	if err := resourceVSphereComputeClusterImportSetDefaults(d); err != nil {
+		return nil, err
+	}
+
 	return []*schema.ResourceData{d}, nil
+}
+
+// resourceVSphereComputeClusterImportSetDefaults sets configuration defaults
+// for resource attributes that are not managed by read. This gives
+// completeness for import, in addition to reducing the number of post-import
+// diffs that may need to happen.
+func resourceVSphereComputeClusterImportSetDefaults(d *schema.ResourceData) error {
+	s := resourceVSphereComputeCluster().Schema
+	return structure.SetBatch(d, map[string]interface{}{
+		"ha_admission_control_performance_tolerance":       s["ha_admission_control_performance_tolerance"].Default,
+		"ha_admission_control_resource_percentage_cpu":     s["ha_admission_control_resource_percentage_cpu"].Default,
+		"ha_admission_control_resource_percentage_memory":  s["ha_admission_control_resource_percentage_memory"].Default,
+		"ha_admission_control_slot_policy_explicit_cpu":    s["ha_admission_control_slot_policy_explicit_cpu"].Default,
+		"ha_admission_control_slot_policy_explicit_memory": s["ha_admission_control_slot_policy_explicit_memory"].Default,
+		"host_cluster_exit_timeout":                        s["host_cluster_exit_timeout"].Default,
+	})
 }
 
 // resourceVSphereComputeClusterApplyCreate processes the creation part of
@@ -868,6 +893,32 @@ func resourceVSphereComputeClusterGetClusterFromPath(
 	}
 
 	return clustercomputeresource.FromPath(client, path, dc)
+}
+
+// resourceVSphereComputeClusterSaveDatacenter saves the datacenter that the
+// cluster is a member of for correctness on imports.
+func resourceVSphereComputeClusterSaveDatacenter(
+	d *schema.ResourceData,
+	meta interface{},
+	cluster *object.ClusterComputeResource,
+) error {
+	log.Printf("[DEBUG] %s: Saving datacenter", resourceVSphereComputeClusterIDString(d))
+	client, err := resourceVSphereComputeClusterClient(meta)
+	if err != nil {
+		return err
+	}
+
+	p, err := folder.RootPathParticleHost.SplitDatacenter(cluster.InventoryPath)
+	if err != nil {
+		return fmt.Errorf("error parsing datacenter path from cluster: %s", err)
+	}
+
+	dc, err := getDatacenter(client, p)
+	if err != nil {
+		return fmt.Errorf("error fetching datacenter for cluster: %s", err)
+	}
+
+	return d.Set("datacenter_id", dc.Reference().Value)
 }
 
 // resourceVSphereComputeClusterSaveNameAndPath saves the name and path of a
