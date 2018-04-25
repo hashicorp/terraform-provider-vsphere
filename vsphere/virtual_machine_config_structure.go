@@ -262,6 +262,12 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Computed:    true,
 			Description: "The UUID of the virtual machine. Also exposed as the ID of the resource.",
 		},
+		"latency_sensitivity": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Default:     string(types.LatencySensitivitySensitivityLevelNormal),
+			Description: "The latency-sensitivity setting of the virtual machine, can be low, medium, normal and high.",
+		},
 	}
 	structure.MergeSchema(s, schemaVirtualMachineResourceAllocation())
 	return s
@@ -423,6 +429,15 @@ func expandVirtualMachineResourceAllocation(d *schema.ResourceData, key string) 
 		Shares: int32(d.Get(shareCountKey).(int)),
 	}
 	obj.Shares = shares
+	return obj
+}
+
+// expandVirtualMachineLatencySensitivity reads the VM latencySensitivity setting
+// and return an appropriate types.LatencySensitity reference.
+func expandVirtualMachineLatencySensitivity(d *schema.ResourceData) *types.LatencySensitivity {
+	obj := &types.LatencySensitivity{
+		Level: types.LatencySensitivitySensitivityLevel(d.Get("latency_sensitivity").(string)),
+	}
 	return obj
 }
 
@@ -739,6 +754,7 @@ func expandVirtualMachineConfigSpec(d *schema.ResourceData, client *govmomi.Clie
 		Firmware:            getWithRestart(d, "firmware").(string),
 		NestedHVEnabled:     getBoolWithRestart(d, "nested_hv_enabled"),
 		VPMCEnabled:         getBoolWithRestart(d, "cpu_performance_counters_enabled"),
+		LatencySensitivity:  expandVirtualMachineLatencySensitivity(d),
 	}
 
 	return obj, nil
@@ -765,6 +781,7 @@ func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualM
 	d.Set("cpu_performance_counters_enabled", obj.VPMCEnabled)
 	d.Set("change_version", obj.ChangeVersion)
 	d.Set("uuid", obj.Uuid)
+	d.Set("latency_sensitivity", obj.LatencySensitivity)
 
 	if err := flattenToolsConfigInfo(d, obj.Tools); err != nil {
 		return err
