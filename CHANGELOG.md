@@ -1,4 +1,11 @@
 ## 1.4.2 (Unreleased)
+
+IMPROVEMENTS:
+
+* `resource/vsphere_virtual_machine`: Exposed `latency_sensitivity`, which can
+  be used to adjust the scheduling priority of the virtual machine for
+  low-latency applications. [GH-490]
+
 ## 1.4.1 (April 23, 2018)
 
 IMPROVEMENTS:
