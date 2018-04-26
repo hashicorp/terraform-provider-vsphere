@@ -225,7 +225,7 @@ func DatastoreFolderFromObject(client *govmomi.Client, obj interface{}, relative
 }
 
 // HostFolderFromObject returns an *object.Folder from a given object, and
-// relative host folder path. If no such folder is found, of if it is not a
+// relative host folder path. If no such folder is found, or if it is not a
 // host folder, an appropriate error will be returned.
 func HostFolderFromObject(client *govmomi.Client, obj interface{}, relative string) (*object.Folder, error) {
 	folder, err := folderFromObject(client, obj, RootPathParticleHost, relative)
