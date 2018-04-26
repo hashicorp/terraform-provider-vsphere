@@ -304,7 +304,7 @@ The following settings control vSphere HA Admission Control, which controls
 whether or not specific VM operations are permitted in the cluster in order to
 protect the reliability of the cluster. Based on the constraints defined in
 these settings, operations such as power on or migration operations may be
-blocked. To ensure that enough capacity remains to react to host failures.
+blocked to ensure that enough capacity remains to react to host failures.
 
 #### Admission control modes
 
