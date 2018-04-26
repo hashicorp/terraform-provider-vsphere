@@ -28,16 +28,22 @@ data "vsphere_resource_pool" "pool" {
 }
 ```
 
-### Specifying the root resource pool for a cluster or standalone host
+### Specifying the root resource pool for a standalone host
 
-All clusters and standalone hosts have a resource pool, even if one has not
-been explicitly created. This resource pool is referred to as the _root
-resource pool_ and can be looked up by specifying the path as per the example
-below:
+-> **NOTE:** Fetching the root resource pool for a cluster can now be done
+directly via the [`vsphere_compute_cluster`][docs-compute-cluster-data-source]
+data source.
+
+[docs-compute-cluster-data-source]: /docs/providers/vsphere/d/compute_cluster.html
+
+All compute resources in vSphere (clusters, standalone hosts, and standalone
+ESXi) have a resource pool, even if one has not been explicitly created. This
+resource pool is referred to as the _root resource pool_ and can be looked up
+by specifying the path as per the example below:
 
 ```
 data "vsphere_resource_pool" "pool" {
-  name          = "cluster1/Resources"
+  name          = "esxi1/Resources"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 ```
