@@ -57,6 +57,26 @@ func TestAccResourceVSphereVirtualMachine_basic(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_highLatencySensitivity(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigHighSensitivity(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckLatencySensitivity(types.LatencySensitivitySensitivityLevelHigh),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVirtualMachine_datastoreClusterCreate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -3639,6 +3659,24 @@ func testAccResourceVSphereVirtualMachineCheckCustomAttributes() resource.TestCh
 			return err
 		}
 		return testResourceHasCustomAttributeValues(s, "vsphere_virtual_machine", "vm", props.Entity())
+	}
+}
+
+// testAccResourceVSphereVirtualMachineCheckLatencySensitivity checks a virtual
+// machine's latency sensitivity value.
+func testAccResourceVSphereVirtualMachineCheckLatencySensitivity(
+	expected types.LatencySensitivitySensitivityLevel,
+) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVirtualMachineProperties(s, "vm")
+		if err != nil {
+			return err
+		}
+		actual := props.Config.LatencySensitivity.Level
+		if expected != actual {
+			return fmt.Errorf("expected latency sensitivity to be %s, got %s", expected, actual)
+		}
+		return nil
 	}
 }
 
@@ -11684,5 +11722,70 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_TEMPLATE"),
 		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
 		hostname,
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigHighSensitivity() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus            = 2
+  memory              = 2048
+  memory_reservation  = 2048
+  latency_sensitivity = "high"
+  guest_id            = "other3xLinux64Guest"
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_DATASTORE"),
 	)
 }
