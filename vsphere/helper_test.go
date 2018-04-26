@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/clustercomputeresource"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
@@ -736,4 +737,25 @@ func testGetDatastoreClusterSDRSVMConfig(s *terraform.State, resourceName string
 	}
 
 	return resourceVSphereStorageDrsVMOverrideFindEntry(pod, vm)
+}
+
+// testGetComputeCluster is a convenience method to fetch a compute cluster by
+// resource name.
+func testGetComputeCluster(s *terraform.State, resourceName string) (*object.ClusterComputeResource, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereComputeClusterName, resourceName))
+	if err != nil {
+		return nil, err
+	}
+	return clustercomputeresource.FromID(vars.client, vars.resourceID)
+}
+
+// testGetComputeClusterProperties is a convenience method that adds an extra
+// step to testGetComputeCluster to get the properties of a
+// ClusterComputeResource.
+func testGetComputeClusterProperties(s *terraform.State, resourceName string) (*mo.ClusterComputeResource, error) {
+	cluster, err := testGetComputeCluster(s, resourceName)
+	if err != nil {
+		return nil, err
+	}
+	return clustercomputeresource.Properties(cluster)
 }

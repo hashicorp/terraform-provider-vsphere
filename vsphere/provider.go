@@ -88,6 +88,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"vsphere_compute_cluster":            resourceVSphereComputeCluster(),
 			"vsphere_custom_attribute":           resourceVSphereCustomAttribute(),
 			"vsphere_datacenter":                 resourceVSphereDatacenter(),
 			"vsphere_datastore_cluster":          resourceVSphereDatastoreCluster(),

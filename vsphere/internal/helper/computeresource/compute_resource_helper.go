@@ -186,3 +186,46 @@ func EnvironmentBrowserFromReference(client *govmomi.Client, ref types.ManagedOb
 	}
 	return envbrowse.NewEnvironmentBrowser(client.Client, *props.EnvironmentBrowser), nil
 }
+
+// Reconfigure reconfigures any BaseComputeResource that uses a
+// BaseComputeResourceConfigSpec as configuration (example: standalone hosts,
+// or clusters). Modify is always set.
+func Reconfigure(obj BaseComputeResource, spec types.BaseComputeResourceConfigSpec) error {
+	var c *object.ComputeResource
+	switch t := obj.(type) {
+	case *object.ComputeResource:
+		log.Printf("[DEBUG] Reconfiguring standalone host %q", t.Name())
+		c = t
+	case *object.ClusterComputeResource:
+		log.Printf("[DEBUG] Reconfiguring cluster %q", t.Name())
+		c = &t.ComputeResource
+	default:
+		return fmt.Errorf("unsupported type for reconfigure: %T", t)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	task, err := c.Reconfigure(ctx, spec, true)
+	if err != nil {
+		return err
+	}
+	return task.Wait(ctx)
+}
+
+// HasChildren checks to see if a compute resource has any child items (hosts
+// and virtual machines) and returns true if that is the case. This is useful
+// when checking to see if a compute cluster is safe to delete - destroying a
+// compute resource in vSphere destroys *all* children if at all possible
+// (including removing hosts and virtual machines), so extra verification is
+// necessary to prevent accidental removal.
+func HasChildren(obj BaseComputeResource) (bool, error) {
+	props, err := BaseProperties(obj)
+	if err != nil {
+		return false, err
+	}
+
+	// We calculate if there is children based on host count alone as
+	// technically, if a compute resource has no hosts, it can't have virtual
+	// machines either.
+	return props.Summary.GetComputeResourceSummary().NumHosts > 0, nil
+}

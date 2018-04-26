@@ -197,6 +197,10 @@ func folderFromObject(client *govmomi.Client, obj interface{}, folderType RootPa
 		p, err = RootPathParticleHost.PathFromNewRoot(o.InventoryPath, folderType, relative)
 	case *object.ResourcePool:
 		p, err = RootPathParticleHost.PathFromNewRoot(o.InventoryPath, folderType, relative)
+	case *object.ComputeResource:
+		p, err = RootPathParticleHost.PathFromNewRoot(o.InventoryPath, folderType, relative)
+	case *object.ClusterComputeResource:
+		p, err = RootPathParticleHost.PathFromNewRoot(o.InventoryPath, folderType, relative)
 	case *object.VirtualMachine:
 		p, err = RootPathParticleVM.PathFromNewRoot(o.InventoryPath, folderType, relative)
 	default:
@@ -218,6 +222,18 @@ func DatastoreFolderFromObject(client *govmomi.Client, obj interface{}, relative
 	}
 
 	return validateDatastoreFolder(folder)
+}
+
+// HostFolderFromObject returns an *object.Folder from a given object, and
+// relative host folder path. If no such folder is found, or if it is not a
+// host folder, an appropriate error will be returned.
+func HostFolderFromObject(client *govmomi.Client, obj interface{}, relative string) (*object.Folder, error) {
+	folder, err := folderFromObject(client, obj, RootPathParticleHost, relative)
+	if err != nil {
+		return nil, err
+	}
+
+	return validateHostFolder(folder)
 }
 
 // VirtualMachineFolderFromObject returns an *object.Folder from a given
@@ -254,6 +270,19 @@ func validateDatastoreFolder(folder *object.Folder) (*object.Folder, error) {
 	}
 	if ft != VSphereFolderTypeDatastore {
 		return nil, fmt.Errorf("%q is not a datastore folder", folder.InventoryPath)
+	}
+	return folder, nil
+}
+
+// validateHostFolder checks to make sure the folder is a host
+// folder, and returns it if it is, or an error if it isn't.
+func validateHostFolder(folder *object.Folder) (*object.Folder, error) {
+	ft, err := FindType(folder)
+	if err != nil {
+		return nil, err
+	}
+	if ft != VSphereFolderTypeHost {
+		return nil, fmt.Errorf("%q is not a host folder", folder.InventoryPath)
 	}
 	return folder, nil
 }
