@@ -131,8 +131,8 @@ data "vsphere_datastore" "datastore" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
-data "vsphere_resource_pool" "pool" {
-  name          = "cluster1/Resources"
+data "vsphere_compute_cluster" "cluster" {
+  name          = "cluster1"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
@@ -143,7 +143,7 @@ data "vsphere_network" "network" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "terraform-test"
-  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
@@ -185,8 +185,8 @@ data "vsphere_datastore" "datastore" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
-data "vsphere_resource_pool" "pool" {
-  name          = "cluster1/Resources"
+data "vsphere_compute_cluster" "cluster" {
+  name          = "cluster1"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
@@ -202,7 +202,7 @@ data "vsphere_virtual_machine" "template" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "terraform-test"
-  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
@@ -274,8 +274,8 @@ data "vsphere_datastore" "datastore" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
-data "vsphere_resource_pool" "pool" {
-  name          = "cluster1/Resources"
+data "vsphere_compute_cluster" "cluster" {
+  name          = "cluster1"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
@@ -291,7 +291,7 @@ data "vsphere_virtual_machine" "tempate_from_ovf" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "terraform-test"
-  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
@@ -366,8 +366,8 @@ data "vsphere_datastore_cluster" "datastore_cluster" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
-data "vsphere_resource_pool" "pool" {
-  name          = "cluster1/Resources"
+data "vsphere_compute_cluster" "cluster" {
+  name          = "cluster1"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
@@ -378,7 +378,7 @@ data "vsphere_network" "network" {
 
 resource "vsphere_virtual_machine" "vm" {
   name                 = "terraform-test"
-  resource_pool_id     = "${data.vsphere_resource_pool.pool.id}"
+  resource_pool_id     = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
   datastore_cluster_id = "${data.vsphere_datastore_cluster.datastore_cluster.id}"
 
   num_cpus = 2
@@ -415,12 +415,11 @@ options:
 
 ~> **NOTE:** All clusters and standalone hosts have a resource pool, even if
 one has not been explicitly created. For more information, see the section on
-[specifying the root resource pool for a cluster or standalone
-host][docs-resource-pool-cluster-default] in the `vsphere_resource_pool` data
-source documentation. This resource does not take a cluster or standalone host
-resource directly.
+[specifying the root resource pool ][docs-resource-pool-cluster-default] in the
+`vsphere_resource_pool` data source documentation. This resource does not take
+a cluster or standalone host resource directly.
 
-[docs-resource-pool-cluster-default]: /docs/providers/vsphere/d/resource_pool.html#specifying-the-default-resource-pool-for-a-cluster
+[docs-resource-pool-cluster-default]: /docs/providers/vsphere/d/resource_pool.html#specifying-the-root-resource-pool-for-a-standalone-host
 
 * `datastore_id` - (Optional) The [managed object reference
   ID][docs-about-morefs] of the virtual machine's datastore. The virtual
