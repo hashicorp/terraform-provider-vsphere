@@ -42,6 +42,13 @@ var virtualMachineFirmwareAllowedValues = []string{
 	string(types.GuestOsDescriptorFirmwareTypeEfi),
 }
 
+var virtualMachineLatencySensitivityAllowedValues = []string{
+	string(types.LatencySensitivitySensitivityLevelLow),
+	string(types.LatencySensitivitySensitivityLevelNormal),
+	string(types.LatencySensitivitySensitivityLevelMedium),
+	string(types.LatencySensitivitySensitivityLevelHigh),
+}
+
 // getWithRestart fetches the resoruce data specified at key. If the value has
 // changed, a reboot is flagged in the virtual machine by setting
 // reboot_required to true.
@@ -154,6 +161,15 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Description: "Enable the execution of pre-standby scripts when VMware tools is installed.",
 		},
 
+		// LatencySensitivity
+		"latency_sensitivity": {
+			Type:         schema.TypeString,
+			Optional:     true,
+			Default:      types.LatencySensitivitySensitivityLevelNormal,
+			Description:  "Controls the scheduling delay of the virtual machine. Use a higher sensitivity for applications that require lower latency, such as VOIP, media player applications, or applications that require frequent access to mouse or keyboard devices. Can be one of low, normal, medium, or high.",
+			ValidateFunc: validation.StringInSlice(virtualMachineLatencySensitivityAllowedValues, false),
+		},
+
 		// VirtualMachineConfigSpec
 		"name": {
 			Type:         schema.TypeString,
@@ -261,12 +277,6 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Type:        schema.TypeString,
 			Computed:    true,
 			Description: "The UUID of the virtual machine. Also exposed as the ID of the resource.",
-		},
-		"latency_sensitivity": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			Default:     string(types.LatencySensitivitySensitivityLevelNormal),
-			Description: "The latency-sensitivity setting of the virtual machine, can be low, medium, normal and high.",
 		},
 	}
 	structure.MergeSchema(s, schemaVirtualMachineResourceAllocation())
@@ -432,13 +442,19 @@ func expandVirtualMachineResourceAllocation(d *schema.ResourceData, key string) 
 	return obj
 }
 
-// expandVirtualMachineLatencySensitivity reads the VM latencySensitivity setting
-// and return an appropriate types.LatencySensitity reference.
-func expandVirtualMachineLatencySensitivity(d *schema.ResourceData) *types.LatencySensitivity {
+// expandLatencySensitivity reads certain ResourceData keys and returns a
+// LatencySensitivity.
+func expandLatencySensitivity(d *schema.ResourceData) *types.LatencySensitivity {
 	obj := &types.LatencySensitivity{
 		Level: types.LatencySensitivitySensitivityLevel(d.Get("latency_sensitivity").(string)),
 	}
 	return obj
+}
+
+// flattenLatencySensitivity reads various fields from a LatencySensitivity and
+// sets appropriate keys in the supplied ResourceData.
+func flattenLatencySensitivity(d *schema.ResourceData, obj *types.LatencySensitivity) error {
+	return d.Set("latency_sensitivity", obj.Level)
 }
 
 // flattenVirtualMachineResourceAllocation reads various fields from a
@@ -754,7 +770,7 @@ func expandVirtualMachineConfigSpec(d *schema.ResourceData, client *govmomi.Clie
 		Firmware:            getWithRestart(d, "firmware").(string),
 		NestedHVEnabled:     getBoolWithRestart(d, "nested_hv_enabled"),
 		VPMCEnabled:         getBoolWithRestart(d, "cpu_performance_counters_enabled"),
-		LatencySensitivity:  expandVirtualMachineLatencySensitivity(d),
+		LatencySensitivity:  expandLatencySensitivity(d),
 	}
 
 	return obj, nil
@@ -781,7 +797,6 @@ func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualM
 	d.Set("cpu_performance_counters_enabled", obj.VPMCEnabled)
 	d.Set("change_version", obj.ChangeVersion)
 	d.Set("uuid", obj.Uuid)
-	d.Set("latency_sensitivity", obj.LatencySensitivity)
 
 	if err := flattenToolsConfigInfo(d, obj.Tools); err != nil {
 		return err
@@ -799,6 +814,9 @@ func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualM
 		return err
 	}
 	if err := flattenVAppConfig(d, obj.VAppConfig); err != nil {
+		return err
+	}
+	if err := flattenLatencySensitivity(d, obj.LatencySensitivity); err != nil {
 		return err
 	}
 

@@ -627,6 +627,18 @@ behavior.
 * `swap_placement_policy` - (Optional) The swap file placement policy for this
   virtual machine. Can be one of `inherit`, `hostLocal`, or `vmDirectory`.
   Default: `inherit`.
+* `latency_sensitivity` - (Optional) Controls the scheduling delay of the
+  virtual machine. Use a higher sensitivity for applications that require lower
+  latency, such as VOIP, media player applications, or applications that
+  require frequent access to mouse or keyboard devices. Can be one of `low`,
+  `normal`, `medium`, or `high`.
+
+~> **NOTE:** Do not use a `latency_sensitivity` setting of `low` or `medium` on
+hosts running ESXi 6.0 or older. Doing so may result in virtual machine startup
+issues or spurious diffs in Terraform. In addition, on higher sensitivities,
+you may have to adjust [`memory_reservation`](#memory_reservation) to the full
+amount of memory provisioned for the virtual machine.
+
 * `wait_for_guest_net_timeout` - (Optional) The amount of time, in minutes, to
   wait for an available IP address on this virtual machine. A value less than 1
   disables the waiter. Default: 5 minutes.
