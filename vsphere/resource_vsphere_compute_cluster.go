@@ -1140,11 +1140,7 @@ func expandClusterConfigSpecEx(d *schema.ResourceData, version viapi.VSphereVers
 
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
 		obj.InfraUpdateHaConfig = expandClusterInfraUpdateHaConfigInfo(d)
-	}
-	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
 		obj.Orchestration = expandClusterOrchestrationInfo(d)
-	}
-	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
 		obj.ProactiveDrsConfig = expandClusterProactiveDrsConfigInfo(d)
 	}
 
