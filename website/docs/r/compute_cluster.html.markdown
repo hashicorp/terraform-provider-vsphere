@@ -488,8 +488,9 @@ the `dc1` datacenter.
 A large number of settings in the `vsphere_compute_cluster` resource require a
 specific version of vSphere to function. Rather than include warnings at every
 setting or section, these settings are documented below.  Note that this list
-are for cluster-specific attributes only and does not include [`tags`](#tags),
-which requires vSphere 6.0 or higher across all resources that can be tagged.
+is for cluster-specific attributes only, and does not include the
+[`tags`](#tags) parameter, which requires vSphere 6.0 or higher across all
+resources that can be tagged.
 
 All settings are footnoted by an asterisk (`*`) in their specific section in
 the documentation, which takes you here.
