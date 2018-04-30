@@ -44,16 +44,16 @@ func resourceVSphereDrsVMOverride() *schema.Resource {
 				Description: "The managed object ID of the virtual machine.",
 			},
 			"drs_enabled": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Description:  "Overrides the default setting for DRS for this VM in the cluster. Omitting this value uses the cluster setting.",
-				ValidateFunc: structure.ValidateBoolStringPtr(),
-				StateFunc:    structure.BoolStringPtrState,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Enable DRS for this virtual machine.",
 			},
 			"drs_automation_level": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Description:  "Override the cluster default DRS automation level for this virtual machine. Can be one of manual, partiallyAutomated, or fullyAutomated. Omitting this value uses the cluster setting.",
+				Default:      string(types.DrsBehaviorManual),
+				Description:  "The automation level for this virtual machine in this cluster. Can be one of manual, partiallyAutomated, or fullyAutomated.",
 				ValidateFunc: validation.StringInSlice(drsBehaviorAllowedValues, false),
 			},
 		},
@@ -240,14 +240,9 @@ func resourceVSphereDrsVMOverrideImport(d *schema.ResourceData, meta interface{}
 // expandClusterDrsVMConfigInfo reads certain ResourceData keys and returns a
 // ClusterDrsVmConfigInfo.
 func expandClusterDrsVMConfigInfo(d *schema.ResourceData, vm *object.VirtualMachine) (*types.ClusterDrsVmConfigInfo, error) {
-	enabled, err := structure.GetBoolStringPtr(d, "drs_enabled")
-	if err != nil {
-		return nil, fmt.Errorf("error parsing field \"drs_enabled\": %s", err)
-	}
-
 	obj := &types.ClusterDrsVmConfigInfo{
 		Behavior: types.DrsBehavior(d.Get("drs_automation_level").(string)),
-		Enabled:  enabled,
+		Enabled:  structure.GetBool(d, "drs_enabled"),
 		Key:      vm.Reference(),
 	}
 
@@ -257,14 +252,10 @@ func expandClusterDrsVMConfigInfo(d *schema.ResourceData, vm *object.VirtualMach
 // flattenClusterDrsVmConfigInfo saves a ClusterDrsVmConfigInfo into the
 // supplied ResourceData.
 func flattenClusterDrsVMConfigInfo(d *schema.ResourceData, obj *types.ClusterDrsVmConfigInfo) error {
-	if err := d.Set("drs_automation_level", obj.Behavior); err != nil {
-		return fmt.Errorf("error setting attribute \"drs_automation_level\": %s", err)
-	}
-	if err := structure.SetBoolStringPtr(d, "drs_enabled", obj.Enabled); err != nil {
-		return fmt.Errorf("error setting attribute \"drs_enabled\": %s", err)
-	}
-
-	return nil
+	return structure.SetBatch(d, map[string]interface{}{
+		"drs_automation_level": obj.Behavior,
+		"drs_enabled":          obj.Enabled,
+	})
 }
 
 // resourceVSphereDrsVMOverrideIDString prints a friendly string for the
