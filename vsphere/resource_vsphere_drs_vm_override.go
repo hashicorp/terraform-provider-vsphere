@@ -53,7 +53,7 @@ func resourceVSphereDrsVMOverride() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      string(types.DrsBehaviorManual),
-				Description:  "The automation level for this virtual machine in this cluster. Can be one of manual, partiallyAutomated, or fullyAutomated.",
+				Description:  "The automation level for this virtual machine in the cluster. Can be one of manual, partiallyAutomated, or fullyAutomated.",
 				ValidateFunc: validation.StringInSlice(drsBehaviorAllowedValues, false),
 			},
 		},
