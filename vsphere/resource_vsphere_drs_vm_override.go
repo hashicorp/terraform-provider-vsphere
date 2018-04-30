@@ -286,9 +286,9 @@ func resourceVSphereDrsVMOverrideParseID(id string) (string, string, error) {
 	return parts[0], parts[1], nil
 }
 
-// resourceVSphereDrsVMOverrideFindEntry attempts to locate an existing VM
-// config in a Storage Pod's DRS configuration. It's used by the resource's
-// read functionality and tests. nil is returned if the entry cannot be found.
+// resourceVSphereDrsVMOverrideFindEntry attempts to locate an existing DRS VM
+// config in a cluster's configuration. It's used by the resource's read
+// functionality and tests. nil is returned if the entry cannot be found.
 func resourceVSphereDrsVMOverrideFindEntry(
 	cluster *object.ClusterComputeResource,
 	vm *object.VirtualMachine,
