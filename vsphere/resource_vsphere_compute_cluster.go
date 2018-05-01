@@ -231,7 +231,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				ValidateFunc: validation.StringInSlice(clusterDasConfigInfoServiceStateAllowedValues, false),
 			},
 			// Host monitoring - VM restarts
-			"ha_default_vm_restart_priority": {
+			"ha_vm_restart_priority": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      string(types.ClusterDasVmSettingsRestartPriorityMedium),
@@ -250,7 +250,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Optional:    true,
 				Description: "Additional delay in seconds after ready condition is met. A VM is considered ready at this point.",
 			},
-			"ha_default_vm_restart_timeout": {
+			"ha_vm_restart_timeout": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     600,
@@ -1437,7 +1437,7 @@ func flattenClusterFailoverHostAdmissionControlPolicy(
 func expandClusterDasVMSettings(d *schema.ResourceData, version viapi.VSphereVersion) *types.ClusterDasVmSettings {
 	obj := &types.ClusterDasVmSettings{
 		IsolationResponse:         d.Get("ha_host_isolation_response").(string),
-		RestartPriority:           d.Get("ha_default_vm_restart_priority").(string),
+		RestartPriority:           d.Get("ha_vm_restart_priority").(string),
 		VmToolsMonitoringSettings: expandClusterVMToolsMonitoringSettings(d),
 	}
 
@@ -1445,7 +1445,7 @@ func expandClusterDasVMSettings(d *schema.ResourceData, version viapi.VSphereVer
 		obj.VmComponentProtectionSettings = expandClusterVMComponentProtectionSettings(d)
 	}
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
-		obj.RestartPriorityTimeout = int32(d.Get("ha_default_vm_restart_timeout").(int))
+		obj.RestartPriorityTimeout = int32(d.Get("ha_vm_restart_timeout").(int))
 	}
 
 	return obj
@@ -1455,8 +1455,8 @@ func expandClusterDasVMSettings(d *schema.ResourceData, version viapi.VSphereVer
 // ResourceData.
 func flattenClusterDasVMSettings(d *schema.ResourceData, obj *types.ClusterDasVmSettings, version viapi.VSphereVersion) error {
 	err := structure.SetBatch(d, map[string]interface{}{
-		"ha_host_isolation_response":     obj.IsolationResponse,
-		"ha_default_vm_restart_priority": obj.RestartPriority,
+		"ha_host_isolation_response": obj.IsolationResponse,
+		"ha_vm_restart_priority":     obj.RestartPriority,
 	})
 	if err != nil {
 		return err
@@ -1472,7 +1472,7 @@ func flattenClusterDasVMSettings(d *schema.ResourceData, obj *types.ClusterDasVm
 		}
 	}
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
-		return d.Set("ha_default_vm_restart_timeout", obj.RestartPriorityTimeout)
+		return d.Set("ha_vm_restart_timeout", obj.RestartPriorityTimeout)
 	}
 
 	return nil
