@@ -20,6 +20,43 @@ import (
 
 const resourceVSphereHaVMOverrideName = "vsphere_ha_vm_override"
 
+var vmOverrideClusterDasVMSettingsIsolationResponseAllowedValues = []string{
+	string(types.ClusterDasVmSettingsIsolationResponseClusterIsolationResponse),
+	string(types.ClusterDasVmSettingsIsolationResponseNone),
+	string(types.ClusterDasVmSettingsIsolationResponsePowerOff),
+	string(types.ClusterDasVmSettingsIsolationResponseShutdown),
+}
+
+var vmOverrideClusterDasConfigInfoServiceStateAllowedValues = []string{
+	string(types.ClusterDasVmSettingsRestartPriorityClusterRestartPriority),
+	string(types.ClusterDasVmSettingsRestartPriorityLowest),
+	string(types.ClusterDasVmSettingsRestartPriorityLow),
+	string(types.ClusterDasVmSettingsRestartPriorityMedium),
+	string(types.ClusterDasVmSettingsRestartPriorityHigh),
+	string(types.ClusterDasVmSettingsRestartPriorityHighest),
+}
+
+var vmOverrideClusterVMStorageProtectionForPDLAllowedValues = []string{
+	string(types.ClusterVmComponentProtectionSettingsStorageVmReactionClusterDefault),
+	string(types.ClusterVmComponentProtectionSettingsStorageVmReactionDisabled),
+	string(types.ClusterVmComponentProtectionSettingsStorageVmReactionWarning),
+	string(types.ClusterVmComponentProtectionSettingsStorageVmReactionRestartAggressive),
+}
+
+var vmOverrideClusterVMStorageProtectionForAPDAllowedValues = []string{
+	string(types.ClusterVmComponentProtectionSettingsStorageVmReactionClusterDefault),
+	string(types.ClusterVmComponentProtectionSettingsStorageVmReactionDisabled),
+	string(types.ClusterVmComponentProtectionSettingsStorageVmReactionWarning),
+	string(types.ClusterVmComponentProtectionSettingsStorageVmReactionRestartConservative),
+	string(types.ClusterVmComponentProtectionSettingsStorageVmReactionRestartAggressive),
+}
+
+var vmOverrideClusterVMReactionOnAPDClearedAllowedValues = []string{
+	string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedUseClusterDefault),
+	string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedNone),
+	string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedReset),
+}
+
 func resourceVSphereHaVMOverride() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVSphereHaVMOverrideCreate,
@@ -43,18 +80,94 @@ func resourceVSphereHaVMOverride() *schema.Resource {
 				ForceNew:    true,
 				Description: "The managed object ID of the virtual machine.",
 			},
-			"drs_enabled": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "Enable DRS for this virtual machine.",
-			},
-			"drs_automation_level": {
+			// Host monitoring - VM restarts
+			"ha_vm_restart_priority": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Default:      string(types.DrsBehaviorManual),
-				Description:  "The automation level for this virtual machine in the cluster. Can be one of manual, partiallyAutomated, or fullyAutomated.",
-				ValidateFunc: validation.StringInSlice(drsBehaviorAllowedValues, false),
+				Default:      string(types.ClusterDasVmSettingsRestartPriorityClusterRestartPriority),
+				Description:  "The restart priority for this virtual machine when vSphere detects a host failure. Can be one of clusterRestartPriority, lowest, low, medium, high, or highest.",
+				ValidateFunc: validation.StringInSlice(vmOverrideClusterDasConfigInfoServiceStateAllowedValues, false),
+			},
+			"ha_vm_restart_timeout": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     600,
+				Description: "The maximum time, in seconds, that vSphere HA will wait for the virtual machine to be ready.",
+			},
+			// Host monitoring - host isolation
+			"ha_host_isolation_response": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      string(types.ClusterDasVmSettingsIsolationResponseClusterIsolationResponse),
+				Description:  "The action to take on this virtual machine when a host is isolated from the rest of the cluster. Can be one of clusterIsolationResponse, none, powerOff, or shutdown.",
+				ValidateFunc: validation.StringInSlice(vmOverrideClusterDasVMSettingsIsolationResponseAllowedValues, false),
+			},
+			// VM component protection - datastore monitoring - Permanent Device Loss
+			"ha_datastore_pdl_response": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      string(types.ClusterVmComponentProtectionSettingsStorageVmReactionClusterDefault),
+				Description:  "Controls the action to take on this virtual machine when the cluster has detected a permanent device loss to a relevant datastore. Can be one of clusterDefault, disabled, warning, or restartAggressive.",
+				ValidateFunc: validation.StringInSlice(vmOverrideClusterVMStorageProtectionForPDLAllowedValues, false),
+			},
+			// VM component protection - datastore monitoring - All Paths Down
+			"ha_datastore_apd_response": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      string(types.ClusterVmComponentProtectionSettingsStorageVmReactionClusterDefault),
+				Description:  "Controls the action to take on this virtual machine when the cluster has detected loss to all paths to a relevant datastore. Can be one of clusterDefault, disabled, warning, restartConservative, or restartAggressive.",
+				ValidateFunc: validation.StringInSlice(vmOverrideClusterVMStorageProtectionForAPDAllowedValues, false),
+			},
+			"ha_datastore_apd_recovery_action": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedUseClusterDefault),
+				Description:  "Controls the action to take on this virtual machine if an APD status on an affected datastore clears in the middle of an APD event. Can be one of useClusterDefault, none or reset.",
+				ValidateFunc: validation.StringInSlice(vmOverrideClusterVMReactionOnAPDClearedAllowedValues, false),
+			},
+			"ha_datastore_apd_response_delay": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     -1,
+				Description: "Controls the delay in minutes to wait after an APD timeout event to execute the response action defined in ha_datastore_apd_response. Specify -1 to use the cluster setting.",
+			},
+			// VM monitoring
+			"ha_vm_monitoring_use_cluster_defaults": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: "Determines whether or not the cluster's default settings or the VM override settings specified in this resource are used for virtual machine monitoring. The default is true (use cluster defaults) - set to false to have overrides take effect.",
+			},
+			"ha_vm_monitoring": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      string(types.ClusterDasConfigInfoVmMonitoringStateVmMonitoringDisabled),
+				Description:  "The type of virtual machine monitoring to use for this virtual machine. Can be one of vmMonitoringDisabled, vmMonitoringOnly, or vmAndAppMonitoring.",
+				ValidateFunc: validation.StringInSlice(clusterDasConfigInfoVMMonitoringStateAllowedValues, false),
+			},
+			"ha_vm_failure_interval": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     30,
+				Description: "If a heartbeat from this virtual machine is not received within this configured interval, the virtual machine is marked as failed. The value is in seconds.",
+			},
+			"ha_vm_minimum_uptime": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     120,
+				Description: "The time, in seconds, that HA waits after powering on this virtual machine before monitoring for heartbeats.",
+			},
+			"ha_vm_maximum_resets": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     3,
+				Description: "The maximum number of resets that HA will perform to this virtual machine when responding to a failure event.",
+			},
+			"ha_vm_maximum_failure_window": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     -1,
+				Description: "The length of the reset window in which ha_vm_maximum_resets can operate. When this window expires, no more resets are attempted regardless of the setting configured in ha_vm_maximum_resets. -1 means no window, meaning an unlimited reset time is allotted.",
 			},
 		},
 	}
@@ -68,12 +181,12 @@ func resourceVSphereHaVMOverrideCreate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	info, err := expandClusterDrsVMConfigInfo(d, vm)
+	info, err := expandClusterDasVMConfigInfo(d, meta, vm)
 	if err != nil {
 		return err
 	}
 	spec := &types.ClusterConfigSpecEx{
-		DrsVmConfigSpec: []types.ClusterDrsVmConfigSpec{
+		DasVmConfigSpec: []types.ClusterDasVmConfigSpec{
 			{
 				ArrayUpdateSpec: types.ArrayUpdateSpec{
 					Operation: types.ArrayUpdateOperationAdd,
@@ -131,7 +244,7 @@ func resourceVSphereHaVMOverrideRead(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("error setting attribute \"virtual_machine_id\": %s", err)
 	}
 
-	if err = flattenClusterDrsVMConfigInfo(d, info); err != nil {
+	if err = flattenClusterDasVMConfigInfo(d, meta, info); err != nil {
 		return err
 	}
 
@@ -147,12 +260,12 @@ func resourceVSphereHaVMOverrideUpdate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	info, err := expandClusterDrsVMConfigInfo(d, vm)
+	info, err := expandClusterDasVMConfigInfo(d, meta, vm)
 	if err != nil {
 		return err
 	}
 	spec := &types.ClusterConfigSpecEx{
-		DrsVmConfigSpec: []types.ClusterDrsVmConfigSpec{
+		DasVmConfigSpec: []types.ClusterDasVmConfigSpec{
 			{
 				ArrayUpdateSpec: types.ArrayUpdateSpec{
 					// NOTE: ArrayUpdateOperationAdd here replaces existing entries,
@@ -237,6 +350,48 @@ func resourceVSphereHaVMOverrideImport(d *schema.ResourceData, meta interface{})
 	return []*schema.ResourceData{d}, nil
 }
 
+// expandClusterDasVMConfigInfo reads certain ResourceData keys and returns a
+// ClusterDasVmConfigInfo.
+func expandClusterDasVMConfigInfo(
+	d *schema.ResourceData,
+	meta interface{},
+	vm *object.VirtualMachine,
+) (*types.ClusterDasVmConfigInfo, error) {
+	client, err := resourceVSphereHaVMOverrideClient(meta)
+	if err != nil {
+		return nil, err
+	}
+	version := viapi.ParseVersionFromClient(client)
+
+	obj := &types.ClusterDasVmConfigInfo{
+		DasSettings: expandClusterDasVMSettings(d, version),
+		Key:         vm.Reference(),
+	}
+
+	// Expand ha_vm_monitoring_use_cluster_defaults here as it's not included in
+	// the base vsphere_compute_cluster resource.
+	obj.DasSettings.VmToolsMonitoringSettings.ClusterSettings = structure.GetBool(d, "ha_vm_monitoring_use_cluster_defaults")
+
+	return obj, nil
+}
+
+// flattenClusterDasVmConfigInfo saves a ClusterDasVmConfigInfo into the
+// supplied ResourceData.
+func flattenClusterDasVMConfigInfo(d *schema.ResourceData, meta interface{}, obj *types.ClusterDasVmConfigInfo) error {
+	client, err := resourceVSphereHaVMOverrideClient(meta)
+	if err != nil {
+		return err
+	}
+	version := viapi.ParseVersionFromClient(client)
+
+	// Set ha_vm_monitoring_use_cluster_defaults here as it's not included in the
+	// base vsphere_compute_cluster resource.
+	if err := d.Set("ha_vm_monitoring_use_cluster_defaults", obj.DasSettings.VmToolsMonitoringSettings.ClusterSettings); err != nil {
+		return err
+	}
+	return flattenClusterDasVMSettings(d, obj.DasSettings, version)
+}
+
 // resourceVSphereHaVMOverrideIDString prints a friendly string for the
 // vsphere_storage_drs_vm_config resource.
 func resourceVSphereHaVMOverrideIDString(d structure.ResourceIDStringer) string {
@@ -265,26 +420,27 @@ func resourceVSphereHaVMOverrideParseID(id string) (string, string, error) {
 	return parts[0], parts[1], nil
 }
 
-// resourceVSphereHaVMOverrideFindEntry attempts to locate an existing VM
-// config in a Storage Pod's DRS configuration. It's used by the resource's
-// read functionality and tests. nil is returned if the entry cannot be found.
+// resourceVSphereHaVMOverrideFindEntry attempts to locate an existing
+// VM-specific HA config in a cluster's configuration. It's used by the
+// resource's read functionality and tests. nil is returned if the entry cannot
+// be found.
 func resourceVSphereHaVMOverrideFindEntry(
 	cluster *object.ClusterComputeResource,
 	vm *object.VirtualMachine,
-) (*types.ClusterDrsVmConfigInfo, error) {
+) (*types.ClusterDasVmConfigInfo, error) {
 	props, err := clustercomputeresource.Properties(cluster)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching cluster properties: %s", err)
 	}
 
-	for _, info := range props.ConfigurationEx.(*types.ClusterConfigInfoEx).DrsVmConfig {
+	for _, info := range props.ConfigurationEx.(*types.ClusterConfigInfoEx).DasVmConfig {
 		if info.Key == vm.Reference() {
-			log.Printf("[DEBUG] Found DRS config info for VM %q in cluster %q", vm.Name(), cluster.Name())
+			log.Printf("[DEBUG] Found HA config info for VM %q in cluster %q", vm.Name(), cluster.Name())
 			return &info, nil
 		}
 	}
 
-	log.Printf("[DEBUG] No DRS config info found for VM %q in cluster %q", vm.Name(), cluster.Name())
+	log.Printf("[DEBUG] No HA config info found for VM %q in cluster %q", vm.Name(), cluster.Name())
 	return nil, nil
 }
 
