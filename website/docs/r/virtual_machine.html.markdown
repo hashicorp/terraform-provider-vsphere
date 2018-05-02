@@ -760,11 +760,12 @@ externally with `attach` when the `path` field is not specified.
 
 * `eagerly_scrub` - (Optional) If set to `true`, the disk space is zeroed out
   on VM creation. This will delay the creation of the disk or virtual machine.
-  See the section on [picking a disk type](#picking-a-disk-type).  Default:
-  `false`.
-* `thin_provisioned` - (Optional) If `true`, this disk is thin provisioned, with
-  space for the file being allocated on an as-needed basis. See the section on
-  [picking a disk type](#picking-a-disk-type). Default: `true`. 
+  Cannot be set to `true` when `thin_provisioned` is `true`.  See the section
+  on [picking a disk type](#picking-a-disk-type).  Default: `false`.
+* `thin_provisioned` - (Optional) If `true`, this disk is thin provisioned,
+  with space for the file being allocated on an as-needed basis. Cannot be set
+  to `true` when `eagerly_scrub` is `true`. See the section on [picking a disk
+  type](#picking-a-disk-type). Default: `true`. 
 * `disk_sharing` - (Optional) The sharing mode of this virtual disk. Can be one
   of `sharingMultiWriter` or `sharingNone`. Default: `sharingNone`.
 

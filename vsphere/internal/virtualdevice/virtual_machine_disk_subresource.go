@@ -1461,6 +1461,12 @@ func (r *DiskSubresource) DiffGeneral() error {
 			return fmt.Errorf("multi-writer disk_sharing is only supported on vSphere 6 and higher")
 		}
 	}
+	// Prevent eagerly_scrub and thin_provisioned from both being set to true. A
+	// thin_provisioned disk cannot be eagerly scrubbed since it would then be
+	// allocating the entire disk.
+	if r.Get("eagerly_scrub").(bool) && r.Get("thin_provisioned").(bool) {
+		return fmt.Errorf("%s: eagerly_scrub and thin_provisioned cannot both be set to true", name)
+	}
 	log.Printf("[DEBUG] %s: Diff validation complete", r)
 	return nil
 }
