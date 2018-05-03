@@ -18,7 +18,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-const resourceVSphereHaVMOverrideName = "vsphere_ha_vm_override"
+const resourceVSphereHAVMOverrideName = "vsphere_ha_vm_override"
 
 var vmOverrideClusterDasVMSettingsIsolationResponseAllowedValues = []string{
 	string(types.ClusterDasVmSettingsIsolationResponseClusterIsolationResponse),
@@ -57,14 +57,14 @@ var vmOverrideClusterVMReactionOnAPDClearedAllowedValues = []string{
 	string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedReset),
 }
 
-func resourceVSphereHaVMOverride() *schema.Resource {
+func resourceVSphereHAVMOverride() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceVSphereHaVMOverrideCreate,
-		Read:   resourceVSphereHaVMOverrideRead,
-		Update: resourceVSphereHaVMOverrideUpdate,
-		Delete: resourceVSphereHaVMOverrideDelete,
+		Create: resourceVSphereHAVMOverrideCreate,
+		Read:   resourceVSphereHAVMOverrideRead,
+		Update: resourceVSphereHAVMOverrideUpdate,
+		Delete: resourceVSphereHAVMOverrideDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceVSphereHaVMOverrideImport,
+			State: resourceVSphereHAVMOverrideImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -173,10 +173,10 @@ func resourceVSphereHaVMOverride() *schema.Resource {
 	}
 }
 
-func resourceVSphereHaVMOverrideCreate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Beginning create", resourceVSphereHaVMOverrideIDString(d))
+func resourceVSphereHAVMOverrideCreate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning create", resourceVSphereHAVMOverrideIDString(d))
 
-	cluster, vm, err := resourceVSphereHaVMOverrideObjects(d, meta)
+	cluster, vm, err := resourceVSphereHAVMOverrideObjects(d, meta)
 	if err != nil {
 		return err
 	}
@@ -200,25 +200,25 @@ func resourceVSphereHaVMOverrideCreate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	id, err := resourceVSphereHaVMOverrideFlattenID(cluster, vm)
+	id, err := resourceVSphereHAVMOverrideFlattenID(cluster, vm)
 	if err != nil {
 		return fmt.Errorf("cannot compute ID of created resource: %s", err)
 	}
 	d.SetId(id)
 
-	log.Printf("[DEBUG] %s: Create finished successfully", resourceVSphereHaVMOverrideIDString(d))
-	return resourceVSphereHaVMOverrideRead(d, meta)
+	log.Printf("[DEBUG] %s: Create finished successfully", resourceVSphereHAVMOverrideIDString(d))
+	return resourceVSphereHAVMOverrideRead(d, meta)
 }
 
-func resourceVSphereHaVMOverrideRead(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Beginning read", resourceVSphereHaVMOverrideIDString(d))
+func resourceVSphereHAVMOverrideRead(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning read", resourceVSphereHAVMOverrideIDString(d))
 
-	cluster, vm, err := resourceVSphereHaVMOverrideObjects(d, meta)
+	cluster, vm, err := resourceVSphereHAVMOverrideObjects(d, meta)
 	if err != nil {
 		return err
 	}
 
-	info, err := resourceVSphereHaVMOverrideFindEntry(cluster, vm)
+	info, err := resourceVSphereHAVMOverrideFindEntry(cluster, vm)
 	if err != nil {
 		return err
 	}
@@ -248,14 +248,14 @@ func resourceVSphereHaVMOverrideRead(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	log.Printf("[DEBUG] %s: Read completed successfully", resourceVSphereHaVMOverrideIDString(d))
+	log.Printf("[DEBUG] %s: Read completed successfully", resourceVSphereHAVMOverrideIDString(d))
 	return nil
 }
 
-func resourceVSphereHaVMOverrideUpdate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Beginning update", resourceVSphereHaVMOverrideIDString(d))
+func resourceVSphereHAVMOverrideUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning update", resourceVSphereHAVMOverrideIDString(d))
 
-	cluster, vm, err := resourceVSphereHaVMOverrideObjects(d, meta)
+	cluster, vm, err := resourceVSphereHAVMOverrideObjects(d, meta)
 	if err != nil {
 		return err
 	}
@@ -282,14 +282,14 @@ func resourceVSphereHaVMOverrideUpdate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	log.Printf("[DEBUG] %s: Update finished successfully", resourceVSphereHaVMOverrideIDString(d))
-	return resourceVSphereHaVMOverrideRead(d, meta)
+	log.Printf("[DEBUG] %s: Update finished successfully", resourceVSphereHAVMOverrideIDString(d))
+	return resourceVSphereHAVMOverrideRead(d, meta)
 }
 
-func resourceVSphereHaVMOverrideDelete(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Beginning delete", resourceVSphereHaVMOverrideIDString(d))
+func resourceVSphereHAVMOverrideDelete(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning delete", resourceVSphereHAVMOverrideIDString(d))
 
-	cluster, vm, err := resourceVSphereHaVMOverrideObjects(d, meta)
+	cluster, vm, err := resourceVSphereHAVMOverrideObjects(d, meta)
 	if err != nil {
 		return err
 	}
@@ -309,11 +309,11 @@ func resourceVSphereHaVMOverrideDelete(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	log.Printf("[DEBUG] %s: Deleted successfully", resourceVSphereHaVMOverrideIDString(d))
+	log.Printf("[DEBUG] %s: Deleted successfully", resourceVSphereHAVMOverrideIDString(d))
 	return nil
 }
 
-func resourceVSphereHaVMOverrideImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceVSphereHAVMOverrideImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	var data map[string]string
 	if err := json.Unmarshal([]byte(d.Id()), &data); err != nil {
 		return nil, err
@@ -327,7 +327,7 @@ func resourceVSphereHaVMOverrideImport(d *schema.ResourceData, meta interface{})
 		return nil, errors.New("missing virtual_machine_path in input data")
 	}
 
-	client, err := resourceVSphereHaVMOverrideClient(meta)
+	client, err := resourceVSphereHAVMOverrideClient(meta)
 	if err != nil {
 		return nil, err
 	}
@@ -342,7 +342,7 @@ func resourceVSphereHaVMOverrideImport(d *schema.ResourceData, meta interface{})
 		return nil, fmt.Errorf("cannot locate virtual machine %q: %s", vmPath, err)
 	}
 
-	id, err := resourceVSphereHaVMOverrideFlattenID(cluster, vm)
+	id, err := resourceVSphereHAVMOverrideFlattenID(cluster, vm)
 	if err != nil {
 		return nil, fmt.Errorf("cannot compute ID of imported resource: %s", err)
 	}
@@ -357,7 +357,7 @@ func expandClusterDasVMConfigInfo(
 	meta interface{},
 	vm *object.VirtualMachine,
 ) (*types.ClusterDasVmConfigInfo, error) {
-	client, err := resourceVSphereHaVMOverrideClient(meta)
+	client, err := resourceVSphereHAVMOverrideClient(meta)
 	if err != nil {
 		return nil, err
 	}
@@ -378,7 +378,7 @@ func expandClusterDasVMConfigInfo(
 // flattenClusterDasVmConfigInfo saves a ClusterDasVmConfigInfo into the
 // supplied ResourceData.
 func flattenClusterDasVMConfigInfo(d *schema.ResourceData, meta interface{}, obj *types.ClusterDasVmConfigInfo) error {
-	client, err := resourceVSphereHaVMOverrideClient(meta)
+	client, err := resourceVSphereHAVMOverrideClient(meta)
 	if err != nil {
 		return err
 	}
@@ -392,15 +392,15 @@ func flattenClusterDasVMConfigInfo(d *schema.ResourceData, meta interface{}, obj
 	return flattenClusterDasVMSettings(d, obj.DasSettings, version)
 }
 
-// resourceVSphereHaVMOverrideIDString prints a friendly string for the
+// resourceVSphereHAVMOverrideIDString prints a friendly string for the
 // vsphere_storage_drs_vm_config resource.
-func resourceVSphereHaVMOverrideIDString(d structure.ResourceIDStringer) string {
-	return structure.ResourceIDString(d, resourceVSphereHaVMOverrideName)
+func resourceVSphereHAVMOverrideIDString(d structure.ResourceIDStringer) string {
+	return structure.ResourceIDString(d, resourceVSphereHAVMOverrideName)
 }
 
-// resourceVSphereHaVMOverrideFlattenID makes an ID for the
+// resourceVSphereHAVMOverrideFlattenID makes an ID for the
 // vsphere_storage_drs_vm_config resource.
-func resourceVSphereHaVMOverrideFlattenID(cluster *object.ClusterComputeResource, vm *object.VirtualMachine) (string, error) {
+func resourceVSphereHAVMOverrideFlattenID(cluster *object.ClusterComputeResource, vm *object.VirtualMachine) (string, error) {
 	clusterID := cluster.Reference().Value
 	props, err := virtualmachine.Properties(vm)
 	if err != nil {
@@ -410,9 +410,9 @@ func resourceVSphereHaVMOverrideFlattenID(cluster *object.ClusterComputeResource
 	return strings.Join([]string{clusterID, vmID}, ":"), nil
 }
 
-// resourceVSphereHaVMOverrideParseID parses an ID for the
+// resourceVSphereHAVMOverrideParseID parses an ID for the
 // vsphere_storage_drs_vm_config and outputs its parts.
-func resourceVSphereHaVMOverrideParseID(id string) (string, string, error) {
+func resourceVSphereHAVMOverrideParseID(id string) (string, string, error) {
 	parts := strings.SplitN(id, ":", 3)
 	if len(parts) < 2 {
 		return "", "", fmt.Errorf("bad ID %q", id)
@@ -420,11 +420,11 @@ func resourceVSphereHaVMOverrideParseID(id string) (string, string, error) {
 	return parts[0], parts[1], nil
 }
 
-// resourceVSphereHaVMOverrideFindEntry attempts to locate an existing
+// resourceVSphereHAVMOverrideFindEntry attempts to locate an existing
 // VM-specific HA config in a cluster's configuration. It's used by the
 // resource's read functionality and tests. nil is returned if the entry cannot
 // be found.
-func resourceVSphereHaVMOverrideFindEntry(
+func resourceVSphereHAVMOverrideFindEntry(
 	cluster *object.ClusterComputeResource,
 	vm *object.VirtualMachine,
 ) (*types.ClusterDasVmConfigInfo, error) {
@@ -444,53 +444,53 @@ func resourceVSphereHaVMOverrideFindEntry(
 	return nil, nil
 }
 
-// resourceVSphereHaVMOverrideObjects handles the fetching of the cluster and
+// resourceVSphereHAVMOverrideObjects handles the fetching of the cluster and
 // virtual machine depending on what attributes are available:
 // * If the resource ID is available, the data is derived from the ID.
 // * If not, it's derived from the compute_cluster_id and virtual_machine_id
 // attributes.
-func resourceVSphereHaVMOverrideObjects(
+func resourceVSphereHAVMOverrideObjects(
 	d *schema.ResourceData,
 	meta interface{},
 ) (*object.ClusterComputeResource, *object.VirtualMachine, error) {
 	if d.Id() != "" {
-		return resourceVSphereHaVMOverrideObjectsFromID(d, meta)
+		return resourceVSphereHAVMOverrideObjectsFromID(d, meta)
 	}
-	return resourceVSphereHaVMOverrideObjectsFromAttributes(d, meta)
+	return resourceVSphereHAVMOverrideObjectsFromAttributes(d, meta)
 }
 
-func resourceVSphereHaVMOverrideObjectsFromAttributes(
+func resourceVSphereHAVMOverrideObjectsFromAttributes(
 	d *schema.ResourceData,
 	meta interface{},
 ) (*object.ClusterComputeResource, *object.VirtualMachine, error) {
-	return resourceVSphereHaVMOverrideFetchObjects(
+	return resourceVSphereHAVMOverrideFetchObjects(
 		meta,
 		d.Get("compute_cluster_id").(string),
 		d.Get("virtual_machine_id").(string),
 	)
 }
 
-func resourceVSphereHaVMOverrideObjectsFromID(
+func resourceVSphereHAVMOverrideObjectsFromID(
 	d structure.ResourceIDStringer,
 	meta interface{},
 ) (*object.ClusterComputeResource, *object.VirtualMachine, error) {
 	// Note that this function uses structure.ResourceIDStringer to satisfy
 	// interfacer. Adding exceptions in the comments does not seem to work.
 	// Change this back to ResourceData if it's needed in the future.
-	clusterID, vmID, err := resourceVSphereHaVMOverrideParseID(d.Id())
+	clusterID, vmID, err := resourceVSphereHAVMOverrideParseID(d.Id())
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return resourceVSphereHaVMOverrideFetchObjects(meta, clusterID, vmID)
+	return resourceVSphereHAVMOverrideFetchObjects(meta, clusterID, vmID)
 }
 
-func resourceVSphereHaVMOverrideFetchObjects(
+func resourceVSphereHAVMOverrideFetchObjects(
 	meta interface{},
 	clusterID string,
 	vmID string,
 ) (*object.ClusterComputeResource, *object.VirtualMachine, error) {
-	client, err := resourceVSphereHaVMOverrideClient(meta)
+	client, err := resourceVSphereHAVMOverrideClient(meta)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -508,7 +508,7 @@ func resourceVSphereHaVMOverrideFetchObjects(
 	return cluster, vm, nil
 }
 
-func resourceVSphereHaVMOverrideClient(meta interface{}) (*govmomi.Client, error) {
+func resourceVSphereHAVMOverrideClient(meta interface{}) (*govmomi.Client, error) {
 	client := meta.(*VSphereClient).vimClient
 	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return nil, err

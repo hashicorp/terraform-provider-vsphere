@@ -17,31 +17,31 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-func TestAccResourceVSphereHaVMOverride_basic(t *testing.T) {
+func TestAccResourceVSphereHAVMOverride_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccResourceVSphereHaVMOverridePreCheck(t)
+			testAccResourceVSphereHAVMOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereHaVMOverrideExists(false),
+		CheckDestroy: testAccResourceVSphereHAVMOverrideExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereHaVMOverrideConfigOverrideDefaults(),
+				Config: testAccResourceVSphereHAVMOverrideConfigOverrideDefaults(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereHaVMOverrideExists(true),
-					testAccResourceVSphereHaVMOverrideMatchBase(
+					testAccResourceVSphereHAVMOverrideExists(true),
+					testAccResourceVSphereHAVMOverrideMatchBase(
 						string(types.ClusterDasVmSettingsIsolationResponseClusterIsolationResponse),
 						string(types.ClusterDasVmSettingsRestartPriorityClusterRestartPriority),
 						600,
 					),
-					testAccResourceVSphereHaVMOverrideMatchVMCP(
+					testAccResourceVSphereHAVMOverrideMatchVMCP(
 						string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedUseClusterDefault),
 						string(types.ClusterVmComponentProtectionSettingsStorageVmReactionClusterDefault),
 						string(types.ClusterVmComponentProtectionSettingsStorageVmReactionClusterDefault),
 						-1,
 					),
-					testAccResourceVSphereHaVMOverrideMatchMonitoring(
+					testAccResourceVSphereHAVMOverrideMatchMonitoring(
 						true,
 						30,
 						3,
@@ -55,31 +55,31 @@ func TestAccResourceVSphereHaVMOverride_basic(t *testing.T) {
 	})
 }
 
-func TestAccResourceVSphereHaVMOverride_complete(t *testing.T) {
+func TestAccResourceVSphereHAVMOverride_complete(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccResourceVSphereHaVMOverridePreCheck(t)
+			testAccResourceVSphereHAVMOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereHaVMOverrideExists(false),
+		CheckDestroy: testAccResourceVSphereHAVMOverrideExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereHaVMOverrideConfigOverrideComplete(),
+				Config: testAccResourceVSphereHAVMOverrideConfigOverrideComplete(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereHaVMOverrideExists(true),
-					testAccResourceVSphereHaVMOverrideMatchBase(
+					testAccResourceVSphereHAVMOverrideExists(true),
+					testAccResourceVSphereHAVMOverrideMatchBase(
 						string(types.ClusterDasVmSettingsIsolationResponseShutdown),
 						string(types.ClusterDasVmSettingsRestartPriorityHighest),
 						30,
 					),
-					testAccResourceVSphereHaVMOverrideMatchVMCP(
+					testAccResourceVSphereHAVMOverrideMatchVMCP(
 						string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedReset),
 						string(types.ClusterVmComponentProtectionSettingsStorageVmReactionRestartConservative),
 						string(types.ClusterVmComponentProtectionSettingsStorageVmReactionRestartAggressive),
 						60,
 					),
-					testAccResourceVSphereHaVMOverrideMatchMonitoring(
+					testAccResourceVSphereHAVMOverrideMatchMonitoring(
 						false,
 						60,
 						5,
@@ -93,31 +93,31 @@ func TestAccResourceVSphereHaVMOverride_complete(t *testing.T) {
 	})
 }
 
-func TestAccResourceVSphereHaVMOverride_update(t *testing.T) {
+func TestAccResourceVSphereHAVMOverride_update(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccResourceVSphereHaVMOverridePreCheck(t)
+			testAccResourceVSphereHAVMOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereHaVMOverrideExists(false),
+		CheckDestroy: testAccResourceVSphereHAVMOverrideExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereHaVMOverrideConfigOverrideDefaults(),
+				Config: testAccResourceVSphereHAVMOverrideConfigOverrideDefaults(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereHaVMOverrideExists(true),
-					testAccResourceVSphereHaVMOverrideMatchBase(
+					testAccResourceVSphereHAVMOverrideExists(true),
+					testAccResourceVSphereHAVMOverrideMatchBase(
 						string(types.ClusterDasVmSettingsIsolationResponseClusterIsolationResponse),
 						string(types.ClusterDasVmSettingsRestartPriorityClusterRestartPriority),
 						600,
 					),
-					testAccResourceVSphereHaVMOverrideMatchVMCP(
+					testAccResourceVSphereHAVMOverrideMatchVMCP(
 						string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedUseClusterDefault),
 						string(types.ClusterVmComponentProtectionSettingsStorageVmReactionClusterDefault),
 						string(types.ClusterVmComponentProtectionSettingsStorageVmReactionClusterDefault),
 						-1,
 					),
-					testAccResourceVSphereHaVMOverrideMatchMonitoring(
+					testAccResourceVSphereHAVMOverrideMatchMonitoring(
 						true,
 						30,
 						3,
@@ -128,21 +128,21 @@ func TestAccResourceVSphereHaVMOverride_update(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccResourceVSphereHaVMOverrideConfigOverrideComplete(),
+				Config: testAccResourceVSphereHAVMOverrideConfigOverrideComplete(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereHaVMOverrideExists(true),
-					testAccResourceVSphereHaVMOverrideMatchBase(
+					testAccResourceVSphereHAVMOverrideExists(true),
+					testAccResourceVSphereHAVMOverrideMatchBase(
 						string(types.ClusterDasVmSettingsIsolationResponseShutdown),
 						string(types.ClusterDasVmSettingsRestartPriorityHighest),
 						30,
 					),
-					testAccResourceVSphereHaVMOverrideMatchVMCP(
+					testAccResourceVSphereHAVMOverrideMatchVMCP(
 						string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedReset),
 						string(types.ClusterVmComponentProtectionSettingsStorageVmReactionRestartConservative),
 						string(types.ClusterVmComponentProtectionSettingsStorageVmReactionRestartAggressive),
 						60,
 					),
-					testAccResourceVSphereHaVMOverrideMatchMonitoring(
+					testAccResourceVSphereHAVMOverrideMatchMonitoring(
 						false,
 						60,
 						5,
@@ -156,31 +156,31 @@ func TestAccResourceVSphereHaVMOverride_update(t *testing.T) {
 	})
 }
 
-func TestAccResourceVSphereHaVMOverride_import(t *testing.T) {
+func TestAccResourceVSphereHAVMOverride_import(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccResourceVSphereHaVMOverridePreCheck(t)
+			testAccResourceVSphereHAVMOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereHaVMOverrideExists(false),
+		CheckDestroy: testAccResourceVSphereHAVMOverrideExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereHaVMOverrideConfigOverrideDefaults(),
+				Config: testAccResourceVSphereHAVMOverrideConfigOverrideDefaults(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereHaVMOverrideExists(true),
-					testAccResourceVSphereHaVMOverrideMatchBase(
+					testAccResourceVSphereHAVMOverrideExists(true),
+					testAccResourceVSphereHAVMOverrideMatchBase(
 						string(types.ClusterDasVmSettingsIsolationResponseClusterIsolationResponse),
 						string(types.ClusterDasVmSettingsRestartPriorityClusterRestartPriority),
 						600,
 					),
-					testAccResourceVSphereHaVMOverrideMatchVMCP(
+					testAccResourceVSphereHAVMOverrideMatchVMCP(
 						string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedUseClusterDefault),
 						string(types.ClusterVmComponentProtectionSettingsStorageVmReactionClusterDefault),
 						string(types.ClusterVmComponentProtectionSettingsStorageVmReactionClusterDefault),
 						-1,
 					),
-					testAccResourceVSphereHaVMOverrideMatchMonitoring(
+					testAccResourceVSphereHAVMOverrideMatchMonitoring(
 						true,
 						30,
 						3,
@@ -214,21 +214,21 @@ func TestAccResourceVSphereHaVMOverride_import(t *testing.T) {
 
 					return string(b), nil
 				},
-				Config: testAccResourceVSphereHaVMOverrideConfigOverrideDefaults(),
+				Config: testAccResourceVSphereHAVMOverrideConfigOverrideDefaults(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereHaVMOverrideExists(true),
-					testAccResourceVSphereHaVMOverrideMatchBase(
+					testAccResourceVSphereHAVMOverrideExists(true),
+					testAccResourceVSphereHAVMOverrideMatchBase(
 						string(types.ClusterDasVmSettingsIsolationResponseClusterIsolationResponse),
 						string(types.ClusterDasVmSettingsRestartPriorityClusterRestartPriority),
 						600,
 					),
-					testAccResourceVSphereHaVMOverrideMatchVMCP(
+					testAccResourceVSphereHAVMOverrideMatchVMCP(
 						string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedUseClusterDefault),
 						string(types.ClusterVmComponentProtectionSettingsStorageVmReactionClusterDefault),
 						string(types.ClusterVmComponentProtectionSettingsStorageVmReactionClusterDefault),
 						-1,
 					),
-					testAccResourceVSphereHaVMOverrideMatchMonitoring(
+					testAccResourceVSphereHAVMOverrideMatchMonitoring(
 						true,
 						30,
 						3,
@@ -242,7 +242,7 @@ func TestAccResourceVSphereHaVMOverride_import(t *testing.T) {
 	})
 }
 
-func testAccResourceVSphereHaVMOverridePreCheck(t *testing.T) {
+func testAccResourceVSphereHAVMOverridePreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_DATACENTER") == "" {
 		t.Skip("set VSPHERE_DATACENTER to run vsphere_storage_drs_vm_override acceptance tests")
 	}
@@ -257,7 +257,7 @@ func testAccResourceVSphereHaVMOverridePreCheck(t *testing.T) {
 	}
 }
 
-func testAccResourceVSphereHaVMOverrideExists(expected bool) resource.TestCheckFunc {
+func testAccResourceVSphereHAVMOverrideExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		info, err := testGetComputeClusterHaVMConfig(s, "ha_vm_override")
 		if err != nil {
@@ -291,7 +291,7 @@ func testAccResourceVSphereHaVMOverrideExists(expected bool) resource.TestCheckF
 	}
 }
 
-func testAccResourceVSphereHaVMOverrideMatchBase(
+func testAccResourceVSphereHAVMOverrideMatchBase(
 	isolationResponse string,
 	restartPriority string,
 	restartPriorityTimeout int32,
@@ -328,7 +328,7 @@ func testAccResourceVSphereHaVMOverrideMatchBase(
 	}
 }
 
-func testAccResourceVSphereHaVMOverrideMatchVMCP(
+func testAccResourceVSphereHAVMOverrideMatchVMCP(
 	vmReactionOnAPDCleared string,
 	vmStorageProtectionForAPD string,
 	vmStorageProtectionForPDL string,
@@ -371,7 +371,7 @@ func testAccResourceVSphereHaVMOverrideMatchVMCP(
 	}
 }
 
-func testAccResourceVSphereHaVMOverrideMatchMonitoring(
+func testAccResourceVSphereHAVMOverrideMatchMonitoring(
 	clusterSettings bool,
 	failureInterval int32,
 	maxFailures int32,
@@ -418,7 +418,7 @@ func testAccResourceVSphereHaVMOverrideMatchMonitoring(
 	}
 }
 
-func testAccResourceVSphereHaVMOverrideConfigOverrideDefaults() string {
+func testAccResourceVSphereHAVMOverrideConfigOverrideDefaults() string {
 	return fmt.Sprintf(`
 variable "datacenter" {
   default = "%s"
@@ -488,7 +488,7 @@ resource "vsphere_ha_vm_override" "ha_vm_override" {
 	)
 }
 
-func testAccResourceVSphereHaVMOverrideConfigOverrideComplete() string {
+func testAccResourceVSphereHAVMOverrideConfigOverrideComplete() string {
 	return fmt.Sprintf(`
 variable "datacenter" {
   default = "%s"
