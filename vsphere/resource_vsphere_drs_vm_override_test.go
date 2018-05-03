@@ -17,87 +17,87 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-func TestAccResourceVSphereDrsVMOverride_drs(t *testing.T) {
+func TestAccResourceVSphereDRSVMOverride_drs(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccResourceVSphereDrsVMOverridePreCheck(t)
+			testAccResourceVSphereDRSVMOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereDrsVMOverrideExists(false),
+		CheckDestroy: testAccResourceVSphereDRSVMOverrideExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereDrsVMOverrideConfigOverrideDRSEnabled(),
+				Config: testAccResourceVSphereDRSVMOverrideConfigOverrideDRSEnabled(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereDrsVMOverrideExists(true),
-					testAccResourceVSphereDrsVMOverrideMatch(types.DrsBehaviorManual, false),
+					testAccResourceVSphereDRSVMOverrideExists(true),
+					testAccResourceVSphereDRSVMOverrideMatch(types.DrsBehaviorManual, false),
 				),
 			},
 		},
 	})
 }
 
-func TestAccResourceVSphereDrsVMOverride_automationLevel(t *testing.T) {
+func TestAccResourceVSphereDRSVMOverride_automationLevel(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccResourceVSphereDrsVMOverridePreCheck(t)
+			testAccResourceVSphereDRSVMOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereDrsVMOverrideExists(false),
+		CheckDestroy: testAccResourceVSphereDRSVMOverrideExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereDrsVMOverrideConfigOverrideAutomationLevel(),
+				Config: testAccResourceVSphereDRSVMOverrideConfigOverrideAutomationLevel(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereDrsVMOverrideExists(true),
-					testAccResourceVSphereDrsVMOverrideMatch(types.DrsBehaviorFullyAutomated, true),
+					testAccResourceVSphereDRSVMOverrideExists(true),
+					testAccResourceVSphereDRSVMOverrideMatch(types.DrsBehaviorFullyAutomated, true),
 				),
 			},
 		},
 	})
 }
 
-func TestAccResourceVSphereDrsVMOverride_update(t *testing.T) {
+func TestAccResourceVSphereDRSVMOverride_update(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccResourceVSphereDrsVMOverridePreCheck(t)
+			testAccResourceVSphereDRSVMOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereDrsVMOverrideExists(false),
+		CheckDestroy: testAccResourceVSphereDRSVMOverrideExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereDrsVMOverrideConfigOverrideDRSEnabled(),
+				Config: testAccResourceVSphereDRSVMOverrideConfigOverrideDRSEnabled(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereDrsVMOverrideExists(true),
-					testAccResourceVSphereDrsVMOverrideMatch(types.DrsBehaviorManual, false),
+					testAccResourceVSphereDRSVMOverrideExists(true),
+					testAccResourceVSphereDRSVMOverrideMatch(types.DrsBehaviorManual, false),
 				),
 			},
 			{
-				Config: testAccResourceVSphereDrsVMOverrideConfigOverrideAutomationLevel(),
+				Config: testAccResourceVSphereDRSVMOverrideConfigOverrideAutomationLevel(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereDrsVMOverrideExists(true),
-					testAccResourceVSphereDrsVMOverrideMatch(types.DrsBehaviorFullyAutomated, true),
+					testAccResourceVSphereDRSVMOverrideExists(true),
+					testAccResourceVSphereDRSVMOverrideMatch(types.DrsBehaviorFullyAutomated, true),
 				),
 			},
 		},
 	})
 }
 
-func TestAccResourceVSphereDrsVMOverride_import(t *testing.T) {
+func TestAccResourceVSphereDRSVMOverride_import(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccResourceVSphereDrsVMOverridePreCheck(t)
+			testAccResourceVSphereDRSVMOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereDrsVMOverrideExists(false),
+		CheckDestroy: testAccResourceVSphereDRSVMOverrideExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereDrsVMOverrideConfigOverrideDRSEnabled(),
+				Config: testAccResourceVSphereDRSVMOverrideConfigOverrideDRSEnabled(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereDrsVMOverrideExists(true),
-					testAccResourceVSphereDrsVMOverrideMatch(types.DrsBehaviorManual, false),
+					testAccResourceVSphereDRSVMOverrideExists(true),
+					testAccResourceVSphereDRSVMOverrideMatch(types.DrsBehaviorManual, false),
 				),
 			},
 			{
@@ -124,17 +124,17 @@ func TestAccResourceVSphereDrsVMOverride_import(t *testing.T) {
 
 					return string(b), nil
 				},
-				Config: testAccResourceVSphereDrsVMOverrideConfigOverrideDRSEnabled(),
+				Config: testAccResourceVSphereDRSVMOverrideConfigOverrideDRSEnabled(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereDrsVMOverrideExists(true),
-					testAccResourceVSphereDrsVMOverrideMatch(types.DrsBehaviorManual, false),
+					testAccResourceVSphereDRSVMOverrideExists(true),
+					testAccResourceVSphereDRSVMOverrideMatch(types.DrsBehaviorManual, false),
 				),
 			},
 		},
 	})
 }
 
-func testAccResourceVSphereDrsVMOverridePreCheck(t *testing.T) {
+func testAccResourceVSphereDRSVMOverridePreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_DATACENTER") == "" {
 		t.Skip("set VSPHERE_DATACENTER to run vsphere_storage_drs_vm_override acceptance tests")
 	}
@@ -149,7 +149,7 @@ func testAccResourceVSphereDrsVMOverridePreCheck(t *testing.T) {
 	}
 }
 
-func testAccResourceVSphereDrsVMOverrideExists(expected bool) resource.TestCheckFunc {
+func testAccResourceVSphereDRSVMOverrideExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		info, err := testGetComputeClusterDRSVMConfig(s, "drs_vm_override")
 		if err != nil {
@@ -183,7 +183,7 @@ func testAccResourceVSphereDrsVMOverrideExists(expected bool) resource.TestCheck
 	}
 }
 
-func testAccResourceVSphereDrsVMOverrideMatch(behavior types.DrsBehavior, enabled bool) resource.TestCheckFunc {
+func testAccResourceVSphereDRSVMOverrideMatch(behavior types.DrsBehavior, enabled bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		actual, err := testGetComputeClusterDRSVMConfig(s, "drs_vm_override")
 		if err != nil {
@@ -208,7 +208,7 @@ func testAccResourceVSphereDrsVMOverrideMatch(behavior types.DrsBehavior, enable
 	}
 }
 
-func testAccResourceVSphereDrsVMOverrideConfigOverrideDRSEnabled() string {
+func testAccResourceVSphereDRSVMOverrideConfigOverrideDRSEnabled() string {
 	return fmt.Sprintf(`
 variable "datacenter" {
   default = "%s"
@@ -279,7 +279,7 @@ resource "vsphere_drs_vm_override" "drs_vm_override" {
 	)
 }
 
-func testAccResourceVSphereDrsVMOverrideConfigOverrideAutomationLevel() string {
+func testAccResourceVSphereDRSVMOverrideConfigOverrideAutomationLevel() string {
 	return fmt.Sprintf(`
 variable "datacenter" {
   default = "%s"
