@@ -18,16 +18,16 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-const resourceVSphereDrsVMOverrideName = "vsphere_drs_vm_override"
+const resourceVSphereDRSVMOverrideName = "vsphere_drs_vm_override"
 
-func resourceVSphereDrsVMOverride() *schema.Resource {
+func resourceVSphereDRSVMOverride() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceVSphereDrsVMOverrideCreate,
-		Read:   resourceVSphereDrsVMOverrideRead,
-		Update: resourceVSphereDrsVMOverrideUpdate,
-		Delete: resourceVSphereDrsVMOverrideDelete,
+		Create: resourceVSphereDRSVMOverrideCreate,
+		Read:   resourceVSphereDRSVMOverrideRead,
+		Update: resourceVSphereDRSVMOverrideUpdate,
+		Delete: resourceVSphereDRSVMOverrideDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceVSphereDrsVMOverrideImport,
+			State: resourceVSphereDRSVMOverrideImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -60,10 +60,10 @@ func resourceVSphereDrsVMOverride() *schema.Resource {
 	}
 }
 
-func resourceVSphereDrsVMOverrideCreate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Beginning create", resourceVSphereDrsVMOverrideIDString(d))
+func resourceVSphereDRSVMOverrideCreate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning create", resourceVSphereDRSVMOverrideIDString(d))
 
-	cluster, vm, err := resourceVSphereDrsVMOverrideObjects(d, meta)
+	cluster, vm, err := resourceVSphereDRSVMOverrideObjects(d, meta)
 	if err != nil {
 		return err
 	}
@@ -87,25 +87,25 @@ func resourceVSphereDrsVMOverrideCreate(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	id, err := resourceVSphereDrsVMOverrideFlattenID(cluster, vm)
+	id, err := resourceVSphereDRSVMOverrideFlattenID(cluster, vm)
 	if err != nil {
 		return fmt.Errorf("cannot compute ID of created resource: %s", err)
 	}
 	d.SetId(id)
 
-	log.Printf("[DEBUG] %s: Create finished successfully", resourceVSphereDrsVMOverrideIDString(d))
-	return resourceVSphereDrsVMOverrideRead(d, meta)
+	log.Printf("[DEBUG] %s: Create finished successfully", resourceVSphereDRSVMOverrideIDString(d))
+	return resourceVSphereDRSVMOverrideRead(d, meta)
 }
 
-func resourceVSphereDrsVMOverrideRead(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Beginning read", resourceVSphereDrsVMOverrideIDString(d))
+func resourceVSphereDRSVMOverrideRead(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning read", resourceVSphereDRSVMOverrideIDString(d))
 
-	cluster, vm, err := resourceVSphereDrsVMOverrideObjects(d, meta)
+	cluster, vm, err := resourceVSphereDRSVMOverrideObjects(d, meta)
 	if err != nil {
 		return err
 	}
 
-	info, err := resourceVSphereDrsVMOverrideFindEntry(cluster, vm)
+	info, err := resourceVSphereDRSVMOverrideFindEntry(cluster, vm)
 	if err != nil {
 		return err
 	}
@@ -135,14 +135,14 @@ func resourceVSphereDrsVMOverrideRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	log.Printf("[DEBUG] %s: Read completed successfully", resourceVSphereDrsVMOverrideIDString(d))
+	log.Printf("[DEBUG] %s: Read completed successfully", resourceVSphereDRSVMOverrideIDString(d))
 	return nil
 }
 
-func resourceVSphereDrsVMOverrideUpdate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Beginning update", resourceVSphereDrsVMOverrideIDString(d))
+func resourceVSphereDRSVMOverrideUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning update", resourceVSphereDRSVMOverrideIDString(d))
 
-	cluster, vm, err := resourceVSphereDrsVMOverrideObjects(d, meta)
+	cluster, vm, err := resourceVSphereDRSVMOverrideObjects(d, meta)
 	if err != nil {
 		return err
 	}
@@ -169,14 +169,14 @@ func resourceVSphereDrsVMOverrideUpdate(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	log.Printf("[DEBUG] %s: Update finished successfully", resourceVSphereDrsVMOverrideIDString(d))
-	return resourceVSphereDrsVMOverrideRead(d, meta)
+	log.Printf("[DEBUG] %s: Update finished successfully", resourceVSphereDRSVMOverrideIDString(d))
+	return resourceVSphereDRSVMOverrideRead(d, meta)
 }
 
-func resourceVSphereDrsVMOverrideDelete(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Beginning delete", resourceVSphereDrsVMOverrideIDString(d))
+func resourceVSphereDRSVMOverrideDelete(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning delete", resourceVSphereDRSVMOverrideIDString(d))
 
-	cluster, vm, err := resourceVSphereDrsVMOverrideObjects(d, meta)
+	cluster, vm, err := resourceVSphereDRSVMOverrideObjects(d, meta)
 	if err != nil {
 		return err
 	}
@@ -196,11 +196,11 @@ func resourceVSphereDrsVMOverrideDelete(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	log.Printf("[DEBUG] %s: Deleted successfully", resourceVSphereDrsVMOverrideIDString(d))
+	log.Printf("[DEBUG] %s: Deleted successfully", resourceVSphereDRSVMOverrideIDString(d))
 	return nil
 }
 
-func resourceVSphereDrsVMOverrideImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceVSphereDRSVMOverrideImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	var data map[string]string
 	if err := json.Unmarshal([]byte(d.Id()), &data); err != nil {
 		return nil, err
@@ -214,7 +214,7 @@ func resourceVSphereDrsVMOverrideImport(d *schema.ResourceData, meta interface{}
 		return nil, errors.New("missing virtual_machine_path in input data")
 	}
 
-	client, err := resourceVSphereDrsVMOverrideClient(meta)
+	client, err := resourceVSphereDRSVMOverrideClient(meta)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +229,7 @@ func resourceVSphereDrsVMOverrideImport(d *schema.ResourceData, meta interface{}
 		return nil, fmt.Errorf("cannot locate virtual machine %q: %s", vmPath, err)
 	}
 
-	id, err := resourceVSphereDrsVMOverrideFlattenID(cluster, vm)
+	id, err := resourceVSphereDRSVMOverrideFlattenID(cluster, vm)
 	if err != nil {
 		return nil, fmt.Errorf("cannot compute ID of imported resource: %s", err)
 	}
@@ -258,15 +258,15 @@ func flattenClusterDrsVMConfigInfo(d *schema.ResourceData, obj *types.ClusterDrs
 	})
 }
 
-// resourceVSphereDrsVMOverrideIDString prints a friendly string for the
+// resourceVSphereDRSVMOverrideIDString prints a friendly string for the
 // vsphere_storage_drs_vm_config resource.
-func resourceVSphereDrsVMOverrideIDString(d structure.ResourceIDStringer) string {
-	return structure.ResourceIDString(d, resourceVSphereDrsVMOverrideName)
+func resourceVSphereDRSVMOverrideIDString(d structure.ResourceIDStringer) string {
+	return structure.ResourceIDString(d, resourceVSphereDRSVMOverrideName)
 }
 
-// resourceVSphereDrsVMOverrideFlattenID makes an ID for the
+// resourceVSphereDRSVMOverrideFlattenID makes an ID for the
 // vsphere_storage_drs_vm_config resource.
-func resourceVSphereDrsVMOverrideFlattenID(cluster *object.ClusterComputeResource, vm *object.VirtualMachine) (string, error) {
+func resourceVSphereDRSVMOverrideFlattenID(cluster *object.ClusterComputeResource, vm *object.VirtualMachine) (string, error) {
 	clusterID := cluster.Reference().Value
 	props, err := virtualmachine.Properties(vm)
 	if err != nil {
@@ -276,9 +276,9 @@ func resourceVSphereDrsVMOverrideFlattenID(cluster *object.ClusterComputeResourc
 	return strings.Join([]string{clusterID, vmID}, ":"), nil
 }
 
-// resourceVSphereDrsVMOverrideParseID parses an ID for the
+// resourceVSphereDRSVMOverrideParseID parses an ID for the
 // vsphere_storage_drs_vm_config and outputs its parts.
-func resourceVSphereDrsVMOverrideParseID(id string) (string, string, error) {
+func resourceVSphereDRSVMOverrideParseID(id string) (string, string, error) {
 	parts := strings.SplitN(id, ":", 3)
 	if len(parts) < 2 {
 		return "", "", fmt.Errorf("bad ID %q", id)
@@ -286,10 +286,10 @@ func resourceVSphereDrsVMOverrideParseID(id string) (string, string, error) {
 	return parts[0], parts[1], nil
 }
 
-// resourceVSphereDrsVMOverrideFindEntry attempts to locate an existing DRS VM
+// resourceVSphereDRSVMOverrideFindEntry attempts to locate an existing DRS VM
 // config in a cluster's configuration. It's used by the resource's read
 // functionality and tests. nil is returned if the entry cannot be found.
-func resourceVSphereDrsVMOverrideFindEntry(
+func resourceVSphereDRSVMOverrideFindEntry(
 	cluster *object.ClusterComputeResource,
 	vm *object.VirtualMachine,
 ) (*types.ClusterDrsVmConfigInfo, error) {
@@ -309,53 +309,53 @@ func resourceVSphereDrsVMOverrideFindEntry(
 	return nil, nil
 }
 
-// resourceVSphereDrsVMOverrideObjects handles the fetching of the cluster and
+// resourceVSphereDRSVMOverrideObjects handles the fetching of the cluster and
 // virtual machine depending on what attributes are available:
 // * If the resource ID is available, the data is derived from the ID.
 // * If not, it's derived from the compute_cluster_id and virtual_machine_id
 // attributes.
-func resourceVSphereDrsVMOverrideObjects(
+func resourceVSphereDRSVMOverrideObjects(
 	d *schema.ResourceData,
 	meta interface{},
 ) (*object.ClusterComputeResource, *object.VirtualMachine, error) {
 	if d.Id() != "" {
-		return resourceVSphereDrsVMOverrideObjectsFromID(d, meta)
+		return resourceVSphereDRSVMOverrideObjectsFromID(d, meta)
 	}
-	return resourceVSphereDrsVMOverrideObjectsFromAttributes(d, meta)
+	return resourceVSphereDRSVMOverrideObjectsFromAttributes(d, meta)
 }
 
-func resourceVSphereDrsVMOverrideObjectsFromAttributes(
+func resourceVSphereDRSVMOverrideObjectsFromAttributes(
 	d *schema.ResourceData,
 	meta interface{},
 ) (*object.ClusterComputeResource, *object.VirtualMachine, error) {
-	return resourceVSphereDrsVMOverrideFetchObjects(
+	return resourceVSphereDRSVMOverrideFetchObjects(
 		meta,
 		d.Get("compute_cluster_id").(string),
 		d.Get("virtual_machine_id").(string),
 	)
 }
 
-func resourceVSphereDrsVMOverrideObjectsFromID(
+func resourceVSphereDRSVMOverrideObjectsFromID(
 	d structure.ResourceIDStringer,
 	meta interface{},
 ) (*object.ClusterComputeResource, *object.VirtualMachine, error) {
 	// Note that this function uses structure.ResourceIDStringer to satisfy
 	// interfacer. Adding exceptions in the comments does not seem to work.
 	// Change this back to ResourceData if it's needed in the future.
-	clusterID, vmID, err := resourceVSphereDrsVMOverrideParseID(d.Id())
+	clusterID, vmID, err := resourceVSphereDRSVMOverrideParseID(d.Id())
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return resourceVSphereDrsVMOverrideFetchObjects(meta, clusterID, vmID)
+	return resourceVSphereDRSVMOverrideFetchObjects(meta, clusterID, vmID)
 }
 
-func resourceVSphereDrsVMOverrideFetchObjects(
+func resourceVSphereDRSVMOverrideFetchObjects(
 	meta interface{},
 	clusterID string,
 	vmID string,
 ) (*object.ClusterComputeResource, *object.VirtualMachine, error) {
-	client, err := resourceVSphereDrsVMOverrideClient(meta)
+	client, err := resourceVSphereDRSVMOverrideClient(meta)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -373,7 +373,7 @@ func resourceVSphereDrsVMOverrideFetchObjects(
 	return cluster, vm, nil
 }
 
-func resourceVSphereDrsVMOverrideClient(meta interface{}) (*govmomi.Client, error) {
+func resourceVSphereDRSVMOverrideClient(meta interface{}) (*govmomi.Client, error) {
 	client := meta.(*VSphereClient).vimClient
 	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return nil, err

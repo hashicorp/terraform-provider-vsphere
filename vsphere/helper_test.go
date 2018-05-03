@@ -773,7 +773,7 @@ func testGetComputeClusterProperties(s *terraform.State, resourceName string) (*
 // testGetComputeClusterDRSVMConfig is a convenience method to fetch a VM's DRS
 // override in a (compute) cluster.
 func testGetComputeClusterDRSVMConfig(s *terraform.State, resourceName string) (*types.ClusterDrsVmConfigInfo, error) {
-	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereDrsVMOverrideName, resourceName))
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereDRSVMOverrideName, resourceName))
 	if err != nil {
 		return nil, err
 	}
@@ -782,7 +782,7 @@ func testGetComputeClusterDRSVMConfig(s *terraform.State, resourceName string) (
 		return nil, errors.New("resource ID is empty")
 	}
 
-	clusterID, vmID, err := resourceVSphereDrsVMOverrideParseID(vars.resourceID)
+	clusterID, vmID, err := resourceVSphereDRSVMOverrideParseID(vars.resourceID)
 	if err != nil {
 		return nil, err
 	}
@@ -797,5 +797,5 @@ func testGetComputeClusterDRSVMConfig(s *terraform.State, resourceName string) (
 		return nil, err
 	}
 
-	return resourceVSphereDrsVMOverrideFindEntry(cluster, vm)
+	return resourceVSphereDRSVMOverrideFindEntry(cluster, vm)
 }
