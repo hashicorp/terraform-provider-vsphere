@@ -33,7 +33,7 @@ func TestAccResourceVSphereHAVMOverride_basic(t *testing.T) {
 					testAccResourceVSphereHAVMOverrideMatchBase(
 						string(types.ClusterDasVmSettingsIsolationResponseClusterIsolationResponse),
 						string(types.ClusterDasVmSettingsRestartPriorityClusterRestartPriority),
-						600,
+						-1,
 					),
 					testAccResourceVSphereHAVMOverrideMatchVMCP(
 						string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedUseClusterDefault),
@@ -109,7 +109,7 @@ func TestAccResourceVSphereHAVMOverride_update(t *testing.T) {
 					testAccResourceVSphereHAVMOverrideMatchBase(
 						string(types.ClusterDasVmSettingsIsolationResponseClusterIsolationResponse),
 						string(types.ClusterDasVmSettingsRestartPriorityClusterRestartPriority),
-						600,
+						-1,
 					),
 					testAccResourceVSphereHAVMOverrideMatchVMCP(
 						string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedUseClusterDefault),
@@ -172,7 +172,7 @@ func TestAccResourceVSphereHAVMOverride_import(t *testing.T) {
 					testAccResourceVSphereHAVMOverrideMatchBase(
 						string(types.ClusterDasVmSettingsIsolationResponseClusterIsolationResponse),
 						string(types.ClusterDasVmSettingsRestartPriorityClusterRestartPriority),
-						600,
+						-1,
 					),
 					testAccResourceVSphereHAVMOverrideMatchVMCP(
 						string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedUseClusterDefault),
@@ -220,7 +220,7 @@ func TestAccResourceVSphereHAVMOverride_import(t *testing.T) {
 					testAccResourceVSphereHAVMOverrideMatchBase(
 						string(types.ClusterDasVmSettingsIsolationResponseClusterIsolationResponse),
 						string(types.ClusterDasVmSettingsRestartPriorityClusterRestartPriority),
-						600,
+						-1,
 					),
 					testAccResourceVSphereHAVMOverrideMatchVMCP(
 						string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedUseClusterDefault),

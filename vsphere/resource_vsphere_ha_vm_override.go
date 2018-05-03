@@ -91,8 +91,8 @@ func resourceVSphereHAVMOverride() *schema.Resource {
 			"ha_vm_restart_timeout": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     600,
-				Description: "The maximum time, in seconds, that vSphere HA will wait for the virtual machine to be ready.",
+				Default:     -1,
+				Description: "The maximum time, in seconds, that vSphere HA will wait for the virtual machine to be ready. Use -1 to use the cluster default.",
 			},
 			// Host monitoring - host isolation
 			"ha_host_isolation_response": {

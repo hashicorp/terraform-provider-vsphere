@@ -255,10 +255,11 @@ tuning these options.
 
 * `ha_vm_component_protection` - (Optional) Controls vSphere VM component
   protection for virtual machines in this cluster. Can be one of `enabled` or
-  `disabled`. Default: `enabled`. <sup>[\*](#vsphere-version-requirements)</sup>
+  `disabled`. Default: `enabled`.
+  <sup>[\*](#vsphere-version-requirements)</sup>
 * `ha_datastore_pdl_response` - (Optional) Controls the action to take on
   virtual machines when the cluster has detected a permanent device loss to a
-  relevant datastore. Can be one of disabled, `warning`, or
+  relevant datastore. Can be one of `disabled`, `warning`, or
   `restartAggressive`. Default: `disabled`.
   <sup>[\*](#vsphere-version-requirements)</sup>
 * `ha_datastore_apd_response` - (Optional) Controls the action to take on
