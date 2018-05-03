@@ -749,6 +749,16 @@ func testGetComputeCluster(s *terraform.State, resourceName string) (*object.Clu
 	return clustercomputeresource.FromID(vars.client, vars.resourceID)
 }
 
+// testGetComputeClusterFromDataSource is a convenience method to fetch a
+// compute cluster via the data in a vsphere_compute_cluster data source.
+func testGetComputeClusterFromDataSource(s *terraform.State, resourceName string) (*object.ClusterComputeResource, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("data.%s.%s", resourceVSphereComputeClusterName, resourceName))
+	if err != nil {
+		return nil, err
+	}
+	return clustercomputeresource.FromID(vars.client, vars.resourceID)
+}
+
 // testGetComputeClusterProperties is a convenience method that adds an extra
 // step to testGetComputeCluster to get the properties of a
 // ClusterComputeResource.
@@ -758,4 +768,34 @@ func testGetComputeClusterProperties(s *terraform.State, resourceName string) (*
 		return nil, err
 	}
 	return clustercomputeresource.Properties(cluster)
+}
+
+// testGetComputeClusterDRSVMConfig is a convenience method to fetch a VM's DRS
+// override in a (compute) cluster.
+func testGetComputeClusterDRSVMConfig(s *terraform.State, resourceName string) (*types.ClusterDrsVmConfigInfo, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereDRSVMOverrideName, resourceName))
+	if err != nil {
+		return nil, err
+	}
+
+	if vars.resourceID == "" {
+		return nil, errors.New("resource ID is empty")
+	}
+
+	clusterID, vmID, err := resourceVSphereDRSVMOverrideParseID(vars.resourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	cluster, err := clustercomputeresource.FromID(vars.client, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	vm, err := virtualmachine.FromUUID(vars.client, vmID)
+	if err != nil {
+		return nil, err
+	}
+
+	return resourceVSphereDRSVMOverrideFindEntry(cluster, vm)
 }

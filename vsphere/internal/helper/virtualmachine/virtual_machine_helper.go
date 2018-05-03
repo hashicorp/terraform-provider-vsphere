@@ -50,6 +50,12 @@ func newUUIDNotFoundError(s string) *UUIDNotFoundError {
 	}
 }
 
+// IsUUIDNotFoundError returns true if the error is a UUIDNotFoundError.
+func IsUUIDNotFoundError(err error) bool {
+	_, ok := err.(*UUIDNotFoundError)
+	return ok
+}
+
 // FromUUID locates a virtualMachine by its UUID.
 func FromUUID(client *govmomi.Client, uuid string) (*object.VirtualMachine, error) {
 	log.Printf("[DEBUG] Locating virtual machine with UUID %q", uuid)
