@@ -268,10 +268,10 @@ func resourceVSphereHaVMOverrideUpdate(d *schema.ResourceData, meta interface{})
 		DasVmConfigSpec: []types.ClusterDasVmConfigSpec{
 			{
 				ArrayUpdateSpec: types.ArrayUpdateSpec{
-					// NOTE: ArrayUpdateOperationAdd here replaces existing entries,
-					// versus adding duplicates or "merging" old settings with new ones
-					// that have missing fields.
-					Operation: types.ArrayUpdateOperationAdd,
+					// NOTE: Unlike other overrides, this needs to be an
+					// ArrayUpdateOperationEdit, or else an "parameter incorrect" error
+					// is given.
+					Operation: types.ArrayUpdateOperationEdit,
 				},
 				Info: info,
 			},
@@ -295,7 +295,7 @@ func resourceVSphereHaVMOverrideDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	spec := &types.ClusterConfigSpecEx{
-		DrsVmConfigSpec: []types.ClusterDrsVmConfigSpec{
+		DasVmConfigSpec: []types.ClusterDasVmConfigSpec{
 			{
 				ArrayUpdateSpec: types.ArrayUpdateSpec{
 					Operation: types.ArrayUpdateOperationRemove,

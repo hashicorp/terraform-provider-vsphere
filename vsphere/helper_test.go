@@ -799,3 +799,33 @@ func testGetComputeClusterDRSVMConfig(s *terraform.State, resourceName string) (
 
 	return resourceVSphereDRSVMOverrideFindEntry(cluster, vm)
 }
+
+// testGetComputeClusterHaVMConfig is a convenience method to fetch a VM's HA
+// override in a (compute) cluster.
+func testGetComputeClusterHaVMConfig(s *terraform.State, resourceName string) (*types.ClusterDasVmConfigInfo, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereHaVMOverrideName, resourceName))
+	if err != nil {
+		return nil, err
+	}
+
+	if vars.resourceID == "" {
+		return nil, errors.New("resource ID is empty")
+	}
+
+	clusterID, vmID, err := resourceVSphereHaVMOverrideParseID(vars.resourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	cluster, err := clustercomputeresource.FromID(vars.client, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	vm, err := virtualmachine.FromUUID(vars.client, vmID)
+	if err != nil {
+		return nil, err
+	}
+
+	return resourceVSphereHaVMOverrideFindEntry(cluster, vm)
+}
