@@ -4,6 +4,7 @@ FEATURES:
 
 * **New Data Source:** `vsphere_compute_cluster` [GH-492]
 * **New Resource:** `vsphere_compute_cluster` [GH-487]
+* **New Resource:** `vsphere_drs_vm_override` [GH-498]
 
 IMPROVEMENTS:
 
