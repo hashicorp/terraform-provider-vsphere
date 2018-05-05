@@ -95,6 +95,7 @@ func Provider() terraform.ResourceProvider {
 			"vsphere_distributed_port_group":     resourceVSphereDistributedPortGroup(),
 			"vsphere_distributed_virtual_switch": resourceVSphereDistributedVirtualSwitch(),
 			"vsphere_drs_vm_override":            resourceVSphereDRSVMOverride(),
+			"vsphere_dpm_host_override":          resourceVSphereDPMHostOverride(),
 			"vsphere_file":                       resourceVSphereFile(),
 			"vsphere_folder":                     resourceVSphereFolder(),
 			"vsphere_ha_vm_override":             resourceVSphereHAVMOverride(),
