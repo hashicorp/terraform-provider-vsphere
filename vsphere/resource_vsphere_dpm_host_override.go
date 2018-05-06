@@ -252,19 +252,19 @@ func flattenClusterDpmHostConfigInfo(d *schema.ResourceData, obj *types.ClusterD
 }
 
 // resourceVSphereDPMHostOverrideIDString prints a friendly string for the
-// vsphere_storage_drs_vm_config resource.
+// vsphere_dpm_host_override resource.
 func resourceVSphereDPMHostOverrideIDString(d structure.ResourceIDStringer) string {
 	return structure.ResourceIDString(d, resourceVSphereDPMHostOverrideName)
 }
 
 // resourceVSphereDPMHostOverrideFlattenID makes an ID for the
-// vsphere_storage_drs_vm_config resource.
+// vsphere_dpm_host_override resource.
 func resourceVSphereDPMHostOverrideFlattenID(cluster *object.ClusterComputeResource, host *object.HostSystem) (string, error) {
 	return strings.Join([]string{cluster.Reference().Value, host.Reference().Value}, ":"), nil
 }
 
 // resourceVSphereDPMHostOverrideParseID parses an ID for the
-// vsphere_storage_drs_vm_config and outputs its parts.
+// vsphere_dpm_host_override and outputs its parts.
 func resourceVSphereDPMHostOverrideParseID(id string) (string, string, error) {
 	parts := strings.SplitN(id, ":", 3)
 	if len(parts) < 2 {
