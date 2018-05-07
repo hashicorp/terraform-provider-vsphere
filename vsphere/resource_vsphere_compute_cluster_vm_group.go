@@ -11,21 +11,22 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/clustercomputeresource"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-const resourceVSphereClusterVMGroupName = "vsphere_cluster_vm_group"
+const resourceVSphereComputeClusterVMGroupName = "vsphere_compute_cluster_vm_group"
 
-func resourceVSphereClusterVMGroup() *schema.Resource {
+func resourceVSphereComputeClusterVMGroup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceVSphereClusterVMGroupCreate,
-		Read:   resourceVSphereClusterVMGroupRead,
-		Update: resourceVSphereClusterVMGroupUpdate,
-		Delete: resourceVSphereClusterVMGroupDelete,
+		Create: resourceVSphereComputeClusterVMGroupCreate,
+		Read:   resourceVSphereComputeClusterVMGroupRead,
+		Update: resourceVSphereComputeClusterVMGroupUpdate,
+		Delete: resourceVSphereComputeClusterVMGroupDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceVSphereClusterVMGroupImport,
+			State: resourceVSphereComputeClusterVMGroupImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -51,15 +52,15 @@ func resourceVSphereClusterVMGroup() *schema.Resource {
 	}
 }
 
-func resourceVSphereClusterVMGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Beginning create", resourceVSphereClusterVMGroupIDString(d))
+func resourceVSphereComputeClusterVMGroupCreate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning create", resourceVSphereComputeClusterVMGroupIDString(d))
 
-	cluster, name, err := resourceVSphereClusterVMGroupObjects(d, meta)
+	cluster, name, err := resourceVSphereComputeClusterVMGroupObjects(d, meta)
 	if err != nil {
 		return err
 	}
 
-	info, err := expandClusterVMGroup(d, name)
+	info, err := expandClusterVMGroup(d, meta, name)
 	if err != nil {
 		return err
 	}
@@ -78,25 +79,25 @@ func resourceVSphereClusterVMGroupCreate(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	id, err := resourceVSphereClusterVMGroupFlattenID(cluster, name)
+	id, err := resourceVSphereComputeClusterVMGroupFlattenID(cluster, name)
 	if err != nil {
 		return fmt.Errorf("cannot compute ID of created resource: %s", err)
 	}
 	d.SetId(id)
 
-	log.Printf("[DEBUG] %s: Create finished successfully", resourceVSphereClusterVMGroupIDString(d))
-	return resourceVSphereClusterVMGroupRead(d, meta)
+	log.Printf("[DEBUG] %s: Create finished successfully", resourceVSphereComputeClusterVMGroupIDString(d))
+	return resourceVSphereComputeClusterVMGroupRead(d, meta)
 }
 
-func resourceVSphereClusterVMGroupRead(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Beginning read", resourceVSphereClusterVMGroupIDString(d))
+func resourceVSphereComputeClusterVMGroupRead(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning read", resourceVSphereComputeClusterVMGroupIDString(d))
 
-	cluster, name, err := resourceVSphereClusterVMGroupObjects(d, meta)
+	cluster, name, err := resourceVSphereComputeClusterVMGroupObjects(d, meta)
 	if err != nil {
 		return err
 	}
 
-	info, err := resourceVSphereClusterVMGroupFindEntry(cluster, name)
+	info, err := resourceVSphereComputeClusterVMGroupFindEntry(cluster, name)
 	if err != nil {
 		return err
 	}
@@ -120,23 +121,23 @@ func resourceVSphereClusterVMGroupRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("error setting attribute \"name\": %s", err)
 	}
 
-	if err = flattenClusterVMGroup(d, info); err != nil {
+	if err = flattenClusterVMGroup(d, meta, info); err != nil {
 		return err
 	}
 
-	log.Printf("[DEBUG] %s: Read completed successfully", resourceVSphereClusterVMGroupIDString(d))
+	log.Printf("[DEBUG] %s: Read completed successfully", resourceVSphereComputeClusterVMGroupIDString(d))
 	return nil
 }
 
-func resourceVSphereClusterVMGroupUpdate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Beginning update", resourceVSphereClusterVMGroupIDString(d))
+func resourceVSphereComputeClusterVMGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning update", resourceVSphereComputeClusterVMGroupIDString(d))
 
-	cluster, name, err := resourceVSphereClusterVMGroupObjects(d, meta)
+	cluster, name, err := resourceVSphereComputeClusterVMGroupObjects(d, meta)
 	if err != nil {
 		return err
 	}
 
-	info, err := expandClusterVMGroup(d, name)
+	info, err := expandClusterVMGroup(d, meta, name)
 	if err != nil {
 		return err
 	}
@@ -155,14 +156,14 @@ func resourceVSphereClusterVMGroupUpdate(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	log.Printf("[DEBUG] %s: Update finished successfully", resourceVSphereClusterVMGroupIDString(d))
-	return resourceVSphereClusterVMGroupRead(d, meta)
+	log.Printf("[DEBUG] %s: Update finished successfully", resourceVSphereComputeClusterVMGroupIDString(d))
+	return resourceVSphereComputeClusterVMGroupRead(d, meta)
 }
 
-func resourceVSphereClusterVMGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Beginning delete", resourceVSphereClusterVMGroupIDString(d))
+func resourceVSphereComputeClusterVMGroupDelete(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning delete", resourceVSphereComputeClusterVMGroupIDString(d))
 
-	cluster, name, err := resourceVSphereClusterVMGroupObjects(d, meta)
+	cluster, name, err := resourceVSphereComputeClusterVMGroupObjects(d, meta)
 	if err != nil {
 		return err
 	}
@@ -182,11 +183,11 @@ func resourceVSphereClusterVMGroupDelete(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	log.Printf("[DEBUG] %s: Deleted successfully", resourceVSphereClusterVMGroupIDString(d))
+	log.Printf("[DEBUG] %s: Deleted successfully", resourceVSphereComputeClusterVMGroupIDString(d))
 	return nil
 }
 
-func resourceVSphereClusterVMGroupImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceVSphereComputeClusterVMGroupImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	var data map[string]string
 	if err := json.Unmarshal([]byte(d.Id()), &data); err != nil {
 		return nil, err
@@ -200,7 +201,7 @@ func resourceVSphereClusterVMGroupImport(d *schema.ResourceData, meta interface{
 		return nil, errors.New("missing name in input data")
 	}
 
-	client, err := resourceVSphereClusterVMGroupClient(meta)
+	client, err := resourceVSphereComputeClusterVMGroupClient(meta)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +211,7 @@ func resourceVSphereClusterVMGroupImport(d *schema.ResourceData, meta interface{
 		return nil, fmt.Errorf("cannot locate cluster %q: %s", clusterPath, err)
 	}
 
-	info, err := resourceVSphereClusterVMGroupFindEntry(cluster, name)
+	info, err := resourceVSphereComputeClusterVMGroupFindEntry(cluster, name)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +220,7 @@ func resourceVSphereClusterVMGroupImport(d *schema.ResourceData, meta interface{
 		return nil, fmt.Errorf("cluster group entry %q does not exist in cluster %q", name, cluster.Name())
 	}
 
-	id, err := resourceVSphereClusterVMGroupFlattenID(cluster, name)
+	id, err := resourceVSphereComputeClusterVMGroupFlattenID(cluster, name)
 	if err != nil {
 		return nil, fmt.Errorf("cannot compute ID of imported resource: %s", err)
 	}
@@ -229,46 +230,71 @@ func resourceVSphereClusterVMGroupImport(d *schema.ResourceData, meta interface{
 
 // expandClusterVMGroup reads certain ResourceData keys and returns a
 // ClusterVmGroup.
-func expandClusterVMGroup(d *schema.ResourceData, name string) (*types.ClusterVmGroup, error) {
+func expandClusterVMGroup(d *schema.ResourceData, meta interface{}, name string) (*types.ClusterVmGroup, error) {
+	client, err := resourceVSphereComputeClusterVMGroupClient(meta)
+	if err != nil {
+		return nil, err
+	}
+
+	results, err := virtualmachine.MOIDsForUUIDs(
+		client,
+		structure.SliceInterfacesToStrings(d.Get("virtual_machine_ids").(*schema.Set).List()),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	obj := &types.ClusterVmGroup{
 		ClusterGroupInfo: types.ClusterGroupInfo{
 			Name:        name,
 			UserCreated: structure.BoolPtr(true),
 		},
-		Vm: structure.SliceInterfacesToManagedObjectReferences(d.Get("virtual_machine_ids").(*schema.Set).List(), "VirtualMachine"),
+		Vm: results.ManagedObjectReferences(),
 	}
-
 	return obj, nil
 }
 
 // flattenClusterVmGroup saves a ClusterVmGroup into the supplied ResourceData.
-func flattenClusterVMGroup(d *schema.ResourceData, obj *types.ClusterVmGroup) error {
+func flattenClusterVMGroup(d *schema.ResourceData, meta interface{}, obj *types.ClusterVmGroup) error {
+	client, err := resourceVSphereComputeClusterVMGroupClient(meta)
+	if err != nil {
+		return err
+	}
+
+	results, err := virtualmachine.UUIDsForManagedObjectReferences(
+		client,
+		obj.Vm,
+	)
+	if err != nil {
+		return err
+	}
+
 	var vmIDs []string
 	for _, v := range obj.Vm {
 		vmIDs = append(vmIDs, v.Value)
 	}
 
 	return structure.SetBatch(d, map[string]interface{}{
-		"virtual_machine_ids": vmIDs,
+		"virtual_machine_ids": results.UUIDs(),
 	})
 }
 
-// resourceVSphereClusterVMGroupIDString prints a friendly string for the
+// resourceVSphereComputeClusterVMGroupIDString prints a friendly string for the
 // vsphere_cluster_vm_group resource.
-func resourceVSphereClusterVMGroupIDString(d structure.ResourceIDStringer) string {
-	return structure.ResourceIDString(d, resourceVSphereClusterVMGroupName)
+func resourceVSphereComputeClusterVMGroupIDString(d structure.ResourceIDStringer) string {
+	return structure.ResourceIDString(d, resourceVSphereComputeClusterVMGroupName)
 }
 
-// resourceVSphereClusterVMGroupFlattenID makes an ID for the
+// resourceVSphereComputeClusterVMGroupFlattenID makes an ID for the
 // vsphere_cluster_vm_group resource.
-func resourceVSphereClusterVMGroupFlattenID(cluster *object.ClusterComputeResource, name string) (string, error) {
+func resourceVSphereComputeClusterVMGroupFlattenID(cluster *object.ClusterComputeResource, name string) (string, error) {
 	clusterID := cluster.Reference().Value
 	return strings.Join([]string{clusterID, name}, ":"), nil
 }
 
-// resourceVSphereClusterVMGroupParseID parses an ID for the
+// resourceVSphereComputeClusterVMGroupParseID parses an ID for the
 // vsphere_cluster_vm_group and outputs its parts.
-func resourceVSphereClusterVMGroupParseID(id string) (string, string, error) {
+func resourceVSphereComputeClusterVMGroupParseID(id string) (string, string, error) {
 	parts := strings.SplitN(id, ":", 3)
 	if len(parts) < 2 {
 		return "", "", fmt.Errorf("bad ID %q", id)
@@ -276,10 +302,10 @@ func resourceVSphereClusterVMGroupParseID(id string) (string, string, error) {
 	return parts[0], parts[1], nil
 }
 
-// resourceVSphereClusterVMGroupFindEntry attempts to locate an existing DRS VM
+// resourceVSphereComputeClusterVMGroupFindEntry attempts to locate an existing DRS VM
 // config in a cluster's configuration. It's used by the resource's read
 // functionality and tests. nil is returned if the entry cannot be found.
-func resourceVSphereClusterVMGroupFindEntry(
+func resourceVSphereComputeClusterVMGroupFindEntry(
 	cluster *object.ClusterComputeResource,
 	name string,
 ) (*types.ClusterVmGroup, error) {
@@ -302,58 +328,58 @@ func resourceVSphereClusterVMGroupFindEntry(
 	return nil, nil
 }
 
-// resourceVSphereClusterVMGroupObjects handles the fetching of the cluster and
+// resourceVSphereComputeClusterVMGroupObjects handles the fetching of the cluster and
 // group name depending on what attributes are available:
 // * If the resource ID is available, the data is derived from the ID.
 // * If not, it's derived from the compute_cluster_id and name attributes.
-func resourceVSphereClusterVMGroupObjects(
+func resourceVSphereComputeClusterVMGroupObjects(
 	d *schema.ResourceData,
 	meta interface{},
 ) (*object.ClusterComputeResource, string, error) {
 	if d.Id() != "" {
-		return resourceVSphereClusterVMGroupObjectsFromID(d, meta)
+		return resourceVSphereComputeClusterVMGroupObjectsFromID(d, meta)
 	}
-	return resourceVSphereClusterVMGroupObjectsFromAttributes(d, meta)
+	return resourceVSphereComputeClusterVMGroupObjectsFromAttributes(d, meta)
 }
 
-func resourceVSphereClusterVMGroupObjectsFromAttributes(
+func resourceVSphereComputeClusterVMGroupObjectsFromAttributes(
 	d *schema.ResourceData,
 	meta interface{},
 ) (*object.ClusterComputeResource, string, error) {
-	return resourceVSphereClusterVMGroupFetchObjects(
+	return resourceVSphereComputeClusterVMGroupFetchObjects(
 		meta,
 		d.Get("compute_cluster_id").(string),
 		d.Get("name").(string),
 	)
 }
 
-func resourceVSphereClusterVMGroupObjectsFromID(
+func resourceVSphereComputeClusterVMGroupObjectsFromID(
 	d structure.ResourceIDStringer,
 	meta interface{},
 ) (*object.ClusterComputeResource, string, error) {
 	// Note that this function uses structure.ResourceIDStringer to satisfy
 	// interfacer. Adding exceptions in the comments does not seem to work.
 	// Change this back to ResourceData if it's needed in the future.
-	clusterID, name, err := resourceVSphereClusterVMGroupParseID(d.Id())
+	clusterID, name, err := resourceVSphereComputeClusterVMGroupParseID(d.Id())
 	if err != nil {
 		return nil, "", err
 	}
 
-	return resourceVSphereClusterVMGroupFetchObjects(meta, clusterID, name)
+	return resourceVSphereComputeClusterVMGroupFetchObjects(meta, clusterID, name)
 }
 
-// resourceVSphereClusterVMGroupFetchObjects fetches the "objects" for a
+// resourceVSphereComputeClusterVMGroupFetchObjects fetches the "objects" for a
 // cluster VM group. This is currently just the cluster object as the name of
 // the group is a static value and a pass-through - this is to keep its
 // workflow consistent with other cluster-dependent resources that derive from
 // ArrayUpdateSpec that have managed object as keys, such as VM and host
 // overrides.
-func resourceVSphereClusterVMGroupFetchObjects(
+func resourceVSphereComputeClusterVMGroupFetchObjects(
 	meta interface{},
 	clusterID string,
 	name string,
 ) (*object.ClusterComputeResource, string, error) {
-	client, err := resourceVSphereClusterVMGroupClient(meta)
+	client, err := resourceVSphereComputeClusterVMGroupClient(meta)
 	if err != nil {
 		return nil, "", err
 	}
@@ -366,7 +392,7 @@ func resourceVSphereClusterVMGroupFetchObjects(
 	return cluster, name, nil
 }
 
-func resourceVSphereClusterVMGroupClient(meta interface{}) (*govmomi.Client, error) {
+func resourceVSphereComputeClusterVMGroupClient(meta interface{}) (*govmomi.Client, error) {
 	client := meta.(*VSphereClient).vimClient
 	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return nil, err
