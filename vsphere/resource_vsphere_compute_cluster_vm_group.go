@@ -269,11 +269,6 @@ func flattenClusterVMGroup(d *schema.ResourceData, meta interface{}, obj *types.
 		return err
 	}
 
-	var vmIDs []string
-	for _, v := range obj.Vm {
-		vmIDs = append(vmIDs, v.Value)
-	}
-
 	return structure.SetBatch(d, map[string]interface{}{
 		"virtual_machine_ids": results.UUIDs(),
 	})
