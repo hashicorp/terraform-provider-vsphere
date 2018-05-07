@@ -45,7 +45,7 @@ func resourceVSphereComputeClusterVMGroup() *schema.Resource {
 			"virtual_machine_ids": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "The managed object IDs of the virtual machines in this group.",
+				Description: "The UUIDs of the virtual machines in this group.",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 		},
