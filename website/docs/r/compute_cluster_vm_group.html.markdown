@@ -50,11 +50,6 @@ data "vsphere_compute_cluster" "cluster" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
-data "vsphere_host" "host" {
-  name          = "esxi1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
 data "vsphere_network" "network" {
   name          = "network1"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
