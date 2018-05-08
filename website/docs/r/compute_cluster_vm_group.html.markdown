@@ -30,7 +30,8 @@ resources. See the individual resource documentation pages for more information.
 The example below creates two virtual machines in a cluster using the
 [`vsphere_virtual_machine`][tf-vsphere-vm-resource] resource, creating the
 virtual machine in the cluster looked up by the
-[`vsphere_compute_cluster`][tf-vsphere-cluster-data-source] data source. It then creates a group from these two virtual machines.
+[`vsphere_compute_cluster`][tf-vsphere-cluster-data-source] data source. It
+then creates a group from these two virtual machines.
 
 [tf-vsphere-vm-resource]: /docs/providers/vsphere/r/virtual_machine.html
 
@@ -117,7 +118,7 @@ will be returned. An example is below:
 [docs-import]: https://www.terraform.io/docs/import/index.html
 
 ```
-terraform import vsphere_compute_cluster_vm_group.drs_vm_override \
+terraform import vsphere_compute_cluster_vm_group.cluster_vm_group \
   '{"compute_cluster_path": "/dc1/host/cluster1", \
   "name": "terraform-test-cluster-vm-group"}'
 ```
