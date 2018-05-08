@@ -6,7 +6,7 @@ description: |-
   Provides a VMware vSphere cluster virtual machine group. This can be used to manage groups of virtual machines for relevant rules in a cluster.
 ---
 
-# vsphere\_compute\_cluster\_vm\_group
+# vsphere\_compute\_cluster\_host\_group
 
 The `vsphere_compute_cluster_host_group` resource can be used to manage groups
 of hosts in a cluster, either created by the
@@ -18,8 +18,8 @@ by the [`vsphere_compute_cluster`][tf-vsphere-cluster-data-source] data source.
 
 This resource mainly serves as an input to the
 [`vsphere_compute_cluster_vm_host_rule`][tf-vsphere-cluster-vm-host-rule-resource]
-resource - see the documentation for the resource for further information on
-its usage.
+resource - see the documentation for that resource for further details on how
+to use host groups.
 
 [tf-vsphere-cluster-vm-host-rule-resource]: /docs/providers/vsphere/d/compute_cluster_vm_host_rule.html
 
@@ -69,7 +69,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 
 resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
   name                = "terraform-test-cluster-host-group"
-  compute_cluster_id  = "${data.vsphere_compute_cluster.cluster.id}"
+  compute_cluster_id  = "${vsphere_compute_cluster.compute_cluster.id}"
   host_system_ids     = ["${data.vsphere_host.hosts.*.id}"]
 }
 ```
@@ -78,7 +78,7 @@ resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the VM group. This must be unique in the
+* `name` - (Required) The name of the host group. This must be unique in the
   cluster. Forces a new resource if changed.
 * `compute_cluster_id` - (Required) The [managed object reference
   ID][docs-about-morefs] of the cluster to put the group in.  Forces a new
@@ -86,8 +86,15 @@ The following arguments are supported:
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
-* `host_system_ids` - (Optional) The [managed object ID][docs-about-morefs] of
+* `host_system_ids` - (Optional) The [managed object IDs][docs-about-morefs] of
   the hosts to put in the cluster.
+
+~> **NOTE:** The namespace for cluster names on this resource (defined by the
+[`name`](#name) argument) is shared with the
+[`vsphere_compute_cluster_vm_group`][tf-vsphere-cluster-vm-group-resource]
+resource. Make sure your names are unique across both resources.
+
+[tf-vsphere-cluster-vm-group-resource]: /docs/providers/vsphere/r/compute_cluster_vm_group.html
 
 ## Attribute Reference
 

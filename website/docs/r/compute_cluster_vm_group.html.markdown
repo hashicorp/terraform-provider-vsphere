@@ -102,6 +102,13 @@ The following arguments are supported:
 * `virtual_machine_ids` - (Required) The UUIDs of the virtual machines in this
   group.
 
+~> **NOTE:** The namespace for cluster names on this resource (defined by the
+[`name`](#name) argument) is shared with the
+[`vsphere_compute_cluster_host_group`][tf-vsphere-cluster-host-group-resource]
+resource. Make sure your names are unique across both resources.
+
+[tf-vsphere-cluster-host-group-resource]: /docs/providers/vsphere/r/compute_cluster_host_group.html
+
 ## Attribute Reference
 
 The only attribute this resource exports is the `id` of the resource, which is
