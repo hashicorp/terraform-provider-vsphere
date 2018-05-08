@@ -68,7 +68,7 @@ func resourceVSphereComputeClusterVMHostRule() *schema.Resource {
 			"mandatory": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "When enabled, prevents any virtual machine operations that may violate this rule.",
+				Description: "When true, prevents any virtual machine operations that may violate this rule.",
 			},
 		},
 	}
