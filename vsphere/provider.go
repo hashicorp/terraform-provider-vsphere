@@ -97,6 +97,7 @@ func Provider() terraform.ResourceProvider {
 			"vsphere_drs_vm_override":            resourceVSphereDRSVMOverride(),
 			"vsphere_file":                       resourceVSphereFile(),
 			"vsphere_folder":                     resourceVSphereFolder(),
+			"vsphere_ha_vm_override":             resourceVSphereHAVMOverride(),
 			"vsphere_host_port_group":            resourceVSphereHostPortGroup(),
 			"vsphere_host_virtual_switch":        resourceVSphereHostVirtualSwitch(),
 			"vsphere_license":                    resourceVSphereLicense(),

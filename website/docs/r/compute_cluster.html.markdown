@@ -217,7 +217,7 @@ ensure that any configured settings work correctly. For a full list, see the
 * `ha_host_monitoring` - (Optional) Global setting that controls whether
   vSphere HA remediates virtual machines on host failure. Can be one of `enabled`
   or `disabled`. Default: `enabled`.
-* `ha_default_vm_restart_priority` - (Optional) The default restart priority
+* `ha_vm_restart_priority` - (Optional) The default restart priority
   for affected virtual machines when vSphere detects a host failure. Can be one
   of `lowest`, `low`, `medium`, `high`, or `highest`. Default: `medium`.
 * `ha_vm_dependency_restart_condition` - (Optional) The condition used to
@@ -230,7 +230,7 @@ ensure that any configured settings work correctly. For a full list, see the
 * `ha_vm_restart_additional_delay` - (Optional) Additional delay in seconds
   after ready condition is met. A VM is considered ready at this point.
   Default: `0` (no delay). <sup>[\*](#vsphere-version-requirements)</sup>
-* `ha_default_vm_restart_timeout` - (Optional) The maximum time, in seconds,
+* `ha_vm_restart_timeout` - (Optional) The maximum time, in seconds,
   that vSphere HA will wait for virtual machines in one priority to be ready
   before proceeding with the next priority. Default: `600` (10 minutes).
   <sup>[\*](#vsphere-version-requirements)</sup>
@@ -255,10 +255,11 @@ tuning these options.
 
 * `ha_vm_component_protection` - (Optional) Controls vSphere VM component
   protection for virtual machines in this cluster. Can be one of `enabled` or
-  `disabled`. Default: `enabled`. <sup>[\*](#vsphere-version-requirements)</sup>
+  `disabled`. Default: `enabled`.
+  <sup>[\*](#vsphere-version-requirements)</sup>
 * `ha_datastore_pdl_response` - (Optional) Controls the action to take on
   virtual machines when the cluster has detected a permanent device loss to a
-  relevant datastore. Can be one of disabled, `warning`, or
+  relevant datastore. Can be one of `disabled`, `warning`, or
   `restartAggressive`. Default: `disabled`.
   <sup>[\*](#vsphere-version-requirements)</sup>
 * `ha_datastore_apd_response` - (Optional) Controls the action to take on
@@ -515,7 +516,7 @@ These settings require vSphere 6.5 or higher:
   `resourcePercentage` or `slotPolicy`. Permitted in all versions under
   `failoverHosts`)
 * [`ha_admission_control_resource_percentage_auto_compute`](#ha_admission_control_resource_percentage_auto_compute)
-* [`ha_default_vm_restart_timeout`](#ha_default_vm_restart_timeout)
+* [`ha_vm_restart_timeout`](#ha_vm_restart_timeout)
 * [`ha_vm_dependency_restart_condition`](#ha_vm_dependency_restart_condition)
 * [`ha_vm_restart_additional_delay`](#ha_vm_restart_additional_delay)
 * [`proactive_ha_automation_level`](#proactive_ha_automation_level)
