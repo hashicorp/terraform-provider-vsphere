@@ -919,3 +919,28 @@ func testGetComputeClusterHostGroup(s *terraform.State, resourceName string) (*t
 
 	return resourceVSphereComputeClusterHostGroupFindEntry(cluster, name)
 }
+
+// testGetComputeClusterVMHostRule is a convenience method to fetch a VM/host
+// rule from a (compute) cluster.
+func testGetComputeClusterVMHostRule(s *terraform.State, resourceName string) (*types.ClusterVmHostRuleInfo, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereComputeClusterVMHostRuleName, resourceName))
+	if err != nil {
+		return nil, err
+	}
+
+	if vars.resourceID == "" {
+		return nil, errors.New("resource ID is empty")
+	}
+
+	clusterID, name, err := resourceVSphereComputeClusterVMHostRuleParseID(vars.resourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	cluster, err := clustercomputeresource.FromID(vars.client, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	return resourceVSphereComputeClusterVMHostRuleFindEntry(cluster, name)
+}

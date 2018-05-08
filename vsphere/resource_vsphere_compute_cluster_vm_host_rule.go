@@ -17,7 +17,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-const resourceVSphereComputeClusterVMHostRuleName = "vsphere_compute_cluster_vm_host_group"
+const resourceVSphereComputeClusterVMHostRuleName = "vsphere_compute_cluster_vm_host_rule"
 
 func resourceVSphereComputeClusterVMHostRule() *schema.Resource {
 	return &schema.Resource{
@@ -153,7 +153,7 @@ func resourceVSphereComputeClusterVMHostRuleRead(d *schema.ResourceData, meta in
 func resourceVSphereComputeClusterVMHostRuleUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] %s: Beginning update", resourceVSphereComputeClusterVMHostRuleIDString(d))
 
-	cluster, _, err := resourceVSphereComputeClusterVMHostRuleObjects(d, meta)
+	cluster, key, err := resourceVSphereComputeClusterVMHostRuleObjects(d, meta)
 	if err != nil {
 		return err
 	}
@@ -162,6 +162,8 @@ func resourceVSphereComputeClusterVMHostRuleUpdate(d *schema.ResourceData, meta 
 	if err != nil {
 		return err
 	}
+	info.Key = key
+
 	spec := &types.ClusterConfigSpecEx{
 		RulesSpec: []types.ClusterRuleSpec{
 			{
