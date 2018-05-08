@@ -829,3 +829,43 @@ func testGetComputeClusterHaVMConfig(s *terraform.State, resourceName string) (*
 
 	return resourceVSphereHAVMOverrideFindEntry(cluster, vm)
 }
+
+// testGetComputeClusterDPMHostConfig is a convenience method to fetch a host's
+// DPM override in a (compute) cluster.
+func testGetComputeClusterDPMHostConfig(s *terraform.State, resourceName string) (*types.ClusterDpmHostConfigInfo, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereDPMHostOverrideName, resourceName))
+	if err != nil {
+		return nil, err
+	}
+
+	if vars.resourceID == "" {
+		return nil, errors.New("resource ID is empty")
+	}
+
+	clusterID, hostID, err := resourceVSphereDPMHostOverrideParseID(vars.resourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	cluster, err := clustercomputeresource.FromID(vars.client, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	host, err := hostsystem.FromID(vars.client, hostID)
+	if err != nil {
+		return nil, err
+	}
+
+	return resourceVSphereDPMHostOverrideFindEntry(cluster, host)
+}
+
+// testGetHostFromDataSource is a convenience method to fetch a host via the
+// data in a vsphere_host data source.
+func testGetHostFromDataSource(s *terraform.State, resourceName string) (*object.HostSystem, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("data.vsphere_host.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+	return hostsystem.FromID(vars.client, vars.resourceID)
+}
