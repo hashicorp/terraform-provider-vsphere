@@ -235,7 +235,7 @@ func expandClusterHostGroup(d *schema.ResourceData, name string) (*types.Cluster
 			Name:        name,
 			UserCreated: structure.BoolPtr(true),
 		},
-		Host: structure.SliceInterfacesToManagedObjectReferences(d.Get("host_system_ids").(*schema.Set).List(), "VirtualMachine"),
+		Host: structure.SliceInterfacesToManagedObjectReferences(d.Get("host_system_ids").(*schema.Set).List(), "HostSystem"),
 	}
 	return obj, nil
 }
