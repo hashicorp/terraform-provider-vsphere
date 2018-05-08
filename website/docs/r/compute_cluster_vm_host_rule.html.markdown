@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_compute_cluster_vm_host_rule"
-sidebar_current: "docs-vsphere-resource-compute-compute-cluster-vm-host-rule"
+sidebar_current: "docs-vsphere-resource-compute-cluster-vm-host-rule"
 description: |-
   Provides a VMware vSphere cluster VM/host rule. This can be used to manage VM-to-host affinity and anti-affinity rules.
 ---

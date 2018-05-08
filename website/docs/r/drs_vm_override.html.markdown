@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_drs_vm_override"
-sidebar_current: "docs-vsphere-resource-storage-storage-drs-vm-override"
+sidebar_current: "docs-vsphere-resource-compute-drs-vm-override"
 description: |-
   Provides a VMware vSphere DRS virtual machine override resource. This can be used to override DRS settings in a cluster.
 ---

@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_ha_vm_override"
-sidebar_current: "docs-vsphere-resource-storage-storage-drs-vm-override"
+sidebar_current: "docs-vsphere-resource-compute-ha-vm-override"
 description: |-
   Provides a VMware vSphere HA virtual machine override resource. This can be used to override high availability settings in a cluster.
 ---

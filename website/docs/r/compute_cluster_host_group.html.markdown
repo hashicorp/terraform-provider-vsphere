@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_compute_cluster_host_group"
-sidebar_current: "docs-vsphere-resource-storage-storage-drs-vm-override"
+sidebar_current: "docs-vsphere-resource-compute-cluster-host-group"
 description: |-
   Provides a VMware vSphere cluster virtual machine group. This can be used to manage groups of virtual machines for relevant rules in a cluster.
 ---

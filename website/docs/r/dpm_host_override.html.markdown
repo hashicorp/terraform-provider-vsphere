@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_dpm_host_override"
-sidebar_current: "docs-vsphere-resource-storage-storage-drs-vm-override"
+sidebar_current: "docs-vsphere-resource-compute-dpm-host-override"
 description: |-
   Provides a VMware vSphere DPM host override resource. This can be used to override power management settings for a host in a cluster.
 ---
