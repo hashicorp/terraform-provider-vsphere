@@ -253,20 +253,20 @@ func flattenClusterHostGroup(d *schema.ResourceData, obj *types.ClusterHostGroup
 }
 
 // resourceVSphereComputeClusterHostGroupIDString prints a friendly string for the
-// vsphere_cluster_vm_group resource.
+// vsphere_cluster_host_group resource.
 func resourceVSphereComputeClusterHostGroupIDString(d structure.ResourceIDStringer) string {
 	return structure.ResourceIDString(d, resourceVSphereComputeClusterHostGroupName)
 }
 
 // resourceVSphereComputeClusterHostGroupFlattenID makes an ID for the
-// vsphere_cluster_vm_group resource.
+// vsphere_cluster_host_group resource.
 func resourceVSphereComputeClusterHostGroupFlattenID(cluster *object.ClusterComputeResource, name string) (string, error) {
 	clusterID := cluster.Reference().Value
 	return strings.Join([]string{clusterID, name}, ":"), nil
 }
 
 // resourceVSphereComputeClusterHostGroupParseID parses an ID for the
-// vsphere_cluster_vm_group and outputs its parts.
+// vsphere_cluster_host_group and outputs its parts.
 func resourceVSphereComputeClusterHostGroupParseID(id string) (string, string, error) {
 	parts := strings.SplitN(id, ":", 3)
 	if len(parts) < 2 {
@@ -275,9 +275,10 @@ func resourceVSphereComputeClusterHostGroupParseID(id string) (string, string, e
 	return parts[0], parts[1], nil
 }
 
-// resourceVSphereComputeClusterHostGroupFindEntry attempts to locate an existing DRS VM
-// config in a cluster's configuration. It's used by the resource's read
-// functionality and tests. nil is returned if the entry cannot be found.
+// resourceVSphereComputeClusterHostGroupFindEntry attempts to locate an
+// existing host group in a cluster's configuration. It's used by the
+// resource's read functionality and tests. nil is returned if the entry cannot
+// be found.
 func resourceVSphereComputeClusterHostGroupFindEntry(
 	cluster *object.ClusterComputeResource,
 	name string,
