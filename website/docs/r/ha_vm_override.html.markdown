@@ -18,6 +18,9 @@ For more information on vSphere HA, see [this page][ref-vsphere-ha-clusters].
 
 [ref-vsphere-ha-clusters]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.avail.doc/GUID-5432CA24-14F1-44E3-87FB-61D937831CF6.html
 
+~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
+connections.
+
 ## Example Usage
 
 The example below creates a virtual machine in a cluster using the

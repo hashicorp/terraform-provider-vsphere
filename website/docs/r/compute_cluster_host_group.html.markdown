@@ -23,6 +23,11 @@ to use host groups.
 
 [tf-vsphere-cluster-vm-host-rule-resource]: /docs/providers/vsphere/d/compute_cluster_vm_host_rule.html
 
+~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
+connections.
+
+~> **NOTE:** vSphere DRS requires a vSphere Enterprise Plus license.
+
 ## Example Usage
 
 The example below is the exact same configuration as the

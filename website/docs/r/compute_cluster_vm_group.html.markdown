@@ -25,6 +25,11 @@ resources. See the individual resource documentation pages for more information.
 [tf-vsphere-cluster-vm-dependency-rule-resource]: /docs/providers/vsphere/d/compute_cluster_vm_dependency_rule.html
 [tf-vsphere-cluster-vm-host-rule-resource]: /docs/providers/vsphere/d/compute_cluster_vm_host_rule.html
 
+~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
+connections.
+
+~> **NOTE:** vSphere DRS requires a vSphere Enterprise Plus license.
+
 ## Example Usage
 
 The example below creates two virtual machines in a cluster using the

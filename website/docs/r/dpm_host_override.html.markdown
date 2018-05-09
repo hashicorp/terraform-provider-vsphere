@@ -18,6 +18,11 @@ page][ref-vsphere-cluster-dpm].
 
 [ref-vsphere-cluster-dpm]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.resmgmt.doc/GUID-5E5E349A-4644-4C9C-B434-1C0243EBDC80.html
 
+~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
+connections.
+
+~> **NOTE:** vSphere DRS requires a vSphere Enterprise Plus license.
+
 ## Example Usage
 
 The following example creates a compute cluster comprised of three hosts,
