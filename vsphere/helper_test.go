@@ -969,3 +969,56 @@ func testGetComputeClusterVMDependencyRule(s *terraform.State, resourceName stri
 
 	return resourceVSphereComputeClusterVMDependencyRuleFindEntry(cluster, name)
 }
+
+// testGetComputeClusterVMAffinityRule is a convenience method to fetch a VM
+// affinity rule from a (compute) cluster.
+func testGetComputeClusterVMAffinityRule(s *terraform.State, resourceName string) (*types.ClusterAffinityRuleSpec, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereComputeClusterVMAffinityRuleName, resourceName))
+	if err != nil {
+		return nil, err
+	}
+
+	if vars.resourceID == "" {
+		return nil, errors.New("resource ID is empty")
+	}
+
+	clusterID, name, err := resourceVSphereComputeClusterVMAffinityRuleParseID(vars.resourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	cluster, err := clustercomputeresource.FromID(vars.client, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	return resourceVSphereComputeClusterVMAffinityRuleFindEntry(cluster, name)
+}
+
+// testGetComputeClusterVMAntiAffinityRule is a convenience method to fetch a
+// VM anti-affinity rule from a (compute) cluster.
+func testGetComputeClusterVMAntiAffinityRule(s *terraform.State, resourceName string) (*types.ClusterAntiAffinityRuleSpec, error) {
+	vars, err := testClientVariablesForResource(
+		s,
+		fmt.Sprintf("%s.%s", resourceVSphereComputeClusterVMAntiAffinityRuleName, resourceName),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if vars.resourceID == "" {
+		return nil, errors.New("resource ID is empty")
+	}
+
+	clusterID, name, err := resourceVSphereComputeClusterVMAntiAffinityRuleParseID(vars.resourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	cluster, err := clustercomputeresource.FromID(vars.client, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	return resourceVSphereComputeClusterVMAntiAffinityRuleFindEntry(cluster, name)
+}
