@@ -120,7 +120,7 @@ and require vCenter.
 The following settings control cluster membership or tune how hosts are managed
 within the cluster itself by Terraform.
 
-* `host_system_ids` - (Optional) The [managed object ID][docs-about-morefs] of
+* `host_system_ids` - (Optional) The [managed object IDs][docs-about-morefs] of
   the hosts to put in the cluster.
 * `host_cluster_exit_timeout` - The timeout for each host maintenance mode
   operation when removing hosts from a cluster. The value is specified in

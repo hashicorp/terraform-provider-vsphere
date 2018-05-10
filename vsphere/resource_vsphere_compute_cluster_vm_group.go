@@ -297,9 +297,9 @@ func resourceVSphereComputeClusterVMGroupParseID(id string) (string, string, err
 	return parts[0], parts[1], nil
 }
 
-// resourceVSphereComputeClusterVMGroupFindEntry attempts to locate an existing DRS VM
-// config in a cluster's configuration. It's used by the resource's read
-// functionality and tests. nil is returned if the entry cannot be found.
+// resourceVSphereComputeClusterVMGroupFindEntry attempts to locate an existing
+// VM group config in a cluster's configuration. It's used by the resource's
+// read functionality and tests. nil is returned if the entry cannot be found.
 func resourceVSphereComputeClusterVMGroupFindEntry(
 	cluster *object.ClusterComputeResource,
 	name string,

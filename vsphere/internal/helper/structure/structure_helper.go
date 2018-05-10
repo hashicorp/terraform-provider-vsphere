@@ -47,13 +47,26 @@ func SliceStringsToInterfaces(s []string) []interface{} {
 }
 
 // SliceInterfacesToManagedObjectReferences converts an interface slice into a
-// slice of ManagedObjectReferences with the type of t
+// slice of ManagedObjectReferences with the type of t.
 func SliceInterfacesToManagedObjectReferences(s []interface{}, t string) []types.ManagedObjectReference {
 	var d []types.ManagedObjectReference
 	for _, v := range s {
 		d = append(d, types.ManagedObjectReference{
 			Type:  t,
 			Value: v.(string),
+		})
+	}
+	return d
+}
+
+// SliceStringsToManagedObjectReferences converts a string slice into a slice
+// of ManagedObjectReferences with the type of t.
+func SliceStringsToManagedObjectReferences(s []string, t string) []types.ManagedObjectReference {
+	var d []types.ManagedObjectReference
+	for _, v := range s {
+		d = append(d, types.ManagedObjectReference{
+			Type:  t,
+			Value: v,
 		})
 	}
 	return d
