@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/vmware/govmomi/find"
+	"github.com/vmware/govmomi/object"
 	"golang.org/x/net/context"
 )
 
@@ -43,6 +45,44 @@ func TestAccVSphereVirtualDisk_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckVSphereVirtuaDiskConfig_basic(rString, initTypeOpt, adapterTypeOpt, datacenterOpt, datastoreOpt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccVSphereVirtualDisk_withParents(t *testing.T) {
+	var datacenterOpt string
+	var datastoreOpt string
+	var initTypeOpt string
+	var adapterTypeOpt string
+
+	rString := acctest.RandString(5)
+
+	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
+		datacenterOpt = v
+	}
+	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
+		datastoreOpt = v
+	}
+	if v := os.Getenv("VSPHERE_INIT_TYPE"); v != "" {
+		initTypeOpt += fmt.Sprintf("    type = \"%s\"\n", v)
+	} else {
+		initTypeOpt += fmt.Sprintf("    type = \"%s\"\n", "thin")
+	}
+	if v := os.Getenv("VSPHERE_ADAPTER_TYPE"); v != "" {
+		adapterTypeOpt += fmt.Sprintf("    adapter_type = \"%s\"\n", v)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualDiskDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckVSphereVirtuaDiskConfig_withParents(rString, initTypeOpt, adapterTypeOpt, datacenterOpt, datastoreOpt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo"),
 				),
@@ -110,6 +150,24 @@ func testAccCheckVSphereVirtualDiskDestroy(s *terraform.State) error {
 		if err == nil {
 			return fmt.Errorf("error %s", err)
 		}
+
+		// Clean up the test parent directory created for evaluation of the attribute "create_directories"
+		if rs.Primary.Attributes["create_directories"] == "true" {
+			fm := object.NewFileManager(client.Client)
+			vmdkPath := rs.Primary.Attributes["vmdk_path"]
+			directoryPathIndex := strings.LastIndex(vmdkPath, "/")
+			path := vmdkPath[0:directoryPathIndex]
+
+			task, err := fm.DeleteDatastoreFile(context.TODO(), ds.Path(path), dc)
+			if err != nil {
+				return fmt.Errorf("error %s", err)
+			}
+
+			_, err = task.WaitForResult(context.TODO(), nil)
+			if err != nil {
+				return fmt.Errorf("error %s", err)
+			}
+		}
 	}
 
 	return nil
@@ -126,4 +184,18 @@ resource "vsphere_virtual_disk" "foo" {
     datastore = "%s"
 }
 `, rName, initTypeOpt, adapterTypeOpt, datacenterOpt, datastoreOpt)
+}
+
+func testAccCheckVSphereVirtuaDiskConfig_withParents(rName, initTypeOpt, adapterTypeOpt, datacenterOpt, datastoreOpt string) string {
+	return fmt.Sprintf(`
+resource "vsphere_virtual_disk" "foo" {
+    size = 1
+    vmdk_path = "tfTestParent-%s/tfTestDisk-%s.vmdk"
+%s
+%s
+    datacenter = "%s"
+    datastore = "%s"
+    create_directories = "true"
+}
+`, rName, rName, initTypeOpt, adapterTypeOpt, datacenterOpt, datastoreOpt)
 }
