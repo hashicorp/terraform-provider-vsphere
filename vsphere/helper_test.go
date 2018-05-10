@@ -1022,3 +1022,31 @@ func testGetComputeClusterVMAntiAffinityRule(s *terraform.State, resourceName st
 
 	return resourceVSphereComputeClusterVMAntiAffinityRuleFindEntry(cluster, name)
 }
+
+// testGetDatastoreClusterVMAntiAffinityRule is a convenience method to fetch a
+// VM anti-affinity rule from a datastore cluster.
+func testGetDatastoreClusterVMAntiAffinityRule(s *terraform.State, resourceName string) (*types.ClusterAntiAffinityRuleSpec, error) {
+	vars, err := testClientVariablesForResource(
+		s,
+		fmt.Sprintf("%s.%s", resourceVSphereDatastoreClusterVMAntiAffinityRuleName, resourceName),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if vars.resourceID == "" {
+		return nil, errors.New("resource ID is empty")
+	}
+
+	podID, key, err := resourceVSphereDatastoreClusterVMAntiAffinityRuleParseID(vars.resourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	pod, err := storagepod.FromID(vars.client, podID)
+	if err != nil {
+		return nil, err
+	}
+
+	return resourceVSphereDatastoreClusterVMAntiAffinityRuleFindEntry(pod, key)
+}

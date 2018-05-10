@@ -82,7 +82,7 @@ func Create(f *object.Folder, name string) (*object.StoragePod, error) {
 // ApplyDRSConfiguration takes a types.StorageDrsConfigSpec and applies it
 // against the specified StoragePod.
 func ApplyDRSConfiguration(client *govmomi.Client, pod *object.StoragePod, spec types.StorageDrsConfigSpec) error {
-	log.Printf("[DEBUG] Applying storage DRS configuration against datastore clsuter %q", pod.InventoryPath)
+	log.Printf("[DEBUG] Applying storage DRS configuration against datastore cluster %q", pod.InventoryPath)
 	mgr := object.NewStorageResourceManager(client.Client)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
