@@ -63,8 +63,9 @@ vSphere provider.
 
 [docs-vsphere-virtual-machine-scsi-type]: /docs/providers/vsphere/r/virtual_machine.html#scsi_type
 
-* `create_directories` - (Optional) Create directories in `vmdk_path`
-  path parameter if any missing for disk creation operation.
+* `create_directories` - (Optional) Tells the resource to create any
+  directories that are a part of the `vmdk_path` parameter if they are missing.
+  Default: `false`.
 
 ~> **NOTE:** Any directory created as part of the operation when
 `create_directories` is enabled will not be deleted when the resource is
