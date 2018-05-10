@@ -628,7 +628,8 @@ func (r MOIDForUUIDResults) MOIDs() []string {
 	return moids
 }
 
-// ManagedObjectReferences returns all MOIDs in a MOIDForUUIDResults, as ManagedObjectReferences as type VirtualMachine.
+// ManagedObjectReferences returns all MOIDs in a MOIDForUUIDResults, as
+// ManagedObjectReferences as type VirtualMachine.
 func (r MOIDForUUIDResults) ManagedObjectReferences() []types.ManagedObjectReference {
 	var refs []types.ManagedObjectReference
 	for _, result := range r {
