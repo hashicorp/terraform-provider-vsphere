@@ -14,6 +14,9 @@ IMPROVEMENTS:
 * `resource/vsphere_virtual_machine`: Exposed `latency_sensitivity`, which can
   be used to adjust the scheduling priority of the virtual machine for
   low-latency applications. [GH-490]
+* `resource/vsphere_virtual_disk`: Introduced the `create_directories` setting,
+  which tells this resource to create any parent directories in the VMDK path.
+  [GH-512]
 
 ## 1.4.1 (April 23, 2018)
 
