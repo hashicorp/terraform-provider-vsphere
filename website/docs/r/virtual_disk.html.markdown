@@ -62,3 +62,10 @@ disk controller types. This parameter will be removed in future versions of the
 vSphere provider.
 
 [docs-vsphere-virtual-machine-scsi-type]: /docs/providers/vsphere/r/virtual_machine.html#scsi_type
+
+* `create_directories` - (Optional) Create directories in `vmdk_path`
+  path parameter if any missing for disk creation operation.
+
+~> **NOTE:** Any directory created as part of the operation when
+`create_directories` is enabled will not be deleted when the resource is
+destroyed.

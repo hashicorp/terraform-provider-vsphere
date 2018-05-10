@@ -3,6 +3,7 @@ package vsphere
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"errors"
 	"path"
@@ -16,12 +17,13 @@ import (
 )
 
 type virtualDisk struct {
-	size        int
-	vmdkPath    string
-	initType    string
-	adapterType string
-	datacenter  string
-	datastore   string
+	size              int
+	vmdkPath          string
+	initType          string
+	adapterType       string
+	datacenter        string
+	datastore         string
+	createDirectories bool
 }
 
 // Define VirtualDisk args
@@ -45,6 +47,12 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 			// without breaking other resources though.
 			// * Add validation (make sure it ends in .vmdk)
 			"vmdk_path": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"datastore": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -88,8 +96,8 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"datastore": &schema.Schema{
-				Type:     schema.TypeString,
+			"create_directories": &schema.Schema{
+				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 			},
@@ -125,6 +133,10 @@ func resourceVSphereVirtualDiskCreate(d *schema.ResourceData, meta interface{}) 
 		vDisk.datastore = v.(string)
 	}
 
+	if v, ok := d.GetOk("create_directories"); ok {
+		vDisk.createDirectories = v.(bool)
+	}
+
 	finder := find.NewFinder(client.Client, true)
 
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
@@ -136,6 +148,27 @@ func resourceVSphereVirtualDiskCreate(d *schema.ResourceData, meta interface{}) 
 	ds, err := getDatastore(finder, vDisk.datastore)
 	if err != nil {
 		return fmt.Errorf("Error finding Datastore: %s: %s", vDisk.datastore, err)
+	}
+
+	fm := object.NewFileManager(client.Client)
+
+	if vDisk.createDirectories {
+		directoryPathIndex := strings.LastIndex(vDisk.vmdkPath, "/")
+		if directoryPathIndex > 0 {
+			path := vDisk.vmdkPath[0:directoryPathIndex]
+			log.Printf("[DEBUG] Creating parent directories: %v", ds.Path(path))
+			err = fm.MakeDirectory(context.TODO(), ds.Path(path), dc, true)
+			if err != nil {
+				log.Printf("[DEBUG] Failed to create parent directories:  %v", err)
+				return err
+			}
+
+			err = searchForDirectory(client, vDisk.datacenter, vDisk.datastore, path)
+			if err != nil {
+				log.Printf("[DEBUG] Failed to find newly created parent directories:  %v", err)
+				return err
+			}
+		}
 	}
 
 	err = createHardDisk(client, vDisk.size, ds.Path(vDisk.vmdkPath), vDisk.initType, vDisk.adapterType, vDisk.datacenter)
@@ -345,6 +378,78 @@ func createHardDisk(client *govmomi.Client, size int, diskPath string, diskType 
 		return err
 	}
 	log.Printf("[INFO] Created disk.")
+
+	return nil
+}
+
+// Searches for the presence of a directory path.
+func searchForDirectory(client *govmomi.Client, datacenter string, datastore string, directoryPath string) error {
+	log.Printf("[DEBUG] Searching for Directory")
+	finder := find.NewFinder(client.Client, true)
+
+	dc, err := getDatacenter(client, datacenter)
+	if err != nil {
+		return fmt.Errorf("Error finding Datacenter: %s: %s", datacenter, err)
+	}
+	finder = finder.SetDatacenter(dc)
+
+	ds, err := finder.Datastore(context.TODO(), datastore)
+	if err != nil {
+		return fmt.Errorf("Error finding Datastore: %s: %s", datastore, err)
+	}
+
+	ctx := context.TODO()
+	b, err := ds.Browser(ctx)
+	if err != nil {
+		return err
+	}
+
+	spec := types.HostDatastoreBrowserSearchSpec{
+		Query: []types.BaseFileQuery{&types.FolderFileQuery{}},
+		Details: &types.FileQueryFlags{
+			FileSize:     true,
+			FileType:     true,
+			Modification: true,
+			FileOwner:    types.NewBool(true),
+		},
+		MatchPattern: []string{path.Base(directoryPath)},
+	}
+
+	dsPath := ds.Path(path.Dir(directoryPath))
+	task, err := b.SearchDatastore(context.TODO(), dsPath, &spec)
+
+	if err != nil {
+		log.Printf("[DEBUG] searchForDirectory - could not search datastore for: %v", directoryPath)
+		return err
+	}
+
+	info, err := task.WaitForResult(context.TODO(), nil)
+	if err != nil {
+		if info == nil || info.Error != nil {
+			_, ok := info.Error.Fault.(*types.FileNotFound)
+			if ok {
+				log.Printf("[DEBUG] searchForDirectory - could not find: %v", directoryPath)
+				return nil
+			}
+		}
+
+		log.Printf("[DEBUG] searchForDirectory - could not search datastore for: %v", directoryPath)
+		return err
+	}
+
+	res := info.Result.(types.HostDatastoreBrowserSearchResults)
+	log.Printf("[DEBUG] num results: %d", len(res.File))
+	if len(res.File) == 0 {
+		log.Printf("[DEBUG] searchForDirectory - could not find: %v", directoryPath)
+		return nil
+	}
+
+	if len(res.File) != 1 {
+		return errors.New("Datastore search did not return exactly one result")
+	}
+
+	fileInfo := res.File[0]
+	log.Printf("[DEBUG] searchForDirectory - fileinfo: %#v", fileInfo)
 
 	return nil
 }
