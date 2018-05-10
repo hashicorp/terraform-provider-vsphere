@@ -302,13 +302,13 @@ func flattenStorageDrsVMConfigInfo(d *schema.ResourceData, obj *types.StorageDrs
 }
 
 // resourceVSphereStorageDrsVMOverrideIDString prints a friendly string for the
-// vsphere_storage_drs_vm_config resource.
+// vsphere_storage_drs_vm_override resource.
 func resourceVSphereStorageDrsVMOverrideIDString(d structure.ResourceIDStringer) string {
 	return structure.ResourceIDString(d, resourceVSphereStorageDrsVMOverrideName)
 }
 
 // resourceVSphereStorageDrsVMOverrideFlattenID makes an ID for the
-// vsphere_storage_drs_vm_config resource.
+// vsphere_storage_drs_vm_override resource.
 func resourceVSphereStorageDrsVMOverrideFlattenID(pod *object.StoragePod, vm *object.VirtualMachine) (string, error) {
 	podID := pod.Reference().Value
 	props, err := virtualmachine.Properties(vm)
@@ -320,7 +320,7 @@ func resourceVSphereStorageDrsVMOverrideFlattenID(pod *object.StoragePod, vm *ob
 }
 
 // resourceVSphereStorageDrsVMOverrideParseID parses an ID for the
-// vsphere_storage_drs_vm_config and outputs its parts.
+// vsphere_storage_drs_vm_override and outputs its parts.
 func resourceVSphereStorageDrsVMOverrideParseID(id string) (string, string, error) {
 	parts := strings.SplitN(id, ":", 3)
 	if len(parts) < 2 {

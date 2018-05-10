@@ -259,13 +259,13 @@ func flattenClusterDrsVMConfigInfo(d *schema.ResourceData, obj *types.ClusterDrs
 }
 
 // resourceVSphereDRSVMOverrideIDString prints a friendly string for the
-// vsphere_storage_drs_vm_config resource.
+// vsphere_drs_vm_override resource.
 func resourceVSphereDRSVMOverrideIDString(d structure.ResourceIDStringer) string {
 	return structure.ResourceIDString(d, resourceVSphereDRSVMOverrideName)
 }
 
 // resourceVSphereDRSVMOverrideFlattenID makes an ID for the
-// vsphere_storage_drs_vm_config resource.
+// vsphere_drs_vm_override resource.
 func resourceVSphereDRSVMOverrideFlattenID(cluster *object.ClusterComputeResource, vm *object.VirtualMachine) (string, error) {
 	clusterID := cluster.Reference().Value
 	props, err := virtualmachine.Properties(vm)
@@ -277,7 +277,7 @@ func resourceVSphereDRSVMOverrideFlattenID(cluster *object.ClusterComputeResourc
 }
 
 // resourceVSphereDRSVMOverrideParseID parses an ID for the
-// vsphere_storage_drs_vm_config and outputs its parts.
+// vsphere_drs_vm_override and outputs its parts.
 func resourceVSphereDRSVMOverrideParseID(id string) (string, string, error) {
 	parts := strings.SplitN(id, ":", 3)
 	if len(parts) < 2 {

@@ -869,3 +869,28 @@ func testGetHostFromDataSource(s *terraform.State, resourceName string) (*object
 	}
 	return hostsystem.FromID(vars.client, vars.resourceID)
 }
+
+// testGetComputeClusterVMGroup is a convenience method to fetch a virtual
+// machine group override in a (compute) cluster.
+func testGetComputeClusterVMGroup(s *terraform.State, resourceName string) (*types.ClusterVmGroup, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereComputeClusterVMGroupName, resourceName))
+	if err != nil {
+		return nil, err
+	}
+
+	if vars.resourceID == "" {
+		return nil, errors.New("resource ID is empty")
+	}
+
+	clusterID, name, err := resourceVSphereComputeClusterVMGroupParseID(vars.resourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	cluster, err := clustercomputeresource.FromID(vars.client, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	return resourceVSphereComputeClusterVMGroupFindEntry(cluster, name)
+}

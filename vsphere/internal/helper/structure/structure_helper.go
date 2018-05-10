@@ -570,3 +570,21 @@ func SetBatch(d *schema.ResourceData, attrs map[string]interface{}) error {
 
 	return nil
 }
+
+// MoRefSorter is a sorting wrapper for a slice of MangedObjectReference.
+type MoRefSorter []types.ManagedObjectReference
+
+// Len implements sort.Interface for MoRefSorter.
+func (s MoRefSorter) Len() int {
+	return len(s)
+}
+
+// Less helps implement sort.Interface for MoRefSorter.
+func (s MoRefSorter) Less(i, j int) bool {
+	return s[i].Value < s[j].Value
+}
+
+// Swap helps implement sort.Interface for MoRefSorter.
+func (s MoRefSorter) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
