@@ -1,28 +1,29 @@
-## 1.5.0 (Unreleased)
+## 1.5.1 (Unreleased)
+## 1.5.0 (May 11, 2018)
 
 FEATURES:
 
-* **New Data Source:** `vsphere_compute_cluster` [GH-492]
-* **New Resource:** `vsphere_compute_cluster` [GH-487]
-* **New Resource:** `vsphere_drs_vm_override` [GH-498]
-* **New Resource:** `vsphere_ha_vm_override` [GH-501]
-* **New Resource:** `vsphere_dpm_host_override` [GH-503]
-* **New Resource:** `vsphere_compute_cluster_vm_group` [GH-506]
-* **New Resource:** `vsphere_compute_cluster_host_group` [GH-508]
-* **New Resource:** `vsphere_compute_cluster_vm_host_rule` [GH-511]
-* **New Resource:** `vsphere_compute_cluster_vm_dependency_rule` [GH-513]
-* **New Resource:** `vsphere_compute_cluster_vm_affinity_rule` [GH-515]
-* **New Resource:** `vsphere_compute_cluster_vm_anti_affinity_rule` [GH-515]
-* **New Resource:** `vsphere_datastore_cluster_vm_anti_affinity_rule` [GH-520]
+* **New Data Source:** `vsphere_compute_cluster` ([#492](https://github.com/terraform-providers/terraform-provider-vsphere/issues/492))
+* **New Resource:** `vsphere_compute_cluster` ([#487](https://github.com/terraform-providers/terraform-provider-vsphere/issues/487))
+* **New Resource:** `vsphere_drs_vm_override` ([#498](https://github.com/terraform-providers/terraform-provider-vsphere/issues/498))
+* **New Resource:** `vsphere_ha_vm_override` ([#501](https://github.com/terraform-providers/terraform-provider-vsphere/issues/501))
+* **New Resource:** `vsphere_dpm_host_override` ([#503](https://github.com/terraform-providers/terraform-provider-vsphere/issues/503))
+* **New Resource:** `vsphere_compute_cluster_vm_group` ([#506](https://github.com/terraform-providers/terraform-provider-vsphere/issues/506))
+* **New Resource:** `vsphere_compute_cluster_host_group` ([#508](https://github.com/terraform-providers/terraform-provider-vsphere/issues/508))
+* **New Resource:** `vsphere_compute_cluster_vm_host_rule` ([#511](https://github.com/terraform-providers/terraform-provider-vsphere/issues/511))
+* **New Resource:** `vsphere_compute_cluster_vm_dependency_rule` ([#513](https://github.com/terraform-providers/terraform-provider-vsphere/issues/513))
+* **New Resource:** `vsphere_compute_cluster_vm_affinity_rule` ([#515](https://github.com/terraform-providers/terraform-provider-vsphere/issues/515))
+* **New Resource:** `vsphere_compute_cluster_vm_anti_affinity_rule` ([#515](https://github.com/terraform-providers/terraform-provider-vsphere/issues/515))
+* **New Resource:** `vsphere_datastore_cluster_vm_anti_affinity_rule` ([#520](https://github.com/terraform-providers/terraform-provider-vsphere/issues/520))
 
 IMPROVEMENTS:
 
 * `resource/vsphere_virtual_machine`: Exposed `latency_sensitivity`, which can
   be used to adjust the scheduling priority of the virtual machine for
-  low-latency applications. [GH-490]
+  low-latency applications. ([#490](https://github.com/terraform-providers/terraform-provider-vsphere/issues/490))
 * `resource/vsphere_virtual_disk`: Introduced the `create_directories` setting,
   which tells this resource to create any parent directories in the VMDK path.
-  [GH-512]
+  ([#512](https://github.com/terraform-providers/terraform-provider-vsphere/issues/512))
 
 ## 1.4.1 (April 23, 2018)
 
