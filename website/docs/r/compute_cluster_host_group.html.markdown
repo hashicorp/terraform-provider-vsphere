@@ -21,7 +21,7 @@ This resource mainly serves as an input to the
 resource - see the documentation for that resource for further details on how
 to use host groups.
 
-[tf-vsphere-cluster-vm-host-rule-resource]: /docs/providers/vsphere/d/compute_cluster_vm_host_rule.html
+[tf-vsphere-cluster-vm-host-rule-resource]: /docs/providers/vsphere/r/compute_cluster_vm_host_rule.html
 
 ~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
 connections.
