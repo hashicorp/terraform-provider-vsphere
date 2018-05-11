@@ -944,3 +944,28 @@ func testGetComputeClusterVMHostRule(s *terraform.State, resourceName string) (*
 
 	return resourceVSphereComputeClusterVMHostRuleFindEntry(cluster, name)
 }
+
+// testGetComputeClusterVMDependencyRule is a convenience method to fetch a VM
+// dependency rule from a (compute) cluster.
+func testGetComputeClusterVMDependencyRule(s *terraform.State, resourceName string) (*types.ClusterDependencyRuleInfo, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereComputeClusterVMDependencyRuleName, resourceName))
+	if err != nil {
+		return nil, err
+	}
+
+	if vars.resourceID == "" {
+		return nil, errors.New("resource ID is empty")
+	}
+
+	clusterID, name, err := resourceVSphereComputeClusterVMDependencyRuleParseID(vars.resourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	cluster, err := clustercomputeresource.FromID(vars.client, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	return resourceVSphereComputeClusterVMDependencyRuleFindEntry(cluster, name)
+}

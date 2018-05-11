@@ -16,25 +16,24 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-func TestAccResourceVSphereComputeClusterVMHostRule_basic(t *testing.T) {
+func TestAccResourceVSphereComputeClusterVMDependencyRule_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterVMHostRulePreCheck(t)
+			testAccResourceVSphereComputeClusterVMDependencyRulePreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereComputeClusterVMHostRuleExists(false),
+		CheckDestroy: testAccResourceVSphereComputeClusterVMDependencyRuleExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereComputeClusterVMHostRuleConfigAffinity(),
+				Config: testAccResourceVSphereComputeClusterVMDependencyRuleConfigBasic(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterVMHostRuleExists(true),
-					testAccResourceVSphereComputeClusterVMHostRuleMatch(
+					testAccResourceVSphereComputeClusterVMDependencyRuleExists(true),
+					testAccResourceVSphereComputeClusterVMDependencyRuleMatch(
 						true,
 						false,
-						"terraform-test-cluster-vm-host-rule",
-						"terraform-test-cluster-host-group",
-						"",
+						"terraform-test-cluster-vm-dependency-rule",
+						"terraform-test-cluster-dependent-vm-group",
 						"terraform-test-cluster-vm-group",
 					),
 				),
@@ -43,25 +42,24 @@ func TestAccResourceVSphereComputeClusterVMHostRule_basic(t *testing.T) {
 	})
 }
 
-func TestAccResourceVSphereComputeClusterVMHostRule_antiAffinity(t *testing.T) {
+func TestAccResourceVSphereComputeClusterVMDependencyRule_altGroup(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterVMHostRulePreCheck(t)
+			testAccResourceVSphereComputeClusterVMDependencyRulePreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereComputeClusterVMHostRuleExists(false),
+		CheckDestroy: testAccResourceVSphereComputeClusterVMDependencyRuleExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereComputeClusterVMHostRuleConfigAntiAffinity(),
+				Config: testAccResourceVSphereComputeClusterVMDependencyRuleConfigAltGroup(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterVMHostRuleExists(true),
-					testAccResourceVSphereComputeClusterVMHostRuleMatch(
+					testAccResourceVSphereComputeClusterVMDependencyRuleExists(true),
+					testAccResourceVSphereComputeClusterVMDependencyRuleMatch(
 						true,
 						false,
-						"terraform-test-cluster-vm-host-rule",
-						"",
-						"terraform-test-cluster-host-group",
+						"terraform-test-cluster-vm-dependency-rule",
+						"terraform-test-cluster-dependent-vm-group2",
 						"terraform-test-cluster-vm-group",
 					),
 				),
@@ -70,39 +68,37 @@ func TestAccResourceVSphereComputeClusterVMHostRule_antiAffinity(t *testing.T) {
 	})
 }
 
-func TestAccResourceVSphereComputeClusterVMHostRule_updateEnabled(t *testing.T) {
+func TestAccResourceVSphereComputeClusterVMDependencyRule_updateEnabled(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterVMHostRulePreCheck(t)
+			testAccResourceVSphereComputeClusterVMDependencyRulePreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereComputeClusterVMHostRuleExists(false),
+		CheckDestroy: testAccResourceVSphereComputeClusterVMDependencyRuleExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereComputeClusterVMHostRuleConfigAffinity(),
+				Config: testAccResourceVSphereComputeClusterVMDependencyRuleConfigBasic(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterVMHostRuleExists(true),
-					testAccResourceVSphereComputeClusterVMHostRuleMatch(
+					testAccResourceVSphereComputeClusterVMDependencyRuleExists(true),
+					testAccResourceVSphereComputeClusterVMDependencyRuleMatch(
 						true,
 						false,
-						"terraform-test-cluster-vm-host-rule",
-						"terraform-test-cluster-host-group",
-						"",
+						"terraform-test-cluster-vm-dependency-rule",
+						"terraform-test-cluster-dependent-vm-group",
 						"terraform-test-cluster-vm-group",
 					),
 				),
 			},
 			{
-				Config: testAccResourceVSphereComputeClusterVMHostRuleConfigDisabled(),
+				Config: testAccResourceVSphereComputeClusterVMDependencyRuleConfigDisabled(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterVMHostRuleExists(true),
-					testAccResourceVSphereComputeClusterVMHostRuleMatch(
+					testAccResourceVSphereComputeClusterVMDependencyRuleExists(true),
+					testAccResourceVSphereComputeClusterVMDependencyRuleMatch(
 						false,
 						false,
-						"terraform-test-cluster-vm-host-rule",
-						"terraform-test-cluster-host-group",
-						"",
+						"terraform-test-cluster-vm-dependency-rule",
+						"terraform-test-cluster-dependent-vm-group",
 						"terraform-test-cluster-vm-group",
 					),
 				),
@@ -111,39 +107,37 @@ func TestAccResourceVSphereComputeClusterVMHostRule_updateEnabled(t *testing.T) 
 	})
 }
 
-func TestAccResourceVSphereComputeClusterVMHostRule_updateAffinity(t *testing.T) {
+func TestAccResourceVSphereComputeClusterVMDependencyRule_updateGroup(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterVMHostRulePreCheck(t)
+			testAccResourceVSphereComputeClusterVMDependencyRulePreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereComputeClusterVMHostRuleExists(false),
+		CheckDestroy: testAccResourceVSphereComputeClusterVMDependencyRuleExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereComputeClusterVMHostRuleConfigAffinity(),
+				Config: testAccResourceVSphereComputeClusterVMDependencyRuleConfigBasic(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterVMHostRuleExists(true),
-					testAccResourceVSphereComputeClusterVMHostRuleMatch(
+					testAccResourceVSphereComputeClusterVMDependencyRuleExists(true),
+					testAccResourceVSphereComputeClusterVMDependencyRuleMatch(
 						true,
 						false,
-						"terraform-test-cluster-vm-host-rule",
-						"terraform-test-cluster-host-group",
-						"",
+						"terraform-test-cluster-vm-dependency-rule",
+						"terraform-test-cluster-dependent-vm-group",
 						"terraform-test-cluster-vm-group",
 					),
 				),
 			},
 			{
-				Config: testAccResourceVSphereComputeClusterVMHostRuleConfigAntiAffinity(),
+				Config: testAccResourceVSphereComputeClusterVMDependencyRuleConfigAltGroup(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterVMHostRuleExists(true),
-					testAccResourceVSphereComputeClusterVMHostRuleMatch(
+					testAccResourceVSphereComputeClusterVMDependencyRuleExists(true),
+					testAccResourceVSphereComputeClusterVMDependencyRuleMatch(
 						true,
 						false,
-						"terraform-test-cluster-vm-host-rule",
-						"",
-						"terraform-test-cluster-host-group",
+						"terraform-test-cluster-vm-dependency-rule",
+						"terraform-test-cluster-dependent-vm-group2",
 						"terraform-test-cluster-vm-group",
 					),
 				),
@@ -152,31 +146,30 @@ func TestAccResourceVSphereComputeClusterVMHostRule_updateAffinity(t *testing.T)
 	})
 }
 
-func TestAccResourceVSphereComputeClusterVMHostRule_import(t *testing.T) {
+func TestAccResourceVSphereComputeClusterVMDependencyRule_import(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterVMHostRulePreCheck(t)
+			testAccResourceVSphereComputeClusterVMDependencyRulePreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereComputeClusterVMHostRuleExists(false),
+		CheckDestroy: testAccResourceVSphereComputeClusterVMDependencyRuleExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereComputeClusterVMHostRuleConfigAffinity(),
+				Config: testAccResourceVSphereComputeClusterVMDependencyRuleConfigBasic(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterVMHostRuleExists(true),
-					testAccResourceVSphereComputeClusterVMHostRuleMatch(
+					testAccResourceVSphereComputeClusterVMDependencyRuleExists(true),
+					testAccResourceVSphereComputeClusterVMDependencyRuleMatch(
 						true,
 						false,
-						"terraform-test-cluster-vm-host-rule",
-						"terraform-test-cluster-host-group",
-						"",
+						"terraform-test-cluster-vm-dependency-rule",
+						"terraform-test-cluster-dependent-vm-group",
 						"terraform-test-cluster-vm-group",
 					),
 				),
 			},
 			{
-				ResourceName:      "vsphere_compute_cluster_vm_host_rule.cluster_vm_host_rule",
+				ResourceName:      "vsphere_compute_cluster_vm_dependency_rule.cluster_vm_dependency_rule",
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
@@ -185,13 +178,13 @@ func TestAccResourceVSphereComputeClusterVMHostRule_import(t *testing.T) {
 						return "", err
 					}
 
-					rs, ok := s.RootModule().Resources["vsphere_compute_cluster_vm_host_rule.cluster_vm_host_rule"]
+					rs, ok := s.RootModule().Resources["vsphere_compute_cluster_vm_dependency_rule.cluster_vm_dependency_rule"]
 					if !ok {
-						return "", errors.New("no resource at address vsphere_compute_cluster_vm_host_rule.cluster_vm_host_rule")
+						return "", errors.New("no resource at address vsphere_compute_cluster_vm_dependency_rule.cluster_vm_dependency_rule")
 					}
 					name, ok := rs.Primary.Attributes["name"]
 					if !ok {
-						return "", errors.New("vsphere_compute_cluster_vm_host_rule.cluster_vm_host_rule has no name attribute")
+						return "", errors.New("vsphere_compute_cluster_vm_dependency_rule.cluster_vm_dependency_rule has no name attribute")
 					}
 
 					m := make(map[string]string)
@@ -204,15 +197,14 @@ func TestAccResourceVSphereComputeClusterVMHostRule_import(t *testing.T) {
 
 					return string(b), nil
 				},
-				Config: testAccResourceVSphereComputeClusterVMHostRuleConfigAffinity(),
+				Config: testAccResourceVSphereComputeClusterVMDependencyRuleConfigBasic(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterVMHostRuleExists(true),
-					testAccResourceVSphereComputeClusterVMHostRuleMatch(
+					testAccResourceVSphereComputeClusterVMDependencyRuleExists(true),
+					testAccResourceVSphereComputeClusterVMDependencyRuleMatch(
 						true,
 						false,
-						"terraform-test-cluster-vm-host-rule",
-						"terraform-test-cluster-host-group",
-						"",
+						"terraform-test-cluster-vm-dependency-rule",
+						"terraform-test-cluster-dependent-vm-group",
 						"terraform-test-cluster-vm-group",
 					),
 				),
@@ -221,30 +213,30 @@ func TestAccResourceVSphereComputeClusterVMHostRule_import(t *testing.T) {
 	})
 }
 
-func testAccResourceVSphereComputeClusterVMHostRulePreCheck(t *testing.T) {
+func testAccResourceVSphereComputeClusterVMDependencyRulePreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_DATACENTER") == "" {
-		t.Skip("set VSPHERE_DATACENTER to run vsphere_compute_cluster_vm_host_rule acceptance tests")
+		t.Skip("set VSPHERE_DATACENTER to run vsphere_compute_cluster_vm_dependency_rule acceptance tests")
 	}
 	if os.Getenv("VSPHERE_ESXI_HOST5") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST5 to run vsphere_compute_cluster_vm_host_rule acceptance tests")
+		t.Skip("set VSPHERE_ESXI_HOST5 to run vsphere_compute_cluster_vm_dependency_rule acceptance tests")
 	}
 	if os.Getenv("VSPHERE_ESXI_HOST6") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST6 to run vsphere_compute_cluster_vm_host_rule acceptance tests")
+		t.Skip("set VSPHERE_ESXI_HOST6 to run vsphere_compute_cluster_vm_dependency_rule acceptance tests")
 	}
 	if os.Getenv("VSPHERE_ESXI_HOST7") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST7 to run vsphere_compute_cluster_vm_host_rule acceptance tests")
+		t.Skip("set VSPHERE_ESXI_HOST7 to run vsphere_compute_cluster_vm_dependency_rule acceptance tests")
 	}
 	if os.Getenv("VSPHERE_DATASTORE") == "" {
-		t.Skip("set VSPHERE_DATASTORE to run vsphere_compute_cluster_vm_host_rule acceptance tests")
+		t.Skip("set VSPHERE_DATASTORE to run vsphere_compute_cluster_vm_dependency_rule acceptance tests")
 	}
 	if os.Getenv("VSPHERE_NETWORK_LABEL_PXE") == "" {
-		t.Skip("set VSPHERE_NETWORK_LABEL_PXE to run vsphere_compute_cluster_vm_host_rule acceptance tests")
+		t.Skip("set VSPHERE_NETWORK_LABEL_PXE to run vsphere_compute_cluster_vm_dependency_rule acceptance tests")
 	}
 }
 
-func testAccResourceVSphereComputeClusterVMHostRuleExists(expected bool) resource.TestCheckFunc {
+func testAccResourceVSphereComputeClusterVMDependencyRuleExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		info, err := testGetComputeClusterVMHostRule(s, "cluster_vm_host_rule")
+		info, err := testGetComputeClusterVMDependencyRule(s, "cluster_vm_dependency_rule")
 		if err != nil {
 			if expected == false {
 				if viapi.IsManagedObjectNotFoundError(err) {
@@ -273,16 +265,15 @@ func testAccResourceVSphereComputeClusterVMHostRuleExists(expected bool) resourc
 	}
 }
 
-func testAccResourceVSphereComputeClusterVMHostRuleMatch(
+func testAccResourceVSphereComputeClusterVMDependencyRuleMatch(
 	enabled bool,
 	mandatory bool,
 	name string,
-	affinityGroup string,
-	antiAffinityGroup string,
+	dependsOnVMGroup string,
 	vmGroup string,
 ) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		actual, err := testGetComputeClusterVMHostRule(s, "cluster_vm_host_rule")
+		actual, err := testGetComputeClusterVMDependencyRule(s, "cluster_vm_dependency_rule")
 		if err != nil {
 			return err
 		}
@@ -291,7 +282,7 @@ func testAccResourceVSphereComputeClusterVMHostRuleMatch(
 			return errors.New("cluster rule missing")
 		}
 
-		expected := &types.ClusterVmHostRuleInfo{
+		expected := &types.ClusterDependencyRuleInfo{
 			ClusterRuleInfo: types.ClusterRuleInfo{
 				Enabled:      structure.BoolPtr(enabled),
 				Mandatory:    structure.BoolPtr(mandatory),
@@ -302,9 +293,8 @@ func testAccResourceVSphereComputeClusterVMHostRuleMatch(
 				RuleUuid:     actual.RuleUuid,
 				Status:       actual.Status,
 			},
-			AffineHostGroupName:     affinityGroup,
-			AntiAffineHostGroupName: antiAffinityGroup,
-			VmGroupName:             vmGroup,
+			DependsOnVmGroup: dependsOnVMGroup,
+			VmGroup:          vmGroup,
 		}
 
 		if !reflect.DeepEqual(expected, actual) {
@@ -315,7 +305,7 @@ func testAccResourceVSphereComputeClusterVMHostRuleMatch(
 	}
 }
 
-func testAccResourceVSphereComputeClusterVMHostRuleConfigAffinity() string {
+func testAccResourceVSphereComputeClusterVMDependencyRuleConfigBasic() string {
 	return fmt.Sprintf(`
 variable "datacenter" {
   default = "%s"
@@ -386,23 +376,44 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 
-resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
-  name               = "terraform-test-cluster-host-group"
-  compute_cluster_id = "${vsphere_compute_cluster.cluster.id}"
-  host_system_ids    = ["${data.vsphere_host.hosts.*.id}"]
+resource "vsphere_virtual_machine" "dependent_vm" {
+  name             = "terraform-test-dependency"
+  resource_pool_id = "${vsphere_compute_cluster.cluster.resource_pool_id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinux64Guest"
+
+  wait_for_guest_net_timeout = -1
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
 }
 
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
   name                = "terraform-test-cluster-vm-group"
   compute_cluster_id  = "${vsphere_compute_cluster.cluster.id}"
-  virtual_machine_ids = ["${vsphere_virtual_machine.vm.*.id}"]
+  virtual_machine_ids = ["${vsphere_virtual_machine.vm.id}"]
 }
 
-resource "vsphere_compute_cluster_vm_host_rule" "cluster_vm_host_rule" {
+resource "vsphere_compute_cluster_vm_group" "dependent_vm_group" {
+  name                = "terraform-test-cluster-dependent-vm-group"
+  compute_cluster_id  = "${vsphere_compute_cluster.cluster.id}"
+  virtual_machine_ids = ["${vsphere_virtual_machine.dependent_vm.id}"]
+}
+
+resource "vsphere_compute_cluster_vm_dependency_rule" "cluster_vm_dependency_rule" {
   compute_cluster_id       = "${vsphere_compute_cluster.cluster.id}"
-  name                     = "terraform-test-cluster-vm-host-rule"
+  name                     = "terraform-test-cluster-vm-dependency-rule"
+  dependency_vm_group_name = "${vsphere_compute_cluster_vm_group.dependent_vm_group.name}"
   vm_group_name            = "${vsphere_compute_cluster_vm_group.cluster_vm_group.name}"
-  affinity_host_group_name = "${vsphere_compute_cluster_host_group.cluster_host_group.name}"
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
@@ -414,7 +425,7 @@ resource "vsphere_compute_cluster_vm_host_rule" "cluster_vm_host_rule" {
 	)
 }
 
-func testAccResourceVSphereComputeClusterVMHostRuleConfigAntiAffinity() string {
+func testAccResourceVSphereComputeClusterVMDependencyRuleConfigAltGroup() string {
 	return fmt.Sprintf(`
 variable "datacenter" {
   default = "%s"
@@ -485,23 +496,71 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 
-resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
-  name               = "terraform-test-cluster-host-group"
-  compute_cluster_id = "${vsphere_compute_cluster.cluster.id}"
-  host_system_ids    = ["${data.vsphere_host.hosts.*.id}"]
+resource "vsphere_virtual_machine" "dependent_vm" {
+  name             = "terraform-test-dependency"
+  resource_pool_id = "${vsphere_compute_cluster.cluster.resource_pool_id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinux64Guest"
+
+  wait_for_guest_net_timeout = -1
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
+}
+
+resource "vsphere_virtual_machine" "second_dependent_vm" {
+  name             = "terraform-test-dependency2"
+  resource_pool_id = "${vsphere_compute_cluster.cluster.resource_pool_id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinux64Guest"
+
+  wait_for_guest_net_timeout = -1
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
 }
 
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
   name                = "terraform-test-cluster-vm-group"
   compute_cluster_id  = "${vsphere_compute_cluster.cluster.id}"
-  virtual_machine_ids = ["${vsphere_virtual_machine.vm.*.id}"]
+  virtual_machine_ids = ["${vsphere_virtual_machine.vm.id}"]
 }
 
-resource "vsphere_compute_cluster_vm_host_rule" "cluster_vm_host_rule" {
-  compute_cluster_id            = "${vsphere_compute_cluster.cluster.id}"
-  name                          = "terraform-test-cluster-vm-host-rule"
-  vm_group_name                 = "${vsphere_compute_cluster_vm_group.cluster_vm_group.name}"
-  anti_affinity_host_group_name = "${vsphere_compute_cluster_host_group.cluster_host_group.name}"
+resource "vsphere_compute_cluster_vm_group" "dependent_vm_group" {
+  name                = "terraform-test-cluster-dependent-vm-group"
+  compute_cluster_id  = "${vsphere_compute_cluster.cluster.id}"
+  virtual_machine_ids = ["${vsphere_virtual_machine.dependent_vm.id}"]
+}
+
+resource "vsphere_compute_cluster_vm_group" "second_dependent_vm_group" {
+  name                = "terraform-test-cluster-dependent-vm-group2"
+  compute_cluster_id  = "${vsphere_compute_cluster.cluster.id}"
+  virtual_machine_ids = ["${vsphere_virtual_machine.second_dependent_vm.id}"]
+}
+
+resource "vsphere_compute_cluster_vm_dependency_rule" "cluster_vm_dependency_rule" {
+  compute_cluster_id       = "${vsphere_compute_cluster.cluster.id}"
+  name                     = "terraform-test-cluster-vm-dependency-rule"
+  dependency_vm_group_name = "${vsphere_compute_cluster_vm_group.second_dependent_vm_group.name}"
+  vm_group_name            = "${vsphere_compute_cluster_vm_group.cluster_vm_group.name}"
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
@@ -513,7 +572,7 @@ resource "vsphere_compute_cluster_vm_host_rule" "cluster_vm_host_rule" {
 	)
 }
 
-func testAccResourceVSphereComputeClusterVMHostRuleConfigDisabled() string {
+func testAccResourceVSphereComputeClusterVMDependencyRuleConfigDisabled() string {
 	return fmt.Sprintf(`
 variable "datacenter" {
   default = "%s"
@@ -584,23 +643,44 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 
-resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
-  name               = "terraform-test-cluster-host-group"
-  compute_cluster_id = "${vsphere_compute_cluster.cluster.id}"
-  host_system_ids    = ["${data.vsphere_host.hosts.*.id}"]
+resource "vsphere_virtual_machine" "dependent_vm" {
+  name             = "terraform-test-dependency"
+  resource_pool_id = "${vsphere_compute_cluster.cluster.resource_pool_id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinux64Guest"
+
+  wait_for_guest_net_timeout = -1
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
 }
 
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
   name                = "terraform-test-cluster-vm-group"
   compute_cluster_id  = "${vsphere_compute_cluster.cluster.id}"
-  virtual_machine_ids = ["${vsphere_virtual_machine.vm.*.id}"]
+  virtual_machine_ids = ["${vsphere_virtual_machine.vm.id}"]
 }
 
-resource "vsphere_compute_cluster_vm_host_rule" "cluster_vm_host_rule" {
+resource "vsphere_compute_cluster_vm_group" "dependent_vm_group" {
+  name                = "terraform-test-cluster-dependent-vm-group"
+  compute_cluster_id  = "${vsphere_compute_cluster.cluster.id}"
+  virtual_machine_ids = ["${vsphere_virtual_machine.dependent_vm.id}"]
+}
+
+resource "vsphere_compute_cluster_vm_dependency_rule" "cluster_vm_dependency_rule" {
   compute_cluster_id       = "${vsphere_compute_cluster.cluster.id}"
-  name                     = "terraform-test-cluster-vm-host-rule"
+  name                     = "terraform-test-cluster-vm-dependency-rule"
+  dependency_vm_group_name = "${vsphere_compute_cluster_vm_group.dependent_vm_group.name}"
   vm_group_name            = "${vsphere_compute_cluster_vm_group.cluster_vm_group.name}"
-  affinity_host_group_name = "${vsphere_compute_cluster_host_group.cluster_host_group.name}"
   enabled                  = false
 }
 `,

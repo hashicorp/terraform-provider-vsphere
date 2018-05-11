@@ -305,20 +305,20 @@ func flattenClusterVMHostRuleInfo(d *schema.ResourceData, obj *types.ClusterVmHo
 }
 
 // resourceVSphereComputeClusterVMHostRuleIDString prints a friendly string for the
-// vsphere_cluster_host_group resource.
+// vsphere_compute_cluster_vm_host_rule resource.
 func resourceVSphereComputeClusterVMHostRuleIDString(d structure.ResourceIDStringer) string {
 	return structure.ResourceIDString(d, resourceVSphereComputeClusterVMHostRuleName)
 }
 
 // resourceVSphereComputeClusterVMHostRuleFlattenID makes an ID for the
-// vsphere_cluster_host_group resource.
+// vsphere_compute_cluster_vm_host_rule resource.
 func resourceVSphereComputeClusterVMHostRuleFlattenID(cluster *object.ClusterComputeResource, key int32) (string, error) {
 	clusterID := cluster.Reference().Value
 	return strings.Join([]string{clusterID, strconv.Itoa(int(key))}, ":"), nil
 }
 
 // resourceVSphereComputeClusterVMHostRuleParseID parses an ID for the
-// vsphere_cluster_host_group and outputs its parts.
+// vsphere_compute_cluster_vm_host_rule and outputs its parts.
 func resourceVSphereComputeClusterVMHostRuleParseID(id string) (string, int32, error) {
 	parts := strings.SplitN(id, ":", 3)
 	if len(parts) < 2 {
