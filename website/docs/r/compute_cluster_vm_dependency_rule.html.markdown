@@ -18,8 +18,8 @@ by the [`vsphere_compute_cluster`][tf-vsphere-cluster-data-source] data source.
 
 A virtual machine dependency rule applies to vSphere HA, and allows
 user-defined startup orders for virtual machines in the case of host failure.
-Virtual machines and hosts are supplied via groups, which can be managed via
-the [`vsphere_compute_cluster_vm_group`][tf-vsphere-cluster-vm-group-resource]
+Virtual machines are supplied via groups, which can be managed via the
+[`vsphere_compute_cluster_vm_group`][tf-vsphere-cluster-vm-group-resource]
 resource.
 
 [tf-vsphere-cluster-vm-group-resource]: /docs/providers/vsphere/r/compute_cluster_vm_group.html
@@ -55,11 +55,6 @@ data "vsphere_datastore" "datastore" {
 
 data "vsphere_compute_cluster" "cluster" {
   name          = "cluster1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_host" "host" {
-  name          = "esxi1"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
