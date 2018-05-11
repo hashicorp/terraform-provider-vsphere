@@ -13,6 +13,7 @@ FEATURES:
 * **New Resource:** `vsphere_compute_cluster_vm_dependency_rule` [GH-513]
 * **New Resource:** `vsphere_compute_cluster_vm_affinity_rule` [GH-515]
 * **New Resource:** `vsphere_compute_cluster_vm_anti_affinity_rule` [GH-515]
+* **New Resource:** `vsphere_datastore_cluster_vm_anti_affinity_rule` [GH-520]
 
 IMPROVEMENTS:
 
