@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_compute_cluster_vm_group"
-sidebar_current: "docs-vsphere-resource-storage-storage-drs-vm-override"
+sidebar_current: "docs-vsphere-resource-compute-cluster-vm-group"
 description: |-
   Provides a VMware vSphere cluster virtual machine group. This can be used to manage groups of virtual machines for relevant rules in a cluster.
 ---
@@ -25,6 +25,11 @@ resources. See the individual resource documentation pages for more information.
 [tf-vsphere-cluster-vm-dependency-rule-resource]: /docs/providers/vsphere/d/compute_cluster_vm_dependency_rule.html
 [tf-vsphere-cluster-vm-host-rule-resource]: /docs/providers/vsphere/d/compute_cluster_vm_host_rule.html
 
+~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
+connections.
+
+~> **NOTE:** vSphere DRS requires a vSphere Enterprise Plus license.
+
 ## Example Usage
 
 The example below creates two virtual machines in a cluster using the
@@ -47,11 +52,6 @@ data "vsphere_datastore" "datastore" {
 
 data "vsphere_compute_cluster" "cluster" {
   name          = "cluster1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_host" "host" {
-  name          = "esxi1"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 

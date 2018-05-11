@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_compute_cluster_host_group"
-sidebar_current: "docs-vsphere-resource-storage-storage-drs-vm-override"
+sidebar_current: "docs-vsphere-resource-compute-cluster-host-group"
 description: |-
   Provides a VMware vSphere cluster virtual machine group. This can be used to manage groups of virtual machines for relevant rules in a cluster.
 ---
@@ -22,6 +22,11 @@ resource - see the documentation for that resource for further details on how
 to use host groups.
 
 [tf-vsphere-cluster-vm-host-rule-resource]: /docs/providers/vsphere/d/compute_cluster_vm_host_rule.html
+
+~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
+connections.
+
+~> **NOTE:** vSphere DRS requires a vSphere Enterprise Plus license.
 
 ## Example Usage
 
