@@ -10,6 +10,7 @@ FEATURES:
 * **New Resource:** `vsphere_compute_cluster_vm_group` [GH-506]
 * **New Resource:** `vsphere_compute_cluster_host_group` [GH-508]
 * **New Resource:** `vsphere_compute_cluster_vm_host_rule` [GH-511]
+* **New Resource:** `vsphere_compute_cluster_vm_dependency_rule` [GH-513]
 
 IMPROVEMENTS:
 
