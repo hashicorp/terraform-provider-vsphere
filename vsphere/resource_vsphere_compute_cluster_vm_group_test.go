@@ -122,16 +122,16 @@ func TestAccResourceVSphereComputeClusterVMGroup_import(t *testing.T) {
 
 func testAccResourceVSphereComputeClusterVMGroupPreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_DATACENTER") == "" {
-		t.Skip("set VSPHERE_DATACENTER to run vsphere_storage_drs_vm_override acceptance tests")
+		t.Skip("set VSPHERE_DATACENTER to run vsphere_compute_cluster_vm_group acceptance tests")
 	}
 	if os.Getenv("VSPHERE_DATASTORE") == "" {
-		t.Skip("set VSPHERE_DATASTORE to run vsphere_storage_drs_vm_override acceptance tests")
+		t.Skip("set VSPHERE_DATASTORE to run vsphere_compute_cluster_vm_group acceptance tests")
 	}
 	if os.Getenv("VSPHERE_CLUSTER") == "" {
-		t.Skip("set VSPHERE_CLUSTER to run vsphere_storage_drs_vm_override acceptance tests")
+		t.Skip("set VSPHERE_CLUSTER to run vsphere_compute_cluster_vm_group acceptance tests")
 	}
 	if os.Getenv("VSPHERE_NETWORK_LABEL_PXE") == "" {
-		t.Skip("set VSPHERE_NETWORK_LABEL_PXE to run vsphere_storage_drs_vm_override acceptance tests")
+		t.Skip("set VSPHERE_NETWORK_LABEL_PXE to run vsphere_compute_cluster_vm_group acceptance tests")
 	}
 }
 
