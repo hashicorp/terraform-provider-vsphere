@@ -9,6 +9,7 @@ FEATURES:
 * **New Resource:** `vsphere_dpm_host_override` [GH-503]
 * **New Resource:** `vsphere_compute_cluster_vm_group` [GH-506]
 * **New Resource:** `vsphere_compute_cluster_host_group` [GH-508]
+* **New Resource:** `vsphere_compute_cluster_vm_host_rule` [GH-511]
 
 IMPROVEMENTS:
 
