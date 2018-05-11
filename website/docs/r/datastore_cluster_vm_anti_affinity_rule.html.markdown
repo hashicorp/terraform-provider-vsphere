@@ -90,9 +90,9 @@ resource "vsphere_datastore_cluster_vm_anti_affinity_rule" "cluster_vm_anti_affi
 
 The following arguments are supported:
 
-* `compute_cluster_id` - (Required) The [managed object reference
-  ID][docs-about-morefs] of the cluster to put the group in.  Forces a new
-  resource if changed.
+* `datastore_cluster_id` - (Required) The [managed object reference
+  ID][docs-about-morefs] of the datastore cluster to put the group in.  Forces
+  a new resource if changed.
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
