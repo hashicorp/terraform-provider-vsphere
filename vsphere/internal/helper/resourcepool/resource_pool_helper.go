@@ -126,3 +126,35 @@ func OSFamily(client *govmomi.Client, pool *object.ResourcePool, guest string) (
 	}
 	return computeresource.OSFamily(client, pprops.Owner, guest)
 }
+
+// Create creates a ResourcePool.
+func Create(rp *object.ResourcePool, name string, spec *types.ResourceConfigSpec) (*object.ResourcePool, error) {
+	log.Printf("[DEBUG] Creating resource pool %q", fmt.Sprintf("%s/%s", rp.InventoryPath, name))
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	nrp, err := rp.Create(ctx, name, *spec)
+	if err != nil {
+		return nil, err
+	}
+	return nrp, nil
+}
+
+// Update updates a ResourcePool.
+func Update(rp *object.ResourcePool, name string, spec *types.ResourceConfigSpec) error {
+	log.Printf("[DEBUG] Updating resource pool %q", fmt.Sprintf("%s", rp.InventoryPath))
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	return rp.UpdateConfig(ctx, name, spec)
+}
+
+// Delete destroys a ResourcePool.
+func Delete(rp *object.ResourcePool) error {
+	log.Printf("[DEBUG] Deleting resource pool %q", rp.InventoryPath)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	task, err := rp.Destroy(ctx)
+	if err != nil {
+		return err
+	}
+	return task.Wait(ctx)
+}

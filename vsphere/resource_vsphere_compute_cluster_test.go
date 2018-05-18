@@ -392,7 +392,7 @@ func testAccResourceVSphereComputeClusterCheckExists(expected bool) resource.Tes
 			return err
 		}
 		if !expected {
-			return errors.New("expected datastore cluster to be missing")
+			return errors.New("expected compute cluster to be missing")
 		}
 		return nil
 	}

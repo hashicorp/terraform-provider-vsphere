@@ -233,6 +233,14 @@ func testGetDatacenter(s *terraform.State, resourceName string) (*object.Datacen
 	return getDatacenter(tVars.client, dcName)
 }
 
+func testGetResourcePool(s *terraform.State, resourceName string) (*object.ResourcePool, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereResourcePoolName, resourceName))
+	if err != nil {
+		return nil, err
+	}
+	return resourcepool.FromID(vars.client, vars.resourceID)
+}
+
 func testGetDatacenterCustomAttributes(s *terraform.State, resourceName string) (*mo.Datacenter, error) {
 	dc, err := testGetDatacenter(s, resourceName)
 	if err != nil {

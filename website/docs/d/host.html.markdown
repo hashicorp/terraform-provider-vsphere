@@ -41,7 +41,8 @@ fetches the server's host object ID, regardless of what is entered into `name`.
 
 ## Attribute Reference
 
-The only exported attribute is `id`, which is the [managed object
-ID][docs-about-morefs] of this host.
+* `id` - The [managed objectID][docs-about-morefs] of this host.
+* `resource_pool_id` - The [managed object ID][docs-about-morefs] of the host's
+  root resource pool.
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider

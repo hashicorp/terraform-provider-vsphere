@@ -68,7 +68,7 @@ func NetworkInterfaceSubresourceSchema() map[string]*schema.Schema {
 			Optional:     true,
 			Default:      string(types.SharesLevelNormal),
 			Description:  "The bandwidth share allocation level for this interface. Can be one of low, normal, high, or custom.",
-			ValidateFunc: validation.StringInSlice(sharesLevelAllowedValues, false),
+			ValidateFunc: validation.StringInSlice(SharesLevelAllowedValues, false),
 		},
 		"bandwidth_share_count": {
 			Type:         schema.TypeInt,
