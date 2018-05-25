@@ -939,6 +939,34 @@ func TestAccResourceVSphereVirtualMachine_attachExistingVmdk(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_attachExistingVmdkTaint(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigExistingVmdk(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckExistingVmdk(),
+				),
+			},
+			{
+				Taint:  []string{"vsphere_virtual_machine.vm"},
+				Config: testAccResourceVSphereVirtualMachineConfigExistingVmdk(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckExistingVmdk(),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVirtualMachine_inFolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
