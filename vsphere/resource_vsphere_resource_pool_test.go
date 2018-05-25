@@ -31,6 +31,32 @@ func TestAccResourceVSphereResourcePool_basic(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereResourcePool_updateRename(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereResourcePoolPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereResourcePoolConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereResourcePoolCheckExists(true),
+					testAccResourceVSphereResourcePoolCheckName("terraform-resource-pool-test"),
+				),
+			},
+			{
+				Config: testAccResourceVSphereResourcePoolConfigRename(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereResourcePoolCheckExists(true),
+					testAccResourceVSphereResourcePoolCheckName("terraform-resource-pool-test-rename"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereResourcePool_updateToCustom(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -43,7 +69,13 @@ func TestAccResourceVSphereResourcePool_updateToCustom(t *testing.T) {
 				Config: testAccResourceVSphereResourcePoolConfigBasic(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereResourcePoolCheckExists(true),
-					testAccResourceVSphereResourcePoolCheckCpuReservation(0),
+					testAccResourceVSphereResourcePoolCheckCPUReservation(0),
+					testAccResourceVSphereResourcePoolCheckCPUExpandable(true),
+					testAccResourceVSphereResourcePoolCheckCPULimit(-1),
+					testAccResourceVSphereResourcePoolCheckCPUShareLevel("normal"),
+					testAccResourceVSphereResourcePoolCheckCPUReservation(0),
+					testAccResourceVSphereResourcePoolCheckCPUExpandable(true),
+					testAccResourceVSphereResourcePoolCheckCPULimit(-1),
 					testAccResourceVSphereResourcePoolCheckMemoryShareLevel("normal"),
 				),
 			},
@@ -51,7 +83,14 @@ func TestAccResourceVSphereResourcePool_updateToCustom(t *testing.T) {
 				Config: testAccResourceVSphereResourcePoolConfigNonDefault(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereResourcePoolCheckExists(true),
-					testAccResourceVSphereResourcePoolCheckCpuReservation(10),
+					testAccResourceVSphereResourcePoolCheckCPUReservation(10),
+					testAccResourceVSphereResourcePoolCheckCPUExpandable(false),
+					testAccResourceVSphereResourcePoolCheckCPULimit(20),
+					testAccResourceVSphereResourcePoolCheckCPUShareLevel("custom"),
+					testAccResourceVSphereResourcePoolCheckCPUShares(10),
+					testAccResourceVSphereResourcePoolCheckCPUReservation(10),
+					testAccResourceVSphereResourcePoolCheckCPUExpandable(false),
+					testAccResourceVSphereResourcePoolCheckCPULimit(20),
 					testAccResourceVSphereResourcePoolCheckMemoryShareLevel("custom"),
 					testAccResourceVSphereResourcePoolCheckMemoryShares(10),
 				),
@@ -72,7 +111,14 @@ func TestAccResourceVSphereResourcePool_updateToDefaults(t *testing.T) {
 				Config: testAccResourceVSphereResourcePoolConfigNonDefault(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereResourcePoolCheckExists(true),
-					testAccResourceVSphereResourcePoolCheckCpuReservation(10),
+					testAccResourceVSphereResourcePoolCheckCPUReservation(10),
+					testAccResourceVSphereResourcePoolCheckCPUExpandable(false),
+					testAccResourceVSphereResourcePoolCheckCPULimit(20),
+					testAccResourceVSphereResourcePoolCheckCPUShareLevel("custom"),
+					testAccResourceVSphereResourcePoolCheckCPUShares(10),
+					testAccResourceVSphereResourcePoolCheckCPUReservation(10),
+					testAccResourceVSphereResourcePoolCheckCPUExpandable(false),
+					testAccResourceVSphereResourcePoolCheckCPULimit(20),
 					testAccResourceVSphereResourcePoolCheckMemoryShareLevel("custom"),
 					testAccResourceVSphereResourcePoolCheckMemoryShares(10),
 				),
@@ -81,7 +127,13 @@ func TestAccResourceVSphereResourcePool_updateToDefaults(t *testing.T) {
 				Config: testAccResourceVSphereResourcePoolConfigBasic(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereResourcePoolCheckExists(true),
-					testAccResourceVSphereResourcePoolCheckCpuReservation(0),
+					testAccResourceVSphereResourcePoolCheckCPUReservation(0),
+					testAccResourceVSphereResourcePoolCheckCPUExpandable(true),
+					testAccResourceVSphereResourcePoolCheckCPULimit(-1),
+					testAccResourceVSphereResourcePoolCheckCPUShareLevel("normal"),
+					testAccResourceVSphereResourcePoolCheckCPUReservation(0),
+					testAccResourceVSphereResourcePoolCheckCPUExpandable(true),
+					testAccResourceVSphereResourcePoolCheckCPULimit(-1),
 					testAccResourceVSphereResourcePoolCheckMemoryShareLevel("normal"),
 				),
 			},
@@ -165,10 +217,16 @@ func TestAccResourceVSphereResourcePool_import(t *testing.T) {
 				Config: testAccResourceVSphereResourcePoolConfigNonDefault(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereResourcePoolCheckExists(true),
-					testAccResourceVSphereResourcePoolCheckCpuReservation(10),
+					testAccResourceVSphereResourcePoolCheckCPUReservation(10),
+					testAccResourceVSphereResourcePoolCheckCPUExpandable(false),
+					testAccResourceVSphereResourcePoolCheckCPULimit(20),
+					testAccResourceVSphereResourcePoolCheckCPUShareLevel("custom"),
+					testAccResourceVSphereResourcePoolCheckCPUShares(10),
+					testAccResourceVSphereResourcePoolCheckCPUReservation(10),
+					testAccResourceVSphereResourcePoolCheckCPUExpandable(false),
+					testAccResourceVSphereResourcePoolCheckCPULimit(20),
 					testAccResourceVSphereResourcePoolCheckMemoryShareLevel("custom"),
 					testAccResourceVSphereResourcePoolCheckMemoryShares(10),
-					testAccResourceVSphereResourcePoolHasParent("parent_resource_pool"),
 				),
 			},
 		},
@@ -261,7 +319,7 @@ func testAccResourceVSphereResourcePoolCheckTags(tagResName string) resource.Tes
 	}
 }
 
-func testAccResourceVSphereResourcePoolCheckCpuReservation(value int) resource.TestCheckFunc {
+func testAccResourceVSphereResourcePoolCheckCPUReservation(value int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rp, err := testGetResourcePool(s, "resource_pool")
 		if err != nil {
@@ -273,6 +331,125 @@ func testAccResourceVSphereResourcePoolCheckCpuReservation(value int) resource.T
 		}
 		if *props.Config.CpuAllocation.Reservation != *structure.Int64Ptr(int64(value)) {
 			return fmt.Errorf("CpuAllocation.Reservation check failed. Expected: %d, got: %d", *props.Config.CpuAllocation.Reservation, value)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereResourcePoolCheckCPUExpandable(value bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rp, err := testGetResourcePool(s, "resource_pool")
+		if err != nil {
+			return err
+		}
+		props, err := resourcepool.Properties(rp)
+		if err != nil {
+			return err
+		}
+		if *props.Config.CpuAllocation.ExpandableReservation != *structure.BoolPtr(value) {
+			return fmt.Errorf("CpuAllocation.Expandable check failed. Expected: %t, got: %t", *props.Config.CpuAllocation.ExpandableReservation, value)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereResourcePoolCheckCPULimit(value int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rp, err := testGetResourcePool(s, "resource_pool")
+		if err != nil {
+			return err
+		}
+		props, err := resourcepool.Properties(rp)
+		if err != nil {
+			return err
+		}
+		if *props.Config.CpuAllocation.Limit != *structure.Int64Ptr(int64(value)) {
+			return fmt.Errorf("CpuAllocation.Limit check failed. Expected: %d, got: %d", *props.Config.CpuAllocation.Limit, value)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereResourcePoolCheckCPUShareLevel(value string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rp, err := testGetResourcePool(s, "resource_pool")
+		if err != nil {
+			return err
+		}
+		props, err := resourcepool.Properties(rp)
+		if err != nil {
+			return err
+		}
+		if string(props.Config.CpuAllocation.Shares.Level) != value {
+			return fmt.Errorf("CpuAllocation.Shares.Level check failed. Expected: %s, got: %s", props.Config.CpuAllocation.Shares.Level, value)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereResourcePoolCheckCPUShares(value int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rp, err := testGetResourcePool(s, "resource_pool")
+		if err != nil {
+			return err
+		}
+		props, err := resourcepool.Properties(rp)
+		if err != nil {
+			return err
+		}
+		if props.Config.CpuAllocation.Shares.Shares != int32(value) {
+			return fmt.Errorf("CpuAllocation.Shares.Shares check failed. Expected: %d, got: %d", props.Config.CpuAllocation.Shares.Shares, value)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereResourcePoolCheckMemoryReservation(value int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rp, err := testGetResourcePool(s, "resource_pool")
+		if err != nil {
+			return err
+		}
+		props, err := resourcepool.Properties(rp)
+		if err != nil {
+			return err
+		}
+		if *props.Config.MemoryAllocation.Reservation != *structure.Int64Ptr(int64(value)) {
+			return fmt.Errorf("MemoryAllocation.Reservation check failed. Expected: %d, got: %d", *props.Config.MemoryAllocation.Reservation, value)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereResourcePoolCheckMemoryExpandable(value bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rp, err := testGetResourcePool(s, "resource_pool")
+		if err != nil {
+			return err
+		}
+		props, err := resourcepool.Properties(rp)
+		if err != nil {
+			return err
+		}
+		if *props.Config.MemoryAllocation.ExpandableReservation != *structure.BoolPtr(value) {
+			return fmt.Errorf("MemoryAllocation.Expandable check failed. Expected: %t, got: %t", *props.Config.MemoryAllocation.ExpandableReservation, value)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereResourcePoolCheckMemoryLimit(value int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rp, err := testGetResourcePool(s, "resource_pool")
+		if err != nil {
+			return err
+		}
+		props, err := resourcepool.Properties(rp)
+		if err != nil {
+			return err
+		}
+		if *props.Config.MemoryAllocation.Limit != *structure.Int64Ptr(int64(value)) {
+			return fmt.Errorf("MemoryAllocation.Limit check failed. Expected: %d, got: %d", *props.Config.MemoryAllocation.Limit, value)
 		}
 		return nil
 	}
@@ -307,6 +484,19 @@ func testAccResourceVSphereResourcePoolCheckMemoryShares(value int) resource.Tes
 		}
 		if props.Config.MemoryAllocation.Shares.Shares != int32(value) {
 			return fmt.Errorf("MemoryAllocation.Shares.Shares check failed. Expected: %d, got: %d", props.Config.MemoryAllocation.Shares.Shares, value)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereResourcePoolCheckName(value string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rp, err := testGetResourcePool(s, "resource_pool")
+		if err != nil {
+			return err
+		}
+		if rp.Name() != value {
+			return fmt.Errorf("name check failed. Expected: %s, got: %s", rp.Name(), value)
 		}
 		return nil
 	}
@@ -461,6 +651,40 @@ resource "vsphere_resource_pool" "resource_pool" {
   name                    = "terraform-resource-pool-test"
   parent_resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
   tags                    = ["${vsphere_tag.terraform-test-tag.id}"]
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_CLUSTER"),
+	)
+}
+
+func testAccResourceVSphereResourcePoolConfigRename() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "cluster" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_compute_cluster" "cluster" {
+  name          = "${var.cluster}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_resource_pool" "parent_resource_pool" {
+  name                    = "terraform-resource-pool-test-parent"
+  parent_resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
+}
+
+resource "vsphere_resource_pool" "resource_pool" {
+  name                    = "terraform-resource-pool-test-rename"
+  parent_resource_pool_id = "${vsphere_resource_pool.parent_resource_pool.id}"
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
