@@ -1,18 +1,36 @@
 package vsphere
 
 import (
-	//"fmt"
+	"fmt"
 	"log"
+	"regexp"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
-	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
+	"github.com/vmware/govmomi"
+	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
 const resourceVSphereResourcePoolName = "vsphere_resource_pool"
+
+var resourcePoolCPUSharesLevelAllowedValues = []string{
+	string(types.SharesLevelLow),
+	string(types.SharesLevelNormal),
+	string(types.SharesLevelHigh),
+	string(types.SharesLevelCustom),
+}
+
+var resourcePoolMemorySharesLevelAllowedValues = []string{
+	string(types.SharesLevelLow),
+	string(types.SharesLevelNormal),
+	string(types.SharesLevelHigh),
+	string(types.SharesLevelCustom),
+}
 
 func resourceVSphereResourcePool() *schema.Resource {
 	s := map[string]*schema.Schema{
@@ -21,73 +39,75 @@ func resourceVSphereResourcePool() *schema.Resource {
 			Required:    true,
 			Description: "Name of resource pool.",
 		},
-		"root_resource_pool_id": {
+		"parent_resource_pool_id": {
 			Type:        schema.TypeString,
 			Description: "The ID of the root resource pool of the compute resource the resource pool is in.",
 			Required:    true,
 		},
 		"cpu_share_level": {
 			Type:         schema.TypeString,
-			Description:  "The allocation level. The level is a simplified view of shares. Levels map to a pre-determined set of numeric values for shares. Can be one of low, normal, or high. Default: normal",
+			Description:  "The allocation level. The level is a simplified view of shares. Levels map to a pre-determined set of numeric values for shares. Can be one of low, normal, high, or custom.",
 			Optional:     true,
-			ValidateFunc: validation.StringInSlice(virtualdevice.SharesLevelAllowedValues, false),
+			ValidateFunc: validation.StringInSlice(resourcePoolCPUSharesLevelAllowedValues, false),
 			Default:      "normal",
 		},
 		"cpu_shares": {
 			Type:        schema.TypeInt,
-			Description: "The number of shares allocated. Used to determine resource allocation in case of resource contention. If this is set, cpu_share_level must be custom",
+			Description: "The number of shares allocated. Used to determine resource allocation in case of resource contention. If this is set, cpu_share_level must be custom.",
 			Computed:    true,
 			Optional:    true,
 		},
 		"cpu_reservation": {
 			Type:        schema.TypeInt,
-			Description: "Amount of CPU (MHz) that is guaranteed available to the resource pool. Default: 0",
+			Description: "Amount of CPU (MHz) that is guaranteed available to the resource pool.",
 			Optional:    true,
 			Default:     0,
 		},
 		"cpu_expandable": {
 			Type:        schema.TypeBool,
-			Description: "Determines if the reservation on a resource pool can grow beyond the specified value, if the parent resource pool has unreserved resources. Default: true",
+			Description: "Determines if the reservation on a resource pool can grow beyond the specified value, if the parent resource pool has unreserved resources.",
 			Optional:    true,
 			Default:     true,
 		},
 		"cpu_limit": {
 			Type:        schema.TypeInt,
-			Description: "The utilization of a resource pool will not exceed this limit, even if there are available resources. Set to -1 for unlimited. Default: -1",
+			Description: "The utilization of a resource pool will not exceed this limit, even if there are available resources. Set to -1 for unlimited.",
 			Optional:    true,
 			Default:     -1,
 		},
 		"memory_share_level": {
 			Type:         schema.TypeString,
-			Description:  "The allocation level. The level is a simplified view of shares. Levels map to a pre-determined set of numeric values for shares. Can be one of low, normal, high, or custom. Default: normal",
+			Description:  "The allocation level. The level is a simplified view of shares. Levels map to a pre-determined set of numeric values for shares. Can be one of low, normal, high, or custom.",
 			Optional:     true,
-			ValidateFunc: validation.StringInSlice(virtualdevice.SharesLevelAllowedValues, false),
+			ValidateFunc: validation.StringInSlice(resourcePoolMemorySharesLevelAllowedValues, false),
 			Default:      "normal",
 		},
 		"memory_shares": {
 			Type:        schema.TypeInt,
-			Description: "The number of shares allocated. Used to determine resource allocation in case of resource contention. If this is set, memory_share_level must be custom",
+			Description: "The number of shares allocated. Used to determine resource allocation in case of resource contention. If this is set, memory_share_level must be custom.",
 			Computed:    true,
 			Optional:    true,
 		},
 		"memory_reservation": {
 			Type:        schema.TypeInt,
-			Description: "Amount of memory (MB) that is guaranteed available to the resource pool. Default: 0",
+			Description: "Amount of memory (MB) that is guaranteed available to the resource pool.",
 			Optional:    true,
 			Default:     0,
 		},
 		"memory_expandable": {
 			Type:        schema.TypeBool,
-			Description: "Determines if the reservation on a resource pool can grow beyond the specified value, if the parent resource pool has unreserved resources. Default: true",
+			Description: "Determines if the reservation on a resource pool can grow beyond the specified value, if the parent resource pool has unreserved resources.",
 			Optional:    true,
 			Default:     true,
 		},
 		"memory_limit": {
 			Type:        schema.TypeInt,
-			Description: "The utilization of a resource pool will not exceed this limit, even if there are available resources. Set to -1 for unlimited. Default: -1",
+			Description: "The utilization of a resource pool will not exceed this limit, even if there are available resources. Set to -1 for unlimited.",
 			Optional:    true,
 			Default:     -1,
 		},
+		vSphereTagAttributeKey:    tagsSchema(),
+		customattribute.ConfigKey: customattribute.ConfigSchema(),
 	}
 	return &schema.Resource{
 		Create: resourceVSphereResourcePoolCreate,
@@ -97,40 +117,39 @@ func resourceVSphereResourcePool() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: resourceVSphereResourcePoolImport,
 		},
-		SchemaVersion: 3,
-		Schema:        s,
+		Schema: s,
 	}
 }
 
 func resourceVSphereResourcePoolImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	client := meta.(*VSphereClient).vimClient
-	dc, _ := datacenterFromID(client, "hashi-dc")
-	rp, err := resourcepool.FromPathOrDefault(client, d.Id(), dc)
+	client, err := resourceVSphereResourcePoolClient(meta)
+	if err != nil {
+		return nil, err
+	}
+	rp, err := resourcepool.FromPathOrDefault(client, d.Id(), nil)
 	if err != nil {
 		return nil, err
 	}
 	d.SetId(rp.Reference().Value)
-	rpProps, err := resourcepool.Properties(rp)
-	if err != nil {
-		return nil, err
-	}
-	err = flattenResourcePoolConfigSpec(d, &rpProps.Config)
-	if err != nil {
-		return nil, err
-	}
 	return []*schema.ResourceData{d}, nil
 }
 
 func resourceVSphereResourcePoolCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] %s: Beginning create", resourceVSphereResourcePoolIDString(d))
-	client := meta.(*VSphereClient).vimClient
-	rrp, err := resourcepool.FromID(client, d.Get("root_resource_pool_id").(string))
+	client, err := resourceVSphereResourcePoolClient(meta)
+	if err != nil {
+		return err
+	}
+	prp, err := resourcepool.FromID(client, d.Get("parent_resource_pool_id").(string))
 	if err != nil {
 		return err
 	}
 	rpSpec := expandResourcePoolConfigSpec(d)
-	rp, err := resourcepool.Create(rrp, d.Get("name").(string), rpSpec)
+	rp, err := resourcepool.Create(prp, d.Get("name").(string), rpSpec)
 	if err != nil {
+		return err
+	}
+	if err = resourceVSphereResourcePoolApplyTags(d, meta, rp); err != nil {
 		return err
 	}
 	d.SetId(rp.Reference().Value)
@@ -140,31 +159,72 @@ func resourceVSphereResourcePoolCreate(d *schema.ResourceData, meta interface{})
 
 func resourceVSphereResourcePoolRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] %s: Beginning read", resourceVSphereResourcePoolIDString(d))
-	client := meta.(*VSphereClient).vimClient
-	rp, err := resourcepool.FromID(client, d.Id())
+	client, err := resourceVSphereResourcePoolClient(meta)
 	if err != nil {
 		return err
 	}
-	_ = d.Set("name", rp.Name())
+	rp, err := resourcepool.FromID(client, d.Id())
+	if err != nil {
+		// A missing resource error is a soap.soapFaultError, so we need to check
+		// the content of the error to see if it is due to the resource having been
+		// deleted.
+		re := regexp.MustCompile("has already been deleted or has not been completely created")
+		if re.MatchString(err.Error()) {
+			log.Printf("[DEBUG] %s: Resource has been deleted", resourceVSphereResourcePoolIDString(d))
+			d.SetId("")
+			return nil
+		}
+		return err
+	}
+	if err = resourceVSphereResourcePoolReadTags(d, meta, rp); err != nil {
+		return err
+	}
+	err = d.Set("name", rp.Name())
+	if err != nil {
+		return err
+	}
 	rpProps, err := resourcepool.Properties(rp)
 	if err != nil {
+		return err
+	}
+	if err = d.Set("parent_resource_pool_id", rpProps.Parent.Value); err != nil {
 		return err
 	}
 	err = flattenResourcePoolConfigSpec(d, &rpProps.Config)
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] %s: Read finishes successfully", resourceVSphereResourcePoolIDString(d))
+	log.Printf("[DEBUG] %s: Read finished successfully", resourceVSphereResourcePoolIDString(d))
 	return nil
 }
 
 func resourceVSphereResourcePoolUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] %s: Beginning update", resourceVSphereResourcePoolIDString(d))
-	client := meta.(*VSphereClient).vimClient
+	client, err := resourceVSphereResourcePoolClient(meta)
+	if err != nil {
+		return err
+	}
 	rp, err := resourcepool.FromID(client, d.Id())
 	if err != nil {
 		return err
 	}
+	if err = resourceVSphereResourcePoolApplyTags(d, meta, rp); err != nil {
+		return err
+	}
+	op, np := d.GetChange("parent_resource_pool_id")
+	if op != np {
+		log.Printf("[DEBUG] %s: Parent resource pool has changed. Moving from %s, to %s", resourceVSphereResourcePoolIDString(d), op, np)
+		p, err := resourcepool.FromID(client, np.(string))
+		if err != nil {
+			return err
+		}
+		err = resourcepool.MoveIntoResourcePool(p, rp.Reference())
+		if err != nil {
+			return err
+		}
+		log.Printf("[DEBUG] %s: Move finished successfully", resourceVSphereResourcePoolIDString(d))
+	}
+
 	rpSpec := expandResourcePoolConfigSpec(d)
 	err = resourcepool.Update(rp, d.Get("name").(string), rpSpec)
 	if err != nil {
@@ -176,8 +236,15 @@ func resourceVSphereResourcePoolUpdate(d *schema.ResourceData, meta interface{})
 
 func resourceVSphereResourcePoolDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] %s: Beginning delete", resourceVSphereResourcePoolIDString(d))
-	client := meta.(*VSphereClient).vimClient
+	client, err := resourceVSphereResourcePoolClient(meta)
+	if err != nil {
+		return err
+	}
 	rp, err := resourcepool.FromID(client, d.Id())
+	if err != nil {
+		return err
+	}
+	err = resourceVSphereResourcePoolValidateEmpty(rp)
 	if err != nil {
 		return err
 	}
@@ -192,7 +259,7 @@ func resourceVSphereResourcePoolDelete(d *schema.ResourceData, meta interface{})
 // resourceVSphereResourcePoolIDString prints a friendly string for the
 // vsphere_virtual_machine resource.
 func resourceVSphereResourcePoolIDString(d structure.ResourceIDStringer) string {
-	return structure.ResourceIDString(d, "vsphere_resource_pool")
+	return structure.ResourceIDString(d, resourceVSphereResourcePoolName)
 }
 
 func flattenResourcePoolConfigSpec(d *schema.ResourceData, obj *types.ResourceConfigSpec) error {
@@ -225,13 +292,13 @@ func flattenResourcePoolMemoryAllocation(d *schema.ResourceData, obj types.Resou
 
 func expandResourcePoolConfigSpec(d *schema.ResourceData) *types.ResourceConfigSpec {
 	return &types.ResourceConfigSpec{
-		CpuAllocation:    *expandResourcePoolCPUAllocation(d),
-		MemoryAllocation: *expandResourcePoolMemoryAllocation(d),
+		CpuAllocation:    expandResourcePoolCPUAllocation(d),
+		MemoryAllocation: expandResourcePoolMemoryAllocation(d),
 	}
 }
 
-func expandResourcePoolCPUAllocation(d *schema.ResourceData) *types.ResourceAllocationInfo {
-	return &types.ResourceAllocationInfo{
+func expandResourcePoolCPUAllocation(d *schema.ResourceData) types.ResourceAllocationInfo {
+	return types.ResourceAllocationInfo{
 		Reservation:           structure.GetInt64Ptr(d, "cpu_reservation"),
 		ExpandableReservation: structure.GetBoolPtr(d, "cpu_expandable"),
 		Limit: structure.GetInt64Ptr(d, "cpu_limit"),
@@ -242,8 +309,8 @@ func expandResourcePoolCPUAllocation(d *schema.ResourceData) *types.ResourceAllo
 	}
 }
 
-func expandResourcePoolMemoryAllocation(d *schema.ResourceData) *types.ResourceAllocationInfo {
-	return &types.ResourceAllocationInfo{
+func expandResourcePoolMemoryAllocation(d *schema.ResourceData) types.ResourceAllocationInfo {
+	return types.ResourceAllocationInfo{
 		Reservation:           structure.GetInt64Ptr(d, "memory_reservation"),
 		ExpandableReservation: structure.GetBoolPtr(d, "memory_expandable"),
 		Limit: structure.GetInt64Ptr(d, "memory_limit"),
@@ -252,4 +319,55 @@ func expandResourcePoolMemoryAllocation(d *schema.ResourceData) *types.ResourceA
 			Level:  types.SharesLevel(d.Get("memory_share_level").(string)),
 		},
 	}
+}
+
+func resourceVSphereResourcePoolClient(meta interface{}) (*govmomi.Client, error) {
+	client := meta.(*VSphereClient).vimClient
+	if err := viapi.ValidateVirtualCenter(client); err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func resourceVSphereResourcePoolValidateEmpty(rp *object.ResourcePool) error {
+	ne, err := resourcepool.HasChildren(rp)
+	if err != nil {
+		return fmt.Errorf("error checking contents of resource pool: %s", err)
+	}
+	if ne {
+		return fmt.Errorf("resource pool %q still has children resources. Please move or remove all items before deleting", rp.InventoryPath)
+	}
+	return nil
+}
+
+// resourceVSphereResourcePoolApplyTags processes the tags step for both create
+// and update for vsphere_resource_pool.
+func resourceVSphereResourcePoolApplyTags(d *schema.ResourceData, meta interface{}, rp *object.ResourcePool) error {
+	tagsClient, err := tagsClientIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+
+	// Apply any pending tags now.
+	if tagsClient == nil {
+		log.Printf("[DEBUG] %s: Tags unsupported on this connection, skipping", resourceVSphereComputeClusterIDString(d))
+		return nil
+	}
+
+	log.Printf("[DEBUG] %s: Applying any pending tags", resourceVSphereResourcePoolIDString(d))
+	return processTagDiff(tagsClient, d, rp)
+}
+
+// resourceVSphereResourcePoolReadTags reads the tags for
+// vsphere_resource_pool.
+func resourceVSphereResourcePoolReadTags(d *schema.ResourceData, meta interface{}, rp *object.ResourcePool) error {
+	if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
+		log.Printf("[DEBUG] %s: Reading tags", resourceVSphereResourcePoolIDString(d))
+		if err := readTagsForResource(tagsClient, rp, d); err != nil {
+			return err
+		}
+	} else {
+		log.Printf("[DEBUG] %s: Tags unsupported on this connection, skipping tag read", resourceVSphereResourcePoolIDString(d))
+	}
+	return nil
 }

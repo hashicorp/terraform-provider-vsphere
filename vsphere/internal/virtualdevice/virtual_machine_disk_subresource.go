@@ -164,7 +164,7 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 			Optional:     true,
 			Default:      string(types.SharesLevelNormal),
 			Description:  "The share allocation level for this disk. Can be one of low, normal, high, or custom.",
-			ValidateFunc: validation.StringInSlice(SharesLevelAllowedValues, false),
+			ValidateFunc: validation.StringInSlice(sharesLevelAllowedValues, false),
 		},
 		"io_share_count": {
 			Type:         schema.TypeInt,

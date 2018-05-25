@@ -207,6 +207,8 @@ func tagTypeForObject(obj object.Reference) (string, error) {
 		return vSphereTagTypeHostSystem, nil
 	case *object.StoragePod:
 		return vSphereTagTypeStoragePod, nil
+	case *object.ResourcePool:
+		return vSphereTagTypeResourcePool, nil
 	}
 	return "", fmt.Errorf("unsupported type for tagging: %T", obj)
 }

@@ -66,7 +66,7 @@ var subresourceIDControllerTypeAllowedValues = []string{
 	SubresourceControllerTypeSATA,
 }
 
-var SharesLevelAllowedValues = []string{
+var sharesLevelAllowedValues = []string{
 	string(types.SharesLevelLow),
 	string(types.SharesLevelNormal),
 	string(types.SharesLevelHigh),

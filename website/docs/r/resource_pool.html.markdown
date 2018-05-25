@@ -41,8 +41,8 @@ data "vsphere_compute_cluster" "compute_cluster" {
 }
 
 resource "vsphere_resource_pool" "resource_pool" {
-  name                = "terraform-compute-cluster-test"
-  root_resource_pool_id = "${data.vsphere_compute_cluster.compute_cluster.id}"
+  name                    = "terraform-compute-cluster-test"
+  parent_resource_pool_id = "${data.vsphere_compute_cluster.compute_cluster.id}"
 }
 ```
 
@@ -51,8 +51,11 @@ resource "vsphere_resource_pool" "resource_pool" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the resource pool.
-* `root_resource_pool_id` - (Required) The [managed object ID][docs-about-morefs]
-  of the root resource pool of the compute resource the resource pool is in.
+* `parent_resource_pool_id` - (Required) The [managed object ID][docs-about-morefs]
+  of the parent resource pool. This can be the root resource pool for a cluster
+  or standalone host, or a resource pool itself. When moving a resource pool
+  from one parent resource pool to another, both must share a common root
+  resource pool or the move will fail.
 * `cpu_share_level` - (Optional) The CPU allocation level. The level is a
   simplified view of shares. Levels map to a pre-determined set of numeric
   values for shares. Can be one of `low`, `normal`, `high`, or `custom`. When
@@ -85,21 +88,23 @@ The following arguments are supported:
 * `memory_limit` - (Optional) The CPU utilization of a resource pool will not exceed
   this limit, even if there are available resources. Set to `-1` for unlimited.
   Default: `-1`
+* `tags` - (Optional) The IDs of any tags to attach to this resource. See
+  [here][docs-applying-tags] for a reference on how to apply tags.
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
+[docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
 
 ## Attribute Reference
 
-The following attributes are exported:
-
-* `id`: The [managed object ID][docs-about-morefs] of the resource pool.
+The only attribute this resource exports is the `id` of the resource, which is
+the [managed object ID][docs-about-morefs] of the resource pool.
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
 ## Importing
 
 An existing resource pool can be [imported][docs-import] into this resource via
-the path to the resource, using the following command:
+the path to the resource pool, using the following command:
 
 [docs-import]: https://www.terraform.io/docs/import/index.html
 
