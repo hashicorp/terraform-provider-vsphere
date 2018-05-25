@@ -1,4 +1,11 @@
 ## 1.5.1 (Unreleased)
+
+BUG FIXES:
+
+* `resource/vsphere_virtual_machine`: Scenarios that force a new resource will
+  no longer create diff mismatches when external disks are attached with the
+  `attach` parameter. [GH-528]
+
 ## 1.5.0 (May 11, 2018)
 
 FEATURES:
