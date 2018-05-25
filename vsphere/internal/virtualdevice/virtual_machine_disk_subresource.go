@@ -644,6 +644,11 @@ nextNew:
 		nm["uuid"] = ""
 		if a, ok := nm["attach"]; !ok || !a.(bool) {
 			nm["path"] = ""
+		} else {
+			_, ok := nm["size"]
+			if ok {
+				delete(nm, "size")
+			}
 		}
 		if dsID, ok := nm["datastore_id"]; !ok || dsID == "" {
 			nm["datastore_id"] = diskDatastoreComputedName
