@@ -241,6 +241,14 @@ func testGetResourcePool(s *terraform.State, resourceName string) (*object.Resou
 	return resourcepool.FromID(vars.client, vars.resourceID)
 }
 
+func testGetResourcePoolProperties(s *terraform.State, resourceName string) (*mo.ResourcePool, error) {
+	rp, err := testGetResourcePool(s, resourceName)
+	if err != nil {
+		return nil, err
+	}
+	return resourcepool.Properties(rp)
+}
+
 func testGetDatacenterCustomAttributes(s *terraform.State, resourceName string) (*mo.Datacenter, error) {
 	dc, err := testGetDatacenter(s, resourceName)
 	if err != nil {

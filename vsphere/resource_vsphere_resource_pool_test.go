@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
@@ -283,15 +282,11 @@ func testAccResourceVSphereResourcePoolCheckExists(expected bool) resource.TestC
 
 func testAccResourceVSphereResourcePoolHasParent(parent string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rp, err := testGetResourcePool(s, "resource_pool")
+		props, err := testGetResourcePoolProperties(s, "resource_pool")
 		if err != nil {
 			return err
 		}
 		prp, err := testGetResourcePool(s, parent)
-		if err != nil {
-			return err
-		}
-		props, err := resourcepool.Properties(rp)
 		if err != nil {
 			return err
 		}
@@ -321,11 +316,7 @@ func testAccResourceVSphereResourcePoolCheckTags(tagResName string) resource.Tes
 
 func testAccResourceVSphereResourcePoolCheckCPUReservation(value int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rp, err := testGetResourcePool(s, "resource_pool")
-		if err != nil {
-			return err
-		}
-		props, err := resourcepool.Properties(rp)
+		props, err := testGetResourcePoolProperties(s, "resource_pool")
 		if err != nil {
 			return err
 		}
@@ -338,11 +329,7 @@ func testAccResourceVSphereResourcePoolCheckCPUReservation(value int) resource.T
 
 func testAccResourceVSphereResourcePoolCheckCPUExpandable(value bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rp, err := testGetResourcePool(s, "resource_pool")
-		if err != nil {
-			return err
-		}
-		props, err := resourcepool.Properties(rp)
+		props, err := testGetResourcePoolProperties(s, "resource_pool")
 		if err != nil {
 			return err
 		}
@@ -355,11 +342,7 @@ func testAccResourceVSphereResourcePoolCheckCPUExpandable(value bool) resource.T
 
 func testAccResourceVSphereResourcePoolCheckCPULimit(value int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rp, err := testGetResourcePool(s, "resource_pool")
-		if err != nil {
-			return err
-		}
-		props, err := resourcepool.Properties(rp)
+		props, err := testGetResourcePoolProperties(s, "resource_pool")
 		if err != nil {
 			return err
 		}
@@ -372,11 +355,7 @@ func testAccResourceVSphereResourcePoolCheckCPULimit(value int) resource.TestChe
 
 func testAccResourceVSphereResourcePoolCheckCPUShareLevel(value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rp, err := testGetResourcePool(s, "resource_pool")
-		if err != nil {
-			return err
-		}
-		props, err := resourcepool.Properties(rp)
+		props, err := testGetResourcePoolProperties(s, "resource_pool")
 		if err != nil {
 			return err
 		}
@@ -389,11 +368,7 @@ func testAccResourceVSphereResourcePoolCheckCPUShareLevel(value string) resource
 
 func testAccResourceVSphereResourcePoolCheckCPUShares(value int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rp, err := testGetResourcePool(s, "resource_pool")
-		if err != nil {
-			return err
-		}
-		props, err := resourcepool.Properties(rp)
+		props, err := testGetResourcePoolProperties(s, "resource_pool")
 		if err != nil {
 			return err
 		}
@@ -406,11 +381,7 @@ func testAccResourceVSphereResourcePoolCheckCPUShares(value int) resource.TestCh
 
 func testAccResourceVSphereResourcePoolCheckMemoryReservation(value int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rp, err := testGetResourcePool(s, "resource_pool")
-		if err != nil {
-			return err
-		}
-		props, err := resourcepool.Properties(rp)
+		props, err := testGetResourcePoolProperties(s, "resource_pool")
 		if err != nil {
 			return err
 		}
@@ -423,11 +394,7 @@ func testAccResourceVSphereResourcePoolCheckMemoryReservation(value int) resourc
 
 func testAccResourceVSphereResourcePoolCheckMemoryExpandable(value bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rp, err := testGetResourcePool(s, "resource_pool")
-		if err != nil {
-			return err
-		}
-		props, err := resourcepool.Properties(rp)
+		props, err := testGetResourcePoolProperties(s, "resource_pool")
 		if err != nil {
 			return err
 		}
@@ -440,11 +407,7 @@ func testAccResourceVSphereResourcePoolCheckMemoryExpandable(value bool) resourc
 
 func testAccResourceVSphereResourcePoolCheckMemoryLimit(value int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rp, err := testGetResourcePool(s, "resource_pool")
-		if err != nil {
-			return err
-		}
-		props, err := resourcepool.Properties(rp)
+		props, err := testGetResourcePoolProperties(s, "resource_pool")
 		if err != nil {
 			return err
 		}
@@ -457,11 +420,7 @@ func testAccResourceVSphereResourcePoolCheckMemoryLimit(value int) resource.Test
 
 func testAccResourceVSphereResourcePoolCheckMemoryShareLevel(value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rp, err := testGetResourcePool(s, "resource_pool")
-		if err != nil {
-			return err
-		}
-		props, err := resourcepool.Properties(rp)
+		props, err := testGetResourcePoolProperties(s, "resource_pool")
 		if err != nil {
 			return err
 		}
@@ -474,11 +433,7 @@ func testAccResourceVSphereResourcePoolCheckMemoryShareLevel(value string) resou
 
 func testAccResourceVSphereResourcePoolCheckMemoryShares(value int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rp, err := testGetResourcePool(s, "resource_pool")
-		if err != nil {
-			return err
-		}
-		props, err := resourcepool.Properties(rp)
+		props, err := testGetResourcePoolProperties(s, "resource_pool")
 		if err != nil {
 			return err
 		}

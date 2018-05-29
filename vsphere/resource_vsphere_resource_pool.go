@@ -3,7 +3,6 @@ package vsphere
 import (
 	"fmt"
 	"log"
-	"regexp"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -165,11 +164,7 @@ func resourceVSphereResourcePoolRead(d *schema.ResourceData, meta interface{}) e
 	}
 	rp, err := resourcepool.FromID(client, d.Id())
 	if err != nil {
-		// A missing resource error is a soap.soapFaultError, so we need to check
-		// the content of the error to see if it is due to the resource having been
-		// deleted.
-		re := regexp.MustCompile("has already been deleted or has not been completely created")
-		if re.MatchString(err.Error()) {
+		if viapi.IsManagedObjectNotFoundError(err) {
 			log.Printf("[DEBUG] %s: Resource has been deleted", resourceVSphereResourcePoolIDString(d))
 			d.SetId("")
 			return nil
@@ -190,7 +185,7 @@ func resourceVSphereResourcePoolRead(d *schema.ResourceData, meta interface{}) e
 	if err = d.Set("parent_resource_pool_id", rpProps.Parent.Value); err != nil {
 		return err
 	}
-	err = flattenResourcePoolConfigSpec(d, &rpProps.Config)
+	err = flattenResourcePoolConfigSpec(d, rpProps.Config)
 	if err != nil {
 		return err
 	}
@@ -262,7 +257,7 @@ func resourceVSphereResourcePoolIDString(d structure.ResourceIDStringer) string 
 	return structure.ResourceIDString(d, resourceVSphereResourcePoolName)
 }
 
-func flattenResourcePoolConfigSpec(d *schema.ResourceData, obj *types.ResourceConfigSpec) error {
+func flattenResourcePoolConfigSpec(d *schema.ResourceData, obj types.ResourceConfigSpec) error {
 	err := flattenResourcePoolMemoryAllocation(d, obj.MemoryAllocation)
 	if err != nil {
 		return err

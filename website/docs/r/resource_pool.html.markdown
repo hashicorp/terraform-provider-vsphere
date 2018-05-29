@@ -99,8 +99,6 @@ The following arguments are supported:
 The only attribute this resource exports is the `id` of the resource, which is
 the [managed object ID][docs-about-morefs] of the resource pool.
 
-[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
-
 ## Importing
 
 An existing resource pool can be [imported][docs-import] into this resource via
