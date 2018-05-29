@@ -45,4 +45,10 @@ fetches the server's host object ID, regardless of what is entered into `name`.
 * `resource_pool_id` - The [managed object ID][docs-about-morefs] of the host's
   root resource pool.
 
+-> Note that the resource pool referenced by
+[`resource_pool_id`](#resource_pool_id) is dependent on the target host's state
+- if it's a standalone host, the resource pool will belong to the host only,
+  however if it is a member of a cluster, the resource pool will be the root
+  for the entire cluster.
+
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
