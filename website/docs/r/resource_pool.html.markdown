@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_resource_pool"
-sidebar_current: "docs-vsphere-resource-resource-pool"
+sidebar_current: "docs-vsphere-resource-compute-resource-pool"
 description: |-
   Provides a vSphere resource pool resource. This can be used to create and manage resource pools.
 ---
@@ -41,7 +41,7 @@ data "vsphere_compute_cluster" "compute_cluster" {
 }
 
 resource "vsphere_resource_pool" "resource_pool" {
-  name                    = "terraform-compute-cluster-test"
+  name                    = "terraform-resource-pool-test"
   parent_resource_pool_id = "${data.vsphere_compute_cluster.compute_cluster.id}"
 }
 ```
