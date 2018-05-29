@@ -22,6 +22,11 @@ func dataSourceVSphereHost() *schema.Resource {
 				Description: "The managed object ID of the datacenter to look for the host in.",
 				Required:    true,
 			},
+			"resource_pool_id": &schema.Schema{
+				Type:        schema.TypeString,
+				Description: "The managed object ID of the host's root resource pool.",
+				Computed:    true,
+			},
 		},
 	}
 }
@@ -38,9 +43,15 @@ func dataSourceVSphereHostRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("error fetching host: %s", err)
 	}
-
+	rp, err := hostsystem.ResourcePool(hs)
+	if err != nil {
+		return err
+	}
+	err = d.Set("resource_pool_id", rp.Reference().Value)
+	if err != nil {
+		return err
+	}
 	id := hs.Reference().Value
 	d.SetId(id)
-
 	return nil
 }

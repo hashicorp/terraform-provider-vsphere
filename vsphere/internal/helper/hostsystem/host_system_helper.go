@@ -69,6 +69,14 @@ func Properties(host *object.HostSystem) (*mo.HostSystem, error) {
 	return &props, nil
 }
 
+// ResourcePool is a convenience method that wraps fetching the host system's
+// root resource pool
+func ResourcePool(host *object.HostSystem) (*object.ResourcePool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	return host.ResourcePool(ctx)
+}
+
 // hostSystemNameFromID returns the name of a host via its its managed object
 // reference ID.
 func hostSystemNameFromID(client *govmomi.Client, id string) (string, error) {

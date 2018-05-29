@@ -10,6 +10,7 @@ import (
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -125,4 +126,65 @@ func OSFamily(client *govmomi.Client, pool *object.ResourcePool, guest string) (
 		return "", err
 	}
 	return computeresource.OSFamily(client, pprops.Owner, guest)
+}
+
+// Create creates a ResourcePool.
+func Create(rp *object.ResourcePool, name string, spec *types.ResourceConfigSpec) (*object.ResourcePool, error) {
+	log.Printf("[DEBUG] Creating resource pool %q", fmt.Sprintf("%s/%s", rp.InventoryPath, name))
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	nrp, err := rp.Create(ctx, name, *spec)
+	if err != nil {
+		return nil, err
+	}
+	return nrp, nil
+}
+
+// Update updates a ResourcePool.
+func Update(rp *object.ResourcePool, name string, spec *types.ResourceConfigSpec) error {
+	log.Printf("[DEBUG] Updating resource pool %q", fmt.Sprintf("%s", rp.InventoryPath))
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	return rp.UpdateConfig(ctx, name, spec)
+}
+
+// Delete destroys a ResourcePool.
+func Delete(rp *object.ResourcePool) error {
+	log.Printf("[DEBUG] Deleting resource pool %q", rp.InventoryPath)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	task, err := rp.Destroy(ctx)
+	if err != nil {
+		return err
+	}
+	return task.Wait(ctx)
+}
+
+// MoveIntoResourcePool moves a virtual machine, resource pool, or
+// vApp into the specified ResourcePool.
+func MoveIntoResourcePool(p *object.ResourcePool, c types.ManagedObjectReference) error {
+	req := types.MoveIntoResourcePool{
+		This: p.Reference(),
+		List: []types.ManagedObjectReference{c},
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	_, err := methods.MoveIntoResourcePool(ctx, p.Client(), &req)
+	return err
+}
+
+// HasChildren checks to see if a resource pool has any child items (virtual
+// machines, vApps, or resource pools) and returns true if that is the case.
+// This is useful when checking to see if a resource pool is safe to delete.
+// Destroying a resource pool in vSphere destroys *all* children if at all
+// possible, so extra verification is necessary to prevent accidental removal.
+func HasChildren(rp *object.ResourcePool) (bool, error) {
+	props, err := Properties(rp)
+	if err != nil {
+		return false, err
+	}
+	if len(props.Vm) > 0 || len(props.ResourcePool) > 0 {
+		return true, nil
+	}
+	return false, nil
 }
