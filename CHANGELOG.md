@@ -1,4 +1,15 @@
-## 1.5.1 (Unreleased)
+## 1.6.0 (Unreleased)
+
+FEATURES:
+
+* **New Resource:** `vsphere_resource_pool` [GH-535]
+
+IMPROVEMENTS:
+
+* `data/vsphere_host`: Now exports the `resource_pool_id` attribute, which
+  points to the root resource pool of either the standalone host, or the
+  cluster's root resource pool in the event the host is a member of a cluster.
+  [GH-535]
 
 BUG FIXES:
 
