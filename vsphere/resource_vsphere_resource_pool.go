@@ -153,7 +153,7 @@ func resourceVSphereResourcePoolCreate(d *schema.ResourceData, meta interface{})
 	}
 	d.SetId(rp.Reference().Value)
 	log.Printf("[DEBUG] %s: Create finished successfully", resourceVSphereResourcePoolIDString(d))
-	return nil
+	return resourceVSphereResourcePoolRead(d, meta)
 }
 
 func resourceVSphereResourcePoolRead(d *schema.ResourceData, meta interface{}) error {

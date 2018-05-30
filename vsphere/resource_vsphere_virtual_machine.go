@@ -15,6 +15,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
@@ -310,12 +311,15 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	if vprops.ResourcePool != nil {
 		d.Set("resource_pool_id", vprops.ResourcePool.Value)
 	}
-	// Set the folder
-	f, err := folder.RootPathParticleVM.SplitRelativeFolder(vm.InventoryPath)
-	if err != nil {
-		return fmt.Errorf("error parsing virtual machine path %q: %s", vm.InventoryPath, err)
+	// If the VM is part of a vApp, the inventory path will not point to a host
+	// path rather than a VM path, so this step must be skipped.
+	if !vappcontainer.IsVApp(client, vprops.ResourcePool.Value) {
+		f, err := folder.RootPathParticleVM.SplitRelativeFolder(vm.InventoryPath)
+		if err != nil {
+			return fmt.Errorf("error parsing virtual machine path %q: %s", vm.InventoryPath, err)
+		}
+		d.Set("folder", folder.NormalizePath(f))
 	}
-	d.Set("folder", folder.NormalizePath(f))
 	// Set VM's current host ID if available
 	if vprops.Runtime.Host != nil {
 		d.Set("host_system_id", vprops.Runtime.Host.Value)
