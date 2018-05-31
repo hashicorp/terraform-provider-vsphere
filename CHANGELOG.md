@@ -1,21 +1,21 @@
-## 1.6.0 (Unreleased)
+## 1.6.0 (May 31, 2018)
 
 FEATURES:
 
-* **New Resource:** `vsphere_resource_pool` [GH-535]
+* **New Resource:** `vsphere_resource_pool` ([#535](https://github.com/terraform-providers/terraform-provider-vsphere/issues/535))
 
 IMPROVEMENTS:
 
 * `data/vsphere_host`: Now exports the `resource_pool_id` attribute, which
   points to the root resource pool of either the standalone host, or the
   cluster's root resource pool in the event the host is a member of a cluster.
-  [GH-535]
+  ([#535](https://github.com/terraform-providers/terraform-provider-vsphere/issues/535))
 
 BUG FIXES:
 
 * `resource/vsphere_virtual_machine`: Scenarios that force a new resource will
   no longer create diff mismatches when external disks are attached with the
-  `attach` parameter. [GH-528]
+  `attach` parameter. ([#528](https://github.com/terraform-providers/terraform-provider-vsphere/issues/528))
 
 ## 1.5.0 (May 11, 2018)
 
