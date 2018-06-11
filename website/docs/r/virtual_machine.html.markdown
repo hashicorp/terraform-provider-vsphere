@@ -1277,6 +1277,7 @@ resource "vsphere_virtual_machine" "vm" {
 Note that when cloning from a template, there are additional requirements in
 both the resource configuration and source template:
 
+* The virtual machine must not be powered on at the time of cloning.
 * All disks on the virtual machine must be SCSI disks.
 * You must specify at least the same number of `disk` sub-resources as there
   are disks that exist in the template. These sub-resources are ordered and
