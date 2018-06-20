@@ -53,19 +53,19 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CLIENT_DEBUG", false),
-				Description: "govomomi debug",
+				Description: "govmomi debug",
 			},
 			"client_debug_path_run": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CLIENT_DEBUG_PATH_RUN", ""),
-				Description: "govomomi debug path for a single run",
+				Description: "govmomi debug path for a single run",
 			},
 			"client_debug_path": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CLIENT_DEBUG_PATH", ""),
-				Description: "govomomi debug path for debug",
+				Description: "govmomi debug path for debug",
 			},
 			"persist_session": &schema.Schema{
 				Type:        schema.TypeBool,
