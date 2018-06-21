@@ -109,6 +109,10 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("no configuration returned for virtual machine %q", vm.InventoryPath)
 	}
 
+	if props.Config.Uuid == "" {
+		return fmt.Errorf("virtual machine %q does not have a UUID", vm.InventoryPath)
+	}
+
 	d.SetId(props.Config.Uuid)
 	d.Set("guest_id", props.Config.GuestId)
 	d.Set("alternate_guest_name", props.Config.AlternateGuestName)
