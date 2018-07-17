@@ -18,7 +18,7 @@ page][ref-vsphere-vapp].
 
 ## Example Usage
 
-The following example sets up a vApp container in a compute cluster which uses
+The basic example below sets up a vApp container in a compute cluster which uses
 the default settings for CPU and memory reservations, shares, and limits. The
 compute cluster needs to already exist in vSphere.  
 
@@ -43,6 +43,64 @@ data "vsphere_compute_cluster" "compute_cluster" {
 resource "vsphere_vapp_container" "vapp_container" {
   name                    = "terraform-vapp-container-test"
   parent_resource_pool_id = "${data.vsphere_compute_cluster.compute_cluster.id}"
+}
+```
+
+### Example with virtual machine
+
+The below example builds off the basic example, but includes a virtual machine
+in the new vApp container. To accomplish this, the `resource_pool_id` of the
+virtual machine is set to the `id` of the vApp container.
+
+```hcl
+variable "datacenter" {
+  default = "dc1"
+}
+
+variable "cluster" {
+  default = "cluster1"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_compute_cluster" "compute_cluster" {
+  name          = "${var.cluster}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "network1"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "datastore1"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_vapp_container" "vapp_container" {
+  name                    = "terraform-vapp-container-test"
+  parent_resource_pool_id = "${data.vsphere_compute_cluster.compute_cluster.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-virutal-machine-test"
+  resource_pool_id = "${vsphere_vapp_container.vapp_container.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  num_cpus         = 2
+  memory           = 1024
+  guest_id         = "ubuntu64Guest"
+
+  disk {
+    label = "disk0"
+    size  = 1
+  }
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
 }
 ```
 
