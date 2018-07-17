@@ -10,6 +10,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -195,7 +196,11 @@ func CreateVM(
 	// If the parent resource pool is a vApp, we need to create the VM using the
 	// CreateChildVM vApp function instead of directly using SDRS recommendations.
 	if sps.ResourcePool != nil {
-		if vc, err := vappcontainer.FromID(client, sps.ResourcePool.Reference().Value); err == nil {
+		vc, err := vappcontainer.FromID(client, sps.ResourcePool.Reference().Value)
+		switch {
+		case viapi.IsManagedObjectNotFoundError(err):
+			// This isn't a vApp container, so continue with normal SDRS work flow.
+		case err == nil:
 			ds, err := datastore.FromID(client, placement.Recommendations[0].Action[0].(*types.StoragePlacementAction).Destination.Reference().Value)
 			if err != nil {
 				return nil, err
@@ -208,6 +213,8 @@ func CreateVM(
 				return nil, err
 			}
 			return virtualmachine.Create(client, f, spec, vc.ResourcePool, nil)
+		default:
+			return nil, err
 		}
 	}
 	return applySDRS(client, placement, provider.DefaultAPITimeout)
