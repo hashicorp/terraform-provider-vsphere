@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
-	"github.com/vmware/govmomi/object"
 )
 
 func TestAccResourceVSphereVAppContainer_basic(t *testing.T) {
@@ -278,14 +277,6 @@ func testAccResourceVSphereVAppContainerContainsVM(vmName string) resource.TestC
 		}
 		return nil
 	}
-}
-
-func testGetVAppContainer(s *terraform.State, resourceName string) (*object.VirtualApp, error) {
-	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereVAppContainerName, resourceName))
-	if err != nil {
-		return nil, err
-	}
-	return vappcontainer.FromID(vars.client, vars.resourceID)
 }
 
 func testAccResourceVSphereVAppContainerConfigBasic() string {
