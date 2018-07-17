@@ -8,10 +8,10 @@ description: |-
 
 # vsphere\_vapp\_container
 
-The `vsphere_vApp_container` resource can be used to create and manage
-Virtual Appliances.
+The `vsphere_vapp_container` resource can be used to create and manage
+vApps.
 
-For more information on vSphere Virtual Appliances, see [this
+For more information on vSphere vApps, see [this
 page][ref-vsphere-vapp].
 
 [ref-vsphere-vapp]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.vm_admin.doc/GUID-2A95EBB8-1779-40FA-B4FB-4D0845750879.html
@@ -56,7 +56,7 @@ The following arguments are supported:
   or standalone host, or a resource pool itself. When moving a vApp container
   from one parent resource pool to another, both must share a common root
   resource pool or the move will fail.
-* `parent_folder_id` - (Optional) The [manage object ID][docs-about-morefs] of
+* `parent_folder_id` - (Optional) The [managed object ID][docs-about-morefs] of
   the vApp container's parent folder.
 * `cpu_share_level` - (Optional) The CPU allocation level. The level is a
   simplified view of shares. Levels map to a pre-determined set of numeric
