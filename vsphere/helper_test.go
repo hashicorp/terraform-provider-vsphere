@@ -266,6 +266,14 @@ func testGetVAppContainer(s *terraform.State, resourceName string) (*object.Virt
 	return vappcontainer.FromID(vars.client, vars.resourceID)
 }
 
+func testGetVAppContainerProperties(s *terraform.State, resourceName string) (*mo.VirtualApp, error) {
+	vc, err := testGetVAppContainer(s, resourceName)
+	if err != nil {
+		return nil, err
+	}
+	return vappcontainer.Properties(vc)
+}
+
 // testPowerOffVM does an immediate power-off of the supplied virtual machine
 // resource defined by the supplied resource address name. It is used to help
 // set up a test scenarios where a VM is powered off.

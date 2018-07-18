@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
@@ -25,6 +26,17 @@ func TestAccResourceVSphereVAppContainer_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVAppContainerCheckExists(true),
 					testAccResourceVSphereVAppContainerCheckFolder("parent_folder"),
+					testAccResourceVSphereVAppContainerCheckExists(true),
+					testAccResourceVSphereVAppContainerCheckCPUReservation(10),
+					testAccResourceVSphereVAppContainerCheckCPUExpandable(false),
+					testAccResourceVSphereVAppContainerCheckCPULimit(20),
+					testAccResourceVSphereVAppContainerCheckCPUShareLevel("custom"),
+					testAccResourceVSphereVAppContainerCheckCPUShares(10),
+					testAccResourceVSphereVAppContainerCheckCPUReservation(10),
+					testAccResourceVSphereVAppContainerCheckCPUExpandable(false),
+					testAccResourceVSphereVAppContainerCheckCPULimit(20),
+					testAccResourceVSphereVAppContainerCheckMemoryShareLevel("custom"),
+					testAccResourceVSphereVAppContainerCheckMemoryShares(10),
 				),
 			},
 		},
@@ -279,6 +291,136 @@ func testAccResourceVSphereVAppContainerContainsVM(vmName string) resource.TestC
 	}
 }
 
+func testAccResourceVSphereVAppContainerCheckCPUReservation(value int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVAppContainerProperties(s, "vapp_container")
+		if err != nil {
+			return err
+		}
+		if *props.Config.CpuAllocation.Reservation != *structure.Int64Ptr(int64(value)) {
+			return fmt.Errorf("CpuAllocation.Reservation check failed. Expected: %d, got: %d", *props.Config.CpuAllocation.Reservation, value)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereVAppContainerCheckCPUExpandable(value bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVAppContainerProperties(s, "vapp_container")
+		if err != nil {
+			return err
+		}
+		if *props.Config.CpuAllocation.ExpandableReservation != *structure.BoolPtr(value) {
+			return fmt.Errorf("CpuAllocation.Expandable check failed. Expected: %t, got: %t", *props.Config.CpuAllocation.ExpandableReservation, value)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereVAppContainerCheckCPULimit(value int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVAppContainerProperties(s, "vapp_container")
+		if err != nil {
+			return err
+		}
+		if *props.Config.CpuAllocation.Limit != *structure.Int64Ptr(int64(value)) {
+			return fmt.Errorf("CpuAllocation.Limit check failed. Expected: %d, got: %d", *props.Config.CpuAllocation.Limit, value)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereVAppContainerCheckCPUShareLevel(value string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVAppContainerProperties(s, "vapp_container")
+		if err != nil {
+			return err
+		}
+		if string(props.Config.CpuAllocation.Shares.Level) != value {
+			return fmt.Errorf("CpuAllocation.Shares.Level check failed. Expected: %s, got: %s", props.Config.CpuAllocation.Shares.Level, value)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereVAppContainerCheckCPUShares(value int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVAppContainerProperties(s, "vapp_container")
+		if err != nil {
+			return err
+		}
+		if props.Config.CpuAllocation.Shares.Shares != int32(value) {
+			return fmt.Errorf("CpuAllocation.Shares.Shares check failed. Expected: %d, got: %d", props.Config.CpuAllocation.Shares.Shares, value)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereVAppContainerCheckMemoryReservation(value int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVAppContainerProperties(s, "vapp_container")
+		if err != nil {
+			return err
+		}
+		if *props.Config.MemoryAllocation.Reservation != *structure.Int64Ptr(int64(value)) {
+			return fmt.Errorf("MemoryAllocation.Reservation check failed. Expected: %d, got: %d", *props.Config.MemoryAllocation.Reservation, value)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereVAppContainerCheckMemoryExpandable(value bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVAppContainerProperties(s, "vapp_container")
+		if err != nil {
+			return err
+		}
+		if *props.Config.MemoryAllocation.ExpandableReservation != *structure.BoolPtr(value) {
+			return fmt.Errorf("MemoryAllocation.Expandable check failed. Expected: %t, got: %t", *props.Config.MemoryAllocation.ExpandableReservation, value)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereVAppContainerCheckMemoryLimit(value int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVAppContainerProperties(s, "vapp_container")
+		if err != nil {
+			return err
+		}
+		if *props.Config.MemoryAllocation.Limit != *structure.Int64Ptr(int64(value)) {
+			return fmt.Errorf("MemoryAllocation.Limit check failed. Expected: %d, got: %d", *props.Config.MemoryAllocation.Limit, value)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereVAppContainerCheckMemoryShareLevel(value string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVAppContainerProperties(s, "vapp_container")
+		if err != nil {
+			return err
+		}
+		if string(props.Config.MemoryAllocation.Shares.Level) != value {
+			return fmt.Errorf("MemoryAllocation.Shares.Level check failed. Expected: %s, got: %s", props.Config.MemoryAllocation.Shares.Level, value)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereVAppContainerCheckMemoryShares(value int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVAppContainerProperties(s, "vapp_container")
+		if err != nil {
+			return err
+		}
+		if props.Config.MemoryAllocation.Shares.Shares != int32(value) {
+			return fmt.Errorf("MemoryAllocation.Shares.Shares check failed. Expected: %d, got: %d", props.Config.MemoryAllocation.Shares.Shares, value)
+		}
+		return nil
+	}
+}
+
 func testAccResourceVSphereVAppContainerConfigBasic() string {
 	return fmt.Sprintf(`
 variable "datacenter" {
@@ -322,6 +464,16 @@ resource "vsphere_vapp_container" "vapp_container" {
   name                    = "vapp-container-test"
   parent_resource_pool_id = "${vsphere_resource_pool.parent_resource_pool.id}"
   parent_folder_id        = "${vsphere_folder.parent_folder.id}"
+  cpu_share_level         = "custom"
+  cpu_shares              = 10
+  cpu_reservation         = 10
+  cpu_expandable          = false
+  cpu_limit               = 20
+  memory_share_level      = "custom"
+  memory_shares           = 10
+  memory_reservation      = 10
+  memory_expandable       = false
+  memory_limit            = 20
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
