@@ -33,6 +33,12 @@ func resourceVSphereDatacenter() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"moid": &schema.Schema{
+				Type:        schema.TypeString,
+				Computed:    true,
+				ForceNew:    true,
+				Description: "Managed object ID of the datacenter.",
+			},
 
 			// Add tags schema
 			vSphereTagAttributeKey: tagsSchema(),
@@ -63,7 +69,6 @@ func resourceVSphereDatacenterCreate(d *schema.ResourceData, meta interface{}) e
 	var f *object.Folder
 	if v, ok := d.GetOk("folder"); ok {
 		finder := find.NewFinder(client.Client, true)
-		var err error
 		f, err = finder.Folder(context.TODO(), v.(string))
 		if err != nil {
 			return fmt.Errorf("failed to find folder that will contain the datacenter: %s", err)
@@ -155,6 +160,10 @@ func resourceVSphereDatacenterRead(d *schema.ResourceData, meta interface{}) err
 		return nil
 	}
 
+	// TODO: In v2.0, the ID should be the MOID and this can be removed.
+	if err = d.Set("moid", dc.Reference().Value); err != nil {
+		return err
+	}
 	// Read tags if we have the ability to do so
 	if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
 		if err := readTagsForResource(tagsClient, dc, d); err != nil {

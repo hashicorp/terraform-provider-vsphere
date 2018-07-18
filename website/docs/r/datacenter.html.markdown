@@ -58,4 +58,8 @@ and require vCenter.
 
 ## Attribute Reference
 
-The only attribute exported is `id`, which is the name of the datacenter.
+* `id` - The name of this datacenter. This will be changed to the [managed
+  object ID][docs-about-morefs] in v2.0.
+* `moid` - [Managed object ID][docs-about-morefs] of this datacenter.
+
+[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
