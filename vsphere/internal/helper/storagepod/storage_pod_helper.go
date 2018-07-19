@@ -201,18 +201,7 @@ func CreateVM(
 		case viapi.IsManagedObjectNotFoundError(err):
 			// This isn't a vApp container, so continue with normal SDRS work flow.
 		case err == nil:
-			ds, err := datastore.FromID(client, placement.Recommendations[0].Action[0].(*types.StoragePlacementAction).Destination.Reference().Value)
-			if err != nil {
-				return nil, err
-			}
-			spec.Files = &types.VirtualMachineFileInfo{
-				VmPathName: fmt.Sprintf("[%s]", ds.Name()),
-			}
-			f, err := folder.FromID(client, sps.Folder.Reference().Value)
-			if err != nil {
-				return nil, err
-			}
-			return virtualmachine.Create(client, f, spec, vc.ResourcePool, nil)
+			return createVAppVMFromSPS(client, placement, spec, sps, vc)
 		default:
 			return nil, err
 		}
@@ -257,11 +246,7 @@ func CloneVM(
 		Type: string(types.StoragePlacementSpecPlacementTypeClone),
 	}
 
-	placement, err := recommendSDRS(client, sps, time.Minute*time.Duration(timeout))
-	if err != nil {
-		return nil, err
-	}
-	return applySDRS(client, placement, time.Minute*time.Duration(timeout))
+	return recommendAndApplySDRS(client, sps, time.Minute*time.Duration(timeout))
 }
 
 // ReconfigureVM reconfigures a virtual machine via the StorageResourceManager
@@ -301,11 +286,7 @@ func ReconfigureVM(
 		ConfigSpec: &spec,
 	}
 
-	placement, err := recommendSDRS(client, sps, provider.DefaultAPITimeout)
-	if err != nil {
-		return err
-	}
-	_, err = applySDRS(client, placement, provider.DefaultAPITimeout)
+	_, err = recommendAndApplySDRS(client, sps, provider.DefaultAPITimeout)
 	return err
 }
 
@@ -342,12 +323,20 @@ func RelocateVM(
 		Type:         string(types.StoragePlacementSpecPlacementTypeRelocate),
 	}
 
-	placement, err := recommendSDRS(client, sps, time.Minute*time.Duration(timeout))
-	if err != nil {
-		return err
-	}
-	_, err = applySDRS(client, placement, time.Minute*time.Duration(timeout))
+	_, err = recommendAndApplySDRS(client, sps, time.Minute*time.Duration(timeout))
 	return err
+}
+
+func recommendAndApplySDRS(
+	client *govmomi.Client,
+	sps types.StoragePlacementSpec,
+	timeout time.Duration,
+) (*object.VirtualMachine, error) {
+	placement, err := recommendSDRS(client, sps, timeout)
+	if err != nil {
+		return nil, err
+	}
+	return applySDRS(client, placement, timeout)
 }
 
 func recommendSDRS(client *govmomi.Client, sps types.StoragePlacementSpec, timeout time.Duration) (*types.StoragePlacementResult, error) {
@@ -398,6 +387,28 @@ func applySDRS(client *govmomi.Client, placement *types.StoragePlacementResult, 
 		}
 	}
 	return vm, nil
+}
+
+func createVAppVMFromSPS(
+	client *govmomi.Client,
+	placement *types.StoragePlacementResult,
+	spec types.VirtualMachineConfigSpec,
+	sps types.StoragePlacementSpec,
+	vc *object.VirtualApp,
+) (*object.VirtualMachine, error) {
+	ds, err := datastore.FromID(client, placement.Recommendations[0].Action[0].(*types.StoragePlacementAction).Destination.Reference().Value)
+	if err != nil {
+		return nil, err
+	}
+	spec.Files = &types.VirtualMachineFileInfo{
+		VmPathName: fmt.Sprintf("[%s]", ds.Name()),
+	}
+	var f *object.Folder
+	f, err = folder.FromID(client, sps.Folder.Reference().Value)
+	if err != nil {
+		return nil, err
+	}
+	return virtualmachine.Create(client, f, spec, vc.ResourcePool, nil)
 }
 
 // HasDiskCreationOperations is an exported function that checks a list of
