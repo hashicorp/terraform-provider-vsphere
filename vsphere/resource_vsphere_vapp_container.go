@@ -164,7 +164,8 @@ func resourceVSphereVAppContainerCreate(d *schema.ResourceData, meta interface{}
 		if len(p) > 2 {
 			return fmt.Errorf("unable to locate datacenter name from parent resource pool")
 		}
-		dc, err := getDatacenter(client, p[1])
+		var dc *object.Datacenter
+		dc, err = getDatacenter(client, p[1])
 		if err != nil {
 			return err
 		}
@@ -239,7 +240,8 @@ func resourceVSphereVAppContainerUpdate(d *schema.ResourceData, meta interface{}
 	op, np := d.GetChange("parent_resource_pool_id")
 	if op != np {
 		log.Printf("[DEBUG] %s: Parent resource pool has changed. Moving from %s, to %s", resourceVSphereVAppContainerIDString(d), op, np)
-		p, err := resourcepool.FromID(client, np.(string))
+		var p *object.ResourcePool
+		p, err = resourcepool.FromID(client, np.(string))
 		if err != nil {
 			return err
 		}

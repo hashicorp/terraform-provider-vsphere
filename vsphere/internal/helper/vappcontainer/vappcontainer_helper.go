@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -112,4 +113,14 @@ func HasChildren(vc *object.VirtualApp) (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+// ParentFolder is a convenience method which returns the parent VM folder of a
+// vApp container.
+func ParentFolder(client *govmomi.Client, vc *object.VirtualApp) (*object.Folder, error) {
+	vcprops, err := Properties(vc)
+	if err != nil {
+		return nil, err
+	}
+	return folder.FromID(client, vcprops.ParentFolder.Reference().Value)
 }
