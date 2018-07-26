@@ -430,6 +430,53 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitsToRegularSingleController
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_scsiBusSharing(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigShared(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckSCSIBusSharing(string(types.VirtualSCSISharingPhysicalSharing)),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_scsiBusSharingUpdate(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckSCSIBusSharing(string(types.VirtualSCSISharingNoSharing)),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigShared(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckSCSIBusSharing(string(types.VirtualSCSISharingPhysicalSharing)),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVirtualMachine_disksKeepOnRemove(t *testing.T) {
 	var disks []map[string]string
 	resource.Test(t, resource.TestCase{
@@ -3371,12 +3418,27 @@ func testAccResourceVSphereVirtualMachineCheckDiskSize(expected int) resource.Te
 // test VM's SCSI bus is all of the specified SCSI type.
 func testAccResourceVSphereVirtualMachineCheckSCSIBus(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		actual, err := testGetVirtualMachineSCSIBusState(s, "vm")
+		actual, err := testGetVirtualMachineSCSIBusType(s, "vm")
 		if err != nil {
 			return fmt.Errorf("bad: %s", err)
 		}
 		if expected != actual {
 			return fmt.Errorf("expected SCSI bus to be %s, got %s", expected, actual)
+		}
+		return nil
+	}
+}
+
+// testAccResourceVSphereVirtualMachineCheckSCSIBusSharing checks to make sure the
+// test VM's SCSI bus is all of the specified sharing type.
+func testAccResourceVSphereVirtualMachineCheckSCSIBusSharing(expected string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		actual, err := testGetVirtualMachineSCSIBusSharing(s, "vm")
+		if err != nil {
+			return fmt.Errorf("bad: %s", err)
+		}
+		if expected != actual {
+			return fmt.Errorf("expected SCSI bus sharing to be %s, got %s", expected, actual)
 		}
 		return nil
 	}
@@ -3753,6 +3815,72 @@ resource "vsphere_virtual_machine" "vm" {
   num_cpus = 2
   memory   = 2048
   guest_id = "other3xLinux64Guest"
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_DATASTORE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigShared() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus                   = 2
+  memory                     = 2048
+  guest_id                   = "other3xLinux64Guest"
+  wait_for_guest_net_timeout = -1
+
+  scsi_bus_sharing = "physicalSharing"
 
   network_interface {
     network_id = "${data.vsphere_network.network.id}"

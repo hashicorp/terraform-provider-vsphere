@@ -202,9 +202,9 @@ func testGetVirtualMachineResourcePool(s *terraform.State, resourceName string) 
 	return resourcepool.FromID(tVars.client, vprops.ResourcePool.Value)
 }
 
-// testGetVirtualMachineSCSIBusState reads the SCSI bus state for the supplied
+// testGetVirtualMachineSCSIBusType reads the SCSI bus type for the supplied
 // virtual machine.
-func testGetVirtualMachineSCSIBusState(s *terraform.State, resourceName string) (string, error) {
+func testGetVirtualMachineSCSIBusType(s *terraform.State, resourceName string) (string, error) {
 	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_virtual_machine.%s", resourceName))
 	if err != nil {
 		return "", err
@@ -218,7 +218,26 @@ func testGetVirtualMachineSCSIBusState(s *terraform.State, resourceName string) 
 		return "", err
 	}
 	l := object.VirtualDeviceList(vprops.Config.Hardware.Device)
-	return virtualdevice.ReadSCSIBusState(l, count), nil
+	return virtualdevice.ReadSCSIBusType(l, count), nil
+}
+
+// testGetVirtualMachineSCSIBusSharing reads the SCSI bus sharing mode for the
+// supplied virtual machine.
+func testGetVirtualMachineSCSIBusSharing(s *terraform.State, resourceName string) (string, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_virtual_machine.%s", resourceName))
+	if err != nil {
+		return "", err
+	}
+	vprops, err := testGetVirtualMachineProperties(s, resourceName)
+	if err != nil {
+		return "", err
+	}
+	count, err := strconv.Atoi(tVars.resourceAttributes["scsi_controller_count"])
+	if err != nil {
+		return "", err
+	}
+	l := object.VirtualDeviceList(vprops.Config.Hardware.Device)
+	return virtualdevice.ReadSCSIBusSharing(l, count), nil
 }
 
 func testGetDatacenter(s *terraform.State, resourceName string) (*object.Datacenter, error) {
