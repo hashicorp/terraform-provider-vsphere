@@ -8,7 +8,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
@@ -486,12 +485,10 @@ func GracefulPowerOff(client *govmomi.Client, vm *object.VirtualMachine, timeout
 // MoveToFolder moves a virtual machine to the specified folder.
 func MoveToFolder(client *govmomi.Client, vm *object.VirtualMachine, relative string) error {
 	log.Printf("[DEBUG] Moving virtual %q to VM path %q", vm.InventoryPath, relative)
-	oi := vm.InventoryPath
 	f, err := folder.VirtualMachineFolderFromObject(client, vm, relative)
 	if err != nil {
 		return err
 	}
-	vm.InventoryPath = oi
 	return folder.MoveObjectTo(vm.Reference(), f)
 }
 
@@ -662,53 +659,4 @@ func (r MOIDForUUIDResults) UUIDs() []string {
 		uuids = append(uuids, result.UUID)
 	}
 	return uuids
-}
-
-// VMFolder returns the folder a virtual machine resides in. If the VM is part
-// of a vApp, the inventory path will not point to a host path rather than a VM
-// path, so the VM path must be generated from the vApp container's
-// parent folder.
-func VMFolder(client *govmomi.Client, vm *object.VirtualMachine) (string, error) {
-	vprops, err := Properties(vm)
-	if err != nil {
-		return "", err
-	}
-	vc, err := vappcontainer.FromID(client, vprops.ResourcePool.Value)
-	switch {
-	case viapi.IsManagedObjectNotFoundError(err):
-		return folder.RootPathParticleVM.SplitRelativeFolder(vm.InventoryPath)
-	case err == nil:
-		var pf *object.Folder
-		pf, err = vappcontainer.ParentFolder(client, vc)
-		if err != nil {
-			return "", err
-		}
-		return folder.RootPathParticleVM.SplitRelativeFolder(pf.InventoryPath)
-	default:
-		return "", err
-	}
-}
-
-// VerifyFolder checks that folder attribute matches the VM folder path for the
-// virtual machine. Since the InventoryPath for a virtual machine in a vApp
-// container uses the host folder path, the VM folder path is found by using
-// the parent folder of the vApp container.
-func VerifyFolder(d *schema.ResourceDiff, client *govmomi.Client) error {
-	vc, err := vappcontainer.FromID(client, d.Get("resource_pool_id").(string))
-	switch {
-	case viapi.IsManagedObjectNotFoundError(err):
-		return nil
-	case err != nil:
-		var pf *object.Folder
-		pf, err = vappcontainer.ParentFolder(client, vc)
-		if err != nil {
-			return err
-		}
-		if f, ok := d.GetOk("folder"); ok && f.(string) != pf.InventoryPath {
-			return fmt.Errorf("folder must be set to vApp container parent folder when VM is in a vApp container. Got: %s, Expected: %s", f.(string), pf.InventoryPath)
-		}
-		return nil
-	default:
-		return err
-	}
 }

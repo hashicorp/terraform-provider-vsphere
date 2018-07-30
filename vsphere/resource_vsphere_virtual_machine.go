@@ -311,15 +311,15 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	if vprops.ResourcePool != nil {
 		d.Set("resource_pool_id", vprops.ResourcePool.Value)
 	}
-	var f string
-	f, err = virtualmachine.VMFolder(client, vm)
-	if err != nil {
-		return err
+	// If the VM is part of a vApp, InventoryPath will point to a host path
+	// rather than a VM path, so this step must be skipped.
+	if !vappcontainer.IsVApp(client, vprops.ResourcePool.Value) {
+		f, err := folder.RootPathParticleVM.SplitRelativeFolder(vm.InventoryPath)
+		if err != nil {
+			return fmt.Errorf("error parsing virtual machine path %q: %s", vm.InventoryPath, err)
+		}
+		d.Set("folder", folder.NormalizePath(f))
 	}
-	if err = d.Set("folder", folder.NormalizePath(f)); err != nil {
-		return err
-	}
-
 	// Set VM's current host ID if available
 	if vprops.Runtime.Host != nil {
 		d.Set("host_system_id", vprops.Runtime.Host.Value)
@@ -421,11 +421,27 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("cannot locate virtual machine with UUID %q: %s", id, err)
 	}
 
-	// Update folder if necessary
-	if d.HasChange("folder") {
-		if vappcontainer.IsVApp(client, d.Get("resource_pool_id").(string)) {
-			return fmt.Errorf("cannot change folder while VM is in a vApp container")
+	if d.HasChange("resource_pool_id") {
+		var rp *object.ResourcePool
+		rp, err = resourcepool.FromID(client, d.Get("resource_pool_id").(string))
+		if err != nil {
+			return err
 		}
+		if err = resourcepool.MoveIntoResourcePool(rp, vm.Reference()); err != nil {
+			return err
+		}
+		// If a VM is moved into or out of a vApp container, the VM's InventoryPath
+		// will change. This can affect steps later in the update process such as
+		// moving folders. To make sure the VM has the correct InventoryPath,
+		// refresh the VM after moving into a new resource pool.
+		vm, err = virtualmachine.FromMOID(client, vm.Reference().Value)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Update folder if necessary
+	if d.HasChange("folder") && !vappcontainer.IsVApp(client, d.Get("resource_pool_id").(string)) {
 		folder := d.Get("folder").(string)
 		if err := virtualmachine.MoveToFolder(client, vm, folder); err != nil {
 			return fmt.Errorf("could not move virtual machine to folder %q: %s", folder, err)
@@ -636,6 +652,11 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 	if err := virtualdevice.DiskDiffOperation(d, client); err != nil {
 		return err
 	}
+	// When a VM is a member of a vApp container, it is no longer part of the VM
+	// tree, and therefor cannot have its VM folder set.
+	if _, ok := d.GetOk("folder"); ok && vappcontainer.IsVApp(client, d.Get("resource_pool_id").(string)) {
+		return fmt.Errorf("cannot set folder while VM is in a vApp container")
+	}
 	// If this is a new resource and we are cloning, perform all clone validation
 	// operations.
 	if len(d.Get("clone").([]interface{})) > 0 {
@@ -670,10 +691,6 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 	// Note that for clones the data is prepopulated in
 	// ValidateVirtualMachineClone.
 	if err := virtualdevice.VerifyVAppTransport(d, client); err != nil {
-		return err
-	}
-
-	if err := virtualmachine.VerifyFolder(d, client); err != nil {
 		return err
 	}
 
