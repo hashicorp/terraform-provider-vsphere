@@ -1,4 +1,16 @@
-## 1.6.1 (Unreleased)
+## 1.7.0 (Unreleased)
+
+IMPROVEMENTS:
+* `resource/vsphere_datacenter`: Added `moid` to expose the managed object ID
+  because the datacenter's name is currently being used as the `id`.
+  ([#575](https://github.com/terraform-providers/terraform-provider-vsphere/issues/575))
+
+BUG FIXES:
+
+* `resource/vsphere_resource_pool`: The read function is now called at the end
+  of resource creation.
+  ([#560](https://github.com/terraform-providers/terraform-provider-vsphere/issues/560))
+
 ## 1.6.0 (May 31, 2018)
 
 FEATURES:
