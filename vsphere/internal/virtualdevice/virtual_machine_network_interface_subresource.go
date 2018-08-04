@@ -813,15 +813,18 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 			card.MacAddress = ""
 		}
 	}
-	alloc := &types.VirtualEthernetCardResourceAllocation{
-		Limit:       structure.Int64Ptr(int64(r.Get("bandwidth_limit").(int))),
-		Reservation: structure.Int64Ptr(int64(r.Get("bandwidth_reservation").(int))),
-		Share: types.SharesInfo{
-			Shares: int32(r.Get("bandwidth_share_count").(int)),
-			Level:  types.SharesLevel(r.Get("bandwidth_share_level").(string)),
-		},
+	version := viapi.ParseVersionFromClient(r.client)
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+		alloc := &types.VirtualEthernetCardResourceAllocation{
+			Limit:       structure.Int64Ptr(int64(r.Get("bandwidth_limit").(int))),
+			Reservation: structure.Int64Ptr(int64(r.Get("bandwidth_reservation").(int))),
+			Share: types.SharesInfo{
+				Shares: int32(r.Get("bandwidth_share_count").(int)),
+				Level:  types.SharesLevel(r.Get("bandwidth_share_level").(string)),
+			},
+		}
+		card.ResourceAllocation = alloc
 	}
-	card.ResourceAllocation = alloc
 
 	var op types.VirtualDeviceConfigSpecOperation
 	if card.Key < 0 {
