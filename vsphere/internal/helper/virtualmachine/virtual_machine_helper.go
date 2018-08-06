@@ -11,6 +11,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -313,7 +314,17 @@ func Create(c *govmomi.Client, f *object.Folder, s types.VirtualMachineConfigSpe
 	log.Printf("[DEBUG] Creating virtual machine %q", fmt.Sprintf("%s/%s", f.InventoryPath, s.Name))
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
-	task, err := f.CreateVM(ctx, s, p, h)
+	var task *object.Task
+	// Check to see if the resource pool is a vApp
+	vc, err := vappcontainer.FromID(c, p.Reference().Value)
+	if err != nil {
+		if !viapi.IsManagedObjectNotFoundError(err) {
+			return nil, err
+		}
+		task, err = f.CreateVM(ctx, s, p, h)
+	} else {
+		task, err = vc.CreateChildVM(ctx, s, h)
+	}
 	if err != nil {
 		return nil, err
 	}

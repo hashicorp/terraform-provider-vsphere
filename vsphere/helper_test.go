@@ -21,6 +21,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualdisk"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
@@ -255,6 +256,22 @@ func testGetDatacenterCustomAttributes(s *terraform.State, resourceName string) 
 		return nil, err
 	}
 	return datacenterCustomAttributes(dc)
+}
+
+func testGetVAppContainer(s *terraform.State, resourceName string) (*object.VirtualApp, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereVAppContainerName, resourceName))
+	if err != nil {
+		return nil, err
+	}
+	return vappcontainer.FromID(vars.client, vars.resourceID)
+}
+
+func testGetVAppContainerProperties(s *terraform.State, resourceName string) (*mo.VirtualApp, error) {
+	vc, err := testGetVAppContainer(s, resourceName)
+	if err != nil {
+		return nil, err
+	}
+	return vappcontainer.Properties(vc)
 }
 
 // testPowerOffVM does an immediate power-off of the supplied virtual machine

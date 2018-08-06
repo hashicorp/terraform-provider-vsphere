@@ -9,6 +9,8 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -173,7 +175,6 @@ func CreateVM(
 		fmt.Sprintf("%s/%s", fo.InventoryPath, spec.Name),
 		pod.Name(),
 	)
-
 	sps := types.StoragePlacementSpec{
 		Type:         string(types.StoragePlacementSpecPlacementTypeCreate),
 		ResourcePool: types.NewReference(pool.Reference()),
@@ -188,7 +189,24 @@ func CreateVM(
 		sps.Host = types.NewReference(host.Reference())
 	}
 
-	return recommendAndApplySDRS(client, sps, provider.DefaultAPITimeout)
+	placement, err := recommendSDRS(client, sps, provider.DefaultAPITimeout)
+	if err != nil {
+		return nil, err
+	}
+	// If the parent resource pool is a vApp, we need to create the VM using the
+	// CreateChildVM vApp function instead of directly using SDRS recommendations.
+	if sps.ResourcePool != nil {
+		vc, err := vappcontainer.FromID(client, sps.ResourcePool.Reference().Value)
+		switch {
+		case viapi.IsManagedObjectNotFoundError(err):
+			// This isn't a vApp container, so continue with normal SDRS work flow.
+		case err == nil:
+			return createVAppVMFromSPS(client, placement, spec, sps, vc)
+		default:
+			return nil, err
+		}
+	}
+	return applySDRS(client, placement, provider.DefaultAPITimeout)
 }
 
 // CloneVM clones a virtual machine to a datastore cluster via the
@@ -314,7 +332,15 @@ func recommendAndApplySDRS(
 	sps types.StoragePlacementSpec,
 	timeout time.Duration,
 ) (*object.VirtualMachine, error) {
-	log.Printf("[DEBUG] Acquiring and applying Storage DRS recommendations (type: %q)", sps.Type)
+	placement, err := recommendSDRS(client, sps, timeout)
+	if err != nil {
+		return nil, err
+	}
+	return applySDRS(client, placement, timeout)
+}
+
+func recommendSDRS(client *govmomi.Client, sps types.StoragePlacementSpec, timeout time.Duration) (*types.StoragePlacementResult, error) {
+	log.Printf("[DEBUG] Acquiring Storage DRS recommendations (type: %q)", sps.Type)
 	srm := object.NewStorageResourceManager(client.Client)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -326,7 +352,14 @@ func recommendAndApplySDRS(
 	if len(placement.Recommendations) < 1 {
 		return nil, fmt.Errorf("no storage DRS recommendations were found for the requested action (type: %q)", sps.Type)
 	}
+	return placement, nil
+}
 
+func applySDRS(client *govmomi.Client, placement *types.StoragePlacementResult, timeout time.Duration) (*object.VirtualMachine, error) {
+	log.Printf("[DEBUG] Applying Storage DRS recommendations (type: %q)", placement.Recommendations[0].Type)
+	srm := object.NewStorageResourceManager(client.Client)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 	// Apply the first recommendation
 	task, err := srm.ApplyStorageDrsRecommendation(ctx, []string{placement.Recommendations[0].Key})
 	if err != nil {
@@ -336,7 +369,7 @@ func recommendAndApplySDRS(
 	if err != nil {
 		// Provide a friendly error message for timeouts
 		if ctx.Err() == context.DeadlineExceeded {
-			return nil, fmt.Errorf("timeout waiting for Storage DRS operation to complete (type: %q)", sps.Type)
+			return nil, fmt.Errorf("timeout waiting for Storage DRS operation to complete (type: %q)", placement.Recommendations[0].Type)
 		}
 		return nil, err
 	}
@@ -354,6 +387,28 @@ func recommendAndApplySDRS(
 		}
 	}
 	return vm, nil
+}
+
+func createVAppVMFromSPS(
+	client *govmomi.Client,
+	placement *types.StoragePlacementResult,
+	spec types.VirtualMachineConfigSpec,
+	sps types.StoragePlacementSpec,
+	vc *object.VirtualApp,
+) (*object.VirtualMachine, error) {
+	ds, err := datastore.FromID(client, placement.Recommendations[0].Action[0].(*types.StoragePlacementAction).Destination.Reference().Value)
+	if err != nil {
+		return nil, err
+	}
+	spec.Files = &types.VirtualMachineFileInfo{
+		VmPathName: fmt.Sprintf("[%s]", ds.Name()),
+	}
+	var f *object.Folder
+	f, err = folder.FromID(client, sps.Folder.Reference().Value)
+	if err != nil {
+		return nil, err
+	}
+	return virtualmachine.Create(client, f, spec, vc.ResourcePool, nil)
 }
 
 // HasDiskCreationOperations is an exported function that checks a list of
