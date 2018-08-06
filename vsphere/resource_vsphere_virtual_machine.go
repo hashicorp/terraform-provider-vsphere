@@ -653,7 +653,7 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 		return err
 	}
 	// When a VM is a member of a vApp container, it is no longer part of the VM
-	// tree, and therefor cannot have its VM folder set.
+	// tree, and therefore cannot have its VM folder set.
 	if _, ok := d.GetOk("folder"); ok && vappcontainer.IsVApp(client, d.Get("resource_pool_id").(string)) {
 		return fmt.Errorf("cannot set folder while VM is in a vApp container")
 	}
