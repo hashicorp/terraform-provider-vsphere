@@ -12185,6 +12185,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus            = 2
+  cpu_reservation     = 4388
   memory              = 2048
   memory_reservation  = 2048
   latency_sensitivity = "high"
