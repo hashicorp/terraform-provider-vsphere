@@ -1,7 +1,7 @@
 ## 1.7.0 (Unreleased)
 
 FEATURES:
-* **New Resource:** `vsphere_vapp_container` ([#566](https://github.com/terraform-providers/terraform-provider-vsphere/issues/566)
+* **New Resource:** `vsphere_vapp_container` ([#566](https://github.com/terraform-providers/terraform-provider-vsphere/issues/566))
 * `resource/vsphere_virtual_machine`: Added support for bus sharing on SCSI
   adapters. ([#574](https://github.com/terraform-providers/terraform-provider-vsphere/issues/574))
 
