@@ -571,7 +571,9 @@ func NormalizeSCSIBus(l object.VirtualDeviceList, ct string, count int, st strin
 			if err != nil {
 				return nil, nil, err
 			}
-			spec = append(spec, cspec)
+			if cspec != nil {
+				spec = append(spec, cspec)
+			}
 			continue
 		}
 		cspec, err := swapSCSIDevice(l, ctlr, ct, st)
