@@ -484,10 +484,9 @@ func TestAccResourceVSphereVirtualMachine_scsiBusSharingMultiVM(t *testing.T) {
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers: testAccProviders,
-		//CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigSingleSharedSCSIBus(),
+				Config: testAccResourceVSphereVirtualMachineConfigISCSIDatastore(),
 				Check:  resource.ComposeTestCheckFunc(),
 			},
 			{
@@ -3920,7 +3919,7 @@ resource "vsphere_virtual_machine" "vm" {
 	)
 }
 
-func testAccResourceVSphereVirtualMachineConfigSingleSharedSCSIBus() string {
+func testAccResourceVSphereVirtualMachineConfigISCSIDatastore() string {
 	return fmt.Sprintf(`
 variable "datacenter" {
   default = "%s"
@@ -3971,39 +3970,6 @@ resource "vsphere_vmfs_datastore" "datastore" {
   name           = "terraform-test-shared-datastore"
   host_system_id = "${data.vsphere_host.host.id}"
   disks          = ["${data.vsphere_vmfs_disks.disk.disks}"]
-}
-
-resource "vsphere_virtual_machine" "vm1" {
-  name             = "terraform-test1"
-  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
-  datastore_id     = "${vsphere_vmfs_datastore.datastore.id}"
-
-  num_cpus                   = 2
-  memory                     = 2048
-  guest_id                   = "other3xLinux64Guest"
-  wait_for_guest_net_timeout = -1
-
-  scsi_bus_sharing = "physicalSharing"
-
-  network_interface {
-    network_id = "${data.vsphere_network.network.id}"
-  }
-
-  disk {
-    label            = "disk0"
-    size             = 1
-    thin_provisioned = false
-    eagerly_scrub    = true
-  }
-
-  disk {
-    label            = "disk1"
-    size             = 1
-    disk_sharing     = "sharingMultiWriter"
-    unit_number      = 1
-    thin_provisioned = false
-    eagerly_scrub    = true
-  }
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
@@ -4061,10 +4027,22 @@ data "vsphere_vmfs_disks" "disk" {
   filter         = "${var.shared_disk}"
 }
 
+data "vsphere_datastore" "ds" {
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "${vsphere_vmfs_datastore.datastore.name}"
+}
+
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "terraform-test-shared-datastore"
   host_system_id = "${data.vsphere_host.host.id}"
   disks          = ["${data.vsphere_vmfs_disks.disk.disks}"]
+}
+
+resource "vsphere_virtual_disk" "disk" {
+  vmdk_path = "terraform-test-shared-disk.vmdk"
+  datastore = "${vsphere_vmfs_datastore.datastore.name}"
+  size      = 1
+  type      = "eagerZeroedThick"
 }
 
 resource "vsphere_virtual_machine" "vm1" {
@@ -4091,12 +4069,12 @@ resource "vsphere_virtual_machine" "vm1" {
   }
 
   disk {
-    label            = "disk1"
-    size             = 1
-    disk_sharing     = "sharingMultiWriter"
-    unit_number      = 1
-    thin_provisioned = false
-    eagerly_scrub    = true
+    label        = "disk1"
+    disk_sharing = "sharingMultiWriter"
+    unit_number  = 1
+    attach       = true
+    path         = "${vsphere_virtual_disk.disk.vmdk_path}"
+    datastore_id = "${data.vsphere_datastore.ds.id}"
   }
 }
 
@@ -4128,8 +4106,8 @@ resource "vsphere_virtual_machine" "vm2" {
     disk_sharing = "sharingMultiWriter"
     unit_number  = 1
     attach       = true
-    path         = "${vsphere_virtual_machine.vm1.disk.1.path}"
-    datastore_id = "${vsphere_vmfs_datastore.datastore.id}"
+    path         = "${vsphere_virtual_disk.disk.vmdk_path}"
+    datastore_id = "${data.vsphere_datastore.ds.id}"
   }
 }
 `,
