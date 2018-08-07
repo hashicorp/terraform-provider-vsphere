@@ -1,7 +1,9 @@
 ## 1.7.0 (Unreleased)
 
 FEATURES:
-* **New Resource:** `vsphere_vapp_container` ([#566](https://github.com/terraform-providers/terraform-provider-vsphere/pull/566)
+* **New Resource:** `vsphere_vapp_container` ([#566](https://github.com/terraform-providers/terraform-provider-vsphere/issues/566)
+* `resource/vsphere_virtual_machine`: Added support for bus sharing on SCSI
+  adapters. ([#574](https://github.com/terraform-providers/terraform-provider-vsphere/issues/574))
 
 IMPROVEMENTS:
 * `resource/vsphere_datacenter`: Added `moid` to expose the managed object ID
@@ -11,7 +13,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * `resource/vsphere_virtual_machine`: The resource no longer attempts to set
-  ResourceAllocation on virtual ethernet cards when the vSphere version is under 6.0. ([#579](https://github.com/terraform-providers/terraform-provider-vsphere/pull/579))
+  ResourceAllocation on virtual ethernet cards when the vSphere version is under 6.0. ([#579](https://github.com/terraform-providers/terraform-provider-vsphere/issues/579))
 * `resource/vsphere_resource_pool`: The read function is now called at the end
   of resource creation.
   ([#560](https://github.com/terraform-providers/terraform-provider-vsphere/issues/560))
