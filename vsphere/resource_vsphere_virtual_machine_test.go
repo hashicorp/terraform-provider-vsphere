@@ -430,6 +430,73 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitsToRegularSingleController
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_scsiBusSharing(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigSharedSCSIBus(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckSCSIBusSharing(string(types.VirtualSCSISharingPhysicalSharing)),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_scsiBusSharingUpdate(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckSCSIBusSharing(string(types.VirtualSCSISharingNoSharing)),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigSharedSCSIBus(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckSCSIBusSharing(string(types.VirtualSCSISharingPhysicalSharing)),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_scsiBusSharingMultiVM(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigISCSIDatastore(),
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigMultipleSharedSCSIBus(),
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVirtualMachine_disksKeepOnRemove(t *testing.T) {
 	var disks []map[string]string
 	resource.Test(t, resource.TestCase{
@@ -3451,12 +3518,27 @@ func testAccResourceVSphereVirtualMachineCheckDiskSize(expected int) resource.Te
 // test VM's SCSI bus is all of the specified SCSI type.
 func testAccResourceVSphereVirtualMachineCheckSCSIBus(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		actual, err := testGetVirtualMachineSCSIBusState(s, "vm")
+		actual, err := testGetVirtualMachineSCSIBusType(s, "vm")
 		if err != nil {
 			return fmt.Errorf("bad: %s", err)
 		}
 		if expected != actual {
 			return fmt.Errorf("expected SCSI bus to be %s, got %s", expected, actual)
+		}
+		return nil
+	}
+}
+
+// testAccResourceVSphereVirtualMachineCheckSCSIBusSharing checks to make sure the
+// test VM's SCSI bus is all of the specified sharing type.
+func testAccResourceVSphereVirtualMachineCheckSCSIBusSharing(expected string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		actual, err := testGetVirtualMachineSCSIBusSharing(s, "vm")
+		if err != nil {
+			return fmt.Errorf("bad: %s", err)
+		}
+		if expected != actual {
+			return fmt.Errorf("expected SCSI bus sharing to be %s, got %s", expected, actual)
 		}
 		return nil
 	}
@@ -3848,6 +3930,272 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigSharedSCSIBus() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus                   = 2
+  memory                     = 2048
+  guest_id                   = "other3xLinux64Guest"
+  wait_for_guest_net_timeout = -1
+
+  scsi_bus_sharing = "physicalSharing"
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_DATASTORE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigISCSIDatastore() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "shared_disk" {
+  default = "%s"
+}
+
+variable "host" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_host" "host" {
+  name          = "${var.host}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_vmfs_disks" "disk" {
+  host_system_id = "${data.vsphere_host.host.id}"
+  rescan         = true
+  filter         = "${var.shared_disk}"
+}
+
+resource "vsphere_vmfs_datastore" "datastore" {
+  name           = "terraform-test-shared-datastore"
+  host_system_id = "${data.vsphere_host.host.id}"
+  disks          = ["${data.vsphere_vmfs_disks.disk.disks}"]
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_DS_VMFS_DISK0"),
+		os.Getenv("VSPHERE_ESXI_HOST"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigMultipleSharedSCSIBus() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "shared_disk" {
+  default = "%s"
+}
+
+variable "host" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_host" "host" {
+  name          = "${var.host}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_vmfs_disks" "disk" {
+  host_system_id = "${data.vsphere_host.host.id}"
+  rescan         = true
+  filter         = "${var.shared_disk}"
+}
+
+data "vsphere_datastore" "ds" {
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "${vsphere_vmfs_datastore.datastore.name}"
+}
+
+resource "vsphere_vmfs_datastore" "datastore" {
+  name           = "terraform-test-shared-datastore"
+  host_system_id = "${data.vsphere_host.host.id}"
+  disks          = ["${data.vsphere_vmfs_disks.disk.disks}"]
+}
+
+resource "vsphere_virtual_disk" "disk" {
+  vmdk_path = "terraform-test-shared-disk.vmdk"
+  datastore = "${vsphere_vmfs_datastore.datastore.name}"
+  size      = 1
+  type      = "eagerZeroedThick"
+}
+
+resource "vsphere_virtual_machine" "vm1" {
+  name             = "terraform-test1"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${vsphere_vmfs_datastore.datastore.id}"
+
+  num_cpus                   = 2
+  memory                     = 2048
+  guest_id                   = "other3xLinux64Guest"
+  wait_for_guest_net_timeout = -1
+
+  scsi_bus_sharing = "physicalSharing"
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    label            = "disk0"
+    size             = 1
+    thin_provisioned = false
+    eagerly_scrub    = true
+  }
+
+  disk {
+    label        = "disk1"
+    disk_sharing = "sharingMultiWriter"
+    unit_number  = 1
+    attach       = true
+    path         = "${vsphere_virtual_disk.disk.vmdk_path}"
+    datastore_id = "${data.vsphere_datastore.ds.id}"
+  }
+}
+
+resource "vsphere_virtual_machine" "vm2" {
+  name             = "terraform-test2"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${vsphere_vmfs_datastore.datastore.id}"
+
+  num_cpus                   = 2
+  memory                     = 2048
+  guest_id                   = "other3xLinux64Guest"
+  wait_for_guest_net_timeout = -1
+
+  scsi_bus_sharing = "physicalSharing"
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    label            = "disk0"
+    size             = 1
+    thin_provisioned = false
+    eagerly_scrub    = true
+  }
+
+  disk {
+    label        = "disk1"
+    disk_sharing = "sharingMultiWriter"
+    unit_number  = 1
+    attach       = true
+    path         = "${vsphere_virtual_disk.disk.vmdk_path}"
+    datastore_id = "${data.vsphere_datastore.ds.id}"
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_DS_VMFS_DISK0"),
+		os.Getenv("VSPHERE_ESXI_HOST"),
 	)
 }
 

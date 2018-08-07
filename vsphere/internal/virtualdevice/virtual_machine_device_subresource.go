@@ -59,6 +59,11 @@ const (
 	subresourceControllerTypeUnknown = "unknown"
 )
 
+const (
+	subresourceControllerSharingMixed   = "mixed"
+	subresourceControllerSharingUnknown = "unknown"
+)
+
 var subresourceIDControllerTypeAllowedValues = []string{
 	SubresourceControllerTypeIDE,
 	SubresourceControllerTypeSCSI,
@@ -71,6 +76,15 @@ var sharesLevelAllowedValues = []string{
 	string(types.SharesLevelNormal),
 	string(types.SharesLevelHigh),
 	string(types.SharesLevelCustom),
+}
+
+// SCSIBusSharingAllowedValues exports the list of supported SCSI bus sharing
+// modes. These are the only modes that can be specified for scsi_bus_sharing
+// and should be checked in a ValidateFunc.
+var SCSIBusSharingAllowedValues = []string{
+	string(types.VirtualSCSISharingNoSharing),
+	string(types.VirtualSCSISharingPhysicalSharing),
+	string(types.VirtualSCSISharingVirtualSharing),
 }
 
 // SCSIBusTypeAllowedValues exports the currently list of SCSI controller types
@@ -477,7 +491,7 @@ func (r *Subresource) String() string {
 // swapSCSIDevice swaps out the supplied controller for a new one of the
 // supplied controller type. Any connected devices are re-connected at the same
 // device units on the new device. A list of changes is returned.
-func swapSCSIDevice(l object.VirtualDeviceList, device types.BaseVirtualSCSIController, ct string) ([]types.BaseVirtualDeviceConfigSpec, error) {
+func swapSCSIDevice(l object.VirtualDeviceList, device types.BaseVirtualSCSIController, ct string, st string) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] swapSCSIDevice: Swapping SCSI device for one of controller type %s: %s", ct, l.Name(device.(types.BaseVirtualDevice)))
 	var spec []types.BaseVirtualDeviceConfigSpec
 	bvd := device.(types.BaseVirtualDevice)
@@ -491,6 +505,7 @@ func swapSCSIDevice(l object.VirtualDeviceList, device types.BaseVirtualSCSICont
 	if err != nil {
 		return nil, err
 	}
+	nsd.(types.BaseVirtualSCSIController).GetVirtualSCSIController().SharedBus = types.VirtualSCSISharing(st)
 	nsd.(types.BaseVirtualSCSIController).GetVirtualSCSIController().BusNumber = device.GetVirtualSCSIController().BusNumber
 	cspec, err = object.VirtualDeviceList{nsd}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
 	if err != nil {
@@ -525,7 +540,7 @@ func swapSCSIDevice(l object.VirtualDeviceList, device types.BaseVirtualSCSICont
 //
 // The first number of slots specified by count are normalized by this
 // function. Any others are left unchanged.
-func NormalizeSCSIBus(l object.VirtualDeviceList, ct string, count int) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+func NormalizeSCSIBus(l object.VirtualDeviceList, ct string, count int, st string) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] NormalizeSCSIBus: Normalizing first %d controllers on SCSI bus to device type %s", count, ct)
 	var spec []types.BaseVirtualDeviceConfigSpec
 	ctlrs := make([]types.BaseVirtualSCSIController, count)
@@ -544,22 +559,22 @@ func NormalizeSCSIBus(l object.VirtualDeviceList, ct string, count int) (object.
 	for n, ctlr := range ctlrs {
 		if ctlr == nil {
 			log.Printf("[DEBUG] NormalizeSCSIBus: Creating SCSI controller of type %s at bus number %d", ct, n)
-			nc, err := l.CreateSCSIController(ct)
-			if err != nil {
-				return nil, nil, err
-			}
-			cspec, err := object.VirtualDeviceList{nc}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
+			cspec, err := createSCSIController(&l, ct, st)
 			if err != nil {
 				return nil, nil, err
 			}
 			spec = append(spec, cspec...)
-			l = applyDeviceChange(l, cspec)
 			continue
 		}
 		if l.Type(ctlr.(types.BaseVirtualDevice)) == ct {
+			cspec, err := setSCSIBusSharing(&l, ctlr, st)
+			if err != nil {
+				return nil, nil, err
+			}
+			spec = append(spec, cspec)
 			continue
 		}
-		cspec, err := swapSCSIDevice(l, ctlr, ct)
+		cspec, err := swapSCSIDevice(l, ctlr, ct, st)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -572,17 +587,45 @@ func NormalizeSCSIBus(l object.VirtualDeviceList, ct string, count int) (object.
 	return l, spec, nil
 }
 
-// ReadSCSIBusState checks the SCSI bus state and returns a device type
+// setSCSIBusSharing takes a BaseVirtualSCSIController, sets the sharing mode,
+// and applies that change to the VirtualDeviceList.
+func setSCSIBusSharing(l *object.VirtualDeviceList, ctlr types.BaseVirtualSCSIController, st string) (types.BaseVirtualDeviceConfigSpec, error) {
+	var cspec types.BaseVirtualDeviceConfigSpec
+	if ctlr.GetVirtualSCSIController().SharedBus != types.VirtualSCSISharing(st) {
+		ctlr.GetVirtualSCSIController().SharedBus = types.VirtualSCSISharing(st)
+		cspec, err := object.VirtualDeviceList{ctlr.(types.BaseVirtualDevice)}.ConfigSpec(types.VirtualDeviceConfigSpecOperationEdit)
+		if err != nil {
+			return nil, err
+		}
+		*l = applyDeviceChange(*l, cspec)
+	}
+	return cspec, nil
+}
+
+// createSCSIController creates a new SCSI controller of the specified type and
+// sharing mode.
+func createSCSIController(l *object.VirtualDeviceList, ct string, st string) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	nc, err := l.CreateSCSIController(ct)
+	if err != nil {
+		return nil, err
+	}
+	nc.(types.BaseVirtualSCSIController).GetVirtualSCSIController().SharedBus = types.VirtualSCSISharing(st)
+	cspec, err := object.VirtualDeviceList{nc}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
+	*l = applyDeviceChange(*l, cspec)
+	return cspec, err
+}
+
+// ReadSCSIBusType checks the SCSI bus state and returns a device type
 // depending on if all controllers are one specific kind or not. Only the first
 // number of controllers specified by count are checked.
-func ReadSCSIBusState(l object.VirtualDeviceList, count int) string {
+func ReadSCSIBusType(l object.VirtualDeviceList, count int) string {
 	ctlrs := make([]types.BaseVirtualSCSIController, count)
 	for _, dev := range l {
 		if sc, ok := dev.(types.BaseVirtualSCSIController); ok && sc.GetVirtualSCSIController().BusNumber < int32(count) {
 			ctlrs[sc.GetVirtualSCSIController().BusNumber] = sc
 		}
 	}
-	log.Printf("[DEBUG] ReadSCSIBusState: SCSI controller layout for first %d controllers: %s", count, scsiControllerListString(ctlrs))
+	log.Printf("[DEBUG] ReadSCSIBusType: SCSI controller layout for first %d controllers: %s", count, scsiControllerListString(ctlrs))
 	if ctlrs[0] == nil {
 		return subresourceControllerTypeUnknown
 	}
@@ -593,6 +636,29 @@ func ReadSCSIBusState(l object.VirtualDeviceList, count int) string {
 		}
 	}
 	return last
+}
+
+// ReadSCSIBusSharing checks the SCSI bus sharing and returns a sharing type
+// depending on if all controllers are one specific kind or not. Only the first
+// number of controllers specified by count are checked.
+func ReadSCSIBusSharing(l object.VirtualDeviceList, count int) string {
+	ctlrs := make([]types.BaseVirtualSCSIController, count)
+	for _, dev := range l {
+		if sc, ok := dev.(types.BaseVirtualSCSIController); ok && sc.GetVirtualSCSIController().BusNumber < int32(count) {
+			ctlrs[sc.GetVirtualSCSIController().BusNumber] = sc
+		}
+	}
+	log.Printf("[DEBUG] ReadSCSIBusSharing: SCSI controller layout for first %d controllers: %s", count, scsiControllerListString(ctlrs))
+	if ctlrs[0] == nil {
+		return subresourceControllerSharingUnknown
+	}
+	last := ctlrs[0].(types.BaseVirtualSCSIController).GetVirtualSCSIController().SharedBus
+	for _, ctlr := range ctlrs[1:] {
+		if ctlr == nil || ctlr.(types.BaseVirtualSCSIController).GetVirtualSCSIController().SharedBus != last {
+			return subresourceControllerSharingMixed
+		}
+	}
+	return string(last)
 }
 
 // getSCSIController picks a SCSI controller at the specific bus number supplied.

@@ -51,6 +51,11 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 				Computed:    true,
 				Description: "The common SCSI bus type of all controllers on the virtual machine.",
 			},
+			"scsi_bus_sharing": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Mode for sharing the SCSI bus.",
+			},
 			"disks": {
 				Type:        schema.TypeList,
 				Description: "Select configuration attributes from the disks on this virtual machine, sorted by bus and unit number.",
@@ -116,7 +121,8 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 	d.SetId(props.Config.Uuid)
 	d.Set("guest_id", props.Config.GuestId)
 	d.Set("alternate_guest_name", props.Config.AlternateGuestName)
-	d.Set("scsi_type", virtualdevice.ReadSCSIBusState(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int)))
+	d.Set("scsi_type", virtualdevice.ReadSCSIBusType(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int)))
+	d.Set("scsi_bus_sharing", virtualdevice.ReadSCSIBusSharing(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int)))
 	d.Set("firmware", props.Config.Firmware)
 	disks, err := virtualdevice.ReadDiskAttrsForDataSource(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int))
 	if err != nil {

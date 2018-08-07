@@ -137,6 +137,13 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Description:  "The type of SCSI bus this virtual machine will have. Can be one of lsilogic, lsilogic-sas or pvscsi.",
 			ValidateFunc: validation.StringInSlice(virtualdevice.SCSIBusTypeAllowedValues, false),
 		},
+		"scsi_bus_sharing": {
+			Type:         schema.TypeString,
+			Optional:     true,
+			Default:      string(types.VirtualSCSISharingNoSharing),
+			Description:  "Mode for sharing the SCSI bus. The modes are physicalSharing, virtualSharing, and noSharing.",
+			ValidateFunc: validation.StringInSlice(virtualdevice.SCSIBusSharingAllowedValues, false),
+		},
 		// NOTE: disk is only optional so that we can flag it as computed and use
 		// it in ResourceDiff. We validate this field in ResourceDiff to enforce it
 		// having a minimum count of 1 for now - but may support diskless VMs
@@ -363,7 +370,8 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	// Perform pending device read operations.
 	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
 	// Read the state of the SCSI bus.
-	d.Set("scsi_type", virtualdevice.ReadSCSIBusState(devices, d.Get("scsi_controller_count").(int)))
+	d.Set("scsi_type", virtualdevice.ReadSCSIBusType(devices, d.Get("scsi_controller_count").(int)))
+	d.Set("scsi_bus_sharing", virtualdevice.ReadSCSIBusSharing(devices, d.Get("scsi_controller_count").(int)))
 	// Disks first
 	if err := virtualdevice.DiskRefreshOperation(d, client, devices); err != nil {
 		return err
@@ -1063,7 +1071,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
 	var delta []types.BaseVirtualDeviceConfigSpec
 	// First check the state of our SCSI bus. Normalize it if we need to.
-	devices, delta, err = virtualdevice.NormalizeSCSIBus(devices, d.Get("scsi_type").(string), d.Get("scsi_controller_count").(int))
+	devices, delta, err = virtualdevice.NormalizeSCSIBus(devices, d.Get("scsi_type").(string), d.Get("scsi_controller_count").(int), d.Get("scsi_bus_sharing").(string))
 	if err != nil {
 		return nil, resourceVSphereVirtualMachineRollbackCreate(
 			d,
@@ -1337,7 +1345,7 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 	var spec, delta []types.BaseVirtualDeviceConfigSpec
 	var err error
 	// First check the state of our SCSI bus. Normalize it if we need to.
-	l, delta, err = virtualdevice.NormalizeSCSIBus(l, d.Get("scsi_type").(string), d.Get("scsi_controller_count").(int))
+	l, delta, err = virtualdevice.NormalizeSCSIBus(l, d.Get("scsi_type").(string), d.Get("scsi_controller_count").(int), d.Get("scsi_bus_sharing").(string))
 	if err != nil {
 		return nil, err
 	}
