@@ -8,11 +8,10 @@ description: |-
 
 # vsphere\_virtual\_disk
 
-The `vsphere_virtual_disk` resource can be used to create virtual disks
-outside of any given [`vsphere_virtual_machine`][docs-vsphere-virtual-machine]
+The `vsphere_virtual_disk` resource can be used to create virtual disks outside
+of any given [`vsphere_virtual_machine`][docs-vsphere-virtual-machine]
 resource. These disks can be attached to a virtual machine by creating a disk
-sub-resource with the [`attach`][docs-vsphere-virtual-machine-disk-attach]
-parameter.
+block with the [`attach`][docs-vsphere-virtual-machine-disk-attach] parameter.
 
 [docs-vsphere-virtual-machine]: /docs/providers/vsphere/r/virtual_machine.html
 [docs-vsphere-virtual-machine-disk-attach]: /docs/providers/vsphere/r/virtual_machine.html#attach

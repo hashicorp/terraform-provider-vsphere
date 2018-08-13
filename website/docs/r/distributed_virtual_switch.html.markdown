@@ -175,8 +175,8 @@ and require vCenter.
 
 ### Host management arguments
 
-* `host` - (Optional) Use the `host` sub-resource to declare a host
-  specification. The options are:
+* `host` - (Optional) Use the `host` block to declare a host specification. The
+  options are:
  * `host_system_id` - (Required) The host system ID of the host to add to the
    DVS.
  * `devices` - (Required) The list of NIC devices to map to uplinks on the DVS,
