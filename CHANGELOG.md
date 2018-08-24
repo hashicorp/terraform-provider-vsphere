@@ -1,4 +1,4 @@
-## 1.7.0 (Unreleased)
+## 1.7.0 (August 24, 2018)
 
 FEATURES:
 * **New Resource:** `vsphere_vapp_container` ([#566](https://github.com/terraform-providers/terraform-provider-vsphere/issues/566))
