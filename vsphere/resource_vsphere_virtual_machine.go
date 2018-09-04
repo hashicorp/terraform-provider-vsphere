@@ -274,15 +274,14 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return err
 	}
-	if d.Get("host_system_id").(string) != vprops.Runtime.Host.Reference().Value {
-		hid := d.Get("host_system_id").(string)
+	if hid, ok := d.GetOk("host_system_id"); hid.(string) != vprops.Runtime.Host.Reference().Value && ok {
 		err = resourceVSphereVirtualMachineRead(d, meta)
 		if err != nil {
 			return err
 		}
 		// Restore the old host_system_id so we can still tell if a relocation is
 		// necessary.
-		err = d.Set("host_system_id", hid)
+		err = d.Set("host_system_id", hid.(string))
 		if err != nil {
 			return err
 		}
