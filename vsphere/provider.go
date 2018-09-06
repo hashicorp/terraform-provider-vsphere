@@ -133,7 +133,6 @@ func Provider() terraform.ResourceProvider {
 			"vsphere_resource_pool":              dataSourceVSphereResourcePool(),
 			"vsphere_tag":                        dataSourceVSphereTag(),
 			"vsphere_tag_category":               dataSourceVSphereTagCategory(),
-			"vsphere_vapp_container":             dataSourceVSphereVAppContainer(),
 			"vsphere_virtual_machine":            dataSourceVSphereVirtualMachine(),
 			"vsphere_vmfs_disks":                 dataSourceVSphereVmfsDisks(),
 		},
