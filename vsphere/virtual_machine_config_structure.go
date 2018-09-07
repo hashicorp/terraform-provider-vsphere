@@ -454,6 +454,10 @@ func expandLatencySensitivity(d *schema.ResourceData) *types.LatencySensitivity 
 // flattenLatencySensitivity reads various fields from a LatencySensitivity and
 // sets appropriate keys in the supplied ResourceData.
 func flattenLatencySensitivity(d *schema.ResourceData, obj *types.LatencySensitivity) error {
+	if obj == nil {
+		log.Printf("[WARN] Unable to read LatencySensitivity, skipping")
+		return nil
+	}
 	return d.Set("latency_sensitivity", obj.Level)
 }
 
