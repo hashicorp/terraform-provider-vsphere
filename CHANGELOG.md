@@ -1,12 +1,30 @@
 ## 1.7.1 (Unreleased)
+FEATURES:
+
+* `data/vapp_container` ([#610](https://github.com/terraform-providers/terraform-provider-vsphere/issues/610))
+
+BUG FIXES:
+
+* `resource/virtual_machine`: Only relocate after create if `host_system_id` is
+  set and does not match host the VM currently resides on. ([#609](https://github.com/terraform-providers/terraform-provider-vsphere/issues/609))
+* `resource/compute_cluster`: Return empty policy instead of trying to read
+  `nil` variable when `ha_admission_control_policy` is set to `disabled`. ([#611](https://github.com/terraform-providers/terraform-provider-vsphere/issues/611))
+* `resource/virtual_machine`: Skip reading latency sensitivity parameters when
+  LatencySensitivity is `nil`. ([#612](https://github.com/terraform-providers/terraform-provider-vsphere/issues/612))
+* `resource/compute_cluster`: Unset ID when the resource is not found. ([#613](https://github.com/terraform-providers/terraform-provider-vsphere/issues/613))
+* `resource/virtual_machine`: Skip OS specific customization checks when 
+  `resource_pool_id` is not set. ([#614](https://github.com/terraform-providers/terraform-provider-vsphere/issues/614))
+
 ## 1.7.0 (August 24, 2018)
 
 FEATURES:
+
 * **New Resource:** `vsphere_vapp_container` ([#566](https://github.com/terraform-providers/terraform-provider-vsphere/issues/566))
 * `resource/vsphere_virtual_machine`: Added support for bus sharing on SCSI
   adapters. ([#574](https://github.com/terraform-providers/terraform-provider-vsphere/issues/574))
 
 IMPROVEMENTS:
+
 * `resource/vsphere_datacenter`: Added `moid` to expose the managed object ID
   because the datacenter's name is currently being used as the `id`.
   ([#575](https://github.com/terraform-providers/terraform-provider-vsphere/issues/575))
