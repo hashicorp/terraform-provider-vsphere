@@ -41,6 +41,26 @@ func TestAccResourceVSphereComputeCluster_basic(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereComputeCluster_haAdmissionControlPolicyDisabled(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterConfigHAAdmissionControlPolicyDisabled(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					testAccResourceVSphereComputeClusterCheckDRSEnabled(false),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereComputeCluster_drsHAEnabled(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -573,6 +593,47 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
+	)
+}
+
+func testAccResourceVSphereComputeClusterConfigHAAdmissionControlPolicyDisabled() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "hosts" {
+  default = [
+    "%s",
+    "%s",
+    "%s",
+  ]
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_host" "hosts" {
+  count         = "${length(var.hosts)}"
+  name          = "${var.hosts[count.index]}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                        = "terraform-compute-cluster-test"
+  datacenter_id               = "${data.vsphere_datacenter.dc.id}"
+  host_system_ids             = ["${data.vsphere_host.hosts.*.id}"]
+  ha_enabled                  = true
+  ha_admission_control_policy = "disabled"
+
+  force_evacuate_on_destroy = true
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_ESXI_HOST5"),
+		os.Getenv("VSPHERE_ESXI_HOST6"),
+		os.Getenv("VSPHERE_ESXI_HOST7"),
 	)
 }
 
