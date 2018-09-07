@@ -502,6 +502,11 @@ func resourceVSphereComputeClusterRead(d *schema.ResourceData, meta interface{})
 
 	cluster, err := resourceVSphereComputeClusterGetCluster(d, meta)
 	if err != nil {
+		if viapi.IsManagedObjectNotFoundError(err) {
+			log.Printf("[DEBUG] %s: Resource has been deleted", resourceVSphereComputeClusterIDString(d))
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
