@@ -97,17 +97,20 @@ func ValidateVirtualMachineClone(d *schema.ResourceDiff, c *govmomi.Client) erro
 
 	// If a customization spec was defined, we need to check some items in it as well.
 	if len(d.Get("clone.0.customize").([]interface{})) > 0 {
-		poolID := d.Get("resource_pool_id").(string)
-		pool, err := resourcepool.FromID(c, poolID)
-		if err != nil {
-			return fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
-		}
-		family, err := resourcepool.OSFamily(c, pool, d.Get("guest_id").(string))
-		if err != nil {
-			return fmt.Errorf("cannot find OS family for guest ID %q: %s", d.Get("guest_id").(string), err)
-		}
-		if err := ValidateCustomizationSpec(d, family); err != nil {
-			return err
+		if poolID, ok := d.GetOk("resource_pool_id"); ok {
+			pool, err := resourcepool.FromID(c, poolID.(string))
+			if err != nil {
+				return fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
+			}
+			family, err := resourcepool.OSFamily(c, pool, d.Get("guest_id").(string))
+			if err != nil {
+				return fmt.Errorf("cannot find OS family for guest ID %q: %s", d.Get("guest_id").(string), err)
+			}
+			if err := ValidateCustomizationSpec(d, family); err != nil {
+				return err
+			}
+		} else {
+			log.Printf("[DEBUG] ValidateVirtualMachineClone: resource_pool_id is not available. Skipping OS family check.")
 		}
 	}
 	vconfig := vprops.Config.VAppConfig
