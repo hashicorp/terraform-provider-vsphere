@@ -1,7 +1,7 @@
 ## 1.7.1 (Unreleased)
 FEATURES:
 
-* `data/vapp_container` ([#610](https://github.com/terraform-providers/terraform-provider-vsphere/issues/610))
+* **New Data Source:** `data/vapp_container` ([#610](https://github.com/terraform-providers/terraform-provider-vsphere/issues/610))
 
 BUG FIXES:
 
