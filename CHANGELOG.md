@@ -1,3 +1,4 @@
+## 1.8.2 (Unreleased)
 ## 1.8.1 (September 11, 2018)
 
 IMPROVEMENTS:
