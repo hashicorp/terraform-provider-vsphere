@@ -1,5 +1,11 @@
 ## 1.8.1 (Unreleased)
+
+IMPROVEMENTS:
+
+* `data/vapp_container`: Re-add `data_source_vapp_container`. ([#617](https://github.com/terraform-providers/terraform-provider-vsphere/issues/617))
+
 ## 1.8.0 (September 10, 2018)
+
 FEATURES:
 
 * **New Data Source:** `data/vapp_container` ([#610](https://github.com/terraform-providers/terraform-provider-vsphere/issues/610))
