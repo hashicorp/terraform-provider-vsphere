@@ -45,6 +45,7 @@ func hostVSwitchFromName(client *govmomi.Client, ns *object.HostNetworkSystem, n
 
 	for _, sw := range mns.NetworkInfo.Vswitch {
 		if sw.Name == name {
+			sw.Spec.Mtu = sw.Mtu
 			return &sw, nil
 		}
 	}
