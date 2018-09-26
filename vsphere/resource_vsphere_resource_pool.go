@@ -296,7 +296,7 @@ func expandResourcePoolCPUAllocation(d *schema.ResourceData) types.ResourceAlloc
 	return types.ResourceAllocationInfo{
 		Reservation:           structure.GetInt64Ptr(d, "cpu_reservation"),
 		ExpandableReservation: structure.GetBoolPtr(d, "cpu_expandable"),
-		Limit: structure.GetInt64Ptr(d, "cpu_limit"),
+		Limit:                 structure.GetInt64Ptr(d, "cpu_limit"),
 		Shares: &types.SharesInfo{
 			Level:  types.SharesLevel(d.Get("cpu_share_level").(string)),
 			Shares: int32(d.Get("cpu_shares").(int)),
@@ -308,7 +308,7 @@ func expandResourcePoolMemoryAllocation(d *schema.ResourceData) types.ResourceAl
 	return types.ResourceAllocationInfo{
 		Reservation:           structure.GetInt64Ptr(d, "memory_reservation"),
 		ExpandableReservation: structure.GetBoolPtr(d, "memory_expandable"),
-		Limit: structure.GetInt64Ptr(d, "memory_limit"),
+		Limit:                 structure.GetInt64Ptr(d, "memory_limit"),
 		Shares: &types.SharesInfo{
 			Shares: int32(d.Get("memory_shares").(int)),
 			Level:  types.SharesLevel(d.Get("memory_share_level").(string)),
