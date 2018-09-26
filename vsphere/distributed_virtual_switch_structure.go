@@ -546,7 +546,7 @@ func expandVMwareDVSConfigSpec(d *schema.ResourceData) *types.VMwareDVSConfigSpe
 			NetworkResourceControlVersion:       d.Get("network_resource_control_version").(string),
 			UplinkPortPolicy:                    expandDVSNameArrayUplinkPortPolicy(d),
 		},
-		MaxMtu: int32(d.Get("max_mtu").(int)),
+		MaxMtu:                      int32(d.Get("max_mtu").(int)),
 		LinkDiscoveryProtocolConfig: expandLinkDiscoveryProtocolConfig(d),
 		IpfixConfig:                 expandVMwareIpfixConfig(d),
 		LacpApiVersion:              d.Get("lacp_api_version").(string),
