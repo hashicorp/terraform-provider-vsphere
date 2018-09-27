@@ -66,6 +66,9 @@ func resourceVSphereVirtualMachineSnapshotCreate(d *schema.ResourceData, meta in
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout) // This is 5 mins
 	defer cancel()
 	task, err := vm.CreateSnapshot(ctx, d.Get("snapshot_name").(string), d.Get("description").(string), d.Get("memory").(bool), d.Get("quiesce").(bool))
+	if err != nil {
+		return fmt.Errorf("Error while creating snapshot: %s", err)
+	}
 	tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer tcancel()
 	taskInfo, err := task.WaitForResult(tctx, nil)
