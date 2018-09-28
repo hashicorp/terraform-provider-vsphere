@@ -295,9 +295,9 @@ func expandClusterVMHostRuleInfo(d *schema.ResourceData) (*types.ClusterVmHostRu
 // flattenClusterVMHostRuleInfo saves a ClusterVmHostRuleInfo into the supplied ResourceData.
 func flattenClusterVMHostRuleInfo(d *schema.ResourceData, obj *types.ClusterVmHostRuleInfo) error {
 	return structure.SetBatch(d, map[string]interface{}{
-		"enabled":   obj.Enabled,
-		"mandatory": obj.Mandatory,
-		"name":      obj.Name,
+		"enabled":                       obj.Enabled,
+		"mandatory":                     obj.Mandatory,
+		"name":                          obj.Name,
 		"affinity_host_group_name":      obj.AffineHostGroupName,
 		"anti_affinity_host_group_name": obj.AntiAffineHostGroupName,
 		"vm_group_name":                 obj.VmGroupName,

@@ -258,9 +258,9 @@ func expandClusterDependencyRuleInfo(d *schema.ResourceData) (*types.ClusterDepe
 // flattenClusterDependencyRuleInfo saves a ClusterDependencyRuleInfo into the supplied ResourceData.
 func flattenClusterDependencyRuleInfo(d *schema.ResourceData, obj *types.ClusterDependencyRuleInfo) error {
 	return structure.SetBatch(d, map[string]interface{}{
-		"enabled":   obj.Enabled,
-		"mandatory": obj.Mandatory,
-		"name":      obj.Name,
+		"enabled":                  obj.Enabled,
+		"mandatory":                obj.Mandatory,
+		"name":                     obj.Name,
 		"dependency_vm_group_name": obj.DependsOnVmGroup,
 		"vm_group_name":            obj.VmGroup,
 	})
