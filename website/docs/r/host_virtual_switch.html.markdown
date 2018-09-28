@@ -176,8 +176,10 @@ be `tf-HostVirtualSwitch:host-10:vSwitchTerraformTest`.
 
 ## Importing
 
-An existing vSwitch can be [imported][docs-import] into this resource via the id
-of the vSwitch, via the following command:
+An existing vSwitch can be [imported][docs-import] into this resource by its id.
+The convention of the id is a prefix, the host system ID, and the virtual switch
+name. An example would be `tf-HostVirtualSwitch:host-10:vSwitchTerraformTest`.
+Import can the be done via the following command:
 
 [docs-import]: https://www.terraform.io/docs/import/index.html
 
