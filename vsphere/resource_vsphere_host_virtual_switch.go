@@ -148,12 +148,12 @@ func resourceVSphereHostVirtualSwitchImport(d *schema.ResourceData, meta interfa
 
 	err = d.Set("host_system_id", hostID)
 	if err != nil {
-		return err
+		return []*schema.ResourceData{}, err
 	}
 
 	err = d.Set("name", switchName)
 	if err != nil {
-		return err
+		return []*schema.ResourceData{}, err
 	}
 
 	return []*schema.ResourceData{d}, nil
