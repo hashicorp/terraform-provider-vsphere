@@ -1,4 +1,9 @@
 ## 1.8.2 (Unreleased)
+
+BUG FIXES:
+* `resource/virtual_machine_snapshot`: Raise error on snapshot create task
+  error. ([#628](https://github.com/terraform-providers/terraform-provider-vsphere/pull/628))
+
 ## 1.8.1 (September 11, 2018)
 
 IMPROVEMENTS:
