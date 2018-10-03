@@ -279,6 +279,42 @@ func TestAccResourceVSphereFolder_modifyTags(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereFolder_modifyTagsMultiStage(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereFolderExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereFolderConfigTag(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereFolderExists(true),
+					testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
+					testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
+				),
+			},
+			{
+				Config: testAccResourceVSphereFolderConfigAllTag(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereFolderExists(true),
+					testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
+					testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
+				),
+			},
+			{
+				Config: testAccResourceVSphereFolderConfigMultiTag(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereFolderExists(true),
+					testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
+					testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereFolder_customAttributes(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -748,6 +784,64 @@ resource "vsphere_folder" "folder" {
   type          = "${var.folder_type}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
   tags          = ["${vsphere_tag.terraform-test-tag.id}"]
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		testAccResourceVSphereFolderConfigExpectedName,
+		folder.VSphereFolderTypeVM,
+	)
+}
+
+func testAccResourceVSphereFolderConfigAllTag() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "folder_name" {
+  default = "%s"
+}
+
+variable "folder_type" {
+  default = "%s"
+}
+
+variable "extra_tags" {
+  default = [
+    "terraform-test-thing1",
+    "terraform-test-thing2",
+  ]
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+resource "vsphere_tag_category" "terraform-test-category" {
+  name        = "terraform-test-tag-category"
+  cardinality = "MULTIPLE"
+
+  associable_types = [
+    "Folder",
+  ]
+}
+
+resource "vsphere_tag" "terraform-test-tag" {
+  name        = "terraform-test-tag"
+  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+}
+
+resource "vsphere_tag" "terraform-test-tags-alt" {
+  count       = "${length(var.extra_tags)}"
+  name        = "${var.extra_tags[count.index]}"
+  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+}
+
+resource "vsphere_folder" "folder" {
+  path          = "${var.folder_name}"
+  type          = "${var.folder_type}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  tags          = ["${vsphere_tag.terraform-test-tag.id}", "${vsphere_tag.terraform-test-tags-alt.*.id}"]
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
