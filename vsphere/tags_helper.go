@@ -277,6 +277,7 @@ func (p *tagDiffProcessor) diff(a, b []string) []string {
 		if !found {
 			c = append(c, v1)
 		}
+		found = false
 	}
 	return c
 }
