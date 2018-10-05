@@ -187,6 +187,41 @@ func TestAccResourceVSphereHostVirtualSwitch_changeToStandby(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereHostVirtualSwitch_import(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereHostVirtualSwitchConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereHostVirtualSwitchExists(true),
+				),
+			},
+			{
+				ResourceName:      "vsphere_host_virtual_switch.switch",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					vars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_host_virtual_switch.%s", "switch"))
+					if err != nil {
+						return "", err
+					}
+					return vars.resourceID, err
+				},
+				Config: testAccResourceVSphereHostVirtualSwitchConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereHostVirtualSwitchExists(true),
+				),
+			},
+		},
+	})
+}
+
 func testAccResourceVSphereHostVirtualSwitchPreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_HOST_NIC0") == "" {
 		t.Skip("set VSPHERE_HOST_NIC0 to run vsphere_host_virtual_switch acceptance tests")

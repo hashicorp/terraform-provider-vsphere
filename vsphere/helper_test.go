@@ -618,6 +618,7 @@ func testGetDVS(s *terraform.State, resourceName string) (*object.VmwareDistribu
 	if err != nil {
 		return nil, err
 	}
+
 	return dvsFromUUID(tVars.client, tVars.resourceID)
 }
 

@@ -174,3 +174,19 @@ the resource. This is set to an ID value unique to Terraform - the convention
 is a prefix, the host system ID, and the virtual switch name. An example would
 be `tf-HostVirtualSwitch:host-10:vSwitchTerraformTest`.
 
+## Importing
+
+An existing vSwitch can be [imported][docs-import] into this resource by its ID.
+The convention of the id is a prefix, the host system [managed objectID][docs-about-morefs], and the virtual switch
+name. An example would be `tf-HostVirtualSwitch:host-10:vSwitchTerraformTest`.
+Import can the be done via the following command:
+
+[docs-import]: https://www.terraform.io/docs/import/index.html
+[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
+
+```
+terraform import vsphere_host_virtual_switch.switch tf-HostVirtualSwitch:host-10:vSwitchTerraformTest
+```
+
+The above would import the vSwtich named `vSwitchTerraformTest` that is located in the `host-10`
+vSphere host.

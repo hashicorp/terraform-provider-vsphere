@@ -45,6 +45,10 @@ func hostVSwitchFromName(client *govmomi.Client, ns *object.HostNetworkSystem, n
 
 	for _, sw := range mns.NetworkInfo.Vswitch {
 		if sw.Name == name {
+			// Spec.Mtu is not set for vSwitches created directly
+			// in ESXi. TODO: Use sw.Mtu instead of sw.Spec.Mtu in
+			// flattenHostVirtualSwitchSpec.
+			sw.Spec.Mtu = sw.Mtu
 			return &sw, nil
 		}
 	}
