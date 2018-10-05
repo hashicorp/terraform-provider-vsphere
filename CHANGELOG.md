@@ -1,5 +1,9 @@
 ## 1.8.2 (Unreleased)
 
+FEATURES:
+
+* `resource/host_virtual_switch`: Add support for importing ([#625](https://github.com/terraform-providers/terraform-provider-vsphere/issues/625))
+
 BUG FIXES:
 * `resource/virtual_machine_snapshot`: Raise error on snapshot create task
   error. ([#628](https://github.com/terraform-providers/terraform-provider-vsphere/pull/628))
