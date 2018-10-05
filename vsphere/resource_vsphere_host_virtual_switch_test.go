@@ -207,11 +207,11 @@ func TestAccResourceVSphereHostVirtualSwitch_import(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					_, err := testGetHostVirtualSwitch(s, "switch")
+					vars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_host_virtual_switch.%s", "switch"))
 					if err != nil {
 						return "", err
 					}
-					return "", err
+					return vars.resourceID, err
 				},
 				Config: testAccResourceVSphereHostVirtualSwitchConfig(),
 				Check: resource.ComposeTestCheckFunc(
