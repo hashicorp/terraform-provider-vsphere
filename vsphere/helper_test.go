@@ -19,7 +19,6 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
-	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/network"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
@@ -791,16 +790,6 @@ func testGetDatastoreClusterSDRSVMConfig(s *terraform.State, resourceName string
 	}
 
 	return resourceVSphereStorageDrsVMOverrideFindEntry(pod, vm)
-}
-
-// testGetHostVirtualSwitch is a convenience method to fetch a virtual switch by
-// resource name.
-func testGetHostVirtualSwitch(s *terraform.State, resourceName string) (object.NetworkReference, error) {
-	vars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_host_virtual_switch.%s", resourceName))
-	if err != nil {
-		return nil, err
-	}
-	return network.FromID(vars.client, vars.resourceID)
 }
 
 // testGetComputeCluster is a convenience method to fetch a compute cluster by
