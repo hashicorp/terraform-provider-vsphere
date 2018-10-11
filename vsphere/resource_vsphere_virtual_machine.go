@@ -715,6 +715,11 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 				if strings.HasSuffix(k, ".#") {
 					k = strings.TrimSuffix(k, ".#")
 				}
+				// To maintain consistency with other timeout options, timeout does not
+				// need to ForceNew
+				if k == "clone.0.timeout" {
+					continue
+				}
 				d.ForceNew(k)
 			}
 		}
