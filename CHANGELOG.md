@@ -5,6 +5,10 @@ FEATURES:
 * `resource/host_virtual_switch`: Add support for importing ([#625](https://github.com/terraform-providers/terraform-provider-vsphere/issues/625))
 
 BUG FIXES:
+* `resource/virtual_disk`: Ignore "already exists" errors when creating
+  directories on vSAN. ([#639](https://github.com/terraform-providers/terraform-provider-vsphere/issues/639))
+* Find tag changes when first tag is changed. ([#632](https://github.com/terraform-providers/terraform-provider-vsphere/issues/632))
+* `resource/virtual_machine`: Do not ForceNew when clone `timeout` is changed. ([#631](https://github.com/terraform-providers/terraform-provider-vsphere/issues/631))
 * `resource/virtual_machine_snapshot`: Raise error on snapshot create task
   error. ([#628](https://github.com/terraform-providers/terraform-provider-vsphere/pull/628))
 
