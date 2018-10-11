@@ -158,7 +158,7 @@ func resourceVSphereVirtualDiskCreate(d *schema.ResourceData, meta interface{}) 
 			path := vDisk.vmdkPath[0:directoryPathIndex]
 			log.Printf("[DEBUG] Creating parent directories: %v", ds.Path(path))
 			err = fm.MakeDirectory(context.TODO(), ds.Path(path), dc, true)
-			if err != nil {
+			if err != nil && !isAlreadyExists(err) {
 				log.Printf("[DEBUG] Failed to create parent directories:  %v", err)
 				return err
 			}
@@ -339,6 +339,11 @@ func resourceVSphereVirtualDiskDelete(d *schema.ResourceData, meta interface{}) 
 	log.Printf("[INFO] Deleted disk: %v", diskPath)
 	d.SetId("")
 	return nil
+}
+
+func isAlreadyExists(err error) bool {
+	return strings.HasPrefix(err.Error(), "Cannot complete the operation because the file or folder") &&
+		strings.HasSuffix(err.Error(), "already exists")
 }
 
 // createHardDisk creates a new Hard Disk.
