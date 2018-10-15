@@ -13,7 +13,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-func TestAccVSphereVirtualDisk_basic(t *testing.T) {
+func TestAccResourceVSphereVirtualDisk_basic(t *testing.T) {
 	rString := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
@@ -34,7 +34,7 @@ func TestAccVSphereVirtualDisk_basic(t *testing.T) {
 	})
 }
 
-func TestAccVSphereVirtualDisk_multi(t *testing.T) {
+func TestAccResourceVSphereVirtualDisk_multi(t *testing.T) {
 	rString := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
@@ -56,7 +56,7 @@ func TestAccVSphereVirtualDisk_multi(t *testing.T) {
 	})
 }
 
-func TestAccVSphereVirtualDisk_multiWithParent(t *testing.T) {
+func TestAccResourceVSphereVirtualDisk_multiWithParent(t *testing.T) {
 	rString := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
@@ -78,7 +78,7 @@ func TestAccVSphereVirtualDisk_multiWithParent(t *testing.T) {
 	})
 }
 
-func TestAccVSphereVirtualDisk_withParent(t *testing.T) {
+func TestAccResourceVSphereVirtualDisk_withParent(t *testing.T) {
 	rString := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
