@@ -277,6 +277,14 @@ func testGetDatacenterCustomAttributes(s *terraform.State, resourceName string) 
 	return datacenterCustomAttributes(dc)
 }
 
+func testGetVAppEntity(s *terraform.State, resourceName string) (*types.VAppEntityConfigInfo, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereVAppEntityName, resourceName))
+	if err != nil {
+		return nil, err
+	}
+	return resourceVSphereVAppEntityFind(vars.client, vars.resourceID)
+}
+
 func testGetVAppContainer(s *terraform.State, resourceName string) (*object.VirtualApp, error) {
 	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereVAppContainerName, resourceName))
 	if err != nil {

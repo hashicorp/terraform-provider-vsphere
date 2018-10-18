@@ -117,6 +117,7 @@ func Provider() terraform.ResourceProvider {
 			"vsphere_nas_datastore":                           resourceVSphereNasDatastore(),
 			"vsphere_storage_drs_vm_override":                 resourceVSphereStorageDrsVMOverride(),
 			"vsphere_vapp_container":                          resourceVSphereVAppContainer(),
+			"vsphere_vapp_entity":                             resourceVSphereVAppEntity(),
 			"vsphere_vmfs_datastore":                          resourceVSphereVmfsDatastore(),
 			"vsphere_virtual_machine_snapshot":                resourceVSphereVirtualMachineSnapshot(),
 		},
