@@ -2,7 +2,6 @@ package vsphere
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"testing"
@@ -11,87 +10,105 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/vmware/govmomi/find"
-	"github.com/vmware/govmomi/object"
 	"golang.org/x/net/context"
 )
 
-func TestAccVSphereVirtualDisk_basic(t *testing.T) {
-	var datacenterOpt string
-	var datastoreOpt string
-	var initTypeOpt string
-	var adapterTypeOpt string
-
+func TestAccResourceVSphereVirtualDisk_basic(t *testing.T) {
 	rString := acctest.RandString(5)
 
-	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
-		datacenterOpt = v
-	}
-	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
-		datastoreOpt = v
-	}
-	if v := os.Getenv("VSPHERE_INIT_TYPE"); v != "" {
-		initTypeOpt += fmt.Sprintf("    type = \"%s\"\n", v)
-	} else {
-		initTypeOpt += fmt.Sprintf("    type = \"%s\"\n", "thin")
-	}
-	if v := os.Getenv("VSPHERE_ADAPTER_TYPE"); v != "" {
-		adapterTypeOpt += fmt.Sprintf("    adapter_type = \"%s\"\n", v)
-	}
-
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualDiskPreCheck(t)
+		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckVSphereVirtualDiskDestroy,
+		CheckDestroy: testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckVSphereVirtuaDiskConfig_basic(rString, initTypeOpt, adapterTypeOpt, datacenterOpt, datastoreOpt),
+				Config: testAccCheckVSphereVirtuaDiskConfig_basic(rString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo"),
+					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", true),
 				),
 			},
 		},
 	})
 }
 
-func TestAccVSphereVirtualDisk_withParents(t *testing.T) {
-	var datacenterOpt string
-	var datastoreOpt string
-	var initTypeOpt string
-	var adapterTypeOpt string
-
+func TestAccResourceVSphereVirtualDisk_multi(t *testing.T) {
 	rString := acctest.RandString(5)
 
-	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
-		datacenterOpt = v
-	}
-	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
-		datastoreOpt = v
-	}
-	if v := os.Getenv("VSPHERE_INIT_TYPE"); v != "" {
-		initTypeOpt += fmt.Sprintf("    type = \"%s\"\n", v)
-	} else {
-		initTypeOpt += fmt.Sprintf("    type = \"%s\"\n", "thin")
-	}
-	if v := os.Getenv("VSPHERE_ADAPTER_TYPE"); v != "" {
-		adapterTypeOpt += fmt.Sprintf("    adapter_type = \"%s\"\n", v)
-	}
-
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckVSphereVirtualDiskDestroy,
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualDiskPreCheck(t)
+		},
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckVSphereVirtuaDiskConfig_withParents(rString, initTypeOpt, adapterTypeOpt, datacenterOpt, datastoreOpt),
+				Config: testAccCheckVSphereVirtuaDiskConfig_multi(rString),
 				Check: resource.ComposeTestCheckFunc(
-					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo"),
+					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo.0", true),
+					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo.1", true),
+					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo.2", true),
 				),
 			},
 		},
 	})
 }
 
-func testAccVSphereVirtualDiskExists(name string) resource.TestCheckFunc {
+func TestAccResourceVSphereVirtualDisk_multiWithParent(t *testing.T) {
+	rString := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualDiskPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckVSphereVirtuaDiskConfig_multiWithParent(rString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo.0", true),
+					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo.1", true),
+					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo.2", true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualDisk_withParent(t *testing.T) {
+	rString := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualDiskPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckVSphereVirtuaDiskConfig_withParent(rString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", true),
+				),
+			},
+		},
+	})
+}
+
+func testAccResourceVSphereVirtualDiskPreCheck(t *testing.T) {
+	if os.Getenv("VSPHERE_DATACENTER") == "" {
+		t.Skip("set VSPHERE_DATACENTER to run vsphere_virtual_disk acceptance tests")
+	}
+	if os.Getenv("VSPHERE_DATASTORE") == "" {
+		t.Skip("set VSPHERE_DATASTORE to run vsphere_virtual_disk acceptance tests")
+	}
+}
+
+func testAccVSphereVirtualDiskExists(name string, expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 		if !ok {
@@ -106,96 +123,189 @@ func testAccVSphereVirtualDiskExists(name string) resource.TestCheckFunc {
 
 		dc, err := finder.Datacenter(context.TODO(), rs.Primary.Attributes["datacenter"])
 		if err != nil {
-			return fmt.Errorf("error %s", err)
+			return err
 		}
 		finder = finder.SetDatacenter(dc)
 
 		ds, err := finder.Datastore(context.TODO(), rs.Primary.Attributes["datastore"])
 		if err != nil {
-			return fmt.Errorf("error %s", err)
+			return err
 		}
 
 		_, err = ds.Stat(context.TODO(), rs.Primary.Attributes["vmdk_path"])
 		if err != nil {
-			return fmt.Errorf("error %s", err)
+			if testAccCheckVSphereVirtualDiskIsFileNotFoundError(err) && expected == false {
+				// Expected missing
+				return nil
+			}
+			return err
 		}
-
+		if !expected {
+			return fmt.Errorf("expected virtual disk %s to be missing", rs.Primary.ID)
+		}
 		return nil
 	}
 }
 
-func testAccCheckVSphereVirtualDiskDestroy(s *terraform.State) error {
-	log.Printf("[FINDME] test Destroy")
-	client := testAccProvider.Meta().(*VSphereClient).vimClient
-	finder := find.NewFinder(client.Client, true)
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "vsphere_virtual_disk" {
-			continue
-		}
-
-		dc, err := finder.Datacenter(context.TODO(), rs.Primary.Attributes["datacenter"])
-		if err != nil {
-			return fmt.Errorf("error %s", err)
-		}
-
-		finder = finder.SetDatacenter(dc)
-
-		ds, err := finder.Datastore(context.TODO(), rs.Primary.Attributes["datastore"])
-		if err != nil {
-			return fmt.Errorf("error %s", err)
-		}
-
-		_, err = ds.Stat(context.TODO(), rs.Primary.Attributes["vmdk_path"])
-		if err == nil {
-			return fmt.Errorf("error %s", err)
-		}
-
-		// Clean up the test parent directory created for evaluation of the attribute "create_directories"
-		if rs.Primary.Attributes["create_directories"] == "true" {
-			fm := object.NewFileManager(client.Client)
-			vmdkPath := rs.Primary.Attributes["vmdk_path"]
-			directoryPathIndex := strings.LastIndex(vmdkPath, "/")
-			path := vmdkPath[0:directoryPathIndex]
-
-			task, err := fm.DeleteDatastoreFile(context.TODO(), ds.Path(path), dc)
-			if err != nil {
-				return fmt.Errorf("error %s", err)
-			}
-
-			_, err = task.WaitForResult(context.TODO(), nil)
-			if err != nil {
-				return fmt.Errorf("error %s", err)
-			}
-		}
+func testAccCheckVSphereVirtualDiskIsFileNotFoundError(err error) bool {
+	if strings.HasPrefix(err.Error(), "cannot stat") && strings.HasSuffix(err.Error(), "No such file") {
+		return true
 	}
-
-	return nil
+	return false
 }
 
-func testAccCheckVSphereVirtuaDiskConfig_basic(rName, initTypeOpt, adapterTypeOpt, datacenterOpt, datastoreOpt string) string {
+func testAccCheckVSphereVirtuaDiskConfig_basic(rName string) string {
 	return fmt.Sprintf(`
-resource "vsphere_virtual_disk" "foo" {
-    size = 1
-    vmdk_path = "tfTestDisk-%s.vmdk"
-%s
-%s
-    datacenter = "%s"
-    datastore = "%s"
-}
-`, rName, initTypeOpt, adapterTypeOpt, datacenterOpt, datastoreOpt)
+variable "datacenter" {
+  default = "%s"
 }
 
-func testAccCheckVSphereVirtuaDiskConfig_withParents(rName, initTypeOpt, adapterTypeOpt, datacenterOpt, datastoreOpt string) string {
-	return fmt.Sprintf(`
-resource "vsphere_virtual_disk" "foo" {
-    size = 1
-    vmdk_path = "tfTestParent-%s/tfTestDisk-%s.vmdk"
-%s
-%s
-    datacenter = "%s"
-    datastore = "%s"
-    create_directories = "true"
+variable "datastore" {
+  default = "%s"
 }
-`, rName, rName, initTypeOpt, adapterTypeOpt, datacenterOpt, datastoreOpt)
+
+variable "rstring" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "ds" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_disk" "foo" {
+  size         = 1
+  vmdk_path    = "tfTestDisk-${var.rstring}.vmdk"
+  adapter_type = "lsiLogic"
+  type         = "thin"
+  datacenter   = "${data.vsphere_datacenter.dc.name}"
+  datastore    = "${data.vsphere_datastore.ds.name}"
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		rName,
+	)
+}
+
+func testAccCheckVSphereVirtuaDiskConfig_multi(rName string) string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "rstring" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "ds" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_disk" "foo" {
+  count        = 3
+  size         = 1
+  vmdk_path    = "tfTestDisk-${var.rstring}-${count.index}.vmdk"
+  adapter_type = "lsiLogic"
+  type         = "thin"
+  datacenter   = "${data.vsphere_datacenter.dc.name}"
+  datastore    = "${data.vsphere_datastore.ds.name}"
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		rName,
+	)
+}
+
+func testAccCheckVSphereVirtuaDiskConfig_multiWithParent(rName string) string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "rstring" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "ds" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_disk" "foo" {
+  count              = 3
+  size               = 1
+  vmdk_path          = "tfTestParent/tfTestDisk-${var.rstring}-${count.index}.vmdk"
+  adapter_type       = "lsiLogic"
+  type               = "thin"
+  datacenter         = "${data.vsphere_datacenter.dc.name}"
+  datastore          = "${data.vsphere_datastore.ds.name}"
+  create_directories = true
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		rName,
+	)
+}
+
+func testAccCheckVSphereVirtuaDiskConfig_withParent(rName string) string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "rstring" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "ds" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_disk" "foo" {
+  size               = 1
+  vmdk_path          = "tfTestParent-${var.rstring}/tfTestDisk-${var.rstring}.vmdk"
+  adapter_type       = "lsiLogic"
+  type               = "thin"
+  datacenter         = "${data.vsphere_datacenter.dc.name}"
+  datastore          = "${data.vsphere_datastore.ds.name}"
+  create_directories = true
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		rName,
+	)
 }
