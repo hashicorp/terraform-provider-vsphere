@@ -6,7 +6,7 @@ description: |-
   Provides a vSphere vApp entity resource. This can be used to describe the behavior of an entity (virtual machine or sub-vApp container) in a vApp container.
 ---
 
-# vsphere\_vapp\_entity
+# vsphere_vapp_entity
 
 The `vsphere_vapp_entity` resource can be used to describe the behavior of an
 entity (virtual machine or sub-vApp container) in a vApp container.
@@ -100,8 +100,8 @@ The following arguments are supported:
 * `stop_delay` - (Optional) Delay in seconds before continuing with the next
   entity in the order sequence. This is only used if the stopAction is
   guestShutdown. Default: 120 
-* `wait_for_guest` - (Optional) Determines if the	VM should be marked as being
-  started when VMware Tools are ready instead of	waiting for `start_delay`. This
+* `wait_for_guest` - (Optional) Determines if the VM should be marked as being
+  started when VMware Tools are ready instead of waiting for `start_delay`. This
   property has no effect for vApps. Default: false
 
 
@@ -125,4 +125,5 @@ terraform import vsphere_vapp_entity.vapp_entity vm-123:res-456
 ```
 
 The above would import the vApp entity that governs the behavior of the virtual
-machine with a MOID of vm-123 in the vApp container with the MOID res-456.
+machine with a [managed object ID][docs-about-morefs] of vm-123 in the vApp
+container with the [managed object ID][docs-about-morefs] res-456.
