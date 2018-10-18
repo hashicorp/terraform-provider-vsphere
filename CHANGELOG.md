@@ -2,6 +2,7 @@
 
 FEATURES:
 
+* **New Resource:** `vsphere_vapp_entity` ([#640](https://github.com/terraform-providers/terraform-provider-vsphere/issues/640))
 * `resource/host_virtual_switch`: Add support for importing ([#625](https://github.com/terraform-providers/terraform-provider-vsphere/issues/625))
 
 BUG FIXES:
@@ -22,7 +23,7 @@ IMPROVEMENTS:
 
 FEATURES:
 
-* **New Data Source:** `data/vapp_container` ([#610](https://github.com/terraform-providers/terraform-provider-vsphere/issues/610))
+* **New Data Source:** `vsphere_vapp_container` ([#610](https://github.com/terraform-providers/terraform-provider-vsphere/issues/610))
 
 BUG FIXES:
 
