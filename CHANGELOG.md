@@ -5,6 +5,9 @@ FEATURES:
 * **New Resource:** `vsphere_vapp_entity` ([#640](https://github.com/terraform-providers/terraform-provider-vsphere/issues/640))
 * `resource/host_virtual_switch`: Add support for importing ([#625](https://github.com/terraform-providers/terraform-provider-vsphere/issues/625))
 
+IMPROVEMENTS:
+* `resource/virtual_disk`: Update existing and add additional tests ([#635](https://github.com/terraform-providers/terraform-provider-vsphere/issues/635))
+
 BUG FIXES:
 * `resource/virtual_disk`: Ignore "already exists" errors when creating
   directories on vSAN. ([#639](https://github.com/terraform-providers/terraform-provider-vsphere/issues/639))
