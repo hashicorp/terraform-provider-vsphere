@@ -249,6 +249,16 @@ func GetInt64Ptr(d *schema.ResourceData, key string) *int64 {
 	return nil
 }
 
+// GetInt64PtrEmptyZero reads a ResourceData and returns an appropriate *int64
+// for the state of the definition. 0 is returned if it does not exist.
+func GetInt64PtrEmptyZero(d *schema.ResourceData, key string) *int64 {
+	i := GetInt64Ptr(d, key)
+	if i != nil {
+		return i
+	}
+	return Int64Ptr(int64(0))
+}
+
 // SetInt64Ptr sets a ResourceData field depending on if an *int64 exists or
 // not.  The field is not set if it's nil.
 func SetInt64Ptr(d *schema.ResourceData, key string, val *int64) error {
