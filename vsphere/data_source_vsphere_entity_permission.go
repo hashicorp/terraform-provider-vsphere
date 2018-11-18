@@ -24,7 +24,7 @@ func dataSourceVSphereEntityPermission() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"propogate": &schema.Schema{
+			"propagate": &schema.Schema{
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
@@ -46,7 +46,7 @@ func dataSourceVSphereEntityPermissionRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	d.Set("propogate", permission.Propagate)
+	d.Set("propagate", permission.Propagate)
 	d.UnsafeSetFieldRaw("role_id", fmt.Sprint(permission.RoleId))
 	d.Set("group", permission.Group)
 	d.SetId(permission.Principal)

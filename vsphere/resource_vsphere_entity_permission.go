@@ -29,7 +29,7 @@ func resourceVSphereEntityPermission() *schema.Resource {
 				ForceNew: true,
 				Default:  "/",
 			},
-			"propogate": &schema.Schema{
+			"propagate": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
@@ -53,7 +53,7 @@ func resourceVSphereEntityPermissionRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	d.Set("propogate", permission.Propagate)
+	d.Set("propagate", permission.Propagate)
 	d.UnsafeSetFieldRaw("role_id", fmt.Sprint(permission.RoleId))
 	d.Set("group", permission.Group)
 	d.SetId(permission.Principal)
@@ -66,8 +66,8 @@ func resourceVSphereEntityPermissionCreate(d *schema.ResourceData, meta interfac
 	folderPath := d.Get("folder_path").(string)
 	group := d.Get("group").(bool)
 	roleID := d.Get("role_id").(int)
-	propogate := d.Get("propogate").(bool)
-	err := permissionsHelper.Create(client, principal, folderPath, roleID, group, propogate)
+	propagate := d.Get("propagate").(bool)
+	err := permissionsHelper.Create(client, principal, folderPath, roleID, group, propagate)
 	if err != nil {
 		d.SetId("")
 		return err
