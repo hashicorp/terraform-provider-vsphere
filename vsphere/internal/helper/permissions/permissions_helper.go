@@ -33,7 +33,7 @@ func Exists(client *govmomi.Client, principal string, folderPath string) (*types
 }
 
 // Create Entity Permission
-func Create(client *govmomi.Client, principal string, folderPath string, roleID int, group bool, propogate bool) error {
+func Create(client *govmomi.Client, principal string, folderPath string, roleID int, group bool, propagate bool) error {
 	m := object.NewAuthorizationManager(client.Client)
 	finder := find.NewFinder(client.Client, true)
 	ctx, cancel := context.WithTimeout(context.Background(), 3000000000)
@@ -52,7 +52,7 @@ func Create(client *govmomi.Client, principal string, folderPath string, roleID 
 		Principal: principal,
 		RoleId:    int32(roleID),
 		Group:     group,
-		Propagate: propogate,
+		Propagate: propagate,
 	}}
 
 	return m.SetEntityPermissions(ctx, elements[0].Object.Reference(), perms)
