@@ -431,8 +431,8 @@ func expandVirtualMachineResourceAllocation(d *schema.ResourceData, key string) 
 	reservationKey := fmt.Sprintf("%s_reservation", key)
 
 	obj := &types.ResourceAllocationInfo{
-		Limit:       structure.GetInt64Ptr(d, limitKey),
-		Reservation: structure.GetInt64Ptr(d, reservationKey),
+		Limit:       structure.GetInt64PtrEmptyZero(d, limitKey),
+		Reservation: structure.GetInt64PtrEmptyZero(d, reservationKey),
 	}
 	shares := &types.SharesInfo{
 		Level:  types.SharesLevel(d.Get(shareLevelKey).(string)),
