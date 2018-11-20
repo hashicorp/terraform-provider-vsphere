@@ -98,7 +98,7 @@ func TestAccResourceVSphereComputeCluster_explicitFailoverHost(t *testing.T) {
 					testAccResourceVSphereComputeClusterCheckDRSEnabled(true),
 					testAccResourceVSphereComputeClusterCheckHAEnabled(true),
 					testAccResourceVSphereComputeClusterCheckAdmissionControlMode(clusterAdmissionControlTypeFailoverHosts),
-					testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(os.Getenv("VSPHERE_ESXI_HOST5")),
+					testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(os.Getenv("VSPHERE_ESXI_HOST4")),
 				),
 			},
 			{
@@ -384,14 +384,11 @@ func testAccResourceVSphereComputeClusterPreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_DATACENTER") == "" {
 		t.Skip("set VSPHERE_DATACENTER to run vsphere_compute_cluster acceptance tests")
 	}
+	if os.Getenv("VSPHERE_ESXI_HOST4") == "" {
+		t.Skip("set VSPHERE_ESXI_HOST4 to run vsphere_compute_cluster acceptance tests")
+	}
 	if os.Getenv("VSPHERE_ESXI_HOST5") == "" {
 		t.Skip("set VSPHERE_ESXI_HOST5 to run vsphere_compute_cluster acceptance tests")
-	}
-	if os.Getenv("VSPHERE_ESXI_HOST6") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST6 to run vsphere_compute_cluster acceptance tests")
-	}
-	if os.Getenv("VSPHERE_ESXI_HOST7") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST7 to run vsphere_compute_cluster acceptance tests")
 	}
 	if os.Getenv("VSPHERE_NETWORK_LABEL_PXE") == "" {
 		t.Skip("set VSPHERE_NETWORK_LABEL_PXE to run vsphere_virtual_machine acceptance tests")
@@ -606,7 +603,6 @@ variable "hosts" {
   default = [
     "%s",
     "%s",
-    "%s",
   ]
 }
 
@@ -631,9 +627,8 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_ESXI_HOST4"),
 		os.Getenv("VSPHERE_ESXI_HOST5"),
-		os.Getenv("VSPHERE_ESXI_HOST6"),
-		os.Getenv("VSPHERE_ESXI_HOST7"),
 	)
 }
 
@@ -645,7 +640,6 @@ variable "datacenter" {
 
 variable "hosts" {
   default = [
-    "%s",
     "%s",
     "%s",
   ]
@@ -670,9 +664,8 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_ESXI_HOST4"),
 		os.Getenv("VSPHERE_ESXI_HOST5"),
-		os.Getenv("VSPHERE_ESXI_HOST6"),
-		os.Getenv("VSPHERE_ESXI_HOST7"),
 	)
 }
 
@@ -684,7 +677,6 @@ variable "datacenter" {
 
 variable "hosts" {
   default = [
-    "%s",
     "%s",
     "%s",
   ]
@@ -714,9 +706,8 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_ESXI_HOST4"),
 		os.Getenv("VSPHERE_ESXI_HOST5"),
-		os.Getenv("VSPHERE_ESXI_HOST6"),
-		os.Getenv("VSPHERE_ESXI_HOST7"),
 	)
 }
 
@@ -728,7 +719,6 @@ variable "datacenter" {
 
 variable "hosts" {
   default = [
-    "%s",
     "%s",
     "%s",
   ]
@@ -760,9 +750,8 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_ESXI_HOST4"),
 		os.Getenv("VSPHERE_ESXI_HOST5"),
-		os.Getenv("VSPHERE_ESXI_HOST6"),
-		os.Getenv("VSPHERE_ESXI_HOST7"),
 	)
 }
 
@@ -982,7 +971,6 @@ variable "hosts" {
   default = [
     "%s",
     "%s",
-    "%s",
   ]
 }
 
@@ -1047,9 +1035,8 @@ resource "vsphere_virtual_machine" "vm" {
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_ESXI_HOST4"),
 		os.Getenv("VSPHERE_ESXI_HOST5"),
-		os.Getenv("VSPHERE_ESXI_HOST6"),
-		os.Getenv("VSPHERE_ESXI_HOST7"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
 	)

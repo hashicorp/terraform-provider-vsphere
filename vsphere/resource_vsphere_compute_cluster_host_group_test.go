@@ -47,14 +47,14 @@ func TestAccResourceVSphereComputeClusterHostGroup_update(t *testing.T) {
 		CheckDestroy: testAccResourceVSphereComputeClusterHostGroupExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereComputeClusterHostGroupConfig(2),
+				Config: testAccResourceVSphereComputeClusterHostGroupConfig(1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterHostGroupExists(true),
 					testAccResourceVSphereComputeClusterHostGroupMatchMembership(),
 				),
 			},
 			{
-				Config: testAccResourceVSphereComputeClusterHostGroupConfig(3),
+				Config: testAccResourceVSphereComputeClusterHostGroupConfig(2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterHostGroupExists(true),
 					testAccResourceVSphereComputeClusterHostGroupMatchMembership(),
@@ -123,14 +123,11 @@ func testAccResourceVSphereComputeClusterHostGroupPreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_DATACENTER") == "" {
 		t.Skip("set VSPHERE_DATACENTER to run vsphere_compute_cluster_host_group acceptance tests")
 	}
+	if os.Getenv("VSPHERE_ESXI_HOST4") == "" {
+		t.Skip("set VSPHERE_ESXI_HOST4 to run vsphere_compute_cluster_host_group acceptance tests")
+	}
 	if os.Getenv("VSPHERE_ESXI_HOST5") == "" {
 		t.Skip("set VSPHERE_ESXI_HOST5 to run vsphere_compute_cluster_host_group acceptance tests")
-	}
-	if os.Getenv("VSPHERE_ESXI_HOST6") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST6 to run vsphere_compute_cluster_host_group acceptance tests")
-	}
-	if os.Getenv("VSPHERE_ESXI_HOST7") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST7 to run vsphere_compute_cluster_host_group acceptance tests")
 	}
 }
 
@@ -239,7 +236,6 @@ variable "hosts" {
   default = [
     "%s",
     "%s",
-    "%s",
   ]
 }
 
@@ -272,9 +268,8 @@ resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_ESXI_HOST4"),
 		os.Getenv("VSPHERE_ESXI_HOST5"),
-		os.Getenv("VSPHERE_ESXI_HOST6"),
-		os.Getenv("VSPHERE_ESXI_HOST7"),
 		count,
 	)
 }

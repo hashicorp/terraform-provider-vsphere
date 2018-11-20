@@ -111,12 +111,10 @@ func TestAccResourceVSphereVirtualMachine_datastoreClusterCreateMultiDisk(t *tes
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmdkDatastoreCluster(
-						"terraform-test.vmdk",
-						testAccResourceVSphereVirtualMachineDatastoreCluster,
+						0, testAccResourceVSphereVirtualMachineDatastoreCluster,
 					),
 					testAccResourceVSphereVirtualMachineCheckVmdkDatastoreCluster(
-						"terraform-test_1.vmdk",
-						testAccResourceVSphereVirtualMachineDatastoreCluster,
+						1, testAccResourceVSphereVirtualMachineDatastoreCluster,
 					),
 				),
 			},
@@ -144,12 +142,10 @@ func TestAccResourceVSphereVirtualMachine_datastoreClusterCreateUpdate(t *testin
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmdkDatastoreCluster(
-						"terraform-test.vmdk",
-						testAccResourceVSphereVirtualMachineDatastoreCluster,
+						0, testAccResourceVSphereVirtualMachineDatastoreCluster,
 					),
 					testAccResourceVSphereVirtualMachineCheckVmdkDatastoreCluster(
-						"terraform-test_1.vmdk",
-						testAccResourceVSphereVirtualMachineDatastoreCluster,
+						1, testAccResourceVSphereVirtualMachineDatastoreCluster,
 					),
 				),
 			},
@@ -1519,7 +1515,7 @@ func TestAccResourceVSphereVirtualMachine_cloneCustomizeForceNewWithDatastore(t 
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckHostname("terraform-test"),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_3.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("VSPHERE_DATASTORE")),
 				),
 			},
 			{
@@ -1531,7 +1527,7 @@ func TestAccResourceVSphereVirtualMachine_cloneCustomizeForceNewWithDatastore(t 
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckHostname("terraform-test-renamed"),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE2")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_3.vmdk", os.Getenv("VSPHERE_DATASTORE2")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("VSPHERE_DATASTORE2")),
 					func(s *terraform.State) error {
 						oldID := state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.ID
 						return testCheckResourceNotAttr("vsphere_virtual_machine.vm", "id", oldID)(s)
@@ -2205,10 +2201,10 @@ func TestAccResourceVSphereVirtualMachine_clusterVMotion(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigResourcePoolVMotion(fmt.Sprintf("%s/Resources", os.Getenv("VSPHERE_CLUSTER2"))),
+				Config: testAccResourceVSphereVirtualMachineConfigResourcePoolVMotion(fmt.Sprintf("%s/Resources", os.Getenv("VSPHERE_ESXI_HOST5"))),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					testAccResourceVSphereVirtualMachineCheckResourcePool(fmt.Sprintf("%s/Resources", os.Getenv("VSPHERE_CLUSTER2"))),
+					testAccResourceVSphereVirtualMachineCheckResourcePool(fmt.Sprintf("%s/Resources", os.Getenv("VSPHERE_ESXI_HOST5"))),
 				),
 			},
 		},
@@ -2229,7 +2225,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionGlobalSetting(t *testing
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_4.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("VSPHERE_DATASTORE")),
 				),
 			},
 			{
@@ -2237,7 +2233,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionGlobalSetting(t *testing
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE2")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_4.vmdk", os.Getenv("VSPHERE_DATASTORE2")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("VSPHERE_DATASTORE2")),
 				),
 			},
 		},
@@ -2258,8 +2254,8 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionSingleDisk(t *testing.T)
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_4.vmdk", os.Getenv("VSPHERE_DATASTORE")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(1, os.Getenv("VSPHERE_DATASTORE")),
 				),
 			},
 			{
@@ -2267,8 +2263,8 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionSingleDisk(t *testing.T)
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_4.vmdk", os.Getenv("VSPHERE_DATASTORE")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE2")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(1, os.Getenv("VSPHERE_DATASTORE2")),
 				),
 			},
 		},
@@ -2289,8 +2285,8 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionPinDatastore(t *testing.
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_4.vmdk", os.Getenv("VSPHERE_DATASTORE")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(1, os.Getenv("VSPHERE_DATASTORE")),
 				),
 			},
 			{
@@ -2298,8 +2294,8 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionPinDatastore(t *testing.
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE2")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_4.vmdk", os.Getenv("VSPHERE_DATASTORE2")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("VSPHERE_DATASTORE2")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(1, os.Getenv("VSPHERE_DATASTORE")),
 				),
 			},
 		},
@@ -2320,7 +2316,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionRenamedVirtualMachine(t 
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_4.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("VSPHERE_DATASTORE")),
 				),
 			},
 			{
@@ -2328,7 +2324,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionRenamedVirtualMachine(t 
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_4.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("VSPHERE_DATASTORE")),
 				),
 			},
 			{
@@ -2336,7 +2332,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionRenamedVirtualMachine(t 
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE2")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("foobar-test_4.vmdk", os.Getenv("VSPHERE_DATASTORE2")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("VSPHERE_DATASTORE2")),
 				),
 			},
 		},
@@ -2359,7 +2355,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionLinkedClones(t *testing.
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_3.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("VSPHERE_DATASTORE")),
 				),
 			},
 			{
@@ -2369,8 +2365,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionLinkedClones(t *testing.
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE2")),
 					func(s *terraform.State) error {
-						filename := path.Base(state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.Attributes["disk.0.path"])
-						return testAccResourceVSphereVirtualMachineCheckVmdkDatastore(filename, os.Getenv("VSPHERE_DATASTORE2"))(s)
+						return testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("VSPHERE_DATASTORE2"))(s)
 					},
 				),
 			},
@@ -2392,7 +2387,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionBlockExternallyAttachedD
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("VSPHERE_DATASTORE")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_4.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("VSPHERE_DATASTORE")),
 				),
 			},
 			{
@@ -2424,8 +2419,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionDatastoreCluster(t *test
 						testAccResourceVSphereVirtualMachineDatastoreCluster,
 					),
 					testAccResourceVSphereVirtualMachineCheckVmdkDatastoreCluster(
-						"terraform-test_3.vmdk",
-						testAccResourceVSphereVirtualMachineDatastoreCluster,
+						0, testAccResourceVSphereVirtualMachineDatastoreCluster,
 					),
 				),
 			},
@@ -2439,8 +2433,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionDatastoreCluster(t *test
 						testAccResourceVSphereVirtualMachineDatastoreClusterAlt,
 					),
 					testAccResourceVSphereVirtualMachineCheckVmdkDatastoreCluster(
-						"terraform-test_3.vmdk",
-						testAccResourceVSphereVirtualMachineDatastoreClusterAlt,
+						0, testAccResourceVSphereVirtualMachineDatastoreClusterAlt,
 					),
 				),
 			},
@@ -2492,12 +2485,10 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionDatastoreClusterSingleDi
 						testAccResourceVSphereVirtualMachineDatastoreCluster,
 					),
 					testAccResourceVSphereVirtualMachineCheckVmdkDatastoreCluster(
-						"terraform-test.vmdk",
-						testAccResourceVSphereVirtualMachineDatastoreCluster,
+						0, testAccResourceVSphereVirtualMachineDatastoreCluster,
 					),
 					testAccResourceVSphereVirtualMachineCheckVmdkDatastoreCluster(
-						"terraform-test_1.vmdk",
-						testAccResourceVSphereVirtualMachineDatastoreCluster,
+						1, testAccResourceVSphereVirtualMachineDatastoreCluster,
 					),
 				),
 			},
@@ -2511,10 +2502,9 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionDatastoreClusterSingleDi
 						testAccResourceVSphereVirtualMachineDatastoreCluster,
 					),
 					testAccResourceVSphereVirtualMachineCheckVmdkDatastoreCluster(
-						"terraform-test.vmdk",
-						testAccResourceVSphereVirtualMachineDatastoreCluster,
+						0, testAccResourceVSphereVirtualMachineDatastoreCluster,
 					),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore("terraform-test_1.vmdk", os.Getenv("VSPHERE_DATASTORE")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(1, os.Getenv("VSPHERE_DATASTORE")),
 				),
 			},
 			{
@@ -2525,12 +2515,10 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionDatastoreClusterSingleDi
 						testAccResourceVSphereVirtualMachineDatastoreCluster,
 					),
 					testAccResourceVSphereVirtualMachineCheckVmdkDatastoreCluster(
-						"terraform-test.vmdk",
-						testAccResourceVSphereVirtualMachineDatastoreCluster,
+						0, testAccResourceVSphereVirtualMachineDatastoreCluster,
 					),
 					testAccResourceVSphereVirtualMachineCheckVmdkDatastoreCluster(
-						"terraform-test_1.vmdk",
-						testAccResourceVSphereVirtualMachineDatastoreCluster,
+						1, testAccResourceVSphereVirtualMachineDatastoreCluster,
 					),
 				),
 			},
@@ -2871,9 +2859,6 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	}
 	if os.Getenv("VSPHERE_CLUSTER") == "" {
 		t.Skip("set VSPHERE_CLUSTER to run vsphere_virtual_machine acceptance tests")
-	}
-	if os.Getenv("VSPHERE_CLUSTER2") == "" {
-		t.Skip("set VSPHERE_CLUSTER2 to run vsphere_virtual_machine acceptance tests")
 	}
 	if os.Getenv("VSPHERE_RESOURCE_POOL") == "" {
 		t.Skip("set VSPHERE_RESOURCE_POOL to run vsphere_virtual_machine acceptance tests")
@@ -3706,12 +3691,17 @@ func testAccResourceVSphereVirtualMachineCheckVmxDatastore(expected string) reso
 
 // testAccResourceVSphereVirtualMachineCheckVmdkDatastore checks the datastore
 // that a specific VMDK file is in.
-func testAccResourceVSphereVirtualMachineCheckVmdkDatastore(name, expected string) resource.TestCheckFunc {
+func testAccResourceVSphereVirtualMachineCheckVmdkDatastore(diskIndex int, expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
+		tVars, err := testClientVariablesForResource(s, "vsphere_virtual_machine.vm")
+		if err != nil {
+			return err
+		}
 		props, err := testGetVirtualMachineProperties(s, "vm")
 		if err != nil {
 			return err
 		}
+		name := tVars.resourceAttributes[fmt.Sprintf("disk.%d.path", diskIndex)]
 		for _, dev := range props.Config.Hardware.Device {
 			if disk, ok := dev.(*types.VirtualDisk); ok {
 				if info, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo); ok {
@@ -3719,7 +3709,7 @@ func testAccResourceVSphereVirtualMachineCheckVmdkDatastore(name, expected strin
 					if ok := dsPath.FromString(info.FileName); !ok {
 						return fmt.Errorf("could not parse datastore path %q", info.FileName)
 					}
-					if path.Base(dsPath.Path) == name {
+					if dsPath.Path == name {
 						actual := dsPath.Datastore
 						if expected == actual {
 							return nil
@@ -3777,7 +3767,7 @@ func testAccResourceVSphereVirtualMachineCheckVmxDatastoreCluster(expected strin
 
 // testAccResourceVSphereVirtualMachineCheckVmdkDatastoreCluster checks the
 // datastore cluster that a specific VMDK file is in.
-func testAccResourceVSphereVirtualMachineCheckVmdkDatastoreCluster(name, expected string) resource.TestCheckFunc {
+func testAccResourceVSphereVirtualMachineCheckVmdkDatastoreCluster(diskIndex int, expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		tVars, err := testClientVariablesForResource(s, "vsphere_virtual_machine.vm")
 		if err != nil {
@@ -3787,6 +3777,7 @@ func testAccResourceVSphereVirtualMachineCheckVmdkDatastoreCluster(name, expecte
 		if err != nil {
 			return err
 		}
+		name := tVars.resourceAttributes[fmt.Sprintf("disk.%d.path", diskIndex)]
 		for _, dev := range props.Config.Hardware.Device {
 			if disk, ok := dev.(*types.VirtualDisk); ok {
 				if info, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo); ok {
@@ -3794,7 +3785,7 @@ func testAccResourceVSphereVirtualMachineCheckVmdkDatastoreCluster(name, expecte
 					if ok := dsPath.FromString(info.FileName); !ok {
 						return fmt.Errorf("could not parse datastore path %q", info.FileName)
 					}
-					if path.Base(dsPath.Path) == name {
+					if dsPath.Path == name {
 						dc, err := getDatacenter(tVars.client, os.Getenv("VSPHERE_DATACENTER"))
 						if err != nil {
 							return fmt.Errorf("could not get datacenter by ID %q: %s", tVars.resourceID, err)
