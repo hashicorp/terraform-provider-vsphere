@@ -1,4 +1,10 @@
 ## 1.9.1 (Unreleased)
+
+BUG FIXES:
+
+* `resource/virtual_machine`: Return zero instead of nil for memory allocation
+  and reservation values ([#655](https://github.com/terraform-providers/terraform-provider-vsphere/issues/655))
+
 ## 1.9.0 (October 31, 2018)
 
 FEATURES:
@@ -7,9 +13,11 @@ FEATURES:
 * `resource/host_virtual_switch`: Add support for importing ([#625](https://github.com/terraform-providers/terraform-provider-vsphere/issues/625))
 
 IMPROVEMENTS:
+
 * `resource/virtual_disk`: Update existing and add additional tests ([#635](https://github.com/terraform-providers/terraform-provider-vsphere/issues/635))
 
 BUG FIXES:
+
 * `resource/virtual_disk`: Ignore "already exists" errors when creating
   directories on vSAN. ([#639](https://github.com/terraform-providers/terraform-provider-vsphere/issues/639))
 * Find tag changes when first tag is changed. ([#632](https://github.com/terraform-providers/terraform-provider-vsphere/issues/632))
