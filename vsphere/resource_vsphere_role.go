@@ -62,6 +62,11 @@ func resourceVSphereRoleRead(d *schema.ResourceData, meta interface{}) error {
 		return errors.New("couldn't find the specified role: " + err.Error())
 	}
 
+	if role == nil {
+		d.SetId("")
+		return errors.New("couldn't find the specified role")
+	}
+
 	d.SetId(fmt.Sprint(role.RoleId))
 	return nil
 }
