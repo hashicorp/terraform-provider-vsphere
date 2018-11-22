@@ -18,6 +18,10 @@ func Exists(client *govmomi.Client, principal string, folderPath string) (*types
 	defer cancel()
 	elements, _ := finder.ManagedObjectList(ctx, folderPath)
 
+	if len(elements) == 0 {
+		return nil, errors.New("Folder Path is invalid")
+	}
+
 	permissions, err := m.RetrieveEntityPermissions(ctx, elements[0].Object.Reference(), true)
 	if err != nil {
 		return nil, err
