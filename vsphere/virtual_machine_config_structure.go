@@ -2,11 +2,9 @@ package vsphere
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"reflect"
 
-	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/hashicorp/terraform/terraform"
@@ -846,15 +844,13 @@ func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, client *govmo
 	// Read state back in. This is necessary to ensure GetChange calls work
 	// correctly.
 	oldData = resourceVSphereVirtualMachine().Data(oldData.State())
-	// Get both specs. Silence the logging for oldSpec to suppress fake
-	// reboot_required log messages.
-	log.SetOutput(ioutil.Discard)
+	// Get both specs.
+	log.Printf("[DEBUG] %s: Expanding old config. Ignore reboot_required messages", resourceVSphereVirtualMachineIDString(d))
 	oldSpec, err := expandVirtualMachineConfigSpec(oldData, client)
 	if err != nil {
 		return types.VirtualMachineConfigSpec{}, false, err
 	}
-
-	logging.SetOutput()
+	log.Printf("[DEBUG] %s: Expanding of old config complete", resourceVSphereVirtualMachineIDString(d))
 
 	newSpec, err := expandVirtualMachineConfigSpec(d, client)
 	if err != nil {
