@@ -1,5 +1,10 @@
 ## 1.9.1 (Unreleased)
 
+IMPROVEMENTS:
+
+* `resource/virtual_machine`: Increase logging after old config expansion during
+  diff checking ([#661](https://github.com/terraform-providers/terraform-provider-vsphere/issues/661))
+
 BUG FIXES:
 
 * `resource/virtual_machine`: Return zero instead of nil for memory allocation
