@@ -32,7 +32,9 @@ func ResourceIDString(d ResourceIDStringer, name string) string {
 func SliceInterfacesToStrings(s []interface{}) []string {
 	var d []string
 	for _, v := range s {
-		d = append(d, v.(string))
+		if o, ok := v.(string); ok {
+			d = append(d, o)
+		}
 	}
 	return d
 }
