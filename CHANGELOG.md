@@ -11,7 +11,7 @@ BUG FIXES:
   and reservation values ([#655](https://github.com/terraform-providers/terraform-provider-vsphere/issues/655))
 * Ignore nil interfaces when converting a slice of interfaces into a slice
   of strings. ([#666](https://github.com/terraform-providers/terraform-provider-vsphere/issues/666))
-* `resource/folder`: Don't use uninitialized TagsClient upon folder creation 
+* `resource/folder`: Don't use uninitialized TagsClient upon folder creation ([#628](https://github.com/terraform-providers/terraform-provider-vsphere/pull/668))
 
 ## 1.9.0 (October 31, 2018)
 
