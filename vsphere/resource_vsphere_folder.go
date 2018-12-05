@@ -169,7 +169,7 @@ func resourceVSphereFolderRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Read tags if we have the ability to do so
-	if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
+	if tagsClient, _ := tagsClientIfDefined(d, meta); tagsClient != nil {
 		if err := readTagsForResource(tagsClient, fo, d); err != nil {
 			return fmt.Errorf("error reading tags: %s", err)
 		}
