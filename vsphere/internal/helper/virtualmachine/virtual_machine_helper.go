@@ -206,6 +206,58 @@ func Properties(vm *object.VirtualMachine) (*mo.VirtualMachine, error) {
 	return &props, nil
 }
 
+// WaitForGuestIP waits for a virtual machine to have an IP address.
+//
+// The timeout is specified in minutes. If zero or a negative value is passed,
+// the waiter returns without error immediately.
+func WaitForGuestIP(client *govmomi.Client, vm *object.VirtualMachine, timeout int) error {
+	if timeout < 1 {
+		log.Printf("[DEBUG] Skipping IP waiter for VM %q", vm.InventoryPath)
+		return nil
+	}
+	log.Printf(
+		"[DEBUG] Waiting for an available IP address on VM %q (timeout = %dm)",
+		vm.InventoryPath,
+		timeout,
+	)
+
+	p := client.PropertyCollector()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*time.Duration(timeout))
+	defer cancel()
+
+	err := property.Wait(ctx, p, vm.Reference(), []string{"guest.ipAddress"}, func(pc []types.PropertyChange) bool {
+		for _, c := range pc {
+			if c.Op != types.PropertyChangeOpAssign {
+				continue
+			}
+
+			if c.Val == nil {
+				continue
+			}
+
+			ip := net.ParseIP(c.Val.(string))
+			if skipIPAddrForWaiter(ip) {
+				continue
+			}
+
+			return true
+		}
+
+		return false
+	})
+
+	if err != nil {
+		// Provide a friendly error message if we timed out waiting for a routable IP.
+		if ctx.Err() == context.DeadlineExceeded {
+			return errors.New("timeout waiting for an available IP address")
+		}
+		return err
+	}
+
+	log.Printf("[DEBUG] IP address is now available for VM %q", vm.InventoryPath)
+	return nil
+}
+
 // WaitForGuestNet waits for a virtual machine to have routable network
 // access. This is denoted as a gateway, and at least one IP address that can
 // reach that gateway. This function supports both IPv4 and IPv6, and returns

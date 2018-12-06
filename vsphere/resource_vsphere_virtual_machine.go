@@ -91,6 +91,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Computed:    true,
 			Description: "The ID of an optional host system to pin the virtual machine to.",
 		},
+		"wait_for_guest_ip_timeout": {
+			Type:        schema.TypeInt,
+			Optional:    true,
+			Default:     0,
+			Description: "The amount of time, in minutes, to wait for an available IP address on this virtual machine. A value less than 1 disables the waiter.",
+		},
 		"wait_for_guest_net_timeout": {
 			Type:        schema.TypeInt,
 			Optional:    true,
@@ -288,6 +294,16 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		if err = resourceVSphereVirtualMachineUpdateLocation(d, meta); err != nil {
 			return err
 		}
+	}
+
+	// Wait for guest IP address if we have been set to wait for one
+	err = virtualmachine.WaitForGuestIP(
+		client,
+		vm,
+		d.Get("wait_for_guest_ip_timeout").(int),
+	)
+	if err != nil {
+		return err
 	}
 
 	// Wait for a routable address if we have been set to wait for one
@@ -541,6 +557,14 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		if vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOn {
 			if err := virtualmachine.PowerOn(vm); err != nil {
 				return fmt.Errorf("error powering on virtual machine: %s", err)
+			}
+			err = virtualmachine.WaitForGuestIP(
+				client,
+				vm,
+				d.Get("wait_for_guest_ip_timeout").(int),
+			)
+			if err != nil {
+				return err
 			}
 			err = virtualmachine.WaitForGuestNet(
 				client,
@@ -874,6 +898,7 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 	d.Set("force_power_off", rs["force_power_off"].Default)
 	d.Set("migrate_wait_timeout", rs["migrate_wait_timeout"].Default)
 	d.Set("shutdown_wait_timeout", rs["shutdown_wait_timeout"].Default)
+	d.Set("wait_for_guest_ip_timeout", rs["wait_for_guest_ip_timeout"].Default)
 	d.Set("wait_for_guest_net_timeout", rs["wait_for_guest_net_timeout"].Default)
 	d.Set("wait_for_guest_net_routable", rs["wait_for_guest_net_routable"].Default)
 

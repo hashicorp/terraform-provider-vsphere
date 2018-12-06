@@ -79,6 +79,14 @@ func buildAndSelectGuestIPs(d *schema.ResourceData, guest types.GuestInfo) error
 	addrs := make([]string, 0)
 	addrs = append(addrs, v4addrs...)
 	addrs = append(addrs, v6addrs...)
+
+	// Fall back to the IpAddress property in GuestInfo directly when the
+	// IpStack and Net properties are not populated. This generally means that
+	// an older version of VMTools is in use.
+	if len(addrs) < 1 && guest.IpAddress != "" {
+		addrs = append(addrs, guest.IpAddress)
+	}
+
 	if len(addrs) < 1 {
 		// No IP addresses were discovered. This more than likely means that the VM
 		// is powered off, or VMware tools is not installed. We can return here,
