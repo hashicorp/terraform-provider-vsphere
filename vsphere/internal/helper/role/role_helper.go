@@ -3,6 +3,7 @@ package role
 import (
 	"log"
 
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
@@ -346,10 +347,10 @@ var PermissionsList = []string{
 	"vService.UpdateDependency",
 }
 
-// ExistsByID check if a role exist using id, and return that role
-func ExistsByID(client *govmomi.Client, id int) (*types.AuthorizationRole, error) {
+// ByID check if a role exist using id, and return that role
+func ByID(client *govmomi.Client, id int) (*types.AuthorizationRole, error) {
 	m := object.NewAuthorizationManager(client.Client)
-	ctx, cancel := context.WithTimeout(context.Background(), 3000000000)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	roles, err := m.RoleList(ctx)
 	if err != nil {
@@ -360,10 +361,10 @@ func ExistsByID(client *govmomi.Client, id int) (*types.AuthorizationRole, error
 	return role, nil
 }
 
-// ExistsByName check if a role exist using name, and return that role
-func ExistsByName(client *govmomi.Client, name string) (*types.AuthorizationRole, error) {
+// ByName check if a role exist using name, and return that role
+func ByName(client *govmomi.Client, name string) (*types.AuthorizationRole, error) {
 	m := object.NewAuthorizationManager(client.Client)
-	ctx, cancel := context.WithTimeout(context.Background(), 3000000000)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	roles, err := m.RoleList(ctx)
 	if err != nil {
@@ -377,7 +378,7 @@ func ExistsByName(client *govmomi.Client, name string) (*types.AuthorizationRole
 // Update Role permissions
 func Update(client *govmomi.Client, roleID int32, name string, perms []string) error {
 	m := object.NewAuthorizationManager(client.Client)
-	ctx, cancel := context.WithTimeout(context.Background(), 3000000000)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 
 	return m.UpdateRole(ctx, roleID, name, perms)
@@ -386,7 +387,7 @@ func Update(client *govmomi.Client, roleID int32, name string, perms []string) e
 // Create Role
 func Create(client *govmomi.Client, name string, perms []string) (int32, error) {
 	m := object.NewAuthorizationManager(client.Client)
-	ctx, cancel := context.WithTimeout(context.Background(), 3000000000)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	roleID, err := m.AddRole(ctx, name, perms)
 	return roleID, err
@@ -395,7 +396,7 @@ func Create(client *govmomi.Client, name string, perms []string) (int32, error) 
 // Remove Role
 func Remove(client *govmomi.Client, roleID int32) error {
 	m := object.NewAuthorizationManager(client.Client)
-	ctx, cancel := context.WithTimeout(context.Background(), 3000000000)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	return m.RemoveRole(ctx, roleID, false)
 }
