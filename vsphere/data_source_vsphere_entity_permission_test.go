@@ -12,6 +12,7 @@ func TestAccDataSourceVSphereEntityPermission_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccDataSourceVSphereEntityPermissionPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -21,7 +22,7 @@ func TestAccDataSourceVSphereEntityPermission_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"data.vsphere_entity_permission.terraform-test-entity-permission-data",
 						"principal",
-						testAccDataSourceVSphereEntityPermissionCheckUser,
+						os.Getenv("VSPHERE_USER"),
 					),
 					resource.TestCheckResourceAttrPair(
 						"data.vsphere_entity_permission.terraform-test-entity-permission-data", "principal",
@@ -32,9 +33,6 @@ func TestAccDataSourceVSphereEntityPermission_basic(t *testing.T) {
 		},
 	})
 }
-
-const testAccDataSourceVSphereEntityPermissionUser = os.Getenv("VSPHERE_USER")
-const testAccDataSourceVSphereEntityPermissionCheckUser = os.Getenv("VSPHERE_CHECKUSER")
 
 func testAccDataSourceVSphereEntityPermissionConfig() string {
 	return fmt.Sprintf(`
@@ -52,6 +50,12 @@ data "vsphere_entity_permission" "terraform-test-entity-permission-data" {
   principal = "${var.vsphere_user}"
 }
 `,
-		testAccDataSourceVSphereEntityPermissionUser,
+		os.Getenv("VSPHERE_USER"),
 	)
+}
+
+func testAccDataSourceVSphereEntityPermissionPreCheck(t *testing.T) {
+	if os.Getenv("VSPHERE_USER") == "" {
+		t.Skip("set VSPHERE_USER to run vsphere_entity_permission acceptance tests")
+	}
 }
