@@ -59,7 +59,11 @@ func resourceVSphereRoleCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceVSphereRoleRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
 	roleVal, err := role.ByName(client, d.Get("name").(string))
+<<<<<<< HEAD
 	if err != nil || roleVal == nil {
+=======
+	if err != nil {
+>>>>>>> Fixed a few issues and added import to both resources
 		d.SetId("")
 		return fmt.Errorf("couldn't find the specified role: %s", err.Error())
 	}
