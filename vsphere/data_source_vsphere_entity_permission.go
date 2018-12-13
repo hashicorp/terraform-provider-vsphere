@@ -3,7 +3,7 @@ package vsphere
 import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
-	permissionsHelper "github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/permissions"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/permissions"
 )
 
 func dataSourceVSphereEntityPermission() *schema.Resource {
@@ -40,7 +40,7 @@ func dataSourceVSphereEntityPermissionRead(d *schema.ResourceData, meta interfac
 	client := meta.(*VSphereClient).vimClient
 	principal := d.Get("principal").(string)
 	folderPath := d.Get("folder_path").(string)
-	permission, err := permissionsHelper.Exists(client, principal, folderPath)
+	permission, err := permissions.GetPermission(client, principal, folderPath)
 	if err != nil {
 		d.SetId("")
 		return err

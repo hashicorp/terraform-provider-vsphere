@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -32,8 +33,8 @@ func TestAccDataSourceVSphereEntityPermission_basic(t *testing.T) {
 	})
 }
 
-const testAccDataSourceVSphereEntityPermissionUser = `VSPHERE.LOCAL\\Administrator`
-const testAccDataSourceVSphereEntityPermissionCheckUser = "VSPHERE.LOCAL\\Administrator"
+const testAccDataSourceVSphereEntityPermissionUser = os.Getenv("VSPHERE_USER")
+const testAccDataSourceVSphereEntityPermissionCheckUser = os.Getenv("VSPHERE_CHECKUSER")
 
 func testAccDataSourceVSphereEntityPermissionConfig() string {
 	return fmt.Sprintf(`
@@ -43,12 +44,12 @@ variable "vsphere_user" {
 
 resource "vsphere_entity_permission" "terraform-test-entity-permission" {
   principal   = "${var.vsphere_user}"
-	role_id     = -1
-	folder_path = "/"
+  role_id     = -1
+  folder_path = "/"
 }
 
 data "vsphere_entity_permission" "terraform-test-entity-permission-data" {
-	principal   = "${var.vsphere_user}"
+  principal = "${var.vsphere_user}"
 }
 `,
 		testAccDataSourceVSphereEntityPermissionUser,

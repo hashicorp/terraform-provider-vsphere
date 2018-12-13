@@ -1,8 +1,9 @@
-package role
+package permissions
 
 import (
 	"errors"
 
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -10,11 +11,11 @@ import (
 	"golang.org/x/net/context"
 )
 
-// Exists check if a permissions exist, and return that permissions
-func Exists(client *govmomi.Client, principal string, folderPath string) (*types.Permission, error) {
+// GetPermission check if a permissions exist, and return that permissions
+func GetPermission(client *govmomi.Client, principal string, folderPath string) (*types.Permission, error) {
 	m := object.NewAuthorizationManager(client.Client)
 	finder := find.NewFinder(client.Client, true)
-	ctx, cancel := context.WithTimeout(context.Background(), 3000000000)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	elements, _ := finder.ManagedObjectList(ctx, folderPath)
 
@@ -40,7 +41,7 @@ func Exists(client *govmomi.Client, principal string, folderPath string) (*types
 func Create(client *govmomi.Client, principal string, folderPath string, roleID int, group bool, propagate bool) error {
 	m := object.NewAuthorizationManager(client.Client)
 	finder := find.NewFinder(client.Client, true)
-	ctx, cancel := context.WithTimeout(context.Background(), 3000000000)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	elements, err := finder.ManagedObjectList(ctx, folderPath)
 
@@ -65,7 +66,7 @@ func Create(client *govmomi.Client, principal string, folderPath string, roleID 
 // Remove Entity Permission
 func Remove(client *govmomi.Client, permission *types.Permission) error {
 	m := object.NewAuthorizationManager(client.Client)
-	ctx, cancel := context.WithTimeout(context.Background(), 3000000000)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 
 	return m.RemoveEntityPermission(ctx, permission.Entity.Reference(), permission.Principal, permission.Group)
