@@ -751,28 +751,29 @@ func expandVirtualMachineConfigSpec(d *schema.ResourceData, client *govmomi.Clie
 	}
 
 	obj := types.VirtualMachineConfigSpec{
-		Name:                d.Get("name").(string),
-		GuestId:             getWithRestart(d, "guest_id").(string),
-		AlternateGuestName:  getWithRestart(d, "alternate_guest_name").(string),
-		Annotation:          d.Get("annotation").(string),
-		Tools:               expandToolsConfigInfo(d),
-		Flags:               expandVirtualMachineFlagInfo(d),
-		NumCPUs:             expandCPUCountConfig(d),
-		NumCoresPerSocket:   int32(getWithRestart(d, "num_cores_per_socket").(int)),
-		MemoryMB:            expandMemorySizeConfig(d),
-		MemoryHotAddEnabled: getBoolWithRestart(d, "memory_hot_add_enabled"),
-		CpuHotAddEnabled:    getBoolWithRestart(d, "cpu_hot_add_enabled"),
-		CpuHotRemoveEnabled: getBoolWithRestart(d, "cpu_hot_remove_enabled"),
-		CpuAllocation:       expandVirtualMachineResourceAllocation(d, "cpu"),
-		MemoryAllocation:    expandVirtualMachineResourceAllocation(d, "memory"),
-		ExtraConfig:         expandExtraConfig(d),
-		SwapPlacement:       getWithRestart(d, "swap_placement_policy").(string),
-		BootOptions:         expandVirtualMachineBootOptions(d, client),
-		VAppConfig:          vappConfig,
-		Firmware:            getWithRestart(d, "firmware").(string),
-		NestedHVEnabled:     getBoolWithRestart(d, "nested_hv_enabled"),
-		VPMCEnabled:         getBoolWithRestart(d, "cpu_performance_counters_enabled"),
-		LatencySensitivity:  expandLatencySensitivity(d),
+		Name:                         d.Get("name").(string),
+		GuestId:                      getWithRestart(d, "guest_id").(string),
+		AlternateGuestName:           getWithRestart(d, "alternate_guest_name").(string),
+		Annotation:                   d.Get("annotation").(string),
+		Tools:                        expandToolsConfigInfo(d),
+		Flags:                        expandVirtualMachineFlagInfo(d),
+		NumCPUs:                      expandCPUCountConfig(d),
+		NumCoresPerSocket:            int32(getWithRestart(d, "num_cores_per_socket").(int)),
+		MemoryMB:                     expandMemorySizeConfig(d),
+		MemoryHotAddEnabled:          getBoolWithRestart(d, "memory_hot_add_enabled"),
+		CpuHotAddEnabled:             getBoolWithRestart(d, "cpu_hot_add_enabled"),
+		CpuHotRemoveEnabled:          getBoolWithRestart(d, "cpu_hot_remove_enabled"),
+		CpuAllocation:                expandVirtualMachineResourceAllocation(d, "cpu"),
+		MemoryAllocation:             expandVirtualMachineResourceAllocation(d, "memory"),
+		MemoryReservationLockedToMax: getMemoryReservationLockedToMax(d),
+		ExtraConfig:                  expandExtraConfig(d),
+		SwapPlacement:                getWithRestart(d, "swap_placement_policy").(string),
+		BootOptions:                  expandVirtualMachineBootOptions(d, client),
+		VAppConfig:                   vappConfig,
+		Firmware:                     getWithRestart(d, "firmware").(string),
+		NestedHVEnabled:              getBoolWithRestart(d, "nested_hv_enabled"),
+		VPMCEnabled:                  getBoolWithRestart(d, "cpu_performance_counters_enabled"),
+		LatencySensitivity:           expandLatencySensitivity(d),
 	}
 
 	return obj, nil
@@ -859,4 +860,18 @@ func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, client *govmo
 
 	// Return the new spec and compare
 	return newSpec, !reflect.DeepEqual(oldSpec, newSpec), nil
+}
+
+// getMemoryReservationLockedToMax determines if the memory_reservation is not
+// set to be equal to memory. If they are not equal, then the memory
+// reservation needs to be unlocked from the maximum. Rather than supporting
+// the locking reservation to max option, we can set memory_reservation to
+// memory in the configuration. Not supporting the option causes problems when
+// cloning from a template that has it enabled. The solution is to set it to
+// false when needed, but leave it alone when the change is not necessary.
+func getMemoryReservationLockedToMax(d *schema.ResourceData) *bool {
+	if d.Get("memory_reservation").(int) != d.Get("memory").(int) {
+		return structure.BoolPtr(false)
+	}
+	return nil
 }
