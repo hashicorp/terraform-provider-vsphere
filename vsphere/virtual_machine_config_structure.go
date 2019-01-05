@@ -291,7 +291,7 @@ func vAppSubresourceSchema() map[string]*schema.Schema {
 			Type:        schema.TypeMap,
 			Optional:    true,
 			Description: "A map of customizable vApp properties and their values. Allows customization of VMs cloned from OVF templates which have customizable vApp properties.",
-			Elem:        schema.TypeString,
+			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
 	}
 }
