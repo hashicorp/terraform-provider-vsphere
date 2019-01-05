@@ -11,6 +11,7 @@ BUG FIXES:
   and reservation values ([#655](https://github.com/terraform-providers/terraform-provider-vsphere/issues/655))
 * Ignore nil interfaces when converting a slice of interfaces into a slice
   of strings. ([#666](https://github.com/terraform-providers/terraform-provider-vsphere/issues/666))
+* `resource/virtual_machine`: Use schema for `properties` elem definition in `vapp` schema. ([#678](https://github.com/terraform-providers/terraform-provider-vsphere/issues/678))
 
 ## 1.9.0 (October 31, 2018)
 
