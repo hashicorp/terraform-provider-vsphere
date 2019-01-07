@@ -18,23 +18,23 @@ func dataSourceVSphereVmfsDisks() *schema.Resource {
 		Read: dataSourceVSphereVmfsDisksRead,
 
 		Schema: map[string]*schema.Schema{
-			"host_system_id": &schema.Schema{
+			"host_system_id": {
 				Type:        schema.TypeString,
 				Description: "The managed object ID of the host to search for disks on.",
 				Required:    true,
 			},
-			"rescan": &schema.Schema{
+			"rescan": {
 				Type:        schema.TypeBool,
 				Description: "Rescan the system for disks before querying. This may lengthen the time it takes to gather information.",
 				Optional:    true,
 			},
-			"filter": &schema.Schema{
+			"filter": {
 				Type:         schema.TypeString,
 				Description:  "A regular expression to filter the disks against. Only disks with canonical names that match will be included.",
 				Optional:     true,
 				ValidateFunc: validation.ValidateRegexp,
 			},
-			"disks": &schema.Schema{
+			"disks": {
 				Type:        schema.TypeList,
 				Description: "The names of the disks discovered by the search.",
 				Computed:    true,

@@ -25,7 +25,7 @@ func schemaHostNasVolumeSpec() map[string]*schema.Schema {
 		// All CIFS attributes (we currently do not support CIFS as it's not
 		// available in the vSphere client and there is not much data about how to
 		// get it working)
-		"access_mode": &schema.Schema{
+		"access_mode": {
 			Type:        schema.TypeString,
 			Default:     hostNasVolumeAccessModeReadWrite,
 			Description: "Access mode for the mount point. Can be one of readOnly or readWrite.",
@@ -39,7 +39,7 @@ func schemaHostNasVolumeSpec() map[string]*schema.Schema {
 				false,
 			),
 		},
-		"remote_hosts": &schema.Schema{
+		"remote_hosts": {
 			Type:        schema.TypeList,
 			Description: "The hostnames or IP addresses of the remote server or servers. Only one element should be present for NFS v3 but multiple can be present for NFS v4.1.",
 			Elem:        &schema.Schema{Type: schema.TypeString},
@@ -47,13 +47,13 @@ func schemaHostNasVolumeSpec() map[string]*schema.Schema {
 			MinItems:    1,
 			Required:    true,
 		},
-		"remote_path": &schema.Schema{
+		"remote_path": {
 			Type:        schema.TypeString,
 			Description: "The remote path of the mount point.",
 			ForceNew:    true,
 			Required:    true,
 		},
-		"security_type": &schema.Schema{
+		"security_type": {
 			Type:        schema.TypeString,
 			Description: "The security type to use.",
 			ForceNew:    true,
@@ -67,7 +67,7 @@ func schemaHostNasVolumeSpec() map[string]*schema.Schema {
 				false,
 			),
 		},
-		"type": &schema.Schema{
+		"type": {
 			Type:        schema.TypeString,
 			Default:     "NFS",
 			Description: "The type of NAS volume. Can be one of NFS (to denote v3) or NFS41 (to denote NFS v4.1).",
@@ -81,7 +81,7 @@ func schemaHostNasVolumeSpec() map[string]*schema.Schema {
 				false,
 			),
 		},
-		"protocol_endpoint": &schema.Schema{
+		"protocol_endpoint": {
 			Type:        schema.TypeString,
 			Description: "Indicates that this NAS volume is a protocol endpoint. This field is only populated if the host supports virtual datastores.",
 			Computed:    true,

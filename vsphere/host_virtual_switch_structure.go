@@ -29,7 +29,7 @@ var linkDiscoveryProtocolConfigProtocolAllowedValues = []string{
 func schemaHostVirtualSwitchBondBridge() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		// HostVirtualSwitchBeaconConfig
-		"beacon_interval": &schema.Schema{
+		"beacon_interval": {
 			Type:         schema.TypeInt,
 			Optional:     true,
 			Description:  "Determines how often, in seconds, a beacon should be sent to probe for the validity of a link.",
@@ -38,14 +38,14 @@ func schemaHostVirtualSwitchBondBridge() map[string]*schema.Schema {
 		},
 
 		// LinkDiscoveryProtocolConfig
-		"link_discovery_operation": &schema.Schema{
+		"link_discovery_operation": {
 			Type:         schema.TypeString,
 			Optional:     true,
 			Description:  "Whether to advertise or listen for link discovery. Valid values are advertise, both, listen, and none.",
 			Default:      string(types.LinkDiscoveryProtocolConfigOperationTypeListen),
 			ValidateFunc: validation.StringInSlice(linkDiscoveryProtocolConfigOperationAllowedValues, false),
 		},
-		"link_discovery_protocol": &schema.Schema{
+		"link_discovery_protocol": {
 			Type:         schema.TypeString,
 			Optional:     true,
 			Description:  "The discovery protocol type. Valid values are cdp and lldp.",
@@ -54,7 +54,7 @@ func schemaHostVirtualSwitchBondBridge() map[string]*schema.Schema {
 		},
 
 		// HostVirtualSwitchBondBridge
-		"network_adapters": &schema.Schema{
+		"network_adapters": {
 			Type:        schema.TypeList,
 			Required:    true,
 			Description: "The list of network adapters to bind to this virtual switch.",
@@ -128,14 +128,14 @@ func flattenHostVirtualSwitchBondBridge(d *schema.ResourceData, obj *types.HostV
 func schemaHostVirtualSwitchSpec() map[string]*schema.Schema {
 	s := map[string]*schema.Schema{
 		// HostVirtualSwitchSpec
-		"mtu": &schema.Schema{
+		"mtu": {
 			Type:         schema.TypeInt,
 			Optional:     true,
 			Description:  "The maximum transmission unit (MTU) of the virtual switch in bytes.",
 			Default:      1500,
 			ValidateFunc: validation.IntBetween(1, 9000),
 		},
-		"number_of_ports": &schema.Schema{
+		"number_of_ports": {
 			Type:         schema.TypeInt,
 			Optional:     true,
 			Description:  "The number of ports that this virtual switch is configured to use.",

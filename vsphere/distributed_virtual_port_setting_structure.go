@@ -117,19 +117,19 @@ func schemaVMwareDVSPortSetting() map[string]*schema.Schema {
 		},
 
 		// DVSSecurityPolicy
-		"allow_promiscuous": &schema.Schema{
+		"allow_promiscuous": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Computed:    true,
 			Description: "Enable promiscuous mode on the network. This flag indicates whether or not all traffic is seen on a given port.",
 		},
-		"allow_forged_transmits": &schema.Schema{
+		"allow_forged_transmits": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Computed:    true,
 			Description: "Controls whether or not the virtual network adapter is allowed to send network traffic with a different MAC address than that of its own.",
 		},
-		"allow_mac_changes": &schema.Schema{
+		"allow_mac_changes": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Computed:    true,

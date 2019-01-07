@@ -33,30 +33,30 @@ func resourceVSphereLicense() *schema.Resource {
 		Delete: resourceVSphereLicenseDelete,
 
 		Schema: map[string]*schema.Schema{
-			"license_key": &schema.Schema{
+			"license_key": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"labels": &schema.Schema{
+			"labels": {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
 
 			// computed properties returned by the API
-			"edition_key": &schema.Schema{
+			"edition_key": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"total": &schema.Schema{
+			"total": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"used": &schema.Schema{
+			"used": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},

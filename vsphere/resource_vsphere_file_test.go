@@ -6,11 +6,11 @@ import (
 	"os"
 	"testing"
 
+	"context"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
-	"golang.org/x/net/context"
 )
 
 // Basic file creation (upload to vSphere)

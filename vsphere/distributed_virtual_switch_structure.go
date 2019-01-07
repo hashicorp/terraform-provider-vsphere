@@ -136,14 +136,14 @@ func schemaVMwareDVSConfigSpec() map[string]*schema.Schema {
 		},
 
 		// LinkDiscoveryProtocolConfig
-		"link_discovery_operation": &schema.Schema{
+		"link_discovery_operation": {
 			Type:         schema.TypeString,
 			Optional:     true,
 			Description:  "Whether to advertise or listen for link discovery. Valid values are advertise, both, listen, and none.",
 			Default:      string(types.LinkDiscoveryProtocolConfigOperationTypeListen),
 			ValidateFunc: validation.StringInSlice(linkDiscoveryProtocolConfigOperationAllowedValues, false),
 		},
-		"link_discovery_protocol": &schema.Schema{
+		"link_discovery_protocol": {
 			Type:         schema.TypeString,
 			Optional:     true,
 			Description:  "The discovery protocol type. Valid values are cdp and lldp.",
@@ -152,7 +152,7 @@ func schemaVMwareDVSConfigSpec() map[string]*schema.Schema {
 		},
 
 		// DVSNameArrayUplinkPortPolicy
-		"uplinks": &schema.Schema{
+		"uplinks": {
 			Type:        schema.TypeList,
 			Optional:    true,
 			Computed:    true,
@@ -607,7 +607,7 @@ func flattenVMwareDVSConfigInfo(d *schema.ResourceData, obj *types.VMwareDVSConf
 func schemaDVSCreateSpec() map[string]*schema.Schema {
 	s := map[string]*schema.Schema{
 		// DistributedVirtualSwitchProductSpec
-		"version": &schema.Schema{
+		"version": {
 			Type:         schema.TypeString,
 			Computed:     true,
 			Description:  "The version of this virtual switch. Allowed versions are 6.5.0, 6.0.0, 5.5.0, 5.1.0, and 5.0.0.",

@@ -21,37 +21,37 @@ func schemaDatastoreSummary() map[string]*schema.Schema {
 		// resource schema)
 		// * Type (redundant attribute as the datastore type will be represented by
 		// the resource)
-		"accessible": &schema.Schema{
+		"accessible": {
 			Type:        schema.TypeBool,
 			Description: "The connectivity status of the datastore. If this is false, some other computed attributes may be out of date.",
 			Computed:    true,
 		},
-		"capacity": &schema.Schema{
+		"capacity": {
 			Type:        schema.TypeInt,
 			Description: "Maximum capacity of the datastore, in MB.",
 			Computed:    true,
 		},
-		"free_space": &schema.Schema{
+		"free_space": {
 			Type:        schema.TypeInt,
 			Description: "Available space of this datastore, in MB.",
 			Computed:    true,
 		},
-		"maintenance_mode": &schema.Schema{
+		"maintenance_mode": {
 			Type:        schema.TypeString,
 			Description: "The current maintenance mode state of the datastore.",
 			Computed:    true,
 		},
-		"multiple_host_access": &schema.Schema{
+		"multiple_host_access": {
 			Type:        schema.TypeBool,
 			Description: "If true, more than one host in the datacenter has been configured with access to the datastore.",
 			Computed:    true,
 		},
-		"uncommitted_space": &schema.Schema{
+		"uncommitted_space": {
 			Type:        schema.TypeInt,
 			Description: "Total additional storage space, in MB, potentially used by all virtual machines on this datastore.",
 			Computed:    true,
 		},
-		"url": &schema.Schema{
+		"url": {
 			Type:        schema.TypeString,
 			Description: "The unique locator for the datastore.",
 			Computed:    true,
