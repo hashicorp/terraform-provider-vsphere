@@ -4,6 +4,8 @@ IMPROVEMENTS:
 
 * `resource/virtual_machine`: Increase logging after old config expansion during
   diff checking ([#661](https://github.com/terraform-providers/terraform-provider-vsphere/issues/661))
+* `resource/virtual_machine`: Unlock `memory_reservation` from maximum when 
+  `memory_reservation` is not equal to `memory`. ([#680](https://github.com/terraform-providers/terraform-provider-vsphere/issues/680))
 
 BUG FIXES:
 
