@@ -11,7 +11,7 @@ func dataSourceVSphereDatacenter() *schema.Resource {
 		Read: dataSourceVSphereDatacenterRead,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type: schema.TypeString,
 				Description: "The name of the datacenter. This can be a name or path.	Can be omitted if there is only one datacenter in your inventory.",
 				Optional: true,

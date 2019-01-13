@@ -19,7 +19,7 @@ func TestAccResourceVSphereVirtualMachineSnapshot_basic(t *testing.T) {
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccResourceVSphereVirtualMachineSnapshotConfig(true),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVirtualMachineSnapshotExists("vsphere_virtual_machine_snapshot.snapshot"),
@@ -27,7 +27,7 @@ func TestAccResourceVSphereVirtualMachineSnapshot_basic(t *testing.T) {
 						"vsphere_virtual_machine_snapshot.snapshot", "snapshot_name", "terraform-test-snapshot"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccResourceVSphereVirtualMachineSnapshotConfig(false),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVirtualMachineHasNoSnapshots("vsphere_virtual_machine.vm"),

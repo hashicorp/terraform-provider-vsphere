@@ -11,23 +11,23 @@ import (
 
 func resourceVSphereHostPortGroup() *schema.Resource {
 	s := map[string]*schema.Schema{
-		"host_system_id": &schema.Schema{
+		"host_system_id": {
 			Type:        schema.TypeString,
 			Description: "The managed object ID of the host to set the virtual switch up on.",
 			Required:    true,
 			ForceNew:    true,
 		},
-		"computed_policy": &schema.Schema{
+		"computed_policy": {
 			Type:        schema.TypeMap,
 			Description: "The effective network policy after inheritance. Note that this will look similar to, but is not the same, as the policy attributes defined in this resource.",
 			Computed:    true,
 		},
-		"key": &schema.Schema{
+		"key": {
 			Type:        schema.TypeString,
 			Description: "The linkable identifier for this port group.",
 			Computed:    true,
 		},
-		"ports": &schema.Schema{
+		"ports": {
 			Type:        schema.TypeSet,
 			Description: "The ports that currently exist and are used on this port group.",
 			Computed:    true,

@@ -8,12 +8,12 @@ import (
 	"errors"
 	"path"
 
+	"context"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
-	"golang.org/x/net/context"
 )
 
 type virtualDisk struct {
@@ -35,7 +35,7 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			// Size in GB
-			"size": &schema.Schema{
+			"size": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true, //TODO Can this be optional (resize)?
@@ -46,19 +46,19 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 			// * Add extra lifecycles (move, rename, etc). May not be possible
 			// without breaking other resources though.
 			// * Add validation (make sure it ends in .vmdk)
-			"vmdk_path": &schema.Schema{
+			"vmdk_path": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"datastore": &schema.Schema{
+			"datastore": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -73,7 +73,7 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 				},
 			},
 
-			"adapter_type": &schema.Schema{
+			"adapter_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -90,13 +90,13 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 				},
 			},
 
-			"datacenter": &schema.Schema{
+			"datacenter": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"create_directories": &schema.Schema{
+			"create_directories": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,

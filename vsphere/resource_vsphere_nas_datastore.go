@@ -24,21 +24,21 @@ func resourceVSphereNasDatastore() *schema.Resource {
 			Description: "The name of the datastore.",
 			Required:    true,
 		},
-		"host_system_ids": &schema.Schema{
+		"host_system_ids": {
 			Type:        schema.TypeSet,
 			Description: "The managed object IDs of the hosts to mount the datastore on.",
 			Elem:        &schema.Schema{Type: schema.TypeString},
 			MinItems:    1,
 			Required:    true,
 		},
-		"folder": &schema.Schema{
+		"folder": {
 			Type:          schema.TypeString,
 			Description:   "The path to the datastore folder to put the datastore in.",
 			Optional:      true,
 			ConflictsWith: []string{"datastore_cluster_id"},
 			StateFunc:     folder.NormalizePath,
 		},
-		"datastore_cluster_id": &schema.Schema{
+		"datastore_cluster_id": {
 			Type:          schema.TypeString,
 			Description:   "The managed object ID of the datastore cluster to place the datastore in.",
 			Optional:      true,

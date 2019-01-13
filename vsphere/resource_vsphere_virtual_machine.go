@@ -197,7 +197,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Computed:    true,
 			Description: "A flag internal to Terraform that indicates that this resource was either imported or came from a earlier major version of this resource. Reset after the first post-import or post-upgrade apply.",
 		},
-		"moid": &schema.Schema{
+		"moid": {
 			Type:        schema.TypeString,
 			Computed:    true,
 			Description: "The machine object ID from VMWare",

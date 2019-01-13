@@ -3,12 +3,12 @@ package vsphere
 import (
 	"fmt"
 
+	"context"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
-	"golang.org/x/net/context"
 )
 
 // getDatacenter gets the higher-level datacenter object for the datacenter

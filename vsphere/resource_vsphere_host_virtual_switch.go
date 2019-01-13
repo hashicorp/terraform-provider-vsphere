@@ -11,13 +11,13 @@ import (
 
 func resourceVSphereHostVirtualSwitch() *schema.Resource {
 	s := map[string]*schema.Schema{
-		"name": &schema.Schema{
+		"name": {
 			Type:        schema.TypeString,
 			Description: "The name of the virtual switch.",
 			Required:    true,
 			ForceNew:    true,
 		},
-		"host_system_id": &schema.Schema{
+		"host_system_id": {
 			Type:        schema.TypeString,
 			Description: "The managed object ID of the host to set the virtual switch up on.",
 			Required:    true,

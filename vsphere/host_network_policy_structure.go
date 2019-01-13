@@ -26,76 +26,76 @@ var hostNetworkPolicyNicTeamingPolicyAllowedValues = []string{
 func schemaHostNetworkPolicy() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		// HostNicTeamingPolicy/HostNicFailureCriteria
-		"check_beacon": &schema.Schema{
+		"check_beacon": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "Enable beacon probing. Requires that the vSwitch has been configured to use a beacon. If disabled, link status is used only.",
 		},
 
 		// HostNicTeamingPolicy/HostNicOrderPolicy
-		"active_nics": &schema.Schema{
+		"active_nics": {
 			Type:        schema.TypeList,
 			Description: "List of active network adapters used for load balancing.",
 			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
-		"standby_nics": &schema.Schema{
+		"standby_nics": {
 			Type:        schema.TypeList,
 			Description: "List of standby network adapters used for failover.",
 			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
 
 		// HostNicTeamingPolicy
-		"teaming_policy": &schema.Schema{
+		"teaming_policy": {
 			Type:         schema.TypeString,
 			Optional:     true,
 			Description:  "The network adapter teaming policy. Can be one of loadbalance_ip, loadbalance_srcmac, loadbalance_srcid, or failover_explicit.",
 			ValidateFunc: validation.StringInSlice(hostNetworkPolicyNicTeamingPolicyAllowedValues, false),
 		},
-		"notify_switches": &schema.Schema{
+		"notify_switches": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "If true, the teaming policy will notify the broadcast network of a NIC failover, triggering cache updates.",
 		},
-		"failback": &schema.Schema{
+		"failback": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "If true, the teaming policy will re-activate failed interfaces higher in precedence when they come back up.",
 		},
 
 		// HostNetworkSecurityPolicy
-		"allow_promiscuous": &schema.Schema{
+		"allow_promiscuous": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "Enable promiscuous mode on the network. This flag indicates whether or not all traffic is seen on a given port.",
 		},
-		"allow_forged_transmits": &schema.Schema{
+		"allow_forged_transmits": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "Controls whether or not the virtual network adapter is allowed to send network traffic with a different MAC address than that of its own.",
 		},
-		"allow_mac_changes": &schema.Schema{
+		"allow_mac_changes": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "Controls whether or not the Media Access Control (MAC) address can be changed.",
 		},
 
 		// HostNetworkTrafficShapingPolicy
-		"shaping_average_bandwidth": &schema.Schema{
+		"shaping_average_bandwidth": {
 			Type:        schema.TypeInt,
 			Optional:    true,
 			Description: "The average bandwidth in bits per second if traffic shaping is enabled.",
 		},
-		"shaping_burst_size": &schema.Schema{
+		"shaping_burst_size": {
 			Type:        schema.TypeInt,
 			Optional:    true,
 			Description: "The maximum burst size allowed in bytes if traffic shaping is enabled.",
 		},
-		"shaping_enabled": &schema.Schema{
+		"shaping_enabled": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "Enable traffic shaping on this virtual switch or port group.",
 		},
-		"shaping_peak_bandwidth": &schema.Schema{
+		"shaping_peak_bandwidth": {
 			Type:        schema.TypeInt,
 			Optional:    true,
 			Description: "The peak bandwidth during bursts in bits per second if traffic shaping is enabled.",

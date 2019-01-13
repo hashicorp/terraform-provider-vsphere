@@ -14,17 +14,17 @@ func dataSourceVSphereDistributedVirtualSwitch() *schema.Resource {
 		Read: dataSourceVSphereDistributedVirtualSwitchRead,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:        schema.TypeString,
 				Description: "The name of the distributed virtual switch. This can be a name or path.",
 				Required:    true,
 			},
-			"datacenter_id": &schema.Schema{
+			"datacenter_id": {
 				Type:        schema.TypeString,
 				Description: "The managed object ID of the datacenter the DVS is in. This is required if the supplied path is not an absolute path containing a datacenter and there are multiple datacenters in your infrastructure.",
 				Optional:    true,
 			},
-			"uplinks": &schema.Schema{
+			"uplinks": {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Description: "The uplink ports on this DVS.",

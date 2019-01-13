@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
+	"context"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/vmware/govmomi/find"
-	"golang.org/x/net/context"
 )
 
 func TestAccResourceVSphereVirtualDisk_basic(t *testing.T) {

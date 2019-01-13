@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"context"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
@@ -20,7 +21,6 @@ import (
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
 	"github.com/vmware/vic/pkg/vsphere/tags"
-	"golang.org/x/net/context"
 )
 
 // VSphereClient is the client connection manager for the vSphere provider. It

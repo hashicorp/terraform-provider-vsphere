@@ -40,31 +40,31 @@ You will need to remove this datastore manually before trying again.
 
 func resourceVSphereVmfsDatastore() *schema.Resource {
 	s := map[string]*schema.Schema{
-		"name": &schema.Schema{
+		"name": {
 			Type:        schema.TypeString,
 			Description: "The name of the datastore.",
 			Required:    true,
 		},
-		"host_system_id": &schema.Schema{
+		"host_system_id": {
 			Type:        schema.TypeString,
 			Description: "The managed object ID of the host to set up the datastore on.",
 			ForceNew:    true,
 			Required:    true,
 		},
-		"folder": &schema.Schema{
+		"folder": {
 			Type:          schema.TypeString,
 			Description:   "The path to the datastore folder to put the datastore in.",
 			Optional:      true,
 			ConflictsWith: []string{"datastore_cluster_id"},
 			StateFunc:     folder.NormalizePath,
 		},
-		"datastore_cluster_id": &schema.Schema{
+		"datastore_cluster_id": {
 			Type:          schema.TypeString,
 			Description:   "The managed object ID of the datastore cluster to place the datastore in.",
 			Optional:      true,
 			ConflictsWith: []string{"folder"},
 		},
-		"disks": &schema.Schema{
+		"disks": {
 			Type:        schema.TypeList,
 			Description: "The disks to add to the datastore.",
 			Required:    true,

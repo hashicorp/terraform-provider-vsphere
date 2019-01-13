@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"context"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
@@ -12,7 +13,6 @@ import (
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/types"
-	"golang.org/x/net/context"
 )
 
 func resourceVSphereDatacenter() *schema.Resource {
@@ -23,17 +23,17 @@ func resourceVSphereDatacenter() *schema.Resource {
 		Delete: resourceVSphereDatacenterDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"folder": &schema.Schema{
+			"folder": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"moid": &schema.Schema{
+			"moid": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				ForceNew:    true,
