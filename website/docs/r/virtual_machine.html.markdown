@@ -1045,11 +1045,11 @@ resource "vsphere_virtual_machine" "vm" {
 The options are:
 
 * `dns_server_list` - (Optional) Network interface-specific DNS server settings
-  for Windows operating systems. Ignored on Linux and possibly other opearating
+  for Windows operating systems. Ignored on Linux and possibly other operating
   systems - for those systems, please see the [global DNS
   settings](#global-dns-settings) section.
 * `dns_domain` - (Optional) Network interface-specific DNS search domain for
-  Windows operating systems. Ignored on Linux and possibly other opearating
+  Windows operating systems. Ignored on Linux and possibly other operating
   systems - for those systems, please see the [global DNS
   settings](#global-dns-settings) section.
 * `ipv4_address` - (Optional) The IPv4 address assigned to this network adapter. If left
