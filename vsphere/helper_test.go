@@ -19,7 +19,9 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/permissions"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/role"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
@@ -599,6 +601,24 @@ func testAccResourceVSphereDatastoreCheckTags(dsResAddr, tagResName string) reso
 		}
 		return testObjectHasTags(s, tagsClient, ds, tagResName)
 	}
+}
+
+// testGetRole is a convenience method to fetch a role by resource name.
+func testGetRole(s *terraform.State, resourceName string) (*types.AuthorizationRole, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_role.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+	return role.ByID(tVars.client, tVars.resourceID)
+}
+
+// testGetEntityPermission is a convenience method to fetch an entity permission by resource name.
+func testGetEntityPermission(s *terraform.State, resourceName string) (*types.Permission, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_entity_permission.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+	return permission.ByID(tVars.client, tVars.resourceID)
 }
 
 // testGetFolder is a convenience method to fetch a folder by resource name.

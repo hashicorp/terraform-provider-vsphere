@@ -44,7 +44,7 @@ func dataSourceVSphereRoleRead(d *schema.ResourceData, meta interface{}) error {
 	if name == "" && roleID == 0 {
 		return errors.New("Atleast one of either role_id or name must set")
 	} else if name == "" {
-		role, _ = roleHelper.ByID(client, roleID)
+		role, _ = roleHelper.ByID(client, fmt.Sprint(roleID))
 	} else {
 		role, _ = roleHelper.ByName(client, name)
 	}

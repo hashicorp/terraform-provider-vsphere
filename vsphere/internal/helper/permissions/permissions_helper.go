@@ -1,7 +1,9 @@
-package permissions
+package permission
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/vmware/govmomi"
@@ -11,8 +13,12 @@ import (
 	"golang.org/x/net/context"
 )
 
-// GetPermission check if a permissions exist, and return that permissions
-func GetPermission(client *govmomi.Client, principal string, folderPath string) (*types.Permission, error) {
+// ByID check if a permissions exist, and return that permissions
+func ByID(client *govmomi.Client, id string) (*types.Permission, error) {
+	principal, folderPath, err := SplitID(id)
+	if err != nil {
+		return nil, err
+	}
 	m := object.NewAuthorizationManager(client.Client)
 	finder := find.NewFinder(client.Client, true)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
@@ -70,4 +76,18 @@ func Remove(client *govmomi.Client, permission *types.Permission) error {
 	defer cancel()
 
 	return m.RemoveEntityPermission(ctx, permission.Entity.Reference(), permission.Principal, permission.Group)
+}
+
+// SplitID takes the permission's ID and splits it into the folder and principal.
+func SplitID(id string) (string, string, error) {
+	s := strings.Split(id, ":")
+	if len(s) != 2 {
+		return "", "", fmt.Errorf("role ID does not contain principal and folder")
+	}
+	return s[0], s[1], nil
+}
+
+// ConcatID takes a permission's folder and principal and generates an ID.
+func ConcatID(folder, principal string) string {
+	return fmt.Sprintf("%s:%s", folder, principal)
 }

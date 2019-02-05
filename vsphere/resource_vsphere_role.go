@@ -59,14 +59,9 @@ func resourceVSphereRoleCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceVSphereRoleRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
 	roleVal, err := role.ByName(client, d.Get("name").(string))
-	if err != nil {
+	if err != nil || roleVal == nil {
 		d.SetId("")
-		return errors.New("couldn't find the specified role: " + err.Error())
-	}
-
-	if roleVal == nil {
-		d.SetId("")
-		return errors.New("couldn't find the specified role")
+		return fmt.Errorf("couldn't find the specified role: %s", err.Error())
 	}
 
 	d.Set("name", roleVal.Name)
@@ -83,7 +78,10 @@ func resourceVSphereRoleRead(d *schema.ResourceData, meta interface{}) error {
 			permissions = append(permissions, v)
 		}
 	}
-	d.Set("permissions", permissions)
+	err = d.Set("permissions", permissions)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

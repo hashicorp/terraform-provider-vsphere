@@ -2,6 +2,7 @@ package role
 
 import (
 	"log"
+	"strconv"
 
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/vmware/govmomi"
@@ -348,7 +349,7 @@ var PermissionsList = []string{
 }
 
 // ByID check if a role exist using id, and return that role
-func ByID(client *govmomi.Client, id int) (*types.AuthorizationRole, error) {
+func ByID(client *govmomi.Client, id string) (*types.AuthorizationRole, error) {
 	m := object.NewAuthorizationManager(client.Client)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
@@ -357,7 +358,11 @@ func ByID(client *govmomi.Client, id int) (*types.AuthorizationRole, error) {
 		log.Printf("Role Listing error: %s", err)
 		return nil, err
 	}
-	role := roles.ById(int32(id))
+	nid, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, err
+	}
+	role := roles.ById(int32(nid))
 	return role, nil
 }
 

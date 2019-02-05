@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/permissions"
 )
@@ -38,17 +39,19 @@ func dataSourceVSphereEntityPermission() *schema.Resource {
 
 func dataSourceVSphereEntityPermissionRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	principal := d.Get("principal").(string)
-	folderPath := d.Get("folder_path").(string)
-	permission, err := permissions.GetPermission(client, principal, folderPath)
+	p, err := permission.ByID(client, d.Id())
 	if err != nil {
 		d.SetId("")
 		return err
 	}
-
-	d.Set("propagate", permission.Propagate)
-	d.UnsafeSetFieldRaw("role_id", fmt.Sprint(permission.RoleId))
-	d.Set("group", permission.Group)
-	d.SetId(permission.Principal)
+	_, f, err := permission.SplitID(d.Id())
+	if err != nil {
+		return err
+	}
+	d.Set("propagate", p.Propagate)
+	d.Set("role_id", fmt.Sprint(p.RoleId))
+	d.Set("folder_path", f)
+	d.Set("group", p.Group)
+	d.SetId(p.Principal)
 	return nil
 }

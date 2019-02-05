@@ -2,9 +2,9 @@ package vsphere
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/permissions"
-	"strings"
 )
 
 func resourceVSphereEntityPermission() *schema.Resource {
@@ -49,18 +49,21 @@ func resourceVSphereEntityPermission() *schema.Resource {
 
 func resourceVSphereEntityPermissionRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	principal := d.Get("principal").(string)
-	folderPath := d.Get("folder_path").(string)
-	permission, err := permissions.GetPermission(client, principal, folderPath)
+	principal, folderPath, err := permission.SplitID(d.Id())
+	if err != nil {
+		return err
+	}
+	p, err := permission.ByID(client, d.Id())
 	if err != nil {
 		d.SetId("")
 		return err
 	}
 
-	d.Set("propagate", permission.Propagate)
-	d.UnsafeSetFieldRaw("role_id", fmt.Sprint(permission.RoleId))
-	d.Set("group", permission.Group)
-	d.SetId(permission.Principal)
+	d.Set("propagate", p.Propagate)
+	d.Set("role_id", fmt.Sprint(p.RoleId))
+	d.Set("group", p.Group)
+	d.Set("principal", principal)
+	d.Set("folder_path", folderPath)
 	return nil
 }
 
@@ -71,25 +74,24 @@ func resourceVSphereEntityPermissionCreate(d *schema.ResourceData, meta interfac
 	group := d.Get("group").(bool)
 	roleID := d.Get("role_id").(int)
 	propagate := d.Get("propagate").(bool)
-	err := permissions.Create(client, principal, folderPath, roleID, group, propagate)
+	err := permission.Create(client, principal, folderPath, roleID, group, propagate)
 	if err != nil {
 		d.SetId("")
 		return err
 	}
+	d.SetId(permission.ConcatID(folderPath, principal))
 	return resourceVSphereEntityPermissionRead(d, meta)
 }
 
 func resourceVSphereEntityPermissionDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	principal := d.Get("principal").(string)
-	folderPath := d.Get("folder_path").(string)
-	permission, err := permissions.GetPermission(client, principal, folderPath)
+	p, err := permission.ByID(client, d.Id())
 	if err != nil {
 		d.SetId("")
 		return err
 	}
 
-	err = permissions.Remove(client, permission)
+	err = permission.Remove(client, p)
 	if err != nil {
 		return err
 	}
@@ -98,27 +100,5 @@ func resourceVSphereEntityPermissionDelete(d *schema.ResourceData, meta interfac
 }
 
 func resourceVSphereEntityPermissionImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	client := meta.(*VSphereClient).vimClient
-	name := d.Id()
-	if name == "" {
-		return nil, fmt.Errorf("entity permission name cannot be empty")
-	}
-
-	tempArr := strings.Split(name, "/")
-	principal := tempArr[len(tempArr)-1]
-	folderPath := "/" + strings.Join(tempArr[:len(tempArr)-1], "/")
-	permission, err := permissions.GetPermission(client, principal, folderPath)
-
-	if err != nil {
-		return nil, err
-	}
-
-	d.Set("folder_path", folderPath)
-	d.Set("principal", principal)
-	d.Set("propagate", permission.Propagate)
-	d.UnsafeSetFieldRaw("role_id", fmt.Sprint(permission.RoleId))
-	d.Set("group", permission.Group)
-	d.SetId(permission.Principal)
-
 	return []*schema.ResourceData{d}, nil
 }
