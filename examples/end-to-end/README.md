@@ -8,7 +8,7 @@ vSphere Provider][ref-tf-vsphere] at the time of the 1.3.0 release.
 This example performs the following:
 
 * Sets up an NFS datastore across a number of hosts. This uses the
-  [`vsphere_nas_datstore` resource][ref-tf-vsphere-nas-datastore].
+  [`vsphere_nas_datastore` resource][ref-tf-vsphere-nas-datastore].
 * Sets up a vSphere distributed virtual switch (DVS) across a number of hosts,
   using the [`vsphere_distributed_virtual_switch` resource][ref-tf-vsphere-dvs].
 * Creates a port group on the created DVS with a configured VLAN, using the
