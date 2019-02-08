@@ -109,6 +109,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Default:     true,
 			Description: "Controls whether or not the guest network waiter waits for a routable address. When false, the waiter does not wait for a default gateway, nor are IP addresses checked against any discovered default gateways as part of its success criteria.",
 		},
+		"ignored_guest_ips": {
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "List of IP addresses to ignore while waiting for an IP",
+			Elem:        &schema.Schema{Type: schema.TypeString},
+		},
 		"shutdown_wait_timeout": {
 			Type:         schema.TypeInt,
 			Optional:     true,
@@ -301,6 +307,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		client,
 		vm,
 		d.Get("wait_for_guest_ip_timeout").(int),
+		d.Get("ignored_guest_ips").([]interface{}),
 	)
 	if err != nil {
 		return err
@@ -312,6 +319,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		vm,
 		d.Get("wait_for_guest_net_routable").(bool),
 		d.Get("wait_for_guest_net_timeout").(int),
+		d.Get("ignored_guest_ips").([]interface{}),
 	)
 	if err != nil {
 		return err
@@ -562,6 +570,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 				client,
 				vm,
 				d.Get("wait_for_guest_ip_timeout").(int),
+				d.Get("ignored_guest_ips").([]interface{}),
 			)
 			if err != nil {
 				return err
@@ -571,6 +580,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 				vm,
 				d.Get("wait_for_guest_net_routable").(bool),
 				d.Get("wait_for_guest_net_timeout").(int),
+				d.Get("ignored_guest_ips").([]interface{}),
 			)
 			if err != nil {
 				return err
@@ -901,6 +911,7 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 	d.Set("wait_for_guest_ip_timeout", rs["wait_for_guest_ip_timeout"].Default)
 	d.Set("wait_for_guest_net_timeout", rs["wait_for_guest_net_timeout"].Default)
 	d.Set("wait_for_guest_net_routable", rs["wait_for_guest_net_routable"].Default)
+	d.Set("ignored_guest_ips", []string{})
 
 	log.Printf("[DEBUG] %s: Import complete, resource is ready for read", resourceVSphereVirtualMachineIDString(d))
 	return []*schema.ResourceData{d}, nil
