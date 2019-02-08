@@ -91,6 +91,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Computed:    true,
 			Description: "The ID of an optional host system to pin the virtual machine to.",
 		},
+		"wait_for_guest_ip_timeout": {
+			Type:        schema.TypeInt,
+			Optional:    true,
+			Default:     0,
+			Description: "The amount of time, in minutes, to wait for an available IP address on this virtual machine. A value less than 1 disables the waiter.",
+		},
 		"wait_for_guest_net_timeout": {
 			Type:        schema.TypeInt,
 			Optional:    true,
@@ -102,6 +108,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Optional:    true,
 			Default:     true,
 			Description: "Controls whether or not the guest network waiter waits for a routable address. When false, the waiter does not wait for a default gateway, nor are IP addresses checked against any discovered default gateways as part of its success criteria.",
+		},
+		"ignored_guest_ips": {
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "List of IP addresses to ignore while waiting for an IP",
+			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
 		"shutdown_wait_timeout": {
 			Type:         schema.TypeInt,
@@ -290,12 +302,24 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		}
 	}
 
+	// Wait for guest IP address if we have been set to wait for one
+	err = virtualmachine.WaitForGuestIP(
+		client,
+		vm,
+		d.Get("wait_for_guest_ip_timeout").(int),
+		d.Get("ignored_guest_ips").([]interface{}),
+	)
+	if err != nil {
+		return err
+	}
+
 	// Wait for a routable address if we have been set to wait for one
 	err = virtualmachine.WaitForGuestNet(
 		client,
 		vm,
 		d.Get("wait_for_guest_net_routable").(bool),
 		d.Get("wait_for_guest_net_timeout").(int),
+		d.Get("ignored_guest_ips").([]interface{}),
 	)
 	if err != nil {
 		return err
@@ -542,11 +566,21 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 			if err := virtualmachine.PowerOn(vm); err != nil {
 				return fmt.Errorf("error powering on virtual machine: %s", err)
 			}
+			err = virtualmachine.WaitForGuestIP(
+				client,
+				vm,
+				d.Get("wait_for_guest_ip_timeout").(int),
+				d.Get("ignored_guest_ips").([]interface{}),
+			)
+			if err != nil {
+				return err
+			}
 			err = virtualmachine.WaitForGuestNet(
 				client,
 				vm,
 				d.Get("wait_for_guest_net_routable").(bool),
 				d.Get("wait_for_guest_net_timeout").(int),
+				d.Get("ignored_guest_ips").([]interface{}),
 			)
 			if err != nil {
 				return err
@@ -874,8 +908,10 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 	d.Set("force_power_off", rs["force_power_off"].Default)
 	d.Set("migrate_wait_timeout", rs["migrate_wait_timeout"].Default)
 	d.Set("shutdown_wait_timeout", rs["shutdown_wait_timeout"].Default)
+	d.Set("wait_for_guest_ip_timeout", rs["wait_for_guest_ip_timeout"].Default)
 	d.Set("wait_for_guest_net_timeout", rs["wait_for_guest_net_timeout"].Default)
 	d.Set("wait_for_guest_net_routable", rs["wait_for_guest_net_routable"].Default)
+	d.Set("ignored_guest_ips", []string{})
 
 	log.Printf("[DEBUG] %s: Import complete, resource is ready for read", resourceVSphereVirtualMachineIDString(d))
 	return []*schema.ResourceData{d}, nil

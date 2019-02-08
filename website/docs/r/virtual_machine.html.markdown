@@ -81,8 +81,10 @@ Two waiters of note are:
   the guest virtual machine, mainly to facilitate the availability of a valid,
   reachable default IP address for any [provisioners][tf-docs-provisioners].
   The behavior of the waiter can be controlled with the
-  [`wait_for_guest_net_timeout`](#wait_for_guest_net_timeout) and
-  [`wait_for_guest_net_routable`](#wait_for_guest_net_routable) settings.
+  [`wait_for_guest_net_timeout`](#wait_for_guest_net_timeout),
+  [`wait_for_guest_net_routable`](#wait_for_guest_net_routable),
+  [`wait_for_guest_ip_timeout`](#wait_for_guest_ip_timeout), and
+  [`ignored_guest_ips`](#ignored_guest_ips) settings.
 
 [tf-docs-provisioners]: /docs/provisioners/index.html
 
@@ -641,12 +643,26 @@ you may have to adjust [`memory_reservation`](#memory_reservation) to the full
 amount of memory provisioned for the virtual machine.
 
 * `wait_for_guest_net_timeout` - (Optional) The amount of time, in minutes, to
-  wait for an available IP address on this virtual machine. A value less than 1
-  disables the waiter. Default: 5 minutes.
+  wait for an available IP address on this virtual machine's NICs. Older
+  versions of VMware Tools do not populate this property. In those cases, this
+  waiter can be disabled and the
+  [`wait_for_guest_ip_timeout`](#wait_for_guest_ip_timeout) waiter can be used
+  instead. A value less than 1 disables the waiter. Default: 5 minutes.
 * `wait_for_guest_net_routable` - (Optional) Controls whether or not the guest
   network waiter waits for a routable address. When `false`, the waiter does
   not wait for a default gateway, nor are IP addresses checked against any
-  discovered default gateways as part of its success criteria. Default: `true`.
+  discovered default gateways as part of its success criteria. This property is
+  ignored if the [`wait_for_guest_ip_timeout`](#wait_for_guest_ip_timeout)
+  waiter is used. Default: `true`.
+* `wait_for_guest_ip_timeout` - (Optional) The amount of time, in minutes, to
+  wait for an available guest IP address on this virtual machine. This should
+  only be used if your version of VMware Tools does not allow the
+  [`wait_for_guest_net_timeout`](#wait_for_guest_net_timeout) waiter to be
+  used. A value less than 1 disables the waiter. Default: 0.
+* `ignored_guest_ips` - (Optional) List of IP addresses to ignore while waiting
+  for an available IP address using either of the waiters. Any IP addresses in
+  this list will be ignored if they show up so that the waiter will continue to
+  wait for a real IP address. Default: [].
 * `shutdown_wait_timeout` - (Optional) The amount of time, in minutes, to wait
   for a graceful guest shutdown when making necessary updates to the virtual
   machine. If `force_power_off` is set to true, the VM will be force powered-off
