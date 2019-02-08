@@ -1,4 +1,10 @@
 ## 1.9.2 (Unreleased)
+
+IMPROVEMENTS:
+
+* `resource/virtual_machine`: Add support for using guest.ipAddress for older
+  versions of VM Tools. ([#684](https://github.com/terraform-providers/terraform-provider-vsphere/issues/684))
+
 ## 1.9.1 (January 10, 2019)
 
 IMPROVEMENTS:
