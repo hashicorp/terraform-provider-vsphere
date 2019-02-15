@@ -65,5 +65,9 @@ export VSPHERE_FOLDER_V0_PATH           ?= old-folder # vsphere_folder state tes
 export VSPHERE_ISO_FILE                 ?= iso-file   # ISO file for CDROM device
 export VSPHERE_ISO_DATASTORE            ?= iso-ds     # ISO file for CDROM device
 export VSPHERE_VM_V1_PATH               ?= vm-path    # VM resource state migration
+export VSPHERE_VAPP_CONTAINER           ?= vapp-path  # Path to a vApp container
+export VSPHERE_PERSIST_SESSION          ?= true       # Session persistence
+export VSPHERE_REST_SESSION_PATH        ?= rest-path  # Path to store rest sessions
+export VSPHERE_VIM_SESSION_PATH         ?= vim-path   # Path to store vim sessions
 
 # vi: filetype=make
