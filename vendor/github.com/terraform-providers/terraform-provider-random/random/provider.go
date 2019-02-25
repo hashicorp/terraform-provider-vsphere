@@ -16,6 +16,7 @@ func Provider() terraform.ResourceProvider {
 			"random_pet":     resourcePet(),
 			"random_string":  resourceString(),
 			"random_integer": resourceInteger(),
+			"random_uuid":    resourceUuid(),
 		},
 	}
 }
