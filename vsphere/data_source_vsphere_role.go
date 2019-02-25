@@ -3,6 +3,7 @@ package vsphere
 import (
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	roleHelper "github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/role"
@@ -40,9 +41,10 @@ func dataSourceVSphereRoleRead(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
 	role := new(types.AuthorizationRole)
 	roleID := d.Get("role_id").(int)
+	log.Printf("[DEBUG] Reading role %d%s", roleID, name)
 
 	if name == "" && roleID == 0 {
-		return errors.New("Atleast one of either role_id or name must set")
+		return errors.New("At least one of either role_id or name must set")
 	} else if name == "" {
 		role, _ = roleHelper.ByID(client, fmt.Sprint(roleID))
 	} else {
@@ -54,8 +56,10 @@ func dataSourceVSphereRoleRead(d *schema.ResourceData, meta interface{}) error {
 		return errors.New("couldn't find the specified role: " + name)
 	}
 
+	d.Set("role_id", fmt.Sprintf("%v", role.RoleId))
 	d.Set("permissions", role.Privilege)
 	d.Set("name", role.Name)
 	d.SetId(fmt.Sprint(role.RoleId))
+	log.Printf("[DEBUG] Successfully read role %d/%s", roleID, name)
 	return nil
 }

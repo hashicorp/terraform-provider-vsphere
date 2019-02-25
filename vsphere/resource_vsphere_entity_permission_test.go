@@ -8,18 +8,21 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccResourceVSphereEntityPermission(t *testing.T) {
+func TestAccResourceVSphereEntityPermission_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		Providers: testAccProviders,
-		//CheckDestroy: testAccResourceVSphereEntityPermissionExists(false),
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereEntityPermissionExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereEntityPermissionConfigBasic(),
-				Check:  resource.ComposeTestCheckFunc(
-				//testAccResourceVSphereEntityPermissionExists(true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereEntityPermissionExists(true),
+					testAccResourceVSphereEntityPermissionPrincipal("VSPHERE.HASHICORPTEST.INTERNAL\\Administrator"),
+					testAccResourceVSphereEntityPermissionPropagate(true),
+					testAccResourceVSphereEntityPermissionGroup(false),
 				),
 			},
 		},
@@ -36,7 +39,46 @@ func testAccResourceVSphereEntityPermissionExists(expected bool) resource.TestCh
 			return fmt.Errorf("entity permission %q is not found", ep.RoleId)
 		}
 		if ep != nil && !expected {
-			return fmt.Errorf("expected entity permission %q to be missing", ep.RoleId)
+			return fmt.Errorf("expected entity_permission to be missing")
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereEntityPermissionPrincipal(expected string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		ep, err := testGetEntityPermission(s, "entity_permission")
+		if err != nil {
+			return err
+		}
+		if ep.Principal != expected {
+			return fmt.Errorf("expected entity_permission principal to be %q, got %q", expected, ep.Principal)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereEntityPermissionGroup(expected bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		ep, err := testGetEntityPermission(s, "entity_permission")
+		if err != nil {
+			return err
+		}
+		if ep.Propagate != expected {
+			return fmt.Errorf("expected entity_permission group to be %t, got %t", expected, ep.Group)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereEntityPermissionPropagate(expected bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		ep, err := testGetEntityPermission(s, "entity_permission")
+		if err != nil {
+			return err
+		}
+		if ep.Propagate != expected {
+			return fmt.Errorf("expected entity_permission propagate to be %t, got %t", expected, ep.Propagate)
 		}
 		return nil
 	}
@@ -52,19 +94,21 @@ data "vsphere_datacenter" "dc" {
 	name = "${var.datacenter}"
 }
 
-resource "vsphere_folder" "folder" {
-	path = "terraform-test-folder"
-	type = "vm"
-	datacenter_id = "${data.vsphere_datacenter.dc}"
+data "vsphere_role" "default" {
+	name = "tfTestPermission"
 }
 
-data "vsphere_role" "default" {
-	name = "Admin"
+data "vsphere_datastore" "datastore" {
+	name = "nfsds1"
+	datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
 resource "vsphere_entity_permission" "entity_permission" {
-	principal = "VSPHERE.LOCAL\\Administrator"
-	role_id   = "${data.vsphere_role.default.id}"
+	principal   = "VSPHERE.HASHICORPTEST.INTERNAL\\Administrator"
+	role_id     = "${data.vsphere_role.default.id}"
+	entity_id   = "${data.vsphere_datastore.datastore.id}"
+	entity_type = "Datastore"
+	propagate   = true
 }
 `,
 		"hashi-dc",

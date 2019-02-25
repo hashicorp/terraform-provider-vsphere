@@ -1,11 +1,14 @@
 package vsphere
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/permissions"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/permission"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 )
+
+const resourceVSphereEntityPermissionName = "vsphere_entity_permission"
 
 func resourceVSphereEntityPermission() *schema.Resource {
 	return &schema.Resource{
@@ -27,11 +30,15 @@ func resourceVSphereEntityPermission() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"folder_path": &schema.Schema{
+			"entity_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
+				Required: true,
 				ForceNew: true,
-				Default:  "/",
+			},
+			"entity_type": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 			"propagate": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -48,8 +55,9 @@ func resourceVSphereEntityPermission() *schema.Resource {
 }
 
 func resourceVSphereEntityPermissionRead(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning read", resourceVSphereEntityPermissionIDString(d))
 	client := meta.(*VSphereClient).vimClient
-	principal, folderPath, err := permission.SplitID(d.Id())
+	entityID, entityType, principal, err := permission.SplitID(d.Id())
 	if err != nil {
 		return err
 	}
@@ -59,31 +67,49 @@ func resourceVSphereEntityPermissionRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	d.Set("propagate", p.Propagate)
-	d.Set("role_id", fmt.Sprint(p.RoleId))
-	d.Set("group", p.Group)
-	d.Set("principal", principal)
-	d.Set("folder_path", folderPath)
+	if err = d.Set("propagate", p.Propagate); err != nil {
+		return err
+	}
+	if err = d.Set("role_id", p.RoleId); err != nil {
+		return err
+	}
+	if err = d.Set("group", p.Group); err != nil {
+		return err
+	}
+	if err = d.Set("principal", principal); err != nil {
+		return err
+	}
+	if err = d.Set("entity_id", entityID); err != nil {
+		return err
+	}
+	if err = d.Set("entity_type", entityType); err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] %s: Read finished successfully", resourceVSphereEntityPermissionIDString(d))
 	return nil
 }
 
 func resourceVSphereEntityPermissionCreate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning create", resourceVSphereEntityPermissionIDString(d))
 	client := meta.(*VSphereClient).vimClient
 	principal := d.Get("principal").(string)
-	folderPath := d.Get("folder_path").(string)
+	entityID := d.Get("entity_id").(string)
+	entityType := d.Get("entity_type").(string)
 	group := d.Get("group").(bool)
 	roleID := d.Get("role_id").(int)
 	propagate := d.Get("propagate").(bool)
-	err := permission.Create(client, principal, folderPath, roleID, group, propagate)
+	err := permission.Create(client, entityID, entityType, principal, roleID, group, propagate)
 	if err != nil {
 		d.SetId("")
 		return err
 	}
-	d.SetId(permission.ConcatID(folderPath, principal))
+	d.SetId(permission.ConcatID(entityID, entityType, principal))
+	log.Printf("[DEBUG] %s: Create completed successfully", resourceVSphereEntityPermissionIDString(d))
 	return resourceVSphereEntityPermissionRead(d, meta)
 }
 
 func resourceVSphereEntityPermissionDelete(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning delete", resourceVSphereEntityPermissionIDString(d))
 	client := meta.(*VSphereClient).vimClient
 	p, err := permission.ByID(client, d.Id())
 	if err != nil {
@@ -95,10 +121,16 @@ func resourceVSphereEntityPermissionDelete(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return err
 	}
-	d.SetId("")
+	log.Printf("[DEBUG] %s: Deleted successfully", resourceVSphereEntityPermissionIDString(d))
 	return nil
 }
 
 func resourceVSphereEntityPermissionImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	return []*schema.ResourceData{d}, nil
+}
+
+// resourceVSphereEntityPermissionIDString prints a friendly string for the
+// vsphere_entity_permission resource.
+func resourceVSphereEntityPermissionIDString(d structure.ResourceIDStringer) string {
+	return structure.ResourceIDString(d, resourceVSphereEntityPermissionName)
 }

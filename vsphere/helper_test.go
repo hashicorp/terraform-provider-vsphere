@@ -19,7 +19,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
-	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/permissions"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/permission"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/role"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/storagepod"

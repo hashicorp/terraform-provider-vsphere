@@ -19,9 +19,9 @@ func TestAccResourceVSphereRole_basic(t *testing.T) {
 			{
 				Config: testAccResourceVSphereRoleConfigBasic(),
 				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereRoleExists(true),
 					testAccResourceVSphereRoleHasName("TestRole"),
 					testAccResourceVSphereRoleHasPrivileges([]string{"System.Anonymous", "System.Read", "System.View", "VirtualMachine.State.CreateSnapshot"}),
-					testAccResourceVSphereRoleExists(true),
 				),
 			},
 		},
@@ -88,26 +88,6 @@ func testAccResourceVSphereRoleHasPriv(privileges []string, name string) bool {
 	return false
 }
 
-func testAccResourceVSphereRoleConfigBasic() string {
-	return fmt.Sprintf(`
-resource "vsphere_role" "role" {
-	name        = "TestRole"
-	permissions = ["VirtualMachine.State.CreateSnapshot"]
-}
-`,
-	)
-}
-
-func testAccResourceVSphereRoleConfigUpdate() string {
-	return fmt.Sprintf(`
-resource "vsphere_role" "role" {
-	name        = "TestRole2"
-	permissions = ["Alarm.Create"]
-}
-`,
-	)
-}
-
 func testAccResourceVSphereRoleExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		r, err := testGetRole(s, "role")
@@ -126,4 +106,24 @@ func testAccResourceVSphereRoleExists(expected bool) resource.TestCheckFunc {
 		}
 		return nil
 	}
+}
+
+func testAccResourceVSphereRoleConfigBasic() string {
+	return fmt.Sprintf(`
+resource "vsphere_role" "role" {
+	name        = "TestRole"
+	permissions = ["VirtualMachine.State.CreateSnapshot"]
+}
+`,
+	)
+}
+
+func testAccResourceVSphereRoleConfigUpdate() string {
+	return fmt.Sprintf(`
+resource "vsphere_role" "role" {
+	name        = "TestRole2"
+	permissions = ["Alarm.Create"]
+}
+`,
+	)
 }

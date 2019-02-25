@@ -3,11 +3,15 @@ package vsphere
 import (
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/role"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 )
+
+const resourceVSphereRoleName = "vsphere_role"
 
 func resourceVSphereRole() *schema.Resource {
 	return &schema.Resource{
@@ -38,6 +42,7 @@ func resourceVSphereRole() *schema.Resource {
 }
 
 func resourceVSphereRoleCreate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning create", resourceVSphereRoleIDString(d))
 	client := meta.(*VSphereClient).vimClient
 	name := d.Get("name").(string)
 	permsTemp := d.Get("permissions").(*schema.Set)
@@ -53,17 +58,15 @@ func resourceVSphereRoleCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(fmt.Sprint(roleID))
 
+	log.Printf("[DEBUG] %s: Create completed successfully", resourceVSphereRoleIDString(d))
 	return resourceVSphereRoleRead(d, meta)
 }
 
 func resourceVSphereRoleRead(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning read", resourceVSphereRoleIDString(d))
 	client := meta.(*VSphereClient).vimClient
 	roleVal, err := role.ByName(client, d.Get("name").(string))
-<<<<<<< HEAD
 	if err != nil || roleVal == nil {
-=======
-	if err != nil {
->>>>>>> Fixed a few issues and added import to both resources
 		d.SetId("")
 		return fmt.Errorf("couldn't find the specified role: %s", err.Error())
 	}
@@ -87,10 +90,12 @@ func resourceVSphereRoleRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	log.Printf("[DEBUG] %s: Read completed successfully", resourceVSphereRoleIDString(d))
 	return nil
 }
 
 func resourceVSphereRoleUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning update", resourceVSphereRoleIDString(d))
 	client := meta.(*VSphereClient).vimClient
 	name := d.Get("name").(string)
 	permsTemp := d.Get("permissions").(*schema.Set)
@@ -110,10 +115,12 @@ func resourceVSphereRoleUpdate(d *schema.ResourceData, meta interface{}) error {
 		return errors.New("Error while updating role: " + err.Error())
 	}
 
+	log.Printf("[DEBUG] %s: Update completed successfully", resourceVSphereRoleIDString(d))
 	return resourceVSphereRoleRead(d, meta)
 }
 
 func resourceVSphereRoleDelete(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] %s: Beginning delete", resourceVSphereRoleIDString(d))
 	client := meta.(*VSphereClient).vimClient
 
 	roleVal, err := role.ByName(client, d.Get("name").(string))
@@ -126,7 +133,7 @@ func resourceVSphereRoleDelete(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return errors.New("couldn't find the specified role: " + err.Error())
 	}
-	d.SetId("")
+	log.Printf("[DEBUG] %s: Deleted successfully", resourceVSphereRoleIDString(d))
 	return nil
 }
 
@@ -161,4 +168,10 @@ func resourceVSphereRoleImport(d *schema.ResourceData, meta interface{}) ([]*sch
 	d.SetId(fmt.Sprint(roleVal.RoleId))
 
 	return []*schema.ResourceData{d}, nil
+}
+
+// resourceVSphereRoleIDString prints a friendly string for the
+// vsphere_role resource.
+func resourceVSphereRoleIDString(d structure.ResourceIDStringer) string {
+	return structure.ResourceIDString(d, resourceVSphereRoleName)
 }

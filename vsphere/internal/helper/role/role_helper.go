@@ -350,6 +350,7 @@ var PermissionsList = []string{
 
 // ByID check if a role exist using id, and return that role
 func ByID(client *govmomi.Client, id string) (*types.AuthorizationRole, error) {
+	log.Printf("[DEBUG] Locating role with ID %q", id)
 	m := object.NewAuthorizationManager(client.Client)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
@@ -363,11 +364,13 @@ func ByID(client *govmomi.Client, id string) (*types.AuthorizationRole, error) {
 		return nil, err
 	}
 	role := roles.ById(int32(nid))
+	log.Printf("[DEBUG] Successfully located role with ID %q", id)
 	return role, nil
 }
 
 // ByName check if a role exist using name, and return that role
 func ByName(client *govmomi.Client, name string) (*types.AuthorizationRole, error) {
+	log.Printf("[DEBUG] Locating role with name %q", name)
 	m := object.NewAuthorizationManager(client.Client)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
@@ -377,31 +380,47 @@ func ByName(client *govmomi.Client, name string) (*types.AuthorizationRole, erro
 		return nil, err
 	}
 	role := roles.ByName(name)
+	log.Printf("[DEBUG] Successfully located role with name %q", name)
 	return role, nil
 }
 
 // Update Role permissions
 func Update(client *govmomi.Client, roleID int32, name string, perms []string) error {
+	log.Printf("[DEBUG] Updating role with ID %q", roleID)
 	m := object.NewAuthorizationManager(client.Client)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 
-	return m.UpdateRole(ctx, roleID, name, perms)
+	if err := m.UpdateRole(ctx, roleID, name, perms); err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] Successfully updated role with ID %q", roleID)
+	return nil
 }
 
 // Create Role
 func Create(client *govmomi.Client, name string, perms []string) (int32, error) {
+	log.Printf("[DEBUG] Creating role with name %q", name)
 	m := object.NewAuthorizationManager(client.Client)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	roleID, err := m.AddRole(ctx, name, perms)
-	return roleID, err
+	if err != nil {
+		return 0, err
+	}
+	log.Printf("[DEBUG] Successfully created role with name %q", name)
+	return roleID, nil
 }
 
 // Remove Role
 func Remove(client *govmomi.Client, roleID int32) error {
+	log.Printf("[DEBUG] Removing role with ID %q", roleID)
 	m := object.NewAuthorizationManager(client.Client)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
-	return m.RemoveRole(ctx, roleID, false)
+	if err := m.RemoveRole(ctx, roleID, false); err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] Successfully removed role with ID %q", roleID)
+	return nil
 }
