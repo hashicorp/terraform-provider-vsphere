@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"context"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
@@ -143,6 +144,9 @@ func (c *Config) Client() (*VSphereClient, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	keepAlive := time.Minute * 60
+	client.vimClient.RoundTripper = session.KeepAlive(client.vimClient.RoundTripper, keepAlive)
 
 	log.Printf("[DEBUG] VMWare vSphere Client configured for URL: %s", c.VSphereServer)
 

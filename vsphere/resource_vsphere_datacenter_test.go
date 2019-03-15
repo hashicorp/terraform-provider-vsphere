@@ -138,6 +138,29 @@ func TestAccResourceVSphereDatacenter_createOnRootFolder(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereDatacenter_import(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereDatacenterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckVSphereDatacenterConfig,
+				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDatacenterExists(testAccCheckVSphereDatacenterResourceName, true)),
+			},
+			{
+				ResourceName:      "vsphere_datacenter.testDC",
+				Config:            testAccCheckVSphereDatacenterConfig,
+				Check:             resource.ComposeTestCheckFunc(testAccCheckVSphereDatacenterExists(testAccCheckVSphereDatacenterResourceName, true)),
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     "/testDC",
+			},
+		},
+	})
+}
+
 // Create a datacenter on a subfolder
 func TestAccResourceVSphereDatacenter_createOnSubfolder(t *testing.T) {
 	dcFolder := os.Getenv("VSPHERE_DC_FOLDER")
