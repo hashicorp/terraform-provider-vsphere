@@ -911,7 +911,6 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 	d.Set("wait_for_guest_ip_timeout", rs["wait_for_guest_ip_timeout"].Default)
 	d.Set("wait_for_guest_net_timeout", rs["wait_for_guest_net_timeout"].Default)
 	d.Set("wait_for_guest_net_routable", rs["wait_for_guest_net_routable"].Default)
-	d.Set("ignored_guest_ips", []string{})
 
 	log.Printf("[DEBUG] %s: Import complete, resource is ready for read", resourceVSphereVirtualMachineIDString(d))
 	return []*schema.ResourceData{d}, nil
