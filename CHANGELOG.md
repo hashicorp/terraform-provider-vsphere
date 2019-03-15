@@ -3,7 +3,7 @@
 
 FEATURES:
 
-* **New Data Dource:** `vsphere_folder` ([#709](https://github.com/terraform-providers/terraform-provider-vsphere/pull/709))
+* **New Data Source:** `vsphere_folder` ([#709](https://github.com/terraform-providers/terraform-provider-vsphere/pull/709))
 
 IMPROVEMENTS:
 
