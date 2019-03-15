@@ -1,9 +1,19 @@
-## 1.9.2 (Unreleased)
+## 1.10.0 (Unreleased)
+
+FEATURES:
+
+* **New Data Dource:** `vsphere_folder` ([#709](https://github.com/terraform-providers/terraform-provider-vsphere/pull/709))
 
 IMPROVEMENTS:
 
+* Update tf-vsphere-devrc.mk.example to include all environment variables ([#707](https://github.com/terraform-providers/terraform-provider-vsphere/pull/707))
+* Add Go Modules support ([#705](https://github.com/terraform-providers/terraform-provider-vsphere/pull/705))
+* Fix assorted typos in documenation
 * `resource/virtual_machine`: Add support for using guest.ipAddress for older
   versions of VM Tools. ([#684](https://github.com/terraform-providers/terraform-provider-vsphere/issues/684))
+
+BUG FIXES:
+* `resource/virtual_machine`: Do not set optional `ignored_guest_ips` on read ([#726](https://github.com/terraform-providers/terraform-provider-vsphere/pull/726))
 
 ## 1.9.1 (January 10, 2019)
 
