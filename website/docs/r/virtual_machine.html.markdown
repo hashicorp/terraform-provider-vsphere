@@ -286,7 +286,7 @@ data "vsphere_network" "network" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
-data "vsphere_virtual_machine" "tempate_from_ovf" {
+data "vsphere_virtual_machine" "template_from_ovf" {
   name          = "template_from_ovf"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
