@@ -59,20 +59,23 @@ func CreateShuffle(d *schema.ResourceData, _ interface{}) error {
 	}
 	result := make([]interface{}, 0, resultCount)
 
-	rand := NewRand(seed)
+	if len(input) > 0 {
+		rand := NewRand(seed)
 
-	// Keep producing permutations until we fill our result
-Batches:
-	for {
-		perm := rand.Perm(len(input))
+		// Keep producing permutations until we fill our result
+	Batches:
+		for {
+			perm := rand.Perm(len(input))
 
-		for _, i := range perm {
-			result = append(result, input[i])
+			for _, i := range perm {
+				result = append(result, input[i])
 
-			if len(result) >= resultCount {
-				break Batches
+				if len(result) >= resultCount {
+					break Batches
+				}
 			}
 		}
+
 	}
 
 	d.SetId("-")

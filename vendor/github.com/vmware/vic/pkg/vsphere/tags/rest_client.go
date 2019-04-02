@@ -72,12 +72,13 @@ func NewClient(u *url.URL, insecure bool, thumbprint string) *RestClient {
 // NewClientWithSessionID creates a new REST client with a supplied session ID
 // to re-connect to existing sessions.
 //
-// Note that the session is not checked for validity. Valid should be used for
-// this function. If the session is no longer valid and the session needs to be
-// re-saved, Login should be called again before calling SessionID to extract
-// the new session ID. Clients created with this function function in the exact
-// same way as clients created with NewClient, including supporting re-login on
-// invalid sessions on all SDK calls.
+// Note that the session is not checked for validity - to check for a valid
+// session after creating the client, use the Valid method. If the session is
+// no longer valid and the session needs to be re-saved, Login should be called
+// again before calling SessionID to extract the new session ID. Clients
+// created with this function function work in the exact same way as clients
+// created with NewClient, including supporting re-login on invalid sessions on
+// all SDK calls.
 func NewClientWithSessionID(u *url.URL, insecure bool, thumbprint string, sessionID string) *RestClient {
 	c := NewClient(u, insecure, thumbprint)
 	c.setSessionID(sessionID)
@@ -232,7 +233,7 @@ func (c *RestClient) SessionID() string {
 // setSessionID sets the session cookie with the supplied session ID.
 //
 // This does not necessarily mean the session is valid. The session should be
-// checked with Valid before proceeding, logging back in if it has expired.
+// checked with Valid before proceeding, and logged back in if it has expired.
 //
 // This function will overwrite any existing session.
 func (c *RestClient) setSessionID(sessionID string) {
@@ -256,7 +257,7 @@ func (c *RestClient) setSessionID(sessionID string) {
 }
 
 // Valid checks to see if the session cookies in a REST client are still valid.
-// This should be used when restoring a session to determin if a new login is
+// This should be used when restoring a session to determine if a new login is
 // necessary.
 func (c *RestClient) Valid(ctx context.Context) bool {
 	sessionID := c.SessionID()

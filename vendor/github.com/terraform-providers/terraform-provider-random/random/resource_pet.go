@@ -12,7 +12,7 @@ import (
 func resourcePet() *schema.Resource {
 	return &schema.Resource{
 		Create: CreatePet,
-		Read:   ReadPet,
+		Read:   schema.Noop,
 		Delete: schema.RemoveFromState,
 
 		Schema: map[string]*schema.Schema{
@@ -58,9 +58,5 @@ func CreatePet(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(pet)
 
-	return nil
-}
-
-func ReadPet(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }

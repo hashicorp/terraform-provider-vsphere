@@ -35,17 +35,6 @@ func NewResourcePool(c *vim25.Client, ref types.ManagedObjectReference) *Resourc
 	}
 }
 
-func (p ResourcePool) MoveIntoResourcePool(ctx context.Context, list []types.ManagedObjectReference) error {
-	req := types.MoveIntoResourcePool{
-		This: p.Reference(),
-		List: list,
-	}
-
-	_, err := methods.MoveIntoResourcePool(ctx, p.c, &req)
-
-	return err
-}
-
 func (p ResourcePool) ImportVApp(ctx context.Context, spec types.BaseImportSpec, folder *Folder, host *HostSystem) (*nfc.Lease, error) {
 	req := types.ImportVApp{
 		This: p.Reference(),

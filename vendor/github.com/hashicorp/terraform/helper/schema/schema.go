@@ -12,6 +12,7 @@
 package schema
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -199,7 +200,7 @@ type Schema struct {
 	Sensitive bool
 }
 
-// SchemaDiffSuppresFunc is a function which can be used to determine
+// SchemaDiffSuppressFunc is a function which can be used to determine
 // whether a detected diff on a schema element is "valid" or not, and
 // suppress it from the plan if necessary.
 //
@@ -1210,7 +1211,7 @@ func (m schemaMap) inputString(
 	input terraform.UIInput,
 	k string,
 	schema *Schema) (interface{}, error) {
-	result, err := input.Input(&terraform.InputOpts{
+	result, err := input.Input(context.Background(), &terraform.InputOpts{
 		Id:          k,
 		Query:       k,
 		Description: schema.Description,

@@ -16,7 +16,7 @@ func NewRand(seed string) *rand.Rand {
 		crcTable := crc64.MakeTable(crc64.ISO)
 		seedInt = int64(crc64.Checksum([]byte(seed), crcTable))
 	} else {
-		seedInt = time.Now().Unix()
+		seedInt = time.Now().UnixNano()
 	}
 
 	randSource := rand.NewSource(seedInt)
