@@ -1,61 +1,59 @@
 module github.com/terraform-providers/terraform-provider-vsphere
 
+replace (
+	github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.3.0
+	github.com/golang/lint v0.0.0-20190313153728-d0100b6bd8b3 => golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3
+)
+
 require (
-	github.com/Sirupsen/logrus v0.0.0-20170822132746-89742aefa4b2
-	github.com/agext/levenshtein v1.2.1
-	github.com/apparentlymart/go-cidr v0.0.0-20170418151526-7e4b007599d4
-	github.com/apparentlymart/go-rundeck-api v0.0.0-20160826143032-f6af74d34d1e
-	github.com/apparentlymart/go-textseg v0.0.0-20170531203952-b836f5c4d331
-	github.com/armon/go-radix v0.0.0-20170727155443-1fca145dffbc
-	github.com/aws/aws-sdk-go v1.8.34
-	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d
-	github.com/bgentry/speakeasy v0.1.0
-	github.com/blang/semver v3.5.1+incompatible
-	github.com/davecgh/go-spew v1.1.0
-	github.com/dustinkirkland/golang-petname v0.0.0-20170921220637-d3c2ba80e75e
-	github.com/fsouza/go-dockerclient v0.0.0-20160427172547-1d4f4ae73768
-	github.com/go-ini/ini v1.23.1
-	github.com/golang/protobuf v0.0.0-20170816001514-ab9f9a6dab16
-	github.com/hashicorp/errwrap v0.0.0-20141028054710-7554cd9344ce
-	github.com/hashicorp/go-cleanhttp v0.0.0-20170211013415-3573b8b52aa7
-	github.com/hashicorp/go-getter v0.0.0-20170922192948-a686900cb375
-	github.com/hashicorp/go-hclog v0.0.0-20170716174523-b4e5765d1e5f
-	github.com/hashicorp/go-multierror v0.0.0-20150916205742-d30f09973e19
-	github.com/hashicorp/go-plugin v0.0.0-20170816151819-a5174f84d7f8
-	github.com/hashicorp/go-uuid v0.0.0-20160120003506-36289988d83c
-	github.com/hashicorp/go-version v0.0.0-20161031182605-e96d38404026
-	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
-	github.com/hashicorp/hcl2 v0.0.0-20171003232734-44bad6dbf549
-	github.com/hashicorp/hil v0.0.0-20170512213305-fac2259da677
-	github.com/hashicorp/logutils v0.0.0-20150609070431-0dc08b1671f3
-	github.com/hashicorp/terraform v0.11.7
-	github.com/hashicorp/yamux v0.0.0-20160720233140-d1caa6c97c9f
-	github.com/jmespath/go-jmespath v0.0.0-20160803190731-bd40a432e4c7
-	github.com/mattn/go-isatty v0.0.2
-	github.com/mitchellh/cli v0.0.0-20170814150737-b633c78680fa
-	github.com/mitchellh/copystructure v0.0.0-20170525013902-d23ffcb85de3
-	github.com/mitchellh/go-homedir v0.0.0-20161203194507-b8bc1bf76747
-	github.com/mitchellh/go-testing-interface v0.0.0-20170730050907-9a441910b168
-	github.com/mitchellh/go-wordwrap v0.0.0-20150314170334-ad45545899c7
-	github.com/mitchellh/hashstructure v0.0.0-20160209213820-6b17d669fac5
-	github.com/mitchellh/mapstructure v0.0.0-20170307201123-53818660ed49
-	github.com/mitchellh/reflectwalk v0.0.0-20170726202117-63d60e9d0dbc
-	github.com/pkg/errors v0.0.0-20170910134614-2b3a18b5f0fb
-	github.com/posener/complete v0.0.0-20170730193024-f4461a52b632
-	github.com/rancher/go-rancher v0.0.0-20170407040943-ec24b7f12fca
-	github.com/satori/go.uuid v0.0.0-20160927100844-b061729afc07
+	cloud.google.com/go v0.37.2 // indirect
+	github.com/Sirupsen/logrus v1.4.1 // indirect
+	github.com/agext/levenshtein v1.2.2 // indirect
+	github.com/apparentlymart/go-cidr v1.0.0 // indirect
+	github.com/apparentlymart/go-dump v0.0.0-20190214190832-042adf3cf4a0 // indirect
+	github.com/armon/go-radix v1.0.0 // indirect
+	github.com/aws/aws-sdk-go v1.19.8 // indirect
+	github.com/blang/semver v3.5.1+incompatible // indirect
+	github.com/davecgh/go-spew v1.1.1
+	github.com/dustinkirkland/golang-petname v0.0.0-20170921220637-d3c2ba80e75e // indirect
+	github.com/golang/protobuf v1.3.1 // indirect
+	github.com/grpc-ecosystem/grpc-gateway v1.6.2 // indirect
+	github.com/hashicorp/go-cleanhttp v0.5.1 // indirect
+	github.com/hashicorp/go-getter v1.2.0 // indirect
+	github.com/hashicorp/go-hclog v0.8.0 // indirect
+	github.com/hashicorp/go-plugin v1.0.0 // indirect
+	github.com/hashicorp/go-uuid v1.0.1 // indirect
+	github.com/hashicorp/golang-lru v0.5.1 // indirect
+	github.com/hashicorp/hcl v1.0.0 // indirect
+	github.com/hashicorp/hcl2 v0.0.0-20190402200843-8b450a7d58f9 // indirect
+	github.com/hashicorp/hil v0.0.0-20190212132231-97b3a9cdfa93 // indirect
+	github.com/hashicorp/logutils v1.0.0 // indirect
+	github.com/hashicorp/terraform v0.11.13
+	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d // indirect
+	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
+	github.com/mattn/go-colorable v0.1.1 // indirect
+	github.com/mattn/go-isatty v0.0.7 // indirect
+	github.com/mitchellh/cli v1.0.0 // indirect
+	github.com/mitchellh/copystructure v1.0.0
+	github.com/mitchellh/go-homedir v1.1.0 // indirect
+	github.com/mitchellh/go-wordwrap v1.0.0 // indirect
+	github.com/mitchellh/hashstructure v1.0.0 // indirect
+	github.com/pkg/errors v0.8.1 // indirect
+	github.com/posener/complete v1.2.1 // indirect
+	github.com/sirupsen/logrus v1.4.1 // indirect
 	github.com/terraform-providers/terraform-provider-null v0.0.0-20171212001612-1e016b8a7041
-	github.com/terraform-providers/terraform-provider-random v0.0.0-20171207142319-e6526ec8369c
-	github.com/terraform-providers/terraform-provider-template v0.0.0-20180221205409-c28e0cec248a
-	github.com/ulikunitz/xz v0.5.4
-	github.com/vmware/govmomi v0.18.0
-	github.com/vmware/vic v1.5.0
-	github.com/zclconf/go-cty v0.0.0-20171013215809-8bf222d6d03b
-	golang.org/x/crypto v0.0.0-20170916190215-7d9177d70076
-	golang.org/x/net v0.0.0-20170809000501-1c05540f6879
-	golang.org/x/sys v0.0.0-20170919001338-b6e1ae216436
-	golang.org/x/text v0.0.0-20170814122439-e56139fd9c5b
-	google.golang.org/genproto v0.0.0-20170818010345-ee236bd376b0
-	google.golang.org/grpc v0.0.0-20170821192704-2308131c44e4
-	k8s.io/kubernetes v1.6.1
+	github.com/terraform-providers/terraform-provider-random v2.0.0+incompatible
+	github.com/terraform-providers/terraform-provider-template v1.0.0
+	github.com/ulikunitz/xz v0.5.6 // indirect
+	github.com/vmware/govmomi v0.20.0
+	github.com/vmware/vic v1.5.2
+	github.com/zclconf/go-cty v0.0.0-20190320224746-fd76348b9329 // indirect
+	go.opencensus.io v0.20.0 // indirect
+	golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c // indirect
+	golang.org/x/net v0.0.0-20190328230028-74de082e2cca // indirect
+	golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a // indirect
+	golang.org/x/sys v0.0.0-20190402142545-baf5eb976a8c // indirect
+	google.golang.org/appengine v1.5.0 // indirect
+	google.golang.org/genproto v0.0.0-20190401181712-f467c93bbac2 // indirect
+	google.golang.org/grpc v1.19.1 // indirect
 )

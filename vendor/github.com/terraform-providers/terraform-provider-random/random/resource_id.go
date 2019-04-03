@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"math/big"
+	"strings"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -16,6 +17,9 @@ func resourceId() *schema.Resource {
 		Create: CreateID,
 		Read:   RepopulateEncodings,
 		Delete: schema.RemoveFromState,
+		Importer: &schema.ResourceImporter{
+			State: ImportID,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"keepers": {
@@ -107,4 +111,24 @@ func RepopulateEncodings(d *schema.ResourceData, _ interface{}) error {
 	d.Set("dec", prefix+decStr)
 
 	return nil
+}
+
+func ImportID(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	id := d.Id()
+
+	sep := strings.LastIndex(id, ",")
+	if sep != -1 {
+		d.Set("prefix", id[:sep])
+		id = id[sep+1:]
+	}
+
+	bytes, err := base64.RawURLEncoding.DecodeString(id)
+	if err != nil {
+		return nil, errwrap.Wrapf("Error decoding ID: {{err}}", err)
+	}
+
+	d.Set("byte_length", len(bytes))
+	d.SetId(id)
+
+	return []*schema.ResourceData{d}, nil
 }
