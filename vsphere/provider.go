@@ -144,43 +144,6 @@ func Provider() terraform.ResourceProvider {
 	}
 }
 
-func GetResourceMap() map[string]*schema.Resource {
-	return map[string]*schema.Resource{
-		"vsphere_compute_cluster":                         resourceVSphereComputeCluster(),
-		"vsphere_compute_cluster_host_group":              resourceVSphereComputeClusterHostGroup(),
-		"vsphere_compute_cluster_vm_affinity_rule":        resourceVSphereComputeClusterVMAffinityRule(),
-		"vsphere_compute_cluster_vm_anti_affinity_rule":   resourceVSphereComputeClusterVMAntiAffinityRule(),
-		"vsphere_compute_cluster_vm_dependency_rule":      resourceVSphereComputeClusterVMDependencyRule(),
-		"vsphere_compute_cluster_vm_group":                resourceVSphereComputeClusterVMGroup(),
-		"vsphere_compute_cluster_vm_host_rule":            resourceVSphereComputeClusterVMHostRule(),
-		"vsphere_custom_attribute":                        resourceVSphereCustomAttribute(),
-		"vsphere_datacenter":                              resourceVSphereDatacenter(),
-		"vsphere_datastore_cluster":                       resourceVSphereDatastoreCluster(),
-		"vsphere_datastore_cluster_vm_anti_affinity_rule": resourceVSphereDatastoreClusterVMAntiAffinityRule(),
-		"vsphere_distributed_port_group":                  resourceVSphereDistributedPortGroup(),
-		"vsphere_distributed_virtual_switch":              resourceVSphereDistributedVirtualSwitch(),
-		"vsphere_drs_vm_override":                         resourceVSphereDRSVMOverride(),
-		"vsphere_dpm_host_override":                       resourceVSphereDPMHostOverride(),
-		"vsphere_file":                                    resourceVSphereFile(),
-		"vsphere_folder":                                  resourceVSphereFolder(),
-		"vsphere_ha_vm_override":                          resourceVSphereHAVMOverride(),
-		"vsphere_host_port_group":                         resourceVSphereHostPortGroup(),
-		"vsphere_host_virtual_switch":                     resourceVSphereHostVirtualSwitch(),
-		"vsphere_license":                                 resourceVSphereLicense(),
-		"vsphere_resource_pool":                           resourceVSphereResourcePool(),
-		"vsphere_tag":                                     resourceVSphereTag(),
-		"vsphere_tag_category":                            resourceVSphereTagCategory(),
-		"vsphere_virtual_disk":                            resourceVSphereVirtualDisk(),
-		"vsphere_virtual_machine":                         resourceVSphereVirtualMachine(),
-		"vsphere_nas_datastore":                           resourceVSphereNasDatastore(),
-		"vsphere_storage_drs_vm_override":                 resourceVSphereStorageDrsVMOverride(),
-		"vsphere_vapp_container":                          resourceVSphereVAppContainer(),
-		"vsphere_vapp_entity":                             resourceVSphereVAppEntity(),
-		"vsphere_vmfs_datastore":                          resourceVSphereVmfsDatastore(),
-		"vsphere_virtual_machine_snapshot":                resourceVSphereVirtualMachineSnapshot(),
-	}
-}
-
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	c, err := NewConfig(d)
 	if err != nil {

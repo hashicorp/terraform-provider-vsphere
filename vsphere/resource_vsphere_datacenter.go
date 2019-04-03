@@ -93,6 +93,8 @@ func resourceVSphereDatacenterCreate(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("ESX host does not belong to a vCenter")
 	}
 
+	d.SetId(name)
+
 	// Wait for the datacenter resource to be ready
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"InProgress"},
@@ -122,8 +124,6 @@ func resourceVSphereDatacenterCreate(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	d.SetId(name)
-
 	return resourceVSphereDatacenterRead(d, meta)
 }
 
@@ -147,7 +147,7 @@ func resourceVSphereDatacenterStateRefreshFunc(d *schema.ResourceData, meta inte
 
 func datacenterExists(d *schema.ResourceData, meta interface{}) (*object.Datacenter, error) {
 	client := meta.(*VSphereClient).vimClient
-	name := d.Get("name").(string)
+	name := d.Id()
 
 	path := name
 	if v, ok := d.GetOk("folder"); ok {
@@ -169,6 +169,9 @@ func resourceVSphereDatacenterRead(d *schema.ResourceData, meta interface{}) err
 
 	// TODO: In v2.0, the ID should be the MOID and this can be removed.
 	if err = d.Set("moid", dc.Reference().Value); err != nil {
+		return err
+	}
+	if err = d.Set("name", dc.Name()); err != nil {
 		return err
 	}
 	// Read tags if we have the ability to do so
