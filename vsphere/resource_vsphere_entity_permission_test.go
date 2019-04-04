@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -20,7 +21,7 @@ func TestAccResourceVSphereEntityPermission_basic(t *testing.T) {
 				Config: testAccResourceVSphereEntityPermissionConfigBasic(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereEntityPermissionExists(true),
-					testAccResourceVSphereEntityPermissionPrincipal("VSPHERE.HASHICORPTEST.INTERNAL\\Administrator"),
+					testAccResourceVSphereEntityPermissionPrincipal("VSPHERE.HASHICORPTEST.INTERNAL\\teamcity"),
 					testAccResourceVSphereEntityPermissionPropagate(true),
 					testAccResourceVSphereEntityPermissionGroup(false),
 				),
@@ -32,7 +33,7 @@ func TestAccResourceVSphereEntityPermission_basic(t *testing.T) {
 func testAccResourceVSphereEntityPermissionExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		ep, err := testGetEntityPermission(s, "entity_permission")
-		if err != nil {
+		if err != nil && !strings.Contains(err.Error(), "no principal with name") {
 			return err
 		}
 		if ep == nil && expected {
@@ -64,7 +65,7 @@ func testAccResourceVSphereEntityPermissionGroup(expected bool) resource.TestChe
 		if err != nil {
 			return err
 		}
-		if ep.Propagate != expected {
+		if ep.Group != expected {
 			return fmt.Errorf("expected entity_permission group to be %t, got %t", expected, ep.Group)
 		}
 		return nil
@@ -99,12 +100,12 @@ data "vsphere_role" "default" {
 }
 
 data "vsphere_datastore" "datastore" {
-	name = "nfsds1"
+	name = "nfsds2"
 	datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
 resource "vsphere_entity_permission" "entity_permission" {
-	principal   = "VSPHERE.HASHICORPTEST.INTERNAL\\Administrator"
+	principal   = "VSPHERE.HASHICORPTEST.INTERNAL\\teamcity"
 	role_id     = "${data.vsphere_role.default.id}"
 	entity_id   = "${data.vsphere_datastore.datastore.id}"
 	entity_type = "Datastore"

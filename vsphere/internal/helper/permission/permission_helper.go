@@ -47,7 +47,7 @@ func ByID(client *govmomi.Client, id string) (*types.Permission, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("no prinicipal with name %q for entity permission %q", principal, id)
+	return nil, fmt.Errorf("no principal with name %q for entity permission %q", principal, id)
 }
 
 // Create Entity Permission

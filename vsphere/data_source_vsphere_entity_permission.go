@@ -1,7 +1,6 @@
 package vsphere
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -17,21 +16,16 @@ func dataSourceVSphereEntityPermission() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"folder_path": &schema.Schema{
+			"entity_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "/",
+				Required: true,
+			},
+			"entity_type": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
 			},
 			"role_id": &schema.Schema{
 				Type:     schema.TypeInt,
-				Computed: true,
-			},
-			"propagate": &schema.Schema{
-				Type:     schema.TypeBool,
-				Computed: true,
-			},
-			"group": &schema.Schema{
-				Type:     schema.TypeBool,
 				Computed: true,
 			},
 		},
@@ -41,21 +35,16 @@ func dataSourceVSphereEntityPermission() *schema.Resource {
 func dataSourceVSphereEntityPermissionRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Reading entity permission %q", d.Id())
 	client := meta.(*VSphereClient).vimClient
-	p, err := permission.ByID(client, d.Id())
+	id := permission.ConcatID(d.Get("entity_id").(string), d.Get("entity_type").(string), d.Get("principal").(string))
+	p, err := permission.ByID(client, id)
 	if err != nil {
 		d.SetId("")
 		return err
 	}
-	id, t, _, err := permission.SplitID(d.Id())
-	if err != nil {
+	if err = d.Set("role_id", p.RoleId); err != nil {
 		return err
 	}
-	d.Set("propagate", p.Propagate)
-	d.Set("role_id", fmt.Sprint(p.RoleId))
-	d.Set("entity_id", id)
-	d.Set("entity_type", t)
-	d.Set("group", p.Group)
-	d.SetId(p.Principal)
+	d.SetId(id)
 	log.Printf("[DEBUG] Successfully read entity permission %q", d.Id())
 	return nil
 }
