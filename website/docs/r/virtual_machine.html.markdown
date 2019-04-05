@@ -320,12 +320,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   vapp {
     properties {
-      "guestinfo.hostname"                        = "terraform-test.foobar.local"
-      "guestinfo.interface.0.name"                = "ens192"
-      "guestinfo.interface.0.ip.0.address"        = "10.0.0.100/24"
-      "guestinfo.interface.0.route.0.gateway"     = "10.0.0.1"
-      "guestinfo.interface.0.route.0.destination" = "0.0.0.0/0"
-      "guestinfo.dns.server.0"                    = "10.0.0.10"
+      "guestinfo.tf.internal.id" = "42"
     }
   }
 }
@@ -486,7 +481,7 @@ connections.
   Can be one of `bios` or `EFI`. Default: `bios`.
 * `extra_config` - (Optional) Extra configuration data for this virtual
   machine. Can be used to supply advanced parameters not normally in
-  configuration, such as data for cloud-config (under the guestinfo namespace).
+  configuration, such as instance metadata.
 
 ~> **NOTE:** Do not use `extra_config` when working with a template imported
 from OVF or OVA as more than likely your settings will be ignored. Use the
@@ -1280,12 +1275,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   vapp {
     properties {
-      "guestinfo.hostname"                        = "${var.vm_name}.foobar.local"
-      "guestinfo.interface.0.name"                = "ens192"
-      "guestinfo.interface.0.ip.0.address"        = "10.0.0.100/24"
-      "guestinfo.interface.0.route.0.gateway"     = "10.0.0.1"
-      "guestinfo.interface.0.route.0.destination" = "0.0.0.0/0"
-      "guestinfo.dns.server.0"                    = "10.0.0.10"
+      "guestinfo.tf.internal.id" = "42"
     }
   }
 }
