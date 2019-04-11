@@ -63,3 +63,16 @@ and require vCenter.
 * `moid` - [Managed object ID][docs-about-morefs] of this datacenter.
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
+
+## Importing 
+
+An existing datacenter can be [imported][docs-import] into this resource
+via supplying the full path to the datacenter. An example is below:
+
+[docs-import]: /docs/import/index.html
+
+```
+terraform import vsphere_datacenter.dc /dc1
+```
+
+The above would import the datacenter named `dc1`.

@@ -1,14 +1,18 @@
 package vsphere
 
 import (
+	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"context"
+
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datacenter"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/methods"
@@ -21,6 +25,9 @@ func resourceVSphereDatacenter() *schema.Resource {
 		Read:   resourceVSphereDatacenterRead,
 		Update: resourceVSphereDatacenterUpdate,
 		Delete: resourceVSphereDatacenterDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceVSphereDatacenterImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -86,6 +93,8 @@ func resourceVSphereDatacenterCreate(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("ESX host does not belong to a vCenter")
 	}
 
+	d.SetId(name)
+
 	// Wait for the datacenter resource to be ready
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"InProgress"},
@@ -115,8 +124,6 @@ func resourceVSphereDatacenterCreate(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	d.SetId(name)
-
 	return resourceVSphereDatacenterRead(d, meta)
 }
 
@@ -140,7 +147,7 @@ func resourceVSphereDatacenterStateRefreshFunc(d *schema.ResourceData, meta inte
 
 func datacenterExists(d *schema.ResourceData, meta interface{}) (*object.Datacenter, error) {
 	client := meta.(*VSphereClient).vimClient
-	name := d.Get("name").(string)
+	name := d.Id()
 
 	path := name
 	if v, ok := d.GetOk("folder"); ok {
@@ -162,6 +169,9 @@ func resourceVSphereDatacenterRead(d *schema.ResourceData, meta interface{}) err
 
 	// TODO: In v2.0, the ID should be the MOID and this can be removed.
 	if err = d.Set("moid", dc.Reference().Value); err != nil {
+		return err
+	}
+	if err = d.Set("name", dc.Name()); err != nil {
 		return err
 	}
 	// Read tags if we have the ability to do so
@@ -262,4 +272,19 @@ func resourceVSphereDatacenterDelete(d *schema.ResourceData, meta interface{}) e
 	}
 
 	return nil
+}
+
+func resourceVSphereDatacenterImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := meta.(*VSphereClient).vimClient
+	p := d.Id()
+	if !strings.HasPrefix(p, "/") {
+		return nil, errors.New("path must start with a trailing slash")
+	}
+
+	dc, err := datacenter.FromPath(client, p)
+	if err != nil {
+		return nil, err
+	}
+	d.SetId(dc.Name())
+	return []*schema.ResourceData{d}, nil
 }
