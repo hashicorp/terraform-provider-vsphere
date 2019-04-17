@@ -1209,7 +1209,8 @@ text - keep this in mind when provisioning your infrastructure.
 * `product_key` - (Optional) The product key for this virtual machine. The
   default is no key.
 * `run_once_command_list` - (Optional) A list of commands to run at first user
-  logon, after guest customization.
+  logon, after guest customization. Each command is limited by the API to 260
+  characters.
 * `auto_logon` - (Optional) Specifies whether or not the VM automatically logs
   on as Administrator. Default: `false`.
 * `auto_logon_count` - (Optional) Specifies how many times the VM should auto-logon
