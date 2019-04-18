@@ -598,7 +598,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
   name           = "terraform-test"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
-  disks = ["${data.vsphere_vmfs_disks.available.disks}"]
+  disks = "${data.vsphere_vmfs_disks.available.disks}"
 }
 `, os.Getenv("VSPHERE_VMFS_REGEXP"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
 }
@@ -730,7 +730,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
     "${var.disk0}",
   ]
 
-  tags = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
+  tags = "${vsphere_tag.terraform-test-tags-alt.*.id}"
 }
 `, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
 }

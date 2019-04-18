@@ -456,7 +456,7 @@ data "vsphere_host" "esxi_host" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name            = "terraform-test-nas"
-  host_system_ids = ["${data.vsphere_host.esxi_host.id}"]
+  host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
@@ -497,7 +497,7 @@ data "vsphere_host" "esxi_host" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name            = "terraform-test-nas"
-  host_system_ids = ["${data.vsphere_host.esxi_host.*.id}"]
+  host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
@@ -529,7 +529,7 @@ data "vsphere_host" "esxi_host" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name            = "terraform-test-nas-renamed"
-  host_system_ids = ["${data.vsphere_host.esxi_host.id}"]
+  host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
@@ -566,7 +566,7 @@ data "vsphere_host" "esxi_host" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name            = "terraform-test-nas"
-  host_system_ids = ["${data.vsphere_host.esxi_host.id}"]
+  host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
   folder          = "${var.folder}"
 
   type         = "NFS"
@@ -613,7 +613,7 @@ resource "vsphere_tag" "terraform-test-tag" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name            = "terraform-test-nas"
-  host_system_ids = ["${data.vsphere_host.esxi_host.id}"]
+  host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
@@ -674,13 +674,13 @@ resource "vsphere_tag" "terraform-test-tags-alt" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name            = "terraform-test-nas"
-  host_system_ids = ["${data.vsphere_host.esxi_host.id}"]
+  host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
   remote_path  = "${var.nfs_path}"
 
-  tags = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
+  tags = "${vsphere_tag.terraform-test-tags-alt.*.id}"
 }
 `, os.Getenv("VSPHERE_NAS_HOST"), os.Getenv("VSPHERE_NFS_PATH"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
 }
@@ -719,7 +719,7 @@ locals {
 
 resource "vsphere_nas_datastore" "datastore" {
   name            = "terraform-test-nas"
-  host_system_ids = ["${data.vsphere_host.esxi_host.id}"]
+  host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
@@ -770,7 +770,7 @@ locals {
 
 resource "vsphere_nas_datastore" "datastore" {
   name            = "terraform-test-nas"
-  host_system_ids = ["${data.vsphere_host.esxi_host.id}"]
+  host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
@@ -814,7 +814,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name                 = "terraform-test-nas"
-  host_system_ids      = ["${data.vsphere_host.esxi_host.id}"]
+  host_system_ids      = "${data.vsphere_host.esxi_host.*.id}"
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"

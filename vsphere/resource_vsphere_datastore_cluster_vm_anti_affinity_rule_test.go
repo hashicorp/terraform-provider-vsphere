@@ -394,7 +394,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name                 = "terraform-test-nas"
-  host_system_ids      = ["${data.vsphere_host.esxi_hosts.*.id}"]
+  host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -429,7 +429,7 @@ resource "vsphere_virtual_machine" "vm" {
 resource "vsphere_datastore_cluster_vm_anti_affinity_rule" "cluster_vm_anti_affinity_rule" {
   name                 = "terraform-test-datastore-cluster-anti-affinity-rule"
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
-  virtual_machine_ids  = ["${vsphere_virtual_machine.vm.*.id}"]
+  virtual_machine_ids  = "${vsphere_virtual_machine.vm.*.id}"
   enabled              = %t
 }
 `,

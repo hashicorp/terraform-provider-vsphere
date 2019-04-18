@@ -227,7 +227,7 @@ data "vsphere_host" "hosts" {
 resource "vsphere_compute_cluster" "compute_cluster" {
   name            = "terraform-compute-cluster-test"
   datacenter_id   = "${data.vsphere_datacenter.dc.id}"
-  host_system_ids = ["${data.vsphere_host.hosts.*.id}"]
+  host_system_ids = "${data.vsphere_host.hosts.*.id}"
 
   force_evacuate_on_destroy = true
 }
@@ -269,7 +269,7 @@ data "vsphere_host" "hosts" {
 resource "vsphere_compute_cluster" "compute_cluster" {
   name            = "terraform-compute-cluster-test"
   datacenter_id   = "${data.vsphere_datacenter.dc.id}"
-  host_system_ids = ["${data.vsphere_host.hosts.*.id}"]
+  host_system_ids = "${data.vsphere_host.hosts.*.id}"
 
   force_evacuate_on_destroy = true
 }

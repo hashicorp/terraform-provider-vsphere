@@ -841,7 +841,7 @@ resource "vsphere_folder" "folder" {
   path          = "${var.folder_name}"
   type          = "${var.folder_type}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
-  tags          = ["${vsphere_tag.terraform-test-tag.id}", "${vsphere_tag.terraform-test-tags-alt.*.id}"]
+  tags          = ["${vsphere_tag.terraform-test-tag.id}", "${vsphere_tag.terraform-test-tags-alt.0.id}", "${vsphere_tag.terraform-test-tags-alt.1.id}"]
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
@@ -899,7 +899,7 @@ resource "vsphere_folder" "folder" {
   path          = "${var.folder_name}"
   type          = "${var.folder_type}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
-  tags          = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
+  tags          = "${vsphere_tag.terraform-test-tags-alt.*.id}"
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),

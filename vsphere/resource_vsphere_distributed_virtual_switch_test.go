@@ -684,17 +684,17 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 
   host {
     host_system_id = "${data.vsphere_host.host.0.id}"
-    devices = ["${var.network_interfaces}"]
+    devices = "${var.network_interfaces}"
   }
 
   host {
     host_system_id = "${data.vsphere_host.host.1.id}"
-    devices = ["${var.network_interfaces}"]
+    devices = "${var.network_interfaces}"
   }
 
   host {
     host_system_id = "${data.vsphere_host.host.2.id}"
-    devices = ["${var.network_interfaces}"]
+    devices = "${var.network_interfaces}"
   }
 }
 `,
@@ -749,17 +749,17 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 
   host {
     host_system_id = "${data.vsphere_host.host.0.id}"
-    devices = ["${var.network_interfaces}"]
+    devices = "${var.network_interfaces}"
   }
 
   host {
     host_system_id = "${data.vsphere_host.host.1.id}"
-    devices = ["${var.network_interfaces}"]
+    devices = "${var.network_interfaces}"
   }
 
   host {
     host_system_id = "${data.vsphere_host.host.2.id}"
-    devices = ["${var.network_interfaces}"]
+    devices = "${var.network_interfaces}"
   }
 }
 `,
@@ -809,17 +809,17 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 
   host {
     host_system_id = "${data.vsphere_host.host.0.id}"
-    devices = ["${var.network_interfaces}"]
+    devices = "${var.network_interfaces}"
   }
 
   host {
     host_system_id = "${data.vsphere_host.host.1.id}"
-    devices = ["${var.network_interfaces}"]
+    devices = "${var.network_interfaces}"
   }
 
   host {
     host_system_id = "${data.vsphere_host.host.2.id}"
-    devices = ["${var.network_interfaces}"]
+    devices = "${var.network_interfaces}"
   }
 }
 `,
@@ -870,17 +870,17 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 
   host {
     host_system_id = "${data.vsphere_host.host.0.id}"
-    devices = ["${var.network_interfaces}"]
+    devices = "${var.network_interfaces}"
   }
 
   host {
     host_system_id = "${data.vsphere_host.host.1.id}"
-    devices = ["${var.network_interfaces}"]
+    devices = "${var.network_interfaces}"
   }
 
   host {
     host_system_id = "${data.vsphere_host.host.2.id}"
-    devices = ["${var.network_interfaces}"]
+    devices = "${var.network_interfaces}"
   }
 }
 `,
@@ -930,17 +930,17 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 
   host {
     host_system_id = "${data.vsphere_host.host.0.id}"
-    devices = ["${var.network_interfaces}"]
+    devices = "${var.network_interfaces}"
   }
 
   host {
     host_system_id = "${data.vsphere_host.host.1.id}"
-    devices = ["${var.network_interfaces}"]
+    devices = "${var.network_interfaces}"
   }
 
   host {
     host_system_id = "${data.vsphere_host.host.2.id}"
-    devices = ["${var.network_interfaces}"]
+    devices = "${var.network_interfaces}"
   }
 }
 `,
@@ -992,17 +992,17 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 
   host {
     host_system_id = "${data.vsphere_host.host.0.id}"
-    devices = ["${var.network_interfaces}"]
+    devices = "${var.network_interfaces}"
   }
 
   host {
     host_system_id = "${data.vsphere_host.host.1.id}"
-    devices = ["${var.network_interfaces}"]
+    devices = "${var.network_interfaces}"
   }
 
   host {
     host_system_id = "${data.vsphere_host.host.2.id}"
-    devices = ["${var.network_interfaces}"]
+    devices = "${var.network_interfaces}"
   }
 }
 `,
@@ -1133,7 +1133,7 @@ resource "vsphere_tag" "terraform-test-tags-alt" {
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "terraform-test-dvs"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
-  tags          = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
+  tags          = "${vsphere_tag.terraform-test-tags-alt.*.id}"
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),

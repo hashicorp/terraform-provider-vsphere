@@ -113,7 +113,7 @@ func testAccVSphereLicenseWithLabelConfig() string {
 	return fmt.Sprintf(`
 resource "vsphere_license" "foo" {
  license_key = "%s"
-  labels {
+  labels = {
    VpxClientLicenseLabel = "Hello World"
    TestTitle = "fooBar"
   }

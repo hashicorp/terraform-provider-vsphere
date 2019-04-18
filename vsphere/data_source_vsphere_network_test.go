@@ -252,17 +252,17 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 
   host {
     host_system_id = "${data.vsphere_host.host.0.id}"
-    devices        = ["${var.network_interfaces}"]
+    devices        = "${var.network_interfaces}"
   }
 
   host {
     host_system_id = "${data.vsphere_host.host.1.id}"
-    devices        = ["${var.network_interfaces}"]
+    devices        = "${var.network_interfaces}"
   }
 
   host {
     host_system_id = "${data.vsphere_host.host.2.id}"
-    devices        = ["${var.network_interfaces}"]
+    devices        = "${var.network_interfaces}"
   }
 }
 

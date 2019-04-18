@@ -550,7 +550,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 resource "vsphere_distributed_port_group" "pg" {
   name                            = "terraform-test-pg"
   distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
-  tags                            = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
+  tags                            = "${vsphere_tag.terraform-test-tags-alt.*.id}"
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),

@@ -1656,26 +1656,27 @@ func TestAccResourceVSphereVirtualMachine_cloneBlockESXi(t *testing.T) {
 	})
 }
 
-func TestAccResourceVSphereVirtualMachine_cloneWithBadTimezone(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
-		},
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config:      testAccResourceVSphereVirtualMachineConfigCloneTimeZone("Pacific Standard Time"),
-				ExpectError: regexp.MustCompile("must be similar to America/Los_Angeles or other Linux/Unix TZ format"),
-				PlanOnly:    true,
-			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
-			},
-		},
-	})
-}
+// Temporarily removed until https://github.com/hashicorp/terraform/issues/21225 is resolved.
+//func TestAccResourceVSphereVirtualMachine_cloneWithBadTimezone(t *testing.T) {
+//	resource.Test(t, resource.TestCase{
+//		PreCheck: func() {
+//			testAccPreCheck(t)
+//			testAccResourceVSphereVirtualMachinePreCheck(t)
+//		},
+//		Providers: testAccProviders,
+//		Steps: []resource.TestStep{
+//			{
+//				Config:      testAccResourceVSphereVirtualMachineConfigCloneTimeZone("Pacific Standard Time"),
+//				ExpectError: regexp.MustCompile("must be similar to America/Los_Angeles or other Linux/Unix TZ format"),
+//				PlanOnly:    true,
+//			},
+//			{
+//				Config: testAccResourceVSphereEmpty,
+//				Check:  resource.ComposeTestCheckFunc(),
+//			},
+//		},
+//	})
+//}
 
 func TestAccResourceVSphereVirtualMachine_cloneWithBadEagerlyScrubWithLinkedClone(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -1698,26 +1699,27 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadEagerlyScrubWithLinkedClon
 	})
 }
 
-func TestAccResourceVSphereVirtualMachine_cloneWithBadThinProvisionedWithLinkedClone(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
-		},
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config:      testAccResourceVSphereVirtualMachineConfigBadThin(),
-				ExpectError: regexp.MustCompile("must have same value for thin_provisioned as source when using linked_clone"),
-				PlanOnly:    true,
-			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
-			},
-		},
-	})
-}
+// Temporarily removed until https://github.com/hashicorp/terraform/issues/21225 is resolved.
+//func TestAccResourceVSphereVirtualMachine_cloneWithBadThinProvisionedWithLinkedClone(t *testing.T) {
+//	resource.Test(t, resource.TestCase{
+//		PreCheck: func() {
+//			testAccPreCheck(t)
+//			testAccResourceVSphereVirtualMachinePreCheck(t)
+//		},
+//		Providers: testAccProviders,
+//		Steps: []resource.TestStep{
+//			{
+//				Config:      testAccResourceVSphereVirtualMachineConfigBadThin(),
+//				ExpectError: regexp.MustCompile("must have same value for thin_provisioned as source when using linked_clone"),
+//				PlanOnly:    true,
+//			},
+//			{
+//				Config: testAccResourceVSphereEmpty,
+//				Check:  resource.ComposeTestCheckFunc(),
+//			},
+//		},
+//	})
+//}
 
 func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithLinkedClone(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -2838,7 +2840,6 @@ func TestAccResourceVSphereVirtualMachine_importClone(t *testing.T) {
 						return nil
 					},
 				),
-				ExpectNonEmptyPlan: true,
 			},
 			{
 				Config: testAccResourceVSphereVirtualMachineConfigClone(),
@@ -4089,7 +4090,7 @@ data "vsphere_vmfs_disks" "disk" {
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "terraform-test-shared-datastore"
   host_system_id = "${data.vsphere_host.host.id}"
-  disks          = ["${data.vsphere_vmfs_disks.disk.disks}"]
+  disks          = "${data.vsphere_vmfs_disks.disk.disks}"
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
@@ -4155,7 +4156,7 @@ data "vsphere_datastore" "ds" {
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "terraform-test-shared-datastore"
   host_system_id = "${data.vsphere_host.host.id}"
-  disks          = ["${data.vsphere_vmfs_disks.disk.disks}"]
+  disks          = "${data.vsphere_vmfs_disks.disk.disks}"
 }
 
 resource "vsphere_virtual_disk" "disk" {
@@ -5050,9 +5051,9 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   vapp {
-    properties {
-      "user-data" = "${base64encode(data.template_file.config_data.rendered)}"
-      "hostname"  = "custom-hostname"
+    properties = {
+      user-data = "${base64encode(data.template_file.config_data.rendered)}"
+      hostname  = "custom-hostname"
     }
   }
 
@@ -5184,9 +5185,9 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   vapp {
-    properties {
-      "user-data" = "${base64encode(data.template_file.config_data.rendered)}"
-      "hostname"  = "custom-hostname"
+    properties = {
+      user-data = "${base64encode(data.template_file.config_data.rendered)}"
+      hostname  = "custom-hostname"
     }
   }
 
@@ -5320,9 +5321,9 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   vapp {
-    properties {
-      "user-data" = "${base64encode(data.template_file.config_data.rendered)}"
-      "hostname"  = "custom-hostname"
+    properties = {
+      user-data = "${base64encode(data.template_file.config_data.rendered)}"
+      hostname  = "custom-hostname"
     }
   }
 
@@ -6099,8 +6100,8 @@ resource "vsphere_virtual_machine" "vm" {
   memory   = 2048
   guest_id = "other3xLinux64Guest"
 
-  extra_config {
-    "%s" = "%s"
+  extra_config = {
+    %s = "%s"
   }
 
   network_interface {
@@ -6815,7 +6816,7 @@ resource "vsphere_virtual_machine" "vm" {
     size  = 20
   }
 
-  tags = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
+  tags = "${vsphere_tag.terraform-test-tags-alt.*.id}"
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
@@ -6946,8 +6947,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   vapp {
-    properties {
-      "foo" = "bar"
+    properties = {
+      foo = "bar"
     }
   }
 }
@@ -10545,7 +10546,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   vapp {
-    properties {
+		properties = {
       "guestinfo.hostname"                        = "terraform-test.test.internal"
       "guestinfo.interface.0.name"                = "ens192"
       "guestinfo.interface.0.ip.0.address"        = "${var.ipv4_address}/${var.ipv4_netmask}"
@@ -10662,7 +10663,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   vapp {
-    properties {
+    properties = {
       "guestinfo.hostname"                        = "terraform-test.test.internal"
       "guestinfo.interface.0.name"                = "ens192"
       "guestinfo.interface.0.ip.0.address"        = "${var.ipv4_address}/${var.ipv4_netmask}"
@@ -10780,7 +10781,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   vapp {
-    properties {
+    properties = {
       "guestinfo.hostname"                        = "terraform-test.test.internal"
       "guestinfo.interface.0.name"                = "ens192"
       "guestinfo.interface.0.ip.0.address"        = "${var.ipv4_address}/${var.ipv4_netmask}"
@@ -10920,8 +10921,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   vapp {
-    properties {
-      "foo" = "bar"
+    properties = {
+      foo = "bar"
     }
   }
 }
@@ -11536,7 +11537,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name                 = "terraform-test-nas"
-  host_system_ids      = ["${data.vsphere_host.esxi_hosts.*.id}"]
+  host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -11634,7 +11635,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name                 = "terraform-test-nas"
-  host_system_ids      = ["${data.vsphere_host.esxi_hosts.*.id}"]
+  host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -11758,7 +11759,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name                 = "terraform-test-nas"
-  host_system_ids      = ["${data.vsphere_host.esxi_hosts.*.id}"]
+  host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -11913,7 +11914,7 @@ resource "vsphere_datastore_cluster" "%s" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name                 = "terraform-test-nas"
-  host_system_ids      = ["${data.vsphere_host.esxi_hosts.*.id}"]
+  host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
   datastore_cluster_id = "${vsphere_datastore_cluster.%s.id}"
 
   type         = "NFS"
@@ -11929,7 +11930,7 @@ resource "vsphere_datastore_cluster" "%s" {
 
 resource "vsphere_nas_datastore" "datastore2" {
   name                 = "terraform-test-nas2"
-  host_system_ids      = ["${data.vsphere_host.esxi_hosts.*.id}"]
+  host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
   datastore_cluster_id = "${vsphere_datastore_cluster.%s.id}"
 
   type         = "NFS"
@@ -12105,7 +12106,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name                 = "terraform-test-nas"
-  host_system_ids      = ["${data.vsphere_host.mount_hosts.*.id}"]
+  host_system_ids      = "${data.vsphere_host.mount_hosts.*.id}"
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -12260,7 +12261,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name                 = "terraform-test-nas"
-  host_system_ids      = ["${data.vsphere_host.esxi_hosts.*.id}"]
+  host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -12437,7 +12438,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name                 = "terraform-test-nas"
-  host_system_ids      = ["${data.vsphere_host.esxi_hosts.*.id}"]
+  host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"

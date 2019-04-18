@@ -62,9 +62,10 @@ https://www.terraform.io/docs/commands/taint.html
 func resourceVSphereVirtualMachine() *schema.Resource {
 	s := map[string]*schema.Schema{
 		"resource_pool_id": {
-			Type:        schema.TypeString,
-			Required:    true,
-			Description: "The ID of a resource pool to put the virtual machine in.",
+			Type:         schema.TypeString,
+			Required:     true,
+			Description:  "The ID of a resource pool to put the virtual machine in.",
+			ValidateFunc: validation.StringLenBetween(1, 2),
 		},
 		"datastore_id": {
 			Type:          schema.TypeString,
