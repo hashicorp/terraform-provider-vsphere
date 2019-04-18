@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccDataSourceVSphereVmfsDisks_basic(t *testing.T) {
@@ -19,7 +20,7 @@ func TestAccDataSourceVSphereVmfsDisks_basic(t *testing.T) {
 			{
 				Config: testAccDataSourceVSphereVmfsDisksConfig(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckOutput("found", "true"),
+					testCheckOutputBool("found", true),
 				),
 			},
 		},
@@ -53,6 +54,27 @@ func testAccDataSourceVSphereVmfsDisksPreCheck(t *testing.T) {
 	}
 	if os.Getenv("VSPHERE_VMFS_REGEXP") == "" {
 		t.Skip("set VSPHERE_VMFS_REGEXP to run vsphere_vmfs_disks acceptance tests")
+	}
+}
+
+// testCheckOutputBool checks an output in the Terraform configuration
+func testCheckOutputBool(name string, value bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		ms := s.RootModule()
+		rs, ok := ms.Outputs[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		if rs.Value != value {
+			return fmt.Errorf(
+				"Output '%s': expected %#v, got %#v",
+				name,
+				value,
+				rs)
+		}
+
+		return nil
 	}
 }
 

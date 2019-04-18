@@ -77,7 +77,7 @@ resource "vsphere_tag" "terraform-test-tags-alt" {
 
 resource "vsphere_datacenter" "testDC" {
   name = "testDC"
-  tags = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
+  tags = "${vsphere_tag.terraform-test-tags-alt.*.id}"
 }
 `
 
@@ -133,29 +133,6 @@ func TestAccResourceVSphereDatacenter_createOnRootFolder(t *testing.T) {
 			{
 				Config: testAccCheckVSphereDatacenterConfig,
 				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDatacenterExists(testAccCheckVSphereDatacenterResourceName, true)),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereDatacenter_import(t *testing.T) {
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckVSphereDatacenterDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCheckVSphereDatacenterConfig,
-				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDatacenterExists(testAccCheckVSphereDatacenterResourceName, true)),
-			},
-			{
-				ResourceName:      "vsphere_datacenter.testDC",
-				Config:            testAccCheckVSphereDatacenterConfig,
-				Check:             resource.ComposeTestCheckFunc(testAccCheckVSphereDatacenterExists(testAccCheckVSphereDatacenterResourceName, true)),
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateId:     "/testDC",
 			},
 		},
 	})

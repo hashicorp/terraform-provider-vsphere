@@ -300,7 +300,7 @@ resource "vsphere_virtual_machine" "vm" {
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
   name                = "terraform-test-cluster-group"
   compute_cluster_id  = "${data.vsphere_compute_cluster.cluster.id}"
-  virtual_machine_ids = ["${vsphere_virtual_machine.vm.*.id}"]
+  virtual_machine_ids = "${vsphere_virtual_machine.vm.*.id}"
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),

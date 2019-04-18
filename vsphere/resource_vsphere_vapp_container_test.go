@@ -540,7 +540,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore1" {
   name                 = "terraform-datastore-test1"
-  host_system_ids      = ["${data.vsphere_host.esxi_hosts.*.id}"]
+  host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -652,7 +652,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore1" {
   name                 = "terraform-datastore-test1"
-  host_system_ids      = ["${data.vsphere_host.esxi_hosts.*.id}"]
+  host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -773,7 +773,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore1" {
   name                 = "terraform-datastore-test1"
-  host_system_ids      = ["${data.vsphere_host.esxi_hosts.*.id}"]
+  host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
