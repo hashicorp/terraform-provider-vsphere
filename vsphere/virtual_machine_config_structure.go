@@ -641,6 +641,11 @@ func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) (*types.Vm
 				delete(newMap, p.Id)
 			}
 			props = append(props, prop)
+		} else {
+			_, ok := newMap[p.Id]
+			if ok {
+				return nil, fmt.Errorf("vApp property with userConfigurable=false specified in vapp.properties: %+v", reflect.ValueOf(newMap).MapKeys())
+			}
 		}
 	}
 
