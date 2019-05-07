@@ -55,6 +55,14 @@ func testAccPreCheck(t *testing.T) {
 	}
 }
 
+func testAccCheckEnvVariables(t *testing.T, variableNames []string) {
+	for _, name := range variableNames {
+		if v := os.Getenv(name); v == "" {
+			t.Skipf("%s must be set for this acceptance test", name)
+		}
+	}
+}
+
 // testAccProviderMeta returns a instantiated VSphereClient for this provider.
 // It's useful in state migration tests where a provider connection is actually
 // needed, and we don't want to go through the regular provider configure

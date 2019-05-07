@@ -31,7 +31,10 @@ func TestAccResourceVSphereFile_basic(t *testing.T) {
 	sourceFile := testVmdkFile
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccCheckEnvVariables(t, []string{"VSPHERE_DATACENTER", "VSPHERE_DATASTORE"})
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereFileDestroy,
 		Steps: []resource.TestStep{
@@ -75,7 +78,10 @@ func TestAccResourceVSphereFile_basicUploadAndCopy(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccCheckEnvVariables(t, []string{"VSPHERE_DATACENTER", "VSPHERE_DATASTORE"})
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereFileDestroy,
 		Steps: []resource.TestStep{
@@ -126,7 +132,10 @@ func TestAccResourceVSphereFile_renamePostCreation(t *testing.T) {
 	sourceFile := testVmdkFile
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccCheckEnvVariables(t, []string{"VSPHERE_DATACENTER", "VSPHERE_DATASTORE"})
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereFileDestroy,
 		Steps: []resource.TestStep{
@@ -187,7 +196,10 @@ func TestAccResourceVSphereFile_uploadAndCopyAndUpdate(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccCheckEnvVariables(t, []string{"VSPHERE_DATACENTER", "VSPHERE_DATASTORE"})
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereFileDestroy,
 		Steps: []resource.TestStep{

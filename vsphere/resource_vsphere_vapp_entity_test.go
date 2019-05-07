@@ -210,13 +210,19 @@ func TestAccResourceVSphereVAppEntity_import(t *testing.T) {
 
 func testAccResourceVSphereVAppEntityPreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_DATACENTER") == "" {
-		t.Skip("set VSPHERE_DATACENTER to run vsphere_resource_pool acceptance tests")
+		t.Skip("set VSPHERE_DATACENTER to run vsphere_vapp_entity acceptance tests")
 	}
 	if os.Getenv("VSPHERE_CLUSTER") == "" {
-		t.Skip("set VSPHERE_CLUSTER to run vsphere_resource_pool acceptance tests")
+		t.Skip("set VSPHERE_CLUSTER to run vsphere_vapp_entity acceptance tests")
 	}
 	if os.Getenv("VSPHERE_ESXI_HOST5") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST5 to run vsphere_resource_pool acceptance tests")
+		t.Skip("set VSPHERE_ESXI_HOST5 to run vsphere_vapp_entity acceptance tests")
+	}
+	if os.Getenv("VSPHERE_NETWORK_LABEL_PXE") == "" {
+		t.Skip("set VSPHERE_NETWORK_LABEL_PXE to run vsphere_vapp_entity acceptance tests")
+	}
+	if os.Getenv("VSPHERE_DATASTORE") == "" {
+		t.Skip("set VSPHERE_DATASTORE to run vsphere_vapp_entity acceptance tests")
 	}
 }
 
