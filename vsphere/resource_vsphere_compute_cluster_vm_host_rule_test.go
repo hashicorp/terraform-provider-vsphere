@@ -356,7 +356,7 @@ data "vsphere_host" "hosts" {
 resource "vsphere_compute_cluster" "cluster" {
   name            = "terraform-compute-cluster-test"
   datacenter_id   = "${data.vsphere_datacenter.dc.id}"
-  host_system_ids = ["${data.vsphere_host.hosts.*.id}"]
+  host_system_ids = "${data.vsphere_host.hosts.*.id}"
 
   force_evacuate_on_destroy = true
 }
@@ -385,13 +385,13 @@ resource "vsphere_virtual_machine" "vm" {
 resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
   name               = "terraform-test-cluster-host-group"
   compute_cluster_id = "${vsphere_compute_cluster.cluster.id}"
-  host_system_ids    = ["${data.vsphere_host.hosts.*.id}"]
+  host_system_ids    = "${data.vsphere_host.hosts.*.id}"
 }
 
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
   name                = "terraform-test-cluster-vm-group"
   compute_cluster_id  = "${vsphere_compute_cluster.cluster.id}"
-  virtual_machine_ids = ["${vsphere_virtual_machine.vm.*.id}"]
+  virtual_machine_ids = "${vsphere_virtual_machine.vm.*.id}"
 }
 
 resource "vsphere_compute_cluster_vm_host_rule" "cluster_vm_host_rule" {
@@ -453,7 +453,7 @@ data "vsphere_host" "hosts" {
 resource "vsphere_compute_cluster" "cluster" {
   name            = "terraform-compute-cluster-test"
   datacenter_id   = "${data.vsphere_datacenter.dc.id}"
-  host_system_ids = ["${data.vsphere_host.hosts.*.id}"]
+  host_system_ids = "${data.vsphere_host.hosts.*.id}"
 
   force_evacuate_on_destroy = true
 }
@@ -482,13 +482,13 @@ resource "vsphere_virtual_machine" "vm" {
 resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
   name               = "terraform-test-cluster-host-group"
   compute_cluster_id = "${vsphere_compute_cluster.cluster.id}"
-  host_system_ids    = ["${data.vsphere_host.hosts.*.id}"]
+  host_system_ids    = "${data.vsphere_host.hosts.*.id}"
 }
 
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
   name                = "terraform-test-cluster-vm-group"
   compute_cluster_id  = "${vsphere_compute_cluster.cluster.id}"
-  virtual_machine_ids = ["${vsphere_virtual_machine.vm.*.id}"]
+  virtual_machine_ids = "${vsphere_virtual_machine.vm.*.id}"
 }
 
 resource "vsphere_compute_cluster_vm_host_rule" "cluster_vm_host_rule" {
@@ -550,7 +550,7 @@ data "vsphere_host" "hosts" {
 resource "vsphere_compute_cluster" "cluster" {
   name            = "terraform-compute-cluster-test"
   datacenter_id   = "${data.vsphere_datacenter.dc.id}"
-  host_system_ids = ["${data.vsphere_host.hosts.*.id}"]
+  host_system_ids = "${data.vsphere_host.hosts.*.id}"
 
   force_evacuate_on_destroy = true
 }
@@ -579,13 +579,13 @@ resource "vsphere_virtual_machine" "vm" {
 resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
   name               = "terraform-test-cluster-host-group"
   compute_cluster_id = "${vsphere_compute_cluster.cluster.id}"
-  host_system_ids    = ["${data.vsphere_host.hosts.*.id}"]
+  host_system_ids    = "${data.vsphere_host.hosts.*.id}"
 }
 
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
   name                = "terraform-test-cluster-vm-group"
   compute_cluster_id  = "${vsphere_compute_cluster.cluster.id}"
-  virtual_machine_ids = ["${vsphere_virtual_machine.vm.*.id}"]
+  virtual_machine_ids = "${vsphere_virtual_machine.vm.*.id}"
 }
 
 resource "vsphere_compute_cluster_vm_host_rule" "cluster_vm_host_rule" {

@@ -972,7 +972,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "terraform-datastore-cluster-test"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 
-  tags = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
+  tags = "${vsphere_tag.terraform-test-tags-alt.*.id}"
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),

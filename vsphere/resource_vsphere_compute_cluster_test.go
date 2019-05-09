@@ -619,7 +619,7 @@ data "vsphere_host" "hosts" {
 resource "vsphere_compute_cluster" "compute_cluster" {
   name                        = "terraform-compute-cluster-test"
   datacenter_id               = "${data.vsphere_datacenter.dc.id}"
-  host_system_ids             = ["${data.vsphere_host.hosts.*.id}"]
+  host_system_ids             = "${data.vsphere_host.hosts.*.id}"
   ha_enabled                  = true
   ha_admission_control_policy = "disabled"
 
@@ -658,7 +658,7 @@ data "vsphere_host" "hosts" {
 resource "vsphere_compute_cluster" "compute_cluster" {
   name            = "terraform-compute-cluster-test"
   datacenter_id   = "${data.vsphere_datacenter.dc.id}"
-  host_system_ids = ["${data.vsphere_host.hosts.*.id}"]
+  host_system_ids = "${data.vsphere_host.hosts.*.id}"
 
   force_evacuate_on_destroy = true
 }
@@ -695,7 +695,7 @@ data "vsphere_host" "hosts" {
 resource "vsphere_compute_cluster" "compute_cluster" {
   name            = "terraform-compute-cluster-test"
   datacenter_id   = "${data.vsphere_datacenter.dc.id}"
-  host_system_ids = ["${data.vsphere_host.hosts.*.id}"]
+  host_system_ids = "${data.vsphere_host.hosts.*.id}"
 
   drs_enabled          = true
   drs_automation_level = "fullyAutomated"
@@ -737,14 +737,14 @@ data "vsphere_host" "hosts" {
 resource "vsphere_compute_cluster" "compute_cluster" {
   name            = "terraform-compute-cluster-test"
   datacenter_id   = "${data.vsphere_datacenter.dc.id}"
-  host_system_ids = ["${data.vsphere_host.hosts.*.id}"]
+  host_system_ids = "${data.vsphere_host.hosts.*.id}"
 
   drs_enabled          = true
   drs_automation_level = "fullyAutomated"
 
   ha_enabled                                    = true
   ha_admission_control_policy                   = "failoverHosts"
-  ha_admission_control_failover_host_system_ids = ["${data.vsphere_host.hosts.0.id}"]
+  ha_admission_control_failover_host_system_ids = "${data.vsphere_host.hosts.*.id}"
 
   force_evacuate_on_destroy = true
 }
@@ -884,7 +884,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   name          = "terraform-compute-cluster-test"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 
-  tags = ["${vsphere_tag.terraform-test-tags-alt.*.id}"]
+  tags = "${vsphere_tag.terraform-test-tags-alt.*.id}"
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
@@ -1005,7 +1005,7 @@ data "vsphere_network" "network" {
 resource "vsphere_compute_cluster" "compute_cluster" {
   name            = "terraform-compute-cluster-test"
   datacenter_id   = "${data.vsphere_datacenter.dc.id}"
-  host_system_ids = ["${data.vsphere_host.hosts.*.id}"]
+  host_system_ids = "${data.vsphere_host.hosts.*.id}"
 
   drs_enabled          = true
   drs_automation_level = "fullyAutomated"

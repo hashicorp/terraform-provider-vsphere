@@ -386,7 +386,7 @@ resource "vsphere_virtual_machine" "vm" {
 resource "vsphere_compute_cluster_vm_affinity_rule" "cluster_vm_affinity_rule" {
   name                = "terraform-test-cluster-affinity-rule"
   compute_cluster_id  = "${data.vsphere_compute_cluster.cluster.id}"
-  virtual_machine_ids = ["${vsphere_virtual_machine.vm.*.id}"]
+  virtual_machine_ids = "${vsphere_virtual_machine.vm.*.id}"
 	enabled             = %t
 }
 `,
