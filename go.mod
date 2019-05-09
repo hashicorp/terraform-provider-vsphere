@@ -1,7 +1,7 @@
 module github.com/terraform-providers/terraform-provider-vsphere
 
 replace (
-	github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.4.1
+	github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.3.0
 	github.com/golang/lint => golang.org/x/lint v0.0.0-20190409202823-959b441ac422
 	sourcegraph.com/sourcegraph/go-diff => github.com/sourcegraph/go-diff v0.5.1
 )
