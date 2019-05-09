@@ -1,4 +1,15 @@
-## 1.10.1 (Unreleased)
+## 1.11.0 (Unreleased)
+
+IMPROVEMENTS:
+
+* Add support for importing datacenters. ([#737](https://github.com/terraform-providers/terraform-provider-vsphere/pull/737))
+* Document max character limit on `run_once_command_list`. ([#748](https://github.com/terraform-providers/terraform-provider-vsphere/pull/748))
+* Add missing ENV variable checks for acceptance tests. ([#758](https://github.com/terraform-providers/terraform-provider-vsphere/pull/758))
+* Switch to Terraform 0.12 SDK which is required for Terraform 0.12 support.
+  This is the first release to use the 0.12 SDK required for Terraform 0.12
+  support. Some provider behaviour may have changed as a result of changes made
+  by the new SDK version. ([#760](https://github.com/terraform-providers/terraform-provider-vsphere/pull/760)) 
+
 ## 1.10.0 (March 15, 2019)
 
 FEATURES:
@@ -9,11 +20,12 @@ IMPROVEMENTS:
 
 * Update tf-vsphere-devrc.mk.example to include all environment variables ([#707](https://github.com/terraform-providers/terraform-provider-vsphere/pull/707))
 * Add Go Modules support ([#705](https://github.com/terraform-providers/terraform-provider-vsphere/pull/705))
-* Fix assorted typos in documenation
+* Fix assorted typos in documentation
 * `resource/virtual_machine`: Add support for using guest.ipAddress for older
   versions of VM Tools. ([#684](https://github.com/terraform-providers/terraform-provider-vsphere/issues/684))
 
 BUG FIXES:
+
 * `resource/virtual_machine`: Do not set optional `ignored_guest_ips` on read ([#726](https://github.com/terraform-providers/terraform-provider-vsphere/pull/726))
 
 ## 1.9.1 (January 10, 2019)
