@@ -618,27 +618,35 @@ func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) (*types.Vm
 	allProperties := vmProps.Config.VAppConfig.GetVmConfigInfo().Property
 
 	for _, p := range allProperties {
-		defaultValue := " "
-		if p.DefaultValue != "" {
-			defaultValue = p.DefaultValue
-		}
-		prop := types.VAppPropertySpec{
-			ArrayUpdateSpec: types.ArrayUpdateSpec{
-				Operation: types.ArrayUpdateOperationEdit,
-			},
-			Info: &types.VAppPropertyInfo{
-				Key:   p.Key,
-				Id:    p.Id,
-				Value: defaultValue,
-			},
-		}
+		if *p.UserConfigurable == true {
+			defaultValue := " "
+			if p.DefaultValue != "" {
+				defaultValue = p.DefaultValue
+			}
+			prop := types.VAppPropertySpec{
+				ArrayUpdateSpec: types.ArrayUpdateSpec{
+					Operation: types.ArrayUpdateOperationEdit,
+				},
+				Info: &types.VAppPropertyInfo{
+					Key:              p.Key,
+					Id:               p.Id,
+					Value:            defaultValue,
+					UserConfigurable: p.UserConfigurable,
+				},
+			}
 
-		newValue, ok := newMap[p.Id]
-		if ok {
-			prop.Info.Value = newValue.(string)
-			delete(newMap, p.Id)
+			newValue, ok := newMap[p.Id]
+			if ok {
+				prop.Info.Value = newValue.(string)
+				delete(newMap, p.Id)
+			}
+			props = append(props, prop)
+		} else {
+			_, ok := newMap[p.Id]
+			if ok {
+				return nil, fmt.Errorf("vApp property with userConfigurable=false specified in vapp.properties: %+v", reflect.ValueOf(newMap).MapKeys())
+			}
 		}
-		props = append(props, prop)
 	}
 
 	if len(newMap) > 0 {
@@ -667,8 +675,10 @@ func flattenVAppConfig(d *schema.ResourceData, config types.BaseVmConfigInfo) er
 	}
 	vac := make(map[string]interface{})
 	for _, v := range props {
-		if v.Value != "" && v.Value != v.DefaultValue {
-			vac[v.Id] = v.Value
+		if *v.UserConfigurable == true {
+			if v.Value != "" && v.Value != v.DefaultValue {
+				vac[v.Id] = v.Value
+			}
 		}
 	}
 	// Only set if properties exist to prevent creating an unnecessary diff
