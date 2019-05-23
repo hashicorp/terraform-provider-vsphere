@@ -1,4 +1,9 @@
 ## 1.11.1 (Unreleased)
+
+BUG FIXES:
+* `resource/virtual_machine`: Only set vApp properties that are
+  UserConfigurable. ([#751](https://github.com/terraform-providers/terraform-provider-vsphere/pull/751))
+
 ## 1.11.0 (May 09, 2019)
 
 IMPROVEMENTS:
