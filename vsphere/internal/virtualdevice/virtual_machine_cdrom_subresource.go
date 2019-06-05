@@ -407,6 +407,10 @@ func CdromDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 	for ci, ce := range cr.([]interface{}) {
 		cm := ce.(map[string]interface{})
 		r := NewCdromSubresource(c, d, cm, nil, ci)
+		if !structure.ValuesAvailable(fmt.Sprintf("%s.%d.", subresourceTypeCdrom, ci), []string{"datastore_id", "path"}, d) {
+			log.Printf("[DEBUG] CdromDiffOperation: Cdrom contains a value that depends on a computed value from another resource. Skipping validation")
+			return nil
+		}
 		if err := r.ValidateDiff(); err != nil {
 			return fmt.Errorf("%s: %s", r.Addr(), err)
 		}
