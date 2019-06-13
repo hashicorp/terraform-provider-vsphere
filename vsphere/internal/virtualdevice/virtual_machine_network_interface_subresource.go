@@ -687,7 +687,7 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
 	case *types.VirtualEthernetCardDistributedVirtualPortBackingInfo:
 		pg, err := dvportgroup.FromKey(r.client, backing.Port.SwitchUuid, backing.Port.PortgroupKey)
 		if err != nil {
-			if strings.Contains(err.Error(), "The object or item referred to could not be found"){
+			if strings.Contains(err.Error(), "The object or item referred to could not be found") {
 				netID = ""
 			} else {
 				return err
