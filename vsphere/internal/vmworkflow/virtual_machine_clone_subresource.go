@@ -59,40 +59,47 @@ func VirtualMachineCloneSchema() map[string]*schema.Schema {
 // use in the even that linked clones are enabled.
 func ValidateVirtualMachineClone(d *schema.ResourceDiff, c *govmomi.Client) error {
 	tUUID := d.Get("clone.0.template_uuid").(string)
-	log.Printf("[DEBUG] ValidateVirtualMachineClone: Validating fitness of source VM/template %s", tUUID)
-	vm, err := virtualmachine.FromUUID(c, tUUID)
-	if err != nil {
-		return fmt.Errorf("cannot locate virtual machine or template with UUID %q: %s", tUUID, err)
-	}
-	vprops, err := virtualmachine.Properties(vm)
-	if err != nil {
-		return fmt.Errorf("error fetching virtual machine or template properties: %s", err)
-	}
-	// The virtual machine needs to be powered off to be suitable for cloning.
-	if vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOff {
-		return fmt.Errorf("virtual machine %s must be powered off to be used as a source for cloning", tUUID)
-	}
-	// Check to see if our guest IDs match.
-	eGuestID := vprops.Config.GuestId
-	aGuestID := d.Get("guest_id").(string)
-	if eGuestID != aGuestID {
-		return fmt.Errorf("invalid guest ID %q for clone. Please set it to %q", aGuestID, eGuestID)
-	}
-	// If linked clone is enabled, check to see if we have a snapshot. There need
-	// to be a single snapshot on the template for it to be eligible.
-	linked := d.Get("clone.0.linked_clone").(bool)
-	if linked {
-		log.Printf("[DEBUG] ValidateVirtualMachineClone: Checking snapshots on %s for linked clone eligibility", tUUID)
-		if err := validateCloneSnapshots(vprops); err != nil {
+	if d.NewValueKnown("clone.0.template_uuid") {
+		log.Printf("[DEBUG] ValidateVirtualMachineClone: Validating fitness of source VM/template %s", tUUID)
+		vm, err := virtualmachine.FromUUID(c, tUUID)
+		if err != nil {
+			return fmt.Errorf("cannot locate virtual machine or template with UUID %q: %s", tUUID, err)
+		}
+		vprops, err := virtualmachine.Properties(vm)
+		if err != nil {
+			return fmt.Errorf("error fetching virtual machine or template properties: %s", err)
+		}
+		// Check to see if our guest IDs match.
+		eGuestID := vprops.Config.GuestId
+		aGuestID := d.Get("guest_id").(string)
+		if eGuestID != aGuestID {
+			return fmt.Errorf("invalid guest ID %q for clone. Please set it to %q", aGuestID, eGuestID)
+		}
+		// If linked clone is enabled, check to see if we have a snapshot. There need
+		// to be a single snapshot on the template for it to be eligible.
+		linked := d.Get("clone.0.linked_clone").(bool)
+		if linked {
+			log.Printf("[DEBUG] ValidateVirtualMachineClone: Checking snapshots on %s for linked clone eligibility", tUUID)
+			if err := validateCloneSnapshots(vprops); err != nil {
+				return err
+			}
+		}
+		// Check to make sure the disks for this VM/template line up with the disks
+		// in the configuration. This is in the virtual device package, so pass off
+		// to that now.
+		l := object.VirtualDeviceList(vprops.Config.Hardware.Device)
+		if err := virtualdevice.DiskCloneValidateOperation(d, c, l, linked); err != nil {
 			return err
 		}
-	}
-	// Check to make sure the disks for this VM/template line up with the disks
-	// in the configuration. This is in the virtual device package, so pass off
-	// to that now.
-	l := object.VirtualDeviceList(vprops.Config.Hardware.Device)
-	if err := virtualdevice.DiskCloneValidateOperation(d, c, l, linked); err != nil {
-		return err
+		vconfig := vprops.Config.VAppConfig
+		if vconfig != nil {
+			// We need to set the vApp transport types here so that it is available
+			// later in CustomizeDiff where transport requirements are validated in
+			// ValidateVAppTransport
+			d.SetNew("vapp_transport", vconfig.GetVmConfigInfo().OvfEnvironmentTransport)
+		}
+	} else {
+		log.Printf("[DEBUG] ValidateVirtualMachineClone: template_uuid is not available. Skipping template validation.")
 	}
 
 	// If a customization spec was defined, we need to check some items in it as well.
@@ -113,14 +120,6 @@ func ValidateVirtualMachineClone(d *schema.ResourceDiff, c *govmomi.Client) erro
 			log.Printf("[DEBUG] ValidateVirtualMachineClone: resource_pool_id is not available. Skipping OS family check.")
 		}
 	}
-	vconfig := vprops.Config.VAppConfig
-	if vconfig != nil {
-		// We need to set the vApp transport types here so that it is available
-		// later in CustomizeDiff where transport requirements are validated in
-		// ValidateVAppTransport
-		d.SetNew("vapp_transport", vconfig.GetVmConfigInfo().OvfEnvironmentTransport)
-	}
-
 	log.Printf("[DEBUG] ValidateVirtualMachineClone: Source VM/template %s is a suitable source for cloning", tUUID)
 	return nil
 }
