@@ -783,6 +783,10 @@ func resourceVSphereVirtualMachineCustomizeDiffResourcePoolOperation(d *schema.R
 }
 
 func datastoreClusterDiffOperation(d *schema.ResourceDiff, client *govmomi.Client) error {
+	if !structure.ValuesAvailable("", []string{"datastore_cluster_id", "datastore_id"}, d) {
+		log.Printf("[DEBUG] DatastoreClusterDiffOperation: datastore_id or datastore_cluster_id value depends on a computed value from another resource. Skipping validation.")
+		return nil
+	}
 	podID, podOk := d.GetOk("datastore_cluster_id")
 	podKnown := d.NewValueKnown("datastore_cluster_id")
 	dsID, dsOk := d.GetOk("datastore_id")

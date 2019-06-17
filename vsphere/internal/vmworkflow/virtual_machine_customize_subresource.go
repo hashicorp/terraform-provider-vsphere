@@ -483,9 +483,9 @@ func ExpandCustomizationSpec(d *schema.ResourceData, family string) types.Custom
 // spec. It should be called during diff customization to veto invalid configs.
 func ValidateCustomizationSpec(d *schema.ResourceDiff, family string) error {
 	// Validate that the proper section exists for OS family suboptions.
-	linuxExists := len(d.Get(cKeyPrefix+"."+"linux_options").([]interface{})) > 0
-	windowsExists := len(d.Get(cKeyPrefix+"."+"windows_options").([]interface{})) > 0
-	sysprepExists := d.Get(cKeyPrefix+"."+"windows_sysprep_text").(string) != ""
+	linuxExists := len(d.Get(cKeyPrefix+"."+"linux_options").([]interface{})) > 0 || !structure.ValuesAvailable(cKeyPrefix+"."+"linux_options.", []string{"host_name", "domain"}, d)
+	windowsExists := len(d.Get(cKeyPrefix+"."+"windows_options").([]interface{})) > 0 || !structure.ValuesAvailable(cKeyPrefix+"."+"windows_options.", []string{"computer_name"}, d)
+	sysprepExists := d.Get(cKeyPrefix+"."+"windows_sysprep_text").(string) != "" || !structure.ValuesAvailable(cKeyPrefix+".", []string{"windows_sysprep_text"}, d)
 	switch {
 	case family == string(types.VirtualMachineGuestOsFamilyLinuxGuest) && !linuxExists:
 		return errors.New("linux_options must exist in VM customization options for Linux operating systems")

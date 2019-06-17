@@ -613,3 +613,16 @@ func (s MoRefSorter) Less(i, j int) bool {
 func (s MoRefSorter) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
+
+// ValuesAvailable takes a subresource path and a list of keys and checks that
+// the value for each key is available at CustomizeDiff time. This function
+// will return false if any of they values are based on computed values from
+// other new or updated resources.
+func ValuesAvailable(base string, keys []string, d *schema.ResourceDiff) bool {
+	for _, k := range keys {
+		if !d.NewValueKnown(fmt.Sprintf("%s%s", base, k)) {
+			return false
+		}
+	}
+	return true
+}
