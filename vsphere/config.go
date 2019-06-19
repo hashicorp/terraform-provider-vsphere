@@ -79,6 +79,7 @@ type Config struct {
 	DebugPathRun    string
 	VimSessionPath  string
 	RestSessionPath string
+	KeepAlive       int
 }
 
 // NewConfig returns a new Config from a supplied ResourceData.
@@ -107,6 +108,7 @@ func NewConfig(d *schema.ResourceData) (*Config, error) {
 		Persist:         d.Get("persist_session").(bool),
 		VimSessionPath:  d.Get("vim_session_path").(string),
 		RestSessionPath: d.Get("rest_session_path").(string),
+		KeepAlive:       d.Get("vim_keep_alive").(int),
 	}
 
 	return c, nil
@@ -140,6 +142,7 @@ func (c *Config) Client() (*VSphereClient, error) {
 
 	// Set up the VIM/govmomi client connection, or load a previous session
 	client.vimClient, err = c.SavedVimSessionOrNew(u)
+
 	if err != nil {
 		return nil, err
 	}
@@ -471,13 +474,39 @@ func (c *Config) SavedVimSessionOrNew(u *url.URL) (*govmomi.Client, error) {
 	}
 	if client == nil {
 		log.Printf("[DEBUG] Creating new SOAP API session on endpoint %s", c.VSphereServer)
-		client, err = govmomi.NewClient(ctx, u, c.InsecureFlag)
+		client, err = newClientWithKeepAlive(ctx, u, c.InsecureFlag, c.KeepAlive)
 		if err != nil {
 			return nil, fmt.Errorf("error setting up new vSphere SOAP client: %s", err)
 		}
 		log.Println("[DEBUG] SOAP API session creation successful")
 	}
 	return client, nil
+}
+
+func newClientWithKeepAlive(ctx context.Context, u *url.URL, insecure bool, keepAlive int) (*govmomi.Client, error) {
+	soapClient := soap.NewClient(u, insecure)
+	vimClient, err := vim25.NewClient(ctx, soapClient)
+	if err != nil {
+		return nil, err
+	}
+
+	c := &govmomi.Client{
+		Client:         vimClient,
+		SessionManager: session.NewManager(vimClient),
+	}
+
+	k := session.KeepAlive(c.Client.RoundTripper, time.Duration(keepAlive)*time.Minute)
+	c.Client.RoundTripper = k
+
+	// Only login if the URL contains user information.
+	if u.User != nil {
+		err = c.Login(ctx, u.User)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return c, nil
 }
 
 // SavedRestSessionOrNew either loads a saved REST session from disk, or creates
