@@ -110,6 +110,11 @@ The following arguments are used to configure the VMware vSphere Provider:
   could allow an attacker to intercept your auth token. If omitted, default
   value is `false`. Can also be specified with the `VSPHERE_ALLOW_UNVERIFIED_SSL`
   environment variable.
+* `vim_keep_alive` - (Optional) Keep alive interval in minutes for the VIM
+  session. Standard session timeout in vSphere is 30 minutes. This defaults to
+  10 minutes to ensure that operations that take a longer than 30 minutes
+  without API interaction do not result in a session timeout. Can also be
+  specified with the `VSPHERE_VIM_KEEP_ALIVE` environment variable.
 
 ### Session persistence options
 

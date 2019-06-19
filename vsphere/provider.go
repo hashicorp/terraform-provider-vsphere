@@ -85,6 +85,12 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_REST_SESSION_PATH", filepath.Join(os.Getenv("HOME"), ".govmomi", "rest_sessions")),
 				Description: "The directory to save vSphere REST API sessions to",
 			},
+			"vim_keep_alive": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_VIM_KEEP_ALIVE", 10),
+				Description: "Keep alive interval for the VIM session in minutes",
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
