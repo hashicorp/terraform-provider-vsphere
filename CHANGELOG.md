@@ -1,8 +1,16 @@
-## 1.11.1 (Unreleased)
+## 1.12.0 (Unreleased)
+
+IMPROVEMENTS:
+* `resource/virtual_machine`: Allow cloning of powered off virtual machines. ([#785](https://github.com/terraform-providers/terraform-provider-vsphere/pull/785))
+* Add keep alive timer for VIM sessions. ([#792](https://github.com/terraform-providers/terraform-provider-vsphere/pull/792))
 
 BUG FIXES:
+* `resource/virtual_machine`: Ignore validation when interpolation is not
+  available. ([#784](https://github.com/terraform-providers/terraform-provider-vsphere/pull/784))
 * `resource/virtual_machine`: Only set vApp properties that are
   UserConfigurable. ([#751](https://github.com/terraform-providers/terraform-provider-vsphere/pull/751))
+* `resource/virtual_machine`: Set `network_id` to empty string when cloning a
+  `virtual_machine` to a cluster that is not part of source DVS. ([#787](https://github.com/terraform-providers/terraform-provider-vsphere/pull/787))
 
 ## 1.11.0 (May 09, 2019)
 
