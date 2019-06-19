@@ -1,4 +1,4 @@
-## 1.12.0 (Unreleased)
+## 1.12.0 (June 19, 2019)
 
 IMPROVEMENTS:
 * `resource/virtual_machine`: Allow cloning of powered off virtual machines. ([#785](https://github.com/terraform-providers/terraform-provider-vsphere/pull/785))
