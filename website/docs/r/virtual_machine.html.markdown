@@ -736,7 +736,7 @@ controlled file names for non-attached disks - this behavior has now been
 removed, and the only time this controls path is when attaching a disk
 externally with `attach` when the `path` field is not specified.
 
-* `size` - (Required) The size of the disk, in GiB.
+* `size` - (Required) The size of the disk, in GB.
 * `unit_number` - (Optional) The disk number on the SCSI bus. The maximum value
   for this setting is the value of
   [`scsi_controller_count`](#scsi_controller_count) times 15, minus 1 (so `14`,
