@@ -58,6 +58,7 @@ func expandHostPortGroupSpec(d *schema.ResourceData) *types.HostPortGroupSpec {
 // the passed in ResourceData.
 func flattenHostPortGroupSpec(d *schema.ResourceData, obj *types.HostPortGroupSpec) error {
 	d.Set("vlan_id", obj.VlanId)
+	d.Set("virtual_switch_name", obj.VswitchName)
 	if err := flattenHostNetworkPolicy(d, &obj.Policy); err != nil {
 		return err
 	}
