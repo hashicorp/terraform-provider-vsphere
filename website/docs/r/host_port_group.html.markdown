@@ -129,3 +129,20 @@ The following attributes are exported:
   explaining the effective policy for this port group.
 * `key` - The key for this port group as returned from the vSphere API.
 * `ports` - A list of ports that currently exist and are used on this port group.
+
+## Importing
+
+An existing port group can be [imported][docs-import] into this resource by its ID.
+The convention of the id is a prefix, the host system [managed objectID][docs-about-morefs], and the port group
+name. An example would be `tf-HostPortGroup:host-10:PGTerraformTest`.
+Import can the be done via the following command:
+
+[docs-import]: https://www.terraform.io/docs/import/index.html
+[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
+
+```
+terraform import vsphere_host_port_group.pg tf-HostPortGroup:host-10:PGTerraformTest
+```
+
+The above would import the port group named `PGTerraformTest` that is located in the `host-10`
+vSphere host.
