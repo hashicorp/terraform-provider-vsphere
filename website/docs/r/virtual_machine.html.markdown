@@ -966,7 +966,10 @@ settings.
 
 To perform virtual machine customization as a part of the clone process,
 specify the `customize` block with the respective customization options, nested
-within the `clone` block. See the [cloning and customization
+within the `clone` block. Windows guests are customized using Sysprep, which
+will result in the machine SID being reset. Before using customization, check
+is that your source VM meets the [requirements](https://pubs.vmware.com/vsphere-50/index.jsp?topic=%2Fcom.vmware.vsphere.vm_admin.doc_50%2FGUID-80F3F5B5-F795-45F1-B0FA-3709978113D5.html)
+for guest OS customization on vSphere. See the [cloning and customization
 example](#cloning-and-customization-example) for a usage synopsis.
 
 The settings for `customize` are as follows:
