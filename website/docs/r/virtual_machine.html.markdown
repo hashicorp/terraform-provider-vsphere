@@ -516,11 +516,12 @@ and require vCenter.
 
 The following options control CPU and memory settings on the virtual machine:
 
-* `num_cpus` - (Optional) The number of virtual processors to assign to this
-  virtual machine. Default: `1`.
-* `num_cores_per_socket` - (Optional) The number of cores to distribute among
-  the CPUs in this virtual machine. If specified, the value supplied to
-  `num_cpus` must be evenly divisible by this value. Default: `1`.
+* `num_cpus` - (Optional) The total number of virtual processor cores to assign
+  to this virtual machine. Default: `1`.
+* `num_cores_per_socket` - (Optional) The number of cores per socket in this
+  virtual machine. The number of vCPUs on the virtual machine will be
+  `num_cpus` divided by `num_cores_per_socket`. If specified, the value
+  supplied to `num_cpus` must be evenly divisible by this value. Default: `1`.
 * `cpu_hot_add_enabled` - (Optional) Allow CPUs to be added to this virtual
   machine while it is running.
 * `cpu_hot_remove_enabled` - (Optional) Allow CPUs to be removed to this
