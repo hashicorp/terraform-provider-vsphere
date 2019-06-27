@@ -516,11 +516,12 @@ and require vCenter.
 
 The following options control CPU and memory settings on the virtual machine:
 
-* `num_cpus` - (Optional) The number of virtual processors to assign to this
-  virtual machine. Default: `1`.
-* `num_cores_per_socket` - (Optional) The number of cores to distribute among
-  the CPUs in this virtual machine. If specified, the value supplied to
-  `num_cpus` must be evenly divisible by this value. Default: `1`.
+* `num_cpus` - (Optional) The total number of virtual processor cores to assign
+  to this virtual machine. Default: `1`.
+* `num_cores_per_socket` - (Optional) The number of cores per socket in this
+  virtual machine. The number of vCPUs on the virtual machine will be
+  `num_cpus` divided by `num_cores_per_socket`. If specified, the value
+  supplied to `num_cpus` must be evenly divisible by this value. Default: `1`.
 * `cpu_hot_add_enabled` - (Optional) Allow CPUs to be added to this virtual
   machine while it is running.
 * `cpu_hot_remove_enabled` - (Optional) Allow CPUs to be removed to this
@@ -966,7 +967,10 @@ settings.
 
 To perform virtual machine customization as a part of the clone process,
 specify the `customize` block with the respective customization options, nested
-within the `clone` block. See the [cloning and customization
+within the `clone` block. Windows guests are customized using Sysprep, which
+will result in the machine SID being reset. Before using customization, check
+is that your source VM meets the [requirements](https://pubs.vmware.com/vsphere-50/index.jsp?topic=%2Fcom.vmware.vsphere.vm_admin.doc_50%2FGUID-80F3F5B5-F795-45F1-B0FA-3709978113D5.html)
+for guest OS customization on vSphere. See the [cloning and customization
 example](#cloning-and-customization-example) for a usage synopsis.
 
 The settings for `customize` are as follows:
