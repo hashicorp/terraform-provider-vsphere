@@ -201,6 +201,7 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 		"windows_sysprep_text": {
 			Type:          schema.TypeString,
 			Optional:      true,
+			Sensitive:     true,
 			ConflictsWith: []string{cKeyPrefix + "." + "linux_options", cKeyPrefix + "." + "windows_options"},
 			Description:   "Use this option to specify a windows sysprep file directly.",
 		},
