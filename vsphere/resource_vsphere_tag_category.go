@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -104,7 +106,12 @@ func resourceVSphereTagCategoryRead(d *schema.ResourceData, meta interface{}) er
 	defer cancel()
 	category, err := client.GetCategory(ctx, id)
 	if err != nil {
-		return fmt.Errorf("could not locate category with id %q: %s", id, err)
+		if strings.Contains(err.Error(), "com.vmware.vapi.std.errors.not_found") {
+			log.Printf("[DEBUG] Tag category %s: Resource has been deleted", id)
+			d.SetId("")
+			return nil
+		}
+		return err
 	}
 	d.Set("name", category.Name)
 	d.Set("description", category.Description)

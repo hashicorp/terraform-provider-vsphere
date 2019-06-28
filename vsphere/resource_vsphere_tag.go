@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/vic/pkg/vsphere/tags"
@@ -79,7 +81,12 @@ func resourceVSphereTagRead(d *schema.ResourceData, meta interface{}) error {
 	defer cancel()
 	tag, err := client.GetTag(ctx, id)
 	if err != nil {
-		return fmt.Errorf("could not locate tag with id %q: %s", id, err)
+		if strings.Contains(err.Error(), "com.vmware.vapi.std.errors.not_found") {
+			log.Printf("[DEBUG] Tag %s: Resource has been deleted", id)
+			d.SetId("")
+			return nil
+		}
+		return err
 	}
 	d.Set("name", tag.Name)
 	d.Set("description", tag.Description)
