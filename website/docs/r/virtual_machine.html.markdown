@@ -319,7 +319,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   vapp {
-    properties {
+    properties = {
       "guestinfo.tf.internal.id" = "42"
     }
   }
