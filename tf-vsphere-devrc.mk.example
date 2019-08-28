@@ -69,5 +69,7 @@ export VSPHERE_VAPP_CONTAINER           ?= vapp-path  # Path to a vApp container
 export VSPHERE_PERSIST_SESSION          ?= true       # Session persistence
 export VSPHERE_REST_SESSION_PATH        ?= rest-path  # Path to store rest sessions
 export VSPHERE_VIM_SESSION_PATH         ?= vim-path   # Path to store vim sessions
+export VSPHERE_VAPP_RESOURCE_POOL       ?= vapp-rp-path #vSphere path to vApp's resource pool
+export VSPHERE_CLONED_VM_DISK_SIZE      ?= =32        # Size of disk attached to a cloned VM
 
 # vi: filetype=make

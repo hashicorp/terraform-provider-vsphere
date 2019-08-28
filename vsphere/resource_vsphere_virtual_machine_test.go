@@ -13610,19 +13610,19 @@ resource "vsphere_virtual_machine" "vm" {
 
 func testAccResourceVSphereVirtualMachineReadVappChildResourcePool() string {
 	return fmt.Sprintf(`
-variable "dc" {default="%s"}
-variable "datastore" {default="%s"}
-variable "cluster" {default="%s"}
-variable "network" {default="%s"}
-variable "template" {default="%s"}
-variable "vm_name" {default="%s"}
-variable "disk_size" {default="%s"}
-variable "hostname" {default="%s"}
-variable "domain" {default="%s"}
-variable "ipv4address" {default="%s"}
-variable "ipv4cidrbits" {default="%s"}
-variable "ipv4gateway" {default="%s"}
-
+variable "dc" { default = "%s" }
+variable "datastore" { default = "%s" }
+variable "cluster" { default = "%s" }
+variable "network" { default = "%s" }
+variable "template" { default = "%s" }
+variable "vm_name" { default = "%s" }
+variable "disk_size" { default = "%s" }
+variable "hostname" { default = "%s" }
+variable "domain" { default = "%s" }
+variable "ipv4address" { default = "%s" }
+variable "ipv4cidrbits" { default = "%s" }
+variable "ipv4gateway" { default = "%s" }
+variable "vapp_resource_pool" { default = "%s" }
 data "vsphere_datacenter" "dc" {
   name = "${var.dc}"
 }
@@ -13647,15 +13647,19 @@ data "vsphere_virtual_machine" "template" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
-data "vsphere_resource_pool" "pool" { 
-	name = "hashi-cluster1/Resources/hashi-vapp/ko-rp"
-	datacenter_id = "${data.vsphere_datacenter.dc.id}" 
-  }
-    
+data "vsphere_resource_pool" "vapp_pool" {
+  name          = "${var.vapp_resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_resource_pool" "pool" {
+  parent_resource_pool_id = "${data.vsphere_resource_pool.vapp_pool.id}"
+  name                    = "vapp_test_rp"
+}
+
 resource "vsphere_virtual_machine" "vm" {
   name             = "${var.vm_name}"
-  #resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
-  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  resource_pool_id = "${vsphere_resource_pool.pool.id}"
   datastore_id     = "${data.vsphere_datastore.datastore.id}"
 
   num_cpus = 2
@@ -13670,12 +13674,13 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    label            = "disk0"
-    size             = "${var.disk_size}"
+    label = "disk0"
+    size  = "${var.disk_size}"
   }
 
   clone {
     template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    linked_clone  = true
 
     customize {
       linux_options {
@@ -13691,18 +13696,19 @@ resource "vsphere_virtual_machine" "vm" {
       ipv4_gateway = "${var.ipv4gateway}"
     }
   }
-}`,
+} `,
 		os.Getenv("VSPHERE_DATACENTER"),
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_CLUSTER"),
 		os.Getenv("VSPHERE_NETWORK_LABEL"),
 		os.Getenv("VSPHERE_TEMPLATE"),
-		"terraform-test",
-		"40",
+		"terraform-test1",
+		os.Getenv("VSPHERE_CLONED_VM_DISK_SIZE"),
 		"terraform-test",
 		"test.internal",
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_VAPP_RESOURCE_POOL"),
 	)
 }
