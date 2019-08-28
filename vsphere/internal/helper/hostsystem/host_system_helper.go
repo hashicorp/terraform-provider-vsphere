@@ -51,7 +51,7 @@ func FromID(client *govmomi.Client, id string) (*object.HostSystem, error) {
 	defer cancel()
 	hs, err := finder.ObjectReference(ctx, ref)
 	if err != nil {
-		return nil, fmt.Errorf("could not find host system with id: %s: %s", id, err)
+		return nil, err
 	}
 	log.Printf("[DEBUG] Host system found: %s", hs.Reference().Value)
 	return hs.(*object.HostSystem), nil
@@ -98,6 +98,18 @@ func NameOrID(client *govmomi.Client, id string) string {
 	return name
 }
 
+// HostInMaintenance checks a HostSystem's maintenance mode and returns true if the
+// the host is in maintenance mode.
+func HostInMaintenance(host *object.HostSystem) (bool, error) {
+	hostObject, err := Properties(host)
+	if err != nil {
+		return false, err
+	}
+
+	return hostObject.Runtime.InMaintenanceMode, nil
+
+}
+
 // EnterMaintenanceMode puts a host into maintenance mode. If evacuate is set
 // to true, all powered off VMs will be removed from the host, or the task will
 // block until this is the case, depending on whether or not DRS is on or off
@@ -105,6 +117,12 @@ func NameOrID(client *govmomi.Client, id string) string {
 func EnterMaintenanceMode(host *object.HostSystem, timeout int, evacuate bool) error {
 	if err := viapi.VimValidateVirtualCenter(host.Client()); err != nil {
 		evacuate = false
+	}
+
+	maintMode, err := HostInMaintenance(host)
+	if maintMode {
+		log.Printf("[DEBUG] Host %q is already in maintenance mode", host.Name())
+		return nil
 	}
 
 	log.Printf("[DEBUG] Host %q is entering maintenance mode (evacuate: %t)", host.Name(), evacuate)
@@ -116,11 +134,31 @@ func EnterMaintenanceMode(host *object.HostSystem, timeout int, evacuate bool) e
 		return err
 	}
 
-	return task.Wait(ctx)
+	err = task.Wait(ctx)
+	if err != nil {
+		return err
+	}
+	var to mo.Task
+	err = task.Properties(context.TODO(), task.Reference(), nil, &to)
+	if err != nil {
+		log.Printf("[DEBUG] Failed while getting task results: %s", err)
+		return err
+	}
+
+	if to.Info.State != "success" {
+		return fmt.Errorf("Error while putting host(%s) in maintenance mode: %s", host.Reference(), to.Info.Error)
+	}
+	return nil
 }
 
 // ExitMaintenanceMode takes a host out of maintenance mode.
 func ExitMaintenanceMode(host *object.HostSystem, timeout int) error {
+	maintMode, err := HostInMaintenance(host)
+	if !maintMode {
+		log.Printf("[DEBUG] Host %q is already not in maintenance mode", host.Name())
+		return nil
+	}
+
 	log.Printf("[DEBUG] Host %q is exiting maintenance mode", host.Name())
 
 	// Add 5 minutes to timeout for the context timeout to allow for any issues
@@ -134,5 +172,29 @@ func ExitMaintenanceMode(host *object.HostSystem, timeout int) error {
 		return err
 	}
 
-	return task.Wait(ctx)
+	err = task.Wait(ctx)
+	if err != nil {
+		return err
+	}
+	var to mo.Task
+	err = task.Properties(context.TODO(), task.Reference(), nil, &to)
+	if err != nil {
+		log.Printf("[DEBUG] Failed while getting task results: %s", err)
+		return err
+	}
+
+	if to.Info.State != "success" {
+		return fmt.Errorf("Error while getting host(%s) out of maintenance mode: %s", host.Reference(), to.Info.Error)
+	}
+	return nil
+}
+
+// GetConnectionState returns the host's connection state (see vim.HostSystem.ConnectionState)
+func GetConnectionState(host *object.HostSystem) (types.HostSystemConnectionState, error) {
+	hostProps, err := Properties(host)
+	if err != nil {
+		return "", err
+	}
+
+	return hostProps.Runtime.ConnectionState, nil
 }
