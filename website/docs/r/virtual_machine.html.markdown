@@ -905,7 +905,7 @@ The options are:
   remote client device. Conflicts with `datastore_id` and `path`.
 * `datastore_id` - (Optional) The datastore ID that the ISO is located in.
   Requried for using a datastore ISO. Conflicts with `client_device`.
-* `path` - (Optional) The path to the ISO file. Requried for using a datastore
+* `path` - (Optional) The path to the ISO file. Required for using a datastore
   ISO. Conflicts with `client_device`.
 
 ~> **NOTE:** Either `client_device` (for a remote backed CDROM) or `datastore_id`
