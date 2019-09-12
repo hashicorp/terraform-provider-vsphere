@@ -55,7 +55,7 @@ func FromID(client *govmomi.Client, id string) (object.NetworkReference, error) 
 	}()
 
 	var networks []mo.Network
-	err = v.Retrieve(vctx, []string{"Network"}, nil, &networks)
+	err = v.Retrieve(vctx, []string{"Network"}, []string{"name"}, &networks)
 	if err != nil {
 		return nil, err
 	}
