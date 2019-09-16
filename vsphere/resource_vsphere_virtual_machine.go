@@ -112,7 +112,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		"ignored_guest_ips": {
 			Type:        schema.TypeList,
 			Optional:    true,
-			Description: "List of IP addresses to ignore while waiting for an IP",
+			Description: "List of IP addresses and CIDR networks to ignore while waiting for an IP",
 			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
 		"shutdown_wait_timeout": {
