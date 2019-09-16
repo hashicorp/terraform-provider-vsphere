@@ -77,6 +77,27 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 					},
 				},
 			},
+			"network_interfaces": {
+				Type:        schema.TypeList,
+				Description: "The network interfaces found on the virtual machine, sorted by unit number.",
+				Computed:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"adapter_type": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"mac_address": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"network_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
 			"network_interface_types": {
 				Type:        schema.TypeList,
 				Description: "The types of network interfaces found on the virtual machine, sorted by unit number.",
@@ -132,11 +153,18 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return fmt.Errorf("error reading network interface types: %s", err)
 	}
+	networkInterfaces, err := virtualdevice.ReadNetworkInterfaces(object.VirtualDeviceList(props.Config.Hardware.Device))
+	if err != nil {
+		return fmt.Errorf("error reading network interfaces: %s", err)
+	}
 	if d.Set("disks", disks); err != nil {
 		return fmt.Errorf("error setting disk sizes: %s", err)
 	}
 	if d.Set("network_interface_types", nics); err != nil {
 		return fmt.Errorf("error setting network interface types: %s", err)
+	}
+	if d.Set("network_interfaces", networkInterfaces); err != nil {
+		return fmt.Errorf("error setting network interfaces: %s", err)
 	}
 	log.Printf("[DEBUG] VM search for %q completed successfully (UUID %q)", name, props.Config.Uuid)
 	return nil
