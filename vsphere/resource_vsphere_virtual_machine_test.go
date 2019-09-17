@@ -2957,6 +2957,22 @@ func TestAccResourceVSphereVirtualMachine_importClone(t *testing.T) {
 	})
 }
 
+// testAccResourceVSphereVirtualMachineReadVappChildResourcePool
+// TestAccResourceVSphereVirtualMachine_importClone
+func TestAccResourceVSphereVirtualMachine_readVappChildResourcePool(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineReadVappChildResourcePool(),
+			},
+		},
+	})
+}
 func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	// Note that VSPHERE_USE_LINKED_CLONE is also a variable and its presence
 	// speeds up tests greatly, but it's not a necessary variable, so we don't
@@ -13589,5 +13605,110 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineReadVappChildResourcePool() string {
+	return fmt.Sprintf(`
+variable "dc" { default = "%s" }
+variable "datastore" { default = "%s" }
+variable "cluster" { default = "%s" }
+variable "network" { default = "%s" }
+variable "template" { default = "%s" }
+variable "vm_name" { default = "%s" }
+variable "disk_size" { default = "%s" }
+variable "hostname" { default = "%s" }
+variable "domain" { default = "%s" }
+variable "ipv4address" { default = "%s" }
+variable "ipv4cidrbits" { default = "%s" }
+variable "ipv4gateway" { default = "%s" }
+variable "vapp_resource_pool" { default = "%s" }
+data "vsphere_datacenter" "dc" {
+  name = "${var.dc}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_compute_cluster" "cluster" {
+  name          = "${var.cluster}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_virtual_machine" "template" {
+  name          = "${var.template}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "vapp_pool" {
+  name          = "${var.vapp_resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_resource_pool" "pool" {
+  parent_resource_pool_id = "${data.vsphere_resource_pool.vapp_pool.id}"
+  name                    = "vapp_test_rp"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "${var.vm_name}"
+  resource_pool_id = "${vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 1024
+  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+
+  scsi_type = "${data.vsphere_virtual_machine.template.scsi_type}"
+
+  network_interface {
+    network_id   = "${data.vsphere_network.network.id}"
+    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = "${var.disk_size}"
+  }
+
+  clone {
+    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    linked_clone  = true
+
+    customize {
+      linux_options {
+        host_name = "${var.hostname}"
+        domain    = "${var.domain}"
+      }
+
+      network_interface {
+        ipv4_address = "${var.ipv4address}"
+        ipv4_netmask = "${var.ipv4cidrbits}"
+      }
+
+      ipv4_gateway = "${var.ipv4gateway}"
+    }
+  }
+} `,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_CLUSTER"),
+		os.Getenv("VSPHERE_NETWORK_LABEL"),
+		os.Getenv("VSPHERE_TEMPLATE"),
+		"terraform-test1",
+		os.Getenv("VSPHERE_CLONED_VM_DISK_SIZE"),
+		"terraform-test",
+		"test.internal",
+		os.Getenv("VSPHERE_IPV4_ADDRESS"),
+		os.Getenv("VSPHERE_IPV4_PREFIX"),
+		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_VAPP_RESOURCE_POOL"),
 	)
 }
