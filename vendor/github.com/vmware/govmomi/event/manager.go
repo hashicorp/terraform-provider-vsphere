@@ -79,11 +79,14 @@ func (m Manager) LogUserEvent(ctx context.Context, entity types.ManagedObjectRef
 	return nil
 }
 
-func (m Manager) PostEvent(ctx context.Context, eventToPost types.BaseEvent, taskInfo types.TaskInfo) error {
+func (m Manager) PostEvent(ctx context.Context, eventToPost types.BaseEvent, taskInfo ...types.TaskInfo) error {
 	req := types.PostEvent{
 		This:        m.Common.Reference(),
 		EventToPost: eventToPost,
-		TaskInfo:    &taskInfo,
+	}
+
+	if len(taskInfo) == 1 {
+		req.TaskInfo = &taskInfo[0]
 	}
 
 	_, err := methods.PostEvent(ctx, m.Client(), &req)
@@ -172,7 +175,7 @@ func (m Manager) EventCategory(ctx context.Context, event types.BaseEvent) (stri
 func (m Manager) Events(ctx context.Context, objects []types.ManagedObjectReference, pageSize int32, tail bool, force bool, f func(types.ManagedObjectReference, []types.BaseEvent) error, kind ...string) error {
 	// TODO: deprecated this method and add one that uses a single config struct, so we can extend further without breaking the method signature.
 	if len(objects) >= m.maxObjects && !force {
-		return fmt.Errorf("Maximum number of objects to monitor (%d) exceeded, refine search", m.maxObjects)
+		return fmt.Errorf("maximum number of objects to monitor (%d) exceeded, refine search", m.maxObjects)
 	}
 
 	proc := newEventProcessor(m, pageSize, f, kind)
