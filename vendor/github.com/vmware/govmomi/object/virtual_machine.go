@@ -285,6 +285,10 @@ func (v VirtualMachine) WaitForNetIP(ctx context.Context, v4 bool, device ...str
 		return true
 	})
 
+	if err != nil {
+		return nil, err
+	}
+
 	if len(device) != 0 {
 		// Only wait for specific NIC(s)
 		macs = make(map[string][]string)
@@ -569,7 +573,7 @@ func (v VirtualMachine) FindSnapshot(ctx context.Context, name string) (*types.M
 	}
 
 	if o.Snapshot == nil || len(o.Snapshot.RootSnapshotList) == 0 {
-		return nil, errors.New("No snapshots for this VM")
+		return nil, errors.New("no snapshots for this VM")
 	}
 
 	m := make(snapshotMap)
