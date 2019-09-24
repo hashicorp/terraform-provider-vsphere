@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"testing"
 
@@ -165,6 +166,44 @@ func TestAccResourceVSphereHost_lockdown(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereHostExists("vsphere_host.h1"),
 					testAccVSphereHostLockdownState("vsphere_host.h1", "disabled"),
+				),
+			},
+		},
+	})
+
+}
+
+func TestAccResourceVSphereHost_lockdown_invalid(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccCheckEnvVariables(t, []string{"ESX_HOSTNAME", "ESX_USERNAME", "ESX_PASSWORD"})
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccVSphereHostConfig_lockdown("invalidvalue"),
+				ExpectError: regexp.MustCompile("must be one of 'disabled', 'normal', or 'strict'. Got: invalidvalue"),
+			},
+		},
+	})
+
+}
+
+func TestAccResourceVSphereHost_emptyLicense(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccCheckEnvVariables(t, []string{"ESX_HOSTNAME", "ESX_USERNAME", "ESX_PASSWORD"})
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccVSphereHostDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccVSphereHostConfig_emptyLicense(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccVSphereHostExists("vsphere_host.h1"),
 				),
 			},
 		},
@@ -354,7 +393,7 @@ func testAccVSphereHostConfig() string {
 	  name = "%s"
 	}
 
-	data "vsphere_compute_cluster" "c1" {
+	resource "vsphere_compute_cluster" "c1" {
 	  name = "%s"
 	  datacenter_id = data.vsphere_datacenter.dc.id
 	}
@@ -368,10 +407,10 @@ func testAccVSphereHostConfig() string {
 
 	  # Makes sense to update
 	  license = "%s"
-	  cluster = data.vsphere_compute_cluster.c1.id
+	  cluster = vsphere_compute_cluster.c1.id
 	}
 	`, os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_CLUSTER"),
+		"TestCluster",
 		os.Getenv("ESX_HOSTNAME"),
 		os.Getenv("ESX_USERNAME"),
 		os.Getenv("ESX_PASSWORD"),
@@ -404,13 +443,36 @@ func testAccVSphereHostConfig_rootFolder() string {
 		os.Getenv("VSPHERE_LICENSE"))
 }
 
+func testAccVSphereHostConfig_emptyLicense() string {
+	return fmt.Sprintf(`
+	data "vsphere_datacenter" "dc" {
+	  name = "%s"
+	}
+
+	resource "vsphere_host" "h1" {
+	  # Useful only for connection
+	  hostname = "%s"
+	  username = "%s"
+	  password = "%s"
+	  thumbprint = "%s"
+
+	  # Makes sense to update
+	  datacenter = data.vsphere_datacenter.dc.id
+	}
+	`, os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("ESX_HOSTNAME"),
+		os.Getenv("ESX_USERNAME"),
+		os.Getenv("ESX_PASSWORD"),
+		os.Getenv("ESX_THUMBPRINT"))
+}
+
 func testAccVSphereHostConfig_import() string {
 	return fmt.Sprintf(`
 	data "vsphere_datacenter" "dc" {
 	  name = "%s"
 	}
 		
-	data "vsphere_compute_cluster" "c1" {
+	resource "vsphere_compute_cluster" "c1" {
 	  name = "%s"
 	  datacenter_id = data.vsphere_datacenter.dc.id
 	}
@@ -424,10 +486,10 @@ func testAccVSphereHostConfig_import() string {
 	
 	  # Makes sense to update
 	  license = "%s"
-	  cluster = data.vsphere_compute_cluster.c1.id
+	  cluster = vsphere_compute_cluster.c1.id
 	}	  
 	`, os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_CLUSTER"),
+		"TestCluster",
 		os.Getenv("ESX_HOSTNAME"),
 		os.Getenv("ESX_USERNAME"),
 		os.Getenv("ESX_PASSWORD"),
@@ -441,7 +503,7 @@ func testAccVSphereHostConfig_connection(connection bool) string {
 	  name = "%s"
 	}
 		
-	data "vsphere_compute_cluster" "c1" {
+	resource "vsphere_compute_cluster" "c1" {
 	  name = "%s"
 	  datacenter_id = data.vsphere_datacenter.dc.id
 	}
@@ -454,10 +516,10 @@ func testAccVSphereHostConfig_connection(connection bool) string {
 	
 	  license = "%s"
 	  connected = "%s"
-	  cluster = data.vsphere_compute_cluster.c1.id
+	  cluster = vsphere_compute_cluster.c1.id
 	}	  
 	`, os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_CLUSTER"),
+		"TestCluster",
 		os.Getenv("ESX_HOSTNAME"),
 		os.Getenv("ESX_USERNAME"),
 		os.Getenv("ESX_PASSWORD"),
@@ -472,7 +534,7 @@ func testAccVSphereHostConfig_maintenance(maintenance bool) string {
 	  name = "%s"
 	}
 		
-	data "vsphere_compute_cluster" "c1" {
+	resource "vsphere_compute_cluster" "c1" {
 	  name = "%s"
 	  datacenter_id = data.vsphere_datacenter.dc.id
 	}
@@ -486,10 +548,10 @@ func testAccVSphereHostConfig_maintenance(maintenance bool) string {
 	  license = "%s"
 	  connected = "true"
 	  maintenance = "%s"
-	  cluster = data.vsphere_compute_cluster.c1.id
+	  cluster = vsphere_compute_cluster.c1.id
 	}	  
 	`, os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_CLUSTER"),
+		"TestCluster",
 		os.Getenv("ESX_HOSTNAME"),
 		os.Getenv("ESX_USERNAME"),
 		os.Getenv("ESX_PASSWORD"),
@@ -504,7 +566,7 @@ func testAccVSphereHostConfig_lockdown(lockdown string) string {
 	  name = "%s"
 	}
 		
-	data "vsphere_compute_cluster" "c1" {
+	resource "vsphere_compute_cluster" "c1" {
 	  name = "%s"
 	  datacenter_id = data.vsphere_datacenter.dc.id
 	}
@@ -519,10 +581,10 @@ func testAccVSphereHostConfig_lockdown(lockdown string) string {
 	  connected = "true"
 	  maintenance = "false"
 	  lockdown = "%s"
-	  cluster = data.vsphere_compute_cluster.c1.id
+	  cluster = vsphere_compute_cluster.c1.id
 	}	  
 	`, os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_CLUSTER"),
+		"TestCluster",
 		os.Getenv("ESX_HOSTNAME"),
 		os.Getenv("ESX_USERNAME"),
 		os.Getenv("ESX_PASSWORD"),

@@ -91,6 +91,13 @@ func resourceVsphereHost() *schema.Resource {
 				Optional:    true,
 				Description: "Set the host's lockdown status. Default is disabled. Valid options are 'disabled', 'normal', 'strict'",
 				Default:     "disabled",
+				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
+					v := val.(string)
+					if v != "disabled" && v != "normal" && v != "strict" {
+						errs = append(errs, fmt.Errorf("%s must be one of 'disabled', 'normal', or 'strict'. Got: %s", key, v))
+					}
+					return
+				},
 			},
 		},
 	}
@@ -157,54 +164,42 @@ func resourceVsphereHostRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("Setting lockdown to %s", lockdownMode)
 	d.Set("lockdown", lockdownMode)
 
-	lm := license.NewManager(client.Client)
-	am, err := lm.AssignmentManager(context.TODO())
-	if err != nil {
-		return err
-	}
-	licenses, err := am.QueryAssigned(context.TODO(), hostID)
-	if err != nil {
-		return err
-	}
-
 	licenseKey := d.Get("license").(string)
-	licFound := false
-	for _, lic := range licenses {
-		if licenseKey == lic.AssignedLicense.LicenseKey {
-			licFound = true
-			break
+	if licenseKey != "" {
+		licFound, err := isLicenseAssigned(client.Client, hostID, licenseKey)
+		if err != nil {
+			return err
 		}
-	}
 
-	if !licFound {
-		d.Set("license", "")
+		if !licFound {
+			d.Set("license", "")
+		}
 	}
 
 	return nil
 }
 
 func resourceVsphereHostCreate(d *schema.ResourceData, meta interface{}) error {
+	err := validateFields(d)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*VSphereClient).vimClient
 
 	hcs := buildHostConnectSpec(d)
 
 	licenseKey := d.Get("license").(string)
 
-	lm := license.NewManager(client.Client)
-	ll, err := lm.List(context.TODO())
-	if err != nil {
-		return err
-	}
-
-	licFound := false
-	for _, l := range ll {
-		if l.LicenseKey == licenseKey {
-			licFound = true
-			break
+	if licenseKey != "" {
+		licFound, err := licenseExists(client.Client, licenseKey)
+		if err != nil {
+			return nil
 		}
-	}
-	if !licFound {
-		return fmt.Errorf("license key supplied (%s) did not match against known license keys", licenseKey)
+
+		if !licFound {
+			return fmt.Errorf("license key supplied (%s) did not match against known license keys", licenseKey)
+		}
 	}
 
 	var connectedState bool
@@ -227,6 +222,7 @@ func resourceVsphereHostCreate(d *schema.ResourceData, meta interface{}) error {
 		task, err = ccr.AddHost(context.TODO(), hcs, connectedState, &licenseKey, nil)
 		if err != nil {
 			log.Printf("[DEBUG] Error while adding host with hostname %s to cluster %s.  Error: %s", d.Get("hostname").(string), clusterID, err)
+			return err
 		}
 	} else {
 		dcId := d.Get("datacenter").(string)
@@ -316,6 +312,11 @@ func resourceVsphereHostCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVsphereHostUpdate(d *schema.ResourceData, meta interface{}) error {
+	err := validateFields(d)
+	if err != nil {
+		return err
+	}
+
 	client := meta.(*VSphereClient).vimClient
 
 	// First let's establish where we are and where we want to go
@@ -673,6 +674,57 @@ func buildHostConnectSpec(d *schema.ResourceData) types.HostConnectSpec {
 		Force:         d.Get("force").(bool),
 	}
 	return hcs
+}
+
+func isLicenseAssigned(client *vim25.Client, hostID, licenseKey string) (bool, error) {
+	ctx := context.TODO()
+	lm := license.NewManager(client)
+	am, err := lm.AssignmentManager(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	licenses, err := am.QueryAssigned(ctx, hostID)
+	if err != nil {
+		return false, err
+	}
+
+	licFound := false
+	for _, lic := range licenses {
+		if licenseKey == lic.AssignedLicense.LicenseKey {
+			licFound = true
+			break
+		}
+	}
+	return licFound, nil
+}
+
+func licenseExists(client *vim25.Client, licenseKey string) (bool, error) {
+	ctx := context.TODO()
+	lm := license.NewManager(client)
+	ll, err := lm.List(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	licFound := false
+	for _, l := range ll {
+		if l.LicenseKey == licenseKey {
+			licFound = true
+			break
+		}
+	}
+	return licFound, nil
+}
+
+// Make sure input makes sense
+func validateFields(d *schema.ResourceData) error {
+	_, dcSet := d.GetOk("datacenter")
+	_, clusterSet := d.GetOk("cluster")
+	if dcSet && clusterSet {
+		return fmt.Errorf("datacenter and cluster arguments are mutually exclusive")
+	}
+	return nil
 }
 
 // --------------
