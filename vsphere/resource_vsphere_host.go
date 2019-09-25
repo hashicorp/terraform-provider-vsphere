@@ -20,6 +20,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceVsphereHost() *schema.Resource {
@@ -87,17 +88,11 @@ func resourceVsphereHost() *schema.Resource {
 				Default:     false,
 			},
 			"lockdown": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Set the host's lockdown status. Default is disabled. Valid options are 'disabled', 'normal', 'strict'",
-				Default:     "disabled",
-				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
-					v := val.(string)
-					if v != "disabled" && v != "normal" && v != "strict" {
-						errs = append(errs, fmt.Errorf("%s must be one of 'disabled', 'normal', or 'strict'. Got: %s", key, v))
-					}
-					return
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "Set the host's lockdown status. Default is disabled. Valid options are 'disabled', 'normal', 'strict'",
+				Default:      "disabled",
+				ValidateFunc: validation.StringInSlice([]string{"disabled", "normal", "strict"}, true),
 			},
 		},
 	}

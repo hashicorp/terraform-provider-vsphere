@@ -184,7 +184,7 @@ func TestAccResourceVSphereHost_lockdown_invalid(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccVSphereHostConfig_lockdown("invalidvalue"),
-				ExpectError: regexp.MustCompile("must be one of 'disabled', 'normal', or 'strict'. Got: invalidvalue"),
+				ExpectError: regexp.MustCompile("be one of \\[disabled normal strict\\], got invalidvalue"),
 			},
 		},
 	})
