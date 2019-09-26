@@ -1,4 +1,11 @@
 ## 1.13.0 (Unreleased)
+
+FEATURES:
+* **New Resource:** `vsphere_host` ([#836](https://github.com/terraform-providers/terraform-provider-vsphere/pull/836))
+
+BUG FIXES:
+* `resource/virtual_machine`: Change the way we detect if a VM is in a vApp ([#825](https://github.com/terraform-providers/terraform-provider-vsphere/pull/825))
+
 ## 1.12.0 (June 19, 2019)
 
 IMPROVEMENTS:
