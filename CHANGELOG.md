@@ -1,10 +1,15 @@
 ## 1.13.0 (Unreleased)
 
+IMPROVEMENTS:
+* Add `vim_keep_alive` which sets a keepalive interval for VIM session. ([#792](https://github.com/terraform-providers/terraform-provider-vsphere/pull/792))
+* `resource/virtual_machine`: Mark `windows_sysprep_text` as sensitive. ([#802](https://github.com/terraform-providers/terraform-provider-vsphere/pull/802))
+
 FEATURES:
 * **New Resource:** `vsphere_host` ([#836](https://github.com/terraform-providers/terraform-provider-vsphere/pull/836))
 
 BUG FIXES:
-* `resource/virtual_machine`: Change the way we detect if a VM is in a vApp ([#825](https://github.com/terraform-providers/terraform-provider-vsphere/pull/825))
+* `resource/virtual_machine`: Change the way we detect if a VM is in a vApp. ([#825](https://github.com/terraform-providers/terraform-provider-vsphere/pull/825))
+* Delete tags and tag_categories when they are removed. ([#801](https://github.com/terraform-providers/terraform-provider-vsphere/pull/801))
 
 ## 1.12.0 (June 19, 2019)
 
