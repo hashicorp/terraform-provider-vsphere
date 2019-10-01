@@ -1,4 +1,4 @@
-## 1.13.0 (Unreleased)
+## 1.13.0 (October 01, 2019)
 
 IMPROVEMENTS:
 * Add `vim_keep_alive` which sets a keepalive interval for VIM session. ([#792](https://github.com/terraform-providers/terraform-provider-vsphere/pull/792))
