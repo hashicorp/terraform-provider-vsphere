@@ -1,11 +1,11 @@
 package vsphere
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
 
-	"context"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"

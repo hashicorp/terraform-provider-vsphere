@@ -9,6 +9,7 @@ import (
 	"path"
 
 	"context"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
