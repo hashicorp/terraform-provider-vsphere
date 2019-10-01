@@ -1,6 +1,7 @@
 package vsphere
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"context"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"

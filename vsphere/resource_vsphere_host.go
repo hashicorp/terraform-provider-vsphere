@@ -4,23 +4,21 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/clustercomputeresource"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/license"
-	"github.com/vmware/govmomi/property"
-
-	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/clustercomputeresource"
-
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/property"
 	gtask "github.com/vmware/govmomi/task"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
-
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceVsphereHost() *schema.Resource {
@@ -295,9 +293,9 @@ func resourceVsphereHostCreate(d *schema.ResourceData, meta interface{}) error {
 
 	maintenanceMode := d.Get("maintenance").(bool)
 	if maintenanceMode {
-		err = hostsystem.EnterMaintenanceMode(host, int(defaultAPITimeout), true)
+		err = hostsystem.EnterMaintenanceMode(host, int(defaultAPITimeout/time.Minute), true)
 	} else {
-		err = hostsystem.ExitMaintenanceMode(host, int(defaultAPITimeout))
+		err = hostsystem.ExitMaintenanceMode(host, int(defaultAPITimeout/time.Minute))
 	}
 	if err != nil {
 		return err
@@ -403,7 +401,7 @@ func resourceVsphereHostDelete(d *schema.ResourceData, meta interface{}) error {
 
 	if connectionState != types.HostSystemConnectionStateDisconnected {
 		// We cannot put a disconnected server in maintenance mode.
-		err = hostsystem.EnterMaintenanceMode(hs, int(defaultAPITimeout), true)
+		err = hostsystem.EnterMaintenanceMode(hs, int(defaultAPITimeout/time.Minute), true)
 		if err != nil {
 			return fmt.Errorf("error while putting host to maintenance mode: %s", err.Error())
 		}
@@ -480,9 +478,9 @@ func resourceVSphereHostUpdateMaintenanceMode(d *schema.ResourceData, meta, old,
 
 	maintenanceMode := newVal.(bool)
 	if maintenanceMode {
-		err = hostsystem.EnterMaintenanceMode(host, int(defaultAPITimeout), true)
+		err = hostsystem.EnterMaintenanceMode(host, int(defaultAPITimeout/time.Minute), true)
 	} else {
-		err = hostsystem.ExitMaintenanceMode(host, int(defaultAPITimeout))
+		err = hostsystem.ExitMaintenanceMode(host, int(defaultAPITimeout/time.Minute))
 	}
 	if err != nil {
 		return err
@@ -517,7 +515,7 @@ func resourceVSphereHostUpdateCluster(d *schema.ResourceData, meta, old, newVal 
 		return err
 	}
 
-	err = hostsystem.EnterMaintenanceMode(hs, int(defaultAPITimeout), true)
+	err = hostsystem.EnterMaintenanceMode(hs, int(defaultAPITimeout/time.Minute), true)
 	if err != nil {
 		return fmt.Errorf("error while putting host to maintenance mode: %s", err.Error())
 	}
@@ -532,7 +530,7 @@ func resourceVSphereHostUpdateCluster(d *schema.ResourceData, meta, old, newVal 
 		return fmt.Errorf("Error while moving host to new cluster (%s): %s", newClusterID, err)
 	}
 
-	err = hostsystem.ExitMaintenanceMode(hs, int(defaultAPITimeout))
+	err = hostsystem.ExitMaintenanceMode(hs, int(defaultAPITimeout/time.Minute))
 	if err != nil {
 		return fmt.Errorf("error while taking host out of maintenance mode: %s", err.Error())
 	}
@@ -568,7 +566,7 @@ func resourceVSphereHostReconnect(d *schema.ResourceData, meta interface{}) erro
 
 	maintenanceConfig := d.Get("maintenance").(bool)
 	if maintenanceState && !maintenanceConfig {
-		err := hostsystem.ExitMaintenanceMode(host, int(defaultAPITimeout))
+		err := hostsystem.ExitMaintenanceMode(host, int(defaultAPITimeout/time.Minute))
 		if err != nil {
 			return err
 		}

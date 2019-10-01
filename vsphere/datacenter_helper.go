@@ -1,9 +1,9 @@
 package vsphere
 
 import (
+	"context"
 	"fmt"
 
-	"context"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
