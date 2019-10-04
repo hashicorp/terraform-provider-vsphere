@@ -1,0 +1,13 @@
+name: Add all new GitHub issues to a designate project column
+on: issues
+jobs:
+  add-new-issues-to-project-column:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: add-new-issues-to-project-column
+      uses: takanabe/add-new-issues-to-project-column@v0.0.3
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_PROJECT_URL: https://github.com/orgs/terraform-providers/projects/12
+        GITHUB_PROJECT_COLUMN_NAME: Needs triage
