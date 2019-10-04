@@ -12,7 +12,7 @@ jobs:
         with:
           project: vSphere Triage
           column: Needs triage
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: ${{ secrets.vsphere_github_actions }}
 
       - name: Move assinged pull requests into To do
         if: github.event_name == 'pull_request' && github.event.action == 'assigned'
@@ -20,4 +20,4 @@ jobs:
         with:
           project: vSphere Provider
           column: PR Backlog
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: ${{ secrets.vsphere_github_actions }}
