@@ -8,6 +8,6 @@ jobs:
     - name: add-new-issues-to-project-column
       uses: aareet/add-new-issues-to-project-column@v0.0.4
       env:
-        GITHUB_TOKEN: ${{ secrets.vsphere_github_actions }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITHUB_PROJECT_URL: https://github.com/orgs/terraform-providers/projects/12
         GITHUB_PROJECT_COLUMN_NAME: Needs triage
