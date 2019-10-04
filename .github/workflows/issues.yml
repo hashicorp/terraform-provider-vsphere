@@ -1,13 +1,23 @@
-name: Add all new GitHub issues to a designate project column
-on: issues
+name: Automate project columns
+
+on: [issues, pull_request]
+
 jobs:
-  add-new-issues-to-project-column:
+  automate-project-columns:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
-    - name: add-new-issues-to-project-column
-      uses: aareet/add-new-issues-to-project-column@v0.0.4
-      env:
-        GITHUB_TOKEN: ${{ secrets.vsphere_github_actions }}
-        GITHUB_PROJECT_URL: https://github.com/orgs/terraform-providers/projects/12
-        GITHUB_PROJECT_COLUMN_NAME: Needs triage
+      - name: Move new issues into Triage
+        if: github.event_name == 'issues' && github.event.action == 'opened'
+        uses: aareet/github-project-automation-plus@v0.1.0
+        with:
+          project: vSphere Triage
+          column: Needs triage
+          repo-token: ${{ secrets.vsphere_github_actions }}
+
+      - name: Move assinged pull requests into To do
+        if: github.event_name == 'pull_request' && github.event.action == 'assigned'
+        uses: aareet/github-project-automation-plus@v0.1.0
+        with:
+          project: vSphere Provider
+          column: PR Backlog
+          repo-token: ${{ secrets.vsphere_github_actions }}
