@@ -8,7 +8,7 @@ for i in {1..2}; do
       echo Test failed. Reverting environment to clean state.
       $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/esxi_restore_snapshot.sh $VSPHERE_ESXI_SNAPSHOT
       sleep 30
-      until curl -k "https://$VSPHERE_SERVER/rest/vcenter/datacenter" -i -m 10 | grep "401 Unauthorized"; do
+      until curl -k "https://$VSPHERE_SERVER/rest/vcenter/datacenter" -i -m 10 2> /dev/null | grep "401 Unauthorized" &> /dev/null; do
         echo vCenter not available yet. Waiting 30 seconds and trying again.
         sleep 30
       done
