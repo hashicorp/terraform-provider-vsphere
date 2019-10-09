@@ -14,10 +14,10 @@ jobs:
           column: Needs triage
           repo-token: ${{ secrets.vsphere_github_actions }}
 
-      - name: Move assinged pull requests into To do
-        if: github.event_name == 'pull_request' && github.event.action == 'assigned'
+      - name: Move new pull requests into Triage
+        if: github.event_name == 'pull_request' && github.event.action == 'opened'
         uses: aareet/github-project-automation-plus@v0.1.0
         with:
-          project: vSphere Provider
-          column: PR Backlog
+          project: vSphere Triage
+          column: Needs triage
           repo-token: ${{ secrets.vsphere_github_actions }}
