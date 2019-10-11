@@ -558,7 +558,7 @@ func resourceVSphereHostReconnect(d *schema.ResourceData, meta interface{}) erro
 
 	maintenanceState, err := hostsystem.HostInMaintenance(host)
 	if err != nil {
-		return fmt.Errorf("error while retrievign host maintenance status for host %s. Error: %s", host.Name(), err)
+		return fmt.Errorf("error while retrieving host maintenance status for host %s. Error: %s", host.Name(), err)
 	}
 
 	maintenanceConfig := d.Get("maintenance").(bool)
@@ -637,7 +637,7 @@ func hostLockdownType(lockdownMode string) (types.HostLockdownMode, error) {
 		log.Printf("Found match for %s. Returning %s.", lockdownMode, modeString)
 		return modeString, nil
 	}
-	return "", fmt.Errorf("unknwown Lockdown mode encountered")
+	return "", fmt.Errorf("unknown Lockdown mode encountered")
 }
 
 func hostLockdownString(lockdownMode types.HostLockdownMode) (string, error) {
@@ -652,7 +652,7 @@ func hostLockdownString(lockdownMode types.HostLockdownMode) (string, error) {
 		log.Printf("Found match for %s. Returning %s.", lockdownMode, modeString)
 		return modeString, nil
 	}
-	return "", fmt.Errorf("unknwown Lockdown mode encountered")
+	return "", fmt.Errorf("unknown Lockdown mode encountered")
 }
 
 func buildHostConnectSpec(d *schema.ResourceData) types.HostConnectSpec {
