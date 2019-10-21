@@ -15,9 +15,11 @@ import (
 	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/mitchellh/copystructure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/spbm"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
@@ -214,6 +216,11 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 			Default:       false,
 			ConflictsWith: []string{"datastore_cluster_id"},
 			Description:   "If this is true, the disk is attached instead of created. Implies keep_on_remove.",
+		},
+		"storage_policy_id": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The ID of the storage policy to assign to the virtual disk in VM.",
 		},
 	}
 	structure.MergeSchema(s, subresourceSchema())
@@ -1189,6 +1196,12 @@ func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtua
 	if r.Get("attach").(bool) {
 		dspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
 	}
+
+	// Attach the SPBM storage policy if specified
+	if policyID := r.Get("storage_policy_id").(string); policyID != "" {
+		dspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(policyID)
+	}
+
 	spec = append(spec, dspec...)
 	log.Printf("[DEBUG] %s: Device config operations from create: %s", r, DeviceChangeString(spec))
 	log.Printf("[DEBUG] %s: Create finished", r)
@@ -1260,6 +1273,27 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 			r.Set("io_share_count", shares.Shares)
 		}
 	}
+
+	// Set storage policy if either it is template VM  with clone going on
+	// or VM already exists with update going on.
+	vmUUID := r.rdd.Get("clone.0.template_uuid").(string)
+	if vmUUID == "" {
+		// VM is not template. Check for UUID.
+		vmUUID = r.rdd.Get("uuid").(string)
+	}
+	if vmUUID != "" {
+		vm, err := virtualmachine.FromUUID(r.client, vmUUID)
+		if err != nil {
+			return err
+		}
+		vmMOID := vm.Reference().Value
+		polID, err := spbm.PolicyIDByVirtualDisk(r.client, vmMOID, r.Get("key").(int))
+		if err != nil {
+			return err
+		}
+		r.Set("storage_policy_id", polID)
+	}
+
 	log.Printf("[DEBUG] %s: Read finished (key and device address may have changed)", r)
 	return nil
 }
@@ -1304,6 +1338,12 @@ func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtua
 	}
 	// Clear file operation - VirtualDeviceList currently sets this to replace, which is invalid
 	dspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
+
+	// Attach the SPBM storage policy if specified
+	if policyID := r.Get("storage_policy_id").(string); policyID != "" {
+		dspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(policyID)
+	}
+
 	log.Printf("[DEBUG] %s: Device config operations from update: %s", r, DeviceChangeString(dspec))
 	log.Printf("[DEBUG] %s: Update complete", r)
 	return dspec, nil
@@ -1609,6 +1649,11 @@ func (r *DiskSubresource) Relocate(l object.VirtualDeviceList, clone bool) (type
 		backing.FileName = ds.Path("")
 		backing.Datastore = &dsref
 		relocate.DiskBackingInfo = backing
+	}
+
+	// Attach the SPBM storage policy if specified
+	if policyID := r.Get("storage_policy_id").(string); policyID != "" {
+		relocate.Profile = spbm.PolicySpecByID(policyID)
 	}
 
 	// Done!
