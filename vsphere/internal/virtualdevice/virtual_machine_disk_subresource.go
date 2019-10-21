@@ -1277,12 +1277,17 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	// Set storage policy if either it is template VM  with clone going on
 	// or VM already exists with update going on.
 	vmUUID := r.rdd.Get("clone.0.template_uuid").(string)
+	if vmUUID == "" {
+		// VM is not template. Check for UUID.
+		vmUUID = r.rdd.Get("uuid").(string)
+	}
 	if vmUUID != "" {
-		result, err := virtualmachine.MOIDForUUID(r.client, vmUUID)
+		vm, err := virtualmachine.FromUUID(r.client, vmUUID)
 		if err != nil {
 			return err
 		}
-		polID, err := spbm.PolicyIDByVirtualDisk(r.client, result.MOID, r.Get("key").(int))
+		vmMOID := vm.Reference().Value
+		polID, err := spbm.PolicyIDByVirtualDisk(r.client, vmMOID, r.Get("key").(int))
 		if err != nil {
 			return err
 		}
