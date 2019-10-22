@@ -1,7 +1,7 @@
 ---
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_host"
-sidebar_current: "docs-vsphere-resource-inventory-host"
+sidebar_current: "docs-vsphere-resource-compute-host"
 description: |-
   Provides a VMware vSphere host resource. This represents an ESXi host that can be used either as part of a Compute Cluster or Standalone.
 ---
