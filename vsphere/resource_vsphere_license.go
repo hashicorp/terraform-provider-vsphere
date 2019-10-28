@@ -41,6 +41,7 @@ func resourceVSphereLicense() *schema.Resource {
 			"labels": {
 				Type:     schema.TypeMap,
 				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
 			// computed properties returned by the API

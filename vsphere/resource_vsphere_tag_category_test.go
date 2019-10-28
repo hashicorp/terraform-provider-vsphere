@@ -32,6 +32,22 @@ func TestAccResourceVSphereTagCategory_basic(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:      "vsphere_tag_category.terraform-test-category",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					cat, err := testGetTagCategory(s, "terraform-test-category")
+					if err != nil {
+						return "", err
+					}
+					return cat.Name, nil
+				},
+				Config: testAccResourceVSphereTagCategoryConfigBasic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagCategoryExists(true),
+				),
+			},
 		},
 	})
 }
@@ -146,40 +162,6 @@ func TestAccResourceVSphereTagCategory_multiCardinality(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereTagCategoryExists(true),
 					testAccResourceVSphereTagCategoryHasCardinality(vSphereTagCategoryCardinalityMultiple),
-				),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereTagCategory_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereTagCategoryExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereTagCategoryConfigBasic,
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereTagCategoryExists(true),
-				),
-			},
-			{
-				ResourceName:      "vsphere_tag_category.terraform-test-category",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					cat, err := testGetTagCategory(s, "terraform-test-category")
-					if err != nil {
-						return "", err
-					}
-					return cat.Name, nil
-				},
-				Config: testAccResourceVSphereTagCategoryConfigBasic,
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereTagCategoryExists(true),
 				),
 			},
 		},

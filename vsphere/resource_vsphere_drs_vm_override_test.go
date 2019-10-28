@@ -33,6 +33,36 @@ func TestAccResourceVSphereDRSVMOverride_drs(t *testing.T) {
 					testAccResourceVSphereDRSVMOverrideMatch(types.DrsBehaviorManual, false),
 				),
 			},
+			{
+				ResourceName:      "vsphere_drs_vm_override.drs_vm_override",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					cluster, err := testGetComputeClusterFromDataSource(s, "cluster")
+					if err != nil {
+						return "", err
+					}
+					vm, err := testGetVirtualMachine(s, "vm")
+					if err != nil {
+						return "", err
+					}
+
+					m := make(map[string]string)
+					m["compute_cluster_path"] = cluster.InventoryPath
+					m["virtual_machine_path"] = vm.InventoryPath
+					b, err := json.Marshal(m)
+					if err != nil {
+						return "", err
+					}
+
+					return string(b), nil
+				},
+				Config: testAccResourceVSphereDRSVMOverrideConfigOverrideDRSEnabled(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDRSVMOverrideExists(true),
+					testAccResourceVSphereDRSVMOverrideMatch(types.DrsBehaviorManual, false),
+				),
+			},
 		},
 	})
 }
@@ -78,56 +108,6 @@ func TestAccResourceVSphereDRSVMOverride_update(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereDRSVMOverrideExists(true),
 					testAccResourceVSphereDRSVMOverrideMatch(types.DrsBehaviorFullyAutomated, true),
-				),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereDRSVMOverride_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereDRSVMOverridePreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereDRSVMOverrideExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereDRSVMOverrideConfigOverrideDRSEnabled(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereDRSVMOverrideExists(true),
-					testAccResourceVSphereDRSVMOverrideMatch(types.DrsBehaviorManual, false),
-				),
-			},
-			{
-				ResourceName:      "vsphere_drs_vm_override.drs_vm_override",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					cluster, err := testGetComputeClusterFromDataSource(s, "cluster")
-					if err != nil {
-						return "", err
-					}
-					vm, err := testGetVirtualMachine(s, "vm")
-					if err != nil {
-						return "", err
-					}
-
-					m := make(map[string]string)
-					m["compute_cluster_path"] = cluster.InventoryPath
-					m["virtual_machine_path"] = vm.InventoryPath
-					b, err := json.Marshal(m)
-					if err != nil {
-						return "", err
-					}
-
-					return string(b), nil
-				},
-				Config: testAccResourceVSphereDRSVMOverrideConfigOverrideDRSEnabled(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereDRSVMOverrideExists(true),
-					testAccResourceVSphereDRSVMOverrideMatch(types.DrsBehaviorManual, false),
 				),
 			},
 		},

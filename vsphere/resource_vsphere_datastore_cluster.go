@@ -182,6 +182,7 @@ func resourceVSphereDatastoreCluster() *schema.Resource {
 				Type:        schema.TypeMap,
 				Optional:    true,
 				Description: "Advanced configuration options for storage DRS.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			vSphereTagAttributeKey:    tagsSchema(),
 			customattribute.ConfigKey: customattribute.ConfigSchema(),

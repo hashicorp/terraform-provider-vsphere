@@ -37,6 +37,22 @@ func TestAccResourceVSphereComputeCluster_basic(t *testing.T) {
 					testAccResourceVSphereComputeClusterCheckDRSEnabled(false),
 				),
 			},
+			{
+				ResourceName:      "vsphere_compute_cluster.compute_cluster",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					cluster, err := testGetComputeCluster(s, "compute_cluster")
+					if err != nil {
+						return "", err
+					}
+					return cluster.InventoryPath, nil
+				},
+				Config: testAccResourceVSphereComputeClusterConfigEmpty(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+				),
+			},
 		},
 	})
 }
@@ -339,41 +355,6 @@ func TestAccResourceVSphereComputeCluster_createVM(t *testing.T) {
 					testAccResourceVSphereComputeClusterCheckDRSEnabled(true),
 					testAccResourceVSphereComputeClusterCheckHAEnabled(true),
 					testAccResourceVSphereVirtualMachineCheckResourcePool("terraform-compute-cluster-test/Resources"),
-				),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereComputeCluster_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterPreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereComputeClusterConfigEmpty(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterCheckExists(true),
-				),
-			},
-			{
-				ResourceName:      "vsphere_compute_cluster.compute_cluster",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					cluster, err := testGetComputeCluster(s, "compute_cluster")
-					if err != nil {
-						return "", err
-					}
-					return cluster.InventoryPath, nil
-				},
-				Config: testAccResourceVSphereComputeClusterConfigEmpty(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterCheckExists(true),
 				),
 			},
 		},

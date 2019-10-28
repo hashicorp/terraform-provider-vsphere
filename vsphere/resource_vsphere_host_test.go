@@ -19,28 +19,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccResourceVsphereHost_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccCheckEnvVariables(t, []string{"ESX_HOSTNAME", "ESX_USERNAME", "ESX_PASSWORD"})
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccVSphereHostDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccVSphereHostConfig_import(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccVSphereHostExists("vsphere_host.h1"),
-				),
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
-	})
-
-}
-
 func TestAccResourceVSphereHost_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -55,6 +33,14 @@ func TestAccResourceVSphereHost_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereHostExists("vsphere_host.h1"),
 				),
+			},
+			{
+				Config: testAccVSphereHostConfig_import(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccVSphereHostExists("vsphere_host.h1"),
+				),
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -180,7 +166,8 @@ func TestAccResourceVSphereHost_lockdown_invalid(t *testing.T) {
 			testAccPreCheck(t)
 			testAccCheckEnvVariables(t, []string{"ESX_HOSTNAME", "ESX_USERNAME", "ESX_PASSWORD"})
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccVSphereHostDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccVSphereHostConfig_lockdown("invalidvalue"),

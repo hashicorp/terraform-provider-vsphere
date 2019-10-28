@@ -39,6 +39,48 @@ func TestAccResourceVSphereComputeClusterVMHostRule_basic(t *testing.T) {
 					),
 				),
 			},
+			{
+				ResourceName:      "vsphere_compute_cluster_vm_host_rule.cluster_vm_host_rule",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					cluster, err := testGetComputeCluster(s, "cluster")
+					if err != nil {
+						return "", err
+					}
+
+					rs, ok := s.RootModule().Resources["vsphere_compute_cluster_vm_host_rule.cluster_vm_host_rule"]
+					if !ok {
+						return "", errors.New("no resource at address vsphere_compute_cluster_vm_host_rule.cluster_vm_host_rule")
+					}
+					name, ok := rs.Primary.Attributes["name"]
+					if !ok {
+						return "", errors.New("vsphere_compute_cluster_vm_host_rule.cluster_vm_host_rule has no name attribute")
+					}
+
+					m := make(map[string]string)
+					m["compute_cluster_path"] = cluster.InventoryPath
+					m["name"] = name
+					b, err := json.Marshal(m)
+					if err != nil {
+						return "", err
+					}
+
+					return string(b), nil
+				},
+				Config: testAccResourceVSphereComputeClusterVMHostRuleConfigAffinity(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterVMHostRuleExists(true),
+					testAccResourceVSphereComputeClusterVMHostRuleMatch(
+						true,
+						false,
+						"terraform-test-cluster-vm-host-rule",
+						"terraform-test-cluster-host-group",
+						"",
+						"terraform-test-cluster-vm-group",
+					),
+				),
+			},
 		},
 	})
 }
@@ -144,75 +186,6 @@ func TestAccResourceVSphereComputeClusterVMHostRule_updateAffinity(t *testing.T)
 						"terraform-test-cluster-vm-host-rule",
 						"",
 						"terraform-test-cluster-host-group",
-						"terraform-test-cluster-vm-group",
-					),
-				),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereComputeClusterVMHostRule_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterVMHostRulePreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereComputeClusterVMHostRuleExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereComputeClusterVMHostRuleConfigAffinity(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterVMHostRuleExists(true),
-					testAccResourceVSphereComputeClusterVMHostRuleMatch(
-						true,
-						false,
-						"terraform-test-cluster-vm-host-rule",
-						"terraform-test-cluster-host-group",
-						"",
-						"terraform-test-cluster-vm-group",
-					),
-				),
-			},
-			{
-				ResourceName:      "vsphere_compute_cluster_vm_host_rule.cluster_vm_host_rule",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					cluster, err := testGetComputeCluster(s, "cluster")
-					if err != nil {
-						return "", err
-					}
-
-					rs, ok := s.RootModule().Resources["vsphere_compute_cluster_vm_host_rule.cluster_vm_host_rule"]
-					if !ok {
-						return "", errors.New("no resource at address vsphere_compute_cluster_vm_host_rule.cluster_vm_host_rule")
-					}
-					name, ok := rs.Primary.Attributes["name"]
-					if !ok {
-						return "", errors.New("vsphere_compute_cluster_vm_host_rule.cluster_vm_host_rule has no name attribute")
-					}
-
-					m := make(map[string]string)
-					m["compute_cluster_path"] = cluster.InventoryPath
-					m["name"] = name
-					b, err := json.Marshal(m)
-					if err != nil {
-						return "", err
-					}
-
-					return string(b), nil
-				},
-				Config: testAccResourceVSphereComputeClusterVMHostRuleConfigAffinity(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterVMHostRuleExists(true),
-					testAccResourceVSphereComputeClusterVMHostRuleMatch(
-						true,
-						false,
-						"terraform-test-cluster-vm-host-rule",
-						"terraform-test-cluster-host-group",
-						"",
 						"terraform-test-cluster-vm-group",
 					),
 				),

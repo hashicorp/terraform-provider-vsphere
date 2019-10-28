@@ -32,6 +32,36 @@ func TestAccResourceVSphereStorageDrsVMOverride_basic(t *testing.T) {
 					testAccResourceVSphereStorageDrsVMOverrideMatch("", structure.BoolPtr(false), nil),
 				),
 			},
+			{
+				ResourceName:      "vsphere_storage_drs_vm_override.drs_vm_override",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					pod, err := testGetDatastoreCluster(s, "datastore_cluster")
+					if err != nil {
+						return "", err
+					}
+					vm, err := testGetVirtualMachine(s, "vm")
+					if err != nil {
+						return "", err
+					}
+
+					m := make(map[string]string)
+					m["datastore_cluster_path"] = pod.InventoryPath
+					m["virtual_machine_path"] = vm.InventoryPath
+					b, err := json.Marshal(m)
+					if err != nil {
+						return "", err
+					}
+
+					return string(b), nil
+				},
+				Config: testAccResourceVSphereStorageDrsVMOverrideConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereStorageDrsVMOverrideExists(true),
+					testAccResourceVSphereStorageDrsVMOverrideMatch("", structure.BoolPtr(false), nil),
+				),
+			},
 		},
 	})
 }
@@ -77,56 +107,6 @@ func TestAccResourceVSphereStorageDrsVMOverride_update(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereStorageDrsVMOverrideExists(true),
 					testAccResourceVSphereStorageDrsVMOverrideMatch("automated", nil, structure.BoolPtr(false)),
-				),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereStorageDrsVMOverride_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereStorageDrsVMOverridePreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereStorageDrsVMOverrideExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereStorageDrsVMOverrideConfigBasic(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereStorageDrsVMOverrideExists(true),
-					testAccResourceVSphereStorageDrsVMOverrideMatch("", structure.BoolPtr(false), nil),
-				),
-			},
-			{
-				ResourceName:      "vsphere_storage_drs_vm_override.drs_vm_override",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					pod, err := testGetDatastoreCluster(s, "datastore_cluster")
-					if err != nil {
-						return "", err
-					}
-					vm, err := testGetVirtualMachine(s, "vm")
-					if err != nil {
-						return "", err
-					}
-
-					m := make(map[string]string)
-					m["datastore_cluster_path"] = pod.InventoryPath
-					m["virtual_machine_path"] = vm.InventoryPath
-					b, err := json.Marshal(m)
-					if err != nil {
-						return "", err
-					}
-
-					return string(b), nil
-				},
-				Config: testAccResourceVSphereStorageDrsVMOverrideConfigBasic(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereStorageDrsVMOverrideExists(true),
-					testAccResourceVSphereStorageDrsVMOverrideMatch("", structure.BoolPtr(false), nil),
 				),
 			},
 		},

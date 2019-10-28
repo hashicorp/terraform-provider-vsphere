@@ -1,24 +1,28 @@
 #!/bin/bash
 
 main () {
-  testList=$(TF_ACC=1 go test github.com/terraform-providers/terraform-provider-vsphere/vsphere | grep "\-\-\- FAIL" | awk '{ print $3 }')
-  count=$(echo $testList | wc -w)
+  eCode=0
+  testList=$(TF_ACC=1 go test github.com/terraform-providers/terraform-provider-vsphere/vsphere | grep "\-\-\- FAIL" | awk '{ print $3 }' | grep TestAcc$1_)
   for testName in $testList; do 
-    runTest $testName
+    runTest $testName  || eCode=1
   done
+  exit $eCode
 }
 
 runTest () {
+  eCode=0
   for try in {1..2}; do
     res=$(TF_ACC=1 go test github.com/terraform-providers/terraform-provider-vsphere/vsphere -v -count=1 -run="$1\$" -timeout 240m)
     if grep PASS <<< "$res" &> /dev/null; then
-      break
+      eCode=0
     else
       revertAndWait
       sleep 30
+      eCode=1
     fi
   done
   echo "$res"
+  return $eCode
 }
 
 
@@ -30,4 +34,4 @@ revertAndWait () {
   done
 }
 
-main
+main $1

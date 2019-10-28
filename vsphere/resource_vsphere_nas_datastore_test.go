@@ -28,6 +28,12 @@ func TestAccResourceVSphereNasDatastore_basic(t *testing.T) {
 					testAccResourceVSphereNasDatastoreExists(true),
 				),
 			},
+			{
+				Config:            testAccResourceVSphereNasDatastoreConfigBasic(),
+				ImportState:       true,
+				ResourceName:      "vsphere_nas_datastore.datastore",
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
@@ -39,7 +45,8 @@ func TestAccResourceVSphereNasDatastore_multiHost(t *testing.T) {
 			testAccResourceVSphereNasDatastorePreCheck(t)
 			testAccSkipIfEsxi(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereNasDatastoreConfigMultiHost(),
@@ -57,7 +64,8 @@ func TestAccResourceVSphereNasDatastore_basicToMultiHost(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereNasDatastorePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereNasDatastoreConfigBasic(),
@@ -83,7 +91,8 @@ func TestAccResourceVSphereNasDatastore_multiHostToBasic(t *testing.T) {
 			testAccResourceVSphereNasDatastorePreCheck(t)
 			testAccSkipIfEsxi(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereNasDatastoreConfigMultiHost(),
@@ -269,31 +278,6 @@ func TestAccResourceVSphereNasDatastore_modifyTags(t *testing.T) {
 					testAccResourceVSphereNasDatastoreExists(true),
 					testAccResourceVSphereDatastoreCheckTags("vsphere_nas_datastore.datastore", "terraform-test-tags-alt"),
 				),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereNasDatastore_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereNasDatastorePreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereNasDatastoreExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereNasDatastoreConfigBasic(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereNasDatastoreExists(true),
-				),
-			},
-			{
-				Config:            testAccResourceVSphereNasDatastoreConfigBasic(),
-				ImportState:       true,
-				ResourceName:      "vsphere_nas_datastore.datastore",
-				ImportStateVerify: true,
 			},
 		},
 	})

@@ -53,6 +53,26 @@ func TestAccResourceVSphereVirtualMachine_basic(t *testing.T) {
 					resource.TestMatchResourceAttr("vsphere_virtual_machine.vm", "moid", regexp.MustCompile("^vm-")),
 				),
 			},
+			{
+				ResourceName:      "vsphere_virtual_machine.vm",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"disk",
+					"imported",
+				},
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					vm, err := testGetVirtualMachine(s, "vm")
+					if err != nil {
+						return "", err
+					}
+					return vm.InventoryPath, nil
+				},
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
 		},
 	})
 }
@@ -63,7 +83,8 @@ func TestAccResourceVSphereVirtualMachine_ignoreValidationOnComputedValue(t *tes
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:             testAccResourceVSphereVirtualMachineConfigComputedValue(),
@@ -398,7 +419,8 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitInsufficientBus(t *testing
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigMultiHighBusInsufficientBus(),
@@ -496,7 +518,8 @@ func TestAccResourceVSphereVirtualMachine_scsiBusSharingMultiVM(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVirtualMachineConfigISCSIDatastore(),
@@ -517,7 +540,8 @@ func TestAccResourceVSphereVirtualMachine_disksKeepOnRemove(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVirtualMachineConfigKeepDisksOnRemove(),
@@ -544,7 +568,8 @@ func TestAccResourceVSphereVirtualMachine_cdromComputedValue(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:             testAccResourceVSphereVirtualMachineConfigCdromComputedValue(),
@@ -561,7 +586,8 @@ func TestAccResourceVSphereVirtualMachine_cdromIsoMapping(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVirtualMachineConfigIsoCdrom(),
@@ -600,7 +626,8 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoBasic(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVirtualMachineConfigClientCdromCloneIsoVApp(),
@@ -619,7 +646,8 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoNoVApp(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVirtualMachineConfigClientCdromClone(),
@@ -640,7 +668,8 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoNoCdrom(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigNoCdromCloneIsoVApp(),
@@ -660,7 +689,8 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoIncorrectCdromType(t *testing.T
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigIsoCdromCloneIsoVApp(),
@@ -680,7 +710,8 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoConfigIsoIgnored(t *testing.T) 
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVirtualMachineConfigClientCdromCloneIsoVApp(),
@@ -702,7 +733,8 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoChangeCdromBacking(t *testing.T
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVirtualMachineConfigClientCdromCloneIsoVApp(),
@@ -729,7 +761,8 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoPoweredOffCdromRead(t *testing.
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVirtualMachineConfigClientCdromCloneIsoVApp(),
@@ -779,7 +812,8 @@ func TestAccResourceVSphereVirtualMachine_cdromNoParameters(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigNoCdromParameters(),
@@ -798,7 +832,8 @@ func TestAccResourceVSphereVirtualMachine_cdromConflictingParameters(t *testing.
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigConflictingCdromParameters(),
@@ -1097,7 +1132,8 @@ func TestAccResourceVSphereVirtualMachine_vAppContainerAndFolder(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigVAppAndFolder(),
@@ -1334,7 +1370,8 @@ func TestAccResourceVSphereVirtualMachine_blockComputedDiskName(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigComputedDisk(),
@@ -1355,7 +1392,8 @@ func TestAccResourceVSphereVirtualMachine_blockVAppSettingsOnNonClones(t *testin
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineVAppPropertiesNonClone(),
@@ -1404,7 +1442,8 @@ func TestAccResourceVSphereVirtualMachine_blockDiskLabelStartingWithOrphanedPref
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigBadOrphanedLabel(),
@@ -1425,7 +1464,8 @@ func TestAccResourceVSphereVirtualMachine_createIntoEmptyClusterNoEnvironmentBro
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigBasicEmptyCluster(),
@@ -1520,7 +1560,8 @@ func TestAccResourceVSphereVirtualMachine_cloneCustomizeComputedValue(t *testing
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:             testAccResourceVSphereVirtualMachineConfigCloneComputedValue(),
@@ -1711,7 +1752,8 @@ func TestAccResourceVSphereVirtualMachine_cloneBlockESXi(t *testing.T) {
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 			testAccSkipIfNotEsxi(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigClone(),
@@ -1726,27 +1768,27 @@ func TestAccResourceVSphereVirtualMachine_cloneBlockESXi(t *testing.T) {
 	})
 }
 
-// Temporarily removed until https://github.com/hashicorp/terraform/issues/21225 is resolved.
-//func TestAccResourceVSphereVirtualMachine_cloneWithBadTimezone(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck: func() {
-//			testAccPreCheck(t)
-//			testAccResourceVSphereVirtualMachinePreCheck(t)
-//		},
-//		Providers: testAccProviders,
-//		Steps: []resource.TestStep{
-//			{
-//				Config:      testAccResourceVSphereVirtualMachineConfigCloneTimeZone("Pacific Standard Time"),
-//				ExpectError: regexp.MustCompile("must be similar to America/Los_Angeles or other Linux/Unix TZ format"),
-//				PlanOnly:    true,
-//			},
-//			{
-//				Config: testAccResourceVSphereEmpty,
-//				Check:  resource.ComposeTestCheckFunc(),
-//			},
-//		},
-//	})
-//}
+func TestAccResourceVSphereVirtualMachine_cloneWithBadTimezone(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceVSphereVirtualMachineConfigCloneTimeZone("Pacific Standard Time"),
+				ExpectError: regexp.MustCompile("must be similar to America/Los_Angeles or other Linux/Unix TZ format"),
+				PlanOnly:    true,
+			},
+			{
+				Config: testAccResourceVSphereEmpty,
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
 
 func TestAccResourceVSphereVirtualMachine_cloneWithBadEagerlyScrubWithLinkedClone(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -1754,7 +1796,8 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadEagerlyScrubWithLinkedClon
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigBadEager(),
@@ -1797,7 +1840,8 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithLinkedClone(t *tes
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigBadSizeLinked(),
@@ -1818,7 +1862,8 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithoutLinkedClone(t *
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigBadSizeUnlinked(),
@@ -1839,7 +1884,8 @@ func TestAccResourceVSphereVirtualMachine_cloneUnsupportedVAppPropertiesOnCreate
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigCloneBadVAppSettings(),
@@ -1878,7 +1924,8 @@ func TestAccResourceVSphereVirtualMachine_cloneIntoEmptyCluster(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigCloneEmptyCluster(),
@@ -1998,7 +2045,8 @@ func TestAccResourceVSphereVirtualMachine_cloneWithNonUserVAppPropertyNotSet(t *
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVirtualMachineConfigCloneVAppPropertiesNonUserNotSet(),
@@ -2014,7 +2062,8 @@ func TestAccResourceVSphereVirtualMachine_cloneWithNonUserVAppPropertySet(t *tes
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigCloneVAppPropertiesNonUserSet(),
@@ -2034,7 +2083,8 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadVAppPropertyOnCreate(t *te
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigCloneVAppPropertiesBadKey(),
@@ -2807,46 +2857,7 @@ func TestAccResourceVSphereVirtualMachine_transitionToLabelAttachedDisk(t *testi
 	})
 }
 
-func TestAccResourceVSphereVirtualMachine_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereVirtualMachineCheckExists(true),
-				),
-			},
-			{
-				ResourceName:      "vsphere_virtual_machine.vm",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					"disk",
-					"imported",
-				},
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					vm, err := testGetVirtualMachine(s, "vm")
-					if err != nil {
-						return "", err
-					}
-					return vm.InventoryPath, nil
-				},
-				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereVirtualMachineCheckExists(true),
-				),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereVirtualMachine_importWithMultipleDisksAtDifferentSCSISlots(t *testing.T) {
+func TestAccResourceVSphereVirtualMachine_multipleDisksAtDifferentSCSISlotsImport(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -2885,7 +2896,7 @@ func TestAccResourceVSphereVirtualMachine_importWithMultipleDisksAtDifferentSCSI
 	})
 }
 
-func TestAccResourceVSphereVirtualMachine_importClone(t *testing.T) {
+func TestAccResourceVSphereVirtualMachine_cloneImport(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -2965,7 +2976,8 @@ func TestAccResourceVSphereVirtualMachine_readVappChildResourcePool(t *testing.T
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVirtualMachineReadVappChildResourcePool(),
@@ -3061,7 +3073,9 @@ func testAccResourceVSphereVirtualMachineCheckExists(expected bool) resource.Tes
 	return func(s *terraform.State) error {
 		_, err := testGetVirtualMachine(s, "vm")
 		if err != nil {
-			if ok, _ := regexp.MatchString("virtual machine with UUID \"[-a-f0-9]+\" not found", err.Error()); ok && !expected {
+			missingState, _ := regexp.MatchString("not found in state", err.Error())
+			missingVSphere, _ := regexp.MatchString("virtual machine with UUID \"[-a-f0-9]+\" not found", err.Error())
+			if missingState && !expected || missingVSphere && !expected {
 				// Expected missing
 				return nil
 			}

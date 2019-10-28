@@ -252,6 +252,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Type:        schema.TypeMap,
 			Optional:    true,
 			Description: "Extra configuration data for this virtual machine. Can be used to supply advanced parameters not normally in configuration, such as instance metadata, or configuration data for OVF images.",
+			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
 		"vapp": {
 			Type:        schema.TypeList,
