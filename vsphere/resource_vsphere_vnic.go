@@ -42,9 +42,8 @@ func vNicSchema() map[string]*schema.Schema {
 func resourceVsphereNicRead(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.TODO()
 	client := meta.(*VSphereClient).vimClient
-	tfNicID := d.Id()
 
-	toks := strings.Split(tfNicID, "_")
+	toks := strings.Split(d.Id(), "_")
 	hostId := toks[0]
 	nicId := toks[1]
 
@@ -62,7 +61,6 @@ func resourceVsphereNicRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	_ = d.Set("mtu", vnic.Spec.Mtu)
 	_ = d.Set("mac", vnic.Spec.Mac)
-	//_ = d.Set("netstack", vnic.Spec.NetStackInstanceKey)
 
 	// Do we have any ipv4 config ?
 	if _, ok := d.GetOk("ipv4"); ok {
@@ -76,7 +74,10 @@ func resourceVsphereNicRead(d *schema.ResourceData, meta interface{}) error {
 				ipv4dict["gw"] = vnic.Spec.IpRouteSpec.IpRouteConfig.GetHostIpRouteConfig().DefaultGateway
 			}
 		}
-		_ = d.Set("ipv4", []map[string]interface{}{ipv4dict})
+		err = d.Set("ipv4", []map[string]interface{}{ipv4dict})
+		if err != nil {
+			return err
+		}
 	}
 
 	// Do we have any ipv6 config ?
@@ -100,7 +101,10 @@ func resourceVsphereNicRead(d *schema.ResourceData, meta interface{}) error {
 			// There is a gw set in the config, but none set on the Host.
 			ipv6dict["gw"] = ""
 		}
-		d.Set("ipv6", []map[string]interface{}{ipv6dict})
+		err = d.Set("ipv6", []map[string]interface{}{ipv6dict})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
