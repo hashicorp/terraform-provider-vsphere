@@ -1,4 +1,5 @@
 ---
+subcategory: "Storage"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_file"
 sidebar_current: "docs-vsphere-resource-storage-file"

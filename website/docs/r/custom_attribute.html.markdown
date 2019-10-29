@@ -1,4 +1,5 @@
 ---
+subcategory: "Inventory"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_custom_attribute"
 sidebar_current: "docs-vsphere-resource-inventory-custom-attribute"

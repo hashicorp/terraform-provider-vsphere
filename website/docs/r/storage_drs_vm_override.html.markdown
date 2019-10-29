@@ -1,4 +1,5 @@
 ---
+subcategory: "Storage"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_storage_drs_vm_override"
 sidebar_current: "docs-vsphere-resource-storage-storage-drs-vm-override"

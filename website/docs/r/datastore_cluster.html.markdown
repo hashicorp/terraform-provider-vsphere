@@ -1,4 +1,5 @@
 ---
+subcategory: "Storage"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_datastore_cluster"
 sidebar_current: "docs-vsphere-resource-storage-datastore-cluster"

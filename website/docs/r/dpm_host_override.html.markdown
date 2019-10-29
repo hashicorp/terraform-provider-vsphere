@@ -1,4 +1,5 @@
 ---
+subcategory: "Host and Cluster Management"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_dpm_host_override"
 sidebar_current: "docs-vsphere-resource-compute-dpm-host-override"
