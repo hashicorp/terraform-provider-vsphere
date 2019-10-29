@@ -515,7 +515,7 @@ func getVnicFromHost(ctx context.Context, client *govmomi.Client, hostId, nicId 
 	}
 
 	if nicIdx == -1 {
-		return nil, fmt.Errorf("VMKernel interface with id %s not found", nicId)
+		return nil, fmt.Errorf("vNic interface with id %s not found", nicId)
 	}
 	return &vNics[nicIdx], nil
 }

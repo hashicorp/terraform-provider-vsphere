@@ -230,7 +230,7 @@ func testAccVSphereVNicDestroy(s *terraform.State) error {
 		}
 
 		if res {
-			message += fmt.Sprintf("Host with ID %s was found", nicId)
+			message += fmt.Sprintf("vNic with ID %s was found", nicId)
 		}
 	}
 	if message != "" {
