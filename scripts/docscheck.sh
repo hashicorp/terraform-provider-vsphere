@@ -15,9 +15,9 @@ for doc in $docs; do
       ;;
 
     "d")
-			# Data sources have no requirements
-			continue
-			;;
+      # Data sources have no requirements
+      continue
+      ;;
 
 		"r")
       # Resources require a subcategory
