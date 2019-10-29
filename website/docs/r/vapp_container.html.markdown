@@ -1,4 +1,5 @@
 ---
+subcategory: "Virtual Machine"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_vapp_container"
 sidebar_current: "docs-vsphere-resource-compute-vapp-container"
