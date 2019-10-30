@@ -5,22 +5,24 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/vmware/govmomi/vapi/rest"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
+	"github.com/vmware/govmomi/pbm"
 	"github.com/vmware/govmomi/session"
+	"github.com/vmware/govmomi/vapi/tags"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/debug"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
-	"github.com/vmware/vic/pkg/vsphere/tags"
 )
 
 // VSphereClient is the client connection manager for the vSphere provider. It
@@ -31,16 +33,19 @@ type VSphereClient struct {
 	// The VIM/govmomi client.
 	vimClient *govmomi.Client
 
-	// The specialized tags client SDK imported from vmware/vic.
-	tagsClient *tags.RestClient
+	// The policy based management client
+	pbmClient *pbm.Client
+
+	// The REST client used for tags and content library.
+	restClient *rest.Client
 }
 
-// TagsClient returns the embedded REST client used for tags, after determining
+// TagsManager returns the embedded REST client used for tags, after determining
 // if the connection is eligible:
 //
 // * The connection information in vimClient is valid vCenter connection
 // * The provider has a connection to the CIS REST client. This is true if
-// tagsClient != nil.
+// restClient != nil.
 //
 // This function should be used whenever possible to return the client from the
 // provider meta variable for use, to determine if it can be used at all.
@@ -51,35 +56,34 @@ type VSphereClient struct {
 // Read call to determine if tags are supported on this connection, and if they
 // are, read them from the object and save them in the resource:
 //
-//   if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
-//     if err := readTagsForResource(tagsClient, obj, d); err != nil {
+//   if restClient, _ := meta.(*VSphereClient).TagsManager(); restClient != nil {
+//     if err := readTagsForResource(restClient, obj, d); err != nil {
 //       return err
 //     }
 //   }
-func (c *VSphereClient) TagsClient() (*tags.RestClient, error) {
+func (c *VSphereClient) TagsManager() (*tags.Manager, error) {
 	if err := viapi.ValidateVirtualCenter(c.vimClient); err != nil {
 		return nil, err
 	}
-	if c.tagsClient == nil {
+	if c.restClient == nil {
 		return nil, fmt.Errorf("tags require %s or higher", tagsMinVersion)
 	}
-	return c.tagsClient, nil
+	return tags.NewManager(c.restClient), nil
 }
 
 // Config holds the provider configuration, and delivers a populated
 // VSphereClient based off the contained settings.
 type Config struct {
-	InsecureFlag    bool
-	Debug           bool
-	Persist         bool
-	User            string
-	Password        string
-	VSphereServer   string
-	DebugPath       string
-	DebugPathRun    string
-	VimSessionPath  string
-	RestSessionPath string
-	KeepAlive       int
+	InsecureFlag   bool
+	Debug          bool
+	Persist        bool
+	User           string
+	Password       string
+	VSphereServer  string
+	DebugPath      string
+	DebugPathRun   string
+	VimSessionPath string
+	KeepAlive      int
 }
 
 // NewConfig returns a new Config from a supplied ResourceData.
@@ -98,17 +102,16 @@ func NewConfig(d *schema.ResourceData) (*Config, error) {
 	}
 
 	c := &Config{
-		User:            d.Get("user").(string),
-		Password:        d.Get("password").(string),
-		InsecureFlag:    d.Get("allow_unverified_ssl").(bool),
-		VSphereServer:   server,
-		Debug:           d.Get("client_debug").(bool),
-		DebugPathRun:    d.Get("client_debug_path_run").(string),
-		DebugPath:       d.Get("client_debug_path").(string),
-		Persist:         d.Get("persist_session").(bool),
-		VimSessionPath:  d.Get("vim_session_path").(string),
-		RestSessionPath: d.Get("rest_session_path").(string),
-		KeepAlive:       d.Get("vim_keep_alive").(int),
+		User:           d.Get("user").(string),
+		Password:       d.Get("password").(string),
+		InsecureFlag:   d.Get("allow_unverified_ssl").(bool),
+		VSphereServer:  server,
+		Debug:          d.Get("client_debug").(bool),
+		DebugPathRun:   d.Get("client_debug_path_run").(string),
+		DebugPath:      d.Get("client_debug_path").(string),
+		Persist:        d.Get("persist_session").(bool),
+		VimSessionPath: d.Get("vim_session_path").(string),
+		KeepAlive:      d.Get("vim_keep_alive").(int),
 	}
 
 	return c, nil
@@ -149,9 +152,13 @@ func (c *Config) Client() (*VSphereClient, error) {
 
 	log.Printf("[DEBUG] VMWare vSphere Client configured for URL: %s", c.VSphereServer)
 
-	if isEligibleTagEndpoint(client.vimClient) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+
+	if isEligiblePBMEndpoint(client.vimClient) {
 		// Connect to the CIS REST endpoint for tagging, or load a previous session
-		client.tagsClient, err = c.SavedRestSessionOrNew(u)
+		client.restClient = rest.NewClient(client.vimClient.Client)
+		err := client.restClient.Login(ctx, url.UserPassword(c.User, c.Password))
 		if err != nil {
 			return nil, err
 		}
@@ -162,12 +169,23 @@ func (c *Config) Client() (*VSphereClient, error) {
 		log.Printf("[DEBUG] Connected endpoint does not support tags (%s)", viapi.ParseVersionFromClient(client.vimClient))
 	}
 
+	if isEligiblePBMEndpoint(client.vimClient) {
+		if err := viapi.ValidateVirtualCenter(client.vimClient); err != nil {
+			return nil, err
+		}
+
+		pc, err := pbm.NewClient(ctx, client.vimClient.Client)
+		if err != nil {
+			return nil, err
+		}
+		client.pbmClient = pc
+	} else {
+		log.Printf("[DEBUG] Connected endpoint does not support policy based management")
+	}
+
 	// Done, save sessions if we need to and return
 	if err := c.SaveVimClient(client.vimClient); err != nil {
 		return nil, fmt.Errorf("error persisting SOAP session to disk: %s", err)
-	}
-	if err := c.SaveRestClient(client.tagsClient); err != nil {
-		return nil, fmt.Errorf("error persisting REST session to disk: %s", err)
 	}
 
 	return client, nil
@@ -250,16 +268,6 @@ func (c *Config) vimSessionFile() (string, error) {
 	return filepath.Join(c.VimSessionPath, p), nil
 }
 
-// restSessionFile is takes the session file name generated by sessionFile and
-// then prefixes the REST client session path to it.
-func (c *Config) restSessionFile() (string, error) {
-	p, err := c.sessionFile()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(c.RestSessionPath, p), nil
-}
-
 // SaveVimClient saves a client to the supplied path. This facilitates re-use of
 // the session at a later date.
 //
@@ -293,32 +301,6 @@ func (c *Config) SaveVimClient(client *govmomi.Client) error {
 	}()
 
 	err = json.NewEncoder(f).Encode(client.Client)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// SaveRestClient saves the REST client session ID to the supplied path. This
-// facilitates re-use of the session at a later date.
-func (c *Config) SaveRestClient(client *tags.RestClient) error {
-	if !c.Persist {
-		return nil
-	}
-
-	p, err := c.restSessionFile()
-	if err != nil {
-		return err
-	}
-
-	log.Printf("[DEBUG] Will persist REST client session data to %q", p)
-	err = os.MkdirAll(filepath.Dir(p), 0700)
-	if err != nil {
-		return err
-	}
-
-	err = ioutil.WriteFile(p, []byte(client.SessionID()), 0600)
 	if err != nil {
 		return err
 	}
@@ -361,31 +343,6 @@ func (c *Config) restoreVimClient(client *vim25.Client) (bool, error) {
 	}
 
 	return true, nil
-}
-
-// readRestSessionID reads a saved REST session ID and returns it. An empty
-// string is returned if session does not exist.
-func (c *Config) readRestSessionID() (string, error) {
-	if !c.Persist {
-		return "", nil
-	}
-
-	p, err := c.restSessionFile()
-	if err != nil {
-		return "", err
-	}
-	log.Printf("[DEBUG] Attempting to locate REST client session data in %q", p)
-	id, err := ioutil.ReadFile(p)
-	if err != nil {
-		if os.IsNotExist(err) {
-			log.Printf("[DEBUG] REST client session data not found in %q", p)
-			return "", nil
-		}
-
-		return "", err
-	}
-
-	return string(id), nil
 }
 
 // LoadVimClient loads a saved vSphere SOAP API session from disk, previously
@@ -436,32 +393,6 @@ func (c *Config) LoadVimClient() (*govmomi.Client, error) {
 	}, nil
 }
 
-// LoadRestClient loads a saved vSphere REST API session from disk, previously
-// saved by SaveRestClient, checking it for validity before returning it. If
-// it's not valid, false is returned as the third return value, but the client
-// can still be technically used for logging in by calling Login on the client.
-func (c *Config) LoadRestClient(ctx context.Context, u *url.URL) (*tags.RestClient, bool, error) {
-	id, err := c.readRestSessionID()
-	if err != nil {
-		return nil, false, err
-	}
-
-	client := tags.NewClientWithSessionID(u, c.InsecureFlag, "", id)
-
-	if id == "" {
-		log.Println("[DEBUG] No cached REST session data found or persistence not enabled, new session necessary")
-		return client, false, nil
-	}
-
-	if !client.Valid(ctx) {
-		log.Println("[DEBUG] Cached REST client session data not valid, new session necessary")
-		return client, false, nil
-	}
-
-	log.Println("[DEBUG] Cached REST client session loaded successfully")
-	return client, true, nil
-}
-
 // SavedVimSessionOrNew either loads a saved SOAP session from disk, or creates
 // a new one.
 func (c *Config) SavedVimSessionOrNew(u *url.URL) (*govmomi.Client, error) {
@@ -507,24 +438,4 @@ func newClientWithKeepAlive(ctx context.Context, u *url.URL, insecure bool, keep
 	}
 
 	return c, nil
-}
-
-// SavedRestSessionOrNew either loads a saved REST session from disk, or creates
-// a new one.
-func (c *Config) SavedRestSessionOrNew(u *url.URL) (*tags.RestClient, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
-	defer cancel()
-
-	client, valid, err := c.LoadRestClient(ctx, u)
-	if err != nil {
-		return nil, fmt.Errorf("error trying to load vSphere REST session from disk: %s", err)
-	}
-	if !valid {
-		log.Printf("[DEBUG] Creating new CIS REST API session on endpoint %s", c.VSphereServer)
-		if err := client.Login(ctx); err != nil {
-			return nil, fmt.Errorf("Error connecting to CIS REST endpoint: %s", err)
-		}
-		log.Println("[DEBUG] CIS REST API session creation successful")
-	}
-	return client, nil
 }
