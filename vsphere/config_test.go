@@ -33,7 +33,7 @@ func testAccClientGenerateConfig(t *testing.T) *Config {
 	}
 }
 
-func testAccClientGenerateData(t *testing.T, c *Config) (string) {
+func testAccClientGenerateData(t *testing.T, c *Config) string {
 	_, err := c.Client()
 	if err != nil {
 		t.Fatalf("error setting up client: %s", err)
@@ -142,15 +142,15 @@ func TestAccClient_noPersistence(t *testing.T) {
 
 func TestNewConfig(t *testing.T) {
 	expected := &Config{
-		User:            "foo",
-		Password:        "bar",
-		InsecureFlag:    true,
-		VSphereServer:   "vsphere.foo.internal",
-		Debug:           true,
-		DebugPathRun:    "./foo",
-		DebugPath:       "./bar",
-		Persist:         true,
-		VimSessionPath:  "./baz",
+		User:           "foo",
+		Password:       "bar",
+		InsecureFlag:   true,
+		VSphereServer:  "vsphere.foo.internal",
+		Debug:          true,
+		DebugPathRun:   "./foo",
+		DebugPath:      "./bar",
+		Persist:        true,
+		VimSessionPath: "./baz",
 	}
 
 	r := &schema.Resource{Schema: Provider().(*schema.Provider).Schema}

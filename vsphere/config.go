@@ -40,8 +40,8 @@ type VSphereClient struct {
 	restClient *rest.Client
 }
 
-// TagsManager returns the embedded REST client used for tags, after determining
-// if the connection is eligible:
+// TagsManager returns the embedded tags manager used for tags, after determining
+// if the REST connection is eligible:
 //
 // * The connection information in vimClient is valid vCenter connection
 // * The provider has a connection to the CIS REST client. This is true if
@@ -56,7 +56,7 @@ type VSphereClient struct {
 // Read call to determine if tags are supported on this connection, and if they
 // are, read them from the object and save them in the resource:
 //
-//   if restClient, _ := meta.(*VSphereClient).TagsManager(); restClient != nil {
+//   if tm, _ := meta.(*VSphereClient).TagsManager(); tm != nil {
 //     if err := readTagsForResource(restClient, obj, d); err != nil {
 //       return err
 //     }
@@ -155,10 +155,11 @@ func (c *Config) Client() (*VSphereClient, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
 
-	if isEligiblePBMEndpoint(client.vimClient) {
+	if isEligibleRestEndpoint(client.vimClient) {
 		// Connect to the CIS REST endpoint for tagging, or load a previous session
 		client.restClient = rest.NewClient(client.vimClient.Client)
 		err := client.restClient.Login(ctx, url.UserPassword(c.User, c.Password))
+		//err := client.restClient.LoginByToken(ctx)
 		if err != nil {
 			return nil, err
 		}
