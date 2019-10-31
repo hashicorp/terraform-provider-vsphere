@@ -1,8 +1,11 @@
 #!/bin/bash
+set -e -u -o pipefail
 
 main () {
   eCode=0
+  set +e
   testList=$(TF_ACC=1 go test github.com/terraform-providers/terraform-provider-vsphere/vsphere | grep "\-\-\- FAIL" | awk '{ print $3 }' | grep TestAcc$1_)
+  set -e
   for testName in $testList; do 
     runTest $testName  || eCode=1
   done

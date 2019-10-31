@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e -u -o pipefail
 
 cat << EOF > /tmp/config.yml
 version: 2
@@ -49,7 +50,7 @@ for category in $categories; do
     - run:
         name: "SSH Tunnel"
         command: |
-          ssh root@147.75.90.29 -L 4430:vcenter.vsphere.hashicorptest.internal:443 -L 4431:esxi1.vsphere.hashicorptest.internal:443 -o StrictHostKeyChecking=no -f sleep 32400
+          ssh \$TUNNEL_USER@\$TUNNEL_HOST -L 4430:vcenter.vsphere.hashicorptest.internal:443 -L 4431:esxi1.vsphere.hashicorptest.internal:443 -o StrictHostKeyChecking=no -f sleep 32400
     - run:
         name: "Get GOVC"
         command: |
