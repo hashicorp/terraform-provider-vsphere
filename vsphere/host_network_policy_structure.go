@@ -195,8 +195,10 @@ func flattenHostNicTeamingPolicy(d *schema.ResourceData, obj *types.HostNicTeami
 		d.Set("notify_switches", obj.NotifySwitches)
 	}
 	d.Set("teaming_policy", obj.Policy)
-	if err := flattenHostNicFailureCriteria(d, obj.FailureCriteria); err != nil {
-		return err
+	if obj.FailureCriteria != nil {
+		if err := flattenHostNicFailureCriteria(d, obj.FailureCriteria); err != nil {
+			return err
+		}
 	}
 	if err := flattenHostNicOrderPolicy(d, obj.NicOrder); err != nil {
 		return err
