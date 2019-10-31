@@ -82,7 +82,7 @@ func Provider() terraform.ResourceProvider {
 			"rest_session_path": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_REST_SESSION_PATH", filepath.Join(os.Getenv("HOME"), ".govmomi", "rest_sessions")),
+				Deprecated:  "Rest session is now managed with VIM session",
 				Description: "The directory to save vSphere REST API sessions to",
 			},
 			"vim_keep_alive": {
