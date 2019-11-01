@@ -101,16 +101,6 @@ func TestAccResourceVSphereComputeCluster_explicitFailoverHost(t *testing.T) {
 					testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(os.Getenv("VSPHERE_ESXI_HOST4")),
 				),
 			},
-			{
-				// This step is required to remove the dedicated failover host in
-				// admission control - otherwise cleanup will fail.
-				Config: testAccResourceVSphereComputeClusterConfigDRSHABasic(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckDRSEnabled(true),
-					testAccResourceVSphereComputeClusterCheckHAEnabled(true),
-				),
-			},
 		},
 	})
 }
