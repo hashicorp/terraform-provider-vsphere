@@ -34,53 +34,6 @@ func TestAccResourceVSphereComputeClusterVMGroup_basic(t *testing.T) {
 					testAccResourceVSphereComputeClusterVMGroupMatchMembership(),
 				),
 			},
-		},
-	})
-}
-
-func TestAccResourceVSphereComputeClusterVMGroup_update(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterVMGroupPreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereComputeClusterVMGroupExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereComputeClusterVMGroupConfig(2),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterVMGroupExists(true),
-					testAccResourceVSphereComputeClusterVMGroupMatchMembership(),
-				),
-			},
-			{
-				Config: testAccResourceVSphereComputeClusterVMGroupConfig(3),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterVMGroupExists(true),
-					testAccResourceVSphereComputeClusterVMGroupMatchMembership(),
-				),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereComputeClusterVMGroup_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterVMGroupPreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereComputeClusterVMGroupExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereComputeClusterVMGroupConfig(1),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterVMGroupExists(true),
-					testAccResourceVSphereComputeClusterVMGroupMatchMembership(),
-				),
-			},
 			{
 				ResourceName:      "vsphere_compute_cluster_vm_group.cluster_vm_group",
 				ImportState:       true,
@@ -111,6 +64,33 @@ func TestAccResourceVSphereComputeClusterVMGroup_import(t *testing.T) {
 					return string(b), nil
 				},
 				Config: testAccResourceVSphereComputeClusterVMGroupConfig(1),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterVMGroupExists(true),
+					testAccResourceVSphereComputeClusterVMGroupMatchMembership(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereComputeClusterVMGroup_update(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterVMGroupPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterVMGroupExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterVMGroupConfig(2),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterVMGroupExists(true),
+					testAccResourceVSphereComputeClusterVMGroupMatchMembership(),
+				),
+			},
+			{
+				Config: testAccResourceVSphereComputeClusterVMGroupConfig(3),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterVMGroupExists(true),
 					testAccResourceVSphereComputeClusterVMGroupMatchMembership(),

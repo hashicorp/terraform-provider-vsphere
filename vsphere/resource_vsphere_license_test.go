@@ -47,7 +47,8 @@ func TestAccResourceVSphereLicense_invalid(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccVSphereLicenseDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVSphereLicenseInvalidConfig,
@@ -69,7 +70,8 @@ func TestAccResourceVSphereLicense_withLabelsOnVCenter(t *testing.T) {
 			testAccVSpherePreLicenseBasicCheck(t)
 			testAccVspherePreLicenseESXiServerIsNotSetCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccVSphereLicenseDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVSphereLicenseWithLabelConfig(),
@@ -90,7 +92,8 @@ func TestAccResourceVSphereLicense_withLabelsOnESXiServer(t *testing.T) {
 			testAccVSpherePreLicenseBasicCheck(t)
 			testAccSkipIfNotEsxi(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccVSphereLicenseDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVSphereLicenseWithLabelConfig(),

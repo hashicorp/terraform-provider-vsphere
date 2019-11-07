@@ -38,6 +38,7 @@ func ConfigSchema() *schema.Schema {
 		Type:        schema.TypeMap,
 		Description: "A list of custom attributes to set on this resource.",
 		Optional:    true,
+		Elem:        &schema.Schema{Type: schema.TypeString},
 	}
 }
 

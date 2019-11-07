@@ -39,6 +39,41 @@ func TestAccResourceVSphereDatastoreClusterVMAntiAffinityRule_basic(t *testing.T
 					testAccResourceVSphereDatastoreClusterVMAntiAffinityRuleMatchMembership(),
 				),
 			},
+			{
+				ResourceName:      "vsphere_datastore_cluster_vm_anti_affinity_rule.cluster_vm_anti_affinity_rule",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					pod, err := testGetDatastoreCluster(s, "datastore_cluster")
+					if err != nil {
+						return "", err
+					}
+
+					rs, ok := s.RootModule().Resources["vsphere_datastore_cluster_vm_anti_affinity_rule.cluster_vm_anti_affinity_rule"]
+					if !ok {
+						return "", errors.New("no resource at address vsphere_datastore_cluster_vm_anti_affinity_rule.cluster_vm_anti_affinity_rule")
+					}
+					name, ok := rs.Primary.Attributes["name"]
+					if !ok {
+						return "", errors.New("vsphere_datastore_cluster_vm_anti_affinity_rule.cluster_vm_anti_affinity_rule has no name attribute")
+					}
+
+					m := make(map[string]string)
+					m["datastore_cluster_path"] = pod.InventoryPath
+					m["name"] = name
+					b, err := json.Marshal(m)
+					if err != nil {
+						return "", err
+					}
+
+					return string(b), nil
+				},
+				Config: testAccResourceVSphereDatastoreClusterVMAntiAffinityRuleConfig(2, true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDatastoreClusterVMAntiAffinityRuleExists(true),
+					testAccResourceVSphereDatastoreClusterVMAntiAffinityRuleMatchMembership(),
+				),
+			},
 		},
 	})
 }
@@ -110,61 +145,6 @@ func TestAccResourceVSphereDatastoreClusterVMAntiAffinityRule_updateCount(t *tes
 						false,
 						"terraform-test-datastore-cluster-anti-affinity-rule",
 					),
-					testAccResourceVSphereDatastoreClusterVMAntiAffinityRuleMatchMembership(),
-				),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereDatastoreClusterVMAntiAffinityRule_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereDatastoreClusterVMAntiAffinityRulePreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereDatastoreClusterVMAntiAffinityRuleExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereDatastoreClusterVMAntiAffinityRuleConfig(2, true),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereDatastoreClusterVMAntiAffinityRuleExists(true),
-					testAccResourceVSphereDatastoreClusterVMAntiAffinityRuleMatchMembership(),
-				),
-			},
-			{
-				ResourceName:      "vsphere_datastore_cluster_vm_anti_affinity_rule.cluster_vm_anti_affinity_rule",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					pod, err := testGetDatastoreCluster(s, "datastore_cluster")
-					if err != nil {
-						return "", err
-					}
-
-					rs, ok := s.RootModule().Resources["vsphere_datastore_cluster_vm_anti_affinity_rule.cluster_vm_anti_affinity_rule"]
-					if !ok {
-						return "", errors.New("no resource at address vsphere_datastore_cluster_vm_anti_affinity_rule.cluster_vm_anti_affinity_rule")
-					}
-					name, ok := rs.Primary.Attributes["name"]
-					if !ok {
-						return "", errors.New("vsphere_datastore_cluster_vm_anti_affinity_rule.cluster_vm_anti_affinity_rule has no name attribute")
-					}
-
-					m := make(map[string]string)
-					m["datastore_cluster_path"] = pod.InventoryPath
-					m["name"] = name
-					b, err := json.Marshal(m)
-					if err != nil {
-						return "", err
-					}
-
-					return string(b), nil
-				},
-				Config: testAccResourceVSphereDatastoreClusterVMAntiAffinityRuleConfig(2, true),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereDatastoreClusterVMAntiAffinityRuleExists(true),
 					testAccResourceVSphereDatastoreClusterVMAntiAffinityRuleMatchMembership(),
 				),
 			},

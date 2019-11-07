@@ -26,6 +26,22 @@ func TestAccResourceVSphereHostVirtualSwitch_basic(t *testing.T) {
 					testAccResourceVSphereHostVirtualSwitchExists(true),
 				),
 			},
+			{
+				ResourceName:      "vsphere_host_virtual_switch.switch",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					vars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_host_virtual_switch.%s", "switch"))
+					if err != nil {
+						return "", err
+					}
+					return vars.resourceID, err
+				},
+				Config: testAccResourceVSphereHostVirtualSwitchConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereHostVirtualSwitchExists(true),
+				),
+			},
 		},
 	})
 }
@@ -81,7 +97,8 @@ func TestAccResourceVSphereHostVirtualSwitch_badActiveNICList(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereHostVirtualSwitchConfigBadActive(),
@@ -102,7 +119,8 @@ func TestAccResourceVSphereHostVirtualSwitch_badStandbyNICList(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereHostVirtualSwitchConfigBadStandby(),
@@ -187,41 +205,6 @@ func TestAccResourceVSphereHostVirtualSwitch_changeToStandby(t *testing.T) {
 	})
 }
 
-func TestAccResourceVSphereHostVirtualSwitch_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereHostVirtualSwitchConfig(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereHostVirtualSwitchExists(true),
-				),
-			},
-			{
-				ResourceName:      "vsphere_host_virtual_switch.switch",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					vars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_host_virtual_switch.%s", "switch"))
-					if err != nil {
-						return "", err
-					}
-					return vars.resourceID, err
-				},
-				Config: testAccResourceVSphereHostVirtualSwitchConfig(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereHostVirtualSwitchExists(true),
-				),
-			},
-		},
-	})
-}
-
 func testAccResourceVSphereHostVirtualSwitchPreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_HOST_NIC0") == "" {
 		t.Skip("set VSPHERE_HOST_NIC0 to run vsphere_host_virtual_switch acceptance tests")
@@ -238,7 +221,11 @@ func testAccResourceVSphereHostVirtualSwitchExists(expected bool) resource.TestC
 	return func(s *terraform.State) error {
 		vars, err := testClientVariablesForResource(s, "vsphere_host_virtual_switch.switch")
 		if err != nil {
-			return errors.New("vsphere_host_virtual_switch.switch not found in state")
+			if expected {
+				return errors.New("vsphere_host_virtual_switch.switch not found in state")
+			} else {
+				return nil
+			}
 		}
 
 		hsID, name, err := splitHostVirtualSwitchID(vars.resourceID)

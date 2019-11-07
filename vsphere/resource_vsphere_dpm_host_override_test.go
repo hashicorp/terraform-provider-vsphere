@@ -32,6 +32,36 @@ func TestAccResourceVSphereDPMHostOverride_basic(t *testing.T) {
 					testAccResourceVSphereDPMHostOverrideMatch(types.DpmBehaviorManual, false),
 				),
 			},
+			{
+				ResourceName:      "vsphere_dpm_host_override.dpm_host_override",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					cluster, err := testGetComputeCluster(s, "compute_cluster")
+					if err != nil {
+						return "", err
+					}
+					host, err := testGetHostFromDataSource(s, "hosts.0")
+					if err != nil {
+						return "", err
+					}
+
+					m := make(map[string]string)
+					m["compute_cluster_path"] = cluster.InventoryPath
+					m["host_path"] = host.InventoryPath
+					b, err := json.Marshal(m)
+					if err != nil {
+						return "", err
+					}
+
+					return string(b), nil
+				},
+				Config: testAccResourceVSphereDPMHostOverrideConfigOverrides(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDPMHostOverrideExists(true),
+					testAccResourceVSphereDPMHostOverrideMatch(types.DpmBehaviorAutomated, true),
+				),
+			},
 		},
 	})
 }
@@ -73,56 +103,6 @@ func TestAccResourceVSphereDPMHostOverride_update(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccResourceVSphereDPMHostOverrideConfigOverrides(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereDPMHostOverrideExists(true),
-					testAccResourceVSphereDPMHostOverrideMatch(types.DpmBehaviorAutomated, true),
-				),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereDPMHostOverride_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereDPMHostOverridePreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereDPMHostOverrideExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereDPMHostOverrideConfigOverrides(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereDPMHostOverrideExists(true),
-					testAccResourceVSphereDPMHostOverrideMatch(types.DpmBehaviorAutomated, true),
-				),
-			},
-			{
-				ResourceName:      "vsphere_dpm_host_override.dpm_host_override",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					cluster, err := testGetComputeCluster(s, "compute_cluster")
-					if err != nil {
-						return "", err
-					}
-					host, err := testGetHostFromDataSource(s, "hosts.0")
-					if err != nil {
-						return "", err
-					}
-
-					m := make(map[string]string)
-					m["compute_cluster_path"] = cluster.InventoryPath
-					m["host_path"] = host.InventoryPath
-					b, err := json.Marshal(m)
-					if err != nil {
-						return "", err
-					}
-
-					return string(b), nil
-				},
 				Config: testAccResourceVSphereDPMHostOverrideConfigOverrides(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereDPMHostOverrideExists(true),

@@ -22,7 +22,7 @@ func testAccResourceVSphereVirtualMachineMigrateStatePreCheck(t *testing.T) {
 	}
 }
 
-func TestVSphereVirtualMachineMigrateStateV1(t *testing.T) {
+func TestVSphereVirtualMachine_migrateStateV1(t *testing.T) {
 	cases := map[string]struct {
 		Attributes map[string]string
 		Expected   map[string]string
@@ -76,7 +76,7 @@ func TestVSphereVirtualMachineMigrateStateV1(t *testing.T) {
 	}
 }
 
-func TestAccResourceVSphereVirtualMachineMigrateStateV3_fromV2(t *testing.T) {
+func TestAccResourceVSphereVirtualMachine_migrateStateV3_fromV2(t *testing.T) {
 	testAccResourceVSphereVirtualMachineMigrateStatePreCheck(t)
 	testAccPreCheck(t)
 
@@ -115,7 +115,7 @@ func TestAccResourceVSphereVirtualMachineMigrateStateV3_fromV2(t *testing.T) {
 	}
 }
 
-func TestAccResourceVSphereVirtualMachineMigrateStateV3_fromV1(t *testing.T) {
+func TestAccResourceVSphereVirtualMachine_migrateStateV3FromV1(t *testing.T) {
 	testAccResourceVSphereVirtualMachineMigrateStatePreCheck(t)
 	testAccPreCheck(t)
 
@@ -169,7 +169,7 @@ func TestAccResourceVSphereVirtualMachineMigrateStateV3_fromV1(t *testing.T) {
 	}
 }
 
-func TestAccResourceVSphereVirtualMachineMigrateStateV2(t *testing.T) {
+func TestAccResourceVSphereVirtualMachine_migrateStateV2(t *testing.T) {
 	testAccResourceVSphereVirtualMachineMigrateStatePreCheck(t)
 	testAccPreCheck(t)
 

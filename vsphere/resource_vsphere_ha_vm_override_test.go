@@ -51,6 +51,54 @@ func TestAccResourceVSphereHAVMOverride_basic(t *testing.T) {
 					),
 				),
 			},
+			{
+				ResourceName:      "vsphere_ha_vm_override.ha_vm_override",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					cluster, err := testGetComputeClusterFromDataSource(s, "cluster")
+					if err != nil {
+						return "", err
+					}
+					vm, err := testGetVirtualMachine(s, "vm")
+					if err != nil {
+						return "", err
+					}
+
+					m := make(map[string]string)
+					m["compute_cluster_path"] = cluster.InventoryPath
+					m["virtual_machine_path"] = vm.InventoryPath
+					b, err := json.Marshal(m)
+					if err != nil {
+						return "", err
+					}
+
+					return string(b), nil
+				},
+				Config: testAccResourceVSphereHAVMOverrideConfigOverrideDefaults(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereHAVMOverrideExists(true),
+					testAccResourceVSphereHAVMOverrideMatchBase(
+						string(types.ClusterDasVmSettingsIsolationResponseClusterIsolationResponse),
+						string(types.ClusterDasVmSettingsRestartPriorityClusterRestartPriority),
+						-1,
+					),
+					testAccResourceVSphereHAVMOverrideMatchVMCP(
+						string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedUseClusterDefault),
+						string(types.ClusterVmComponentProtectionSettingsStorageVmReactionClusterDefault),
+						string(types.ClusterVmComponentProtectionSettingsStorageVmReactionClusterDefault),
+						-1,
+					),
+					testAccResourceVSphereHAVMOverrideMatchMonitoring(
+						true,
+						30,
+						3,
+						-1,
+						120,
+						string(types.ClusterDasConfigInfoVmMonitoringStateVmMonitoringDisabled),
+					),
+				),
+			},
 		},
 	})
 }
@@ -149,92 +197,6 @@ func TestAccResourceVSphereHAVMOverride_update(t *testing.T) {
 						600,
 						300,
 						string(types.ClusterDasConfigInfoVmMonitoringStateVmMonitoringOnly),
-					),
-				),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereHAVMOverride_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereHAVMOverridePreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereHAVMOverrideExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereHAVMOverrideConfigOverrideDefaults(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereHAVMOverrideExists(true),
-					testAccResourceVSphereHAVMOverrideMatchBase(
-						string(types.ClusterDasVmSettingsIsolationResponseClusterIsolationResponse),
-						string(types.ClusterDasVmSettingsRestartPriorityClusterRestartPriority),
-						-1,
-					),
-					testAccResourceVSphereHAVMOverrideMatchVMCP(
-						string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedUseClusterDefault),
-						string(types.ClusterVmComponentProtectionSettingsStorageVmReactionClusterDefault),
-						string(types.ClusterVmComponentProtectionSettingsStorageVmReactionClusterDefault),
-						-1,
-					),
-					testAccResourceVSphereHAVMOverrideMatchMonitoring(
-						true,
-						30,
-						3,
-						-1,
-						120,
-						string(types.ClusterDasConfigInfoVmMonitoringStateVmMonitoringDisabled),
-					),
-				),
-			},
-			{
-				ResourceName:      "vsphere_ha_vm_override.ha_vm_override",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					cluster, err := testGetComputeClusterFromDataSource(s, "cluster")
-					if err != nil {
-						return "", err
-					}
-					vm, err := testGetVirtualMachine(s, "vm")
-					if err != nil {
-						return "", err
-					}
-
-					m := make(map[string]string)
-					m["compute_cluster_path"] = cluster.InventoryPath
-					m["virtual_machine_path"] = vm.InventoryPath
-					b, err := json.Marshal(m)
-					if err != nil {
-						return "", err
-					}
-
-					return string(b), nil
-				},
-				Config: testAccResourceVSphereHAVMOverrideConfigOverrideDefaults(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereHAVMOverrideExists(true),
-					testAccResourceVSphereHAVMOverrideMatchBase(
-						string(types.ClusterDasVmSettingsIsolationResponseClusterIsolationResponse),
-						string(types.ClusterDasVmSettingsRestartPriorityClusterRestartPriority),
-						-1,
-					),
-					testAccResourceVSphereHAVMOverrideMatchVMCP(
-						string(types.ClusterVmComponentProtectionSettingsVmReactionOnAPDClearedUseClusterDefault),
-						string(types.ClusterVmComponentProtectionSettingsStorageVmReactionClusterDefault),
-						string(types.ClusterVmComponentProtectionSettingsStorageVmReactionClusterDefault),
-						-1,
-					),
-					testAccResourceVSphereHAVMOverrideMatchMonitoring(
-						true,
-						30,
-						3,
-						-1,
-						120,
-						string(types.ClusterDasConfigInfoVmMonitoringStateVmMonitoringDisabled),
 					),
 				),
 			},

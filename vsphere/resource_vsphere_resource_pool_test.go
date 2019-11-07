@@ -18,12 +18,43 @@ func TestAccResourceVSphereResourcePool_basic(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereResourcePoolCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereResourcePoolConfigBasic(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereResourcePoolCheckExists(true),
+				),
+			},
+			{
+				ResourceName:      "vsphere_resource_pool.resource_pool",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					rp, err := testGetResourcePool(s, "resource_pool")
+					if err != nil {
+						return "", err
+					}
+					return fmt.Sprintf("/%s/host/%s/Resources/terraform-resource-pool-test-parent/%s",
+						os.Getenv("VSPHERE_DATACENTER"),
+						os.Getenv("VSPHERE_CLUSTER"),
+						rp.Name(),
+					), nil
+				},
+				Config: testAccResourceVSphereResourcePoolConfigNonDefault(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereResourcePoolCheckExists(true),
+					testAccResourceVSphereResourcePoolCheckCPUReservation(10),
+					testAccResourceVSphereResourcePoolCheckCPUExpandable(false),
+					testAccResourceVSphereResourcePoolCheckCPULimit(20),
+					testAccResourceVSphereResourcePoolCheckCPUShareLevel("custom"),
+					testAccResourceVSphereResourcePoolCheckCPUShares(10),
+					testAccResourceVSphereResourcePoolCheckCPUReservation(10),
+					testAccResourceVSphereResourcePoolCheckCPUExpandable(false),
+					testAccResourceVSphereResourcePoolCheckCPULimit(20),
+					testAccResourceVSphereResourcePoolCheckMemoryShareLevel("custom"),
+					testAccResourceVSphereResourcePoolCheckMemoryShares(10),
 				),
 			},
 		},
@@ -36,7 +67,9 @@ func TestAccResourceVSphereResourcePool_updateRename(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereResourcePoolCheckExists(false),
+
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereResourcePoolConfigBasic(),
@@ -62,7 +95,9 @@ func TestAccResourceVSphereResourcePool_updateToCustom(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereResourcePoolCheckExists(false),
+
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereResourcePoolConfigBasic(),
@@ -104,7 +139,8 @@ func TestAccResourceVSphereResourcePool_updateToDefaults(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereResourcePoolCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereResourcePoolConfigNonDefault(),
@@ -146,7 +182,8 @@ func TestAccResourceVSphereResourcePool_esxiHost(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereResourcePoolCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereResourcePoolConfigEsxiHost(),
@@ -164,7 +201,8 @@ func TestAccResourceVSphereResourcePool_updateParent(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereResourcePoolCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereResourcePoolConfigBasic(),
@@ -184,61 +222,14 @@ func TestAccResourceVSphereResourcePool_updateParent(t *testing.T) {
 	})
 }
 
-func TestAccResourceVSphereResourcePool_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereResourcePoolPreCheck(t)
-		},
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereResourcePoolConfigNonDefault(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereResourcePoolCheckExists(true),
-				),
-			},
-			{
-				ResourceName:      "vsphere_resource_pool.resource_pool",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					rp, err := testGetResourcePool(s, "resource_pool")
-					if err != nil {
-						return "", err
-					}
-					return fmt.Sprintf("/%s/host/%s/Resources/terraform-resource-pool-test-parent/%s",
-						os.Getenv("VSPHERE_DATACENTER"),
-						os.Getenv("VSPHERE_CLUSTER"),
-						rp.Name(),
-					), nil
-				},
-				Config: testAccResourceVSphereResourcePoolConfigNonDefault(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereResourcePoolCheckExists(true),
-					testAccResourceVSphereResourcePoolCheckCPUReservation(10),
-					testAccResourceVSphereResourcePoolCheckCPUExpandable(false),
-					testAccResourceVSphereResourcePoolCheckCPULimit(20),
-					testAccResourceVSphereResourcePoolCheckCPUShareLevel("custom"),
-					testAccResourceVSphereResourcePoolCheckCPUShares(10),
-					testAccResourceVSphereResourcePoolCheckCPUReservation(10),
-					testAccResourceVSphereResourcePoolCheckCPUExpandable(false),
-					testAccResourceVSphereResourcePoolCheckCPULimit(20),
-					testAccResourceVSphereResourcePoolCheckMemoryShareLevel("custom"),
-					testAccResourceVSphereResourcePoolCheckMemoryShares(10),
-				),
-			},
-		},
-	})
-}
-
 func TestAccResourceVSphereResourcePool_tags(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereResourcePoolCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereResourcePoolConfigTags(),

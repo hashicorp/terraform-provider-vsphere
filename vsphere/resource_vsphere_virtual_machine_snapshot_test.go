@@ -17,7 +17,8 @@ func TestAccResourceVSphereVirtualMachineSnapshot_basic(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachineSnapshotPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVirtualMachineSnapshotExists("vsphere_virtual_machine_snapshot.snapshot"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVirtualMachineSnapshotConfig(true),

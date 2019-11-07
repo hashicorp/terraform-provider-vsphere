@@ -29,6 +29,34 @@ func TestAccResourceVSphereTag_basic(t *testing.T) {
 					testAccResourceVSphereTagHasCategory(),
 				),
 			},
+			{
+				ResourceName:      "vsphere_tag.terraform-test-tag",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					cat, err := testGetTagCategory(s, "terraform-test-category")
+					if err != nil {
+						return "", err
+					}
+					tag, err := testGetTag(s, "terraform-test-tag")
+					if err != nil {
+						return "", err
+					}
+					m := make(map[string]string)
+					m["category_name"] = cat.Name
+					m["tag_name"] = tag.Name
+					b, err := json.Marshal(m)
+					if err != nil {
+						return "", err
+					}
+
+					return string(b), nil
+				},
+				Config: testAccResourceVSphereTagConfigBasic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereTagExists(true),
+				),
+			},
 		},
 	})
 }
@@ -102,52 +130,6 @@ func TestAccResourceVSphereTag_detachAllTags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereTagExists(true),
 					testAccResourceVSphereFolderCheckNoTags(),
-				),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereTag_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereTagExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereTagConfigBasic,
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereTagExists(true),
-				),
-			},
-			{
-				ResourceName:      "vsphere_tag.terraform-test-tag",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					cat, err := testGetTagCategory(s, "terraform-test-category")
-					if err != nil {
-						return "", err
-					}
-					tag, err := testGetTag(s, "terraform-test-tag")
-					if err != nil {
-						return "", err
-					}
-					m := make(map[string]string)
-					m["category_name"] = cat.Name
-					m["tag_name"] = tag.Name
-					b, err := json.Marshal(m)
-					if err != nil {
-						return "", err
-					}
-
-					return string(b), nil
-				},
-				Config: testAccResourceVSphereTagConfigBasic,
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereTagExists(true),
 				),
 			},
 		},

@@ -39,6 +39,41 @@ func TestAccResourceVSphereComputeClusterVMAffinityRule_basic(t *testing.T) {
 					testAccResourceVSphereComputeClusterVMAffinityRuleMatchMembership(),
 				),
 			},
+			{
+				ResourceName:      "vsphere_compute_cluster_vm_affinity_rule.cluster_vm_affinity_rule",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					cluster, err := testGetComputeClusterFromDataSource(s, "cluster")
+					if err != nil {
+						return "", err
+					}
+
+					rs, ok := s.RootModule().Resources["vsphere_compute_cluster_vm_affinity_rule.cluster_vm_affinity_rule"]
+					if !ok {
+						return "", errors.New("no resource at address vsphere_compute_cluster_vm_affinity_rule.cluster_vm_affinity_rule")
+					}
+					name, ok := rs.Primary.Attributes["name"]
+					if !ok {
+						return "", errors.New("vsphere_compute_cluster_vm_affinity_rule.cluster_vm_affinity_rule has no name attribute")
+					}
+
+					m := make(map[string]string)
+					m["compute_cluster_path"] = cluster.InventoryPath
+					m["name"] = name
+					b, err := json.Marshal(m)
+					if err != nil {
+						return "", err
+					}
+
+					return string(b), nil
+				},
+				Config: testAccResourceVSphereComputeClusterVMAffinityRuleConfig(1, true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterVMAffinityRuleExists(true),
+					testAccResourceVSphereComputeClusterVMAffinityRuleMatchMembership(),
+				),
+			},
 		},
 	})
 }
@@ -110,61 +145,6 @@ func TestAccResourceVSphereComputeClusterVMAffinityRule_updateCount(t *testing.T
 						false,
 						"terraform-test-cluster-affinity-rule",
 					),
-					testAccResourceVSphereComputeClusterVMAffinityRuleMatchMembership(),
-				),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereComputeClusterVMAffinityRule_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterVMAffinityRulePreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereComputeClusterVMAffinityRuleExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereComputeClusterVMAffinityRuleConfig(1, true),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterVMAffinityRuleExists(true),
-					testAccResourceVSphereComputeClusterVMAffinityRuleMatchMembership(),
-				),
-			},
-			{
-				ResourceName:      "vsphere_compute_cluster_vm_affinity_rule.cluster_vm_affinity_rule",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					cluster, err := testGetComputeClusterFromDataSource(s, "cluster")
-					if err != nil {
-						return "", err
-					}
-
-					rs, ok := s.RootModule().Resources["vsphere_compute_cluster_vm_affinity_rule.cluster_vm_affinity_rule"]
-					if !ok {
-						return "", errors.New("no resource at address vsphere_compute_cluster_vm_affinity_rule.cluster_vm_affinity_rule")
-					}
-					name, ok := rs.Primary.Attributes["name"]
-					if !ok {
-						return "", errors.New("vsphere_compute_cluster_vm_affinity_rule.cluster_vm_affinity_rule has no name attribute")
-					}
-
-					m := make(map[string]string)
-					m["compute_cluster_path"] = cluster.InventoryPath
-					m["name"] = name
-					b, err := json.Marshal(m)
-					if err != nil {
-						return "", err
-					}
-
-					return string(b), nil
-				},
-				Config: testAccResourceVSphereComputeClusterVMAffinityRuleConfig(1, true),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterVMAffinityRuleExists(true),
 					testAccResourceVSphereComputeClusterVMAffinityRuleMatchMembership(),
 				),
 			},

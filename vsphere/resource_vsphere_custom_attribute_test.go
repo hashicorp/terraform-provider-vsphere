@@ -25,6 +25,25 @@ func TestAccResourceVSphereCustomAttribute_basic(t *testing.T) {
 					testAccResourceVSphereCustomAttributeHasType(""),
 				),
 			},
+			{
+				ResourceName:      "vsphere_custom_attribute.terraform-test-attribute",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					attr, err := testGetCustomAttribute(s, "terraform-test-attribute")
+					if err != nil {
+						return "", err
+					}
+					if attr == nil {
+						return "", errors.New("custom attribute does not exist")
+					}
+					return attr.Name, nil
+				},
+				Config: testAccResourceVSphereCustomAttributeConfigBasic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereCustomAttributeExists(true),
+				),
+			},
 		},
 	})
 }
@@ -92,43 +111,6 @@ func TestAccResourceVSphereCustomAttribute_changeType(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereCustomAttributeExists(true),
 					testAccResourceVSphereCustomAttributeHasType("VirtualMachine"),
-				),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereCustomAttribute_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereCustomAttributeExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereCustomAttributeConfigBasic,
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereCustomAttributeExists(true),
-				),
-			},
-			{
-				ResourceName:      "vsphere_custom_attribute.terraform-test-attribute",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					attr, err := testGetCustomAttribute(s, "terraform-test-attribute")
-					if err != nil {
-						return "", err
-					}
-					if attr == nil {
-						return "", errors.New("custom attribute does not exist")
-					}
-					return attr.Name, nil
-				},
-				Config: testAccResourceVSphereCustomAttributeConfigBasic,
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereCustomAttributeExists(true),
 				),
 			},
 		},

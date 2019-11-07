@@ -29,6 +29,21 @@ func TestAccResourceVSphereVmfsDatastore_basic(t *testing.T) {
 					testAccResourceVSphereVmfsDatastoreExists(true),
 				),
 			},
+			{
+				Config:      testAccResourceVSphereVmfsDatastoreConfigStaticSingle(),
+				ImportState: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					vars, err := testClientVariablesForResource(s, "vsphere_vmfs_datastore.datastore")
+					if err != nil {
+						return "", err
+					}
+
+					return fmt.Sprintf("%s:%s", vars.resourceID, vars.resourceAttributes["host_system_id"]), nil
+				},
+				ResourceName:            "vsphere_vmfs_datastore.datastore",
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"multiple_host_access"},
+			},
 		},
 	})
 }
@@ -275,7 +290,8 @@ func TestAccResourceVSphereVmfsDatastore_badDiskEntry(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVmfsDatastorePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVmfsDatastoreExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVmfsDatastoreConfigBadDisk(),
@@ -296,7 +312,8 @@ func TestAccResourceVSphereVmfsDatastore_duplicateDiskEntry(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVmfsDatastorePreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVmfsDatastoreExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVmfsDatastoreConfigDuplicateDisk(),
@@ -306,40 +323,6 @@ func TestAccResourceVSphereVmfsDatastore_duplicateDiskEntry(t *testing.T) {
 			{
 				Config: testAccResourceVSphereEmpty,
 				Check:  resource.ComposeTestCheckFunc(),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereVmfsDatastore_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereVmfsDatastorePreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereVmfsDatastoreExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereVmfsDatastoreConfigStaticSingle(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereVmfsDatastoreExists(true),
-				),
-			},
-			{
-				Config:      testAccResourceVSphereVmfsDatastoreConfigStaticSingle(),
-				ImportState: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					vars, err := testClientVariablesForResource(s, "vsphere_vmfs_datastore.datastore")
-					if err != nil {
-						return "", err
-					}
-
-					return fmt.Sprintf("%s:%s", vars.resourceID, vars.resourceAttributes["host_system_id"]), nil
-				},
-				ResourceName:            "vsphere_vmfs_datastore.datastore",
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"multiple_host_access"},
 			},
 		},
 	})
@@ -417,7 +400,8 @@ func testAccResourceVSphereVmfsDatastoreExists(expected bool) resource.TestCheck
 	return func(s *terraform.State) error {
 		ds, err := testGetDatastore(s, "vsphere_vmfs_datastore.datastore")
 		if err != nil {
-			if viapi.IsManagedObjectNotFoundError(err) && expected == false {
+			missingState, _ := regexp.MatchString("not found in state", err.Error())
+			if viapi.IsManagedObjectNotFoundError(err) && !expected || missingState && !expected {
 				// Expected missing
 				return nil
 			}

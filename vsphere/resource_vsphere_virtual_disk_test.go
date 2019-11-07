@@ -43,7 +43,8 @@ func TestAccResourceVSphereVirtualDisk_multi(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualDiskPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckVSphereVirtuaDiskConfig_multi(rString),
@@ -65,7 +66,8 @@ func TestAccResourceVSphereVirtualDisk_multiWithParent(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualDiskPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckVSphereVirtuaDiskConfig_multiWithParent(rString),

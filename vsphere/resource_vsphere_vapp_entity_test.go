@@ -17,7 +17,8 @@ func TestAccResourceVSphereVAppEntity_basic(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVAppEntityPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVAppEntityCheckExists("vapp_entity", false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVAppEntityConfigBasic(),
@@ -31,6 +32,11 @@ func TestAccResourceVSphereVAppEntity_basic(t *testing.T) {
 					testAccResourceVSphereVAppEntityWaitForGuest("vapp_entity", false),
 				),
 			},
+			{
+				ResourceName:      "vsphere_vapp_entity.vapp_entity",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
@@ -41,7 +47,8 @@ func TestAccResourceVSphereVAppEntity_nonDefault(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVAppEntityPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVAppEntityCheckExists("vapp_entity", false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVAppEntityConfigNonDefault(),
@@ -65,7 +72,8 @@ func TestAccResourceVSphereVAppEntity_update(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVAppEntityPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVAppEntityCheckExists("vapp_entity", false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVAppEntityConfigBasic(),
@@ -101,7 +109,8 @@ func TestAccResourceVSphereVAppEntity_multi(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVAppEntityPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVAppEntityCheckExists("vapp_entity", false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVAppEntityConfigMultipleNonDefault(),
@@ -132,7 +141,8 @@ func TestAccResourceVSphereVAppEntity_multiUpdate(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVAppEntityPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVAppEntityCheckExists("vapp_entity", false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVAppEntityConfigMultipleDefault(),
@@ -170,38 +180,6 @@ func TestAccResourceVSphereVAppEntity_multiUpdate(t *testing.T) {
 					testAccResourceVSphereVAppEntityStopDelay("vapp_entity2", 5),
 					testAccResourceVSphereVAppEntityStartOrder("vapp_entity2", 1),
 					testAccResourceVSphereVAppEntityWaitForGuest("vapp_entity2", true),
-				),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereVAppEntity_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereVAppEntityPreCheck(t)
-		},
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereVAppEntityConfigBasic(),
-				Check:  resource.ComposeTestCheckFunc(),
-			},
-			{
-				ResourceName:      "vsphere_vapp_entity.vapp_entity",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereVAppEntityName, "vapp_entity"))
-					if err != nil {
-						return "", err
-					}
-					return vars.resourceID, nil
-				},
-				Config: testAccResourceVSphereVAppEntityConfigBasic(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereVAppEntityCheckExists("vapp_entity", true),
 				),
 			},
 		},

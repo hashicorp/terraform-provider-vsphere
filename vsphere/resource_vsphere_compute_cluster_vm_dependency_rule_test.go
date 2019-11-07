@@ -38,6 +38,47 @@ func TestAccResourceVSphereComputeClusterVMDependencyRule_basic(t *testing.T) {
 					),
 				),
 			},
+			{
+				ResourceName:      "vsphere_compute_cluster_vm_dependency_rule.cluster_vm_dependency_rule",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					cluster, err := testGetComputeCluster(s, "cluster")
+					if err != nil {
+						return "", err
+					}
+
+					rs, ok := s.RootModule().Resources["vsphere_compute_cluster_vm_dependency_rule.cluster_vm_dependency_rule"]
+					if !ok {
+						return "", errors.New("no resource at address vsphere_compute_cluster_vm_dependency_rule.cluster_vm_dependency_rule")
+					}
+					name, ok := rs.Primary.Attributes["name"]
+					if !ok {
+						return "", errors.New("vsphere_compute_cluster_vm_dependency_rule.cluster_vm_dependency_rule has no name attribute")
+					}
+
+					m := make(map[string]string)
+					m["compute_cluster_path"] = cluster.InventoryPath
+					m["name"] = name
+					b, err := json.Marshal(m)
+					if err != nil {
+						return "", err
+					}
+
+					return string(b), nil
+				},
+				Config: testAccResourceVSphereComputeClusterVMDependencyRuleConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterVMDependencyRuleExists(true),
+					testAccResourceVSphereComputeClusterVMDependencyRuleMatch(
+						true,
+						false,
+						"terraform-test-cluster-vm-dependency-rule",
+						"terraform-test-cluster-dependent-vm-group",
+						"terraform-test-cluster-vm-group",
+					),
+				),
+			},
 		},
 	})
 }
@@ -138,73 +179,6 @@ func TestAccResourceVSphereComputeClusterVMDependencyRule_updateGroup(t *testing
 						false,
 						"terraform-test-cluster-vm-dependency-rule",
 						"terraform-test-cluster-dependent-vm-group2",
-						"terraform-test-cluster-vm-group",
-					),
-				),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereComputeClusterVMDependencyRule_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterVMDependencyRulePreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereComputeClusterVMDependencyRuleExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereComputeClusterVMDependencyRuleConfigBasic(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterVMDependencyRuleExists(true),
-					testAccResourceVSphereComputeClusterVMDependencyRuleMatch(
-						true,
-						false,
-						"terraform-test-cluster-vm-dependency-rule",
-						"terraform-test-cluster-dependent-vm-group",
-						"terraform-test-cluster-vm-group",
-					),
-				),
-			},
-			{
-				ResourceName:      "vsphere_compute_cluster_vm_dependency_rule.cluster_vm_dependency_rule",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					cluster, err := testGetComputeCluster(s, "cluster")
-					if err != nil {
-						return "", err
-					}
-
-					rs, ok := s.RootModule().Resources["vsphere_compute_cluster_vm_dependency_rule.cluster_vm_dependency_rule"]
-					if !ok {
-						return "", errors.New("no resource at address vsphere_compute_cluster_vm_dependency_rule.cluster_vm_dependency_rule")
-					}
-					name, ok := rs.Primary.Attributes["name"]
-					if !ok {
-						return "", errors.New("vsphere_compute_cluster_vm_dependency_rule.cluster_vm_dependency_rule has no name attribute")
-					}
-
-					m := make(map[string]string)
-					m["compute_cluster_path"] = cluster.InventoryPath
-					m["name"] = name
-					b, err := json.Marshal(m)
-					if err != nil {
-						return "", err
-					}
-
-					return string(b), nil
-				},
-				Config: testAccResourceVSphereComputeClusterVMDependencyRuleConfigBasic(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterVMDependencyRuleExists(true),
-					testAccResourceVSphereComputeClusterVMDependencyRuleMatch(
-						true,
-						false,
-						"terraform-test-cluster-vm-dependency-rule",
-						"terraform-test-cluster-dependent-vm-group",
 						"terraform-test-cluster-vm-group",
 					),
 				),

@@ -26,6 +26,23 @@ func TestAccResourceVSphereDistributedPortGroup_basic(t *testing.T) {
 					testAccResourceVSphereDistributedPortGroupExists(true),
 				),
 			},
+			{
+				ResourceName:            "vsphere_distributed_port_group.pg",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"vlan_range"},
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					pg, err := testGetDVPortgroup(s, "pg")
+					if err != nil {
+						return "", err
+					}
+					return pg.InventoryPath, nil
+				},
+				Config: testAccResourceVSphereDistributedPortGroupConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedPortGroupExists(true),
+				),
+			},
 		},
 	})
 }
@@ -123,42 +140,6 @@ func TestAccResourceVSphereDistributedPortGroup_multiTag(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereDistributedPortGroupExists(true),
 					testAccResourceVSphereDistributedPortGroupCheckTags("terraform-test-tags-alt"),
-				),
-			},
-		},
-	})
-}
-
-func TestAccResourceVSphereDistributedPortGroup_import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereDistributedPortGroupPreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereDistributedPortGroupConfig(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereDistributedPortGroupExists(true),
-				),
-			},
-			{
-				ResourceName:            "vsphere_distributed_port_group.pg",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"vlan_range"},
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					pg, err := testGetDVPortgroup(s, "pg")
-					if err != nil {
-						return "", err
-					}
-					return pg.InventoryPath, nil
-				},
-				Config: testAccResourceVSphereDistributedPortGroupConfig(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereDistributedPortGroupExists(true),
 				),
 			},
 		},
