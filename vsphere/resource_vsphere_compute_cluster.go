@@ -580,6 +580,26 @@ func resourceVSphereComputeClusterDelete(d *schema.ResourceData, meta interface{
 		return err
 	}
 
+	client, err := resourceVSphereComputeClusterClient(meta)
+	if err != nil {
+		return err
+	}
+
+	version := viapi.ParseVersionFromClient(client)
+	spec := expandClusterConfigSpecEx(d, version)
+
+	if *spec.DasConfig.Enabled && *spec.DasConfig.AdmissionControlEnabled {
+		switch v := spec.DasConfig.AdmissionControlPolicy.(type) {
+		case *types.ClusterFailoverHostAdmissionControlPolicy:
+			_ = v
+			log.Printf("[DEBUG] if Admission Control Policy set to Failover Host than turn HA OFF before removing hosts")
+			spec.DasConfig.Enabled = structure.BoolPtr(false)
+			if err := clustercomputeresource.Reconfigure(cluster, spec); err != nil {
+				return err
+			}
+		}
+	}
+
 	if err := resourceVSphereComputeClusterDeleteProcessForceRemoveHosts(d, meta, cluster); err != nil {
 		return err
 	}
@@ -1278,7 +1298,7 @@ func expandBaseClusterDasAdmissionControlPolicy(
 	}
 
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
-		obj.GetClusterDasAdmissionControlPolicy().ResourceReductionToToleratePercent = int32(d.Get("ha_admission_control_host_failure_tolerance").(int))
+		obj.GetClusterDasAdmissionControlPolicy().ResourceReductionToToleratePercent = int32(d.Get("ha_admission_control_performance_tolerance").(int))
 	}
 
 	return obj

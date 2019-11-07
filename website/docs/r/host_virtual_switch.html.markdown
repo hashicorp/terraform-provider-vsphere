@@ -1,4 +1,5 @@
 ---
+subcategory: "Networking"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_host_virtual_switch"
 sidebar_current: "docs-vsphere-resource-networking-host-virtual-switch"

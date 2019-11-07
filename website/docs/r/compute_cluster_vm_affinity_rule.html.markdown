@@ -1,4 +1,5 @@
 ---
+subcategory: "Host and Cluster Management"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_compute_cluster_vm_affinity_rule"
 sidebar_current: "docs-vsphere-resource-compute-cluster-vm-affinity-rule"

@@ -34,6 +34,9 @@ vet:
 fmt:
 	gofmt -w $(GOFMT_FILES)
 
+docscheck:
+	@sh -c "'$(CURDIR)/scripts/docscheck.sh'"
+
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
 
@@ -62,5 +65,5 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc vet fmt fmtcheck errcheck test-compile website website-test
+.PHONY: build test testacc vet docscheck fmt fmtcheck errcheck test-compile website website-test
 

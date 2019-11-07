@@ -1,4 +1,5 @@
 ---
+subcategory: "Storage"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_datastore_cluster_vm_anti_affinity_rule"
 sidebar_current: "docs-vsphere-resource-storage-cluster-datastore-vm-anti-affinity-rule"
