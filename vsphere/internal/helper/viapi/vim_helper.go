@@ -17,6 +17,11 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+// ManagedObject allows for working generically with managed objects.
+type ManagedObject interface {
+	Reference() types.ManagedObjectReference
+}
+
 // ErrVirtualCenterOnly is the error message that validateVirtualCenter returns.
 const ErrVirtualCenterOnly = "this operation is only supported on vCenter"
 

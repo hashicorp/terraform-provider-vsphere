@@ -104,6 +104,12 @@ func NetworkInterfaceSubresourceSchema() map[string]*schema.Schema {
 			Computed:    true,
 			Description: "The MAC address of this network interface. Can only be manually set if use_static_mac is true.",
 		},
+		"ovf_mapping": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			ForceNew:    true,
+			Description: "Mapping of network interface to OVF network.",
+		},
 	}
 	structure.MergeSchema(s, subresourceSchema())
 	return s

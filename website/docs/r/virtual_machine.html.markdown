@@ -883,6 +883,9 @@ The options are:
   `normal`.
 * `bandwidth_share_count` - (Optional) The share count for this network
   interface when the share level is `custom`.
+* `ovf_mapping` - (Optional) Specifies which OVF NIC the `network_interface`
+  should be associated with. Only applies at creation and only when deploying
+  from an OVF source.
 
 ### CDROM options
 
