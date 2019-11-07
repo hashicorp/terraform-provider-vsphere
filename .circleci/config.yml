@@ -17,6 +17,11 @@ jobs:
           cd $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
           make test
     - run:
+        name: "Run docscheck script "
+        command: |
+          cd $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          make docscheck
+    - run:
         name: "Run Build"
         command: |
           cd $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
