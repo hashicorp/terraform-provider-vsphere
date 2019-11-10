@@ -29,7 +29,7 @@ func resourceVSphereHostPortGroup() *schema.Resource {
 			Computed:    true,
 		},
 		"ports": {
-			Type:        schema.TypeList,
+			Type:        schema.TypeSet,
 			Description: "The ports that currently exist and are used on this port group.",
 			Computed:    true,
 			MaxItems:    1,
