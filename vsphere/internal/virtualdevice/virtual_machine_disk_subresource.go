@@ -1696,23 +1696,23 @@ func (r *DiskSubresource) assignBackingInfo(disk *types.VirtualDisk) error {
 	if dsID == "" || dsID == diskDatastoreComputedName {
 		// Default to the default datastore
 		dsID = r.rdd.Get("datastore_id").(string)
-	}
 
-	if dsID == "" {
-		vmObj, err := virtualmachine.FromUUID(r.client, r.rdd.Id())
-		if err != nil {
-			return err
-		}
+		if dsID == "" {
+			vmObj, err := virtualmachine.FromUUID(r.client, r.rdd.Id())
+			if err != nil {
+				return err
+			}
 
-		vmprops, err := virtualmachine.Properties(vmObj)
-		if err != nil {
-			return err
-		}
-		if len(vmprops.Datastore) == 0 {
-			return fmt.Errorf("no datastore was set and was unable to find a default to fall back to")
-		}
-		dsID = vmprops.Datastore[0].Value
+			vmprops, err := virtualmachine.Properties(vmObj)
+			if err != nil {
+				return err
+			}
+			if len(vmprops.Datastore) == 0 {
+				return fmt.Errorf("no datastore was set and was unable to find a default to fall back to")
+			}
+			dsID = vmprops.Datastore[0].Value
 
+		}
 	}
 	ds, err := datastore.FromID(r.client, dsID)
 	if err != nil {
