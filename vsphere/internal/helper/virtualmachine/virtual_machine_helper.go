@@ -358,20 +358,15 @@ func skipIPAddrForWaiter(ip net.IP, ignoredGuestIPs []interface{}) bool {
 	case ip.IsMulticast():
 		return true
 	default:
+		// ignoredGuestIPs pre-validated by Schema!
 		for _, ignoredGuestIP := range ignoredGuestIPs {
 			if strings.Contains(ignoredGuestIP.(string), "/") {
-				_, ignoredIPNet, err := net.ParseCIDR(ignoredGuestIP.(string))
-				if err != nil {
-					log.Printf("[ERROR] Failed to parse ignored_guest_ips entry: %q", ignoredGuestIP)
-					continue
-				} else if ignoredIPNet.Contains(ip) {
+				_, ignoredIPNet, _ := net.ParseCIDR(ignoredGuestIP.(string))
+				if ignoredIPNet.Contains(ip) {
 					return true
 				}
-			} else {
-				ignoredIP := net.ParseIP(ignoredGuestIP.(string))
-				if ignoredIP != nil && ignoredIP.Equal(ip) {
-					return true
-				}
+			} else if net.ParseIP(ignoredGuestIP.(string)).Equal(ip) {
+				return true
 			}
 		}
 	}

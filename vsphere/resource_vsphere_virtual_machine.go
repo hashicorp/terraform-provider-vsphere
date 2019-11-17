@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -113,7 +114,21 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Type:        schema.TypeList,
 			Optional:    true,
 			Description: "List of IP addresses and CIDR networks to ignore while waiting for an IP",
-			Elem:        &schema.Schema{Type: schema.TypeString},
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
+					v := val.(string)
+					if strings.Contains(v, "/") {
+						_, _, err := net.ParseCIDR(v)
+						if err != nil {
+							errs = append(errs, fmt.Errorf("%q contains invalid CIDR address: %s", key, v))
+						}
+					} else if net.ParseIP(v) == nil {
+						errs = append(errs, fmt.Errorf("%q contains invalid IP address: %s", key, v))
+					}
+					return
+				},
+			},
 		},
 		"shutdown_wait_timeout": {
 			Type:         schema.TypeInt,
