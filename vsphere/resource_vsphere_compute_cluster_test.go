@@ -470,6 +470,11 @@ func testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(expec
 		if expected != actual {
 			return fmt.Errorf("expected failover host name to be %s, got %s", expected, actual)
 		}
+
+		if failoverHostsPolicy.ResourceReductionToToleratePercent != 0 {
+			return fmt.Errorf("expected ha_admission_control_performance_tolerance be 0, got %d", failoverHostsPolicy.ResourceReductionToToleratePercent)
+		}
+
 		return nil
 	}
 }
@@ -716,6 +721,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   ha_enabled                                    = true
   ha_admission_control_policy                   = "failoverHosts"
   ha_admission_control_failover_host_system_ids = "${data.vsphere_host.hosts.*.id}"
+  ha_admission_control_performance_tolerance    = 0
 
   force_evacuate_on_destroy = true
 }
