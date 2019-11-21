@@ -137,9 +137,9 @@ func tagCategoryByName(tm *tags.Manager, name string) (string, error) {
 	}
 
 	cats := []*tags.Category{}
-	for _, cat := range allCats {
+	for i, cat := range allCats {
 		if cat.Name == name {
-			cats = append(cats, &cat)
+			cats = append(cats, &allCats[i])
 		}
 	}
 
@@ -169,9 +169,9 @@ func tagByName(tm *tags.Manager, name, categoryID string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("could not get tag for name %q: %s", name, err)
 	}
-	for _, tag := range allTags {
+	for i, tag := range allTags {
 		if tag.Name == name {
-			tags = append(tags, &tag)
+			tags = append(tags, &allTags[i])
 		}
 	}
 
