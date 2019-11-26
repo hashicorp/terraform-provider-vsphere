@@ -1577,15 +1577,15 @@ workflows:
       - test_acc_ResourceVSphereVirtualDisk:
           requires:
             - test_acc_ResourceVSphereVAppEntity
-      - test_acc_ResourceVSphereVirtualMachine:
-          requires:
-            - test_acc_ResourceVSphereVirtualDisk
       - test_acc_ResourceVSphereVirtualMachineSnapshot:
           requires:
-            - test_acc_ResourceVSphereVirtualMachine
+            - test_acc_ResourceVSphereVirtualDisk
       - test_acc_ResourceVSphereVmfsDatastore:
           requires:
             - test_acc_ResourceVSphereVirtualMachineSnapshot
+      - test_acc_ResourceVSphereVirtualMachine:
+          requires:
+            - test_acc_ResourceVSphereVirtualMachine
 
   nightly:
     triggers:
