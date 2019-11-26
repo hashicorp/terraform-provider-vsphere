@@ -13,19 +13,21 @@ main () {
 }
 
 runTest () {
-  eCode=0
-  for try in {1..2}; do
-    res=$(TF_ACC=1 go test github.com/terraform-providers/terraform-provider-vsphere/vsphere -v -count=1 -run="$1\$" -timeout 240m)
-    if grep PASS <<< "$res" &> /dev/null; then
-      eCode=0
-    else
-      revertAndWait
-      sleep 30
-      eCode=1
-    fi
-  done
-  echo "$res"
-  return $eCode
+  # eCode=0
+  # for try in {1..2}; do
+  #   res=$(TF_ACC=1 go test github.com/terraform-providers/terraform-provider-vsphere/vsphere -v -count=1 -run="$1\$" -timeout 240m)
+  #   if grep PASS <<< "$res" &> /dev/null; then
+  #     eCode=0
+  #   else
+  #     revertAndWait
+  #     sleep 30
+  #     eCode=1
+  #   fi
+  # done
+  # echo "$res"
+  # return $eCode
+  TF_ACC=1 go test github.com/terraform-providers/terraform-provider-vsphere/vsphere -v -count=1 -run="$1\$" -timeout 240m
+  return $?
 }
 
 
