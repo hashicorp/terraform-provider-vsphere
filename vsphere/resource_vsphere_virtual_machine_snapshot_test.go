@@ -18,12 +18,12 @@ func TestAccResourceVSphereVirtualMachineSnapshot_basic(t *testing.T) {
 			testAccResourceVSphereVirtualMachineSnapshotPreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckVirtualMachineSnapshotExists("vsphere_virtual_machine_snapshot.snapshot"),
+		CheckDestroy: testAccCheckVirtualMachineSnapshotExists("vsphere_virtual_machine_snapshot.snapshot", false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVirtualMachineSnapshotConfig(true),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckVirtualMachineSnapshotExists("vsphere_virtual_machine_snapshot.snapshot"),
+					testAccCheckVirtualMachineSnapshotExists("vsphere_virtual_machine_snapshot.snapshot", true),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine_snapshot.snapshot", "snapshot_name", "terraform-test-snapshot"),
 				),
@@ -68,28 +68,41 @@ func testAccResourceVSphereVirtualMachineSnapshotPreCheck(t *testing.T) {
 	}
 }
 
-func testAccCheckVirtualMachineSnapshotExists(n string) resource.TestCheckFunc {
+func snapshotExists(n string, s *terraform.State) (bool, error) {
+	rs, ok := s.RootModule().Resources[n]
+
+	if !ok {
+		return false, nil
+	}
+
+	if rs.Primary.ID == "" {
+		return false, fmt.Errorf("No Vm Snapshot ID is set")
+	}
+	client := testAccProvider.Meta().(*VSphereClient).vimClient
+
+	vm, err := virtualmachine.FromUUID(client, rs.Primary.Attributes["virtual_machine_uuid"])
+	if err != nil {
+		return false, fmt.Errorf("error %s", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout) // This is 5 mins
+	defer cancel()
+	snapshot, err := vm.FindSnapshot(ctx, rs.Primary.ID)
+	if err != nil {
+		return false, fmt.Errorf("Error while getting the snapshot %v", snapshot)
+	}
+
+	return true, nil
+
+}
+
+func testAccCheckVirtualMachineSnapshotExists(n string, exists bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-
-		if !ok {
-			return fmt.Errorf("Not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No Vm Snapshot ID is set")
-		}
-		client := testAccProvider.Meta().(*VSphereClient).vimClient
-
-		vm, err := virtualmachine.FromUUID(client, rs.Primary.Attributes["virtual_machine_uuid"])
+		found, err := snapshotExists(n, s)
 		if err != nil {
-			return fmt.Errorf("error %s", err)
+			return err
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout) // This is 5 mins
-		defer cancel()
-		snapshot, err := vm.FindSnapshot(ctx, rs.Primary.ID)
-		if err != nil {
-			return fmt.Errorf("Error while getting the snapshot %v", snapshot)
+		if found != exists {
+			return fmt.Errorf("Snapshot exists error. expected state: %t, actual state: %t", exists, found)
 		}
 
 		return nil
