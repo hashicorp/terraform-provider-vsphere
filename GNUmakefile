@@ -8,6 +8,9 @@ PKG_NAME=vsphere
 
 default: build
 
+envvars:
+	@cat ~/.tf-vsphere-devrc.mk | sed -e "s/\?=/=/g" -e "s/ *= */=/g"
+
 build: fmtcheck
 	go install
 
