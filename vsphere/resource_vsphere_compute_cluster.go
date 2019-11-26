@@ -628,6 +628,11 @@ func resourceVSphereComputeClusterImport(d *schema.ResourceData, meta interface{
 		return nil, err
 	}
 
+	err = resourceVSphereComputeClusterRead(d, meta)
+	if err != nil {
+		return nil, err
+	}
+
 	return []*schema.ResourceData{d}, nil
 }
 
@@ -1153,6 +1158,11 @@ func resourceVSphereComputeClusterFlattenData(
 		return err
 	}
 
+	hostList := []string{}
+	for _, host := range props.Host {
+		hostList = append(hostList, host.Value)
+	}
+	d.Set("host_system_ids", hostList)
 	return flattenClusterConfigSpecEx(d, props.ConfigurationEx.(*types.ClusterConfigInfoEx), version)
 }
 
