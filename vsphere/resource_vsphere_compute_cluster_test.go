@@ -48,7 +48,8 @@ func TestAccResourceVSphereComputeCluster_basic(t *testing.T) {
 					}
 					return cluster.InventoryPath, nil
 				},
-				Config: testAccResourceVSphereComputeClusterConfigEmpty(),
+				ImportStateVerifyIgnore: []string{"force_evacuate_on_destroy"},
+				Config:                  testAccResourceVSphereComputeClusterConfigBasic(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
 				),
