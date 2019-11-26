@@ -140,7 +140,7 @@ func testAccResourceVSphereTagExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		_, err := testGetTag(s, "terraform-test-tag")
 		if err != nil {
-			if strings.Contains(err.Error(), "Status code: 404") && !expected {
+			if strings.Contains(err.Error(), "404 Not Found") && !expected {
 				// Expected missing
 				return nil
 			}
