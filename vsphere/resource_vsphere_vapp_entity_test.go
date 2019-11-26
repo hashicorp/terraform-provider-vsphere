@@ -109,8 +109,11 @@ func TestAccResourceVSphereVAppEntity_multi(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVAppEntityPreCheck(t)
 		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereVAppEntityCheckExists("vapp_entity", false),
+		Providers: testAccProviders,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			testAccResourceVSphereVAppEntityCheckExists("vapp_entity1", false),
+			testAccResourceVSphereVAppEntityCheckExists("vapp_entity2", false),
+		),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVAppEntityConfigMultipleNonDefault(),
@@ -141,9 +144,11 @@ func TestAccResourceVSphereVAppEntity_multiUpdate(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVAppEntityPreCheck(t)
 		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereVAppEntityCheckExists("vapp_entity", false),
-		Steps: []resource.TestStep{
+		Providers: testAccProviders,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			testAccResourceVSphereVAppEntityCheckExists("vapp_entity1", false),
+			testAccResourceVSphereVAppEntityCheckExists("vapp_entity2", false),
+		), Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereVAppEntityConfigMultipleDefault(),
 				Check: resource.ComposeTestCheckFunc(
