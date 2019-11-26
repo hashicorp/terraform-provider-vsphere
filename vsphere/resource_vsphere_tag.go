@@ -100,6 +100,7 @@ func resourceVSphereTagUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 	spec := &tags.Tag{
+		ID:          id,
 		Description: d.Get("description").(string),
 		Name:        d.Get("name").(string),
 	}
