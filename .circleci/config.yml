@@ -1585,7 +1585,7 @@ workflows:
             - test_acc_ResourceVSphereVirtualMachineSnapshot
       - test_acc_ResourceVSphereVirtualMachine:
           requires:
-            - test_acc_ResourceVSphereVirtualMachine
+            - test_acc_ResourceVSphereVmfsDatastore
 
   nightly:
     triggers:
