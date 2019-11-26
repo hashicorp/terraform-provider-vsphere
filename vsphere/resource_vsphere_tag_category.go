@@ -144,6 +144,7 @@ func resourceVSphereTagCategoryUpdate(d *schema.ResourceData, meta interface{}) 
 
 	id := d.Id()
 	spec := &tags.Category{
+		ID:              id,
 		AssociableTypes: structure.SliceInterfacesToStrings(d.Get("associable_types").(*schema.Set).List()),
 		Cardinality:     d.Get("cardinality").(string),
 		Description:     d.Get("description").(string),
