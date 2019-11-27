@@ -472,8 +472,7 @@ func testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(expec
 			return fmt.Errorf("expected failover host name to be %s, got %s", expected, actual)
 		}
 
-		toleratePercent := failoverHostsPolicy.ResourceReductionToToleratePercent
-		if *toleratePercent != 0 {
+		if failoverHostsPolicy.ResourceReductionToToleratePercent != 0 {
 			return fmt.Errorf("expected ha_admission_control_performance_tolerance be 0, got %d", failoverHostsPolicy.ResourceReductionToToleratePercent)
 		}
 
