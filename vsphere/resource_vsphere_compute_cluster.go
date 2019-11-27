@@ -1308,13 +1308,7 @@ func expandBaseClusterDasAdmissionControlPolicy(
 	}
 
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
-		cdacp := obj.GetClusterDasAdmissionControlPolicy()
-		if cdacp != nil {
-			performanceTolerance, ok := d.Get("ha_admission_control_performance_tolerance").(int32)
-			if ok {
-				cdacp.ResourceReductionToToleratePercent = &performanceTolerance
-			}
-		}
+		obj.GetClusterDasAdmissionControlPolicy().ResourceReductionToToleratePercent = int32(d.Get("ha_admission_control_performance_tolerance").(int))
 	}
 
 	return obj
