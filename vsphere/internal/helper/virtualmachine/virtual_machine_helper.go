@@ -22,6 +22,8 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+const powerOnWaitMilli = 500
+
 var errGuestShutdownTimeout = errors.New("the VM did not power off within the specified amount of time")
 
 // vmUUIDSearchIndexVersion denotes the minimum version we use the SearchIndex
@@ -486,7 +488,7 @@ func PowerOn(vm *object.VirtualMachine) error {
 	// power on the vm with "InvalidState" errors.
 	//
 	// We're adding a small delay here to avoid this issue.
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(powerOnWaitMilli * time.Millisecond)
 
 	task, err := vm.PowerOn(ctx)
 	if err != nil {
