@@ -558,7 +558,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 			}
 		}
 
-		// Start goroutine here that checks for qusestions
+		// Start goroutine here that checks for questions
 		gChan := make(chan bool)
 
 		questions := map[string]string{
