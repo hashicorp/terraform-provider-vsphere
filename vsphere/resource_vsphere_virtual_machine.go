@@ -1,10 +1,12 @@
 package vsphere
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -58,6 +60,8 @@ resource configuration, the resource will need to be tainted before trying
 again. For more information on how to do this, see the following page:
 https://www.terraform.io/docs/commands/taint.html
 `
+
+const questionCheckIntervalSecs = 5
 
 func resourceVSphereVirtualMachine() *schema.Resource {
 	s := map[string]*schema.Schema{
@@ -553,12 +557,58 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 				return fmt.Errorf("error shutting down virtual machine: %s", err)
 			}
 		}
+
+		// Start goroutine here that checks for qusestions
+		gChan := make(chan bool)
+
+		questions := map[string]string{
+			"msg.cdromdisconnect.locked": "0",
+		}
+		go func() {
+			// Sleep for a bit
+			time.Sleep(questionCheckIntervalSecs * time.Second)
+			for {
+				select {
+				case <-gChan:
+					// We're done
+					break
+				default:
+					vprops, err := virtualmachine.Properties(vm)
+					if err != nil {
+						log.Printf("[DEBUG] Error while retrieving VM properties. Error: %s", err)
+						continue
+					}
+					q := vprops.Runtime.Question
+					if q != nil {
+						log.Printf("[DEBUG] Question: %#v", q)
+						if len(q.Message) < 1 {
+							log.Printf("[DEBUG] No messages found")
+							continue
+						}
+						qMsg := q.Message[0].Id
+						if response, ok := questions[qMsg]; ok {
+							if err = vm.Answer(context.TODO(), q.Id, response); err != nil {
+								log.Printf("[DEBUG] Failed to answer question. Error: %s", err)
+								break
+							}
+						}
+					} else {
+						log.Printf("[DEBUG] No questions found")
+					}
+				}
+			}
+		}()
+
 		// Perform updates.
 		if _, ok := d.GetOk("datastore_cluster_id"); ok {
 			err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, spec)
 		} else {
 			err = virtualmachine.Reconfigure(vm, spec)
 		}
+
+		// Regardless of the result we no longer need to watch for pending questions.
+		gChan <- true
+
 		if err != nil {
 			return fmt.Errorf("error reconfiguring virtual machine: %s", err)
 		}
