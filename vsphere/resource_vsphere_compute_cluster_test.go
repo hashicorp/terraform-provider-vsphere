@@ -528,7 +528,7 @@ func testAccResourceVSphereComputeClusterCheckTags(tagResName string) resource.T
 		if err != nil {
 			return err
 		}
-		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsManager()
+		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsClient()
 		if err != nil {
 			return err
 		}

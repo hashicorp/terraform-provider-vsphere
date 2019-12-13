@@ -6,6 +6,8 @@ cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/version
 cloud.google.com/go/storage
+# github.com/Sirupsen/logrus v0.0.0-00010101000000-000000000000 => github.com/sirupsen/logrus v1.3.0
+github.com/Sirupsen/logrus
 # github.com/agext/levenshtein v1.2.2
 github.com/agext/levenshtein
 # github.com/apparentlymart/go-cidr v1.0.1
@@ -62,7 +64,7 @@ github.com/blang/semver
 github.com/bmatcuk/doublestar
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/dustinkirkland/golang-petname v0.0.0-20190613200456-11339a705ed2
+# github.com/dustinkirkland/golang-petname v0.0.0-20191129215211-8e5a1ed0cff0
 github.com/dustinkirkland/golang-petname
 # github.com/fatih/color v1.7.0
 github.com/fatih/color
@@ -138,9 +140,7 @@ github.com/hashicorp/hil
 github.com/hashicorp/hil/ast
 github.com/hashicorp/hil/parser
 github.com/hashicorp/hil/scanner
-# github.com/hashicorp/logutils v1.0.0
-github.com/hashicorp/logutils
-# github.com/hashicorp/terraform v0.12.12
+# github.com/hashicorp/terraform v0.12.18
 github.com/hashicorp/terraform/addrs
 github.com/hashicorp/terraform/command/format
 github.com/hashicorp/terraform/config
@@ -149,6 +149,7 @@ github.com/hashicorp/terraform/configs/configload
 github.com/hashicorp/terraform/configs/configschema
 github.com/hashicorp/terraform/configs/hcl2shim
 github.com/hashicorp/terraform/dag
+github.com/hashicorp/terraform/experiments
 github.com/hashicorp/terraform/flatmap
 github.com/hashicorp/terraform/helper/acctest
 github.com/hashicorp/terraform/helper/config
@@ -196,6 +197,8 @@ github.com/hashicorp/terraform-svchost/disco
 github.com/hashicorp/yamux
 # github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
 github.com/jmespath/go-jmespath
+# github.com/konsorten/go-windows-terminal-sequences v1.0.1
+github.com/konsorten/go-windows-terminal-sequences
 # github.com/mattn/go-colorable v0.1.1
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.5
@@ -220,6 +223,8 @@ github.com/mitchellh/mapstructure
 github.com/mitchellh/reflectwalk
 # github.com/oklog/run v1.0.0
 github.com/oklog/run
+# github.com/pkg/errors v0.8.0
+github.com/pkg/errors
 # github.com/posener/complete v1.2.1
 github.com/posener/complete
 github.com/posener/complete/cmd
@@ -250,15 +255,9 @@ github.com/vmware/govmomi/license
 github.com/vmware/govmomi/list
 github.com/vmware/govmomi/nfc
 github.com/vmware/govmomi/object
-github.com/vmware/govmomi/pbm
-github.com/vmware/govmomi/pbm/methods
-github.com/vmware/govmomi/pbm/types
 github.com/vmware/govmomi/property
 github.com/vmware/govmomi/session
 github.com/vmware/govmomi/task
-github.com/vmware/govmomi/vapi/internal
-github.com/vmware/govmomi/vapi/rest
-github.com/vmware/govmomi/vapi/tags
 github.com/vmware/govmomi/view
 github.com/vmware/govmomi/vim25
 github.com/vmware/govmomi/vim25/debug
@@ -268,6 +267,8 @@ github.com/vmware/govmomi/vim25/progress
 github.com/vmware/govmomi/vim25/soap
 github.com/vmware/govmomi/vim25/types
 github.com/vmware/govmomi/vim25/xml
+# github.com/vmware/vic v1.5.4
+github.com/vmware/vic/pkg/vsphere/tags
 # github.com/zclconf/go-cty v1.1.0
 github.com/zclconf/go-cty/cty
 github.com/zclconf/go-cty/cty/convert
@@ -313,6 +314,7 @@ golang.org/x/crypto/openpgp/packet
 golang.org/x/crypto/openpgp/s2k
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/ssh
+golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.0.0-20191009170851-d66e71096ffb
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -331,6 +333,7 @@ golang.org/x/oauth2/jwt
 # golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
+golang.org/x/sys/windows
 # golang.org/x/text v0.3.2
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform

@@ -68,7 +68,7 @@ func resourceVSphereFolder() *schema.Resource {
 
 func resourceVSphereFolderCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	tagsClient, err := tagsManagerIfDefined(d, meta)
+	tagsClient, err := tagsClientIfDefined(d, meta)
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func resourceVSphereFolderRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Read tags if we have the ability to do so
-	if tagsClient, _ := meta.(*VSphereClient).TagsManager(); tagsClient != nil {
+	if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
 		if err := readTagsForResource(tagsClient, fo, d); err != nil {
 			return fmt.Errorf("error reading tags: %s", err)
 		}
@@ -189,7 +189,7 @@ func resourceVSphereFolderRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceVSphereFolderUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	tagsClient, err := tagsManagerIfDefined(d, meta)
+	tagsClient, err := tagsClientIfDefined(d, meta)
 	if err != nil {
 		return err
 	}

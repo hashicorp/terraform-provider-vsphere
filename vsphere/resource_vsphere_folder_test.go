@@ -551,7 +551,7 @@ func testAccResourceVSphereFolderCheckTags(tagResName string) resource.TestCheck
 		if err != nil {
 			return err
 		}
-		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsManager()
+		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsClient()
 		if err != nil {
 			return err
 		}
@@ -569,7 +569,7 @@ func testAccResourceVSphereFolderCheckNoTags() resource.TestCheckFunc {
 		if err != nil {
 			return err
 		}
-		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsManager()
+		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsClient()
 		if err != nil {
 			return err
 		}
