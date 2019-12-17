@@ -1448,10 +1448,9 @@ workflows:
     jobs:
       - linters
       - build
-      - revert_snapshot
       - test_acc_Client:
           requires:
-            - revert_snapshot
+            - build
       - test_acc_DataSourceVSphereComputeCluster:
           requires:
             - test_acc_Client
