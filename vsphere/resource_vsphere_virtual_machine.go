@@ -493,8 +493,39 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		if err != nil {
 			return err
 		}
-		if err = resourcepool.MoveIntoResourcePool(rp, vm.Reference()); err != nil {
+
+		// Before we move the VM to the new RP we need to make sure the new one is on the same
+		// cluster or host as the old one, otherwise vsphere will throw an error.
+		dstRPProps, err := resourcepool.Properties(rp)
+		if err != nil {
 			return err
+		}
+
+		vmProps, err := virtualmachine.Properties(vm)
+		if err != nil {
+			return err
+		}
+		srcRPID := vmProps.ResourcePool.Value
+		srcResourcePool, err := resourcepool.FromID(client, srcRPID)
+		if err != nil {
+			return err
+		}
+		srcRPProps, err := resourcepool.Properties(srcResourcePool)
+		if err != nil {
+			return err
+		}
+
+		// If the source and destination RPs have different owners (i.e hosts or clusters)
+		// then it will be handled as a vMotion task
+		if dstRPProps.Owner == srcRPProps.Owner {
+			err = resourcepool.MoveIntoResourcePool(rp, vm.Reference())
+			if err != nil {
+				return err
+			}
+		} else {
+			// If we're migrating away from the current host we're setting the host system ID
+			// to nothing. It will be populated after the migration step, once we call Read().
+			d.Set("host_system_id", "")
 		}
 		// If a VM is moved into or out of a vApp container, the VM's InventoryPath
 		// will change. This can affect steps later in the update process such as
@@ -1395,9 +1426,9 @@ func resourceVSphereVirtualMachineUpdateLocation(d *schema.ResourceData, meta in
 		if hs, err = hostsystem.FromID(client, hsID); err != nil {
 			return fmt.Errorf("error locating host system at ID %q: %s", hsID, err)
 		}
-	}
-	if err := resourcepool.ValidateHost(client, pool, hs); err != nil {
-		return err
+		if err := resourcepool.ValidateHost(client, pool, hs); err != nil {
+			return err
+		}
 	}
 
 	// Start building the spec
