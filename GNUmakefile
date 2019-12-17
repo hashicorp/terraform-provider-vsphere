@@ -1,4 +1,6 @@
--include $(HOME)/.tf-vsphere-devrc.mk
+CFG ?= $(HOME)/.tf-vsphere-devrc.mk
+
+-include $(CFG)
 
 TEST?=$$(go list ./... |grep -v 'vendor')
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
