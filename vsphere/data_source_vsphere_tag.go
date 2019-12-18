@@ -26,7 +26,7 @@ func dataSourceVSphereTag() *schema.Resource {
 }
 
 func dataSourceVSphereTagRead(d *schema.ResourceData, meta interface{}) error {
-	tm, err := meta.(*VSphereClient).TagsManager()
+	client, err := meta.(*VSphereClient).TagsClient()
 	if err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func dataSourceVSphereTagRead(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
 	categoryID := d.Get("category_id").(string)
 
-	tagID, err := tagByName(tm, name, categoryID)
+	tagID, err := tagByName(client, name, categoryID)
 	if err != nil {
 		return err
 	}

@@ -51,7 +51,7 @@ func resourceVSphereDistributedPortGroupCreate(d *schema.ResourceData, meta inte
 	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return err
 	}
-	tagsClient, err := tagsManagerIfDefined(d, meta)
+	tagsClient, err := tagsClientIfDefined(d, meta)
 	if err != nil {
 		return err
 	}
@@ -128,7 +128,7 @@ func resourceVSphereDistributedPortGroupRead(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	if tagsClient, _ := meta.(*VSphereClient).TagsManager(); tagsClient != nil {
+	if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
 		if err := readTagsForResource(tagsClient, pg, d); err != nil {
 			return fmt.Errorf("error reading tags: %s", err)
 		}
@@ -146,7 +146,7 @@ func resourceVSphereDistributedPortGroupUpdate(d *schema.ResourceData, meta inte
 	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return err
 	}
-	tagsClient, err := tagsManagerIfDefined(d, meta)
+	tagsClient, err := tagsClientIfDefined(d, meta)
 	if err != nil {
 		return err
 	}

@@ -172,7 +172,7 @@ func testAccResourceVSphereTagCategoryExists(expected bool) resource.TestCheckFu
 	return func(s *terraform.State) error {
 		_, err := testGetTagCategory(s, "terraform-test-category")
 		if err != nil {
-			if strings.Contains(err.Error(), "404 Not Found") && !expected {
+			if strings.Contains(err.Error(), "Status code: 404") && !expected {
 				// Expected missing
 				return nil
 			}

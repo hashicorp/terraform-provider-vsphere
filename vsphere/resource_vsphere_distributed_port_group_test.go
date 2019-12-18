@@ -255,7 +255,7 @@ func testAccResourceVSphereDistributedPortGroupCheckTags(tagResName string) reso
 		if err != nil {
 			return err
 		}
-		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsManager()
+		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsClient()
 		if err != nil {
 			return err
 		}

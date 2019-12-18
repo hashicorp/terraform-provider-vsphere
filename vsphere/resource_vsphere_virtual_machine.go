@@ -242,7 +242,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] %s: Beginning create", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*VSphereClient).vimClient
-	tagsClient, err := tagsManagerIfDefined(d, meta)
+	tagsClient, err := tagsClientIfDefined(d, meta)
 	if err != nil {
 		return err
 	}
@@ -444,7 +444,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	}
 
 	// Read tags if we have the ability to do so
-	if tagsClient, _ := meta.(*VSphereClient).TagsManager(); tagsClient != nil {
+	if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
 		if err := readTagsForResource(tagsClient, vm, d); err != nil {
 			return err
 		}
@@ -471,7 +471,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] %s: Performing update", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*VSphereClient).vimClient
-	tagsClient, err := tagsManagerIfDefined(d, meta)
+	tagsClient, err := tagsClientIfDefined(d, meta)
 	if err != nil {
 		return err
 	}

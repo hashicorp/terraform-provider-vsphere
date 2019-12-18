@@ -11,7 +11,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
-	"github.com/vmware/govmomi/vapi/tags"
+	"github.com/vmware/vic/pkg/vsphere/tags"
 )
 
 // A list of valid object types for tagging are below. These are referenced by
@@ -104,9 +104,9 @@ var tagsMinVersion = viapi.VSphereVersion{
 	Build:   2559268,
 }
 
-// isEligibleRestEndpoint is a meta-validation that is used on login to see if
+// isEligibleTagEndpoint is a meta-validation that is used on login to see if
 // the connected endpoint supports the CIS REST API, which we use for tags.
-func isEligibleRestEndpoint(client *govmomi.Client) bool {
+func isEligibleTagEndpoint(client *govmomi.Client) bool {
 	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return false
 	}
@@ -117,30 +117,14 @@ func isEligibleRestEndpoint(client *govmomi.Client) bool {
 	return true
 }
 
-// isEligiblePBMEndpoint is a meta-validation that is used on login to see if
-// the connected endpoint supports the CIS REST API, which we use for tags.
-func isEligiblePBMEndpoint(client *govmomi.Client) bool {
-	if err := viapi.ValidateVirtualCenter(client); err != nil {
-		return false
-	}
-	return true
-}
-
 // tagCategoryByName locates a tag category by name. It's used by the
 // vsphere_tag_category data source, and the resource importer.
-func tagCategoryByName(tm *tags.Manager, name string) (string, error) {
+func tagCategoryByName(client *tags.RestClient, name string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
-	allCats, err := tm.GetCategories(ctx)
+	cats, err := client.GetCategoriesByName(ctx, name)
 	if err != nil {
 		return "", fmt.Errorf("could not get category for name %q: %s", name, err)
-	}
-
-	cats := []*tags.Category{}
-	for i, cat := range allCats {
-		if cat.Name == name {
-			cats = append(cats, &allCats[i])
-		}
 	}
 
 	if len(cats) < 1 {
@@ -161,18 +145,12 @@ func tagCategoryByName(tm *tags.Manager, name string) (string, error) {
 // tagByName locates a tag by it supplied name and category ID. Use
 // tagCategoryByName to get the tag category ID if require the category ID as
 // well.
-func tagByName(tm *tags.Manager, name, categoryID string) (string, error) {
+func tagByName(client *tags.RestClient, name, categoryID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
-	allTags, err := tm.GetTagsForCategory(ctx, categoryID)
-	tags := []*tags.Tag{}
+	tags, err := client.GetTagByNameForCategory(ctx, name, categoryID)
 	if err != nil {
 		return "", fmt.Errorf("could not get tag for name %q: %s", name, err)
-	}
-	for i, tag := range allTags {
-		if tag.Name == name {
-			tags = append(tags, &allTags[i])
-		}
 	}
 
 	if len(tags) < 1 {
@@ -240,13 +218,17 @@ func tagTypeForObject(obj object.Reference) (string, error) {
 // readTagsForResource reads the tags for a given reference and saves the list
 // in the supplied ResourceData. It returns an error if there was an issue
 // reading the tags.
-func readTagsForResource(tm *tags.Manager, obj object.Reference, d *schema.ResourceData) error {
+func readTagsForResource(client *tags.RestClient, obj object.Reference, d *schema.ResourceData) error {
 	log.Printf("[DEBUG] Reading tags for object %q", obj.Reference().Value)
+	objID := obj.Reference().Value
+	objType, err := tagTypeForObject(obj)
+	if err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
-
-	ids, err := tm.ListAttachedTags(ctx, obj)
-	log.Printf("[DEBUG] Tags for object %q: %s", obj.Reference().Value, strings.Join(ids, ","))
+	ids, err := client.ListAttachedTags(ctx, objID, objType)
+	log.Printf("[DEBUG] Tags for object %q: %s", objID, strings.Join(ids, ","))
 	if err != nil {
 		return err
 	}
@@ -260,7 +242,7 @@ func readTagsForResource(tm *tags.Manager, obj object.Reference, d *schema.Resou
 // tags from an object.
 type tagDiffProcessor struct {
 	// The client connection.
-	manager *tags.Manager
+	client *tags.RestClient
 
 	// The object that is the subject of the tag addition and removal operations.
 	subject object.Reference
@@ -309,10 +291,15 @@ func (p *tagDiffProcessor) processAttachOperations() error {
 		return nil
 	}
 	for _, tagID := range tagIDs {
+		objID := p.subject.Reference().Value
+		objType, err := tagTypeForObject(p.subject)
+		if err != nil {
+			return err
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 		defer cancel()
-		log.Printf("[DEBUG] Attaching tag %q for object %q", tagID, p.subject.Reference().Value)
-		if err := p.manager.AttachTag(ctx, tagID, p.subject); err != nil {
+		log.Printf("[DEBUG] Attaching tag %q for object %q", tagID, objID)
+		if err := p.client.AttachTagToObject(ctx, tagID, objID, objType); err != nil {
 			return err
 		}
 	}
@@ -328,32 +315,37 @@ func (p *tagDiffProcessor) processDetachOperations() error {
 		return nil
 	}
 	for _, tagID := range tagIDs {
+		objID := p.subject.Reference().Value
+		objType, err := tagTypeForObject(p.subject)
+		if err != nil {
+			return err
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 		defer cancel()
-		log.Printf("[DEBUG] Detaching tag %q for object %q", tagID, p.subject.Reference().Value)
-		if err := p.manager.DetachTag(ctx, tagID, p.subject); err != nil {
+		log.Printf("[DEBUG] Detaching tag %q for object %q", tagID, objID)
+		if err := p.client.DetachTagFromObject(ctx, tagID, objID, objType); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// tagsManagerIfDefined goes through the client validation process and returns
-// the tags manager only if there are tags defined in the supplied ResourceData.
+// tagsClientIfDefined goes through the client validation process and returns
+// the tags client only if there are tags defined in the supplied ResourceData.
 //
-// This should be used to fetch the tagging manager on resources that
+// This should be used to fetch the tagging REST client on resources that
 // support tags, usually closer to the beginning of a CRUD function to check to
 // make sure it's worth proceeding with most of the operation. The returned
 // client should be checked for nil before passing it to processTagDiff.
-func tagsManagerIfDefined(d *schema.ResourceData, meta interface{}) (*tags.Manager, error) {
+func tagsClientIfDefined(d *schema.ResourceData, meta interface{}) (*tags.RestClient, error) {
 	old, new := d.GetChange(vSphereTagAttributeKey)
 	if len(old.(*schema.Set).List()) > 0 || len(new.(*schema.Set).List()) > 0 {
 		log.Printf("[DEBUG] tagsClientIfDefined: Loading tagging client")
-		tm, err := meta.(*VSphereClient).TagsManager()
+		client, err := meta.(*VSphereClient).TagsClient()
 		if err != nil {
 			return nil, err
 		}
-		return tm, nil
+		return client, nil
 	}
 	log.Printf("[DEBUG] tagsClientIfDefined: No tags configured, skipping loading of tagging client")
 	return nil, nil
@@ -361,11 +353,11 @@ func tagsManagerIfDefined(d *schema.ResourceData, meta interface{}) (*tags.Manag
 
 // processTagDiff wraps the whole tag diffing operation into a nice clean
 // function that resources can use.
-func processTagDiff(tm *tags.Manager, d *schema.ResourceData, obj object.Reference) error {
+func processTagDiff(client *tags.RestClient, d *schema.ResourceData, obj object.Reference) error {
 	log.Printf("[DEBUG] Processing tags for object %q", obj.Reference().Value)
 	old, new := d.GetChange(vSphereTagAttributeKey)
 	tdp := &tagDiffProcessor{
-		manager:   tm,
+		client:    client,
 		subject:   obj,
 		oldTagIDs: structure.SliceInterfacesToStrings(old.(*schema.Set).List()),
 		newTagIDs: structure.SliceInterfacesToStrings(new.(*schema.Set).List()),

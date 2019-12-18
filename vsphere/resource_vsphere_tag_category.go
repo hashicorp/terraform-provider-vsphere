@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
-	"github.com/vmware/govmomi/vapi/tags"
+	"github.com/vmware/vic/pkg/vsphere/tags"
 )
 
 const (
@@ -68,32 +68,34 @@ func resourceVSphereTagCategory() *schema.Resource {
 }
 
 func resourceVSphereTagCategoryCreate(d *schema.ResourceData, meta interface{}) error {
-	tm, err := meta.(*VSphereClient).TagsManager()
+	client, err := meta.(*VSphereClient).TagsClient()
 	if err != nil {
 		return err
 	}
 
-	spec := &tags.Category{
-		AssociableTypes: structure.SliceInterfacesToStrings(d.Get("associable_types").(*schema.Set).List()),
-		Cardinality:     d.Get("cardinality").(string),
-		Description:     d.Get("description").(string),
-		Name:            d.Get("name").(string),
+	spec := &tags.CategoryCreateSpec{
+		CreateSpec: tags.CategoryCreate{
+			AssociableTypes: structure.SliceInterfacesToStrings(d.Get("associable_types").(*schema.Set).List()),
+			Cardinality:     d.Get("cardinality").(string),
+			Description:     d.Get("description").(string),
+			Name:            d.Get("name").(string),
+		},
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
-	id, err := tm.CreateCategory(ctx, spec)
+	id, err := client.CreateCategory(ctx, spec)
 	if err != nil {
 		return fmt.Errorf("could not create category: %s", err)
 	}
-	if id == "" {
+	if id == nil {
 		return errors.New("no ID was returned")
 	}
-	d.SetId(id)
+	d.SetId(*id)
 	return resourceVSphereTagCategoryRead(d, meta)
 }
 
 func resourceVSphereTagCategoryRead(d *schema.ResourceData, meta interface{}) error {
-	tm, err := meta.(*VSphereClient).TagsManager()
+	client, err := meta.(*VSphereClient).TagsClient()
 	if err != nil {
 		return err
 	}
@@ -102,7 +104,7 @@ func resourceVSphereTagCategoryRead(d *schema.ResourceData, meta interface{}) er
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
-	category, err := tm.GetCategory(ctx, id)
+	category, err := client.GetCategory(ctx, id)
 	if err != nil {
 		if strings.Contains(err.Error(), "com.vmware.vapi.std.errors.not_found") {
 			log.Printf("[DEBUG] Tag category %s: Resource has been deleted", id)
@@ -123,7 +125,7 @@ func resourceVSphereTagCategoryRead(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceVSphereTagCategoryUpdate(d *schema.ResourceData, meta interface{}) error {
-	tm, err := meta.(*VSphereClient).TagsManager()
+	client, err := meta.(*VSphereClient).TagsClient()
 	if err != nil {
 		return err
 	}
@@ -143,16 +145,17 @@ func resourceVSphereTagCategoryUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	id := d.Id()
-	spec := &tags.Category{
-		ID:              id,
-		AssociableTypes: structure.SliceInterfacesToStrings(d.Get("associable_types").(*schema.Set).List()),
-		Cardinality:     d.Get("cardinality").(string),
-		Description:     d.Get("description").(string),
-		Name:            d.Get("name").(string),
+	spec := &tags.CategoryUpdateSpec{
+		UpdateSpec: tags.CategoryUpdate{
+			AssociableTypes: structure.SliceInterfacesToStrings(d.Get("associable_types").(*schema.Set).List()),
+			Cardinality:     d.Get("cardinality").(string),
+			Description:     d.Get("description").(string),
+			Name:            d.Get("name").(string),
+		},
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
-	err = tm.UpdateCategory(ctx, spec)
+	err = client.UpdateCategory(ctx, id, spec)
 	if err != nil {
 		return fmt.Errorf("could not update category with id %q: %s", id, err)
 	}
@@ -160,19 +163,16 @@ func resourceVSphereTagCategoryUpdate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceVSphereTagCategoryDelete(d *schema.ResourceData, meta interface{}) error {
-	tm, err := meta.(*VSphereClient).TagsManager()
+	client, err := meta.(*VSphereClient).TagsClient()
 	if err != nil {
 		return err
 	}
+
 	id := d.Id()
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
-	tag, err := tm.GetCategory(ctx, id)
-	if err != nil {
-		return err
-	}
-	err = tm.DeleteCategory(ctx, tag)
+	err = client.DeleteCategory(ctx, id)
 	if err != nil {
 		return fmt.Errorf("could not delete category with id %q: %s", id, err)
 	}
@@ -180,11 +180,12 @@ func resourceVSphereTagCategoryDelete(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceVSphereTagCategoryImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	tm, err := meta.(*VSphereClient).TagsManager()
+	client, err := meta.(*VSphereClient).TagsClient()
 	if err != nil {
 		return nil, err
 	}
-	id, err := tagCategoryByName(tm, d.Id())
+
+	id, err := tagCategoryByName(client, d.Id())
 	if err != nil {
 		return nil, err
 	}
