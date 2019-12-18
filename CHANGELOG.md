@@ -1,4 +1,4 @@
-## 1.14.0 (Unreleased)
+## 1.14.0 (December 18, 2019)
 
 IMPROVEMENTS
 * `resource/host` Add details to error messages. ([#850](https://github.com/terraform-providers/terraform-provider-vsphere/pull/850))
