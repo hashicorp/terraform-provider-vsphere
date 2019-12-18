@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
@@ -359,8 +360,14 @@ func skipIPAddrForWaiter(ip net.IP, ignoredGuestIPs []interface{}) bool {
 	case ip.IsMulticast():
 		return true
 	default:
+		// ignoredGuestIPs pre-validated by Schema!
 		for _, ignoredGuestIP := range ignoredGuestIPs {
-			if ip.String() == ignoredGuestIP.(string) {
+			if strings.Contains(ignoredGuestIP.(string), "/") {
+				_, ignoredIPNet, _ := net.ParseCIDR(ignoredGuestIP.(string))
+				if ignoredIPNet.Contains(ip) {
+					return true
+				}
+			} else if net.ParseIP(ignoredGuestIP.(string)).Equal(ip) {
 				return true
 			}
 		}
