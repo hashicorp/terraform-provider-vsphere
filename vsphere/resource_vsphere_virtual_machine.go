@@ -1436,13 +1436,15 @@ func resourceVSphereVirtualMachineUpdateLocation(d *schema.ResourceData, meta in
 		Pool: types.NewReference(pool.Reference()),
 	}
 
-	// Fetch the datastore
-	if dsID, ok := d.GetOk("datastore_id"); ok {
-		ds, err := datastore.FromID(client, dsID.(string))
-		if err != nil {
-			return fmt.Errorf("error locating datastore for VM: %s", err)
+	// Fetch the datastore only if a datastore_cluster is not set
+	if _, ok := d.GetOk("datastore_cluster_id"); !ok {
+		if dsID, ok := d.GetOk("datastore_id"); ok {
+			ds, err := datastore.FromID(client, dsID.(string))
+			if err != nil {
+				return fmt.Errorf("error locating datastore for VM: %s", err)
+			}
+			spec.Datastore = types.NewReference(ds.Reference())
 		}
-		spec.Datastore = types.NewReference(ds.Reference())
 	}
 
 	if hs != nil {
