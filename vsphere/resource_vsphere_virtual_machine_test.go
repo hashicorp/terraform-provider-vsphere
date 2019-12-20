@@ -77,6 +77,26 @@ func TestAccResourceVSphereVirtualMachine_basic(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_spbm(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigSPBM(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					resource.TestMatchResourceAttr("vsphere_virtual_machine.vm", "storage_policy_id", regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$")),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVirtualMachine_ignoreValidationOnComputedValue(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -3087,6 +3107,9 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_NFS_PATH2") == "" {
 		t.Skip("set VSPHERE_NFS_PATH2 to run vsphere_virtual_machine acceptance tests")
 	}
+	if os.Getenv("VSPHERE_STORAGE_POLICY") == "" {
+		t.Skip("set VSPHERE_STORAGE_POLICY to run vsphere_virtual_machine acceptance tests")
+	}
 }
 
 func testAccResourceVSphereVirtualMachineCheckExists(expected bool) resource.TestCheckFunc {
@@ -4198,6 +4221,81 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_DATASTORE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigSPBM() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "storage_policy" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_storage_policy" "sp" {
+  name          = "${var.storage_policy}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name              = "terraform-test"
+  resource_pool_id  = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id      = "${data.vsphere_datastore.datastore.id}"
+  storage_policy_id = "${data.vsphere_storage_policy.sp.id}" 
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinux64Guest"
+
+  wait_for_guest_net_timeout = -1
+
+  network_interface {
+    network_id = "${data.vsphere_network.network.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_STORAGE_POLICY"),
 	)
 }
 

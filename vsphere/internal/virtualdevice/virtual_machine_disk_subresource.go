@@ -3,7 +3,6 @@ package virtualdevice
 import (
 	"errors"
 	"fmt"
-	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"log"
 	"math"
 	"path"
