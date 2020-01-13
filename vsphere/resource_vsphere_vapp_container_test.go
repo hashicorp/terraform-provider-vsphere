@@ -64,6 +64,45 @@ func TestAccResourceVSphereVAppContainer_basic(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereVAppContainer_childImport(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVAppContainerPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVAppContainerCheckExistsInner("child", false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVAppContainerConfigChildImport(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVAppContainerCheckExistsInner("parent", true),
+				),
+			},
+			{
+				ResourceName:      "vsphere_vapp_container.child",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					vc, err := testGetVAppContainer(s, "child")
+					if err != nil {
+						return "", err
+					}
+					return fmt.Sprintf("/%s/host/%s/Resources/parentVApp/%s",
+						os.Getenv("VSPHERE_DATACENTER"),
+						os.Getenv("VSPHERE_CLUSTER"),
+						vc.Name(),
+					), nil
+				},
+				Config: testAccResourceVSphereVAppContainerConfigChildImport(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVAppContainerCheckExistsInner("child", true),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVAppContainer_vmBasic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -219,8 +258,12 @@ func testAccResourceVSphereVAppContainerPreCheck(t *testing.T) {
 }
 
 func testAccResourceVSphereVAppContainerCheckExists(expected bool) resource.TestCheckFunc {
+	return testAccResourceVSphereVAppContainerCheckExistsInner("vapp_container", expected)
+}
+
+func testAccResourceVSphereVAppContainerCheckExistsInner(containerName string, expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		_, err := testGetVAppContainer(s, "vapp_container")
+		_, err := testGetVAppContainer(s, containerName)
 		if err != nil {
 			if viapi.IsManagedObjectNotFoundError(err) && expected == false {
 				// Expected missing
@@ -1069,5 +1112,37 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_CLUSTER"),
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+	)
+}
+
+func testAccResourceVSphereVAppContainerConfigChildImport() string {
+	return fmt.Sprintf(`
+data "vsphere_datacenter" "dc" {
+  name = "%s"
+}
+
+data "vsphere_compute_cluster" "cluster" {
+  name          = "%s"
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+resource "vsphere_folder" "parent_folder" {
+  path          = "terraform-test-parent-folder"
+  type          = "vm"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_vapp_container" "parent" {
+  name                    = "parentVApp"
+  parent_resource_pool_id = data.vsphere_compute_cluster.cluster.resource_pool_id
+  parent_folder_id        = vsphere_folder.parent_folder.id
+}
+
+resource "vsphere_vapp_container" "child" {
+  name                    = "childVApp"
+  parent_resource_pool_id = vsphere_vapp_container.parent.id
+}`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_CLUSTER"),
 	)
 }
