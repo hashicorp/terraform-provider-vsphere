@@ -2985,6 +2985,26 @@ func TestAccResourceVSphereVirtualMachine_readVappChildResourcePool(t *testing.T
 		},
 	})
 }
+
+func TestAccResourceVSphereVirtualMachine_interpolatedDisk(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineTestPathInterpolation(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+		},
+	})
+}
+
 func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	// Note that VSPHERE_USE_LINKED_CLONE is also a variable and its presence
 	// speeds up tests greatly, but it's not a necessary variable, so we don't
@@ -13725,4 +13745,69 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
 		os.Getenv("VSPHERE_VAPP_RESOURCE_POOL"),
 	)
+}
+
+func testAccResourceVSphereVirtualMachineTestPathInterpolation() string {
+	return fmt.Sprintf(`
+data "vsphere_datacenter" "dc" {
+  name = "%s"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "%s"
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+data "vsphere_compute_cluster" "cluster" {
+  name          = "%s"
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+data "vsphere_network" "n" {
+  name          = "%s"
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+resource "null_resource" "n" {
+  count = 2
+}
+
+resource "vsphere_virtual_disk" "d" {
+  count      = 2
+  size       = 1
+  vmdk_path  = "${null_resource.n[count.index].id}.vmdk"
+  datastore  = data.vsphere_datastore.datastore.name
+  datacenter = data.vsphere_datacenter.dc.name
+}
+
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = data.vsphere_compute_cluster.cluster.resource_pool_id
+  datastore_id     = data.vsphere_datastore.datastore.id
+  guest_id         = "ubuntu64Guest"
+
+  network_interface { 
+    network_id = data.vsphere_network.n.id
+  }
+    disk {
+      attach       = true
+      label        = "disk0"
+      path         = vsphere_virtual_disk.d[0].vmdk_path
+      unit_number  = 0
+      datastore_id = data.vsphere_datastore.datastore.id
+    }
+
+    disk {
+      attach       = true
+      label        = "disk1"
+      path         = vsphere_virtual_disk.d[1].vmdk_path
+      unit_number  = 1
+      datastore_id = data.vsphere_datastore.datastore.id
+   }
+}`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_CLUSTER"),
+		os.Getenv("VSPHERE_NETWORK_LABEL"))
 }

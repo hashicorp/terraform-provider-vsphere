@@ -582,15 +582,21 @@ func DiskDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 			return fmt.Errorf("disk: duplicate name %s", name)
 		}
 		// If attach is set, we need to validate that there's no other duplicate paths.
+		curDiskPath := fmt.Sprintf("disk.%d.path", ni)
+		pathKnown := d.NewValueKnown(curDiskPath)
 		if nm["attach"].(bool) {
 			path := diskPathOrName(nm)
-			if path == "" {
-				return fmt.Errorf("disk.%d: path or name cannot be empty when using attach", ni)
+			if pathKnown {
+				if path == "" {
+					return fmt.Errorf("disk.%d: path or name cannot be empty when using attach", ni)
+				}
+				if _, ok := attachments[path]; ok {
+					return fmt.Errorf("disk: multiple entries trying to attach external disk %s", path)
+				}
+				attachments[path] = struct{}{}
+			} else {
+				log.Printf("[DEBUG] Disk path for disk %d is not known yet.", ni)
 			}
-			if _, ok := attachments[path]; ok {
-				return fmt.Errorf("disk: multiple entries trying to attach external disk %s", path)
-			}
-			attachments[path] = struct{}{}
 		}
 
 		if _, ok := units[nm["unit_number"].(int)]; ok {
