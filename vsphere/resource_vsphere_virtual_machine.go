@@ -16,6 +16,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/spbm"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
@@ -439,6 +440,13 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	if err := flattenVirtualMachineConfigInfo(d, vprops.Config); err != nil {
 		return fmt.Errorf("error reading virtual machine configuration: %s", err)
 	}
+	
+	// Read the VM Home storage policy if associated
+	polID, err := spbm.PolicyIDByVirtualMachine(client, moid)
+	if err != nil {
+		return err
+	}
+	d.Set("storage_policy_id", polID)
 
 	// Perform pending device read operations.
 	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
