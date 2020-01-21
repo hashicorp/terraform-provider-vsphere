@@ -86,6 +86,7 @@ The following attributes are exported:
   interface found on the virtual machine, in device bus order. Will be one of
   `e1000`, `e1000e`, `pcnet32`, `sriov`, `vmxnet2`, or `vmxnet3`.
 * `firmware` - The firmware type for this virtual machine. Can be `bios` or `efi`.
+* `guest_ip_addresses` - A list of IP addresses as reported by VMWare tools.
 
 ~> **NOTE:** Keep in mind when using the results of `scsi_type` and
 `network_interface_types`, that the `vsphere_virtual_machine` resource only
