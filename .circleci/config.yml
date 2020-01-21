@@ -1437,7 +1437,7 @@ jobs:
 
 workflows:
   version: 2
-  nightly:
+  nightly_1:
     triggers:
       - schedule:
           cron: "0 3 * * *"
@@ -1447,7 +1447,10 @@ workflows:
                 - master
     jobs:
       - linters
-      - build
+      - revert_snapshot
+      - build:
+          requires:
+            - revert_snapshot
       - test_acc_Client:
           requires:
             - build
@@ -1481,9 +1484,23 @@ workflows:
       - test_acc_DataSourceVSphereResourcePool:
           requires:
             - test_acc_DataSourceVSphereNetwork
+  nightly_2:
+    triggers:
+      - schedule:
+          cron: "0 7 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - linters
+      - revert_snapshot
+      - build:
+          requires:
+            - revert_snapshot
       - test_acc_DataSourceVSphereTag:
           requires:
-            - test_acc_DataSourceVSphereResourcePool
+            - build
       - test_acc_DataSourceVSphereTagCategory:
           requires:
             - test_acc_DataSourceVSphereTag
@@ -1517,9 +1534,23 @@ workflows:
       - test_acc_ResourceVSphereComputeClusterVMHostRule:
           requires:
             - test_acc_ResourceVSphereComputeClusterVMGroup
+  nightly_3:
+    triggers:
+      - schedule:
+          cron: "0 11 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - linters
+      - revert_snapshot
+      - build:
+          requires:
+            - revert_snapshot
       - test_acc_ResourceVSphereCustomAttribute:
           requires:
-            - test_acc_ResourceVSphereComputeClusterVMHostRule
+            - build
       - test_acc_ResourceVSphereDatacenter:
           requires:
             - test_acc_ResourceVSphereCustomAttribute
@@ -1559,9 +1590,23 @@ workflows:
       - test_acc_ResourceVSphereHostVirtualSwitch:
           requires:
             - test_acc_ResourceVSphereHostPortGroup
+  nightly_4:
+    triggers:
+      - schedule:
+          cron: "0 15 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - linters
+      - revert_snapshot
+      - build:
+          requires:
+            - revert_snapshot
       - test_acc_ResourceVSphereLicense:
           requires:
-            - test_acc_ResourceVSphereHostVirtualSwitch
+            - build
       - test_acc_ResourceVSphereNasDatastore:
           requires:
             - test_acc_ResourceVSphereLicense
@@ -1592,6 +1637,20 @@ workflows:
       - test_acc_ResourceVSphereVmfsDatastore:
           requires:
             - test_acc_ResourceVSphereVirtualMachineSnapshot
+  nightly_5:
+    triggers:
+      - schedule:
+          cron: "0 19 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - linters
+      - revert_snapshot
+      - build:
+          requires:
+            - revert_snapshot
       - test_acc_ResourceVSphereVirtualMachine:
           requires:
-            - test_acc_ResourceVSphereVmfsDatastore
+            - build
