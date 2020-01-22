@@ -811,7 +811,7 @@ func resourceVSphereComputeClusterApplyClusterConfiguration(
 // resourceVSphereComputeClusterApplyTags processes the tags step for both
 // create and update for vsphere_compute_cluster.
 func resourceVSphereComputeClusterApplyTags(d *schema.ResourceData, meta interface{}, cluster *object.ClusterComputeResource) error {
-	tagsClient, err := tagsClientIfDefined(d, meta)
+	tagsClient, err := tagsManagerIfDefined(d, meta)
 	if err != nil {
 		return err
 	}
@@ -829,7 +829,7 @@ func resourceVSphereComputeClusterApplyTags(d *schema.ResourceData, meta interfa
 // resourceVSphereComputeClusterReadTags reads the tags for
 // vsphere_compute_cluster.
 func resourceVSphereComputeClusterReadTags(d *schema.ResourceData, meta interface{}, cluster *object.ClusterComputeResource) error {
-	if tagsClient, _ := meta.(*VSphereClient).TagsClient(); tagsClient != nil {
+	if tagsClient, _ := meta.(*VSphereClient).TagsManager(); tagsClient != nil {
 		log.Printf("[DEBUG] %s: Reading tags", resourceVSphereComputeClusterIDString(d))
 		if err := readTagsForResource(tagsClient, cluster, d); err != nil {
 			return err
