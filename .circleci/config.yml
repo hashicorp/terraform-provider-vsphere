@@ -1447,10 +1447,7 @@ workflows:
                 - master
     jobs:
       - linters
-      - revert_snapshot
-      - build:
-          requires:
-            - revert_snapshot
+      - build
       - test_acc_Client:
           requires:
             - build
@@ -1494,10 +1491,7 @@ workflows:
                 - master
     jobs:
       - linters
-      - revert_snapshot
-      - build:
-          requires:
-            - revert_snapshot
+      - build
       - test_acc_DataSourceVSphereTag:
           requires:
             - build
@@ -1544,10 +1538,7 @@ workflows:
                 - master
     jobs:
       - linters
-      - revert_snapshot
-      - build:
-          requires:
-            - revert_snapshot
+      - build
       - test_acc_ResourceVSphereCustomAttribute:
           requires:
             - build
@@ -1600,10 +1591,7 @@ workflows:
                 - master
     jobs:
       - linters
-      - revert_snapshot
-      - build:
-          requires:
-            - revert_snapshot
+      - build
       - test_acc_ResourceVSphereLicense:
           requires:
             - build
@@ -1647,10 +1635,7 @@ workflows:
                 - master
     jobs:
       - linters
-      - revert_snapshot
-      - build:
-          requires:
-            - revert_snapshot
+      - build
       - test_acc_ResourceVSphereVirtualMachine:
           requires:
             - build
