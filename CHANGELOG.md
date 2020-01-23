@@ -1,4 +1,15 @@
 ## 1.15.0 (Unreleased)
+
+IMPROVEMENTS:
+* `resource/virtual_machine`: Do not throw error when disk path is not known
+  yet. ([#944](https://github.com/terraform-providers/terraform-provider-vsphere/pull/944))
+
+BUG FIXES:
+* `resource/virtual_machine`: Do not set datastoreID in RelocateSpec when
+  datastore_cluster is set. ([#933](https://github.com/terraform-providers/terraform-provider-vsphere/pull/933))
+* `resource/vapp_container`: Fix handling of child vApp containers. ([#941](https://github.com/terraform-providers/terraform-provider-vsphere/pull/941))
+* `resource/virtual_disk`: Enforce .vmdk suffix on `vmdk_path`. ([#942](https://github.com/terraform-providers/terraform-provider-vsphere/pull/942))
+
 ## 1.14.0 (December 18, 2019)
 
 IMPROVEMENTS
