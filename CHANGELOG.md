@@ -1,4 +1,4 @@
-## 1.15.0 (Unreleased)
+## 1.15.0 (January 23, 2020)
 
 IMPROVEMENTS:
 * `resource/virtual_machine`: Do not throw error when disk path is not known
