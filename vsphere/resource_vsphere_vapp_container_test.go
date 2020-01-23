@@ -531,9 +531,9 @@ variable "network_label" {
 
 variable "hosts" {
   default = [
-    "n-esxi1.vsphere.hashicorptest.internal",
-    "n-esxi2.vsphere.hashicorptest.internal",
-    "n-esxi3.vsphere.hashicorptest.internal",
+    "%s",
+    "%s",
+    "%s",
   ]
 }
 
@@ -616,6 +616,9 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_NFS_PATH"),
 		os.Getenv("VSPHERE_NAS_HOST"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_ESXI_HOST"),
+		os.Getenv("VSPHERE_ESXI_HOST2"),
+		os.Getenv("VSPHERE_ESXI_HOST3"),
 	)
 }
 
@@ -643,9 +646,9 @@ variable "network_label" {
 
 variable "hosts" {
   default = [
-    "n-esxi1.vsphere.hashicorptest.internal",
-    "n-esxi2.vsphere.hashicorptest.internal",
-    "n-esxi3.vsphere.hashicorptest.internal",
+    "%s",
+    "%s",
+    "%s",
   ]
 }
 
@@ -728,6 +731,9 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_NFS_PATH"),
 		os.Getenv("VSPHERE_NAS_HOST"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_ESXI_HOST"),
+		os.Getenv("VSPHERE_ESXI_HOST2"),
+		os.Getenv("VSPHERE_ESXI_HOST3"),
 	)
 }
 
@@ -755,9 +761,9 @@ variable "network_label" {
 
 variable "hosts" {
   default = [
-    "n-esxi1.vsphere.hashicorptest.internal",
-    "n-esxi2.vsphere.hashicorptest.internal",
-    "n-esxi3.vsphere.hashicorptest.internal",
+    "%s",
+    "%s",
+    "%s",
   ]
 }
 
@@ -853,6 +859,9 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_NFS_PATH"),
 		os.Getenv("VSPHERE_NAS_HOST"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_ESXI_HOST"),
+		os.Getenv("VSPHERE_ESXI_HOST2"),
+		os.Getenv("VSPHERE_ESXI_HOST3"),
 		os.Getenv("VSPHERE_TEMPLATE"),
 	)
 }
@@ -937,7 +946,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   disk {
     label = "disk0"
-    size  = "32"
+    size  = "%s"
   }
 
   network_interface {
@@ -950,6 +959,7 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
 		os.Getenv("VSPHERE_TEMPLATE"),
+		os.Getenv("VSPHERE_CLONED_VM_DISK_SIZE"),
 	)
 }
 
