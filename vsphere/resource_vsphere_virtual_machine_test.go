@@ -13782,10 +13782,11 @@ resource "vsphere_virtual_disk" "d" {
 
 
 resource "vsphere_virtual_machine" "vm" {
-  name             = "terraform-test"
-  resource_pool_id = data.vsphere_compute_cluster.cluster.resource_pool_id
-  datastore_id     = data.vsphere_datastore.datastore.id
-  guest_id         = "ubuntu64Guest"
+  name                       = "terraform-test"
+  resource_pool_id           = data.vsphere_compute_cluster.cluster.resource_pool_id
+  datastore_id               = data.vsphere_datastore.datastore.id
+  guest_id                   = "ubuntu64Guest"
+	wait_for_guest_net_timeout = -1
 
   network_interface { 
     network_id = data.vsphere_network.n.id
