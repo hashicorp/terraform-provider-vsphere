@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -472,7 +473,7 @@ func testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(expec
 			return fmt.Errorf("expected failover host name to be %s, got %s", expected, actual)
 		}
 
-		if failoverHostsPolicy.ResourceReductionToToleratePercent != 0 {
+		if failoverHostsPolicy.ResourceReductionToToleratePercent != structure.Int32Ptr(0) {
 			return fmt.Errorf("expected ha_admission_control_performance_tolerance be 0, got %d", failoverHostsPolicy.ResourceReductionToToleratePercent)
 		}
 
