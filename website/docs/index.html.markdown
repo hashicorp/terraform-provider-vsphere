@@ -133,7 +133,9 @@ will no longer need them.
 * `vim_session_path` - (Optional) The direcotry to save the VIM SOAP API
   session to. Default: `${HOME}/.govmomi/sessions`. Can also be specified by
   the `VSPHERE_VIM_SESSION_PATH` environment variable.
-* `rest_session_path` - Deprecated
+* `rest_session_path` - The directory to save the REST API session to. 
+  Default: `${HOME}/.govmomi/rest_sessions`. Can also be specified by the 
+  `VSPHERE_REST_SESSION_PATH` environment variable.
 
 #### govc/Terraform session interoperability
 

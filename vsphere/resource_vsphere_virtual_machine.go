@@ -440,7 +440,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	if err := flattenVirtualMachineConfigInfo(d, vprops.Config); err != nil {
 		return fmt.Errorf("error reading virtual machine configuration: %s", err)
 	}
-	
+
 	// Read the VM Home storage policy if associated
 	polID, err := spbm.PolicyIDByVirtualMachine(client, moid)
 	if err != nil {
