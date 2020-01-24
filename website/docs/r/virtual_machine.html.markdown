@@ -513,6 +513,8 @@ requires vCenter 6.0 or higher.
 ~> **NOTE:** Custom attributes are unsupported on direct ESXi connections 
 and require vCenter.
 
+* `storage_policy_id` - (Optional) The UUID of the storage policy to assign to VM home directory.
+
 ### CPU and memory options
 
 The following options control CPU and memory settings on the virtual machine:
@@ -797,6 +799,7 @@ externally with `attach` when the `path` field is not specified.
   be one of `low`, `normal`, `high`, or `custom`. Default: `normal`.
 * `io_share_count` - (Optional) The share count for this disk when the share
   level is `custom`.
+* `storage_policy_id` - (Optional) The UUID of the storage policy to assign to this disk.
 
 #### Computed disk attributes
 
