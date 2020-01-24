@@ -33,7 +33,7 @@ func testAccClientGenerateConfig(t *testing.T) *Config {
 	}
 }
 
-func testAccClientGenerateData(t *testing.T, c *Config) (string, string) {
+func testAccClientGenerateData(t *testing.T, c *Config) string {
 	_, err := c.Client()
 	if err != nil {
 		t.Fatalf("error setting up client: %s", err)
@@ -43,22 +43,13 @@ func testAccClientGenerateData(t *testing.T, c *Config) (string, string) {
 	if err != nil {
 		t.Fatalf("error computing VIM session file: %s", err)
 	}
-	restSessionFile, err := c.restSessionFile()
-	if err != nil {
-		t.Fatalf("error computing REST session file: %s", err)
-	}
 
 	vimData, err := ioutil.ReadFile(vimSessionFile)
 	if err != nil {
 		t.Fatalf("error reading VIM session file: %s", err)
 	}
 
-	restData, err := ioutil.ReadFile(restSessionFile)
-	if err != nil {
-		t.Fatalf("error reading REST session file: %s", err)
-	}
-
-	return string(vimData), string(restData)
+	return string(vimData)
 }
 
 func testAccClientCheckStatNoExist(t *testing.T, p string) {
@@ -98,18 +89,14 @@ func TestAccClient_persistence(t *testing.T) {
 	c := testAccClientGenerateConfig(t)
 	c.Persist = true
 	c.VimSessionPath = vimSessionDir
-	c.RestSessionPath = restSessionDir
 
-	expectedVim, expectedRest := testAccClientGenerateData(t, c)
+	expectedVim := testAccClientGenerateData(t, c)
 
 	// This will create a brand new session under normal circumstances
-	actualVim, actualRest := testAccClientGenerateData(t, c)
+	actualVim := testAccClientGenerateData(t, c)
 
 	if expectedVim != actualVim {
 		t.Fatalf("VIM session data mismatch.\n\n\n\nExpected:\n\n %s\n\nActual:\n\n%s\n\n", expectedVim, actualVim)
-	}
-	if expectedRest != actualRest {
-		t.Fatalf("REST session data mismatch.\n\n\n\nExpected:\n\n %s\n\nActual:\n\n%s\n\n", expectedRest, actualRest)
 	}
 }
 
@@ -139,7 +126,6 @@ func TestAccClient_noPersistence(t *testing.T) {
 	// Just to be explicit on intent
 	c.Persist = false
 	c.VimSessionPath = vimSessionDir
-	c.RestSessionPath = restSessionDir
 
 	_, err = c.Client()
 	if err != nil {
@@ -150,27 +136,21 @@ func TestAccClient_noPersistence(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error computing VIM session file: %s", err)
 	}
-	restSessionFile, err := c.restSessionFile()
-	if err != nil {
-		t.Fatalf("error computing REST session file: %s", err)
-	}
 
 	testAccClientCheckStatNoExist(t, vimSessionFile)
-	testAccClientCheckStatNoExist(t, restSessionFile)
 }
 
 func TestNewConfig(t *testing.T) {
 	expected := &Config{
-		User:            "foo",
-		Password:        "bar",
-		InsecureFlag:    true,
-		VSphereServer:   "vsphere.foo.internal",
-		Debug:           true,
-		DebugPathRun:    "./foo",
-		DebugPath:       "./bar",
-		Persist:         true,
-		VimSessionPath:  "./baz",
-		RestSessionPath: "./qux",
+		User:           "foo",
+		Password:       "bar",
+		InsecureFlag:   true,
+		VSphereServer:  "vsphere.foo.internal",
+		Debug:          true,
+		DebugPathRun:   "./foo",
+		DebugPath:      "./bar",
+		Persist:        true,
+		VimSessionPath: "./baz",
 	}
 
 	r := &schema.Resource{Schema: Provider().(*schema.Provider).Schema}
@@ -184,7 +164,6 @@ func TestNewConfig(t *testing.T) {
 	d.Set("client_debug_path", expected.DebugPath)
 	d.Set("persist_session", expected.Persist)
 	d.Set("vim_session_path", expected.VimSessionPath)
-	d.Set("rest_session_path", expected.RestSessionPath)
 
 	actual, err := NewConfig(d)
 	if err != nil {

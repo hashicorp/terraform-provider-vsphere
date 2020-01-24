@@ -28,9 +28,9 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/vapi/tags"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
-	"github.com/vmware/vic/pkg/vsphere/tags"
 )
 
 // testAccResourceVSphereEmpty provides an empty provider config to pass some
@@ -46,7 +46,7 @@ type testCheckVariables struct {
 	client *govmomi.Client
 
 	// The client for tagging operations.
-	tagsClient *tags.RestClient
+	tagsManager *tags.Manager
 
 	// The subject resource's ID.
 	resourceID string
@@ -70,9 +70,13 @@ func testClientVariablesForResource(s *terraform.State, addr string) (testCheckV
 		return testCheckVariables{}, fmt.Errorf("%s not found in state", addr)
 	}
 
+	tm, err := testAccProvider.Meta().(*VSphereClient).TagsManager()
+	if err != nil {
+		return testCheckVariables{}, err
+	}
 	return testCheckVariables{
 		client:             testAccProvider.Meta().(*VSphereClient).vimClient,
-		tagsClient:         testAccProvider.Meta().(*VSphereClient).tagsClient,
+		tagsManager:        tm,
 		resourceID:         rs.Primary.ID,
 		resourceAttributes: rs.Primary.Attributes,
 		esxiHost:           os.Getenv("VSPHERE_ESXI_HOST"),
@@ -466,7 +470,7 @@ func testGetTagCategory(s *terraform.State, resourceName string) (*tags.Category
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
-	category, err := tVars.tagsClient.GetCategory(ctx, tVars.resourceID)
+	category, err := tVars.tagsManager.GetCategory(ctx, tVars.resourceID)
 	if err != nil {
 		return nil, fmt.Errorf("could not get tag category for ID %q: %s", tVars.resourceID, err)
 	}
@@ -482,7 +486,7 @@ func testGetTag(s *terraform.State, resourceName string) (*tags.Tag, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
-	tag, err := tVars.tagsClient.GetTag(ctx, tVars.resourceID)
+	tag, err := tVars.tagsManager.GetTag(ctx, tVars.resourceID)
 	if err != nil {
 		return nil, fmt.Errorf("could not get tag for ID %q: %s", tVars.resourceID, err)
 	}
@@ -492,7 +496,7 @@ func testGetTag(s *terraform.State, resourceName string) (*tags.Tag, error) {
 
 // testObjectHasTags checks an object to see if it has the tags that currently
 // exist in the Terrafrom state under the resource with the supplied name.
-func testObjectHasTags(s *terraform.State, client *tags.RestClient, obj object.Reference, tagResName string) error {
+func testObjectHasTags(s *terraform.State, tm *tags.Manager, obj object.Reference, tagResName string) error {
 	var expectedIDs []string
 	if tagRS, ok := s.RootModule().Resources[fmt.Sprintf("vsphere_tag.%s", tagResName)]; ok {
 		expectedIDs = append(expectedIDs, tagRS.Primary.ID)
@@ -511,14 +515,9 @@ func testObjectHasTags(s *terraform.State, client *tags.RestClient, obj object.R
 		return fmt.Errorf("could not find state for vsphere_tag.%s or vsphere_tag.%s.*", tagResName, tagResName)
 	}
 
-	objID := obj.Reference().Value
-	objType, err := tagTypeForObject(obj)
-	if err != nil {
-		return err
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
-	actualIDs, err := client.ListAttachedTags(ctx, objID, objType)
+	actualIDs, err := tm.ListAttachedTags(ctx, obj)
 	if err != nil {
 		return err
 	}
@@ -541,15 +540,10 @@ func testObjectHasTags(s *terraform.State, client *tags.RestClient, obj object.R
 // testObjectHasNoTags checks to make sure that an object has no tags attached
 // to it. The parameters are the same as testObjectHasTags, but no tag resource
 // needs to be supplied.
-func testObjectHasNoTags(s *terraform.State, client *tags.RestClient, obj object.Reference) error {
-	objID := obj.Reference().Value
-	objType, err := tagTypeForObject(obj)
-	if err != nil {
-		return err
-	}
+func testObjectHasNoTags(s *terraform.State, tm *tags.Manager, obj object.Reference) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
-	actualIDs, err := client.ListAttachedTags(ctx, objID, objType)
+	actualIDs, err := tm.ListAttachedTags(ctx, obj)
 	if err != nil {
 		return err
 	}
@@ -593,7 +587,7 @@ func testAccResourceVSphereDatastoreCheckTags(dsResAddr, tagResName string) reso
 		if err != nil {
 			return err
 		}
-		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsClient()
+		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsManager()
 		if err != nil {
 			return err
 		}
