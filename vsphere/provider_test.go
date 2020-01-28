@@ -4,11 +4,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 	"github.com/terraform-providers/terraform-provider-null/null"
 	"github.com/terraform-providers/terraform-provider-random/random"
-	"github.com/terraform-providers/terraform-provider-template/template"
 )
 
 var testAccProviders map[string]terraform.ResourceProvider
@@ -21,12 +20,10 @@ func init() {
 	testAccProvider = Provider().(*schema.Provider)
 	testAccNullProvider = null.Provider().(*schema.Provider)
 	testAccRandomProvider = random.Provider().(*schema.Provider)
-	testAccTemplateProvider = template.Provider().(*schema.Provider)
 	testAccProviders = map[string]terraform.ResourceProvider{
-		"vsphere":  testAccProvider,
-		"null":     testAccNullProvider,
-		"random":   testAccRandomProvider,
-		"template": testAccTemplateProvider,
+		"vsphere": testAccProvider,
+		"null":    testAccNullProvider,
+		"random":  testAccRandomProvider,
 	}
 }
 
