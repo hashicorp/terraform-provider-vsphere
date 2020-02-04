@@ -1,4 +1,11 @@
 ## 1.16.0 (Unreleased)
+
+FEATURES:
+* **New Data Source:** `storage_policy` ([#881](https://github.com/terraform-providers/terraform-provider-vsphere/pull/881))
+
+IMPROVEMENTS:
+* Switch to govmomi REST client ([#955](https://github.com/terraform-providers/terraform-provider-vsphere/pull/955))
+
 ## 1.15.0 (January 23, 2020)
 
 IMPROVEMENTS:
