@@ -1,4 +1,4 @@
-## 1.16.0 (Unreleased)
+## 1.16.0 (February 04, 2020)
 
 FEATURES:
 * **New Data Source:** `storage_policy` ([#881](https://github.com/terraform-providers/terraform-provider-vsphere/pull/881))
