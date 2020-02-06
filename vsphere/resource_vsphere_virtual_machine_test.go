@@ -8,6 +8,7 @@ import (
 	"path"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -2229,6 +2230,37 @@ func TestAccResourceVSphereVirtualMachine_dualStackIPv4AndIPv6(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_multiIPv4(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigMultiIPV4(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckNetDeviceOrder(
+						[]string{
+							os.Getenv("VSPHERE_IPV4_ADDRESS"),
+							os.Getenv("VSPHERE_IPV4_ADDRESS2"),
+							os.Getenv("VSPHERE_IPV4_ADDRESS3"),
+						},
+						[]string{
+							os.Getenv("VSPHERE_IPV4_PREFIX"),
+							os.Getenv("VSPHERE_IPV4_PREFIX2"),
+							os.Getenv("VSPHERE_IPV4_PREFIX3"),
+						},
+					),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVirtualMachine_IPv6Only(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -3111,6 +3143,35 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 		t.Skip("set VSPHERE_STORAGE_POLICY to run vsphere_virtual_machine acceptance tests")
 	}
 }
+func testAccResourceVSphereVirtualMachineMultiIPV4PreCheck(t *testing.T) {
+	if os.Getenv("VSPHERE_NETWORK_LABEL") == "" {
+		t.Skip("set VSPHERE_NETWORK_LABEL to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("VSPHERE_IPV4_ADDRESS") == "" {
+		t.Skip("set VSPHERE_IPV4_ADDRESS to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("VSPHERE_IPV4_PREFIX") == "" {
+		t.Skip("set VSPHERE_IPV4_PREFIX to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("VSPHERE_NETWORK2_LABEL") == "" {
+		t.Skip("set VSPHERE_NETWORK2_LABEL to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("VSPHERE_IPV4_ADDRESS2") == "" {
+		t.Skip("set VSPHERE_IPV4_ADDRESS2 to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("VSPHERE_IPV4_PREFIX2") == "" {
+		t.Skip("set VSPHERE_IPV4_PREFIX2 to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("VSPHERE_NETWORK3_LABEL") == "" {
+		t.Skip("set VSPHERE_NETWORK3_LABEL to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("VSPHERE_IPV4_ADDRESS3") == "" {
+		t.Skip("set VSPHERE_IPV4_ADDRESS3 to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("VSPHERE_IPV4_PREFIX3") == "" {
+		t.Skip("set VSPHERE_IPV4_PREFIX3 to run vsphere_virtual_machine acceptance tests")
+	}
+}
 
 func testAccResourceVSphereVirtualMachineCheckExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -3399,6 +3460,46 @@ func testAccResourceVSphereVirtualMachineCheckNet(expectedAddr, expectedPrefix, 
 		}
 
 		return fmt.Errorf("could not find IP %s/%s, gateway %s", expectedAddr, expectedPrefix, expectedGW)
+	}
+}
+
+// testAccResourceVSphereVirtualMachineCheckNetDeviceOrder checks to make sure a virtual
+// machine with multiple NICs has the given IP address and netmask assigned to it,
+// and that the order of the NICs correspond to the declared order.
+//
+// This uses VMware tools to check this, so it needs to be installed on the
+// guest.
+func testAccResourceVSphereVirtualMachineCheckNetDeviceOrder(addrs []string, expectedPrefixes []string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVirtualMachineProperties(s, "vm")
+		if err != nil {
+			return err
+		}
+		deviceConfigIds := make([]int, 0)
+		deviceConfigIdToPrefix := make(map[int]int, 0)
+		deviceConfigIdToAddr := make(map[int]string, 0)
+		for _, n := range props.Guest.Net {
+			deviceConfigIds = append(deviceConfigIds, int(n.DeviceConfigId))
+			deviceConfigIdToPrefix[int(n.DeviceConfigId)] = int(n.IpConfig.IpAddress[0].PrefixLength)
+			deviceConfigIdToAddr[int(n.DeviceConfigId)] = n.IpConfig.IpAddress[0].IpAddress
+		}
+		sort.Ints(deviceConfigIds)
+		for i, deviceConfigId := range deviceConfigIds {
+			actualIP := deviceConfigIdToAddr[deviceConfigId]
+			actualPrefix := deviceConfigIdToPrefix[deviceConfigId]
+			expectedIP := net.ParseIP(addrs[i])
+			expectedPrefix, err := strconv.Atoi(expectedPrefixes[i])
+			if err != nil {
+				return err
+			}
+			if !net.ParseIP(actualIP).Equal(expectedIP) {
+				return fmt.Errorf("unexpected address for device config ID %v: %v, expected %v", deviceConfigId, actualIP, expectedIP)
+			}
+			if actualPrefix != expectedPrefix {
+				return fmt.Errorf("unexpected prefix for device config ID %v: %v, expected %v", deviceConfigId, actualPrefix, expectedPrefix)
+			}
+		}
+		return nil
 	}
 }
 
@@ -9303,6 +9404,188 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_NETWORK_LABEL"),
 		os.Getenv("VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("VSPHERE_IPV4_PREFIX"),
+		os.Getenv("VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("VSPHERE_DNS"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_TEMPLATE"),
+		os.Getenv("VSPHERE_USE_LINKED_CLONE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigMultiIPV4() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+variable "resource_pool" {
+  default = "%s"
+}
+
+variable "network_label" {
+  default = "%s"
+}
+
+variable "ipv4_address" {
+  default = "%s"
+}
+
+variable "ipv4_netmask" {
+  default = "%s"
+}
+
+variable "network_label2" {
+  default = "%s"
+}
+
+variable "ipv4_address2" {
+  default = "%s"
+}
+
+variable "ipv4_netmask2" {
+  default = "%s"
+}
+
+variable "network_label3" {
+  default = "%s"
+}
+
+variable "ipv4_address3" {
+  default = "%s"
+}
+
+variable "ipv4_netmask3" {
+  default = "%s"
+}
+
+variable "ipv4_gateway" {
+  default = "%s"
+}
+
+variable "dns_server" {
+  default = "%s"
+}
+
+variable "datastore" {
+  default = "%s"
+}
+
+variable "template" {
+  default = "%s"
+}
+
+variable "linked_clone" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = "${var.datastore}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = "${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name          = "${var.network_label}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network2" {
+  name          = "${var.network_label2}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network3" {
+  name          = "${var.network_label3}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_virtual_machine" "template" {
+  name          = "${var.template}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
+  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+
+  network_interface {
+    network_id   = "${data.vsphere_network.network.id}"
+    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+  }
+
+  network_interface {
+    network_id   = "${data.vsphere_network.network2.id}"
+    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+  }
+
+  network_interface {
+    network_id   = "${data.vsphere_network.network3.id}"
+    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+  }
+
+  disk {
+    label            = "disk0"
+    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
+    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+  }
+
+  clone {
+    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+
+    customize {
+      linux_options {
+        host_name = "terraform-test"
+        domain    = "test.internal"
+      }
+
+      network_interface {
+        ipv4_address = "${var.ipv4_address}"
+        ipv4_netmask = "${var.ipv4_netmask}"
+      }
+
+      network_interface {
+        ipv4_address = "${var.ipv4_address2}"
+        ipv4_netmask = "${var.ipv4_netmask2}"
+      }
+
+      network_interface {
+        ipv4_address = "${var.ipv4_address3}"
+        ipv4_netmask = "${var.ipv4_netmask3}"
+      }
+
+      ipv4_gateway    = "${var.ipv4_gateway}"
+      dns_server_list = ["${var.dns_server}"]
+      dns_suffix_list = ["test.internal"]
+    }
+  }
+}
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL2"),
+		os.Getenv("VSPHERE_NETWORK_LABEL3"),
+		os.Getenv("VSPHERE_IPV4_ADDRESS"),
+		os.Getenv("VSPHERE_IPV4_PREFIX"),
+		os.Getenv("VSPHERE_IPV4_ADDRESS2"),
+		os.Getenv("VSPHERE_IPV4_PREFIX2"),
+		os.Getenv("VSPHERE_IPV4_ADDRESS3"),
+		os.Getenv("VSPHERE_IPV4_PREFIX3"),
 		os.Getenv("VSPHERE_IPV4_GATEWAY"),
 		os.Getenv("VSPHERE_DNS"),
 		os.Getenv("VSPHERE_DATASTORE"),
