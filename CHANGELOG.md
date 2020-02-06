@@ -1,4 +1,4 @@
-## 1.16.1 (Unreleased)
+## 1.16.1 (February 06, 2020)
 
 BUG FIXES:
 * `resource/virtual_machine`: Set `storage_policy_id` based off of VM rather
