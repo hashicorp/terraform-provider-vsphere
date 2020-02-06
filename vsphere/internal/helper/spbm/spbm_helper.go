@@ -87,7 +87,7 @@ func PolicyIDByVirtualDisk(client *govmomi.Client, vmMOID string, diskKey int) (
 
 	policies, err := queryAssociatedProfile(ctx, pc, pbmSOR)
 	if err != nil {
-		return "",  provider.ProviderError(vmMOID, "PolicyIDByVirtualDisk", err)
+		return "", provider.ProviderError(vmMOID, "PolicyIDByVirtualDisk", err)
 	}
 
 	// If no policy returned then virtual disk is not associated with a policy
@@ -104,7 +104,7 @@ func PolicyIDByVirtualMachine(client *govmomi.Client, vmMOID string) (string, er
 	defer cancel()
 	pc, err := pbmClientFromGovmomiClient(ctx, client)
 	if err != nil {
-		return "",  provider.ProviderError(vmMOID, "PolicyIDByVirtualMachine", err)
+		return "", provider.ProviderError(vmMOID, "PolicyIDByVirtualMachine", err)
 	}
 
 	pbmSOR := pbmtypes.PbmServerObjectRef{
