@@ -3,7 +3,7 @@ package vsphere
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
