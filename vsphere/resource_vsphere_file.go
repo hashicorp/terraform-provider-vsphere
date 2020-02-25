@@ -155,26 +155,22 @@ func createFile(client *govmomi.Client, f *file) error {
 			return fmt.Errorf("error %s", err)
 		}
 
-		fm := object.NewFileManager(client.Client)
+		dfm := source_ds.NewFileManager(source_dc, false)
+		dfm.DatacenterTarget = dc
+
 		if f.createDirectories {
 			directoryPathIndex := strings.LastIndex(f.destinationFile, "/")
 			path := f.destinationFile[0:directoryPathIndex]
-			err = fm.MakeDirectory(context.TODO(), ds.Path(path), dc, true)
+			err = dfm.FileManager.MakeDirectory(context.TODO(), ds.Path(path), dc, true)
 			if err != nil {
 				return fmt.Errorf("error %s", err)
 			}
 		}
-		task, err := fm.CopyDatastoreFile(context.TODO(), source_ds.Path(f.sourceFile), source_dc, ds.Path(f.destinationFile), dc, true)
 
+		err = dfm.Copy(context.TODO(), f.sourceFile, f.destinationFile)
 		if err != nil {
 			return fmt.Errorf("error %s", err)
 		}
-
-		_, err = task.WaitForResult(context.TODO(), nil)
-		if err != nil {
-			return fmt.Errorf("error %s", err)
-		}
-
 	} else {
 		// Uploading file to vSphere
 		dsurl, err := ds.URL(context.TODO(), dc, f.destinationFile)
