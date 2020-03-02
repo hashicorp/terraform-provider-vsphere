@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func init() {
@@ -17,19 +17,19 @@ func dataSource() *schema.Resource {
 		Read: dataSourceRead,
 
 		Schema: map[string]*schema.Schema{
-			"inputs": &schema.Schema{
+			"inputs": {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
-			"outputs": &schema.Schema{
+			"outputs": {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
-			"random": &schema.Schema{
+			"random": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"has_computed_default": &schema.Schema{
+			"has_computed_default": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

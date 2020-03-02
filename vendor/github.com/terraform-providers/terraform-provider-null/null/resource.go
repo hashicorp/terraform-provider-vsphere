@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func init() {
@@ -19,7 +19,7 @@ func resource() *schema.Resource {
 		Delete: resourceDelete,
 
 		Schema: map[string]*schema.Schema{
-			"triggers": &schema.Schema{
+			"triggers": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
