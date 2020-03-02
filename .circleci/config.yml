@@ -1610,19 +1610,19 @@ workflows:
       - test_acc_ResourceVSphereTagCategory:
           requires:
             - test_acc_ResourceVSphereTag
-      - test_acc_ResourceVSphereVAppContainer:
+      - test_acc_ResourceVSphereVmfsDatastore:
           requires:
             - test_acc_ResourceVSphereTagCategory
       - test_acc_ResourceVSphereVAppEntity:
           requires:
-            - test_acc_ResourceVSphereVAppContainer
+            - test_acc_ResourceVSphereVmfsDatastore
       - test_acc_ResourceVSphereVirtualDisk:
           requires:
             - test_acc_ResourceVSphereVAppEntity
       - test_acc_ResourceVSphereVirtualMachineSnapshot:
           requires:
             - test_acc_ResourceVSphereVirtualDisk
-      - test_acc_ResourceVSphereVmfsDatastore:
+      - test_acc_ResourceVSphereVAppContainer:
           requires:
             - test_acc_ResourceVSphereVirtualMachineSnapshot
   nightly_5:
