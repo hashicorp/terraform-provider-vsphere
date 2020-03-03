@@ -5521,8 +5521,8 @@ data "vsphere_datastore" "cdrom_datastore" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
-data "template_file" "config_data" {
-	template = <<EOS
+locals {
+ config_data = <<EOS
 #!/bin/sh
 cat > /etc/network/interfaces << EOT
 auto lo
@@ -5568,7 +5568,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   vapp {
     properties = {
-      user-data = "${base64encode(data.template_file.config_data.rendered)}"
+      user-data = "${base64encode(local.config_data)}"
       hostname  = "custom-hostname"
     }
   }
@@ -5660,8 +5660,8 @@ data "vsphere_virtual_machine" "template" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
-data "template_file" "config_data" {
-	template = <<EOS
+locals {
+  config_data = <<EOS
 #!/bin/sh
 cat > /etc/network/interfaces << EOT
 auto lo
@@ -5702,7 +5702,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   vapp {
     properties = {
-      user-data = "${base64encode(data.template_file.config_data.rendered)}"
+      user-data = "${base64encode(local.config_data)}"
       hostname  = "custom-hostname"
     }
   }
@@ -5792,8 +5792,8 @@ data "vsphere_virtual_machine" "template" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
-data "template_file" "config_data" {
-	template = <<EOS
+locals {
+  config_data = <<EOS
 #!/bin/sh
 cat > /etc/network/interfaces << EOT
 auto lo
@@ -5838,7 +5838,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   vapp {
     properties = {
-      user-data = "${base64encode(data.template_file.config_data.rendered)}"
+      user-data = "${base64encode(local.config_data)}"
       hostname  = "custom-hostname"
     }
   }
