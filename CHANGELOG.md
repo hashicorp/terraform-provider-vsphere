@@ -1,4 +1,9 @@
-## 1.17.0 (Unreleased)
+## 1.16.2 (Unreleased)
+
+IMPROVEMENTS:
+* `resource/virtual_machine`: Optimize OS family query ([#959](https://github.com/terraform-providers/terraform-provider-vsphere/pull/959))
+* Migrate provider to Terraform plugin SDK ([#982](https://github.com/terraform-providers/terraform-provider-vsphere/pull/982))
+
 ## 1.16.1 (February 06, 2020)
 
 BUG FIXES:
