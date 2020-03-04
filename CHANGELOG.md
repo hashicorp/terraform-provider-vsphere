@@ -1,4 +1,4 @@
-## 1.16.2 (Unreleased)
+## 1.16.2 (March 04, 2020)
 
 IMPROVEMENTS:
 * `resource/virtual_machine`: Optimize OS family query ([#959](https://github.com/terraform-providers/terraform-provider-vsphere/pull/959))
