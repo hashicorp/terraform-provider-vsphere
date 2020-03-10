@@ -472,7 +472,7 @@ connections.
 * `guest_id` - (Optional) The guest ID for the operating system type. For a
   full list of possible values, see [here][vmware-docs-guest-ids]. Default: `other-64`.
 
-[vmware-docs-guest-ids]: https://pubs.vmware.com/vsphere-6-5/topic/com.vmware.wssdk.apiref.doc/vim.vm.GuestOsDescriptor.GuestOsIdentifier.html
+[vmware-docs-guest-ids]: https://code.vmware.com/apis/358/doc/vim.vm.GuestOsDescriptor.GuestOsIdentifier.html
 
 * `alternate_guest_name` - (Optional) The guest name for the operating system
   when `guest_id` is `other` or `other-64`.
