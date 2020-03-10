@@ -60,6 +60,28 @@ func IsManagedObjectNotFoundError(err error) bool {
 	return false
 }
 
+// IsInvalidStateError checks an error to see if it's of the
+// InvalidState type.
+func IsInvalidStateError(err error) bool {
+	if f, ok := vimSoapFault(err); ok {
+		if _, ok := f.(types.InvalidState); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// IsInvalidPowerStateError checks an error to see if it's of the
+// InvalidState type.
+func IsInvalidPowerStateError(err error) bool {
+	if f, ok := vimSoapFault(err); ok {
+		if _, ok := f.(types.InvalidPowerState); ok {
+			return true
+		}
+	}
+	return false
+}
+
 // isNotFoundError checks an error to see if it's of the NotFoundError type.
 //
 // Note this is different from the other "not found" faults and is an error

@@ -149,6 +149,13 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Description:  "The amount of time, in minutes, to wait for a vMotion operation to complete before failing.",
 			ValidateFunc: validation.IntAtLeast(10),
 		},
+		"poweron_timeout": {
+			Type:         schema.TypeInt,
+			Description:  "The amount of time, in seconds, that we will be trying to power on a VM",
+			Default:      300,
+			ValidateFunc: validation.IntAtLeast(300),
+			Optional:     true,
+		},
 		"force_power_off": {
 			Type:        schema.TypeBool,
 			Optional:    true,
@@ -673,7 +680,13 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		}
 		// Power back on the VM, and wait for network if necessary.
 		if vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOn {
-			if err := virtualmachine.PowerOn(vm); err != nil {
+			pTimeoutStr := fmt.Sprintf("%ds", d.Get("poweron_timeout").(int))
+			pTimeout, err := time.ParseDuration(pTimeoutStr)
+			if err != nil {
+				return fmt.Errorf("failed to parse poweron_timeout as a valid duration: %s", err)
+			}
+			// Start the virtual machine
+			if err := virtualmachine.PowerOn(vm, pTimeout); err != nil {
 				return fmt.Errorf("error powering on virtual machine: %s", err)
 			}
 			err = virtualmachine.WaitForGuestIP(
@@ -1104,8 +1117,13 @@ func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interf
 	log.Printf("[DEBUG] VM %q - UUID is %q", vm.InventoryPath, vprops.Config.Uuid)
 	d.SetId(vprops.Config.Uuid)
 
+	pTimeoutStr := fmt.Sprintf("%ds", d.Get("poweron_timeout").(int))
+	pTimeout, err := time.ParseDuration(pTimeoutStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse poweron_timeout as a valid duration: %s", err)
+	}
 	// Start the virtual machine
-	if err := virtualmachine.PowerOn(vm); err != nil {
+	if err := virtualmachine.PowerOn(vm, pTimeout); err != nil {
 		return nil, fmt.Errorf("error powering on virtual machine: %s", err)
 	}
 	return vm, nil
@@ -1329,7 +1347,12 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 		}
 	}
 	// Finally time to power on the virtual machine!
-	if err := virtualmachine.PowerOn(vm); err != nil {
+	pTimeoutStr := fmt.Sprintf("%ds", d.Get("poweron_timeout").(int))
+	pTimeout, err := time.ParseDuration(pTimeoutStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse poweron_timeout as a valid duration: %s", err)
+	}
+	if err := virtualmachine.PowerOn(vm, pTimeout); err != nil {
 		return nil, fmt.Errorf("error powering on virtual machine: %s", err)
 	}
 	// If we customized, wait on customization.
