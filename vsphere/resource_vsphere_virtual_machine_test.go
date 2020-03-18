@@ -78,6 +78,26 @@ func TestAccResourceVSphereVirtualMachine_basic(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereVirtualMachineContentLibrary_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigContentLibrary_basic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					resource.TestMatchResourceAttr("vsphere_virtual_machine.vm", "moid", regexp.MustCompile("^vm-")),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVirtualMachine_spbm(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -3141,6 +3161,9 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	}
 	if os.Getenv("VSPHERE_STORAGE_POLICY") == "" {
 		t.Skip("set VSPHERE_STORAGE_POLICY to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("VSPHERE_CONTENT_LIBRARY_FILES") == "" {
+		t.Skip("set VSPHERE_CONTENT_LIBRARY_FILES to run vsphere_virtual_machine acceptance tests")
 	}
 }
 func testAccResourceVSphereVirtualMachineMultiIPV4PreCheck(t *testing.T) {
@@ -14192,4 +14215,102 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_DATASTORE"),
 		os.Getenv("VSPHERE_CLUSTER"),
 		os.Getenv("VSPHERE_NETWORK_LABEL"))
+}
+
+func testAccResourceVSphereVirtualMachineConfigContentLibrary_basic() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "datastore" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "resource_pool" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "network_label" {
+  type    = "string"
+  default = "%s"
+}
+
+variable "file_list" {
+  type    = list(string)
+  default = %s 
+}
+
+data "vsphere_datacenter" "dc" {
+  name = var.datacenter
+}
+
+data "vsphere_datastore" "ds" {
+  datacenter_id = data.vsphere_datacenter.dc.id
+  name = var.datastore
+}
+
+resource "vsphere_content_library" "library" {
+  name            = "ContentLibrary_test"
+  storage_backing = [ data.vsphere_datastore.ds.id ]
+  description     = "Library Description"
+}
+
+resource "vsphere_content_library_item" "item" {
+  name = "ubuntu"
+  description = "Ubuntu Description"
+  library_id = vsphere_content_library.library.id
+  file_url = var.file_list
+}
+
+data "vsphere_resource_pool" "pool" {
+  name          = var.resource_pool
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+data "vsphere_network" "network" {
+  name          = var.network_label
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "terraform-test"
+  resource_pool_id = data.vsphere_resource_pool.pool.id
+  datastore_id     = data.vsphere_datastore.ds.id
+
+  num_cpus = 1
+  memory   = 2048
+  guest_id = "other3xLinux64Guest"
+
+  wait_for_guest_net_timeout = -1
+
+  network_interface {
+    network_id = data.vsphere_network.network.id
+  }
+
+  clone {
+    template_uuid = vsphere_content_library_item.item.id
+  }
+
+  cdrom {
+    client_device = true
+  }
+
+  disk {
+    label            = "disk0"
+    thin_provisioned = true
+    size             = 20
+  }
+}
+
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("VSPHERE_RESOURCE_POOL"),
+		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("VSPHERE_CONTENT_LIBRARY_FILES"),
+	)
 }
