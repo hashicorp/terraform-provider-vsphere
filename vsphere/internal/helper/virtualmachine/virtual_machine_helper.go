@@ -518,8 +518,6 @@ powerLoop:
 					log.Printf("[DEBUG] Failed to submit PowerOn task for vm %q. Error: %s", vmPath, err)
 					return fmt.Errorf("failed to submit poweron task for vm %q: %s", vmPath, err)
 				}
-				//tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
-				//defer tcancel()
 				err = task.Wait(ctx)
 				if err != nil {
 					if err.Error() == "The operation is not allowed in the current state." {

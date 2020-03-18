@@ -1347,11 +1347,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 		}
 	}
 	// Finally time to power on the virtual machine!
-	pTimeoutStr := fmt.Sprintf("%ds", d.Get("poweron_timeout").(int))
-	pTimeout, err := time.ParseDuration(pTimeoutStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse poweron_timeout as a valid duration: %s", err)
-	}
+	pTimeout := time.Duration(d.Get("poweron_timeout").(int)) * time.Second
 	if err := virtualmachine.PowerOn(vm, pTimeout); err != nil {
 		return nil, fmt.Errorf("error powering on virtual machine: %s", err)
 	}
