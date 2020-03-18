@@ -506,7 +506,7 @@ func DeployDest(name string, annotation string, rp *object.ResourcePool, host *o
 }
 
 func Deploy(c *rest.Client, item *library.Item, deploy *vcenter.Deploy, timeout int) (*types.ManagedObjectReference, error) {
-	log.Printf("[DEBUG] virtualmachine.Deply: Deploying VM from Content Library item %s", item.Name)
+	log.Printf("[DEBUG] virtualmachine.Deploy: Deploying VM from Content Library item %s", item.Name)
 	m := vcenter.NewManager(c)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*time.Duration(timeout))
 	defer cancel()
@@ -518,7 +518,7 @@ func Deploy(c *rest.Client, item *library.Item, deploy *vcenter.Deploy, timeout 
 		}
 		return nil, err
 	}
-	log.Printf("[DEBUG] virtualmachine.Deply: Successfully deployed VM from Content Library item %s", item.Name)
+	log.Printf("[DEBUG] virtualmachine.Deploy: Successfully deployed VM from Content Library item %s", item.Name)
 	return mo, nil
 }
 

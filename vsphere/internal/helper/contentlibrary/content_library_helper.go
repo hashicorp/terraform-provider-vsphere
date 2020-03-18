@@ -15,9 +15,9 @@ import (
 	"time"
 )
 
-// FromID accepts a Content Library name and returns a Library object.
+// FromName accepts a Content Library name and returns a Library object.
 func FromName(c *rest.Client, name string) (*library.Library, error) {
-	log.Printf("[DEBUG] contentlibrary.FromName: Retriving content library %s by name", name)
+	log.Printf("[DEBUG] contentlibrary.FromName: Retrieving content library %s by name", name)
 	clm := library.NewManager(c)
 	ctx := context.TODO()
 	lib, err := clm.GetLibraryByName(ctx, name)
@@ -33,7 +33,7 @@ func FromName(c *rest.Client, name string) (*library.Library, error) {
 
 // FromID accepts a Content Library ID and returns a Library object.
 func FromID(c *rest.Client, id string) (*library.Library, error) {
-	log.Printf("[DEBUG] contentlibrary.FromID: Retriving content library %s by ID", id)
+	log.Printf("[DEBUG] contentlibrary.FromID: Retrieving content library %s by ID", id)
 	clm := library.NewManager(c)
 	ctx := context.TODO()
 	lib, err := clm.GetLibraryByID(ctx, id)

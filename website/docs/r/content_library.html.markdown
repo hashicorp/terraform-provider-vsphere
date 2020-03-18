@@ -28,7 +28,7 @@ data "vsphere_datacenter" "dc" {
 
 data "vsphere_datastore" "datastore" {
   name          = "datastore1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = data.vsphere_datacenter.dc.id
 }
 
 resource "vsphere_content_library" "library" {
