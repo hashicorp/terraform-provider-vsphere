@@ -135,6 +135,7 @@ resource "vsphere_distributed_port_group" "pg" {
 data "vsphere_network" "net" {
   name          = "${vsphere_distributed_port_group.pg.name}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
