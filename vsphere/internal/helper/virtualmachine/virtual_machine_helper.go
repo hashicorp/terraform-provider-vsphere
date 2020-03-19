@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/vmware/govmomi/vapi/library"
+	"github.com/vmware/govmomi/vapi/rest"
+	"github.com/vmware/govmomi/vapi/vcenter"
 	"log"
 	"net"
 	"strings"
@@ -460,6 +463,61 @@ func Clone(c *govmomi.Client, src *object.VirtualMachine, f *object.Folder, name
 	}
 	log.Printf("[DEBUG] Virtual machine %q: clone complete (MOID: %q)", fmt.Sprintf("%s/%s", f.InventoryPath, name), result.Result.(types.ManagedObjectReference).Value)
 	return FromMOID(c, result.Result.(types.ManagedObjectReference).Value)
+}
+
+func DeployDest(name string, annotation string, rp *object.ResourcePool, host *object.HostSystem, folder *object.Folder, ds viapi.ManagedObject, spId string, nm []vcenter.NetworkMapping) *vcenter.Deploy {
+	rpId := ""
+	hostId := ""
+	folderId := ""
+
+	if rp != nil {
+		rpId = rp.Reference().Value
+	}
+	if host != nil {
+		hostId = host.Reference().Value
+	}
+	if folder != nil {
+		folderId = folder.Reference().Value
+	}
+
+	d := vcenter.Deploy{
+		DeploymentSpec: vcenter.DeploymentSpec{
+			Name:                name,
+			Annotation:          annotation,
+			AcceptAllEULA:       true,
+			NetworkMappings:     nm,
+			StorageMappings:     nil,
+			StorageProvisioning: "",
+			StorageProfileID:    spId,
+			Locale:              "",
+			Flags:               nil,
+			AdditionalParams:    nil,
+			DefaultDatastoreID:  ds.Reference().Value,
+		},
+		Target: vcenter.Target{
+			ResourcePoolID: rpId,
+			HostID:         hostId,
+			FolderID:       folderId,
+		},
+	}
+	return &d
+}
+
+func Deploy(c *rest.Client, item *library.Item, deploy *vcenter.Deploy, timeout int) (*types.ManagedObjectReference, error) {
+	log.Printf("[DEBUG] virtualmachine.Deploy: Deploying VM from Content Library item %s", item.Name)
+	m := vcenter.NewManager(c)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*time.Duration(timeout))
+	defer cancel()
+
+	mo, err := m.DeployLibraryItem(ctx, item.ID, *deploy)
+	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			err = errors.New("timeout waiting for deploy to complete")
+		}
+		return nil, err
+	}
+	log.Printf("[DEBUG] virtualmachine.Deploy: Successfully deployed VM from Content Library item %s", item.Name)
+	return mo, nil
 }
 
 // Customize wraps the customization of a virtual machine and the subsequent

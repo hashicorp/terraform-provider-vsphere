@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
 	"log"
 	"net"
 	"strings"
@@ -861,7 +862,11 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 			// flagging the imported flag to off.
 			d.SetNew("imported", false)
 		case d.Id() == "":
-			if err := vmworkflow.ValidateVirtualMachineClone(d, client); err != nil {
+			if contentlibrary.IsContentLibraryItem(meta.(*VSphereClient).restClient, d.Get("clone.0.template_uuid").(string)) {
+				if _, ok := d.GetOk("datastore_cluster_id"); ok {
+					return fmt.Errorf("Cannot use datastore_cluster_id with Content Library source")
+				}
+			} else if err := vmworkflow.ValidateVirtualMachineClone(d, client); err != nil {
 				return err
 			}
 			fallthrough
@@ -1209,25 +1214,67 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 		return nil, err
 	}
 
-	// Expand the clone spec. We get the source VM here too.
-	cloneSpec, srcVM, err := vmworkflow.ExpandVirtualMachineCloneSpec(d, client)
-	if err != nil {
-		return nil, err
-	}
-
 	// Start the clone
 	name := d.Get("name").(string)
 	timeout := d.Get("clone.0.timeout").(int)
 	var vm *object.VirtualMachine
-	if _, ok := d.GetOk("datastore_cluster_id"); ok {
-		vm, err = resourceVSphereVirtualMachineCreateCloneWithSDRS(d, meta, srcVM, fo, name, cloneSpec, timeout)
-	} else {
-		vm, err = virtualmachine.Clone(client, srcVM, fo, name, cloneSpec, timeout)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("error cloning virtual machine: %s", err)
-	}
+	if contentlibrary.IsContentLibraryItem(meta.(*VSphereClient).restClient, d.Get("clone.0.template_uuid").(string)) {
+		// Clone source is an item from a Content Library. Prepare required resources.
 
+		// First, if a host is set, check that it is valid.
+		host := &object.HostSystem{}
+		if hid := d.Get("host_system_id").(string); hid != "" {
+			host, err = hostsystem.FromID(client, hid)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// Get OVF mappings for NICs
+		nm := contentlibrary.MapNetworkDevices(d)
+
+		// Validate the specified datastore
+		dsID := d.Get("datastore_id")
+		ds, err := datastore.FromID(client, dsID.(string))
+		if err != nil {
+			return nil, err
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		spId := d.Get("storage_policy_id").(string)
+
+		dd := virtualmachine.DeployDest(name, d.Get("annotation").(string), pool, host, fo, ds, spId, nm)
+
+		rclient := meta.(*VSphereClient).restClient
+		item, err := contentlibrary.ItemFromID(rclient, d.Get("clone.0.template_uuid").(string))
+		if err != nil {
+			return nil, err
+		}
+		vmoid, err := virtualmachine.Deploy(rclient, item, dd, 30)
+		if err != nil {
+			return nil, err
+		}
+		vm, err = virtualmachine.FromMOID(client, vmoid.Value)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// Expand the clone spec. We get the source VM here too.
+		cloneSpec, srcVM, err := vmworkflow.ExpandVirtualMachineCloneSpec(d, client)
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := d.GetOk("datastore_cluster_id"); ok {
+			vm, err = resourceVSphereVirtualMachineCreateCloneWithSDRS(d, meta, srcVM, fo, name, cloneSpec, timeout)
+		} else {
+			vm, err = virtualmachine.Clone(client, srcVM, fo, name, cloneSpec, timeout)
+		}
+		if err != nil {
+			return nil, fmt.Errorf("error cloning virtual machine: %s", err)
+		}
+	}
 	// The VM has been created. We still need to do post-clone configuration, and
 	// while the resource should have an ID until this is done, we need it to go
 	// through post-clone rollback workflows. All rollback functions will remove

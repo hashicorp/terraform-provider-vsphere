@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
+	"github.com/vmware/govmomi/vapi/library"
+	"github.com/vmware/govmomi/vapi/rest"
 	"os"
 	"path"
 	"reflect"
@@ -45,6 +48,9 @@ type testCheckVariables struct {
 	// A client for various operations.
 	client *govmomi.Client
 
+	// REST client
+	restClient *rest.Client
+
 	// The client for tagging operations.
 	tagsManager *tags.Manager
 
@@ -76,6 +82,7 @@ func testClientVariablesForResource(s *terraform.State, addr string) (testCheckV
 	}
 	return testCheckVariables{
 		client:             testAccProvider.Meta().(*VSphereClient).vimClient,
+		restClient:         testAccProvider.Meta().(*VSphereClient).restClient,
 		tagsManager:        tm,
 		resourceID:         rs.Primary.ID,
 		resourceAttributes: rs.Primary.Attributes,
@@ -303,6 +310,22 @@ func testGetVAppContainerProperties(s *terraform.State, resourceName string) (*m
 		return nil, err
 	}
 	return vappcontainer.Properties(vc)
+}
+
+func testGetContentLibrary(s *terraform.State, resourceName string) (*library.Library, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_content_library.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+	return contentlibrary.FromID(tVars.restClient, tVars.resourceID)
+}
+
+func testGetContentLibraryItem(s *terraform.State, resourceName string) (*library.Item, error) {
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_content_library_item.%s", resourceName))
+	if err != nil {
+		return nil, err
+	}
+	return contentlibrary.ItemFromID(tVars.restClient, tVars.resourceID)
 }
 
 // testPowerOffVM does an immediate power-off of the supplied virtual machine
