@@ -1,4 +1,4 @@
-## 1.17.0 (Unreleased)
+## 1.17.0 (March 23, 2020)
 
 FEATURES:
 * **New Data Source:** `content_library` ([#985](https://github.com/terraform-providers/terraform-provider-vsphere/pull/985))
