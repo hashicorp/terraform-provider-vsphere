@@ -1,4 +1,15 @@
 ## 1.17.0 (Unreleased)
+
+FEATURES:
+* **New Data Source:** `content_library` ([#985](https://github.com/terraform-providers/terraform-provider-vsphere/pull/985))
+* **New Data Source:** `content_library_item` ([#985](https://github.com/terraform-providers/terraform-provider-vsphere/pull/985))
+* **New Resource:** `content_library` ([#985](https://github.com/terraform-providers/terraform-provider-vsphere/pull/985))
+* **New Resource:** `content_library_item` ([#985](https://github.com/terraform-providers/terraform-provider-vsphere/pull/985))
+
+IMPROVEMENTS:
+* `resource/virtual_machine`: Add `poweron_timeout` option for the amount of 
+  time to give a VM to power on. ([#990](https://github.com/terraform-providers/terraform-provider-vsphere/pull/990))
+
 ## 1.16.2 (March 04, 2020)
 
 IMPROVEMENTS:
