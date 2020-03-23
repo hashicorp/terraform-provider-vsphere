@@ -16,7 +16,8 @@ func TestAccResourceVSphereContentLibrary_basic(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereContentLibraryPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereContentLibraryCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceVSphereContentLibraryConfig(),
@@ -106,4 +107,23 @@ resource "vsphere_content_library" "library" {
 		os.Getenv("VSPHERE_DATACENTER"),
 		os.Getenv("VSPHERE_DATASTORE"),
 	)
+}
+
+func testAccResourceVSphereContentLibraryCheckExists(expected bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		_, err := testGetContentLibrary(s, "library")
+		if err != nil {
+			missingState, _ := regexp.MatchString("not found in state", err.Error())
+			missingVSphere, _ := regexp.MatchString("404 Not Found", err.Error())
+			if missingState && !expected || missingVSphere && !expected {
+				// Expected missing
+				return nil
+			}
+			return err
+		}
+		if !expected {
+			return fmt.Errorf("expected Content Library to be missing")
+		}
+		return nil
+	}
 }
