@@ -362,7 +362,7 @@ func (c *Config) SaveRestClient(client *rest.Client) error {
 		}
 	}()
 
-	cookiePath, _ := url.Parse("/rest/com/vmware")
+	cookiePath, _ := url.Parse("/rest")
 	cookiePath.Scheme = client.URL().Scheme
 	cookiePath.Host = client.URL().Host
 	for _, cookie := range client.Jar.Cookies(cookiePath) {
@@ -540,7 +540,7 @@ func readRestSession(path string) (string, error) {
 func (c *Config) LoadAndVerifyRestSession(client *govmomi.Client) (*rest.Client, bool, error) {
 	// Connect to the CIS REST endpoint for tagging, or load a previous session
 	restClient := rest.NewClient(client.Client)
-	cookiePath, _ := url.Parse("/rest/com/vmware")
+	cookiePath, _ := url.Parse("/rest")
 	cookiePath.Scheme = client.URL().Scheme
 	cookiePath.Host = client.URL().Host
 	cookies := client.Jar.Cookies(cookiePath)
