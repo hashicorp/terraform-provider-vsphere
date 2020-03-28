@@ -460,6 +460,12 @@ external disks on virtual machines that are assigned to datastore clusters.
   specified template. Optional customization options can be submitted as well.
   See [creating a virtual machine from a
   template](#creating-a-virtual-machine-from-a-template) for more details.
+ * `hardware_version` - (Optional) The hardware version number. Valid range
+   is from 4 to 15. The hardware version cannot be downgraded. See [virtual
+   machine hardware compatibility][virtual-machine-hardware-compatibility] for
+   more details.
+   
+[virtual-machine-hardware-compatibility]: https://kb.vmware.com/s/article/2007240
 
 ~> **NOTE:** Cloning requires vCenter and is not supported on direct ESXi
 connections.
