@@ -1,0 +1,15 @@
+name: Automate labeled issues
+on:
+  issues:
+    types: [labeled]
+jobs:
+  Move_Labeled_Issue_On_Project_Board:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: aareet/move-labeled-or-milestoned-issue@v2.0
+      with:
+        action-token: "${{ secrets.vsphere_github_actions }}"
+        project-url: "https://github.com/orgs/github/projects/8"
+        column-name: "Blocked"
+        label-name: "waiting-response"
+        columns-to-ignore: ""
