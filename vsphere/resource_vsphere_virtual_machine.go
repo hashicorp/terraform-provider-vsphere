@@ -1261,6 +1261,9 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 		if err != nil {
 			return nil, err
 		}
+		// There is not currently a way to pull config values from Content Library items. If we do not send the values,
+		// the defaults from the template will be used.
+		d.Set("guest_id", "")
 	} else {
 		// Expand the clone spec. We get the source VM here too.
 		cloneSpec, srcVM, err := vmworkflow.ExpandVirtualMachineCloneSpec(d, client)
