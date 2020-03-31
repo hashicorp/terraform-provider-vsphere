@@ -94,6 +94,28 @@ func TestAccDataSourceVSphereNetwork_absolutePathEndingInSameName(t *testing.T) 
 	})
 }
 
+func TestAccDataSourceVSphereNetworkConfigSameDVSPortgroupName(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccDataSourceVSphereNetworkPreCheck(t)
+			testAccSkipIfEsxi(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereNetworkConfigSameDVSPortgroupName(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrPair(
+						"data.vsphere_network.net", "id",
+						"vsphere_distributed_port_group.pg1", "id",
+					),
+				),
+			},
+		},
+	})
+}
+
 func testAccDataSourceVSphereNetworkPreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_HOST_NIC0") == "" {
 		t.Skip("set VSPHERE_HOST_NIC0 to run vsphere_network acceptance tests")
@@ -135,6 +157,7 @@ resource "vsphere_distributed_port_group" "pg" {
 data "vsphere_network" "net" {
   name          = "${vsphere_distributed_port_group.pg.name}"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
 }
 `,
 		os.Getenv("VSPHERE_DATACENTER"),
@@ -286,5 +309,53 @@ data "vsphere_network" "net" {
 		os.Getenv("VSPHERE_ESXI_HOST3"),
 		os.Getenv("VSPHERE_HOST_NIC0"),
 		os.Getenv("VSPHERE_HOST_NIC1"),
+	)
+}
+
+func testAccDataSourceVSphereNetworkConfigSameDVSPortgroupName() string {
+	return fmt.Sprintf(`
+variable "datacenter" {
+  default = "%s"
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "${var.datacenter}"
+}
+
+resource "vsphere_folder" "netfolder" {
+  path                            = "netfolder"
+  type                            = "network"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_distributed_virtual_switch" "dvs1" {
+  name          = "dvs1"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+resource "vsphere_distributed_virtual_switch" "dvs2" {
+  name          = "dvs2"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  folder 		= "${vsphere_folder.netfolder.path}"
+}
+
+resource "vsphere_distributed_port_group" "pg1" {
+  name                            = "terraform-test-pg"
+  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs1.id}"
+}
+
+resource "vsphere_distributed_port_group" "pg2" {
+  name                            = "${vsphere_distributed_port_group.pg1.name}"
+  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs2.id}"
+}
+
+data "vsphere_network" "net" {
+  name          = "${vsphere_distributed_port_group.pg1.name}"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs1.id}"
+}
+
+`,
+		os.Getenv("VSPHERE_DATACENTER"),
 	)
 }
