@@ -37,6 +37,10 @@ The following arguments are supported:
   be omitted if the search path used in `name` is an absolute path. For default
   datacenters, use the id attribute from an empty `vsphere_datacenter` data
   source.
+* `distributed_virtual_switch_uuid` - (Optional) For distributed port group type 
+   network objects, the ID of the distributed virtual switch the given port group 
+   belongs to. It is useful to differentiate port groups with same name using the 
+   Distributed virtual switch ID. 
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
