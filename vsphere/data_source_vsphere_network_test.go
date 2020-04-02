@@ -94,7 +94,7 @@ func TestAccDataSourceVSphereNetwork_absolutePathEndingInSameName(t *testing.T) 
 	})
 }
 
-func TestAccDataSourceVSphereNetworkConfigSameDVSPortgroupName(t *testing.T) {
+func TestAccDataSourceVSphereNetwork_sameDVSPortgroupName(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
