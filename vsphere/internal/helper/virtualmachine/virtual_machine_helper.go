@@ -9,6 +9,7 @@ import (
 	"github.com/vmware/govmomi/vapi/vcenter"
 	"log"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 
@@ -864,4 +865,61 @@ func (r MOIDForUUIDResults) UUIDs() []string {
 		uuids = append(uuids, result.UUID)
 	}
 	return uuids
+}
+
+// GetHardwareVersionID gets the hardware version string from integer
+func GetHardwareVersionID(vint int) string {
+	// hardware_version isn't set, so return an empty string.
+	if vint == 0 {
+		return ""
+	}
+	return fmt.Sprintf("vmx-%d", vint)
+}
+
+// GetHardwareVersionNumber gets the hardware version number from string.
+func GetHardwareVersionNumber(vstring string) int {
+	vstring = strings.TrimPrefix(vstring, "vmx-")
+	v, err := strconv.Atoi(vstring)
+	if err != nil {
+		log.Printf("[DEBUG] Unable to parse hardware version: %s", vstring)
+	}
+	return v
+}
+
+// SetHardwareVersion sets the virtual machine's hardware version. The virtual
+// machine must be powered off, and the version can only be increased.
+func SetHardwareVersion(vm *object.VirtualMachine, target int) error {
+	// First get current and target versions and validate
+	tv := GetHardwareVersionID(target)
+	vprops, err := Properties(vm)
+	if err != nil {
+		return err
+	}
+	cv := vprops.Config.Version
+	// Skip the rest if there is no version change.
+	if cv == tv {
+		return nil
+	}
+	if err := ValidateHardwareVersion(GetHardwareVersionNumber(cv), target); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+
+	task, err := vm.UpgradeVM(ctx, tv)
+	_, err = task.WaitForResult(ctx, nil)
+	return err
+}
+
+// ValidateHardwareVersion checks that the target hardware version is equal to
+// or greater than the current hardware version.
+func ValidateHardwareVersion(current, target int) error {
+	switch {
+	case target == 0:
+		return nil
+	case target < current:
+		return fmt.Errorf("Cannot downgrade virtual machine hardware version. current: %d, target: %d", current, target)
+	}
+	return nil
 }

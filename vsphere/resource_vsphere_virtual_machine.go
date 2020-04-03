@@ -609,6 +609,11 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		return err
 	}
 	// Only carry out the reconfigure if we actually have a change to process.
+	cv := virtualmachine.GetHardwareVersionNumber(vprops.Config.Version)
+	tv := d.Get("hardware_version").(int)
+	if tv > cv {
+		d.Set("reboot_required", true)
+	}
 	if changed || len(spec.DeviceChange) > 0 {
 		//Check to see if we need to shutdown the VM for this process.
 		if d.Get("reboot_required").(bool) && vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOff {
@@ -668,6 +673,12 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 			err = virtualmachine.Reconfigure(vm, spec)
 		}
 
+		// Upgrade the VM's hardware version if needed.
+		err = virtualmachine.SetHardwareVersion(vm, d.Get("hardware_version").(int))
+		if err != nil {
+			return err
+		}
+
 		// Regardless of the result we no longer need to watch for pending questions.
 		gChan <- true
 
@@ -711,6 +722,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 			}
 		}
 	}
+
 	// Now safe to turn off partial mode.
 	d.Partial(false)
 	d.Set("reboot_required", false)
@@ -886,6 +898,11 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 			}
 		}
 	}
+
+	// Validate hardware version changes.
+	cv, tv := d.GetChange("hardware_version")
+	virtualmachine.ValidateHardwareVersion(cv.(int), tv.(int))
+
 	// Validate that the config has the necessary components for vApp support.
 	// Note that for clones the data is prepopulated in
 	// ValidateVirtualMachineClone.
@@ -1377,6 +1394,12 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 			vm,
 			fmt.Errorf("error reconfiguring virtual machine: %s", err),
 		)
+	}
+
+	// Upgrade the VM's hardware version if needed.
+	err = virtualmachine.SetHardwareVersion(vm, d.Get("hardware_version").(int))
+	if err != nil {
+		return nil, err
 	}
 
 	var cw *virtualMachineCustomizationWaiter
