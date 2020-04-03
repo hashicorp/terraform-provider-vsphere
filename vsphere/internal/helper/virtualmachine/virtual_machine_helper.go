@@ -713,22 +713,6 @@ func Reconfigure(vm *object.VirtualMachine, spec types.VirtualMachineConfigSpec)
 	return task.Wait(tctx)
 }
 
-// UpgradeHardwareVersion attempts to upgrade the hardware version on the
-// specified virtual machine. The virtual machine must be powered off.
-func UpgradeHardwareVersion(vm *object.VirtualMachine, version int) error {
-	log.Printf("[DEBUG] Upgrading virtual machine %q", vm.InventoryPath)
-	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
-	defer cancel()
-	vm.UpgradeVM(ctx, GetHardwareVersionID(version))
-	task, err := vm.UpgradeVM(ctx, GetHardwareVersionID(version))
-	if err != nil {
-		return err
-	}
-	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
-	defer tcancel()
-	return task.Wait(tctx)
-}
-
 // Relocate wraps the Relocate task and the subsequent waiting for the task to
 // complete.
 func Relocate(vm *object.VirtualMachine, spec types.VirtualMachineRelocateSpec, timeout int) error {
@@ -902,7 +886,8 @@ func GetHardwareVersionNumber(vstring string) int {
 	return v
 }
 
-// SetHardwareVersion sets the virtual machine's hardware version.
+// SetHardwareVersion sets the virtual machine's hardware version. The virtual
+// machine must be powered off, and the version can only be increased.
 func SetHardwareVersion(vm *object.VirtualMachine, target int) error {
 	// First get current and target versions and validate
 	tv := GetHardwareVersionID(target)
