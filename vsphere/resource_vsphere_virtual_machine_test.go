@@ -14552,7 +14552,6 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 1
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
 
   wait_for_guest_net_timeout = -1
 
