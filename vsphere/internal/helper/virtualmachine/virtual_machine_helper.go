@@ -897,7 +897,7 @@ func SetHardwareVersion(vm *object.VirtualMachine, target int) error {
 	}
 	cv := vprops.Config.Version
 	// Skip the rest if there is no version change.
-	if cv == tv {
+	if cv == tv || tv == "" {
 		return nil
 	}
 	if err := ValidateHardwareVersion(GetHardwareVersionNumber(cv), target); err != nil {
