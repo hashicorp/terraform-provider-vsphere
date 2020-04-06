@@ -21,3 +21,12 @@ jobs:
         project-url: "https://github.com/orgs/terraform-providers/projects/12"
         column-name: "Requires Investigation"
         label-name: "requires investigation"
+  Move_Crash_Issue_On_Working_Board:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: aareet/move-labeled-or-milestoned-issue@v2.0
+      with:
+        action-token: "${{ secrets.vsphere_github_actions }}"
+        project-url: "https://github.com/orgs/terraform-providers/projects/12"
+        column-name: "Planned for this week"
+        label-name: "crash"
