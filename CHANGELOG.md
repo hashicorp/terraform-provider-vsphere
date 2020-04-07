@@ -3,11 +3,12 @@
 IMPROVEMENTS:
 * `resource/virtual_machine`: Add support for hardware version tracking and
   upgrading. ([#1020](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1020))
-* `data/virtual_machine`: Add new property 'network_interfaces' ([#843](https://github.com/terraform-providers/terraform-provider-vsphere/pull/843))
+* `data/vsphere_network`: Handle cases of network port groups with same name
+  using `distributed_virtual_switch_uuid`. ([#843](https://github.com/terraform-providers/terraform-provider-vsphere/pull/843))
 
 BUG FIXES:
-* `resource/virtual_machine`: Fix working with orphaned devices ([#1005](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1005))
-* `resource/virtual_machine`: Ignore `guest_id` with content library ([#1014](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1014))
+* `resource/virtual_machine`: Fix working with orphaned devices. ([#1005](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1005))
+* `resource/virtual_machine`: Ignore `guest_id` with content library. ([#1014](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1014))
 
 ## 1.17.0 (March 23, 2020)
 
@@ -24,8 +25,8 @@ IMPROVEMENTS:
 ## 1.16.2 (March 04, 2020)
 
 IMPROVEMENTS:
-* `resource/virtual_machine`: Optimize OS family query ([#959](https://github.com/terraform-providers/terraform-provider-vsphere/pull/959))
-* Migrate provider to Terraform plugin SDK ([#982](https://github.com/terraform-providers/terraform-provider-vsphere/pull/982))
+* `resource/virtual_machine`: Optimize OS family query. ([#959](https://github.com/terraform-providers/terraform-provider-vsphere/pull/959))
+* Migrate provider to Terraform plugin SDK. ([#982](https://github.com/terraform-providers/terraform-provider-vsphere/pull/982))
 
 ## 1.16.1 (February 06, 2020)
 
