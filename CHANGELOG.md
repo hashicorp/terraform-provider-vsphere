@@ -4,7 +4,7 @@ IMPROVEMENTS:
 * `resource/virtual_machine`: Add support for hardware version tracking and
   upgrading. ([#1020](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1020))
 * `data/vsphere_network`: Handle cases of network port groups with same name
-  using `distributed_virtual_switch_uuid`. ([#843](https://github.com/terraform-providers/terraform-provider-vsphere/pull/843))
+  using `distributed_virtual_switch_uuid`. ([#1001](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1001))
 
 BUG FIXES:
 * `resource/virtual_machine`: Fix working with orphaned devices. ([#1005](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1005))
