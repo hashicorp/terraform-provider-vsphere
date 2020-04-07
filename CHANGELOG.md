@@ -1,4 +1,14 @@
-## 1.18.0 (Unreleased)
+## 1.17.1 (Unreleased)
+
+IMPROVEMENTS:
+* `resource/virtual_machine`: Add support for hardware version tracking and
+  upgrading. ([#1020](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1020))
+* `data/virtual_machine`: Add new property 'network_interfaces' ([#843](https://github.com/terraform-providers/terraform-provider-vsphere/pull/843))
+
+BUG FIXES:
+* `resource/virtual_machine`: Fix working with orphaned devices ([#1005](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1005))
+* `resource/virtual_machine`: Ignore `guest_id` with content library ([#1014](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1014))
+
 ## 1.17.0 (March 23, 2020)
 
 FEATURES:
