@@ -1,4 +1,4 @@
-## 1.17.1 (Unreleased)
+## 1.17.1 (April 07, 2020)
 
 IMPROVEMENTS:
 * `resource/virtual_machine`: Add support for hardware version tracking and
