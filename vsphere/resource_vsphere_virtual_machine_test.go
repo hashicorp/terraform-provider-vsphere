@@ -558,8 +558,11 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitNumbers(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test.vmdk", 0, 0),
-					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_1.vmdk", 1, 0),
-					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_2.vmdk", 2, 1),
+					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_1.vmdk", 0, 1),
+					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_2.vmdk", 1, 0),
+					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_3.vmdk", 1, 1),
+					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_4.vmdk", 2, 0),
+					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_5.vmdk", 2, 1),
 				),
 			},
 		},
@@ -5369,6 +5372,8 @@ resource "vsphere_virtual_machine" "vm" {
   memory   = 2048
   guest_id = "other3xLinux64Guest"
 
+  wait_for_guest_net_timeout = -1
+
   network_interface {
     network_id            = "${data.vsphere_network.network.id}"
     bandwidth_share_level = "normal"
@@ -5409,13 +5414,13 @@ resource "vsphere_virtual_machine" "vm" {
   
   disk {
     label       = "disk4"
-    unit_number = 31
+    unit_number = 30
     size        = 5
   }
   
   disk {
     label       = "disk5"
-    unit_number = 32
+    unit_number = 31
     size        = 5
   }
 }
