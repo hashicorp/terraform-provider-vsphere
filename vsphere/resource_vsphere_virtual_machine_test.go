@@ -5391,13 +5391,31 @@ resource "vsphere_virtual_machine" "vm" {
 
   disk {
     label       = "disk1"
-    unit_number = 15
+    unit_number = 1
     size        = 10
   }
 
   disk {
     label       = "disk2"
+    unit_number = 15
+    size        = 10
+  }
+
+  disk {
+    label       = "disk3"
+    unit_number = 16
+    size        = 5
+  }
+  
+  disk {
+    label       = "disk4"
     unit_number = 31
+    size        = 5
+  }
+  
+  disk {
+    label       = "disk5"
+    unit_number = 32
     size        = 5
   }
 }
