@@ -1905,7 +1905,7 @@ func (l virtualDeviceListSorter) Less(i, j int) bool {
 	if liCtlr == nil || ljCtlr == nil {
 		panic(errors.New("virtualDeviceListSorter cannot be used with devices that are not assigned to a controller"))
 	}
-	if liCtlr.(types.BaseVirtualController).GetVirtualController().BusNumber < liCtlr.(types.BaseVirtualController).GetVirtualController().BusNumber {
+	if liCtlr.(types.BaseVirtualController).GetVirtualController().BusNumber < ljCtlr.(types.BaseVirtualController).GetVirtualController().BusNumber {
 		return true
 	}
 	liUnit := li.GetVirtualDevice().UnitNumber
