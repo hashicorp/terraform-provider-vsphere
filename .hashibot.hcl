@@ -2,7 +2,6 @@
 // closes them. It is intended to clean up the issues that the original opener has abandoned.
 poll "stale_issue_closer" "closer" {
     schedule = "0 50 12 * * *"
-    labels = ["stale"]
     no_reply_in_last = "4320h" # 180 days
     max_issues = 50
     sleep_between_issues = "10s"
