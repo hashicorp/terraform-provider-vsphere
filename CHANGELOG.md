@@ -1,4 +1,12 @@
 ## 1.18.0 (Unreleased)
+## 1.17.2 (April 13, 2020)
+
+IMPROVEMENTS:
+* `resource/virtual_disk`: Support VMDK files. ([#987](https://github.com/terraform-providers/terraform-provider-vsphere/pull/987))
+
+BUG FIXES:
+* `resource/virtual_machine`: Fix disk controller sorting. ([#1032](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1032))
+
 ## 1.17.1 (April 07, 2020)
 
 IMPROVEMENTS:
