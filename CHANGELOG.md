@@ -1,4 +1,4 @@
-## 1.17.2 (Unreleased)
+## 1.17.2 (April 13, 2020)
 
 IMPROVEMENTS:
 * `resource/virtual_disk`: Support VMDK files. ([#987](https://github.com/terraform-providers/terraform-provider-vsphere/pull/987))
