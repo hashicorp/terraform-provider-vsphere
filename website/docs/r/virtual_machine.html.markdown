@@ -1243,7 +1243,7 @@ text - keep this in mind when provisioning your infrastructure.
 #### Supplying your own SysPrep file
 
 Alternative to the `windows_options` supplied above, you can instead supply
-your own `sysprep.inf` file contents via the `windows_sysprep_text` option.
+your own `sysprep.xml` file contents via the `windows_sysprep_text` option.
 This allows full control of the customization process out-of-band of vSphere.
 Example below:
 
@@ -1257,7 +1257,7 @@ resource "vsphere_virtual_machine" "vm" {
     customize {
       ...
 
-      windows_sysprep_text = "${file("${path.module}/sysprep.inf")}"
+      windows_sysprep_text = "${file("${path.module}/sysprep.xml")}"
     }
   }
 }
