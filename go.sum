@@ -87,6 +87,7 @@ github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZm
 github.com/dimchansky/utfbom v1.1.0/go.mod h1:rO41eb7gLfo8SF1jd9F8HplJm1Fewwi4mQvIirEdv+8=
 github.com/dnaeon/go-vcr v0.0.0-20180920040454-5637cf3d8a31/go.mod h1:aBB1+wY4s93YsC3HHjMBMrwTj2R9FHDzUr9KyGc8n1E=
 github.com/dustinkirkland/golang-petname v0.0.0-20170105215008-242afa0b4f8a/go.mod h1:V+Qd57rJe8gd4eiGzZyg4h54VLHmYVVw54iMnlAMrF8=
+github.com/dustinkirkland/golang-petname v0.0.0-20191129215211-8e5a1ed0cff0 h1:90Ly+6UfUypEF6vvvW5rQIv9opIL8CbmW9FT20LDQoY=
 github.com/dustinkirkland/golang-petname v0.0.0-20191129215211-8e5a1ed0cff0/go.mod h1:V+Qd57rJe8gd4eiGzZyg4h54VLHmYVVw54iMnlAMrF8=
 github.com/dylanmei/iso8601 v0.1.0/go.mod h1:w9KhXSgIyROl1DefbMYIE7UVSIvELTbMrCfx+QkYnoQ=
 github.com/dylanmei/winrmtest v0.0.0-20190225150635-99b7fe2fddf1/go.mod h1:lcy9/2gH1jn/VCLouHA6tOEwLoNVd4GW6zhuKLmHC2Y=
@@ -320,8 +321,10 @@ github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UV
 github.com/svanharmelen/jsonapi v0.0.0-20180618144545-0c0828c3f16d/go.mod h1:BSTlc8jOjh0niykqEGVXOLXdi9o0r0kR8tCYiMvjFgw=
 github.com/tencentcloud/tencentcloud-sdk-go v3.0.82+incompatible/go.mod h1:0PfYow01SHPMhKY31xa+EFz2RStxIqj6JFAJS+IkCi4=
 github.com/tencentyun/cos-go-sdk-v5 v0.0.0-20190808065407-f07404cefc8c/go.mod h1:wk2XFUg6egk4tSDNZtXeKfe2G6690UVyt163PuUxBZk=
+github.com/terraform-providers/terraform-provider-null v1.0.1-0.20191204185112-e5c592237f62 h1:vi12lh3hnvMclOqFwEf73s8JCUTPTchOhEmf/7uMPn0=
 github.com/terraform-providers/terraform-provider-null v1.0.1-0.20191204185112-e5c592237f62/go.mod h1:RaAgicYv+oKLyZpaQB5BOkwL/t5WKYHQ+Q0kgMgXgR4=
 github.com/terraform-providers/terraform-provider-openstack v1.15.0/go.mod h1:2aQ6n/BtChAl1y2S60vebhyJyZXBsuAI5G4+lHrT1Ew=
+github.com/terraform-providers/terraform-provider-random v1.3.2-0.20190925210718-83518d96ae4f h1:oqZwtMD9/XcOcCzm/9cz8+pQWRTGF60N1RNcYLg+BCw=
 github.com/terraform-providers/terraform-provider-random v1.3.2-0.20190925210718-83518d96ae4f/go.mod h1:F4KE9YftuJyMiBth4W1kCrsyOHndtTjAmZ+ZzjqWY+4=
 github.com/terraform-providers/terraform-provider-template v1.0.0/go.mod h1:/J+B8me5DCMa0rEBH5ic2aKPjhtpWNeScmxFJWxB1EU=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20171017195756-830351dc03c6/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
@@ -331,8 +334,8 @@ github.com/ulikunitz/xz v0.5.5/go.mod h1:2bypXElzHzzJZwzH67Y6wb67pO62Rzfn7BSiF4A
 github.com/vmihailenco/msgpack v3.3.3+incompatible/go.mod h1:fy3FlTQTDXWkZ7Bh6AcGMlsjHatGryHQYUTf1ShIgkk=
 github.com/vmihailenco/msgpack v4.0.1+incompatible h1:RMF1enSPeKTlXrXdOcqjFUElywVZjjC6pqse21bKbEU=
 github.com/vmihailenco/msgpack v4.0.1+incompatible/go.mod h1:fy3FlTQTDXWkZ7Bh6AcGMlsjHatGryHQYUTf1ShIgkk=
-github.com/vmware/govmomi v0.22.1 h1:ZIEYmBdAS2i+s7RctapqdHfbeGiUcL8LRN05uS4TfPc=
-github.com/vmware/govmomi v0.22.1/go.mod h1:Y+Wq4lst78L85Ge/F8+ORXIWiKYqaro1vhAulACy9Lc=
+github.com/vmware/govmomi v0.22.2-0.20200420222347-5fceac570f29 h1:8S2J/LGp5U19G4tia+aq+KvlNPuynIeui7W8xc8PGqU=
+github.com/vmware/govmomi v0.22.2-0.20200420222347-5fceac570f29/go.mod h1:Y+Wq4lst78L85Ge/F8+ORXIWiKYqaro1vhAulACy9Lc=
 github.com/vmware/vmw-guestinfo v0.0.0-20170707015358-25eff159a728/go.mod h1:x9oS4Wk2s2u4tS29nEaDLdzvuHdB19CvSGJjPgkZJNk=
 github.com/xanzy/ssh-agent v0.2.1/go.mod h1:mLlQY/MoOhWBj+gOGMQkOeiEvkx+8pJSI+0Bx9h2kr4=
 github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
@@ -440,6 +443,7 @@ google.golang.org/api v0.9.0/go.mod h1:o4eAsZoiT+ibD93RtjEohWalFOjRDx6CVaqeizhEn
 google.golang.org/appengine v1.1.0/go.mod h1:EbEs0AVv82hx2wNQdGPgUI5lhzA/G0D9YwlJXL52JkM=
 google.golang.org/appengine v1.4.0/go.mod h1:xpcJRLb0r/rnEns0DIKYYv+WjYCduHsrkT7/EB5XEv4=
 google.golang.org/appengine v1.5.0/go.mod h1:xpcJRLb0r/rnEns0DIKYYv+WjYCduHsrkT7/EB5XEv4=
+google.golang.org/appengine v1.6.1 h1:QzqyMA1tlu6CgqCDUtU9V+ZKhLFT2dkJuANu5QaxI3I=
 google.golang.org/appengine v1.6.1/go.mod h1:i06prIuMbXzDqacNJfV5OdTW448YApPu5ww/cMBSeb0=
 google.golang.org/genproto v0.0.0-20180817151627-c66870c02cf8/go.mod h1:JiN7NxoALGmiZfu7CAH4rXhgtRTLTxftemlI0sWmxmc=
 google.golang.org/genproto v0.0.0-20190307195333-5fe7a883aa19/go.mod h1:VzzqZJRnGkLBvHegQrXjBqPurQTc5/KpmUdxsrq26oE=
