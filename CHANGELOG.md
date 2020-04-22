@@ -1,4 +1,9 @@
-## 1.18.0 (Unreleased)
+## 1.17.3 (Unreleased)
+
+
+IMPROVEMENTS:
+* Use built in session persistence in govmomi. ([#1050](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1050))
+
 ## 1.17.2 (April 13, 2020)
 
 IMPROVEMENTS:
