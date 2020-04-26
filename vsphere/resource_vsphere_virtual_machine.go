@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/ovfdeploy"
-	"github.com/vmware/govmomi/ovf"
 	"io/ioutil"
 	"log"
 	"net"
@@ -32,6 +31,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/vmworkflow"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/ovf"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
