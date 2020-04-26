@@ -891,6 +891,9 @@ func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, client *govmo
 	log.Printf("[DEBUG] %s: Expanding of old config complete", resourceVSphereVirtualMachineIDString(d))
 
 	newSpec, err := expandVirtualMachineConfigSpec(d, client)
+	// Don't include the hardware version in the UpdateSpec. It is only needed
+	// when created new VMs.
+	newSpec.Version = ""
 	if err != nil {
 		return types.VirtualMachineConfigSpec{}, false, err
 	}
