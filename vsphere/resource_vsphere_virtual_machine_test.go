@@ -604,8 +604,8 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitsToRegularSingleController
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test.vmdk", 0, 0),
-					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_1.vmdk", 1, 0),
-					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_2.vmdk", 2, 1),
+					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_1.vmdk", 0, 1),
+					testAccResourceVSphereVirtualMachineCheckDiskBus("terraform-test_2.vmdk", 1, 0),
 				),
 			},
 			{
@@ -5225,7 +5225,7 @@ resource "vsphere_virtual_machine" "vm" {
   disk {
     label       = "disk2"
     unit_number = 2
-    size        = 5
+    size        = 10
   }
 }
 `,
