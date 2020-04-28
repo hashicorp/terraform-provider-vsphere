@@ -37,7 +37,6 @@ const (
 	testAccResourceVSphereVirtualMachineAnnotation          = "Managed by Terraform"
 	testAccResourceVSphereVirtualMachineDatastoreCluster    = "terraform-datastore-cluster-test"
 	testAccResourceVSphereVirtualMachineDatastoreClusterAlt = "terraform-datastore-cluster-test2"
-	testRemoteOvfUrl                                        = "http://sftp-eng.eng.vmware.com/vmstorage/qe/other/empty/no/os/114411-alpine-vmtools-datapath-test-1.0/tinyalpine.ovf"
 )
 
 func TestAccResourceVSphereVirtualMachine_basic(t *testing.T) {
@@ -3197,10 +3196,6 @@ func TestAccResourceVSphereVirtualMachine_interpolatedDisk(t *testing.T) {
 func TestAccResourceVSphereVirtualMachine_deployOvfFromUrl(t *testing.T) {
 
 	vmName := "terraform_test_vm_" + acctest.RandStringFromCharSet(4, acctest.CharSetAlphaNum)
-	remoteOvfUrl := os.Getenv("REMOTE_OVF_URL")
-	if remoteOvfUrl == "" {
-		remoteOvfUrl = testRemoteOvfUrl
-	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -3210,7 +3205,7 @@ func TestAccResourceVSphereVirtualMachine_deployOvfFromUrl(t *testing.T) {
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereVirtualMachineDeployOvfFromUrl(vmName, remoteOvfUrl),
+				Config: testAccResourceVSphereVirtualMachineDeployOvfFromUrl(vmName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "name", vmName),
@@ -3336,6 +3331,9 @@ func testAccResourceVSphereVirtualMachineMultiIPV4PreCheck(t *testing.T) {
 	}
 	if os.Getenv("VSPHERE_IPV4_PREFIX3") == "" {
 		t.Skip("set VSPHERE_IPV4_PREFIX3 to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("REMOTE_OVF_URL") == "" {
+		t.Skip("set REMOTE_OVF_URL to run vsphere_virtual_machine acceptance tests")
 	}
 }
 
@@ -14634,7 +14632,7 @@ resource "vsphere_virtual_machine" "vm" {
 	)
 }
 
-func testAccResourceVSphereVirtualMachineDeployOvfFromUrl(vmName string, remoteOvfUrl string) string {
+func testAccResourceVSphereVirtualMachineDeployOvfFromUrl(vmName string) string {
 	return fmt.Sprintf(`
 variable "datacenter" {
   type    = "string"
@@ -14693,6 +14691,6 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("VSPHERE_RESOURCE_POOL"),
 		os.Getenv("VSPHERE_ESXI_HOST"),
 		vmName,
-		remoteOvfUrl,
+		os.Getenv("REMOTE_OVF_URL"),
 	)
 }
