@@ -34,7 +34,7 @@ func VirtualMachineOVFDeploySchema() map[string]*schema.Schema {
 		"disk_provisioning": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "An optional disk provisioning. If set, all the disks in the deployed OVF will have get the same specified disk type (e.g., thin provisioned).",
+			Description: "An optional disk provisioning. If set, all the disks in the deployed OVF will have the same specified disk type (e.g., thin provisioned).",
 			ForceNew:    true,
 		},
 		"ovf_network_map": {

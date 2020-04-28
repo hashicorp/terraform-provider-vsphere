@@ -1376,7 +1376,7 @@ func resourceVsphereMachineDeployOVF(d *schema.ResourceData, meta interface{}) (
 	}
 
 	log.Print(" [DEBUG] start deploying from OVF Template")
-	err = ovfdeploy.DeployOVFFAndGetResult(ovfCreateImportSpecResult, poolObj, folderObj, hostObj, ovfPath, ovFromLocal)
+	err = ovfdeploy.DeployOVFAndGetResult(ovfCreateImportSpecResult, poolObj, folderObj, hostObj, ovfPath, ovFromLocal)
 	if err != nil {
 		return nil, fmt.Errorf("error while importing OVF template %s", err)
 	}

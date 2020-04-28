@@ -38,7 +38,7 @@ func (pr *ProgressReader) Read(p []byte) (n int, err error) {
 	return
 }
 
-func DeployOVFFAndGetResult(ovfCreateImportSpecResult *types.OvfCreateImportSpecResult, resourcePoolObj *object.ResourcePool,
+func DeployOVFAndGetResult(ovfCreateImportSpecResult *types.OvfCreateImportSpecResult, resourcePoolObj *object.ResourcePool,
 	folder *object.Folder, host *object.HostSystem, OvfPath string, ovfFromLocal bool) error {
 
 	var currBytesRead int64 = 0
