@@ -1,4 +1,13 @@
-## 1.18.0 (Unreleased)
+## 1.17.4 (Unreleased)
+
+IMPROVEMENTS:
+* `resource/virtual_machine`: Mark `product_key` as sensitive. ([#1045](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1045))
+* `resource/virtual_machine`: Increase max `hardware_version` for vSphere v7.0. ([#1056](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1056))
+
+BUG FIXES:
+* `resource/virtual_machine`: Fix to disk bus sorting. ([#1039](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1039))
+* `resource/virtual_machine`: Only include `hardware_version` in CreateSpecs. ([#1055](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1055))
+
 ## 1.17.3 (April 22, 2020)
 
 
