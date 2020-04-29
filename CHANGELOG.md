@@ -1,4 +1,4 @@
-## 1.17.4 (Unreleased)
+## 1.17.4 (April 29, 2020)
 
 IMPROVEMENTS:
 * `resource/virtual_machine`: Mark `product_key` as sensitive. ([#1045](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1045))
