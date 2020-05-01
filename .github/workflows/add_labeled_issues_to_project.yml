@@ -27,6 +27,6 @@ jobs:
     - uses: aareet/move-labeled-or-milestoned-issue@v2.0
       with:
         action-token: "${{ secrets.vsphere_github_actions }}"
-        project-url: "https://github.com/orgs/terraform-providers/projects/12"
-        column-name: "Planned for this week"
+        project-url: "https://github.com/orgs/terraform-providers/projects/8"
+        column-name: "Roadmap"
         label-name: "crash"
