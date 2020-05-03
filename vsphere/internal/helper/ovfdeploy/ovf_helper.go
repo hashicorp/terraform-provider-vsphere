@@ -63,7 +63,7 @@ func DeployOVFAndGetResult(ovfCreateImportSpecResult *types.OvfCreateImportSpecR
 	log.Printf("Total size of files to upload is %v bytes", totalBytes)
 
 	statusChannel := make(chan bool)
-	//create a go routine to update progress regularly
+	// Create a go routine to update progress regularly
 	go func() {
 		var progress int64 = 0
 		for {

@@ -94,7 +94,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		"datacenter_id": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "The ID of the datacenter where the VM is to be created",
+			Description: "The ID of the datacenter where the VM is to be created.",
 		},
 		"folder": {
 			Type:        schema.TypeString,
@@ -505,7 +505,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	// Read the state of the SCSI bus.
 	d.Set("scsi_type", virtualdevice.ReadSCSIBusType(devices, d.Get("scsi_controller_count").(int)))
 	d.Set("scsi_bus_sharing", virtualdevice.ReadSCSIBusSharing(devices, d.Get("scsi_controller_count").(int)))
-	//Disks first
+	// Disks first
 	if err := virtualdevice.DiskRefreshOperation(d, client, devices); err != nil {
 		return err
 	}
@@ -912,16 +912,29 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 		return fmt.Errorf("cannot set folder while VM is in a vApp container")
 	}
 
+	if len(d.Get("ovf_deploy").([]interface{})) == 0 && d.Get("datacenter_id").(string) != "" {
+		return fmt.Errorf("data center id is to be set only when deploying from ovf")
+	}
+
 	if len(d.Get("ovf_deploy").([]interface{})) > 0 {
 
 		localOvfPath := d.Get("ovf_deploy.0.local_ovf_path").(string)
 		remoteOvfUrl := d.Get("ovf_deploy.0.remote_ovf_url").(string)
 		datacenterId := d.Get("datacenter_id").(string)
+		dataStoreId := d.Get("datastore_id").(string)
+		hostSystemId := d.Get("host_system_id").(string)
+
 		if localOvfPath == "" && remoteOvfUrl == "" {
 			return fmt.Errorf("either local ovf path or remote ovf url is required, both can't be empty")
 		}
 		if datacenterId == "" {
 			return fmt.Errorf("data center ID is required for OVF deployment")
+		}
+		if dataStoreId == "" {
+			return fmt.Errorf("data store ID is required for OVF deployment")
+		}
+		if hostSystemId == "" {
+			return fmt.Errorf("host system ID is required for OVF deployment")
 		}
 		if localOvfPath != "" {
 			if _, err := os.Stat(localOvfPath); os.IsNotExist(err) {
@@ -1283,7 +1296,7 @@ func resourceVSphereVirtualMachineCreateBareStandard(
 	return vm, nil
 }
 
-//deploy vm from OVF template
+// Deploy vm from OVF template
 func resourceVsphereMachineDeployOVF(d *schema.ResourceData, meta interface{}) (*object.VirtualMachine, error) {
 
 	localOvfPath := d.Get("ovf_deploy.0.local_ovf_path").(string)
@@ -1391,7 +1404,7 @@ func resourceVsphereMachineDeployOVF(d *schema.ResourceData, meta interface{}) (
 		return nil, fmt.Errorf("error while fetching the created vm %s", err)
 	}
 
-	//set ID for the vm
+	// set ID for the vm
 	vprops, err := virtualmachine.Properties(vm)
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch properties of created virtual machine: %s", err)
