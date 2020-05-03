@@ -488,6 +488,8 @@ machine - you cannot assign individual datastore clusters to individual disks.
 In addition to this, you cannot use the [`attach`](#attach) setting to attach
 external disks on virtual machines that are assigned to datastore clusters.
 
+* `datacenter_id` - (Optional) The datacenter id. Required only when deploying
+   an ovf template.
 * `folder` - (Optional) The path to the folder to put this virtual machine in,
   relative to the datacenter that the resource pool is in.
 * `host_system_id` - (Optional) An optional [managed object reference
