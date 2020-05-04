@@ -1,4 +1,9 @@
 ## 1.18.0 (Unreleased)
+
+FEATURES:
+* `resource/virtual_machine`: Allow users to deploy OVF templates from both 
+  from local system and remote URL. ([#1052](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1052))
+
 ## 1.17.4 (April 29, 2020)
 
 IMPROVEMENTS:
