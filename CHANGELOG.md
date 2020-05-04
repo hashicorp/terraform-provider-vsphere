@@ -1,4 +1,4 @@
-## 1.18.0 (Unreleased)
+## 1.18.0 (May 04, 2020)
 
 FEATURES:
 * `resource/virtual_machine`: Allow users to deploy OVF templates from both 
