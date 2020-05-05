@@ -253,8 +253,8 @@ files also should be present in the same directory as the .ovf file. While deplo
 the VM properties like `name`, `datacenter_id`, `resource_pool_id`, `datastore_id`, 
 `host_system_id`, `folder` can only be set. All other VM properties are taken from the OVF 
 template and setting them in the configuration file is redundant.
-```hcl
 
+```hcl
 data "vsphere_datacenter" "dc" {
   name = "DC"
 }
@@ -509,9 +509,6 @@ external disks on virtual machines that are assigned to datastore clusters.
   specified template. Optional customization options can be submitted as well.
   See [creating a virtual machine from a
   template](#creating-a-virtual-machine-from-a-template) for more details.
-* `ovf_deploy` - (Optional) When specified, the VM will be deployed from the
-   provided ovf template. See [creating a virtual machine from a 
-   ovf template](#creating-vm-from-deploying-a-ovf-template) for more details.
  * `hardware_version` - (Optional) The hardware version number. Valid range
    is from 4 to 15. The hardware version cannot be downgraded. See [virtual
    machine hardware compatibility][virtual-machine-hardware-compatibility] for
@@ -522,6 +519,9 @@ external disks on virtual machines that are assigned to datastore clusters.
 ~> **NOTE:** Cloning requires vCenter and is not supported on direct ESXi
 connections.
 
+* `ovf_deploy` - (Optional) When specified, the VM will be deployed from the
+   provided ovf template. See [creating a virtual machine from a 
+   ovf template](#creating-vm-from-deploying-a-ovf-template) for more details.
 * `vapp` - (Optional) Optional vApp configuration. The only sub-key available
   is `properties`, which is a key/value map of properties for virtual machines
   imported from OVF or OVA files. See [Using vApp properties to supply OVF/OVA
