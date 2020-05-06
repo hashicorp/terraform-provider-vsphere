@@ -253,8 +253,8 @@ files also should be present in the same directory as the .ovf file. While deplo
 the VM properties like `name`, `datacenter_id`, `resource_pool_id`, `datastore_id`, 
 `host_system_id`, `folder` can only be set. All other VM properties are taken from the OVF 
 template and setting them in the configuration file is redundant.
-```hcl
 
+```hcl
 data "vsphere_datacenter" "dc" {
   name = "DC"
 }
