@@ -1,4 +1,4 @@
-# Terraform vSphere Provider
+# Terraform vSphere Provider [![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/terraform-providers/terraform-provider-vsphere?label=release)](https://github.com/terraform-providers/terraform-provider-vsphere/releases) [![license](https://img.shields.io/github/license/terraform-providers/terraform-provider-vsphere.svg)]()
 
 This is the repository for the Terraform vSphere Provider, which one can use
 with Terraform to work with VMware vSphere Products, notably [vCenter
