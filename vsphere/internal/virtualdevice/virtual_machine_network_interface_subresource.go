@@ -480,7 +480,11 @@ func NetworkInterfacePostCloneOperation(d *schema.ResourceData, c *govmomi.Clien
 	// Any other device past the end of the network devices listed in config needs to be removed.
 	if len(curSet) < len(srcSet) {
 		for i, si := range srcSet[len(curSet):] {
-			sm := si.(map[string]interface{})
+			sm, ok := si.(map[string]interface{})
+			if !ok {
+				log.Printf("[DEBUG] Extra entry in NIC source list, but not of expected type")
+				continue
+			}
 			r := NewNetworkInterfaceSubresource(c, d, sm, nil, i+len(curSet))
 			dspec, err := r.Delete(l)
 			if err != nil {
