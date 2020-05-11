@@ -220,6 +220,7 @@ func (c *Config) SavedRestSessionOrNew(s *cache.Session) (*rest.Client, error) {
 	defer cancel()
 
 	s.DirREST = c.RestSessionPath
+	s.Passthrough = !c.Persist
 	restClient := new(rest.Client)
 	err := s.Login(ctx, restClient, nil)
 	if err != nil {
