@@ -1,4 +1,9 @@
-## 1.19.0 (Unreleased)
+## 1.18.1 (Unreleased)
+
+BUG FIXES:
+* `resource/virtual_machine`: Skip unexpected NIC entries. ([#1067](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1067))
+* Respect `session_persistence` for REST sessions. ([#1077](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1077))
+
 ## 1.18.0 (May 04, 2020)
 
 FEATURES:
