@@ -1,4 +1,4 @@
-## 1.18.1 (Unreleased)
+## 1.18.1 (May 12, 2020)
 
 BUG FIXES:
 * `resource/virtual_machine`: Skip unexpected NIC entries. ([#1067](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1067))
