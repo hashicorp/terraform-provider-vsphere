@@ -3303,6 +3303,9 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_CONTENT_LIBRARY_FILES") == "" {
 		t.Skip("set VSPHERE_CONTENT_LIBRARY_FILES to run vsphere_virtual_machine acceptance tests")
 	}
+	if os.Getenv("REMOTE_OVF_URL") == "" {
+		t.Skip("set REMOTE_OVF_URL to run vsphere_virtual_machine acceptance tests")
+	}
 }
 func testAccResourceVSphereVirtualMachineMultiIPV4PreCheck(t *testing.T) {
 	if os.Getenv("VSPHERE_NETWORK_LABEL") == "" {
@@ -3331,9 +3334,6 @@ func testAccResourceVSphereVirtualMachineMultiIPV4PreCheck(t *testing.T) {
 	}
 	if os.Getenv("VSPHERE_IPV4_PREFIX3") == "" {
 		t.Skip("set VSPHERE_IPV4_PREFIX3 to run vsphere_virtual_machine acceptance tests")
-	}
-	if os.Getenv("REMOTE_OVF_URL") == "" {
-		t.Skip("set REMOTE_OVF_URL to run vsphere_virtual_machine acceptance tests")
 	}
 }
 

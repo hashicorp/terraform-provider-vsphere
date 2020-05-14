@@ -1417,6 +1417,20 @@ func resourceVsphereMachineDeployOVF(d *schema.ResourceData, meta interface{}) (
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse poweron_timeout as a valid duration: %s", err)
 	}
+	//update vapp properties
+	vappConfig, err := expandVAppConfig(d, client)
+	if err != nil {
+		return nil, fmt.Errorf("error while creating vapp properties config %s", err)
+	}
+	if vappConfig != nil {
+		vmConfigSpec := types.VirtualMachineConfigSpec{
+			VAppConfig: vappConfig,
+		}
+		err = virtualmachine.Reconfigure(vm, vmConfigSpec)
+		if err != nil {
+			return nil, fmt.Errorf("error while applying vapp config %s", err)
+		}
+	}
 	// Start the virtual machine
 	if err := virtualmachine.PowerOn(vm, pTimeout); err != nil {
 		return nil, fmt.Errorf("error powering on virtual machine: %s", err)

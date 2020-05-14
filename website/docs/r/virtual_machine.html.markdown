@@ -251,8 +251,11 @@ vcenter using the `ovf_deploy` property. When deploying from local system, the
 path to the .ovf template needs to be given and all other necessary files like .vmdk 
 files also should be present in the same directory as the .ovf file. While deploying, 
 the VM properties like `name`, `datacenter_id`, `resource_pool_id`, `datastore_id`, 
-`host_system_id`, `folder` can only be set. All other VM properties are taken from the OVF 
+`host_system_id`, `folder`, `vapp` can only be set. All other VM properties are taken from the OVF 
 template and setting them in the configuration file is redundant.
+
+~> **NOTE:** Only the vApp properties which are pre-defined in the OVF template can be overwritten. 
+vApp properties from scratch cannot be created.
 
 ```hcl
 data "vsphere_datacenter" "dc" {
@@ -285,6 +288,11 @@ resource "vsphere_virtual_machine" "vmFromLocalOvf" {
   ovf_deploy {
     local_ovf_path = "Full Path to local OVF template file"
   }
+  vapp {
+      properties = {
+        "guestinfo.tf.internal.id" = "42"
+      }
+   }
 }
 
 resource "vsphere_virtual_machine" "vmFromRemoteOvf" {
