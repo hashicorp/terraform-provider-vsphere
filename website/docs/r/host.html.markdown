@@ -63,7 +63,11 @@ The following arguments are supported:
 * `datacenter` - (Optional) The ID of the datacenter this host should
   be added to. This should not be set if `cluster` is set.
 * `cluster` - (Optional) The ID of the Compute Cluster this host should
-  be added to. This should not be set if `datacenter` is set.
+  be added to. This should not be set if `datacenter` is set. Conflicts with:
+  `cluster`.
+* `cluster_managed` - (Optional) Can be set to `true` if compute cluster
+  membership will be managed through the `compute_cluster` resource rather
+  than the`host` resource. Conflicts with: `cluster`.
 * `thumbprint` - (Optional) Host's certificate SHA-1 thumbprint. If not set the the
   CA that signed the host's certificate should be trusted. If the CA is not trusted
   and no thumbprint is set then the operation will fail.

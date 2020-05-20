@@ -133,11 +133,12 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Description: "The managed object ID of the datacenter to put the cluster in.",
 			},
 			"host_system_ids": {
-				Type:        schema.TypeSet,
-				Optional:    true,
-				MaxItems:    64,
-				Description: "The managed object IDs of the hosts to put in the cluster.",
-				Elem:        &schema.Schema{Type: schema.TypeString},
+				Type:          schema.TypeSet,
+				Optional:      true,
+				MaxItems:      64,
+				Description:   "The managed object IDs of the hosts to put in the cluster.",
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				ConflictsWith: []string{"host_managed"},
 			},
 			"folder": {
 				Type:        schema.TypeString,
@@ -456,6 +457,12 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The managed object ID of the cluster's root resource pool.",
+			},
+			"host_managed": {
+				Type:          schema.TypeBool,
+				Optional:      true,
+				Description:   "Must be set if cluster enrollment is managed from host resource.",
+				ConflictsWith: []string{"host_system_ids"},
 			},
 
 			vSphereTagAttributeKey:    tagsSchema(),
@@ -1158,11 +1165,13 @@ func resourceVSphereComputeClusterFlattenData(
 		return err
 	}
 
-	hostList := []string{}
-	for _, host := range props.Host {
-		hostList = append(hostList, host.Value)
+	if !d.Get("host_managed").(bool) {
+		hostList := []string{}
+		for _, host := range props.Host {
+			hostList = append(hostList, host.Value)
+		}
+		d.Set("host_system_ids", hostList)
 	}
-	d.Set("host_system_ids", hostList)
 	return flattenClusterConfigSpecEx(d, props.ConfigurationEx.(*types.ClusterConfigInfoEx), version)
 }
 
