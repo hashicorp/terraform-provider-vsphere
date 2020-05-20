@@ -395,9 +395,9 @@ func resourceVsphereHostDelete(d *schema.ResourceData, meta interface{}) error {
 
 	if connectionState != types.HostSystemConnectionStateDisconnected {
 		// We cannot put a disconnected server in maintenance mode.
-		err = hostsystem.EnterMaintenanceMode(hs, int(defaultAPITimeout/time.Minute), true)
+		err = resourceVSphereHostDisconnect(d, meta)
 		if err != nil {
-			return fmt.Errorf("error while putting host to maintenance mode: %s", err.Error())
+			return fmt.Errorf("error while disconnecting host: %s", err.Error())
 		}
 	}
 
