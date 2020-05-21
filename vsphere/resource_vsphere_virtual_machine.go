@@ -920,21 +920,9 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 
 		localOvfPath := d.Get("ovf_deploy.0.local_ovf_path").(string)
 		remoteOvfUrl := d.Get("ovf_deploy.0.remote_ovf_url").(string)
-		datacenterId := d.Get("datacenter_id").(string)
-		dataStoreId := d.Get("datastore_id").(string)
-		hostSystemId := d.Get("host_system_id").(string)
 
 		if localOvfPath == "" && remoteOvfUrl == "" {
 			return fmt.Errorf("either local ovf path or remote ovf url is required, both can't be empty")
-		}
-		if datacenterId == "" {
-			return fmt.Errorf("data center ID is required for OVF deployment")
-		}
-		if dataStoreId == "" {
-			return fmt.Errorf("data store ID is required for OVF deployment")
-		}
-		if hostSystemId == "" {
-			return fmt.Errorf("host system ID is required for OVF deployment")
 		}
 		if localOvfPath != "" {
 			if _, err := os.Stat(localOvfPath); os.IsNotExist(err) {
@@ -1307,6 +1295,11 @@ func resourceVsphereMachineDeployOVF(d *schema.ResourceData, meta interface{}) (
 	}
 	log.Printf("[DEBUG] %s:%s VM is being deployed from OVF template ", localOvfPath, remoteOvfUrl)
 
+	dataCenterId := d.Get("datacenter_id").(string)
+	if dataCenterId == "" {
+		return nil, fmt.Errorf("data center ID is required for OVF deployment")
+	}
+
 	client := meta.(*VSphereClient).vimClient
 	name := d.Get("name").(string)
 	var vm *object.VirtualMachine
@@ -1324,6 +1317,9 @@ func resourceVsphereMachineDeployOVF(d *schema.ResourceData, meta interface{}) (
 	}
 
 	hostId := d.Get("host_system_id").(string)
+	if hostId == "" {
+		return nil, fmt.Errorf("host system ID is required for OVF deployment")
+	}
 	hostObj, err := hostsystem.FromID(client, hostId)
 	if err != nil {
 		return nil, fmt.Errorf("could not find host with ID %q: %s", hostId, err)
@@ -1331,6 +1327,9 @@ func resourceVsphereMachineDeployOVF(d *schema.ResourceData, meta interface{}) (
 	hostMor := hostObj.Reference()
 
 	dsId := d.Get("datastore_id").(string)
+	if dsId == "" {
+		return nil, fmt.Errorf("data store ID is required for OVF deployment")
+	}
 	dsObj, err := datastore.FromID(client, dsId)
 	if err != nil {
 		return nil, fmt.Errorf("could not find datastore with ID %q: %s", dsId, err)
@@ -1394,7 +1393,6 @@ func resourceVsphereMachineDeployOVF(d *schema.ResourceData, meta interface{}) (
 		return nil, fmt.Errorf("error while importing OVF template %s", err)
 	}
 
-	dataCenterId := d.Get("datacenter_id").(string)
 	datacenterObj, err := datacenterFromID(client, dataCenterId)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting datacenter with id %s %s", dataCenterId, err)
