@@ -1,3 +1,4 @@
+## 1.19.0 (Unreleased)
 ## 1.18.2 (May 22, 2020)
 
 IMPROVEMENTS:
