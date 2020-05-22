@@ -1,4 +1,15 @@
-## 1.19.0 (Unreleased)
+## 1.18.2 (Unreleased)
+
+IMPROVEMENTS:
+* `resource/host` & `resource/compute_cluster`: Add arguments for specifying 
+  if cluster management should be handled in `host` or `compute_cluster` 
+  resource. ([#1085](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1085))
+* `resource/virtual_machine`: Handle OVF argument validation during VM 
+  creation. ([#1084](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1084))
+* `resource/host`: Disconnect rather than entering maintenance mode when 
+  deleting. ([#1083](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1083)) 
+
+
 ## 1.18.1 (May 12, 2020)
 
 BUG FIXES:
