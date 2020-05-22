@@ -1,4 +1,4 @@
-## 1.18.2 (Unreleased)
+## 1.18.2 (May 22, 2020)
 
 IMPROVEMENTS:
 * `resource/host` & `resource/compute_cluster`: Add arguments for specifying 
