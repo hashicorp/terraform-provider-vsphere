@@ -281,7 +281,7 @@ resource "vsphere_folder" "folder" {
   tags = ["${vsphere_tag.terraform-test-tag.id}"]
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -312,6 +312,6 @@ resource "vsphere_folder" "folder" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }

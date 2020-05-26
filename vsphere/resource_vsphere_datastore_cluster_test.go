@@ -406,8 +406,8 @@ func TestAccResourceVSphereDatastoreCluster_switchCustomAttribute(t *testing.T) 
 }
 
 func testAccResourceVSphereDatastoreClusterPreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_DATACENTER") == "" {
-		t.Skip("set VSPHERE_DATACENTER to run vsphere_datastore_cluster acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_datastore_cluster acceptance tests")
 	}
 }
 
@@ -685,7 +685,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -705,7 +705,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
   sdrs_enabled  = true
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -724,7 +724,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		name,
 	)
 }
@@ -755,7 +755,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
   folder        = "${vsphere_folder.datastore_cluster_folder.path}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		f,
 	)
 }
@@ -782,7 +782,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
   sdrs_vm_evacuation_automation_level      = "automated"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -805,7 +805,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
   sdrs_space_utilization_threshold = 50
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -827,7 +827,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
   sdrs_io_reservable_iops_threshold = 5000
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -848,7 +848,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
   sdrs_io_reservable_percent_threshold = 40
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -870,7 +870,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
   sdrs_free_space_threshold      = 500
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -907,7 +907,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
   ]
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -955,7 +955,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
   tags = "${vsphere_tag.terraform-test-tags-alt.*.id}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -987,7 +987,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
   custom_attributes = "${local.attrs}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -1025,6 +1025,6 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
   custom_attributes = "${local.attrs}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }

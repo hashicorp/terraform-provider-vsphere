@@ -70,7 +70,7 @@ data "vsphere_datastore_cluster" "datastore_cluster_data" {
   datacenter_id = "${vsphere_datastore_cluster.datastore_cluster.datacenter_id}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -93,6 +93,6 @@ data "vsphere_datastore_cluster" "datastore_cluster_data" {
   name          = "/${var.datacenter}/datastore/${vsphere_datastore_cluster.datastore_cluster.name}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }

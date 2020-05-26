@@ -86,33 +86,33 @@ func testClientVariablesForResource(s *terraform.State, addr string) (testCheckV
 		tagsManager:        tm,
 		resourceID:         rs.Primary.ID,
 		resourceAttributes: rs.Primary.Attributes,
-		esxiHost:           os.Getenv("VSPHERE_ESXI_HOST"),
-		datacenter:         os.Getenv("VSPHERE_DATACENTER"),
+		esxiHost:           os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		datacenter:         os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		timeout:            time.Minute * 5,
 	}, nil
 }
 
-// testAccESXiFlagSet returns true if VSPHERE_TEST_ESXI is set.
+// testAccESXiFlagSet returns true if TF_VAR_VSPHERE_TEST_ESXI is set.
 func testAccESXiFlagSet() bool {
-	return os.Getenv("VSPHERE_TEST_ESXI") != ""
+	return os.Getenv("TF_VAR_VSPHERE_TEST_ESXI") != ""
 }
 
-// testAccSkipIfNotEsxi skips a test if VSPHERE_TEST_ESXI is not set.
+// testAccSkipIfNotEsxi skips a test if TF_VAR_VSPHERE_TEST_ESXI is not set.
 func testAccSkipIfNotEsxi(t *testing.T) {
 	if !testAccESXiFlagSet() {
-		t.Skip("set VSPHERE_TEST_ESXI to run ESXi-specific acceptance tests")
+		t.Skip("set TF_VAR_VSPHERE_TEST_ESXI to run ESXi-specific acceptance tests")
 	}
 }
 
-// testAccSkipIfEsxi skips a test if VSPHERE_TEST_ESXI is set.
+// testAccSkipIfEsxi skips a test if TF_VAR_VSPHERE_TEST_ESXI is set.
 func testAccSkipIfEsxi(t *testing.T) {
 	if testAccESXiFlagSet() {
-		t.Skip("test skipped as VSPHERE_TEST_ESXI is set")
+		t.Skip("test skipped as TF_VAR_VSPHERE_TEST_ESXI is set")
 	}
 }
 
 // expectErrorIfNotVirtualCenter returns the error message that
-// viapi.ValidateVirtualCenter returns if VSPHERE_TEST_ESXI is set, to allow for test
+// viapi.ValidateVirtualCenter returns if TF_VAR_VSPHERE_TEST_ESXI is set, to allow for test
 // cases that will still run on ESXi, but will expect validation failure.
 func expectErrorIfNotVirtualCenter() *regexp.Regexp {
 	if testAccESXiFlagSet() {

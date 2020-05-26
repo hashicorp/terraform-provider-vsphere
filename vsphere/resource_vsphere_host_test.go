@@ -396,13 +396,13 @@ func testAccVSphereHostConfig() string {
 	  license = "%s"
 	  cluster = vsphere_compute_cluster.c1.id
 	}
-	`, os.Getenv("VSPHERE_DATACENTER"),
+	`, os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		"TestCluster",
 		os.Getenv("ESX_HOSTNAME"),
 		os.Getenv("ESX_USERNAME"),
 		os.Getenv("ESX_PASSWORD"),
 		os.Getenv("ESX_THUMBPRINT"),
-		os.Getenv("VSPHERE_LICENSE"))
+		os.Getenv("TF_VAR_VSPHERE_LICENSE"))
 }
 
 func testAccVSphereHostConfig_rootFolder() string {
@@ -422,12 +422,12 @@ func testAccVSphereHostConfig_rootFolder() string {
 	  license = "%s"
 	  datacenter = data.vsphere_datacenter.dc.id
 	}
-	`, os.Getenv("VSPHERE_DATACENTER"),
+	`, os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		os.Getenv("ESX_HOSTNAME"),
 		os.Getenv("ESX_USERNAME"),
 		os.Getenv("ESX_PASSWORD"),
 		os.Getenv("ESX_THUMBPRINT"),
-		os.Getenv("VSPHERE_LICENSE"))
+		os.Getenv("TF_VAR_VSPHERE_LICENSE"))
 }
 
 func testAccVSphereHostConfig_emptyLicense() string {
@@ -446,7 +446,7 @@ func testAccVSphereHostConfig_emptyLicense() string {
 	  # Makes sense to update
 	  datacenter = data.vsphere_datacenter.dc.id
 	}
-	`, os.Getenv("VSPHERE_DATACENTER"),
+	`, os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		os.Getenv("ESX_HOSTNAME"),
 		os.Getenv("ESX_USERNAME"),
 		os.Getenv("ESX_PASSWORD"),
@@ -475,13 +475,13 @@ func testAccVSphereHostConfig_import() string {
 	  license = "%s"
 	  cluster = vsphere_compute_cluster.c1.id
 	}	  
-	`, os.Getenv("VSPHERE_DATACENTER"),
+	`, os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		"TestCluster",
 		os.Getenv("ESX_HOSTNAME"),
 		os.Getenv("ESX_USERNAME"),
 		os.Getenv("ESX_PASSWORD"),
 		os.Getenv("ESX_THUMBPRINT"),
-		os.Getenv("VSPHERE_LICENSE"))
+		os.Getenv("TF_VAR_VSPHERE_LICENSE"))
 }
 
 func testAccVSphereHostConfig_connection(connection bool) string {
@@ -505,13 +505,13 @@ func testAccVSphereHostConfig_connection(connection bool) string {
 	  connected = "%s"
 	  cluster = vsphere_compute_cluster.c1.id
 	}	  
-	`, os.Getenv("VSPHERE_DATACENTER"),
+	`, os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		"TestCluster",
 		os.Getenv("ESX_HOSTNAME"),
 		os.Getenv("ESX_USERNAME"),
 		os.Getenv("ESX_PASSWORD"),
 		os.Getenv("ESX_THUMBPRINT"),
-		os.Getenv("VSPHERE_LICENSE"),
+		os.Getenv("TF_VAR_VSPHERE_LICENSE"),
 		strconv.FormatBool(connection))
 }
 
@@ -537,13 +537,13 @@ func testAccVSphereHostConfig_maintenance(maintenance bool) string {
 	  maintenance = "%s"
 	  cluster = vsphere_compute_cluster.c1.id
 	}	  
-	`, os.Getenv("VSPHERE_DATACENTER"),
+	`, os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		"TestCluster",
 		os.Getenv("ESX_HOSTNAME"),
 		os.Getenv("ESX_USERNAME"),
 		os.Getenv("ESX_PASSWORD"),
 		os.Getenv("ESX_THUMBPRINT"),
-		os.Getenv("VSPHERE_LICENSE"),
+		os.Getenv("TF_VAR_VSPHERE_LICENSE"),
 		strconv.FormatBool(maintenance))
 }
 
@@ -570,12 +570,12 @@ func testAccVSphereHostConfig_lockdown(lockdown string) string {
 	  lockdown = "%s"
 	  cluster = vsphere_compute_cluster.c1.id
 	}	  
-	`, os.Getenv("VSPHERE_DATACENTER"),
+	`, os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		"TestCluster",
 		os.Getenv("ESX_HOSTNAME"),
 		os.Getenv("ESX_USERNAME"),
 		os.Getenv("ESX_PASSWORD"),
 		os.Getenv("ESX_THUMBPRINT"),
-		os.Getenv("VSPHERE_LICENSE"),
+		os.Getenv("TF_VAR_VSPHERE_LICENSE"),
 		lockdown)
 }

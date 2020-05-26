@@ -111,11 +111,11 @@ func TestAccResourceVSphereVirtualDisk_withParent(t *testing.T) {
 }
 
 func testAccResourceVSphereVirtualDiskPreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_DATACENTER") == "" {
-		t.Skip("set VSPHERE_DATACENTER to run vsphere_virtual_disk acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_virtual_disk acceptance tests")
 	}
-	if os.Getenv("VSPHERE_DATASTORE") == "" {
-		t.Skip("set VSPHERE_DATASTORE to run vsphere_virtual_disk acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
+		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_virtual_disk acceptance tests")
 	}
 }
 
@@ -197,8 +197,8 @@ resource "vsphere_virtual_disk" "foo" {
   datastore    = "${data.vsphere_datastore.ds.name}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
 		rName,
 	)
 }
@@ -236,8 +236,8 @@ resource "vsphere_virtual_disk" "foo" {
   datastore    = "${data.vsphere_datastore.ds.name}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
 		rName,
 	)
 }
@@ -276,8 +276,8 @@ resource "vsphere_virtual_disk" "foo" {
   create_directories = true
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
 		rName,
 	)
 }
@@ -315,8 +315,8 @@ resource "vsphere_virtual_disk" "foo" {
   create_directories = true
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
 		rName,
 	)
 }

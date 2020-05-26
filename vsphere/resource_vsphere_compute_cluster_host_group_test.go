@@ -100,14 +100,14 @@ func TestAccResourceVSphereComputeClusterHostGroup_update(t *testing.T) {
 }
 
 func testAccResourceVSphereComputeClusterHostGroupPreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_DATACENTER") == "" {
-		t.Skip("set VSPHERE_DATACENTER to run vsphere_compute_cluster_host_group acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_compute_cluster_host_group acceptance tests")
 	}
-	if os.Getenv("VSPHERE_ESXI_HOST4") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST4 to run vsphere_compute_cluster_host_group acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_ESXI1") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI1 to run vsphere_compute_cluster_host_group acceptance tests")
 	}
-	if os.Getenv("VSPHERE_ESXI_HOST5") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST5 to run vsphere_compute_cluster_host_group acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_ESXI2") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI2 to run vsphere_compute_cluster_host_group acceptance tests")
 	}
 }
 
@@ -247,9 +247,9 @@ resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
   host_system_ids    = "${data.vsphere_host.hosts.*.id}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_ESXI_HOST4"),
-		os.Getenv("VSPHERE_ESXI_HOST5"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
 		count,
 	)
 }

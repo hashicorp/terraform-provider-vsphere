@@ -116,7 +116,7 @@ func TestAccResourceVSphereComputeCluster_explicitFailoverHost(t *testing.T) {
 					testAccResourceVSphereComputeClusterCheckDRSEnabled(true),
 					testAccResourceVSphereComputeClusterCheckHAEnabled(true),
 					testAccResourceVSphereComputeClusterCheckAdmissionControlMode(clusterAdmissionControlTypeFailoverHosts),
-					testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(os.Getenv("VSPHERE_ESXI_HOST4")),
+					testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(os.Getenv("TF_VAR_VSPHERE_ESXI_HOST1")),
 				),
 			},
 		},
@@ -331,43 +331,21 @@ func TestAccResourceVSphereComputeCluster_switchCustomAttribute(t *testing.T) {
 	})
 }
 
-func TestAccResourceVSphereComputeCluster_createVM(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterPreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereComputeClusterConfigCreateVM(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckDRSEnabled(true),
-					testAccResourceVSphereComputeClusterCheckHAEnabled(true),
-					testAccResourceVSphereVirtualMachineCheckResourcePool("terraform-compute-cluster-test/Resources"),
-				),
-			},
-		},
-	})
-}
-
 func testAccResourceVSphereComputeClusterPreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_DATACENTER") == "" {
-		t.Skip("set VSPHERE_DATACENTER to run vsphere_compute_cluster acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_compute_cluster acceptance tests")
 	}
-	if os.Getenv("VSPHERE_ESXI_HOST4") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST4 to run vsphere_compute_cluster acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_ESXI1") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI1 to run vsphere_compute_cluster acceptance tests")
 	}
-	if os.Getenv("VSPHERE_ESXI_HOST5") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST5 to run vsphere_compute_cluster acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_ESXI2") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI2 to run vsphere_compute_cluster acceptance tests")
 	}
-	if os.Getenv("VSPHERE_NETWORK_LABEL_PXE") == "" {
-		t.Skip("set VSPHERE_NETWORK_LABEL_PXE to run vsphere_virtual_machine acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_PG_NAME") == "" {
+		t.Skip("set TF_VAR_VSPHERE_PG_NAME to run vsphere_virtual_machine acceptance tests")
 	}
-	if os.Getenv("VSPHERE_DATASTORE") == "" {
-		t.Skip("set VSPHERE_DATASTORE to run vsphere_virtual_machine acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
+		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_virtual_machine acceptance tests")
 	}
 }
 
@@ -567,7 +545,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   datacenter_id   = "${data.vsphere_datacenter.dc.id}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -604,9 +582,9 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   force_evacuate_on_destroy = true
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_ESXI_HOST4"),
-		os.Getenv("VSPHERE_ESXI_HOST5"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
 	)
 }
 
@@ -641,9 +619,9 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   force_evacuate_on_destroy = true
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_ESXI_HOST4"),
-		os.Getenv("VSPHERE_ESXI_HOST5"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
 	)
 }
 
@@ -683,9 +661,9 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 	force_evacuate_on_destroy = true
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_ESXI_HOST4"),
-		os.Getenv("VSPHERE_ESXI_HOST5"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
 	)
 }
 
@@ -728,9 +706,9 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   force_evacuate_on_destroy = true
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_ESXI_HOST4"),
-		os.Getenv("VSPHERE_ESXI_HOST5"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
 	)
 }
 
@@ -749,7 +727,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		name,
 	)
 }
@@ -780,7 +758,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   folder        = "${vsphere_folder.compute_cluster_folder.path}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		f,
 	)
 }
@@ -818,7 +796,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   ]
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -866,7 +844,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   tags = "${vsphere_tag.terraform-test-tags-alt.*.id}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -898,7 +876,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   custom_attributes = "${local.attrs}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -936,87 +914,6 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   custom_attributes = "${local.attrs}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-	)
-}
-
-func testAccResourceVSphereComputeClusterConfigCreateVM() string {
-	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "hosts" {
-  default = [
-    "%s",
-    "%s",
-  ]
-}
-
-variable "network_label" {
-  default = "%s"
-}
-
-variable "datastore" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-data "vsphere_host" "hosts" {
-  count         = "${length(var.hosts)}"
-  name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_datastore" "datastore" {
-  name          = "${var.datastore}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_network" "network" {
-  name          = "${var.network_label}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-resource "vsphere_compute_cluster" "compute_cluster" {
-  name            = "terraform-compute-cluster-test"
-  datacenter_id   = "${data.vsphere_datacenter.dc.id}"
-  host_system_ids = "${data.vsphere_host.hosts.*.id}"
-
-  drs_enabled          = true
-  drs_automation_level = "fullyAutomated"
-
-  ha_enabled = true
-  
-	force_evacuate_on_destroy = true
-}
-
-resource "vsphere_virtual_machine" "vm" {
-  name             = "terraform-test"
-  resource_pool_id = "${vsphere_compute_cluster.compute_cluster.resource_pool_id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
-
-  num_cpus = 2
-  memory   = 2048
-  guest_id = "other3xLinux64Guest"
-
-  network_interface {
-    network_id = "${data.vsphere_network.network.id}"
-  }
-
-  disk {
-    label = "disk0"
-    size  = 20
-  }
-}
-`,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_ESXI_HOST4"),
-		os.Getenv("VSPHERE_ESXI_HOST5"),
-		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
-		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }

@@ -43,8 +43,8 @@ func TestAccResourceVSphereHostPortGroup_complexWithOverrides(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereHostPortGroupExists(true),
 					testAccResourceVSphereHostPortGroupCheckVlan(1000),
-					testAccResourceVSphereHostPortGroupCheckEffectiveActive([]string{os.Getenv("VSPHERE_HOST_NIC0")}),
-					testAccResourceVSphereHostPortGroupCheckEffectiveStandby([]string{os.Getenv("VSPHERE_HOST_NIC1")}),
+					testAccResourceVSphereHostPortGroupCheckEffectiveActive([]string{os.Getenv("TF_VAR_VSPHERE_HOST_NIC0")}),
+					testAccResourceVSphereHostPortGroupCheckEffectiveStandby([]string{os.Getenv("TF_VAR_VSPHERE_HOST_NIC1")}),
 					testAccResourceVSphereHostPortGroupCheckEffectivePromisc(true),
 				),
 			},
@@ -72,8 +72,8 @@ func TestAccResourceVSphereHostPortGroup_basicToComplex(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereHostPortGroupExists(true),
 					testAccResourceVSphereHostPortGroupCheckVlan(1000),
-					testAccResourceVSphereHostPortGroupCheckEffectiveActive([]string{os.Getenv("VSPHERE_HOST_NIC0")}),
-					testAccResourceVSphereHostPortGroupCheckEffectiveStandby([]string{os.Getenv("VSPHERE_HOST_NIC1")}),
+					testAccResourceVSphereHostPortGroupCheckEffectiveActive([]string{os.Getenv("TF_VAR_VSPHERE_HOST_NIC0")}),
+					testAccResourceVSphereHostPortGroupCheckEffectiveStandby([]string{os.Getenv("TF_VAR_VSPHERE_HOST_NIC1")}),
 					testAccResourceVSphereHostPortGroupCheckEffectivePromisc(true),
 				),
 			},
@@ -82,14 +82,14 @@ func TestAccResourceVSphereHostPortGroup_basicToComplex(t *testing.T) {
 }
 
 func testAccResourceVSphereHostPortGroupPreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_HOST_NIC0") == "" {
-		t.Skip("set VSPHERE_HOST_NIC0 to run vsphere_host_port_group acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_HOST_NIC0") == "" {
+		t.Skip("set TF_VAR_VSPHERE_HOST_NIC0 to run vsphere_host_port_group acceptance tests")
 	}
-	if os.Getenv("VSPHERE_HOST_NIC1") == "" {
-		t.Skip("set VSPHERE_HOST_NIC1 to run vsphere_host_port_group acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_HOST_NIC1") == "" {
+		t.Skip("set TF_VAR_VSPHERE_HOST_NIC1 to run vsphere_host_port_group acceptance tests")
 	}
-	if os.Getenv("VSPHERE_ESXI_HOST") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST to run vsphere_host_port_group acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_host_port_group acceptance tests")
 	}
 }
 
@@ -178,10 +178,6 @@ variable "host_nic0" {
   default = "%s"
 }
 
-variable "host_nic1" {
-  default = "%s"
-}
-
 data "vsphere_datacenter" "datacenter" {
   name = "%s"
 }
@@ -195,8 +191,8 @@ resource "vsphere_host_virtual_switch" "switch" {
   name           = "vSwitchTerraformTest"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
-  network_adapters = ["${var.host_nic0}", "${var.host_nic1}"]
-  active_nics      = ["${var.host_nic0}", "${var.host_nic1}"]
+  network_adapters = ["${var.host_nic0}"]
+  active_nics      = ["${var.host_nic0}"]
   standby_nics     = []
 }
 
@@ -205,16 +201,14 @@ resource "vsphere_host_port_group" "pg" {
   host_system_id      = "${data.vsphere_host.esxi_host.id}"
   virtual_switch_name = "${vsphere_host_virtual_switch.switch.name}"
 }
-`, os.Getenv("VSPHERE_HOST_NIC0"), os.Getenv("VSPHERE_HOST_NIC1"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`,  os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
+    os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+    os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }
 
 func testAccResourceVSphereHostPortGroupConfigWithOverrides() string {
 	return fmt.Sprintf(`
 variable "host_nic0" {
-  default = "%s"
-}
-
-variable "host_nic1" {
   default = "%s"
 }
 
@@ -231,8 +225,8 @@ resource "vsphere_host_virtual_switch" "switch" {
   name           = "vSwitchTerraformTest"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
-  network_adapters  = ["${var.host_nic0}", "${var.host_nic1}"]
-  active_nics       = ["${var.host_nic0}", "${var.host_nic1}"]
+  network_adapters  = ["${var.host_nic0}"]
+  active_nics       = ["${var.host_nic0}"]
   standby_nics      = []
   allow_promiscuous = false
 }
@@ -247,5 +241,7 @@ resource "vsphere_host_port_group" "pg" {
   standby_nics      = ["${var.host_nic1}"]
   allow_promiscuous = true
 }
-`, os.Getenv("VSPHERE_HOST_NIC0"), os.Getenv("VSPHERE_HOST_NIC1"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`,  os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
+    os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+    os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }

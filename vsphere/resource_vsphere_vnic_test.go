@@ -285,12 +285,12 @@ func testAccVSphereVNicConfig_hvs(netConfig string) string {
 	  portgroup = vsphere_host_port_group.p1.name
 	  %s
 	}
-	`, os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_ESXI_HOST3"),
-		os.Getenv("VSPHERE_HOST_NIC0"),
-		os.Getenv("VSPHERE_HOST_NIC1"),
-		os.Getenv("VSPHERE_HOST_NIC0"),
-		os.Getenv("VSPHERE_HOST_NIC1"),
+	`, os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI_HOST3"),
+		os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"),
+		os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"),
+		os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"),
+		os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"),
 		netConfig)
 }
 
@@ -327,9 +327,9 @@ func testAccVSphereVNicConfig_dvs(netConfig string) string {
 	  distributed_port_group  = vsphere_distributed_port_group.p1.id
 	  %s
 	}
-	`, os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_ESXI_HOST"),
-		os.Getenv("VSPHERE_HOST_NIC1"),
+	`, os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"),
 		netConfig)
 }
 

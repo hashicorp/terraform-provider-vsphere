@@ -39,32 +39,32 @@ func TestAccResourceVSphereVirtualMachineSnapshot_basic(t *testing.T) {
 }
 
 func testAccResourceVSphereVirtualMachineSnapshotPreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_DATACENTER") == "" {
-		t.Skip("set VSPHERE_DATACENTER to run vsphere_virtual_machine_snapshot acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_virtual_machine_snapshot acceptance tests")
 	}
-	if os.Getenv("VSPHERE_CLUSTER") == "" {
-		t.Skip("set VSPHERE_CLUSTER to run vsphere_virtual_machine_snapshot acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_CLUSTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_CLUSTER to run vsphere_virtual_machine_snapshot acceptance tests")
 	}
-	if os.Getenv("VSPHERE_RESOURCE_POOL") == "" {
-		t.Skip("set VSPHERE_RESOURCE_POOL to run vsphere_virtual_machine_snapshot acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL") == "" {
+		t.Skip("set TF_VAR_VSPHERE_RESOURCE_POOL to run vsphere_virtual_machine_snapshot acceptance tests")
 	}
-	if os.Getenv("VSPHERE_NETWORK_LABEL") == "" {
-		t.Skip("set VSPHERE_NETWORK_LABEL to run vsphere_virtual_machine_snapshot acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_NETWORK_LABEL") == "" {
+		t.Skip("set TF_VAR_VSPHERE_NETWORK_LABEL to run vsphere_virtual_machine_snapshot acceptance tests")
 	}
-	if os.Getenv("VSPHERE_IPV4_ADDRESS") == "" {
-		t.Skip("set VSPHERE_IPV4_ADDRESS to run vsphere_virtual_machine_snapshot acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_IPV4_ADDRESS") == "" {
+		t.Skip("set TF_VAR_VSPHERE_IPV4_ADDRESS to run vsphere_virtual_machine_snapshot acceptance tests")
 	}
-	if os.Getenv("VSPHERE_IPV4_PREFIX") == "" {
-		t.Skip("set VSPHERE_IPV4_PREFIX to run vsphere_virtual_machine_snapshot acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_IPV4_PREFIX") == "" {
+		t.Skip("set TF_VAR_VSPHERE_IPV4_PREFIX to run vsphere_virtual_machine_snapshot acceptance tests")
 	}
-	if os.Getenv("VSPHERE_IPV4_GATEWAY") == "" {
-		t.Skip("set VSPHERE_IPV4_GATEWAY to run vsphere_virtual_machine_snapshot acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_IPV4_GATEWAY") == "" {
+		t.Skip("set TF_VAR_VSPHERE_IPV4_GATEWAY to run vsphere_virtual_machine_snapshot acceptance tests")
 	}
-	if os.Getenv("VSPHERE_DATASTORE") == "" {
-		t.Skip("set VSPHERE_DATASTORE to run vsphere_virtual_machine_snapshot acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
+		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_virtual_machine_snapshot acceptance tests")
 	}
-	if os.Getenv("VSPHERE_TEMPLATE") == "" {
-		t.Skip("set VSPHERE_TEMPLATE to run vsphere_virtual_machine_snapshot acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE") == "" {
+		t.Skip("set TF_VAR_VSPHERE_TEMPLATE to run vsphere_virtual_machine_snapshot acceptance tests")
 	}
 }
 
@@ -248,14 +248,14 @@ resource "vsphere_virtual_machine_snapshot" "snapshot" {
   quiesce              = true
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_RESOURCE_POOL"),
-		os.Getenv("VSPHERE_NETWORK_LABEL"),
-		os.Getenv("VSPHERE_IPV4_ADDRESS"),
-		os.Getenv("VSPHERE_IPV4_PREFIX"),
-		os.Getenv("VSPHERE_IPV4_GATEWAY"),
-		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_TEMPLATE"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL"),
+		os.Getenv("TF_VAR_VSPHERE_NETWORK_LABEL"),
+		os.Getenv("TF_VAR_VSPHERE_IPV4_ADDRESS"),
+		os.Getenv("TF_VAR_VSPHERE_IPV4_PREFIX"),
+		os.Getenv("TF_VAR_VSPHERE_IPV4_GATEWAY"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 		enabled,
 	)
 }

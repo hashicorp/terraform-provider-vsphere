@@ -9,7 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
-func TestAccDataSourceVSphereStoragePolicy_basic(t *testing.T) {
+// Storage policy resource is needed.
+func skipTestAccDataSourceVSphereStoragePolicy_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -29,8 +30,8 @@ func TestAccDataSourceVSphereStoragePolicy_basic(t *testing.T) {
 }
 
 func testAccDataSourceVSphereStoragePolicyPreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_STORAGE_POLICY") == "" {
-		t.Skip("set VSPHERE_STORAGE_POLICY to run vsphere_storage_policy acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_STORAGE_POLICY") == "" {
+		t.Skip("set TF_VAR_VSPHERE_STORAGE_POLICY to run vsphere_storage_policy acceptance tests")
 	}
 }
 
@@ -44,6 +45,6 @@ data "vsphere_storage_policy" "storage_policy" {
   name          = "${var.storage_policy}"
 }
 `,
-		os.Getenv("VSPHERE_STORAGE_POLICY"),
+		os.Getenv("TF_VAR_VSPHERE_STORAGE_POLICY"),
 	)
 }

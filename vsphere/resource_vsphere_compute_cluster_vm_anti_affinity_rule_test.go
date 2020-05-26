@@ -153,17 +153,17 @@ func TestAccResourceVSphereComputeClusterVMAntiAffinityRule_updateCount(t *testi
 }
 
 func testAccResourceVSphereComputeClusterVMAntiAffinityRulePreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_DATACENTER") == "" {
-		t.Skip("set VSPHERE_DATACENTER to run vsphere_compute_cluster_vm_anti_affinity_rule acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_compute_cluster_vm_anti_affinity_rule acceptance tests")
 	}
-	if os.Getenv("VSPHERE_DATASTORE") == "" {
-		t.Skip("set VSPHERE_DATASTORE to run vsphere_compute_cluster_vm_anti_affinity_rule acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
+		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_compute_cluster_vm_anti_affinity_rule acceptance tests")
 	}
-	if os.Getenv("VSPHERE_CLUSTER") == "" {
-		t.Skip("set VSPHERE_CLUSTER to run vsphere_compute_cluster_vm_anti_affinity_rule acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_CLUSTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_CLUSTER to run vsphere_compute_cluster_vm_anti_affinity_rule acceptance tests")
 	}
-	if os.Getenv("VSPHERE_NETWORK_LABEL_PXE") == "" {
-		t.Skip("set VSPHERE_NETWORK_LABEL_PXE to run vsphere_compute_cluster_vm_anti_affinity_rule acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_PG_NAME") == "" {
+		t.Skip("set TF_VAR_VSPHERE_PG_NAME to run vsphere_compute_cluster_vm_anti_affinity_rule acceptance tests")
 	}
 }
 
@@ -370,10 +370,10 @@ resource "vsphere_compute_cluster_vm_anti_affinity_rule" "cluster_vm_anti_affini
 	enabled             = %t
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_CLUSTER"),
-		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
+		os.Getenv("TF_VAR_VSPHERE_PG_NAME"),
 		count,
 		enabled,
 	)

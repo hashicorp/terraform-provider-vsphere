@@ -114,29 +114,29 @@ func TestAccResourceVSphereStorageDrsVMOverride_update(t *testing.T) {
 }
 
 func testAccResourceVSphereStorageDrsVMOverridePreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_DATACENTER") == "" {
-		t.Skip("set VSPHERE_DATACENTER to run vsphere_storage_drs_vm_override acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_storage_drs_vm_override acceptance tests")
 	}
-	if os.Getenv("VSPHERE_NAS_HOST") == "" {
-		t.Skip("set VSPHERE_NAS_HOST to run vsphere_storage_drs_vm_override acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_NAS_HOST") == "" {
+		t.Skip("set TF_VAR_VSPHERE_NAS_HOST to run vsphere_storage_drs_vm_override acceptance tests")
 	}
-	if os.Getenv("VSPHERE_NFS_PATH") == "" {
-		t.Skip("set VSPHERE_NFS_PATH to run vsphere_storage_drs_vm_override acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_NFS_PATH") == "" {
+		t.Skip("set TF_VAR_VSPHERE_NFS_PATH to run vsphere_storage_drs_vm_override acceptance tests")
 	}
-	if os.Getenv("VSPHERE_ESXI_HOST") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST to run vsphere_storage_drs_vm_override acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_storage_drs_vm_override acceptance tests")
 	}
-	if os.Getenv("VSPHERE_ESXI_HOST2") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST2 to run vsphere_storage_drs_vm_override acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_ESXI_HOST2") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST2 to run vsphere_storage_drs_vm_override acceptance tests")
 	}
-	if os.Getenv("VSPHERE_ESXI_HOST3") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST3 to run vsphere_storage_drs_vm_override acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_ESXI_HOST3") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST3 to run vsphere_storage_drs_vm_override acceptance tests")
 	}
-	if os.Getenv("VSPHERE_RESOURCE_POOL") == "" {
-		t.Skip("set VSPHERE_RESOURCE_POOL to run vsphere_storage_drs_vm_override acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL") == "" {
+		t.Skip("set TF_VAR_VSPHERE_RESOURCE_POOL to run vsphere_storage_drs_vm_override acceptance tests")
 	}
-	if os.Getenv("VSPHERE_NETWORK_LABEL_PXE") == "" {
-		t.Skip("set VSPHERE_NETWORK_LABEL_PXE to run vsphere_storage_drs_vm_override acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_PG_NAME") == "" {
+		t.Skip("set TF_VAR_VSPHERE_PG_NAME to run vsphere_storage_drs_vm_override acceptance tests")
 	}
 }
 
@@ -286,14 +286,14 @@ resource "vsphere_storage_drs_vm_override" "drs_vm_override" {
   sdrs_enabled         = false
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_NAS_HOST"),
-		os.Getenv("VSPHERE_NFS_PATH"),
-		os.Getenv("VSPHERE_ESXI_HOST"),
-		os.Getenv("VSPHERE_ESXI_HOST2"),
-		os.Getenv("VSPHERE_ESXI_HOST3"),
-		os.Getenv("VSPHERE_RESOURCE_POOL"),
-		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_PATH"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
+		os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL"),
+		os.Getenv("TF_VAR_VSPHERE_PG_NAME"),
 	)
 }
 
@@ -391,13 +391,13 @@ resource "vsphere_storage_drs_vm_override" "drs_vm_override" {
   sdrs_intra_vm_affinity = false
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_NAS_HOST"),
-		os.Getenv("VSPHERE_NFS_PATH"),
-		os.Getenv("VSPHERE_ESXI_HOST"),
-		os.Getenv("VSPHERE_ESXI_HOST2"),
-		os.Getenv("VSPHERE_ESXI_HOST3"),
-		os.Getenv("VSPHERE_RESOURCE_POOL"),
-		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_PATH"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI_HOST2"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI_HOST3"),
+		os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL"),
+		os.Getenv("TF_VAR_VSPHERE_PG_NAME"),
 	)
 }

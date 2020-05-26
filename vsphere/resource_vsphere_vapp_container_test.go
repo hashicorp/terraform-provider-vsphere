@@ -50,8 +50,8 @@ func TestAccResourceVSphereVAppContainer_basic(t *testing.T) {
 						return "", err
 					}
 					return fmt.Sprintf("/%s/host/%s/Resources/resource-pool-parent/%s",
-						os.Getenv("VSPHERE_DATACENTER"),
-						os.Getenv("VSPHERE_CLUSTER"),
+						os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+						os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
 						vc.Name(),
 					), nil
 				},
@@ -89,8 +89,8 @@ func TestAccResourceVSphereVAppContainer_childImport(t *testing.T) {
 						return "", err
 					}
 					return fmt.Sprintf("/%s/host/%s/Resources/parentVApp/%s",
-						os.Getenv("VSPHERE_DATACENTER"),
-						os.Getenv("VSPHERE_CLUSTER"),
+						os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+						os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
 						vc.Name(),
 					), nil
 				},
@@ -237,23 +237,23 @@ func TestAccResourceVSphereVAppContainer_vmMoveIntoVAppSDRS(t *testing.T) {
 }
 
 func testAccResourceVSphereVAppContainerPreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_DATACENTER") == "" {
-		t.Skip("set VSPHERE_DATACENTER to run vsphere_vapp_container acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_vapp_container acceptance tests")
 	}
-	if os.Getenv("VSPHERE_CLUSTER") == "" {
-		t.Skip("set VSPHERE_CLUSTER to run vsphere_vapp_container acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_CLUSTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_CLUSTER to run vsphere_vapp_container acceptance tests")
 	}
-	if os.Getenv("VSPHERE_NETWORK_LABEL_PXE") == "" {
-		t.Skip("set VSPHERE_NETWORK_LABEL_PXE to run vsphere_vapp_container acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_PG_NAME") == "" {
+		t.Skip("set TF_VAR_VSPHERE_PG_NAME to run vsphere_vapp_container acceptance tests")
 	}
-	if os.Getenv("VSPHERE_DATASTORE") == "" {
-		t.Skip("set VSPHERE_DATASTORE to run vsphere_vapp_container acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
+		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_vapp_container acceptance tests")
 	}
-	if os.Getenv("VSPHERE_NFS_PATH") == "" {
-		t.Skip("set VSPHERE_NFS_PATH to run vsphere_vapp_container acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_NFS_PATH") == "" {
+		t.Skip("set TF_VAR_VSPHERE_NFS_PATH to run vsphere_vapp_container acceptance tests")
 	}
-	if os.Getenv("VSPHERE_TEMPLATE") == "" {
-		t.Skip("set VSPHERE_TEMPLATE to run vsphere_vapp_container acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE") == "" {
+		t.Skip("set TF_VAR_VSPHERE_TEMPLATE to run vsphere_vapp_container acceptance tests")
 	}
 }
 
@@ -501,9 +501,9 @@ resource "vsphere_vapp_container" "vapp_container" {
   memory_limit            = 20
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_CLUSTER"),
-		os.Getenv("VSPHERE_DATASTORE"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
 	)
 }
 
@@ -611,14 +611,14 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_CLUSTER"),
-		os.Getenv("VSPHERE_NFS_PATH"),
-		os.Getenv("VSPHERE_NAS_HOST"),
-		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
-		os.Getenv("VSPHERE_ESXI_HOST"),
-		os.Getenv("VSPHERE_ESXI_HOST2"),
-		os.Getenv("VSPHERE_ESXI_HOST3"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_PATH"),
+		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
+		os.Getenv("TF_VAR_VSPHERE_PG_NAME"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI_HOST2"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI_HOST3"),
 	)
 }
 
@@ -726,14 +726,14 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_CLUSTER"),
-		os.Getenv("VSPHERE_NFS_PATH"),
-		os.Getenv("VSPHERE_NAS_HOST"),
-		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
-		os.Getenv("VSPHERE_ESXI_HOST"),
-		os.Getenv("VSPHERE_ESXI_HOST2"),
-		os.Getenv("VSPHERE_ESXI_HOST3"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_PATH"),
+		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
+		os.Getenv("TF_VAR_VSPHERE_PG_NAME"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI_HOST2"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI_HOST3"),
 	)
 }
 
@@ -854,15 +854,15 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_CLUSTER"),
-		os.Getenv("VSPHERE_NFS_PATH"),
-		os.Getenv("VSPHERE_NAS_HOST"),
-		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
-		os.Getenv("VSPHERE_ESXI_HOST"),
-		os.Getenv("VSPHERE_ESXI_HOST2"),
-		os.Getenv("VSPHERE_ESXI_HOST3"),
-		os.Getenv("VSPHERE_TEMPLATE"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_PATH"),
+		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
+		os.Getenv("TF_VAR_VSPHERE_PG_NAME"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI_HOST2"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI_HOST3"),
+		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 	)
 }
 
@@ -954,12 +954,12 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_CLUSTER"),
-		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
-		os.Getenv("VSPHERE_TEMPLATE"),
-		os.Getenv("VSPHERE_CLONED_VM_DISK_SIZE"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		os.Getenv("TF_VAR_VSPHERE_PG_NAME"),
+		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
+		os.Getenv("TF_VAR_VSPHERE_CLONED_VM_DISK_SIZE"),
 	)
 }
 
@@ -1037,10 +1037,10 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_CLUSTER"),
-		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		os.Getenv("TF_VAR_VSPHERE_PG_NAME"),
 	)
 }
 
@@ -1118,10 +1118,10 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_CLUSTER"),
-		os.Getenv("VSPHERE_DATASTORE"),
-		os.Getenv("VSPHERE_NETWORK_LABEL_PXE"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		os.Getenv("TF_VAR_VSPHERE_PG_NAME"),
 	)
 }
 
@@ -1152,7 +1152,7 @@ resource "vsphere_vapp_container" "child" {
   name                    = "childVApp"
   parent_resource_pool_id = vsphere_vapp_container.parent.id
 }`,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_CLUSTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
 	)
 }

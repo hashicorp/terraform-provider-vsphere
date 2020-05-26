@@ -68,11 +68,11 @@ func TestAccDataSourceVSphereVirtualMachine_noDatacenterAndAbsolutePath(t *testi
 }
 
 func testAccDataSourceVSphereVirtualMachinePreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_DATACENTER") == "" {
-		t.Skip("set VSPHERE_DATACENTER to run vsphere_virtual_machine data source acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_virtual_machine data source acceptance tests")
 	}
-	if os.Getenv("VSPHERE_TEMPLATE") == "" {
-		t.Skip("set VSPHERE_TEMPLATE to run vsphere_virtual_machine data source acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE") == "" {
+		t.Skip("set TF_VAR_VSPHERE_TEMPLATE to run vsphere_virtual_machine data source acceptance tests")
 	}
 }
 
@@ -95,8 +95,8 @@ data "vsphere_virtual_machine" "template" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_TEMPLATE"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 	)
 }
 
@@ -114,7 +114,7 @@ data "vsphere_virtual_machine" "template" {
   name = "/${var.datacenter}/vm/${var.template}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_TEMPLATE"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 	)
 }
