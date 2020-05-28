@@ -10,3 +10,16 @@ poll "closed_issue_locker" "locker" {
     If you feel this issue should be reopened, we encourage creating a new issue linking back to this one for added context. If you feel I made an error 🤖 🙉  , please reach out to my human friends 👉  hashibot-feedback@hashicorp.com. Thanks!
     EOF
 }
+
+queued_behavior "release_commenter" "releases" {
+  repo_prefix = "terraform-provider-"
+  message = <<-EOF
+    This has been released in [version ${var.release_version} of the provider](${var.changelog_link}). To upgrade, change your provider block:
+    ```hcl
+    provider "${var.project_name}" {
+        version = "~> ${var.release_version}"
+    }
+    # ... other configuration ...
+    ```
+  EOF
+}
