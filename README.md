@@ -42,7 +42,7 @@ version of the provider.
 
 The Terraform vSphere Provider is the work of many contributors. We appreciate your help!
 
-To contribute, please read the [contribution guidelines](_about/CONTRIBUTING.md). You may also [report an issue](https://github.com/terraform-providers/terraform-provider-kubernetes/issues/new/choose). Once you've filed an issue, it will follow the [issue lifecycle](ISSUES.md).
+To contribute, please read the [contribution guidelines](_about/CONTRIBUTING.md). You may also [report an issue](https://github.com/terraform-providers/terraform-provider-vsphere/issues/new/choose). Once you've filed an issue, it will follow the [issue lifecycle](ISSUES.md).
 
 Also available are some answers to [Frequently Asked Questions](_about/FAQ.md).
 
