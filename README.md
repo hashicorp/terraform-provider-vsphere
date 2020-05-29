@@ -27,7 +27,7 @@ This provider plugin is maintained by the Terraform team at [HashiCorp](https://
 ## Requirements
 -	[Terraform](https://www.terraform.io/downloads.html) 0.12.x
     - Note that version 0.11.x currently works, but is [deprecated](https://www.hashicorp.com/blog/deprecating-terraform-0-11-support-in-terraform-providers/)
-- vSphere 6    
+- vSphere 6.7    
    -  Currently, this provider is being tested for compatibility with vSphere 6. We do not currently test vSphere 7, but plans are underway to add support.
 -	[Go](https://golang.org/doc/install) 1.14.x (to build the provider plugin)
 
