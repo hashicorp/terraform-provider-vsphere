@@ -12,6 +12,6 @@ require (
 	github.com/terraform-providers/terraform-provider-null v1.0.1-0.20191204185112-e5c592237f62
 	github.com/terraform-providers/terraform-provider-random v1.3.2-0.20190925210718-83518d96ae4f
 	github.com/terraform-providers/terraform-provider-template v1.0.0 // indirect
-	github.com/vmware/govmomi v0.22.2-0.20200420222347-5fceac570f29
+	github.com/vmware/govmomi v0.22.2-0.20200523220130-61b30e20be49
 	google.golang.org/genproto v0.0.0-20200122232147-0452cf42e150 // indirect
 )

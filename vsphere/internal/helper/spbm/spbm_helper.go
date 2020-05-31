@@ -40,7 +40,7 @@ func PolicyIDByName(client *govmomi.Client, name string) (string, error) {
 }
 
 // policyNameByID returns storage policy name by its ID.
-func policyNameByID(client *govmomi.Client, id string) (string, error) {
+func PolicyNameByID(client *govmomi.Client, id string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	pc, err := pbmClientFromGovmomiClient(ctx, client)

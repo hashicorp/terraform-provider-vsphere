@@ -336,6 +336,8 @@ github.com/vmihailenco/msgpack v4.0.1+incompatible h1:RMF1enSPeKTlXrXdOcqjFUElyw
 github.com/vmihailenco/msgpack v4.0.1+incompatible/go.mod h1:fy3FlTQTDXWkZ7Bh6AcGMlsjHatGryHQYUTf1ShIgkk=
 github.com/vmware/govmomi v0.22.2-0.20200420222347-5fceac570f29 h1:8S2J/LGp5U19G4tia+aq+KvlNPuynIeui7W8xc8PGqU=
 github.com/vmware/govmomi v0.22.2-0.20200420222347-5fceac570f29/go.mod h1:Y+Wq4lst78L85Ge/F8+ORXIWiKYqaro1vhAulACy9Lc=
+github.com/vmware/govmomi v0.22.2-0.20200523220130-61b30e20be49 h1:bBp4s6KFH+6pwN2SjZPLC4W+SSEld0q1pycrcPTVyj4=
+github.com/vmware/govmomi v0.22.2-0.20200523220130-61b30e20be49/go.mod h1:Y+Wq4lst78L85Ge/F8+ORXIWiKYqaro1vhAulACy9Lc=
 github.com/vmware/vmw-guestinfo v0.0.0-20170707015358-25eff159a728/go.mod h1:x9oS4Wk2s2u4tS29nEaDLdzvuHdB19CvSGJjPgkZJNk=
 github.com/xanzy/ssh-agent v0.2.1/go.mod h1:mLlQY/MoOhWBj+gOGMQkOeiEvkx+8pJSI+0Bx9h2kr4=
 github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
