@@ -1,4 +1,10 @@
-## 1.19.0 (Unreleased)
+## 1.18.3 (Unreleased)
+
+IMPROVEMENTS:
+* `resource/custom_attribute`: Fix id in error message when category is 
+  missing. ([#1088](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1088))
+* `resource/virtual_machine`: Add vApp properties with OVF deployment. ([#1082](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1082))
+
 ## 1.18.2 (May 22, 2020)
 
 IMPROVEMENTS:
