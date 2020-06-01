@@ -1,4 +1,4 @@
-## 1.18.3 (Unreleased)
+## 1.18.3 (June 01, 2020)
 
 IMPROVEMENTS:
 * `resource/custom_attribute`: Fix id in error message when category is 
