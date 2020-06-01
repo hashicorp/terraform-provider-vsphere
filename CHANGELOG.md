@@ -1,3 +1,4 @@
+## 1.19.0 (Unreleased)
 ## 1.18.3 (June 01, 2020)
 
 IMPROVEMENTS:
