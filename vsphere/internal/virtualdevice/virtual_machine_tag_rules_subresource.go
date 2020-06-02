@@ -9,12 +9,13 @@ func VirtualMachineTagRulesSchema() map[string]*schema.Schema {
 		"tag_category": {
 			Type:        schema.TypeString,
 			Required:    true,
-			Description: "category",
+			Description: "The tag category to select the tags from.",
 		},
 		"tags": {
 			Type:        schema.TypeList,
 			Required:    true,
-			Description: "tags",
+			MinItems:    1,
+			Description: "The tags to use for creating a tag-based vm placement rule.",
 			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
 		"include_datastores_with_tags": {

@@ -1,18 +1,15 @@
 package vsphere
 
 import (
+	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 	"github.com/vmware/govmomi/pbm"
 	types2 "github.com/vmware/govmomi/pbm/types"
 	"github.com/vmware/govmomi/vapi/tags"
 	"log"
 	"strings"
-)
-
-import (
-	"context"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 const TAG_NAMESPACE = "http://www.vmware.com/storage/tag"
@@ -23,17 +20,17 @@ func resourceVmStoragePolicy() *schema.Resource {
 		"name": {
 			Type:        schema.TypeString,
 			Required:    true,
-			Description: "Name of the storage policy",
+			Description: "Name of the storage policy.",
 		},
 		"description": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "Description of the storage policy",
+			Description: "Description of the storage policy.",
 		},
 		"tag_rules": {
 			Type:        schema.TypeList,
 			Required:    true,
-			Description: "tag rules to filter datastores to be used for placement of VMs",
+			Description: "Tag rules to filter datastores to be used for placement of VMs.",
 			Elem:        &schema.Resource{Schema: virtualdevice.VirtualMachineTagRulesSchema()},
 		},
 	}
@@ -48,7 +45,7 @@ func resourceVmStoragePolicy() *schema.Resource {
 }
 
 func resourceVmStoragePolicyCreate(d *schema.ResourceData, meta interface{}) error {
-	log.Print("[DEBUG] Beginning create")
+	log.Printf("[DEBUG] Beginning create storage policy profile %s", d.Get("name").(string))
 	client := meta.(*VSphereClient).vimClient
 	rc := meta.(*VSphereClient).restClient
 
@@ -117,7 +114,7 @@ func resourceVmStoragePolicyCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	d.SetId(profileID.UniqueId)
-	log.Printf("[DEBUG] Storage policy Create complete with Id %s", profileID.UniqueId)
+	log.Printf("[DEBUG] Storage policy create complete with Id %s", profileID.UniqueId)
 
 	return resourceVmStoragePolicyRead(d, meta)
 }
