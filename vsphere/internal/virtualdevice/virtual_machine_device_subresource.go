@@ -1,7 +1,11 @@
 package virtualdevice
 
 import (
+	"context"
 	"fmt"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/computeresource"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"log"
 	"reflect"
 	"strconv"
@@ -123,6 +127,16 @@ type SubresourceInstance interface {
 	Set(string, interface{}) error
 	Schema() map[string]*schema.Schema
 	State() map[string]interface{}
+}
+
+// pciApplyConfig is used for making PCI device change functions easier to
+// work with.
+type pciApplyConfig struct {
+	Client        *govmomi.Client
+	ResourceData  *schema.ResourceData
+	SystemId      string
+	Spec          []types.BaseVirtualDeviceConfigSpec
+	VirtualDevice object.VirtualDeviceList
 }
 
 // controllerTypeToClass converts a controller type to a specific short-form
@@ -717,7 +731,7 @@ func (r *Subresource) ControllerForCreateUpdate(l object.VirtualDeviceList, ct s
 	return ctlr, nil
 }
 
-// applyDeviceChange applies a pending types.BaseVirtualDeviceConfigSpec to a
+// ApplyDeviceChange applies a pending types.BaseVirtualDeviceConfigSpec to a
 // working set to either add, remove, or update devices so that the working
 // VirtualDeviceList is as up to date as possible.
 func applyDeviceChange(l object.VirtualDeviceList, cs []types.BaseVirtualDeviceConfigSpec) object.VirtualDeviceList {
@@ -828,4 +842,135 @@ func AppendDeviceChangeSpec(
 		spec = append(spec, c)
 	}
 	return spec
+}
+
+// ApiToPciId is a helper to convert PCI DeviceIDs to their actual value.
+// vSphere appears to store the PCI information in hex, but converts it to
+// an int16 for the API. With large numbers, this overflows the int16.
+func ApiToPciId(i int16) string {
+	return strconv.FormatInt(int64(uint16(i)), 16)
+}
+
+// getHostPciDevice returns a HostPciDevice from a host based on the DeviceId.
+func (c *pciApplyConfig) getHostPciDevice(id string) (*types.HostPciDevice, error) {
+	host, err := hostsystem.FromID(c.Client, c.ResourceData.Get("host_system_id").(string))
+	if err != nil {
+		return nil, err
+	}
+	hprops, err := hostsystem.Properties(host)
+	if err != nil {
+		return nil, err
+	}
+	for _, hostPci := range hprops.Hardware.PciDevice {
+		if id == hostPci.Id {
+			return &hostPci, nil
+		}
+	}
+	return nil, fmt.Errorf("Unable to locate PCI device: %s", id)
+}
+
+// getPciSysId fetchs the PCI SystemId of a host. The SystemId is required for
+// PCI passthrough devices.
+func (c *pciApplyConfig) getPciSysId() error {
+	host, err := hostsystem.FromID(c.Client, c.ResourceData.Get("host_system_id").(string))
+	if err != nil {
+		return err
+	}
+	hostRef := host.Reference()
+	e, err := computeresource.EnvironmentBrowserFromReference(c.Client, hostRef)
+	if err != nil {
+		return err
+	}
+	sysId, err := e.SystemId(context.TODO(), &hostRef)
+	if err != nil {
+		return err
+	}
+	c.SystemId = sysId
+	return nil
+}
+
+// modifyVirtualPciDevices will take a list of devices and an operation and
+// will create the appropriate config spec.
+func (c *pciApplyConfig) modifyVirtualPciDevices(devList *schema.Set, op types.VirtualDeviceConfigSpecOperation) error {
+	log.Printf("VirtualMachine: Creating PCI passthrough device specs %v", op)
+	for _, addDev := range devList.List() {
+		log.Printf("[DEBUG] modifyVirtualPciDevices: Appending %v spec for %s", op, addDev.(string))
+		pciDev, err := c.getHostPciDevice(addDev.(string))
+		if err != nil {
+			return err
+		}
+		dev := &types.VirtualPCIPassthrough{
+			VirtualDevice: types.VirtualDevice{
+				DynamicData: types.DynamicData{},
+				Backing: &types.VirtualPCIPassthroughDeviceBackingInfo{
+					VirtualDeviceDeviceBackingInfo: types.VirtualDeviceDeviceBackingInfo{},
+					Id:                             pciDev.Id,
+					SystemId:                       c.SystemId,
+					VendorId:                       pciDev.VendorId,
+				},
+			},
+		}
+		vm, err := virtualmachine.FromUUID(c.Client, c.ResourceData.Id())
+		if err != nil {
+			return err
+		}
+		vprops, err := virtualmachine.Properties(vm)
+		if err != nil {
+			return err
+		}
+		// This will only find a device for delete operations.
+		for _, vmDevP := range vprops.Config.Hardware.Device {
+			if vmDev, ok := vmDevP.(*types.VirtualPCIPassthrough); ok {
+				if vmDev.Backing.(*types.VirtualPCIPassthroughDeviceBackingInfo).Id == pciDev.Id {
+					dev = vmDev
+				}
+			}
+		}
+		dspec, err := object.VirtualDeviceList{dev}.ConfigSpec(op)
+		if err != nil {
+			return err
+		}
+		c.Spec = append(c.Spec, dspec...)
+		c.VirtualDevice = applyDeviceChange(c.VirtualDevice, dspec)
+	}
+	log.Printf("VirtualMachine: PCI passthrough device specs created")
+	return nil
+}
+
+// PciPassthroughApplyOperation checks for changes in a virtual machine's
+// PCI passthrough devices and creates config specs to apply apply to the
+// virtual machine.
+func PciPassthroughApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+	old, new := d.GetChange("pci_device_id")
+	oldDevIds := old.(*schema.Set)
+	newDevIds := new.(*schema.Set)
+
+	delDevs := oldDevIds.Difference(newDevIds)
+	addDevs := newDevIds.Difference(oldDevIds)
+	applyConfig := &pciApplyConfig{
+		Client:        c,
+		ResourceData:  d,
+		Spec:          []types.BaseVirtualDeviceConfigSpec{},
+		VirtualDevice: l,
+	}
+	if addDevs.Len() > 0 || delDevs.Len() > 0 {
+		d.Set("reboot_required", true)
+	}
+	err := applyConfig.getPciSysId()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Add new PCI passthrough devices
+	err = applyConfig.modifyVirtualPciDevices(addDevs, types.VirtualDeviceConfigSpecOperationAdd)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Remove deleted PCI passthrough devices
+	err = applyConfig.modifyVirtualPciDevices(delDevs, types.VirtualDeviceConfigSpecOperationRemove)
+	if err != nil {
+		return nil, nil, err
+	}
+	return applyConfig.VirtualDevice, applyConfig.Spec, nil
 }

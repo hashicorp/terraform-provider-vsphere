@@ -3,6 +3,7 @@ package computeresource
 import (
 	"context"
 	"fmt"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"log"
 	"strings"
 
@@ -57,6 +58,33 @@ func StandaloneFromID(client *govmomi.Client, id string) (*object.ComputeResourc
 	return obj.(*object.ComputeResource), nil
 }
 
+func HostSystemFromID(client *govmomi.Client, id string) (BaseComputeResource, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	host, err := hostsystem.FromID(client, id)
+	pool, err := host.ResourcePool(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var props mo.ResourcePool
+	// Properties need to be retrieved manually because using resourcepool
+	// package causes a dependency loop.
+	if err := pool.Properties(ctx, pool.Reference(), nil, &props); err != nil {
+		return nil, err
+	}
+	ref := types.ManagedObjectReference{
+		Type:  "ComputeResource",
+		Value: props.Owner.Value,
+	}
+	finder := find.NewFinder(client.Client, false)
+	obj, err := finder.ObjectReference(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+
+	return obj.(*object.ComputeResource), nil
+}
+
 // ClusterFromID returns a ClusterComputeResource, a subclass of
 // ComputeResource that is used for clusters.
 func ClusterFromID(client *govmomi.Client, id string) (*object.ClusterComputeResource, error) {
@@ -102,6 +130,8 @@ func BaseFromPath(client *govmomi.Client, path string) (BaseComputeResource, err
 // reference.
 func BaseFromReference(client *govmomi.Client, ref types.ManagedObjectReference) (BaseComputeResource, error) {
 	switch ref.Type {
+	case "HostSystem":
+		return HostSystemFromID(client, ref.Value)
 	case "ComputeResource":
 		return StandaloneFromID(client, ref.Value)
 	case "ClusterComputeResource":

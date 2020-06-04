@@ -100,6 +100,35 @@ func (b *EnvironmentBrowser) OSFamily(ctx context.Context, guest string) (string
 	return "", fmt.Errorf("could not find guest ID %q", guest)
 }
 
+// SystemId fetches the host SystemId which is used in creating PCI passthrough
+// devices.
+func (b *EnvironmentBrowser) SystemId(ctx context.Context, host *types.ManagedObjectReference) (string, error) {
+	var eb mo.EnvironmentBrowser
+
+	err := b.Properties(ctx, b.Reference(), nil, &eb)
+	if err != nil {
+		return "", err
+	}
+
+	req := types.QueryConfigTarget{
+		This: b.Reference(),
+		Host: host,
+	}
+	res, err := methods.QueryConfigTarget(ctx, b.Client(), &req)
+	if err != nil {
+		return "", err
+	}
+	if res.Returnval == nil {
+		return "", errors.New("no config options were found for the supplied criteria")
+	}
+	for _, dev := range res.Returnval.PciPassthrough {
+		if dev.GetVirtualMachinePciPassthroughInfo() != nil {
+			return dev.GetVirtualMachinePciPassthroughInfo().SystemId, nil
+		}
+	}
+	return "", fmt.Errorf("could not find SystemId")
+}
+
 // QueryConfigOptionDescriptor returns a list the list of ConfigOption keys
 // available on the environment that this browser targets. The keys can be used
 // as query options for DefaultDevices and other functions, facilitating the

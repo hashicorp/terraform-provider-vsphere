@@ -521,6 +521,8 @@ external disks on virtual machines that are assigned to datastore clusters.
    is from 4 to 15. The hardware version cannot be downgraded. See [virtual
    machine hardware compatibility][virtual-machine-hardware-compatibility] for
    more details.
+ * `pci_device_id` - (Optional) List of host PCI device IDs to create PCI 
+   passthroughs for.
    
 [virtual-machine-hardware-compatibility]: https://kb.vmware.com/s/article/2007240
 
