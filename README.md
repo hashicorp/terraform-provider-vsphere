@@ -27,7 +27,7 @@ This provider plugin is maintained by the Terraform team at [HashiCorp](https://
 ## Requirements
 -	[Terraform](https://www.terraform.io/downloads.html) 0.12.x
     - Note that version 0.11.x currently works, but is [deprecated](https://www.hashicorp.com/blog/deprecating-terraform-0-11-support-in-terraform-providers/)
-- vSphere 6    
+- vSphere 6.7    
    -  Currently, this provider is being tested for compatibility with vSphere 6. We do not currently test vSphere 7, but plans are underway to add support.
 -	[Go](https://golang.org/doc/install) 1.14.x (to build the provider plugin)
 
@@ -42,7 +42,7 @@ version of the provider.
 
 The Terraform vSphere Provider is the work of many contributors. We appreciate your help!
 
-To contribute, please read the [contribution guidelines](_about/CONTRIBUTING.md). You may also [report an issue](https://github.com/terraform-providers/terraform-provider-kubernetes/issues/new/choose). Once you've filed an issue, it will follow the [issue lifecycle](ISSUES.md).
+To contribute, please read the [contribution guidelines](_about/CONTRIBUTING.md). You may also [report an issue](https://github.com/terraform-providers/terraform-provider-vsphere/issues/new/choose). Once you've filed an issue, it will follow the [issue lifecycle](ISSUES.md).
 
 Also available are some answers to [Frequently Asked Questions](_about/FAQ.md).
 
