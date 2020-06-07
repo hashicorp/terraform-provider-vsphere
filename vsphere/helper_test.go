@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/spbm"
 	"github.com/vmware/govmomi/vapi/library"
 	"github.com/vmware/govmomi/vapi/rest"
 	"os"
@@ -1127,4 +1128,18 @@ func testGetDatastoreClusterVMAntiAffinityRule(s *terraform.State, resourceName 
 	}
 
 	return resourceVSphereDatastoreClusterVMAntiAffinityRuleFindEntry(pod, key)
+}
+
+func testGetVmStoragePolicy(s *terraform.State, resourceName string) (string, error) {
+
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_vm_storage_policy.%s", resourceName))
+	if err != nil {
+		return "", err
+	}
+	policyId, ok := tVars.resourceAttributes["id"]
+	if !ok {
+		return "", fmt.Errorf("resource %q has no id", resourceName)
+	}
+
+	return spbm.PolicyNameByID(tVars.client, policyId)
 }

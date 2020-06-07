@@ -81,7 +81,7 @@ func resourceVSphereCustomAttributeRead(d *schema.ResourceData, meta interface{}
 	}
 	field := fields.ByKey(int32(key))
 	if field == nil {
-		return fmt.Errorf("could not locate category with id %q", key)
+		return fmt.Errorf("could not locate category with id '%d'", key)
 	}
 	d.Set("name", field.Name)
 	d.Set("managed_object_type", field.ManagedObjectType)

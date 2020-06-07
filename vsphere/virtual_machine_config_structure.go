@@ -243,7 +243,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Optional:    true,
 			Description: "User-provided description of the virtual machine.",
 			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-				if len(d.Get("ovf_deploy").([]interface{})) > 0 && d.Get("annotation").(string) == "" {
+				if len(d.Get("ovf_deploy").([]interface{})) > 0 && new == "" {
 					return true
 				}
 				return false

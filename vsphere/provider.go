@@ -130,6 +130,7 @@ func Provider() terraform.ResourceProvider {
 			"vsphere_virtual_machine_snapshot":                resourceVSphereVirtualMachineSnapshot(),
 			"vsphere_host":                                    resourceVsphereHost(),
 			"vsphere_vnic":                                    resourceVsphereNic(),
+			"vsphere_vm_storage_policy":                       resourceVmStoragePolicy(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
