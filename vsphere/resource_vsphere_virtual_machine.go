@@ -245,6 +245,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				return false
 			},
 		},
+		"pci_device_id": {
+			Type:        schema.TypeSet,
+			Optional:    true,
+			Description: "A list of PCI passthrough devices",
+			Elem:        &schema.Schema{Type: schema.TypeString},
+		},
 		"clone": {
 			Type:        schema.TypeList,
 			Optional:    true,
@@ -348,6 +354,12 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		if err := attrsProcessor.ProcessDiff(vm); err != nil {
 			return err
 		}
+	}
+
+	// Verify that host_system_id is set if pci_device_id is used.
+	pciDev := d.Get("pci_device_id").(*schema.Set)
+	if pciDev.Len() > 0 && d.Get("host_system_id").(string) == "" {
+		return fmt.Errorf("host_system_id must be set when using pci_device_id")
 	}
 
 	// The host attribute of CreateVM_Task seems to be ignored in vCenter 6.7.
@@ -493,12 +505,25 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("error reading virtual machine configuration: %s", err)
 	}
 
-	// Read the VM Home storage policy if associated
+	// Read the VM Home storage policy if associated.
 	polID, err := spbm.PolicyIDByVirtualMachine(client, moid)
 	if err != nil {
 		return err
 	}
 	d.Set("storage_policy_id", polID)
+
+	// Read the PCI passthrough devices.
+	var pciDevs []string
+	for _, dev := range vprops.Config.Hardware.Device {
+		if pci, ok := dev.(*types.VirtualPCIPassthrough); ok {
+			devId := pci.Backing.(*types.VirtualPCIPassthroughDeviceBackingInfo).Id
+			pciDevs = append(pciDevs, devId)
+		}
+	}
+	err = d.Set("pci_device_id", pciDevs)
+	if err != nil {
+		return err
+	}
 
 	// Perform pending device read operations.
 	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
@@ -679,6 +704,8 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 			// Sleep for a bit
 			time.Sleep(questionCheckIntervalSecs * time.Second)
 			for {
+				// Sleep for a bit
+				time.Sleep(questionCheckIntervalSecs * time.Second)
 				select {
 				case <-gChan:
 					// We're done
@@ -1251,7 +1278,6 @@ func resourceVSphereVirtualMachineCreateBareWithSDRS(
 	if err != nil {
 		return nil, fmt.Errorf("error creating virtual machine on datastore cluster %q: %s", pod.Name(), err)
 	}
-
 	return vm, nil
 }
 
@@ -1865,6 +1891,12 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 	spec = virtualdevice.AppendDeviceChangeSpec(spec, delta...)
 	// CDROM
 	l, delta, err = virtualdevice.CdromApplyOperation(d, c, l)
+	if err != nil {
+		return nil, err
+	}
+	spec = virtualdevice.AppendDeviceChangeSpec(spec, delta...)
+	// PCI passthrough devices
+	l, delta, err = virtualdevice.PciPassthroughApplyOperation(d, c, l)
 	if err != nil {
 		return nil, err
 	}

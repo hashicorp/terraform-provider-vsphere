@@ -144,6 +144,7 @@ func Provider() terraform.ResourceProvider {
 			"vsphere_distributed_virtual_switch": dataSourceVSphereDistributedVirtualSwitch(),
 			"vsphere_folder":                     dataSourceVSphereFolder(),
 			"vsphere_host":                       dataSourceVSphereHost(),
+			"vsphere_host_pci_device":            dataSourceVSphereHostPciDevice(),
 			"vsphere_network":                    dataSourceVSphereNetwork(),
 			"vsphere_resource_pool":              dataSourceVSphereResourcePool(),
 			"vsphere_storage_policy":             dataSourceVSphereStoragePolicy(),
