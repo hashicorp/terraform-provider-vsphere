@@ -30,36 +30,61 @@ func TestAccDataSourceVSphereContentLibraryItem_basic(t *testing.T) {
 }
 
 func testAccDataSourceVSphereContentLibraryItemPreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_CONTENT_LIBRARY") == "" {
-		t.Skip("set VSPHERE_CONTENT_LIBRARY to run vsphere_content_library acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_CONTENT_LIBRARY") == "" {
+		t.Skip("set TF_VAR_VSPHERE_CONTENT_LIBRARY to run vsphere_content_library acceptance tests")
 	}
-	if os.Getenv("VSPHERE_CONTENT_LIBRARY_ITEM") == "" {
-		t.Skip("set VSPHERE_CONTENT_LIBRARY_ITEM to run vsphere_content_library_item acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_CONTENT_LIBRARY_ITEM") == "" {
+		t.Skip("set TF_VAR_VSPHERE_CONTENT_LIBRARY_ITEM to run vsphere_content_library_item acceptance tests")
 	}
 }
 
 func testAccDataSourceVSphereContentLibraryItemConfig() string {
 	return fmt.Sprintf(`
-variable "content_library" {
+variable "datacenter" {
   type    = "string"
   default = "%s"
 }
 
-variable "content_library_item" {
+variable "datastore" {
   type    = "string"
   default = "%s"
 }
 
-data "vsphere_content_library" "library" {
-  name = var.content_library
+variable "file_list" {
+  type    = list(string)
+  default = %s 
+}
+
+data "vsphere_datacenter" "dc" {
+  name = var.datacenter
+}
+
+data "vsphere_datastore" "ds" {
+  datacenter_id = data.vsphere_datacenter.dc.id
+  name = var.datastore
+}
+
+resource "vsphere_content_library" "library" {
+  name            = "ContentLibrary_test"
+  storage_backing = [ data.vsphere_datastore.ds.id ]
+  description     = "Library Description"
+}
+
+resource "vsphere_content_library_item" "item" {
+  name        = "ubuntu"
+  description = "Ubuntu Description"
+  library_id  = vsphere_content_library.library.id
+  type        = "ovf"
+  file_url    = var.file_list
 }
 
 data "vsphere_content_library_item" "item" {
-  name       = var.content_library_item
-  library_id = data.vsphere_content_library.library.id
+  name       = vsphere_content_library_item.item.name
+  library_id = vsphere_content_library.library.id
 }
 `,
-		os.Getenv("VSPHERE_CONTENT_LIBRARY"),
-		os.Getenv("VSPHERE_CONTENT_LIBRARY_ITEM"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		os.Getenv("TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES"),
 	)
 }

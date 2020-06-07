@@ -48,38 +48,45 @@ func TestAccDataSourceVSphereVAppContainer_path(t *testing.T) {
 }
 
 func testAccDataSourceVSphereVAppContainerPreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_DATACENTER") == "" {
-		t.Skip("set VSPHERE_DATACENTER to run vsphere_vapp_container acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_vapp_container acceptance tests")
 	}
-	if os.Getenv("VSPHERE_CLUSTER") == "" {
-		t.Skip("set VSPHERE_CLUSTER to run vsphere_vapp_container acceptance tests")
-	}
-	if os.Getenv("VSPHERE_VAPP_CONTAINER") == "" {
-		t.Skip("set VSPHERE_VAPP_CONTAINER to run vsphere_vapp_container acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_CLUSTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_CLUSTER to run vsphere_vapp_container acceptance tests")
 	}
 }
 
 func testAccDataSourceVSphereVAppContainerConfig() string {
 	return fmt.Sprintf(`
+variable "cluster" {
+  default = "%s"
+}
+
 variable "datacenter" {
   default = "%s"
 }
 
-variable "vapp_container" {
-  default = "%s"
+data "vsphere_datacenter" "dc" {
+  name = var.datacenter
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
+data "vsphere_compute_cluster" "cluster" {
+  datacenter_id = data.vsphere_datacenter.dc.id
+  name          = var.cluster
+}
+
+resource "vsphere_vapp_container" "vapp" {
+  name                 = "vapp-test"
+  parent_resource_pool = data.vsphere_compute_cluster.cluster.resource_pool_id
 }
 
 data "vsphere_vapp_container" "container" {
-  name          = "${var.vapp_container}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = vsphere_vapp_container.vapp.name
+  datacenter_id = data.vsphere_datacenter.dc.id
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_VAPP_CONTAINER"),
+		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -93,21 +100,26 @@ variable "cluster" {
   default = "%s"
 }
 
-variable "vapp_container" {
-  default = "%s"
+data "vsphere_datacenter" "dc" {
+  name = var.datacenter
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
+data "vsphere_compute_cluster" "cluster" {
+  datacenter_id = data.vsphere_datacenter.dc.id
+  name          = var.cluster
+}
+
+resource "vsphere_vapp_container" "vapp" {
+  name                 = "vapp-test"
+  parent_resource_pool = data.vsphere_compute_cluster.cluster.resource_pool_id
 }
 
 data "vsphere_vapp_container" "container" {
-  name          = "/${var.datacenter}/vm/${var.vapp_container}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "/${var.datacenter}/vm/vapp-test"
+  datacenter_id = data.vsphere_datacenter.dc.id
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_CLUSTER"),
-		os.Getenv("VSPHERE_VAPP_CONTAINER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
 	)
 }

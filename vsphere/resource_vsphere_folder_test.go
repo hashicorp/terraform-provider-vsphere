@@ -659,7 +659,7 @@ resource "vsphere_folder" "folder" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		name,
 		ft,
 	)
@@ -699,7 +699,7 @@ resource "vsphere_folder" "folder" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		name,
 		ft,
 		testAccResourceVSphereFolderConfigExpectedParentName,
@@ -765,7 +765,7 @@ resource "vsphere_folder" "folder" {
   tags          = ["${vsphere_tag.terraform-test-tag.id}"]
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		testAccResourceVSphereFolderConfigExpectedName,
 		folder.VSphereFolderTypeVM,
 	)
@@ -823,7 +823,7 @@ resource "vsphere_folder" "folder" {
   tags          = ["${vsphere_tag.terraform-test-tag.id}", "${vsphere_tag.terraform-test-tags-alt.0.id}", "${vsphere_tag.terraform-test-tags-alt.1.id}"]
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		testAccResourceVSphereFolderConfigExpectedName,
 		folder.VSphereFolderTypeVM,
 	)
@@ -881,7 +881,7 @@ resource "vsphere_folder" "folder" {
   tags          = "${vsphere_tag.terraform-test-tags-alt.*.id}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		testAccResourceVSphereFolderConfigExpectedName,
 		folder.VSphereFolderTypeVM,
 	)
@@ -923,7 +923,7 @@ resource "vsphere_folder" "folder" {
   custom_attributes = "${local.folder_attrs}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		testAccResourceVSphereFolderConfigExpectedName,
 		folder.VSphereFolderTypeVM,
 	)
@@ -971,7 +971,7 @@ resource "vsphere_folder" "folder" {
   custom_attributes = "${local.folder_attrs}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		testAccResourceVSphereFolderConfigExpectedName,
 		folder.VSphereFolderTypeVM,
 	)
@@ -1011,7 +1011,7 @@ resource "vsphere_folder" "folder" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		testAccResourceVSphereFolderConfigExpectedName,
 		folder.VSphereFolderTypeVM,
 	)

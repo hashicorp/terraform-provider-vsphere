@@ -1,0 +1,49 @@
+{
+    "__version": "2.13.0",
+    "__comments": "Sample template to deploy a vCenter Server Appliance with an embedded Platform Services Controller on an ESXi host.",
+    "new_vcsa": {
+        "esxi": {
+            "hostname": "${hostname}",
+            "username": "root",
+            "password": "${password}",
+            "deployment_network": "VM Network",
+            "datastore": "datastore1"
+        },
+        "appliance": {
+            "__comments": [
+                ""
+            ],
+            "thin_disk_mode": true,
+            "deployment_option": "tiny",
+            "name": "vcsa"
+        },
+        "network": {
+            "ip_family": "ipv4",
+            "mode": "static",
+            "ip": "${ip_address}",
+            "dns_servers": [
+                "8.8.8.8"
+            ],
+            "prefix": "${ip_prefix}",
+            "gateway": "${gateway}",
+            "system_name": "${ip_address}"
+        },
+        "os": {
+            "password": "${admin_password}",
+            "ssh_enable": true,
+            "time_tools_sync": true
+        },
+        "sso": {
+            "password": "${admin_password}",
+            "domain_name": "${vcenter_fqdn}"
+        }
+    },
+    "ceip": {
+        "description": {
+            "__comments": ""
+        },
+        "settings": {
+            "ceip_enabled": false
+        }
+    }
+}

@@ -51,99 +51,41 @@ func TestAccDataSourceVSphereDatastore_noDatacenterAndAbsolutePath(t *testing.T)
 }
 
 func testAccDataSourceVSphereDatastorePreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_ESXI_HOST") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST to run vsphere_vmfs_disks acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
+		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_nas_datastore acceptance tests")
 	}
-	if os.Getenv("VSPHERE_NAS_HOST") == "" {
-		t.Skip("set VSPHERE_NAS_HOST to run vsphere_nas_datastore acceptance tests")
-	}
-	if os.Getenv("VSPHERE_NFS_PATH") == "" {
-		t.Skip("set VSPHERE_NFS_PATH to run vsphere_nas_datastore acceptance tests")
-	}
-	if os.Getenv("VSPHERE_DS_FOLDER") == "" {
-		t.Skip("set VSPHERE_DS_FOLDER to run vsphere_nas_datastore acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_nas_datastore acceptance tests")
 	}
 }
 
 func testAccDataSourceVSphereDatastoreConfig() string {
 	return fmt.Sprintf(`
-variable "nfs_host" {
-  type    = "string"
-  default = "%s"
-}
-
-variable "nfs_path" {
-  type    = "string"
-  default = "%s"
-}
-
 data "vsphere_datacenter" "datacenter" {
   name = "%s"
 }
 
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
-
-resource "vsphere_nas_datastore" "datastore" {
-  name            = "terraform-test-nas"
-  host_system_ids = ["${data.vsphere_host.esxi_host.id}"]
-
-  type         = "NFS"
-  remote_hosts = ["${var.nfs_host}"]
-  remote_path  = "${var.nfs_path}"
-}
-
 data "vsphere_datastore" "datastore_data" {
-  name          = "${vsphere_nas_datastore.datastore.name}"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+  name          = "%s"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 `,
-		os.Getenv("VSPHERE_NAS_HOST"),
-		os.Getenv("VSPHERE_NFS_PATH"),
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_ESXI_HOST"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
 	)
 }
 
 func testAccDataSourceVSphereDatastoreConfigAbsolutePath() string {
 	return fmt.Sprintf(`
-variable "nfs_host" {
-  type    = "string"
-  default = "%s"
-}
-
-variable "nfs_path" {
-  type    = "string"
-  default = "%s"
-}
-
 data "vsphere_datacenter" "datacenter" {
   name = "%s"
 }
 
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
-
-resource "vsphere_nas_datastore" "datastore" {
-  name            = "terraform-test-nas"
-  host_system_ids = ["${data.vsphere_host.esxi_host.id}"]
-
-  type         = "NFS"
-  remote_hosts = ["${var.nfs_host}"]
-  remote_path  = "${var.nfs_path}"
-}
-
 data "vsphere_datastore" "datastore_data" {
-  name = "/${data.vsphere_datacenter.datacenter.name}/datastore/${vsphere_nas_datastore.datastore.name}"
+  name = "/${data.vsphere_datacenter.datacenter.name}/datastore/%s"
 }
 `,
-		os.Getenv("VSPHERE_NAS_HOST"),
-		os.Getenv("VSPHERE_NFS_PATH"),
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_ESXI_HOST"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
 	)
 }

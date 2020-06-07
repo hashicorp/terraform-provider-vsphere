@@ -156,7 +156,7 @@ func TestAccResourceVSphereVmfsDatastore_withFolder(t *testing.T) {
 				Config: testAccResourceVSphereVmfsDatastoreConfigStaticSingleFolder(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVmfsDatastoreExists(true),
-					testAccResourceVSphereVmfsDatastoreMatchInventoryPath(os.Getenv("VSPHERE_DS_FOLDER")),
+					testAccResourceVSphereVmfsDatastoreMatchInventoryPath(os.Getenv("TF_VAR_VSPHERE_DS_FOLDER")),
 				),
 			},
 		},
@@ -183,7 +183,7 @@ func TestAccResourceVSphereVmfsDatastore_moveToFolderAfter(t *testing.T) {
 				ExpectError: expectErrorIfNotVirtualCenter(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVmfsDatastoreExists(true),
-					testAccResourceVSphereVmfsDatastoreMatchInventoryPath(os.Getenv("VSPHERE_DS_FOLDER")),
+					testAccResourceVSphereVmfsDatastoreMatchInventoryPath(os.Getenv("TF_VAR_VSPHERE_DS_FOLDER")),
 				),
 			},
 		},
@@ -376,23 +376,23 @@ func TestAccResourceVSphereVmfsDatastore_multiCustomAttribute(t *testing.T) {
 }
 
 func testAccResourceVSphereVmfsDatastorePreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_ESXI_HOST") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST to run vsphere_vmfs_disks acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_vmfs_disks acceptance tests")
 	}
-	if os.Getenv("VSPHERE_DS_VMFS_DISK0") == "" {
-		t.Skip("set VSPHERE_DS_VMFS_DISK0 to run vsphere_vmfs_datastore acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DS_VMFS_DISK0 to run vsphere_vmfs_datastore acceptance tests")
 	}
-	if os.Getenv("VSPHERE_DS_VMFS_DISK1") == "" {
-		t.Skip("set VSPHERE_DS_VMFS_DISK1 to run vsphere_vmfs_datastore acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK1") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DS_VMFS_DISK1 to run vsphere_vmfs_datastore acceptance tests")
 	}
-	if os.Getenv("VSPHERE_DS_VMFS_DISK2") == "" {
-		t.Skip("set VSPHERE_DS_VMFS_DISK2 to run vsphere_vmfs_datastore acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK2") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DS_VMFS_DISK2 to run vsphere_vmfs_datastore acceptance tests")
 	}
-	if os.Getenv("VSPHERE_VMFS_REGEXP") == "" {
-		t.Skip("set VSPHERE_VMFS_REGEXP to run vsphere_vmfs_datastore acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_VMFS_REGEXP") == "" {
+		t.Skip("set TF_VAR_VSPHERE_VMFS_REGEXP to run vsphere_vmfs_datastore acceptance tests")
 	}
-	if os.Getenv("VSPHERE_DS_FOLDER") == "" {
-		t.Skip("set VSPHERE_DS_FOLDER to run vsphere_vmfs_datastore acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_DS_FOLDER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DS_FOLDER to run vsphere_vmfs_datastore acceptance tests")
 	}
 }
 
@@ -487,7 +487,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
     "${var.disk0}",
   ]
 }
-`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigStaticSingleAltName() string {
@@ -514,7 +514,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
     "${var.disk0}",
   ]
 }
-`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigStaticMulti() string {
@@ -553,7 +553,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
     "${var.disk2}",
   ]
 }
-`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DS_VMFS_DISK1"), os.Getenv("VSPHERE_DS_VMFS_DISK2"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK1"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK2"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigDiscoverDatasource() string {
@@ -584,7 +584,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 
   disks = "${data.vsphere_vmfs_disks.available.disks}"
 }
-`, os.Getenv("VSPHERE_VMFS_REGEXP"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_VMFS_REGEXP"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigStaticSingleFolder() string {
@@ -617,7 +617,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
     "${var.disk0}",
   ]
 }
-`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DS_FOLDER"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigTags() string {
@@ -660,7 +660,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 
   tags = ["${vsphere_tag.terraform-test-tag.id}"]
 }
-`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigMultiTags() string {
@@ -716,7 +716,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 
   tags = "${vsphere_tag.terraform-test-tags-alt.*.id}"
 }
-`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigBadDisk() string {
@@ -750,7 +750,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
     "",
   ]
 }
-`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DS_VMFS_DISK1"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK1"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigDuplicateDisk() string {
@@ -784,7 +784,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
     "${var.disk1}",
   ]
 }
-`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DS_VMFS_DISK1"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK1"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigCustomAttributes() string {
@@ -824,7 +824,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 
   custom_attributes = "${local.vmfs_attrs}"
 }
-`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigMultiCustomAttributes() string {
@@ -870,7 +870,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 
   custom_attributes = "${local.vmfs_attrs}"
 }
-`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigDatastoreCluster() string {
@@ -908,5 +908,5 @@ resource "vsphere_vmfs_datastore" "datastore" {
     "${var.disk0}",
   ]
 }
-`, os.Getenv("VSPHERE_DS_VMFS_DISK0"), os.Getenv("VSPHERE_DS_FOLDER"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }

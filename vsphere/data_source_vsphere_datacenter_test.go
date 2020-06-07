@@ -56,8 +56,8 @@ func TestAccDataSourceVSphereDatacenter_defaultDatacenter(t *testing.T) {
 }
 
 func testAccDataSourceVSphereDatacenterPreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_DATACENTER") == "" {
-		t.Skip("set VSPHERE_DATACENTER to run vsphere_datacenter acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_datacenter acceptance tests")
 	}
 }
 
@@ -66,7 +66,7 @@ func testAccDataSourceVSphereDatacenterConfig() string {
 data "vsphere_datacenter" "dc" {
   name = "%s"
 }
-`, os.Getenv("VSPHERE_DATACENTER"))
+`, os.Getenv("TF_VAR_VSPHERE_DATACENTER"))
 }
 
 const testAccDataSourceVSphereDatacenterConfigDefault = `

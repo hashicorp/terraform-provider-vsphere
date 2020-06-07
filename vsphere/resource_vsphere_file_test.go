@@ -23,8 +23,8 @@ func TestAccResourceVSphereFile_basic(t *testing.T) {
 		return
 	}
 
-	datacenter := os.Getenv("VSPHERE_DATACENTER")
-	datastore := os.Getenv("VSPHERE_DATASTORE")
+	datacenter := os.Getenv("TF_VAR_VSPHERE_DATACENTER")
+	datastore := os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")
 	testMethod := "basic"
 	resourceName := "vsphere_file." + testMethod
 	destinationFile := "tf_file_test.vmdk"
@@ -33,7 +33,7 @@ func TestAccResourceVSphereFile_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccCheckEnvVariables(t, []string{"VSPHERE_DATACENTER", "VSPHERE_DATASTORE"})
+			testAccCheckEnvVariables(t, []string{"TF_VAR_VSPHERE_DATACENTER", "TF_VAR_VSPHERE_NFS_DS_NAME"})
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereFileDestroy,
@@ -63,9 +63,9 @@ func TestAccResourceVSphereFile_basicUploadAndCopy(t *testing.T) {
 	sourceFile := "/tmp/tf_test.vmdk"
 	uploadResourceName := "myfileupload"
 	copyResourceName := "myfilecopy"
-	sourceDatacenter := os.Getenv("VSPHERE_DATACENTER")
+	sourceDatacenter := os.Getenv("TF_VAR_VSPHERE_DATACENTER")
 	datacenter := sourceDatacenter
-	sourceDatastore := os.Getenv("VSPHERE_DATASTORE")
+	sourceDatastore := os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")
 	datastore := sourceDatastore
 	destinationFile := "tf_file_test.vmdk"
 	sourceFileCopy := "${vsphere_file." + uploadResourceName + ".destination_file}"
@@ -80,7 +80,7 @@ func TestAccResourceVSphereFile_basicUploadAndCopy(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccCheckEnvVariables(t, []string{"VSPHERE_DATACENTER", "VSPHERE_DATASTORE"})
+			testAccCheckEnvVariables(t, []string{"TF_VAR_VSPHERE_DATACENTER", "TF_VAR_VSPHERE_NFS_DS_NAME"})
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereFileDestroy,
@@ -123,8 +123,8 @@ func TestAccResourceVSphereFile_renamePostCreation(t *testing.T) {
 		return
 	}
 
-	datacenter := os.Getenv("VSPHERE_DATACENTER")
-	datastore := os.Getenv("VSPHERE_DATASTORE")
+	datacenter := os.Getenv("TF_VAR_VSPHERE_DATACENTER")
+	datastore := os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")
 	testMethod := "create_upgrade"
 	resourceName := "vsphere_file." + testMethod
 	destinationFile := "tf_test_file.vmdk"
@@ -134,7 +134,7 @@ func TestAccResourceVSphereFile_renamePostCreation(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccCheckEnvVariables(t, []string{"VSPHERE_DATACENTER", "VSPHERE_DATASTORE"})
+			testAccCheckEnvVariables(t, []string{"TF_VAR_VSPHERE_DATACENTER", "TF_VAR_VSPHERE_NFS_DS_NAME"})
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereFileDestroy,
@@ -180,9 +180,9 @@ func TestAccResourceVSphereFile_uploadAndCopyAndUpdate(t *testing.T) {
 	sourceFile := "/tmp/tf_test.vmdk"
 	uploadResourceName := "myfileupload"
 	copyResourceName := "myfilecopy"
-	sourceDatacenter := os.Getenv("VSPHERE_DATACENTER")
+	sourceDatacenter := os.Getenv("TF_VAR_VSPHERE_DATACENTER")
 	datacenter := sourceDatacenter
-	sourceDatastore := os.Getenv("VSPHERE_DATASTORE")
+	sourceDatastore := os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")
 	datastore := sourceDatastore
 	destinationFile := "tf_file_test.vmdk"
 	sourceFileCopy := "${vsphere_file." + uploadResourceName + ".destination_file}"
@@ -198,7 +198,7 @@ func TestAccResourceVSphereFile_uploadAndCopyAndUpdate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccCheckEnvVariables(t, []string{"VSPHERE_DATACENTER", "VSPHERE_DATASTORE"})
+			testAccCheckEnvVariables(t, []string{"TF_VAR_VSPHERE_DATACENTER", "TF_VAR_VSPHERE_NFS_DS_NAME"})
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereFileDestroy,

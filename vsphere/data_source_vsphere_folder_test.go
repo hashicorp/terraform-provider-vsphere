@@ -34,20 +34,27 @@ func TestAccDataSourceVSphereFolder_basic(t *testing.T) {
 }
 
 func testAccDataSourceVSphereFolderPreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_FOLDER_V0_PATH") == "" {
-		t.Skip("set VSPHERE_FOLDER_V0_PATH to run vsphere_folder acceptance tests")
-	}
-	if os.Getenv("VSPHERE_DATACENTER") == "" {
-		t.Skip("set VSPHERE_DATACENTER to run vsphere_folder acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_folder acceptance tests")
 	}
 }
 
 func testAccDataSourceVSphereFolderConfig() string {
 	return fmt.Sprintf(`
-data "vsphere_folder" "folder" {
-  path = "/%s/vm/%s"
+data "vsphere_datacenter" "dc" {
+  name = "%s"
 }
-`, os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_FOLDER_V0_PATH"))
+
+resource "vsphere_folder" "folder" {
+  path          = "test-folder"
+  type          = "vm"
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+data "vsphere_folder" "folder" {
+  path = "/${data.vsphere_datacenter.dc.name}/vm/vsphere_folder.folder.path}"
+}
+`, os.Getenv("TF_VAR_VSPHERE_DATACENTER"))
 }
 
 const testAccDataSourceVSphereFolderConfigDefault = `

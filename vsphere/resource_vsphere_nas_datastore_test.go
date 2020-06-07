@@ -155,7 +155,7 @@ func TestAccResourceVSphereNasDatastore_inFolder(t *testing.T) {
 				Config: testAccResourceVSphereNasDatastoreConfigBasicFolder(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereNasDatastoreExists(true),
-					testAccResourceVSphereNasDatastoreMatchInventoryPath(os.Getenv("VSPHERE_DS_FOLDER")),
+					testAccResourceVSphereNasDatastoreMatchInventoryPath(os.Getenv("TF_VAR_VSPHERE_DS_FOLDER")),
 				),
 			},
 		},
@@ -182,7 +182,7 @@ func TestAccResourceVSphereNasDatastore_moveToFolder(t *testing.T) {
 				ExpectError: expectErrorIfNotVirtualCenter(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereNasDatastoreExists(true),
-					testAccResourceVSphereNasDatastoreMatchInventoryPath(os.Getenv("VSPHERE_DS_FOLDER")),
+					testAccResourceVSphereNasDatastoreMatchInventoryPath(os.Getenv("TF_VAR_VSPHERE_DS_FOLDER")),
 				),
 			},
 		},
@@ -331,23 +331,23 @@ func TestAccResourceVSphereNasDatastore_multiCustomAttribute(t *testing.T) {
 }
 
 func testAccResourceVSphereNasDatastorePreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_ESXI_HOST") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST to run vsphere_vmfs_disks acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_vmfs_disks acceptance tests")
 	}
-	if os.Getenv("VSPHERE_ESXI_HOST2") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST2 to run vsphere_vmfs_disks acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_ESXI_HOST2") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST2 to run vsphere_vmfs_disks acceptance tests")
 	}
-	if os.Getenv("VSPHERE_ESXI_HOST3") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST3 to run vsphere_vmfs_disks acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_ESXI_HOST3") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST3 to run vsphere_vmfs_disks acceptance tests")
 	}
-	if os.Getenv("VSPHERE_NAS_HOST") == "" {
-		t.Skip("set VSPHERE_NAS_HOST to run vsphere_nas_datastore acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_NAS_HOST") == "" {
+		t.Skip("set TF_VAR_VSPHERE_NAS_HOST to run vsphere_nas_datastore acceptance tests")
 	}
-	if os.Getenv("VSPHERE_NFS_PATH") == "" {
-		t.Skip("set VSPHERE_NFS_PATH to run vsphere_nas_datastore acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_NFS_PATH") == "" {
+		t.Skip("set TF_VAR_VSPHERE_NFS_PATH to run vsphere_nas_datastore acceptance tests")
 	}
-	if os.Getenv("VSPHERE_DS_FOLDER") == "" {
-		t.Skip("set VSPHERE_DS_FOLDER to run vsphere_nas_datastore acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_DS_FOLDER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DS_FOLDER to run vsphere_nas_datastore acceptance tests")
 	}
 }
 
@@ -446,7 +446,7 @@ resource "vsphere_nas_datastore" "datastore" {
   remote_hosts = ["${var.nfs_host}"]
   remote_path  = "${var.nfs_path}"
 }
-`, os.Getenv("VSPHERE_NAS_HOST"), os.Getenv("VSPHERE_NFS_PATH"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigMultiHost() string {
@@ -487,7 +487,7 @@ resource "vsphere_nas_datastore" "datastore" {
   remote_hosts = ["${var.nfs_host}"]
   remote_path  = "${var.nfs_path}"
 }
-`, os.Getenv("VSPHERE_NAS_HOST"), os.Getenv("VSPHERE_NFS_PATH"), os.Getenv("VSPHERE_ESXI_HOST"), os.Getenv("VSPHERE_ESXI_HOST2"), os.Getenv("VSPHERE_ESXI_HOST3"), os.Getenv("VSPHERE_DATACENTER"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"), os.Getenv("TF_VAR_VSPHERE_ESXI_HOST2"), os.Getenv("TF_VAR_VSPHERE_ESXI_HOST3"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigBasicAltName() string {
@@ -519,7 +519,7 @@ resource "vsphere_nas_datastore" "datastore" {
   remote_hosts = ["${var.nfs_host}"]
   remote_path  = "${var.nfs_path}"
 }
-`, os.Getenv("VSPHERE_NAS_HOST"), os.Getenv("VSPHERE_NFS_PATH"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigBasicFolder() string {
@@ -557,7 +557,7 @@ resource "vsphere_nas_datastore" "datastore" {
   remote_hosts = ["${var.nfs_host}"]
   remote_path  = "${var.nfs_path}"
 }
-`, os.Getenv("VSPHERE_NAS_HOST"), os.Getenv("VSPHERE_NFS_PATH"), os.Getenv("VSPHERE_DS_FOLDER"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigBasicTags() string {
@@ -605,7 +605,7 @@ resource "vsphere_nas_datastore" "datastore" {
 
   tags = ["${vsphere_tag.terraform-test-tag.id}"]
 }
-`, os.Getenv("VSPHERE_NAS_HOST"), os.Getenv("VSPHERE_NFS_PATH"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigMultiTags() string {
@@ -666,7 +666,7 @@ resource "vsphere_nas_datastore" "datastore" {
 
   tags = "${vsphere_tag.terraform-test-tags-alt.*.id}"
 }
-`, os.Getenv("VSPHERE_NAS_HOST"), os.Getenv("VSPHERE_NFS_PATH"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigSingleCustomAttribute() string {
@@ -711,7 +711,7 @@ resource "vsphere_nas_datastore" "datastore" {
 
   custom_attributes = "${local.nas_attrs}"
 }
-`, os.Getenv("VSPHERE_NAS_HOST"), os.Getenv("VSPHERE_NFS_PATH"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigMultiCustomAttributes() string {
@@ -762,7 +762,7 @@ resource "vsphere_nas_datastore" "datastore" {
 
   custom_attributes = "${local.nas_attrs}"
 }
-`, os.Getenv("VSPHERE_NAS_HOST"), os.Getenv("VSPHERE_NFS_PATH"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigDatastoreCluster() string {
@@ -805,5 +805,5 @@ resource "vsphere_nas_datastore" "datastore" {
   remote_hosts = ["${var.nfs_host}"]
   remote_path  = "${var.nfs_path}"
 }
-`, os.Getenv("VSPHERE_NAS_HOST"), os.Getenv("VSPHERE_NFS_PATH"), os.Getenv("VSPHERE_DS_FOLDER"), os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_ESXI_HOST"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }

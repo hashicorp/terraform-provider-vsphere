@@ -30,22 +30,50 @@ func TestAccDataSourceVSphereContentLibrary_basic(t *testing.T) {
 }
 
 func testAccDataSourceVSphereContentLibraryPreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_CONTENT_LIBRARY") == "" {
-		t.Skip("set VSPHERE_CONTENT_LIBRARY to run vsphere_content_library acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES") == "" {
+		t.Skip("set TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES to run vsphere_content_library acceptance tests")
 	}
 }
 
 func testAccDataSourceVSphereContentLibraryConfig() string {
 	return fmt.Sprintf(`
-variable "content_library" {
+variable "datacenter" {
   type    = "string"
   default = "%s"
 }
 
-data "vsphere_content_library" "library" {
-  name = var.content_library
+variable "datastore" {
+  type    = "string"
+  default = "%s"
 }
+
+variable "file_list" {
+  type    = list(string)
+  default = %s 
+}
+
+data "vsphere_datacenter" "dc" {
+  name = var.datacenter
+}
+
+data "vsphere_datastore" "ds" {
+  datacenter_id = data.vsphere_datacenter.dc.id
+  name = var.datastore
+}
+
+resource "vsphere_content_library" "library" {
+  name            = "ContentLibrary_test"
+  storage_backing = [ data.vsphere_datastore.ds.id ]
+  description     = "Library Description"
+}
+
+data "vsphere_content_library" "library" {
+  name = vsphere_content_library.library.name
+}
+
 `,
-		os.Getenv("VSPHERE_CONTENT_LIBRARY"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		os.Getenv("TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES"),
 	)
 }

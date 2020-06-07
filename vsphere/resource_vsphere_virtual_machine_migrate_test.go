@@ -17,8 +17,8 @@ func testAccResourceVSphereVirtualMachineMigrateStatePreCheck(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {
 		t.Skip("set TF_ACC to run vsphere_virtual_machine state migration tests (provider connection is required)")
 	}
-	if os.Getenv("VSPHERE_VM_V1_PATH") == "" {
-		t.Skip("set VSPHERE_VM_V1_PATH to run vsphere_virtual_machine state migration tests")
+	if os.Getenv("TF_VAR_VSPHERE_VM_V1_PATH") == "" {
+		t.Skip("set TF_VAR_VSPHERE_VM_V1_PATH to run vsphere_virtual_machine state migration tests")
 	}
 }
 
@@ -86,7 +86,7 @@ func TestAccResourceVSphereVirtualMachine_migrateStateV3_fromV2(t *testing.T) {
 	}
 
 	client := meta.(*VSphereClient).vimClient
-	pth := os.Getenv("VSPHERE_VM_V1_PATH")
+	pth := os.Getenv("TF_VAR_VSPHERE_VM_V1_PATH")
 	vm, err := virtualmachine.FromPath(client, pth, nil)
 	if err != nil {
 		t.Fatalf("error fetching virtual machine: %s", err)
@@ -125,7 +125,7 @@ func TestAccResourceVSphereVirtualMachine_migrateStateV3FromV1(t *testing.T) {
 	}
 
 	client := meta.(*VSphereClient).vimClient
-	pth := os.Getenv("VSPHERE_VM_V1_PATH")
+	pth := os.Getenv("TF_VAR_VSPHERE_VM_V1_PATH")
 	name := path.Base(pth)
 	vm, err := virtualmachine.FromPath(client, pth, nil)
 	if err != nil {
@@ -179,7 +179,7 @@ func TestAccResourceVSphereVirtualMachine_migrateStateV2(t *testing.T) {
 	}
 
 	client := meta.(*VSphereClient).vimClient
-	pth := os.Getenv("VSPHERE_VM_V1_PATH")
+	pth := os.Getenv("TF_VAR_VSPHERE_VM_V1_PATH")
 	name := path.Base(pth)
 	vm, err := virtualmachine.FromPath(client, pth, nil)
 	if err != nil {

@@ -140,7 +140,7 @@ func TestAccResourceVSphereDatacenter_createOnRootFolder(t *testing.T) {
 
 // Create a datacenter on a subfolder
 func TestAccResourceVSphereDatacenter_createOnSubfolder(t *testing.T) {
-	dcFolder := os.Getenv("VSPHERE_DC_FOLDER")
+	dcFolder := os.Getenv("TF_VAR_VSPHERE_DC_FOLDER")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },

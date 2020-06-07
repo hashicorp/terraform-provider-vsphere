@@ -410,20 +410,20 @@ func TestAccResourceVSphereDistributedVirtualSwitch_multiCustomAttribute(t *test
 }
 
 func testAccResourceVSphereDistributedVirtualSwitchPreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_HOST_NIC0") == "" {
-		t.Skip("set VSPHERE_HOST_NIC0 to run vsphere_host_virtual_switch acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_HOST_NIC0") == "" {
+		t.Skip("set TF_VAR_VSPHERE_HOST_NIC0 to run vsphere_host_virtual_switch acceptance tests")
 	}
-	if os.Getenv("VSPHERE_HOST_NIC1") == "" {
-		t.Skip("set VSPHERE_HOST_NIC1 to run vsphere_host_virtual_switch acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_HOST_NIC1") == "" {
+		t.Skip("set TF_VAR_VSPHERE_HOST_NIC1 to run vsphere_host_virtual_switch acceptance tests")
 	}
-	if os.Getenv("VSPHERE_ESXI_HOST") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST to run vsphere_host_virtual_switch acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_host_virtual_switch acceptance tests")
 	}
-	if os.Getenv("VSPHERE_ESXI_HOST2") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST2 to run vsphere_host_virtual_switch acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_ESXI_HOST2") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST2 to run vsphere_host_virtual_switch acceptance tests")
 	}
-	if os.Getenv("VSPHERE_ESXI_HOST3") == "" {
-		t.Skip("set VSPHERE_ESXI_HOST3 to run vsphere_host_virtual_switch acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_ESXI_HOST3") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST3 to run vsphere_host_virtual_switch acceptance tests")
 	}
 }
 
@@ -638,13 +638,11 @@ variable "esxi_hosts" {
   default = [
     "%s",
     "%s",
-    "%s",
   ]
 }
 
 variable "network_interfaces" {
   default = [
-    "%s",
     "%s",
   ]
 }
@@ -679,12 +677,10 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   }
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_ESXI_HOST"),
-		os.Getenv("VSPHERE_ESXI_HOST2"),
-		os.Getenv("VSPHERE_ESXI_HOST3"),
-		os.Getenv("VSPHERE_HOST_NIC0"),
-		os.Getenv("VSPHERE_HOST_NIC1"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
 	)
 }
 
@@ -698,13 +694,11 @@ variable "esxi_hosts" {
   default = [
     "%s",
     "%s",
-    "%s",
   ]
 }
 
 variable "network_interfaces" {
   default = [
-    "%s",
     "%s",
   ]
 }
@@ -744,12 +738,10 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   }
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_ESXI_HOST"),
-		os.Getenv("VSPHERE_ESXI_HOST2"),
-		os.Getenv("VSPHERE_ESXI_HOST3"),
-		os.Getenv("VSPHERE_HOST_NIC0"),
-		os.Getenv("VSPHERE_HOST_NIC1"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
 		version,
 	)
 }
@@ -762,7 +754,6 @@ variable "datacenter" {
 
 variable "esxi_hosts" {
   default = [
-    "%s",
     "%s",
     "%s",
   ]
@@ -804,11 +795,10 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   }
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_ESXI_HOST"),
-		os.Getenv("VSPHERE_ESXI_HOST2"),
-		os.Getenv("VSPHERE_ESXI_HOST3"),
-		os.Getenv("VSPHERE_HOST_NIC0"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
 	)
 }
 
@@ -820,7 +810,6 @@ variable "datacenter" {
 
 variable "esxi_hosts" {
   default = [
-    "%s",
     "%s",
     "%s",
   ]
@@ -865,11 +854,10 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   }
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_ESXI_HOST"),
-		os.Getenv("VSPHERE_ESXI_HOST2"),
-		os.Getenv("VSPHERE_ESXI_HOST3"),
-		os.Getenv("VSPHERE_HOST_NIC0"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
 	)
 }
 
@@ -881,7 +869,6 @@ variable "datacenter" {
 
 variable "esxi_hosts" {
   default = [
-    "%s",
     "%s",
     "%s",
   ]
@@ -925,11 +912,10 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   }
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_ESXI_HOST"),
-		os.Getenv("VSPHERE_ESXI_HOST2"),
-		os.Getenv("VSPHERE_ESXI_HOST3"),
-		os.Getenv("VSPHERE_HOST_NIC0"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
 	)
 }
 
@@ -941,7 +927,6 @@ variable "datacenter" {
 
 variable "esxi_hosts" {
   default = [
-    "%s",
     "%s",
     "%s",
   ]
@@ -987,11 +972,10 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   }
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
-		os.Getenv("VSPHERE_ESXI_HOST"),
-		os.Getenv("VSPHERE_ESXI_HOST2"),
-		os.Getenv("VSPHERE_ESXI_HOST3"),
-		os.Getenv("VSPHERE_HOST_NIC0"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
 	)
 }
 
@@ -1010,7 +994,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -1036,7 +1020,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   folder        = "${vsphere_folder.folder.path}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -1070,7 +1054,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   tags          = ["${vsphere_tag.terraform-test-tag.id}"]
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -1117,7 +1101,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   tags          = "${vsphere_tag.terraform-test-tags-alt.*.id}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -1146,7 +1130,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   netflow_sampling_rate         = 10
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -1175,7 +1159,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   }
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -1207,7 +1191,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   custom_attributes = "${local.vs_attrs}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -1253,6 +1237,6 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   custom_attributes = "${local.vs_attrs}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }

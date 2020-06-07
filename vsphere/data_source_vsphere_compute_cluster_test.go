@@ -78,7 +78,7 @@ data "vsphere_compute_cluster" "compute_cluster_data" {
   datacenter_id = "${vsphere_compute_cluster.compute_cluster.datacenter_id}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }
 
@@ -101,6 +101,6 @@ data "vsphere_compute_cluster" "compute_cluster_data" {
   name          = "/${var.datacenter}/host/${vsphere_compute_cluster.compute_cluster.name}"
 }
 `,
-		os.Getenv("VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)
 }

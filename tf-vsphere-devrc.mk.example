@@ -12,65 +12,53 @@
 # else make will add the whitespace to the variable as well.
 #
 # The essentials. None of the tests will run if you don't have these.
-export VSPHERE_SERVER   ?= vcenter.internal
-export VSPHERE_USER     ?= user@vsphere.internal
-export VSPHERE_PASSWORD ?= changeme
+export VSPHERE_SERVER                       =  vcenter.example.org
+export VSPHERE_USER                         =  'administrator@vcenter.example.org'
+export VSPHERE_PASSWORD                     =  changeme
+export VSPHERE_ALLOW_UNVERIFIED_SSL         =  true
 
-# Enable this if you want to skip SSL verification
-export VSPHERE_ALLOW_UNVERIFIED_SSL ?= false
 
-# The following variables are shared across various tests. To ensure all tests
-# succeed, it's probably best to set all of these to valid values.
-export VSPHERE_TEMPLATE                 ?= base-linux   # VM template to clone
-export VSPHERE_TEMPLATE_WINDOWS         ?= base-win     # Windows VM template
-export VSPHERE_TEMPLATE_COREOS          ?= base-core    # CoreOS template from OVA
-export VSPHERE_TEMPLATE_ISO_TRANSPORT   ?= base-vappt   # Template with vApp ISO transport
-export VSPHERE_NETWORK_LABEL            ?= vm-network   # Port group label
-export VSPHERE_NETWORK_LABEL_DHCP       ?= vm-network   # Port group label for DHCP
-export VSPHERE_NETWORK_LABEL_PXE        ?= vm-network   # Port group label for PXE
-export VSPHERE_IPV4_ADDRESS             ?= 10.0.0.100   # Customization IP address
-export VSPHERE_IPV4_PREFIX              ?= 24           # Customization netmask
-export VSPHERE_IPV4_GATEWAY             ?= 10.0.0.1     # Customization gateway
-export VSPHERE_DNS                      ?= 10.0.0.10    # Customization DNS
-export VSPHERE_DATACENTER               ?= vm-dc        # VM placement DC
-export VSPHERE_CLUSTER                  ?= vm-clus1     # VM placement cluster
-export VSPHERE_CLUSTER2                 ?= vm-clus2     # Extra cluster for testing
-export VSPHERE_EMPTY_CLUSTER            ?= clus-empty   # Empty cluster for testing
-export VSPHERE_RESOURCE_POOL            ?= vm-respool   # VM resource resource pool
-export VSPHERE_DATASTORE                ?= datastore1   # VM placement datastore
-export VSPHERE_DATASTORE2               ?= datastore2   # 2nd datastore for vMotion
-export VSPHERE_INIT_TYPE                ?= thin         # vDisk type
-export VSPHERE_ADAPTER_TYPE             ?= lsiLogic     # Virtual disk adapter type
-export VSPHERE_LICENSE                  ?= key          # License resource test key
-export VSPHERE_DC_FOLDER                ?= dc-folder    # DC resource test folder
-export VSPHERE_ESXI_HOST                ?= esxi1        # ESXi host to work with
-export VSPHERE_ESXI_HOST2               ?= esxi2        # 2nd ESXi host to work with
-export VSPHERE_ESXI_HOST3               ?= esxi3        # 3nd ESXi host to work with
-export VSPHERE_ESXI_HOST4               ?= esxi4        # 4th ESXi host to work with
-export VSPHERE_ESXI_HOST5               ?= esxi5        # 5th ESXi host to work with
-export VSPHERE_ESXI_HOST6               ?= esxi6        # 6th ESXi host to work with
-export VSPHERE_ESXI_HOST7               ?= esxi7        # 7th ESXi host to work with
-export VSPHERE_HOST_NIC0                ?= vmnic0       # NIC0 for host net tests
-export VSPHERE_HOST_NIC1                ?= vmnic1       # NIC1 for host net tests
-export VSPHERE_VMFS_EXPECTED            ?= scsi-name    # Name of expected SCSI disk
-export VSPHERE_VMFS_REGEXP              ?= expr         # Regexp for SCSI disk search
-export VSPHERE_DS_VMFS_DISK0            ?= scsi-name0   # 1st disk for vmfs_datastore
-export VSPHERE_DS_VMFS_DISK1            ?= scsi-name1   # 2nd disk for vmfs_datastore
-export VSPHERE_DS_VMFS_DISK2            ?= scsi-name2   # 3rd disk for vmfs_datastore
-export VSPHERE_DS_FOLDER                ?= ds-folder    # Path to a datastore folder
-export VSPHERE_NAS_HOST                 ?= nas-host     # Hostname for nas_datastore
-export VSPHERE_NFS_PATH                 ?= nfs-path     # NFS path for nas_datastore
-export VSPHERE_NFS_PATH2                ?= nfs-path     # 2nd nas_datastore path
-export VSPHERE_FOLDER_V0_PATH           ?= old-folder   # vsphere_folder state test
-export VSPHERE_ISO_FILE                 ?= iso-file     # ISO file for CDROM device
-export VSPHERE_ISO_DATASTORE            ?= iso-ds       # ISO file for CDROM device
-export VSPHERE_VM_V1_PATH               ?= vm-path      # VM resource state migration
-export VSPHERE_VAPP_CONTAINER           ?= vapp-path    # Path to a vApp container
-export VSPHERE_PERSIST_SESSION          ?= true         # Session persistence
-export VSPHERE_REST_SESSION_PATH        ?= rest-path    # Path to store rest sessions
-export VSPHERE_VIM_SESSION_PATH         ?= vim-path     # Path to store vim sessions
-export VSPHERE_VAPP_RESOURCE_POOL       ?= vapp-rp-path #vSphere path to vApp's resource pool
-export VSPHERE_CLONED_VM_DISK_SIZE      ?= 32           # Size of disk attached to a cloned VM
-export VSPHERE_STORAGE_POLICY           ?= sp-test      # Name of a vm storage policy
+# The following variables must be altered for your environment
+export TF_VAR_VSPHERE_VCENTER_ISO           =  '/tmp/VMware-VCSA-all-6.7.0-16046470.iso'
+export TF_VAR_VSPHERE_ESXI1                 =  192.168.10.29
+export TF_VAR_VSPHERE_ESXI2                 =  192.168.10.34
+export TF_VAR_VSPHERE_ESXI1_THUMBPRINT      =  E6:A8:37:75:94:DF:B3:40:CF:DD:F6:35:70:A0:33:A9:9B:42:4C:74
+export TF_VAR_VSPHERE_ESXI2_THUMBPRINT      =  F0:CE:33:36:2F:BC:95:D2:9A:E8:39:EB:CE:00:FE:21:57:38:D0:AA
+export TF_VAR_VSPHERE_ESXI_USERNAME         =  root
+export TF_VAR_VSPHERE_ESXI1_PASSWORD        =  changeme
+export TF_VAR_VSPHERE_ESXI2_PASSWORD        =  changeme
+export TF_VAR_VSPHERE_LICENSE               =  00000-00000-00000-00000-00000
+export TF_VAR_VSPHERE_NAS_HOST              =  nas.example.org
+export TF_VAR_VSPHERE_NFS_PATH              =  /vSphereShared
+export TF_VAR_VSPHERE_ESXI_TRUNK_NIC        =  vmnic1
+export TF_VAR_VSPHERE_PXE_VLAN              =  34
+export TF_VAR_VSPHERE_VCENTER_ADDRESS       =  192.168.10.31
+export TF_VAR_VSPHERE_VCENTER_NETWORK_PREFIX=  24
+export TF_VAR_VSPHERE_VCENTER_GATEWAY       =  192.168.10.1
+export TF_VAR_VSPHERE_REST_SESSION_PATH     =  /home/user/.govmomi/rest_sessions
+export TF_VAR_VSPHERE_VIM_SESSION_PATH      =  /home/user/.govmomi/sessions
 
-# vi: filetype=make
+# These can be changed, but will work at their defaults. They are used for
+# altering the default names acceptance tests will use.
+export TF_VAR_VSPHERE_DATACENTER            =  hashi-dc
+export TF_VAR_VSPHERE_CLUSTER               =  hashi-cluster
+export TF_VAR_VSPHERE_NFS_DS_NAME           =  nfs1
+export TF_VAR_VSPHERE_DVS_NAME              =  terraform-test-dvs
+export TF_VAR_VSPHERE_PG_NAME               =  terraform-test-portgroup
+export TF_VAR_VSPHERE_RESOURCE_POOL         =  hashi-resource-pool
+export TF_VAR_VSPHERE_TEMPLATE              =  template_test
+export TF_VAR_VSPHERE_INIT_TYPE             =  thin
+export TF_VAR_VSPHERE_ADAPTER_TYPE          =  lsiLogic
+export TF_VAR_VSPHERE_DC_FOLDER             =  dc-folder
+export TF_VAR_VSPHERE_DS_FOLDER             =  datastore-folder/foo
+export TF_VAR_VSPHERE_USE_LINKED_CLONE      =  true
+export TF_VAR_VSPHERE_PERSIST_SESSION       =  true
+export TF_VAR_VSPHERE_CLONED_VM_DISK_SIZE   =  32
+export TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES =  '[ "https://acctest-images.storage.googleapis.com/template_test.ovf", "https://acctest-images.storage.googleapis.com/template_test.mf", "https://acctest-images.storage.googleapis.com/template_test-1.vmdk" ]'
+export TF_VAR_REMOTE_OVF_URL                =  https://acctest-images.storage.googleapis.com/template_test.ovf
+
+# These are added for compatibility with setup scripts.
+export TF_VAR_VSPHERE_SERVER                =  ${VSPHERE_SERVER}
+export TF_VAR_VSPHERE_USER                  =  ${VSPHERE_USER}
+export TF_VAR_VSPHERE_PASSWORD              =  ${VSPHERE_PASSWORD}
+export TF_VAR_VSPHERE_ALLOW_UNVERIFIED_SSL  =  ${VSPHERE_ALLOW_UNVERIFIED_SSL}

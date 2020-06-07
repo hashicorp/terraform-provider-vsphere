@@ -13,8 +13,8 @@ func testAccResourceVSphereFolderMigrateStatePreCheck(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {
 		t.Skip("set TF_ACC to run vsphere_folder state migration tests (provider connection is required)")
 	}
-	if os.Getenv("VSPHERE_FOLDER_V0_PATH") == "" {
-		t.Skip("set VSPHERE_FOLDER_V0_PATH to run vsphere_folder state migration tests")
+	if os.Getenv("TF_VAR_VSPHERE_FOLDER_V0_PATH") == "" {
+		t.Skip("set TF_VAR_VSPHERE_FOLDER_V0_PATH to run vsphere_folder state migration tests")
 	}
 }
 
@@ -23,12 +23,12 @@ func TestAccResourceVSphereFolderMigrateState_basic(t *testing.T) {
 	testAccPreCheck(t)
 
 	is := &terraform.InstanceState{
-		ID: fmt.Sprintf("%v/%v", os.Getenv("VSPHERE_DATACENTER"), os.Getenv("VSPHERE_FOLDER_V0_PATH")),
+		ID: fmt.Sprintf("%v/%v", os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_FOLDER_V0_PATH")),
 		Attributes: map[string]string{
-			"path": os.Getenv("VSPHERE_FOLDER_V0_PATH"),
+			"path": os.Getenv("TF_VAR_VSPHERE_FOLDER_V0_PATH"),
 		},
 	}
-	if dc := os.Getenv("VSPHERE_DATACENTER"); dc != "" {
+	if dc := os.Getenv("TF_VAR_VSPHERE_DATACENTER"); dc != "" {
 		is.Attributes["datacenter"] = dc
 	}
 	meta, err := testAccProviderMeta(t)
