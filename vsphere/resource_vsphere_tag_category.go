@@ -21,6 +21,7 @@ const (
 	// vSphereTagCategoryCardinalityMultiple defines the API type for multiple
 	// cardinality.
 	vSphereTagCategoryCardinalityMultiple = "MULTIPLE"
+	vim25Prefix                           = "urn:vim25:"
 )
 
 func resourceVSphereTagCategory() *schema.Resource {
@@ -72,9 +73,11 @@ func resourceVSphereTagCategoryCreate(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return err
 	}
+	associableTypesRaw := structure.SliceInterfacesToStrings(d.Get("associable_types").(*schema.Set).List())
+	associableTypes := appendPrefix(associableTypesRaw)
 
 	spec := &tags.Category{
-		AssociableTypes: structure.SliceInterfacesToStrings(d.Get("associable_types").(*schema.Set).List()),
+		AssociableTypes: associableTypes,
 		Cardinality:     d.Get("cardinality").(string),
 		Description:     d.Get("description").(string),
 		Name:            d.Get("name").(string),
@@ -143,9 +146,12 @@ func resourceVSphereTagCategoryUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	id := d.Id()
+	associableTypesRaw := structure.SliceInterfacesToStrings(d.Get("associable_types").(*schema.Set).List())
+	associableTypes := appendPrefix(associableTypesRaw)
+
 	spec := &tags.Category{
 		ID:              id,
-		AssociableTypes: structure.SliceInterfacesToStrings(d.Get("associable_types").(*schema.Set).List()),
+		AssociableTypes: associableTypes,
 		Cardinality:     d.Get("cardinality").(string),
 		Description:     d.Get("description").(string),
 		Name:            d.Get("name").(string),
@@ -191,4 +197,13 @@ func resourceVSphereTagCategoryImport(d *schema.ResourceData, meta interface{}) 
 
 	d.SetId(id)
 	return []*schema.ResourceData{d}, nil
+}
+
+func appendPrefix(associableTypes []string) []string {
+
+	var appendedTypes []string
+	for _, associableType := range associableTypes {
+		appendedTypes = append(appendedTypes, vim25Prefix+associableType)
+	}
+	return appendedTypes
 }
