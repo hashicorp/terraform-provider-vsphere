@@ -1,4 +1,4 @@
-## Developing the provider
+## Contributing to the provider
 
 Thank you for your interest in contributing to the vSphere provider. We welcome your contributions. Here you'll find information to help you get started with provider development.
 
