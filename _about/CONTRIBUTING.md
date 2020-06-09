@@ -25,7 +25,7 @@ After the clone has been completed, you can enter the provider directory and
 build the provider.
 
 ```sh
-cd $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+cd terraform-provider-vsphere
 make build
 ```
 
