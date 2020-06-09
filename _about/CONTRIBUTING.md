@@ -13,12 +13,9 @@ To learn more about how to create issues and pull requests in this repository, a
 
 ## Cloning the Project
 
-First, you will want to clone the repository to
-`$GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere`:
+First, you will want to clone the repository into your working directory:
 
 ```sh
-mkdir -p $GOPATH/src/github.com/terraform-providers
-cd $GOPATH/src/github.com/terraform-providers
 git clone git@github.com:terraform-providers/terraform-provider-vsphere
 ```
 
@@ -34,13 +31,11 @@ make build
 
 ## Installing the Local Plugin
 
-After the build is complete, copy the `terraform-provider-vsphere` binary into
-the same path as your `terraform` binary, and re-run `terraform init`.
+After the build is complete, you can install the binary into your $GOPATH/bin folder with:
 
-After this, your project-local `.terraform/plugins/ARCH/lock.json` (where `ARCH`
-matches the architecture of your machine) file should contain a SHA256 sum that
-matches the local plugin. Run `shasum -a 256` on the binary to verify the values
-match.
+```sh
+make install
+```
 
 # Developing the Provider
 
