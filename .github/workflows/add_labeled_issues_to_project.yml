@@ -9,7 +9,7 @@ jobs:
     - uses: aareet/move-labeled-or-milestoned-issue@v2.0
       with:
         action-token: "${{ secrets.vsphere_github_actions }}"
-        project-url: "https://github.com/orgs/terraform-providers/projects/8"
+        project-url: "https://github.com/terraform-providers/terraform-provider-vsphere/projects/9"
         column-name: "Blocked"
         label-name: "waiting-response"
   Move_Triaged_Issue_On_Triage_Board:
@@ -18,7 +18,7 @@ jobs:
     - uses: aareet/move-labeled-or-milestoned-issue@v2.0
       with:
         action-token: "${{ secrets.vsphere_github_actions }}"
-        project-url: "https://github.com/orgs/terraform-providers/projects/12"
+        project-url: "https://github.com/terraform-providers/terraform-provider-vsphere/projects/8"
         column-name: "Requires Investigation"
         label-name: "requires investigation"
   Move_Crash_Issue_On_Working_Board:
@@ -27,6 +27,6 @@ jobs:
     - uses: aareet/move-labeled-or-milestoned-issue@v2.0
       with:
         action-token: "${{ secrets.vsphere_github_actions }}"
-        project-url: "https://github.com/orgs/terraform-providers/projects/8"
+        project-url: "https://github.com/terraform-providers/terraform-provider-vsphere/projects/9"
         column-name: "Roadmap"
         label-name: "crash"
