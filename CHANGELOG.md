@@ -5,9 +5,9 @@ FEATURES:
 * `resource/vm_storage_policy_profile`: A resource for tag based storage placement.
   policies management. ([#1094](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1094))
 * `resource/virtual_machine`: Add support for PCI passthrough devices on virtual
-  machines.
+  machines. ([#1099](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1099))
 * `data/host_pci_device`: Data source which will locate the address of a PCI
-  device on a host.
+  device on a host. ([#1099](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1099))
 
 ## 1.18.3 (June 01, 2020)
 
