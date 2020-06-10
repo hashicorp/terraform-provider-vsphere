@@ -1,4 +1,4 @@
-# Terraform vSphere Provider [![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/terraform-providers/terraform-provider-vsphere?label=release)](https://github.com/terraform-providers/terraform-provider-vsphere/releases) [![license](https://img.shields.io/github/license/terraform-providers/terraform-provider-vsphere.svg)]()
+# Terraform vSphere Provider [![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/hashicorp/terraform-provider-vsphere?label=release)](https://github.com/terraform-providers/hashicorp/releases) [![license](https://img.shields.io/github/license/hashicorp/terraform-provider-vsphere.svg)]()
 
 
 <a href="https://terraform.io">
@@ -42,7 +42,7 @@ version of the provider.
 
 The Terraform vSphere Provider is the work of many contributors. We appreciate your help!
 
-To contribute, please read the [contribution guidelines](_about/CONTRIBUTING.md). You may also [report an issue](https://github.com/terraform-providers/terraform-provider-vsphere/issues/new/choose). Once you've filed an issue, it will follow the [issue lifecycle](ISSUES.md).
+To contribute, please read the [contribution guidelines](_about/CONTRIBUTING.md). You may also [report an issue](https://github.com/terraform-providers/terraform-provider-vsphere/issues/new/choose). Once you've filed an issue, it will follow the [issue lifecycle](_about/ISSUES.md).
 
 Also available are some answers to [Frequently Asked Questions](_about/FAQ.md).
 
