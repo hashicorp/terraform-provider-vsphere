@@ -330,7 +330,6 @@ variable "esxi_hosts" {
   default = [
     "%s",
     "%s",
-    "%s",
   ]
 }
 
