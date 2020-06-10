@@ -1,4 +1,4 @@
-# Terraform vSphere Provider [![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/hashicorp/terraform-provider-vsphere?label=release)](https://github.com/terraform-providers/hashicorp/releases) [![license](https://img.shields.io/github/license/hashicorp/terraform-provider-vsphere.svg)]()
+# Terraform vSphere Provider [![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/hashicorp/terraform-provider-vsphere?label=release)](https://github.com/hashicorp/terraform-provider-vsphere/releases) [![license](https://img.shields.io/github/license/hashicorp/terraform-provider-vsphere.svg)]()
 
 
 <a href="https://terraform.io">
