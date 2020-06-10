@@ -46,20 +46,28 @@ func dataSourceVSphereDynamicRead(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return err
 	}
-	id, err := filterObjectsByName(d, meta, matches)
+	filtered, err := filterObjectsByName(d, meta, matches)
 	if err != nil {
 		return err
 	}
-	d.SetId(id)
-	log.Printf("[DEBUG] dataSourceDynamic: Read complete. Resource located: %s", id)
+	switch {
+	case len(filtered) < 1:
+		return fmt.Errorf("no matches resources found")
+	case len(filtered) > 1:
+		log.Printf("dataSourceVSphereDynamic: Multiple matches found: %v", filtered)
+		return fmt.Errorf("multiple object match the supplied criteria")
+	}
+	d.SetId(filtered[0])
+	log.Printf("[DEBUG] dataSourceDynamic: Read complete. Resource located: %s", filtered[0])
 	return nil
 }
 
-func filterObjectsByName(d *schema.ResourceData, meta interface{}, matches []tags.AttachedObjects) (string, error) {
+func filterObjectsByName(d *schema.ResourceData, meta interface{}, matches []tags.AttachedObjects) ([]string, error) {
 	log.Printf("[DEBUG] dataSourceDynamic: Filtering objects by name.")
+	var filtered []string
 	re, err := regexp.Compile(d.Get("name_regex").(string))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	for _, match := range matches[0].ObjectIDs {
 		mtype := d.Get("type").(string)
@@ -70,14 +78,14 @@ func filterObjectsByName(d *schema.ResourceData, meta interface{}, matches []tag
 		attachedObject := object.NewCommon(meta.(*VSphereClient).vimClient.Client, match.Reference())
 		name, err := attachedObject.ObjectName(context.TODO())
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		if re.Match([]byte(name)) {
 			log.Printf("[DEBUG] dataSourceDynamic: Match found: %s", name)
-			return match.Reference().Value, nil
+			filtered = append(filtered, match.Reference().Value)
 		}
 	}
-	return "", fmt.Errorf("no matching resources found")
+	return filtered, nil
 }
 
 func filterObjectsByTag(tm *tags.Manager, t []interface{}) ([]tags.AttachedObjects, error) {

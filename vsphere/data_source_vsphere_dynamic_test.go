@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"regexp"
 	"testing"
 )
@@ -17,7 +18,7 @@ func TestAccDataSourceVSphereDynamic_regexAndTag(t *testing.T) {
 				Config: testAccDataSourceVSphereDynamicConfigBase(),
 			},
 			{
-				Config: testAccDataSourceVSphereDynamicConfig(),
+				Config: testAccDataSourceVSphereConfigRegexAndTag(),
 				Check: resource.ComposeTestCheckFunc(
 					testMatchDatacenterIds("vsphere_datacenter.dc2", "data.vsphere_dynamic.dyn1"),
 				),
@@ -38,7 +39,7 @@ func TestAccDataSourceVSphereDynamic_multiTag(t *testing.T) {
 				Config: testAccDataSourceVSphereDynamicConfigBase(),
 			},
 			{
-				Config: testAccDataSourceVSphereDynamicConfig(),
+				Config: testAccDataSourceVSphereConfigMultiTag(),
 				Check: resource.ComposeTestCheckFunc(
 					testMatchDatacenterIds("vsphere_datacenter.dc1", "data.vsphere_dynamic.dyn2"),
 				),
@@ -59,34 +60,8 @@ func TestAccDataSourceVSphereDynamic_multiResult(t *testing.T) {
 				Config: testAccDataSourceVSphereDynamicConfigBase(),
 			},
 			{
-				Config: testAccDataSourceVSphereDynamicConfig(),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestMatchResourceAttr("data.vsphere_dynamic.dyn3", "id", regexp.MustCompile("datacenter-")),
-				),
-			},
-			{
-				Config: testAccDataSourceVSphereDynamicConfigBase(),
-			},
-		},
-	})
-}
-
-func TestAccDataSourceVSphereDynamic_sameTagNames(t *testing.T) {
-	t.Cleanup(RunSweepers)
-	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccDataSourceVSphereDynamicConfigBase(),
-			},
-			{
-				Config: testAccDataSourceVSphereDynamicConfig(),
-				Check: resource.ComposeTestCheckFunc(
-					testMatchDatacenterIds("vsphere_datacenter.dc2", "data.vsphere_dynamic.dyn4"),
-				),
-			},
-			{
-				Config: testAccDataSourceVSphereDynamicConfigBase(),
+				Config:      testAccDataSourceVSphereConfigMultiMatch(),
+				ExpectError: regexp.MustCompile("multiple object match the supplied criteria"),
 			},
 		},
 	})
@@ -101,9 +76,9 @@ func TestAccDataSourceVSphereDynamic_typeFilter(t *testing.T) {
 				Config: testAccDataSourceVSphereDynamicConfigBase(),
 			},
 			{
-				Config: testAccDataSourceVSphereDynamicConfig(),
+				Config: testAccDataSourceVSphereConfigType(),
 				Check: resource.ComposeTestCheckFunc(
-					testMatchDatacenterIds("vsphere_datacenter.dc1", "data.vsphere_dynamic.dyn5"),
+					testMatchDatacenterIds("vsphere_datacenter.dc1", "data.vsphere_dynamic.dyn4"),
 				),
 			},
 			{
@@ -138,132 +113,70 @@ func init() {
 }
 
 func testAccDataSourceVSphereDynamicConfigBase() string {
-	return fmt.Sprintf(`
-resource "vsphere_datacenter" "dc1" {
-  name = "testdc1"
-  tags = [vsphere_tag.tag1.id, vsphere_tag.tag2.id]
+	return testhelper.CombineConfigs(
+		testhelper.ConfigResDC1(),
+		testhelper.ConfigResDC2(),
+		testhelper.ConfigResTagCat1(),
+		testhelper.ConfigResTagCat2(),
+		testhelper.ConfigResTag1(),
+		testhelper.ConfigResTag2(),
+		testhelper.ConfigResTag3(),
+	)
 }
 
-resource "vsphere_datacenter" "dc2" {
-  name = "testdc2"
-  tags = [ vsphere_tag.tag1.id, vsphere_tag.tag3.id ]
-}
-
-resource "vsphere_tag_category" "category1" {
-  name        = "cat1"
-  description = "cat1"
-  cardinality = "MULTIPLE"
-
-  associable_types = [
-    "Datacenter"
-  ]
-}
-
-resource "vsphere_tag_category" "category2" {
-  name        = "cat2"
-  description = "cat2"
-  cardinality = "MULTIPLE"
-
-  associable_types = [
-    "Datacenter"
-  ]
-}
-
-resource "vsphere_tag" "tag1" {
-  name        = "tag1"
-  category_id = vsphere_tag_category.category1.id
-}
-
-resource "vsphere_tag" "tag2" {
-  name        = "tag2"
-  category_id = vsphere_tag_category.category2.id
-}
-
-resource "vsphere_tag" "tag3" {
-  name        = "tag2"
-  category_id = vsphere_tag_category.category1.id
-}`)
-}
-
-func testAccDataSourceVSphereDynamicConfig() string {
-	return fmt.Sprintf(`
-resource "vsphere_datacenter" "dc1" {
-  name = "testdc1"
-  tags = [vsphere_tag.tag1.id, vsphere_tag.tag2.id]
-}
-
-resource "vsphere_datacenter" "dc2" {
-  name = "testdc2"
-  tags = [ vsphere_tag.tag1.id, vsphere_tag.tag3.id ]
-}
-
-resource "vsphere_tag_category" "category1" {
-  name        = "cat1"
-  description = "cat1"
-  cardinality = "MULTIPLE"
-
-  associable_types = [
-    "Datacenter"
-  ]
-}
-
-resource "vsphere_tag_category" "category2" {
-  name        = "cat2"
-  description = "cat2"
-  cardinality = "MULTIPLE"
-
-  associable_types = [
-    "Datacenter"
-  ]
-}
-
-resource "vsphere_tag" "tag1" {
-  name        = "tag1"
-  category_id = vsphere_tag_category.category1.id
-}
-
-resource "vsphere_tag" "tag2" {
-  name        = "tag2"
-  category_id = vsphere_tag_category.category2.id
-}
-
-resource "vsphere_tag" "tag3" {
-  name        = "tag2"
-  category_id = vsphere_tag_category.category1.id
-}
-
+func testAccDataSourceVSphereConfigRegexAndTag() string {
+	conf := fmt.Sprintf(`
 data "vsphere_dynamic" "dyn1" {
  filter     = [ vsphere_tag.tag1.id ]
  name_regex = "dc2"
 }
+`)
+	return testhelper.CombineConfigs(
+		testAccDataSourceVSphereDynamicConfigBase(),
+		conf,
+		testhelper.ConfigDataDC2(),
+	)
+}
 
+func testAccDataSourceVSphereConfigMultiTag() string {
+	conf := fmt.Sprintf(`
 data "vsphere_dynamic" "dyn2" {
   filter     = [ vsphere_tag.tag1.id, vsphere_tag.tag2.id ]
   name_regex = ""
 }
+`)
+	return testhelper.CombineConfigs(
+		testAccDataSourceVSphereDynamicConfigBase(),
+		conf,
+		testhelper.ConfigDataDC1(),
+	)
+}
 
+func testAccDataSourceVSphereConfigMultiMatch() string {
+	conf := fmt.Sprintf(`
 data "vsphere_dynamic" "dyn3" {
- filter     = [ vsphere_tag.tag1.id ]
- name_regex = ""
-}
-
-data "vsphere_dynamic" "dyn4" {
-  filter     = [ vsphere_tag.tag3.id ]
+  filter     = [ vsphere_tag.tag1.id ]
   name_regex = ""
-}
-
-data "vsphere_dynamic" "dyn5" {
-  filter     = [ vsphere_tag.tag1.id, vsphere_tag.tag2.id ]
-  name_regex = ""
-  type       = "Datacenter"
-}
-
-data "vsphere_datacenter" "dc1" {
-  name = vsphere_datacenter.dc1.name
-}
-
-data "vsphere_datacenter" "dc2" {
-  name = vsphere_datacenter.dc2.name
 }
 `)
+	return testhelper.CombineConfigs(
+		testAccDataSourceVSphereDynamicConfigBase(),
+		conf,
+		testhelper.ConfigDataDC1(),
+	)
+}
+
+func testAccDataSourceVSphereConfigType() string {
+	conf := fmt.Sprintf(`
+data "vsphere_dynamic" "dyn4" {
+ filter     = [ vsphere_tag.tag1.id, vsphere_tag.tag2.id ]
+ name_regex = ""
+ type       = "Datacenter"
+}
+`)
+	return testhelper.CombineConfigs(
+		testAccDataSourceVSphereDynamicConfigBase(),
+		conf,
+		testhelper.ConfigDataDC1(),
+	)
 }
