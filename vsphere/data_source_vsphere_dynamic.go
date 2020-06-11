@@ -52,10 +52,10 @@ func dataSourceVSphereDynamicRead(d *schema.ResourceData, meta interface{}) erro
 	}
 	switch {
 	case len(filtered) < 1:
-		return fmt.Errorf("no matches resources found")
+		return fmt.Errorf("no matcheing resources found")
 	case len(filtered) > 1:
 		log.Printf("dataSourceVSphereDynamic: Multiple matches found: %v", filtered)
-		return fmt.Errorf("multiple object match the supplied criteria")
+		return fmt.Errorf("multiple objecst match the supplied criteria")
 	}
 	d.SetId(filtered[0])
 	log.Printf("[DEBUG] dataSourceDynamic: Read complete. Resource located: %s", filtered[0])
