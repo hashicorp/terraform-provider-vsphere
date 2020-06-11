@@ -201,9 +201,9 @@ resource "vsphere_host_port_group" "pg" {
   host_system_id      = "${data.vsphere_host.esxi_host.id}"
   virtual_switch_name = "${vsphere_host_virtual_switch.switch.name}"
 }
-`,  os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
-    os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-    os.Getenv("TF_VAR_VSPHERE_ESXI1"))
+`, os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }
 
 func testAccResourceVSphereHostPortGroupConfigWithOverrides() string {
@@ -241,7 +241,7 @@ resource "vsphere_host_port_group" "pg" {
   standby_nics      = ["${var.host_nic1}"]
   allow_promiscuous = true
 }
-`,  os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
-    os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-    os.Getenv("TF_VAR_VSPHERE_ESXI1"))
+`, os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }

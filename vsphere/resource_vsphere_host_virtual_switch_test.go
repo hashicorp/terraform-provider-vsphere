@@ -259,7 +259,7 @@ resource "vsphere_host_virtual_switch" "switch" {
   active_nics  = ["${var.host_nic0}"]
   standby_nics = []
 }
-`,  os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
+`, os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
 		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }
@@ -288,7 +288,7 @@ resource "vsphere_host_virtual_switch" "switch" {
   active_nics  = ["${var.host_nic0}"]
   standby_nics = []
 }
-`,  os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
+`, os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
 		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }
@@ -317,7 +317,7 @@ resource "vsphere_host_virtual_switch" "switch" {
   active_nics  = []
   standby_nics = []
 }
-`,  os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
+`, os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
 		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }
@@ -346,7 +346,7 @@ resource "vsphere_host_virtual_switch" "switch" {
   active_nics  = ["${var.host_nic0}"]
   standby_nics = []
 }
-`,  os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
+`, os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
 		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }
@@ -375,7 +375,7 @@ resource "vsphere_host_virtual_switch" "switch" {
   active_nics  = []
   standby_nics = ["${var.host_nic0}"]
 }
-`,  os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
+`, os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
 		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }

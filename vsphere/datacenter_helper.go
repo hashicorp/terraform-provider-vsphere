@@ -3,7 +3,6 @@ package vsphere
 import (
 	"context"
 	"fmt"
-
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -57,4 +56,23 @@ func datacenterCustomAttributes(dc *object.Datacenter) (*mo.Datacenter, error) {
 		return nil, err
 	}
 	return &props, nil
+}
+
+func listDatacenters(client *govmomi.Client) ([]*object.Datacenter, error) {
+	finder := find.NewFinder(client.Client, true)
+	l, err := finder.ManagedObjectListChildren(context.TODO(), "/")
+	if err != nil {
+		return nil, nil
+	}
+	var dcs []*object.Datacenter
+	for _, item := range l {
+		if item.Object.Reference().Type == "Datacenter" {
+			dc, err := getDatacenter(client, item.Path)
+			if err != nil {
+				return nil, err
+			}
+			dcs = append(dcs, dc)
+		}
+	}
+	return dcs, nil
 }

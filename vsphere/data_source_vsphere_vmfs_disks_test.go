@@ -74,7 +74,7 @@ output "found" {
   value = "${length(data.vsphere_vmfs_disks.available.disks) >= 1 ? "true" : "false" }"
 }
 `,
-    os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-    os.Getenv("TF_VAR_VSPHERE_ESXI1"),
+		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
 	)
 }

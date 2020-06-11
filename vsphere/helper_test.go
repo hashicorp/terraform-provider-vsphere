@@ -1143,3 +1143,52 @@ func testGetVmStoragePolicy(s *terraform.State, resourceName string) (string, er
 
 	return spbm.PolicyNameByID(tVars.client, policyId)
 }
+
+func RunSweepers() {
+	tagSweep("")
+	dcSweep("")
+}
+
+func tagSweep(r string) error {
+	ctx := context.TODO()
+	client, err := sweepVSphereClient()
+	if err != nil {
+		return err
+	}
+	tm, err := client.TagsManager()
+	if err != nil {
+		return err
+	}
+	cats, err := tm.GetCategories(ctx)
+	if err != nil {
+		return err
+	}
+	for _, cat := range cats {
+		if regexp.MustCompile("save").Match([]byte(cat.Name)) {
+			continue
+		}
+		tm.DeleteCategory(ctx, &cat)
+	}
+	return nil
+}
+
+func dcSweep(r string) error {
+	client, err := sweepVSphereClient()
+	if err != nil {
+		return err
+	}
+	dcs, err := listDatacenters(client.vimClient)
+	if err != nil {
+		return err
+	}
+	for _, dc := range dcs {
+		if regexp.MustCompile("save").Match([]byte(dc.Name())) {
+			continue
+		}
+		_, err := dc.Destroy(context.TODO())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
