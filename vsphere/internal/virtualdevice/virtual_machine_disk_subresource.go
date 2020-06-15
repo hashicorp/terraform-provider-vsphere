@@ -505,9 +505,11 @@ func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 		if err != nil {
 			return fmt.Errorf("error computing device address: %s", err)
 		}
-		// We want to set keep_on_remove for these disks as well so that they are
-		// not destroyed when we remove them in the next TF run.
-		m["keep_on_remove"] = true
+		// We want to set keep_on_remove for these disks as well if they are not uploaded from ovf,
+		// so that they are not destroyed when we remove them in the next TF run.
+		if len(d.Get("ovf_deploy").([]interface{})) == 0 {
+			m["keep_on_remove"] = true
+		}
 		r := NewDiskSubresource(c, d, m, nil, len(newSet))
 		if err := r.Read(l); err != nil {
 			return fmt.Errorf("%s: %s", r.Addr(), err)
@@ -543,6 +545,7 @@ func DiskDestroyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 
 	log.Printf("[DEBUG] DiskDestroyOperation: Detaching devices with keep_on_remove enabled")
 	for oi, oe := range ds {
+
 		m := oe.(map[string]interface{})
 		if !m["keep_on_remove"].(bool) && !m["attach"].(bool) {
 			// We don't care about disks we haven't set to keep
