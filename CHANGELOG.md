@@ -1,4 +1,4 @@
-## 1.19.0 (Unreleased)
+## 1.19.0 (June 16, 2020)
 
 FEATURES:
 * `data/dynamic`: Data source which can be used to match any tagged managed object. ([#1103](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1103))
