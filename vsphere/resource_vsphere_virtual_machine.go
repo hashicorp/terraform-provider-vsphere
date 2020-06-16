@@ -956,7 +956,7 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 			return fmt.Errorf("either local ovf/ova path or remote ovf/ova url is required, both can't be empty")
 		}
 		if localOvfPath != "" && remoteOvfUrl != "" {
-			return fmt.Errorf("both local ovf/ova path and remote ovf/ova url is given, please specify only one source")
+			return fmt.Errorf("both local ovf/ova path and remote ovf/ova url are provided, please specify only one source")
 		}
 		if localOvfPath != "" {
 			if _, err := os.Stat(localOvfPath); os.IsNotExist(err) {
@@ -1324,7 +1324,7 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 	remoteOvfUrl := d.Get("ovf_deploy.0.remote_ovf_url").(string)
 
 	// check if Ovf or Ova is to be deployed from local/remote
-	isDeployOva := false
+	deployOva := false
 	fromLocal := true
 	filePath := localOvfPath
 
@@ -1333,7 +1333,7 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 		filePath = remoteOvfUrl
 	}
 	if strings.HasSuffix(filePath, ".ova") {
-		isDeployOva = true
+		deployOva = true
 	}
 	log.Printf("[DEBUG] VM is being deployed from ovf/ova template %s", filePath)
 
@@ -1392,9 +1392,9 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 		DiskProvisioning:   d.Get("ovf_deploy.0.disk_provisioning").(string),
 	}
 
-	ovfDescriptor, err := ovfdeploy.GetOvfDescriptor(filePath, isDeployOva, fromLocal, allowUnverifiedSSL)
+	ovfDescriptor, err := ovfdeploy.GetOvfDescriptor(filePath, deployOva, fromLocal, allowUnverifiedSSL)
 	if err != nil {
-		return nil, fmt.Errorf("error while reading the ovf File %s, %s ", filePath, err)
+		return nil, fmt.Errorf("error while reading the ovf file %s, %s ", filePath, err)
 	}
 
 	if ovfDescriptor == "" {
@@ -1409,7 +1409,7 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 	}
 
 	log.Print(" [DEBUG] start deploying from ovf/ova Template")
-	err = ovfdeploy.DeployOvfAndGetResult(ovfCreateImportSpecResult, poolObj, folderObj, hostObj, filePath, isDeployOva, fromLocal, allowUnverifiedSSL)
+	err = ovfdeploy.DeployOvfAndGetResult(ovfCreateImportSpecResult, poolObj, folderObj, hostObj, filePath, deployOva, fromLocal, allowUnverifiedSSL)
 	if err != nil {
 		return nil, fmt.Errorf("error while importing ovf/ova template, %s", err)
 	}

@@ -47,7 +47,7 @@ func VirtualMachineOvfDeploySchema() map[string]*schema.Schema {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Default:     true,
-			Description: "If to allow unverified ssl certificates while deploying ovf/ova from url.",
+			Description: "Allow unverified ssl certificates while deploying ovf/ova from url.",
 		},
 	}
 }

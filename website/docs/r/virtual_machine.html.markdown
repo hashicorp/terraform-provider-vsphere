@@ -248,7 +248,7 @@ resource "vsphere_virtual_machine" "vm" {
 ### Deploying VM from an OVF/OVA template
 Ovf and ova templates can be deployed both from local system and remote URL into the 
 vcenter using the `ovf_deploy` property. When deploying from local system, the 
-path to the ovf or ova template needs to be given. While deploying ovf, all other 
+path to the ovf or ova template needs to be provided. While deploying ovf, all other 
 necessary files like vmdk files also should be present in the same directory as the ovf file. 
 While deploying, the VM properties like `name`, `datacenter_id`, `resource_pool_id`, `datastore_id`, 
 `host_system_id`, `folder`, `scsi_controller_count`, `vapp` can only be set. All other VM properties are taken from the ovf 
@@ -1369,7 +1369,7 @@ The options available in the `ovf_deploy` block are:
    the same specified disk type (accepted values {thin, flat, thick, sameAsSource}).
 * `ovf_network_map` - (Optional) The mapping of name of network identifiers from the ovf descriptor to network UUID in the 
    VI infrastructure.
-* `allow_unverified_ssl_cert` - (Optional) If to allow unverified ssl certificates while deploying ovf/ova from url.
+* `allow_unverified_ssl_cert` - (Optional) Allow unverified ssl certificates while deploying ovf/ova from url.
    Defaults true.   
 
 ### Using vApp properties to supply OVF/OVA configuration
