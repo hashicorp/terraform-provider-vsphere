@@ -42,7 +42,7 @@ func (pr *ProgressReader) Read(p []byte) (n int, err error) {
 }
 
 func DeployOvfAndGetResult(ovfCreateImportSpecResult *types.OvfCreateImportSpecResult, resourcePoolObj *object.ResourcePool,
-	folder *object.Folder, host *object.HostSystem, filePath string, isDeployOva bool, fromLocal bool, allowUnverifiedSSL bool) error {
+	folder *object.Folder, host *object.HostSystem, filePath string, deployOva bool, fromLocal bool, allowUnverifiedSSL bool) error {
 
 	var currBytesRead int64 = 0
 	var totalBytes int64 = 0
@@ -91,7 +91,7 @@ func DeployOvfAndGetResult(ovfCreateImportSpecResult *types.OvfCreateImportSpecR
 			if ovfFileItem.DeviceId != deviceObj.ImportKey {
 				continue
 			}
-			if !isDeployOva {
+			if !deployOva {
 				if fromLocal {
 					err = uploadDisksFromLocal(filePath, ovfFileItem, deviceObj, &currBytesRead)
 				} else {
