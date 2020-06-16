@@ -230,7 +230,7 @@ github.com/ulikunitz/xz/lzma
 # github.com/vmihailenco/msgpack v4.0.1+incompatible
 github.com/vmihailenco/msgpack
 github.com/vmihailenco/msgpack/codes
-# github.com/vmware/govmomi v0.22.2-0.20200420222347-5fceac570f29
+# github.com/vmware/govmomi v0.22.2-0.20200523220130-61b30e20be49
 github.com/vmware/govmomi
 github.com/vmware/govmomi/event
 github.com/vmware/govmomi/find
@@ -238,12 +238,14 @@ github.com/vmware/govmomi/license
 github.com/vmware/govmomi/list
 github.com/vmware/govmomi/nfc
 github.com/vmware/govmomi/object
+github.com/vmware/govmomi/ovf
 github.com/vmware/govmomi/pbm
 github.com/vmware/govmomi/pbm/methods
 github.com/vmware/govmomi/pbm/types
 github.com/vmware/govmomi/property
 github.com/vmware/govmomi/session
 github.com/vmware/govmomi/session/cache
+github.com/vmware/govmomi/session/keepalive
 github.com/vmware/govmomi/task
 github.com/vmware/govmomi/vapi/internal
 github.com/vmware/govmomi/vapi/library
