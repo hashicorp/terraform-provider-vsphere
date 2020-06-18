@@ -953,9 +953,11 @@ func PciPassthroughApplyOperation(d *schema.ResourceData, c *govmomi.Client, l o
 		Spec:          []types.BaseVirtualDeviceConfigSpec{},
 		VirtualDevice: l,
 	}
-	if addDevs.Len() > 0 || delDevs.Len() > 0 {
-		d.Set("reboot_required", true)
+	if addDevs.Len() <= 0 && delDevs.Len() <= 0 {
+		return applyConfig.VirtualDevice, applyConfig.Spec, nil
 	}
+
+	d.Set("reboot_required", true)
 	err := applyConfig.getPciSysId()
 	if err != nil {
 		return nil, nil, err
