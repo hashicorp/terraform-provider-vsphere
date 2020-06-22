@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/ovfdeploy"
-	"io/ioutil"
 	"log"
 	"net"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -199,6 +197,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Default:      string(types.VirtualSCSISharingNoSharing),
 			Description:  "Mode for sharing the SCSI bus. The modes are physicalSharing, virtualSharing, and noSharing.",
 			ValidateFunc: validation.StringInSlice(virtualdevice.SCSIBusSharingAllowedValues, false),
+			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+				if len(d.Get("ovf_deploy").([]interface{})) > 0 {
+					return true
+				}
+				return false
+			},
 		},
 		// NOTE: disk is only optional so that we can flag it as computed and use
 		// it in ResourceDiff. We validate this field in ResourceDiff to enforce it
@@ -261,9 +265,9 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		"ovf_deploy": {
 			Type:        schema.TypeList,
 			Optional:    true,
-			Description: "A specification for deploying a virtual machine from OVF template.",
+			Description: "A specification for deploying a virtual machine from ovf/ova template.",
 			MaxItems:    1,
-			Elem:        &schema.Resource{Schema: vmworkflow.VirtualMachineOVFDeploySchema()},
+			Elem:        &schema.Resource{Schema: vmworkflow.VirtualMachineOvfDeploySchema()},
 		},
 		"reboot_required": {
 			Type:        schema.TypeBool,
@@ -333,7 +337,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 	case len(d.Get("clone").([]interface{})) > 0:
 		vm, err = resourceVSphereVirtualMachineCreateClone(d, meta)
 	case len(d.Get("ovf_deploy").([]interface{})) > 0:
-		vm, err = resourceVsphereMachineDeployOVF(d, meta)
+		vm, err = resourceVsphereMachineDeployOvfAndOva(d, meta)
 	default:
 		vm, err = resourceVSphereVirtualMachineCreateBare(d, meta)
 	}
@@ -949,11 +953,14 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 		remoteOvfUrl := d.Get("ovf_deploy.0.remote_ovf_url").(string)
 
 		if localOvfPath == "" && remoteOvfUrl == "" {
-			return fmt.Errorf("either local ovf path or remote ovf url is required, both can't be empty")
+			return fmt.Errorf("either local ovf/ova path or remote ovf/ova url is required, both can't be empty")
+		}
+		if localOvfPath != "" && remoteOvfUrl != "" {
+			return fmt.Errorf("both local ovf/ova path and remote ovf/ova url are provided, please specify only one source")
 		}
 		if localOvfPath != "" {
 			if _, err := os.Stat(localOvfPath); os.IsNotExist(err) {
-				return fmt.Errorf("file doesn't exist %s", localOvfPath)
+				return fmt.Errorf("ovf/ova file doesn't exist %s", localOvfPath)
 			}
 		}
 	}
@@ -1310,20 +1317,29 @@ func resourceVSphereVirtualMachineCreateBareStandard(
 	return vm, nil
 }
 
-// Deploy vm from OVF template
-func resourceVsphereMachineDeployOVF(d *schema.ResourceData, meta interface{}) (*object.VirtualMachine, error) {
+// Deploy vm from ovf/ova template
+func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interface{}) (*object.VirtualMachine, error) {
 
 	localOvfPath := d.Get("ovf_deploy.0.local_ovf_path").(string)
 	remoteOvfUrl := d.Get("ovf_deploy.0.remote_ovf_url").(string)
-	ovFromLocal := true
-	if localOvfPath == "" {
-		ovFromLocal = false
+
+	// check if Ovf or Ova is to be deployed from local/remote
+	deployOva := false
+	fromLocal := true
+	filePath := localOvfPath
+
+	if remoteOvfUrl != "" {
+		fromLocal = false
+		filePath = remoteOvfUrl
 	}
-	log.Printf("[DEBUG] %s:%s VM is being deployed from OVF template ", localOvfPath, remoteOvfUrl)
+	if strings.HasSuffix(filePath, ".ova") {
+		deployOva = true
+	}
+	log.Printf("[DEBUG] VM is being deployed from ovf/ova template %s", filePath)
 
 	dataCenterId := d.Get("datacenter_id").(string)
 	if dataCenterId == "" {
-		return nil, fmt.Errorf("data center ID is required for OVF deployment")
+		return nil, fmt.Errorf("data center ID is required for ovf deployment")
 	}
 
 	client := meta.(*VSphereClient).vimClient
@@ -1344,7 +1360,7 @@ func resourceVsphereMachineDeployOVF(d *schema.ResourceData, meta interface{}) (
 
 	hostId := d.Get("host_system_id").(string)
 	if hostId == "" {
-		return nil, fmt.Errorf("host system ID is required for OVF deployment")
+		return nil, fmt.Errorf("host system ID is required for ovf deployment")
 	}
 	hostObj, err := hostsystem.FromID(client, hostId)
 	if err != nil {
@@ -1354,7 +1370,7 @@ func resourceVsphereMachineDeployOVF(d *schema.ResourceData, meta interface{}) (
 
 	dsId := d.Get("datastore_id").(string)
 	if dsId == "" {
-		return nil, fmt.Errorf("data store ID is required for OVF deployment")
+		return nil, fmt.Errorf("data store ID is required for ovf deployment")
 	}
 	dsObj, err := datastore.FromID(client, dsId)
 	if err != nil {
@@ -1362,6 +1378,7 @@ func resourceVsphereMachineDeployOVF(d *schema.ResourceData, meta interface{}) (
 	}
 	dsMor := dsObj.Reference()
 
+	allowUnverifiedSSL := d.Get("ovf_deploy.0.allow_unverified_ssl_cert").(bool)
 	networkMapping, err := ovfdeploy.GetNetworkMapping(client, d)
 	if err != nil {
 		return nil, err
@@ -1375,30 +1392,13 @@ func resourceVsphereMachineDeployOVF(d *schema.ResourceData, meta interface{}) (
 		DiskProvisioning:   d.Get("ovf_deploy.0.disk_provisioning").(string),
 	}
 
-	ovfDescriptor := ""
-	if ovFromLocal {
-		fileBuffer, err := ioutil.ReadFile(localOvfPath)
-		if err != nil {
-			return nil, err
-		}
-		ovfDescriptor = string(fileBuffer)
-	} else {
-		resp, err := http.Get(remoteOvfUrl)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode == http.StatusOK {
-			bodyBytes, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				return nil, err
-			}
-			ovfDescriptor = string(bodyBytes)
-		}
+	ovfDescriptor, err := ovfdeploy.GetOvfDescriptor(filePath, deployOva, fromLocal, allowUnverifiedSSL)
+	if err != nil {
+		return nil, fmt.Errorf("error while reading the ovf file %s, %s ", filePath, err)
 	}
+
 	if ovfDescriptor == "" {
-		return nil, fmt.Errorf("error while reading the OVF File %s %s", localOvfPath, remoteOvfUrl)
+		return nil, fmt.Errorf("the given ovf file %s is empty", filePath)
 	}
 
 	ovfManager := ovf.NewManager(client.Client)
@@ -1408,15 +1408,10 @@ func resourceVsphereMachineDeployOVF(d *schema.ResourceData, meta interface{}) (
 		return nil, err
 	}
 
-	ovfPath := localOvfPath
-	if !ovFromLocal {
-		ovfPath = remoteOvfUrl
-	}
-
-	log.Print(" [DEBUG] start deploying from OVF Template")
-	err = ovfdeploy.DeployOVFAndGetResult(ovfCreateImportSpecResult, poolObj, folderObj, hostObj, ovfPath, ovFromLocal)
+	log.Print(" [DEBUG] start deploying from ovf/ova Template")
+	err = ovfdeploy.DeployOvfAndGetResult(ovfCreateImportSpecResult, poolObj, folderObj, hostObj, filePath, deployOva, fromLocal, allowUnverifiedSSL)
 	if err != nil {
-		return nil, fmt.Errorf("error while importing OVF template %s", err)
+		return nil, fmt.Errorf("error while importing ovf/ova template, %s", err)
 	}
 
 	datacenterObj, err := datacenterFromID(client, dataCenterId)
@@ -1425,7 +1420,7 @@ func resourceVsphereMachineDeployOVF(d *schema.ResourceData, meta interface{}) (
 	}
 	vm, err = virtualmachine.FromPath(client, name, datacenterObj)
 	if err != nil {
-		return nil, fmt.Errorf("error while fetching the created vm %s", err)
+		return nil, fmt.Errorf("error while fetching the created vm, %s", err)
 	}
 
 	// set ID for the vm

@@ -245,17 +245,20 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 ```
-### Deploying VM from an OVF template
-OVF templates can be deployed both from local system and remote URL into the 
+### Deploying VM from an OVF/OVA template
+Ovf and ova templates can be deployed both from local system and remote URL into the 
 vcenter using the `ovf_deploy` property. When deploying from local system, the 
-path to the .ovf template needs to be given and all other necessary files like .vmdk 
-files also should be present in the same directory as the .ovf file. While deploying, 
-the VM properties like `name`, `datacenter_id`, `resource_pool_id`, `datastore_id`, 
-`host_system_id`, `folder`, `vapp` can only be set. All other VM properties are taken from the OVF 
+path to the ovf or ova template needs to be provided. While deploying ovf, all other 
+necessary files like vmdk files also should be present in the same directory as the ovf file. 
+While deploying, the VM properties like `name`, `datacenter_id`, `resource_pool_id`, `datastore_id`, 
+`host_system_id`, `folder`, `scsi_controller_count`, `vapp` can only be set. All other VM properties are taken from the ovf 
 template and setting them in the configuration file is redundant.
 
-~> **NOTE:** Only the vApp properties which are pre-defined in the OVF template can be overwritten. 
+~> **NOTE:** Only the vApp properties which are pre-defined in the ovf template can be overwritten. 
 vApp properties from scratch cannot be created.
+
+~> **NOTE:** ovf deployment requires vCenter and is not supported on direct ESXi
+connections.
 
 ```hcl
 data "vsphere_datacenter" "dc" {
@@ -274,19 +277,31 @@ data "vsphere_resource_pool" "pool" {
 
 data "vsphere_host" "host" {
   name          = "hostip"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+data "vsphere_network" "network" {
+  name          = "VM Network"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_virtual_machine" "vmFromLocalOvf" {
   name = "vm1"
-  resource_pool_id = data.vsphere_resource_pool.pool.id
-  datastore_id = data.vsphere_datastore.datastore.id
-  host_system_id = data.vsphere_host.host.id
+  resource_pool_id           = data.vsphere_resource_pool.pool.id
+  datastore_id               = data.vsphere_datastore.datastore.id
+  host_system_id             = data.vsphere_host.host.id
   wait_for_guest_net_timeout = 0
-  wait_for_guest_ip_timeout = 0
-  datacenter_id = data.vsphere_datacenter.dc.id
+  wait_for_guest_ip_timeout  = 0
+  datacenter_id              = data.vsphere_datacenter.dc.id
   ovf_deploy {
-    local_ovf_path = "Full Path to local OVF template file"
+    local_ovf_path       = "Full Path to local ovf/ova file"
+    disk_provisioning    = "thin"
+    ip_protocol          = "IPV4"
+    ip_allocation_policy = "STATIC_MANUAL"
+    ovf_network_map      = {
+                "ESX-port-1" = data.vsphere_network.network.id
+                "ESX-port-2" = data.vsphere_network.network.id
+               }
   }
   vapp {
       properties = {
@@ -296,15 +311,16 @@ resource "vsphere_virtual_machine" "vmFromLocalOvf" {
 }
 
 resource "vsphere_virtual_machine" "vmFromRemoteOvf" {
-  name = "vm2"
-  resource_pool_id = data.vsphere_resource_pool.pool.id
-  datastore_id = data.vsphere_datastore.datastore.id
-  host_system_id = data.vsphere_host.host.id
+  name                       = "vm2"
+  resource_pool_id           = data.vsphere_resource_pool.pool.id
+  datastore_id               = data.vsphere_datastore.datastore.id
+  host_system_id             = data.vsphere_host.host.id
   wait_for_guest_net_timeout = 0
-  wait_for_guest_ip_timeout = 0
-  datacenter_id = data.vsphere_datacenter.dc.id
+  wait_for_guest_ip_timeout  = 0
+  datacenter_id              = data.vsphere_datacenter.dc.id
   ovf_deploy {
-    remote_ovf_url = "Url to remote ovf file"
+    // Url to remote ovf/ova file
+    remote_ovf_url = "https://download3.vmware.com/software/vmw-tools/nested-esxi/Nested_ESXi7.0_Appliance_Template_v1.ova"
   }
 }
 ```
@@ -530,8 +546,8 @@ external disks on virtual machines that are assigned to datastore clusters.
 connections.
 
 * `ovf_deploy` - (Optional) When specified, the VM will be deployed from the
-   provided ovf template. See [creating a virtual machine from a 
-   ovf template](#creating-vm-from-deploying-a-ovf-template) for more details.
+   provided ovf/ova template. See [creating a virtual machine from a 
+   ovf/ova template](#creating-vm-from-deploying-a-ovf-ova-template) for more details.
 * `vapp` - (Optional) Optional vApp configuration. The only sub-key available
   is `properties`, which is a key/value map of properties for virtual machines
   imported from OVF or OVA files. See [Using vApp properties to supply OVF/OVA
@@ -1328,34 +1344,33 @@ resource "vsphere_virtual_machine" "vm" {
 Note this option is mutually exclusive to `windows_options` - one must not be
 included if the other is specified.
 
-### Creating VM from deploying a OVF template
+### Creating VM from deploying a OVF/OVA template
 
-The `ovf_deploy` block can be used to create a new virtual machine from an OVF
-template either from local system or remote URL. While deploying from OVF, the VM
-properties are taken from OVF and setting them in configuration file is not necessary.
+The `ovf_deploy` block can be used to create a new virtual machine from an ovf/ova
+template either from local system or remote URL. While deploying, the VM
+properties are taken from ovf and setting them in configuration file is not necessary.
 
-See the [Deploying from OVF example](#deploying-vm-from-an-ovf-template) for a usage synopsis.
+See the [Deploying from OVF example](#deploying-vm-from-an-ovf-ova-template) for a usage synopsis.
 
 ~> **NOTE:** Changing any option in `ovf_deploy` after creation forces a new
 resource.
 
-~> **NOTE:** ovf deployment requires vCenter and is not supported on direct ESXi
-connections.
-
 The options available in the `ovf_deploy` block are:
 
-* `local_ovf_path` - (Optional) The absolute path to the ovf file in the local system. Make sure the 
-   other necessary files like the .vmdk files are also in the same directory as the given ovf file.
-* `remote_ovf_url` - (Optional) URL to the remote ovf file to be deployed.
+* `local_ovf_path` - (Optional) The absolute path to the ovf/ova file in the local system. While deploying from ovf,
+   make sure the other necessary files like the .vmdk files are also in the same directory as the given ovf file.
+* `remote_ovf_url` - (Optional) URL to the remote ovf/ova file to be deployed.
 
 ~> **NOTE:** Either `local_ovf_path` or `remote_ovf_url` is required, both can't be empty.
 
 * `ip_allocation_policy` - (Optional) The IP allocation policy.
 * `ip_protocol` - (Optional) The IP protocol.
 * `disk_provisioning` - (Optional) The disk provisioning. If set, all the disks in the deployed OVF will have 
-   the same specified disk type (e.g., thin provisioned).
+   the same specified disk type (accepted values {thin, flat, thick, sameAsSource}).
 * `ovf_network_map` - (Optional) The mapping of name of network identifiers from the ovf descriptor to network UUID in the 
    VI infrastructure.
+* `allow_unverified_ssl_cert` - (Optional) Allow unverified ssl certificates while deploying ovf/ova from url.
+   Defaults true.   
 
 ### Using vApp properties to supply OVF/OVA configuration
 
