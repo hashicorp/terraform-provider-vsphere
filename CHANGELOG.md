@@ -1,6 +1,6 @@
 ## 1.20.0 (Unreleased)
 
-IMPROVEMENTS:
+FEATURES:
 * `resource/vm`: Add support for OVA deployment. ([#1105](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1105))
 
 BUG FIXES:
