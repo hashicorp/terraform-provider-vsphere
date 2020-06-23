@@ -1,4 +1,12 @@
 ## 1.20.0 (Unreleased)
+
+IMPROVEMENTS:
+* `resource/vm`: Add support for OVA deployment. ([#1105](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1105))
+
+BUG FIXES:
+* `resource/vm`: Delete disks on destroy when deployed from OVA/OVF. ([#1106](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1106))
+* `resource/vm`: Skip PCI passthrough operations if there are no changes. ([#1112](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1112))
+
 ## 1.19.0 (June 16, 2020)
 
 FEATURES:
