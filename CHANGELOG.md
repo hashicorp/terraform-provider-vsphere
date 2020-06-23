@@ -1,4 +1,4 @@
-## 1.20.0 (Unreleased)
+## 1.20.0 (June 23, 2020)
 
 FEATURES:
 * `resource/vm`: Add support for OVA deployment. ([#1105](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1105))
