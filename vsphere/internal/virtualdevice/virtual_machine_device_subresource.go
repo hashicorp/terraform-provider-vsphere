@@ -547,48 +547,65 @@ func swapSCSIDevice(l object.VirtualDeviceList, device types.BaseVirtualSCSICont
 	return spec, nil
 }
 
-// NormalizeSCSIBus checks the SCSI controllers on the virtual machine and
+// NormalizeBus checks the SCSI controllers on the virtual machine and
 // either creates them if they don't exist, or migrates them to the specified
 // controller type. Devices are migrated to the new controller appropriately. A
 // spec slice is returned with the changes.
 //
 // The first number of slots specified by count are normalized by this
 // function. Any others are left unchanged.
-func NormalizeSCSIBus(l object.VirtualDeviceList, ct string, count int, st string) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
-	log.Printf("[DEBUG] NormalizeSCSIBus: Normalizing first %d controllers on SCSI bus to device type %s", count, ct)
+func NormalizeBus(l object.VirtualDeviceList, d *schema.ResourceData) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+	scsiCount := d.Get("scsi_controller_count").(int)
+	scsiType := d.Get("scsi_type").(string)
+	scsiSharing := d.Get("scsi_bus_sharing").(string)
+	sataCount := d.Get("sata_controller_count").(int)
+	ideCount := d.Get("ide_controller_count").(int)
 	var spec []types.BaseVirtualDeviceConfigSpec
-	ctlrs := make([]types.BaseVirtualSCSIController, count)
+	scsiCtlrs := make([]types.BaseVirtualSCSIController, scsiCount)
+	sataCtlrs := make([]types.BaseVirtualSATAController, sataCount)
+	ideCtlrs := make([]*types.VirtualIDEController, ideCount)
 	// Don't worry about doing any fancy select stuff here, just go thru the
 	// VirtualDeviceList and populate the controllers.
-	iCount := int32(count)
+	log.Printf("[DEBUG] NormalizeBus: Normalizing first %d controllers on SCSI bus to device type %s", scsiCount, scsiType)
+	log.Printf("[DEBUG] NormalizeBus: Normalizing first %d controllers on SATA bus", sataCount)
+	log.Printf("[DEBUG] NormalizeBus: Normalizing first %d controllers on IDE bus", ideCount)
 	for _, dev := range l {
-		if sc, ok := dev.(types.BaseVirtualSCSIController); ok {
-			if busNumber := sc.GetVirtualSCSIController().BusNumber; busNumber < iCount {
-				ctlrs[busNumber] = sc
+		switch ctlr := dev.(type) {
+		case types.BaseVirtualSCSIController:
+			if busNumber := ctlr.GetVirtualSCSIController().BusNumber; busNumber < int32(scsiCount) {
+				scsiCtlrs[busNumber] = ctlr
+			}
+		case types.BaseVirtualSATAController:
+			if busNumber := ctlr.GetVirtualSATAController().BusNumber; busNumber < int32(sataCount) {
+				sataCtlrs[busNumber] = ctlr
+			}
+		case *types.VirtualIDEController:
+			if busNumber := ctlr.GetVirtualController().BusNumber; busNumber < int32(ideCount) {
+				ideCtlrs[busNumber] = ctlr
 			}
 		}
 	}
-	log.Printf("[DEBUG] NormalizeSCSIBus: Current SCSI bus contents: %s", scsiControllerListString(ctlrs))
+	log.Printf("[DEBUG] NormalizeBus: Current SCSI bus contents: %s", scsiControllerListString(scsiCtlrs))
 	// Now iterate over the controllers
-	for n, ctlr := range ctlrs {
+	for n, ctlr := range scsiCtlrs {
 		if ctlr == nil {
-			log.Printf("[DEBUG] NormalizeSCSIBus: Creating SCSI controller of type %s at bus number %d", ct, n)
-			cspec, err := createSCSIController(&l, ct, st)
+			log.Printf("[DEBUG] NormalizeBus: Creating SCSI controller of type %s at bus number %d", scsiType, n)
+			cspec, err := createSCSIController(&l, scsiType, scsiSharing)
 			if err != nil {
 				return nil, nil, err
 			}
 			spec = append(spec, cspec...)
 			continue
 		}
-		if l.Type(ctlr.(types.BaseVirtualDevice)) == ct {
-			cspec, err := setSCSIBusSharing(&l, ctlr, st)
+		if l.Type(ctlr.(types.BaseVirtualDevice)) == scsiType {
+			cspec, err := setSCSIBusSharing(&l, ctlr, scsiSharing)
 			if err != nil {
 				return nil, nil, err
 			}
 			spec = append(spec, cspec...)
 			continue
 		}
-		cspec, err := swapSCSIDevice(l, ctlr, ct, st)
+		cspec, err := swapSCSIDevice(l, ctlr, scsiType, scsiSharing)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -596,8 +613,32 @@ func NormalizeSCSIBus(l object.VirtualDeviceList, ct string, count int, st strin
 		l = applyDeviceChange(l, cspec)
 		continue
 	}
-	log.Printf("[DEBUG] NormalizeSCSIBus: Outgoing device list: %s", DeviceListString(l))
-	log.Printf("[DEBUG] NormalizeSCSIBus: Outgoing device config spec: %s", DeviceChangeString(spec))
+	log.Printf("[DEBUG] NormalizeBus: Current SATA bus contents: %s", sataControllerListString(sataCtlrs))
+	// Now iterate over the controllers
+	for n, ctlr := range sataCtlrs {
+		if ctlr == nil {
+			log.Printf("[DEBUG] NormalizeBus: Creating SATA controller at bus number %d", n)
+			cspec, err := createSATAController(&l, n)
+			if err != nil {
+				return nil, nil, err
+			}
+			spec = append(spec, cspec...)
+		}
+	}
+	log.Printf("[DEBUG] NormalizeBus: Current IDE bus contents: %s", ideControllerListString(ideCtlrs))
+	// Now iterate over the controllers
+	for n, ctlr := range ideCtlrs {
+		if ctlr == nil {
+			log.Printf("[DEBUG] NormalizeBus: Creating IDE controller at bus number %d", n)
+			cspec, err := createIDEController(&l, n)
+			if err != nil {
+				return nil, nil, err
+			}
+			spec = append(spec, cspec...)
+		}
+	}
+	log.Printf("[DEBUG] NormalizeBus: Outgoing device list: %s", DeviceListString(l))
+	log.Printf("[DEBUG] NormalizeBus: Outgoing device config spec: %s", DeviceChangeString(spec))
 	return l, spec, nil
 }
 
@@ -615,6 +656,24 @@ func setSCSIBusSharing(l *object.VirtualDeviceList, ctlr types.BaseVirtualSCSICo
 		*l = applyDeviceChange(*l, cspec)
 	}
 	return cspec, nil
+}
+
+// createIDEController creates a new IDE controller.
+func createIDEController(l *object.VirtualDeviceList, bus int) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	ide, _ := l.CreateIDEController()
+	cspec, err := object.VirtualDeviceList{ide}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
+	*l = applyDeviceChange(*l, cspec)
+	return cspec, err
+}
+
+// createSATAController creates a new SATA controller.
+func createSATAController(l *object.VirtualDeviceList, bus int) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	ahci := &types.VirtualAHCIController{}
+	ahci.Key = l.NewKey()
+	ahci.BusNumber = int32(bus)
+	cspec, err := object.VirtualDeviceList{ahci}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
+	*l = applyDeviceChange(*l, cspec)
+	return cspec, err
 }
 
 // createSCSIController creates a new SCSI controller of the specified type and
@@ -641,7 +700,7 @@ func ReadSCSIBusType(l object.VirtualDeviceList, count int) string {
 		}
 	}
 	log.Printf("[DEBUG] ReadSCSIBusType: SCSI controller layout for first %d controllers: %s", count, scsiControllerListString(ctlrs))
-	if ctlrs[0] == nil {
+	if len(ctlrs) == 0 {
 		return subresourceControllerTypeUnknown
 	}
 	last := l.Type(ctlrs[0].(types.BaseVirtualDevice))
@@ -664,7 +723,7 @@ func ReadSCSIBusSharing(l object.VirtualDeviceList, count int) string {
 		}
 	}
 	log.Printf("[DEBUG] ReadSCSIBusSharing: SCSI controller layout for first %d controllers: %s", count, scsiControllerListString(ctlrs))
-	if ctlrs[0] == nil {
+	if len(ctlrs) == 0 {
 		return subresourceControllerSharingUnknown
 	}
 	last := ctlrs[0].(types.BaseVirtualSCSIController).GetVirtualSCSIController().SharedBus
@@ -811,6 +870,32 @@ func subresourceListString(data []interface{}) string {
 		strs = append(strs, fmt.Sprintf("(key %d at %s)", m["key"].(int), devaddr))
 	}
 	return strings.Join(strs, ",")
+}
+
+// ideControllerListString pretty-prints a slice of IDE controllers.
+func ideControllerListString(ctlrs []*types.VirtualIDEController) string {
+	var l object.VirtualDeviceList
+	for _, ctlr := range ctlrs {
+		if ctlr == nil {
+			l = append(l, types.BaseVirtualDevice(nil))
+		} else {
+			l = append(l, ctlr.GetVirtualDevice())
+		}
+	}
+	return DeviceListString(l)
+}
+
+// scsiControllerListString pretty-prints a slice of SATA controllers.
+func sataControllerListString(ctlrs []types.BaseVirtualSATAController) string {
+	var l object.VirtualDeviceList
+	for _, ctlr := range ctlrs {
+		if ctlr == nil {
+			l = append(l, types.BaseVirtualDevice(nil))
+		} else {
+			l = append(l, ctlr.(types.BaseVirtualDevice))
+		}
+	}
+	return DeviceListString(l)
 }
 
 // scsiControllerListString pretty-prints a slice of SCSI controllers.

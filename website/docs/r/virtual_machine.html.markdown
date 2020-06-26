@@ -42,25 +42,21 @@ automatic naming that vSphere picks for you when creating a virtual machine.
 Control over a virtual disk's name is not supported unless you are attaching an
 external disk with the [`attach`](#attach) attribute.
 
-Virtual disks can be SCSI disks only. The SCSI controllers managed by Terraform
+Virtual disks can be SCSI, SATA or IDE. The storage controllers managed by Terraform
 can vary, depending on the value supplied to
-[`scsi_controller_count`](#scsi_controller_count). This also dictates the
+[`scsi_controller_count`](#scsi_controller_count), 
+[`sata_controller_count`](#sata_controller_count), or 
+[`ide_controller_count`](#ide_controller_count). This also dictates the
 controllers that are checked when looking for disks during a cloning process.
-By default, this value is `1`, meaning that you can have up to 15 disks
-configured on a virtual machine. These are all configured with the controller
-type defined by the [`scsi_type`](#scsi_type) setting. If you are cloning from
-a template, devices will be added or re-configured as necessary.
+SCSI controllers are all configured with the controller type defined by the 
+[`scsi_type`](#scsi_type) setting. If you are cloning from a template, devices
+will be added or re-configured as necessary.
 
 When cloning from a template, you must specify disks of either the same or
 greater size than the disks in the source template when creating a traditional
 clone, or exactly the same size when cloning from snapshot (also known as a
 linked clone). For more details, see the section on [creating a virtual machine
 from a template](#creating-a-virtual-machine-from-a-template).
-
-A maximum of 60 virtual disks can be configured when the
-[`scsi_controller_count`](#scsi_controller_count) setting is configured to its
-maximum of `4` controllers. See the [disk options](#disk-options) section for
-more details.
 
 ### Customization and network waiters
 
@@ -251,7 +247,8 @@ vcenter using the `ovf_deploy` property. When deploying from local system, the
 path to the ovf or ova template needs to be provided. While deploying ovf, all other 
 necessary files like vmdk files also should be present in the same directory as the ovf file. 
 While deploying, the VM properties like `name`, `datacenter_id`, `resource_pool_id`, `datastore_id`, 
-`host_system_id`, `folder`, `scsi_controller_count`, `vapp` can only be set. All other VM properties are taken from the ovf 
+`host_system_id`, `folder`, `scsi_controller_count`, `sata_controller_count`, 
+`ide_controller_count`, and `vapp` can only be set. All other VM properties are taken from the ovf 
 template and setting them in the configuration file is redundant.
 
 ~> **NOTE:** Only the vApp properties which are pre-defined in the ovf template can be overwritten. 
@@ -762,11 +759,14 @@ amount of memory provisioned for the virtual machine.
   Terraform manages on this virtual machine. This directly affects the amount
   of disks you can add to the virtual machine and the maximum disk unit number.
   Note that lowering this value does not remove controllers. Default: `1`.
-
-~> **NOTE:** `scsi_controller_count` should only be modified when you will need
-more than 15 disks on a single virtual machine, or in rare cases that require a
-dedicated controller for certain disks. HashiCorp does not support exploiting
-this value to add out-of-band devices.
+* `sata_controller_count` - (Optional) The number of SATA controllers that
+  Terraform manages on this virtual machine. This directly affects the amount
+  of disks you can add to the virtual machine and the maximum disk unit number.
+  Note that lowering this value does not remove controllers. Default: `0`.
+* `ide_controller_count` - (Optional) The number of IDE controllers that
+  Terraform manages on this virtual machine. This directly affects the amount
+  of disks you can add to the virtual machine and the maximum disk unit number.
+  Note that lowering this value does not remove controllers. Default: `2`.
 
 ### Disk options
 
@@ -825,11 +825,11 @@ removed, and the only time this controls path is when attaching a disk
 externally with `attach` when the `path` field is not specified.
 
 * `size` - (Required) The size of the disk, in GB.
-* `unit_number` - (Optional) The disk number on the SCSI bus. The maximum value
-  for this setting is the value of
-  [`scsi_controller_count`](#scsi_controller_count) times 15, minus 1 (so `14`,
-  `29`, `44`, and `59`, for 1-4 controllers respectively). The default is `0`,
-  for which one disk must be set to. Duplicate unit numbers are not allowed.
+* `unit_number` - (Optional) The disk number on the storage bus. The maximum 
+  value for this setting is the value of the controller count times the 
+  controller capacity (15 for SCSI, 30 for SATA, and 2 for IDE). 
+  The default is `0`, for which one disk must be set to. Duplicate unit numbers 
+  are not allowed.
 * `datastore_id` - (Optional) A [managed object reference
   ID][docs-about-morefs] to the datastore for this virtual disk. The default is
   to use the datastore of the virtual machine. See the section on [virtual
@@ -1420,13 +1420,13 @@ both the resource configuration and source template:
 * When using `linked_clone`, the `size`, `thin_provisioned`, and
   `eagerly_scrub` settings for each disk must be an exact match to the
   individual disk's counterpart in the source template.
-* The [`scsi_controller_count`](#scsi_controller_count) setting should be
+* The storage controller count settings should be
   configured as necessary to cover all of the disks on the template. For best
   results, only configure this setting for the amount of controllers you will
   need to cover your disk quantity and bandwidth needs, and configure your
   template accordingly. For most workloads, this setting should be kept at its
-  default of `1`, and all disks in the template should reside on the single,
-  primary controller.
+  default of `1` SCSI controller, and all disks in the template should reside 
+  on the single, primary controller.
 * Some operating systems (such as Windows) do not respond well to a change in
   disk controller type, so when using such OSes, take care to ensure that
   `scsi_type` is set to an exact match of the template's controller set. For
@@ -1588,12 +1588,12 @@ In addition to these rules, the following extra rules apply to importing:
   until the first `terraform apply` runs, which will remove the setting for
   known disks. This is an extra safeguard against naming or accounting mistakes
   in the disk configuration.
-* The [`scsi_controller_count`](#scsi_controller_count) for the resource is set
-  to the number of contiguous SCSI controllers found, starting with the SCSI
-  controller at bus number 0. If no SCSI controllers are found, the VM is not
-  eligible for import. To ensure maximum compatibility, make sure your virtual
-  machine has the exact number of SCSI controllers it needs, and set
-  [`scsi_controller_count`](#scsi_controller_count) accordingly.
+* The storage controller count for the resource is set to the number of 
+  contiguous storage controllers found, starting with the controller at bus 
+  number 0. If no storage controllers are found, the VM is not eligible for 
+  import. To ensure maximum compatibility, make sure your virtual machine has
+  the exact number of storage controllers it needs, and set the storage
+   controller counts accordingly.
 
 After importing, you should run `terraform plan`. Unless you have changed
 anything else in configuration that would be causing other attributes to
