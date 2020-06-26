@@ -34,7 +34,7 @@ This provider plugin is maintained by the Terraform team at [HashiCorp](https://
 ## Building The Provider
 
 Unless you are [contributing](_about/CONTRIBUTING.md) to the provider or require a
-pre-release bugfix or feature, you will want to use an [officially released](https://github.com/terraform-providers/terraform-provider-vsphere/releases)
+pre-release bugfix or feature, you will want to use an [officially released](https://github.com/hashicorp/terraform-provider-vsphere/releases)
 version of the provider.
 
 
@@ -42,7 +42,7 @@ version of the provider.
 
 The Terraform vSphere Provider is the work of many contributors. We appreciate your help!
 
-To contribute, please read the [contribution guidelines](_about/CONTRIBUTING.md). You may also [report an issue](https://github.com/terraform-providers/terraform-provider-vsphere/issues/new/choose). Once you've filed an issue, it will follow the [issue lifecycle](_about/ISSUES.md).
+To contribute, please read the [contribution guidelines](_about/CONTRIBUTING.md). You may also [report an issue](https://github.com/hashicorp/terraform-provider-vsphere/issues/new/choose). Once you've filed an issue, it will follow the [issue lifecycle](_about/ISSUES.md).
 
 Also available are some answers to [Frequently Asked Questions](_about/FAQ.md).
 

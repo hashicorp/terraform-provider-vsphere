@@ -65,7 +65,7 @@ Refer to the [CHANGELOG](CHANGELOG.md) for version to version changes.
 
 * [Kubernetes kops](https://github.com/kubernetes/kops/tree/master/upup/pkg/fi/cloudup/vsphere)
 
-* [Terraform](https://github.com/terraform-providers/terraform-provider-vsphere)
+* [Terraform](https://github.com/hashicorp/terraform-provider-vsphere)
 
 * [Packer](https://github.com/jetbrains-infra/packer-builder-vsphere)
 

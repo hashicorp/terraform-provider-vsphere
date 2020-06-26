@@ -6,20 +6,20 @@ version: 2
 jobs:
 EOF
 
-tests=$(TF_ACC=1 go test github.com/terraform-providers/terraform-provider-vsphere/vsphere | grep "\-\-\- FAIL" | awk '{ print $3 }')
+tests=$(TF_ACC=1 go test github.com/hashicorp/terraform-provider-vsphere/vsphere | grep "\-\-\- FAIL" | awk '{ print $3 }')
 categories=$(sed -e s/^TestAcc//g <<< "$tests" | sed -e s/_.*//g | sort -u)
 cat << EOF >> /tmp/config.yml
   linters:
     docker: 
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p \$GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* \$GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p \$GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* \$GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - run:
         name: "Get tfproviderlint"
         command: |
@@ -36,14 +36,14 @@ for category in $categories; do
   test_acc_$category:
     docker: 
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p \$GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* \$GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p \$GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* \$GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -59,7 +59,7 @@ for category in $categories; do
         no_output_timeout: 30m
         name: "Run Acceptance Tests"
         command: |
-          \$GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh $category
+          \$GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh $category
 
 EOF
 done

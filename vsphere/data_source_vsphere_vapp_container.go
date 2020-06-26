@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/terraform-providers/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
 )
 
 func dataSourceVSphereVAppContainer() *schema.Resource {

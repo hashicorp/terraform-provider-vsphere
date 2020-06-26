@@ -1,4 +1,4 @@
-module github.com/terraform-providers/terraform-provider-vsphere
+module github.com/hashicorp/terraform-provider-vsphere
 
 go 1.13
 

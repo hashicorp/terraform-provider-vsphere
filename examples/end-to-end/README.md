@@ -56,7 +56,7 @@ configure your endpoint and credentials by either adding them to the
 [here][ref-tf-vsphere-provider-settings] for a reference on provider-level
 configuration values.
 
-[ref-tf-vsphere-github]: https://github.com/terraform-providers/terraform-provider-vsphere
+[ref-tf-vsphere-github]: https://github.com/hashicorp/terraform-provider-vsphere
 [ref-tf-vsphere-provider-settings]: https://www.terraform.io/docs/providers/vsphere/index.html#argument-reference
 
 Once done, run `terraform init`, and `terraform plan` to review the plan, then
