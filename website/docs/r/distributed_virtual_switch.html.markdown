@@ -256,7 +256,7 @@ traffic, see the example below:
 
 ```hcl
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  ...
+  // ... other configuration ...
   virtualmachine_share_level      = "custom"
   virtualmachine_share_count      = 150
   virtualmachine_maximum_mbit     = 200
@@ -303,7 +303,7 @@ policy applies to. One one of these 3 options may be set:
 
 ```hcl
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  ...
+  // ... other configuration ...
   vlan_range {
     min_vlan = 1
     max_vlan = 1000
