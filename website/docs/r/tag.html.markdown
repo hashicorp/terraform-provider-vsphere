@@ -80,7 +80,7 @@ resource "vsphere_tag" "tag" {
 }
 
 resource "vsphere_virtual_machine" "web" {
-  // ... other configuration ...
+  # ... other configuration ...
 
   tags = ["${vsphere_tag.tag.id}"]
 }

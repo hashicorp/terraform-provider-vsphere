@@ -51,7 +51,7 @@ resource "vsphere_custom_attribute" "attribute" {
 }
 
 resource "vpshere_virtual_machine" "web" {
-  // ... other configuration ...
+  # ... other configuration ...
 
   custom_attributes = "${map(vsphere_custom_attribute.attribute.id, "value")}"
 }
