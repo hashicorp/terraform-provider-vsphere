@@ -22,7 +22,7 @@ data "vsphere_content_library" "library" {
 }
 
 data "vsphere_content_library_item" "item" {
-  name = "Ubuntu Bionic 18.04"
+  name       = "Ubuntu Bionic 18.04"
   library_id = data.vsphere_content_library.library.id
 }
 ```

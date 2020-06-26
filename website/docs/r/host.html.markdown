@@ -22,10 +22,10 @@ data "vsphere_datacenter" "dc" {
 }
 
 resource "vsphere_host" "h1" {
-  hostname = "10.10.10.1"
-  username = "root"
-  password = "password"
-  license = "00000-00000-00000-00000i-00000"
+  hostname   = "10.10.10.1"
+  username   = "root"
+  password   = "password"
+  license    = "00000-00000-00000-00000i-00000"
   datacenter = data.vsphere_datacenter.dc.id
 }
 ```
@@ -38,7 +38,7 @@ data "vsphere_datacenter" "dc" {
 }
 
 data "vsphere_compute_cluster" "c1" {
-  name = "DC0_C0"
+  name          = "DC0_C0"
   datacenter_id = data.vsphere_datacenter.dc.id
 }
 
@@ -46,8 +46,8 @@ resource "vsphere_host" "h1" {
   hostname = "10.10.10.1"
   username = "root"
   password = "password"
-  license = "00000-00000-00000-00000i-00000"
-  cluster = data.vsphere_compute_cluster.c1.id
+  license  = "00000-00000-00000-00000i-00000"
+  cluster  = data.vsphere_compute_cluster.c1.id
 }
 ```
 

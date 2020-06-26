@@ -16,76 +16,76 @@ Provides a VMware vSphere vnic resource.
 **Create a vnic attached to a distributed virtual switch using the vmotion TCP/IP stack:**
 
 ```hcl
-    data "vsphere_datacenter" "dc" {
-      name = "mydc"
-    }
-    
-    data "vsphere_host" "h1" {
-      name          = "esxi1.host.test"
-      datacenter_id = data.vsphere_datacenter.dc.id
-    }
-    
-    
-    resource "vsphere_distributed_virtual_switch" "d1" {
-      name          = "dc_DVPG0"
-      datacenter_id = data.vsphere_datacenter.dc.id
-      host {
-        host_system_id = data.vsphere_host.h1.id
-        devices        = ["vnic3"]
-      }
-    }
-    
-    resource "vsphere_distributed_port_group" "p1" {
-      name                            = "test-pg"
-      vlan_id                         = 1234
-      distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.d1.id
-    }
-    
-    resource "vsphere_vnic" "v1" {
-      host                    = data.vsphere_host.h1.id
-      distributed_switch_port = vsphere_distributed_virtual_switch.d1.id
-      distributed_port_group  = vsphere_distributed_port_group.p1.id
-      ipv4 {
-        dhcp = true
-      }
-      netstack = "vmotion"
-    }
+data "vsphere_datacenter" "dc" {
+  name = "mydc"
+}
+
+data "vsphere_host" "h1" {
+  name          = "esxi1.host.test"
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+
+resource "vsphere_distributed_virtual_switch" "d1" {
+  name          = "dc_DVPG0"
+  datacenter_id = data.vsphere_datacenter.dc.id
+  host {
+    host_system_id = data.vsphere_host.h1.id
+    devices        = ["vnic3"]
+  }
+}
+
+resource "vsphere_distributed_port_group" "p1" {
+  name                            = "test-pg"
+  vlan_id                         = 1234
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.d1.id
+}
+
+resource "vsphere_vnic" "v1" {
+  host                    = data.vsphere_host.h1.id
+  distributed_switch_port = vsphere_distributed_virtual_switch.d1.id
+  distributed_port_group  = vsphere_distributed_port_group.p1.id
+  ipv4 {
+    dhcp = true
+  }
+  netstack = "vmotion"
+}
 ```
 
 **Create a vnic attached to a portgroup using the default TCP/IP stack:**
 
 ```hcl
-    data "vsphere_datacenter" "dc" {
-      name = "mydc"
-    }
-    
-    data "vsphere_host" "h1" {
-      name          = "esxi1.host.test"
-      datacenter_id = data.vsphere_datacenter.dc.id
-    }
-    
-    
-    resource "vsphere_host_virtual_switch" "hvs1" {
-      name             = "dc_HPG0"
-      host_system_id   = data.vsphere_host.h1.id
-      network_adapters = ["vmnic3", "vmnic4"]
-      active_nics      = ["vmnic3"]
-      standby_nics     = ["vmnic4"]
-    }
-    
-    resource "vsphere_host_port_group" "p1" {
-      name                = "my-pg"
-      virtual_switch_name = vsphere_host_virtual_switch.hvs1.name
-      host_system_id      = data.vsphere_host.h1.id
-    }
-    
-    resource "vsphere_vnic" "v1" {
-      host      = data.vsphere_host.h1.id
-      portgroup = vsphere_host_port_group.p1.name
-      ipv4 {
-        dhcp = true
-      }
-    }
+data "vsphere_datacenter" "dc" {
+  name = "mydc"
+}
+
+data "vsphere_host" "h1" {
+  name          = "esxi1.host.test"
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+
+resource "vsphere_host_virtual_switch" "hvs1" {
+  name             = "dc_HPG0"
+  host_system_id   = data.vsphere_host.h1.id
+  network_adapters = ["vmnic3", "vmnic4"]
+  active_nics      = ["vmnic3"]
+  standby_nics     = ["vmnic4"]
+}
+
+resource "vsphere_host_port_group" "p1" {
+  name                = "my-pg"
+  virtual_switch_name = vsphere_host_virtual_switch.hvs1.name
+  host_system_id      = data.vsphere_host.h1.id
+}
+
+resource "vsphere_vnic" "v1" {
+  host      = data.vsphere_host.h1.id
+  portgroup = vsphere_host_port_group.p1.name
+  ipv4 {
+    dhcp = true
+  }
+}
 ```
 
 ## Argument Reference

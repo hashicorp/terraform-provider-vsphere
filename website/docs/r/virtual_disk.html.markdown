@@ -21,11 +21,11 @@ block with the [`attach`][docs-vsphere-virtual-machine-disk-attach] parameter.
 
 ```hcl
 resource "vsphere_virtual_disk" "myDisk" {
-  size         = 2
-  vmdk_path    = "myDisk.vmdk"
-  datacenter   = "Datacenter"
-  datastore    = "local"
-  type         = "thin"
+  size       = 2
+  vmdk_path  = "myDisk.vmdk"
+  datacenter = "Datacenter"
+  datastore  = "local"
+  type       = "thin"
 }
 ```
 

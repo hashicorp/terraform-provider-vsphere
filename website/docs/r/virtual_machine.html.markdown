@@ -286,7 +286,7 @@ data "vsphere_network" "network" {
 }
 
 resource "vsphere_virtual_machine" "vmFromLocalOvf" {
-  name = "vm1"
+  name                       = "vm1"
   resource_pool_id           = data.vsphere_resource_pool.pool.id
   datastore_id               = data.vsphere_datastore.datastore.id
   host_system_id             = data.vsphere_host.host.id
@@ -298,16 +298,16 @@ resource "vsphere_virtual_machine" "vmFromLocalOvf" {
     disk_provisioning    = "thin"
     ip_protocol          = "IPV4"
     ip_allocation_policy = "STATIC_MANUAL"
-    ovf_network_map      = {
-                "ESX-port-1" = data.vsphere_network.network.id
-                "ESX-port-2" = data.vsphere_network.network.id
-               }
+    ovf_network_map = {
+      "ESX-port-1" = data.vsphere_network.network.id
+      "ESX-port-2" = data.vsphere_network.network.id
+    }
   }
   vapp {
-      properties = {
-        "guestinfo.tf.internal.id" = "42"
-      }
-   }
+    properties = {
+      "guestinfo.tf.internal.id" = "42"
+    }
+  }
 }
 
 resource "vsphere_virtual_machine" "vmFromRemoteOvf" {
