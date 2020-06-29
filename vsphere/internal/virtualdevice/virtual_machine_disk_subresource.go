@@ -270,17 +270,17 @@ func NewDiskSubresource(client *govmomi.Client, rdd resourceDataDiff, d, old map
 func DiskApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] DiskApplyOperation: Beginning apply operation")
 	o, n := d.GetChange(subresourceTypeDisk)
-	ods := o.([]interface{})
-	nds := n.([]interface{})
+	oldDisks := o.([]interface{})
+	newDisks := n.([]interface{})
 
 	var spec []types.BaseVirtualDeviceConfigSpec
 
 	// Our old and new sets now have an accurate description of devices that may
 	// have been added, removed, or changed. Look for removed devices first.
 	log.Printf("[DEBUG] DiskApplyOperation: Looking for resources to delete")
-	for oi, oe := range ods {
-		om := oe.(map[string]interface{})
-		if err := diskApplyOperationDelete(oi, om, nds, c, d, &l, &spec); err != nil {
+	for oldI, oldDisk := range oldDisks {
+		oldMap := oldDisk.(map[string]interface{})
+		if err := diskApplyOperationDelete(oldI, oldMap, newDisks, c, d, &l, &spec); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -291,9 +291,9 @@ func DiskApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Virt
 	var updates []interface{}
 	log.Printf("[DEBUG] DiskApplyOperation: Looking for resources to create or update")
 	log.Printf("[DEBUG] DiskApplyOperation: Resources not being changed: %s", subresourceListString(updates))
-	for ni, ne := range nds {
+	for ni, ne := range newDisks {
 		nm := ne.(map[string]interface{})
-		if err := diskApplyOperationCreateUpdate(ni, nm, ods, c, d, &l, &spec, &updates); err != nil {
+		if err := diskApplyOperationCreateUpdate(ni, nm, oldDisks, c, d, &l, &spec, &updates); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -321,15 +321,15 @@ func diskApplyOperationDelete(
 	spec *[]types.BaseVirtualDeviceConfigSpec,
 ) error {
 	didx := -1
-	for ni, ne := range newDataSet {
-		newData := ne.(map[string]interface{})
+	for newI, newDisk := range newDataSet {
+		newData := newDisk.(map[string]interface{})
 		var name string
 		var err error
 		if name, err = diskLabelOrName(newData); err != nil {
 			return err
 		}
 		if (name == diskDeletedName || name == diskDetachedName) && oldData["uuid"] == newData["uuid"] {
-			didx = ni
+			didx = newI
 			break
 		}
 	}
@@ -422,7 +422,7 @@ func diskApplyOperationCreateUpdate(
 // returned, all necessary values are just set and committed to state.
 func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) error {
 	log.Printf("[DEBUG] DiskRefreshOperation: Beginning refresh")
-	devices := SelectDisks(l, d.Get("scsi_controller_count").(int))
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
 	log.Printf("[DEBUG] DiskRefreshOperation: Disk devices located: %s", DeviceListString(devices))
 	curSet := d.Get(subresourceTypeDisk).([]interface{})
 	log.Printf("[DEBUG] DiskRefreshOperation: Current resource set from state: %s", subresourceListString(curSet))
@@ -748,7 +748,7 @@ nextNew:
 // existing state.
 func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l object.VirtualDeviceList, linked bool) error {
 	log.Printf("[DEBUG] DiskCloneValidateOperation: Checking existing virtual disk configuration")
-	devices := SelectDisks(l, d.Get("scsi_controller_count").(int))
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
 		Sort:       devices,
@@ -921,7 +921,7 @@ func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l o
 // configurations fully in sync with what is defined.
 func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) ([]types.VirtualMachineRelocateSpecDiskLocator, error) {
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Generating full disk relocate spec list")
-	devices := SelectDisks(l, d.Get("scsi_controller_count").(int))
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
@@ -982,7 +982,7 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 // virtual device operations rely pretty heavily on.
 func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] DiskPostCloneOperation: Looking for disk device changes post-clone")
-	devices := SelectDisks(l, d.Get("scsi_controller_count").(int))
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
 	log.Printf("[DEBUG] DiskPostCloneOperation: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
@@ -1085,7 +1085,7 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 // imported device list is sorted by the device's unit number on the SCSI bus.
 func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) error {
 	log.Printf("[DEBUG] DiskImportOperation: Performing pre-read import and validation of virtual disks")
-	devices := SelectDisks(l, d.Get("scsi_controller_count").(int))
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
 		Sort:       devices,
@@ -1159,9 +1159,9 @@ func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 // on a virtual machine. This is used in the VM data source to discover
 // specific options of all of the disks on the virtual machine sorted by the
 // order that they would be added in if a clone were to be done.
-func ReadDiskAttrsForDataSource(l object.VirtualDeviceList, count int) ([]map[string]interface{}, error) {
-	log.Printf("[DEBUG] ReadDiskAttrsForDataSource: Fetching select attributes for disks across %d SCSI controllers", count)
-	devices := SelectDisks(l, count)
+func ReadDiskAttrsForDataSource(l object.VirtualDeviceList, d *schema.ResourceData) ([]map[string]interface{}, error) {
+	log.Printf("[DEBUG] ReadDiskAttrsForDataSource: Fetching select attributes for disks")
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
 	log.Printf("[DEBUG] ReadDiskAttrsForDataSource: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
@@ -2091,10 +2091,19 @@ func datastorePathHasBase(p, b string) bool {
 // the number of controllers that Terraform is managing and serves as an upper
 // limit (count - 1) of the SCSI bus number for a controller that eligible
 // disks need to be attached to.
-func SelectDisks(l object.VirtualDeviceList, count int) object.VirtualDeviceList {
+func SelectDisks(l object.VirtualDeviceList, scsiCount, sataCount, ideCount int) object.VirtualDeviceList {
 	devices := l.Select(func(device types.BaseVirtualDevice) bool {
 		if disk, ok := device.(*types.VirtualDisk); ok {
 			ctlr, err := findControllerForDevice(l, disk)
+			var count int
+			switch ctlr.(type) {
+			case types.BaseVirtualSCSIController:
+				count = scsiCount
+			case types.BaseVirtualSATAController:
+				count = sataCount
+			case *types.VirtualIDEController:
+				count = ideCount
+			}
 			if err != nil {
 				log.Printf("[DEBUG] DiskRefreshOperation: Error looking for controller for device %q: %s", l.Name(disk), err)
 				return false

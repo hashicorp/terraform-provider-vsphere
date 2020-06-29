@@ -452,7 +452,8 @@ func findControllerForDevice(l object.VirtualDeviceList, bvd types.BaseVirtualDe
 // supplied VirtualDeviceList by its device address.
 func (r *Subresource) FindVirtualDeviceByAddr(l object.VirtualDeviceList) (types.BaseVirtualDevice, error) {
 	log.Printf("[DEBUG] FindVirtualDevice: Looking for device with address %s", r.DevAddr())
-	ct, cb, du, err := splitDevAddr(r.DevAddr())
+	oldAddress, _ := r.GetChange("device_address")
+	ct, cb, du, err := splitDevAddr(oldAddress.(string))
 	if err != nil {
 		return nil, err
 	}
@@ -735,22 +736,32 @@ func ReadSCSIBusSharing(l object.VirtualDeviceList, count int) string {
 	return string(last)
 }
 
-// getSCSIController picks a SCSI controller at the specific bus number supplied.
-func pickSCSIController(l object.VirtualDeviceList, bus int) (types.BaseVirtualController, error) {
-	log.Printf("[DEBUG] pickSCSIController: Looking for SCSI controller at bus number %d", bus)
+// getController picks a controller at the specific bus number supplied.
+func pickController(l object.VirtualDeviceList, bus int, ct string) (types.BaseVirtualController, error) {
+	log.Printf("[DEBUG] pickController: Looking for %s controller at bus number %d", ct, bus)
 	l = l.Select(func(device types.BaseVirtualDevice) bool {
 		switch d := device.(type) {
 		case types.BaseVirtualSCSIController:
-			return d.GetVirtualSCSIController().BusNumber == int32(bus)
+			if ct == "scsi" {
+				return d.GetVirtualSCSIController().BusNumber == int32(bus)
+			}
+		case types.BaseVirtualSATAController:
+			if ct == "sata" {
+				return d.GetVirtualSATAController().BusNumber == int32(bus)
+			}
+		case *types.VirtualIDEController:
+			if ct == "ide" {
+				return d.GetVirtualController().BusNumber == int32(bus)
+			}
 		}
 		return false
 	})
 
 	if len(l) == 0 {
-		return nil, fmt.Errorf("could not find scsi controller at bus number %d", bus)
+		return nil, fmt.Errorf("could not find controller at bus number %d", bus)
 	}
 
-	log.Printf("[DEBUG] pickSCSIController: Found SCSI controller: %s", l.Name(l[0]))
+	log.Printf("[DEBUG] pickSCSIController: Found controller: %s", l.Name(l[0]))
 	return l[0].(types.BaseVirtualController), nil
 }
 
@@ -761,18 +772,7 @@ func (r *Subresource) ControllerForCreateUpdate(l object.VirtualDeviceList, ct s
 	log.Printf("[DEBUG] ControllerForCreateUpdate: Looking for controller type %s", ct)
 	var ctlr types.BaseVirtualController
 	var err error
-	switch ct {
-	case SubresourceControllerTypeIDE:
-		ctlr = l.PickController(&types.VirtualIDEController{})
-	case SubresourceControllerTypeSATA:
-		ctlr = l.PickController(&types.VirtualAHCIController{})
-	case SubresourceControllerTypeSCSI:
-		ctlr, err = pickSCSIController(l, bus)
-	case SubresourceControllerTypePCI:
-		ctlr = l.PickController(&types.VirtualPCIController{})
-	default:
-		return nil, fmt.Errorf("invalid controller type %T", ct)
-	}
+	ctlr, err = pickController(l, bus, ct)
 	if err != nil {
 		return nil, err
 	}
@@ -780,11 +780,6 @@ func (r *Subresource) ControllerForCreateUpdate(l object.VirtualDeviceList, ct s
 		return nil, fmt.Errorf("could not find an available %s controller", ct)
 	}
 
-	// Assert that we are on bus 0 when we aren't looking for a SCSI controller.
-	// We currently do not support attaching devices to multiple non-SCSI buses.
-	if ctlr.GetVirtualController().BusNumber != 0 && ct != SubresourceControllerTypeSCSI {
-		return nil, fmt.Errorf("there are no available slots on the primary %s controller", ct)
-	}
 	log.Printf("[DEBUG] ControllerForCreateUpdate: Found controller: %s", l.Name(ctlr.(types.BaseVirtualDevice)))
 
 	return ctlr, nil
