@@ -225,7 +225,7 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 			Type:        schema.TypeString,
 			Default:     "scsi",
 			Optional:    true,
-			Description: "The type of controller the disk should be connected to. Must be 'scsi'. 'sata', or 'ide'.",
+			Description: "The type of controller the disk should be connected to. Must be 'scsi', 'sata', or 'ide'.",
 		},
 	}
 	structure.MergeSchema(s, subresourceSchema())

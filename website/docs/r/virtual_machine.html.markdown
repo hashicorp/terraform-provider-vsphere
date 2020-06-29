@@ -884,6 +884,9 @@ externally with `attach` when the `path` field is not specified.
 * `io_share_count` - (Optional) The share count for this disk when the share
   level is `custom`.
 * `storage_policy_id` - (Optional) The UUID of the storage policy to assign to this disk.
+* `controller_type` - (Optional) The type of storage controller to attach the 
+  disk to. Can be `scsi`, `sata`, or `ide`. You must have the appropriate
+  number of controllers enabled for the selected type. Default `scsi`.
 
 #### Computed disk attributes
 

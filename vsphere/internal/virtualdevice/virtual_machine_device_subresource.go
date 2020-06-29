@@ -548,7 +548,7 @@ func swapSCSIDevice(l object.VirtualDeviceList, device types.BaseVirtualSCSICont
 	return spec, nil
 }
 
-// NormalizeBus checks the SCSI controllers on the virtual machine and
+// NormalizeBus checks the storage controllers on the virtual machine and
 // either creates them if they don't exist, or migrates them to the specified
 // controller type. Devices are migrated to the new controller appropriately. A
 // spec slice is returned with the changes.
@@ -736,7 +736,7 @@ func ReadSCSIBusSharing(l object.VirtualDeviceList, count int) string {
 	return string(last)
 }
 
-// getController picks a controller at the specific bus number supplied.
+// pickController picks a controller at the specific bus number supplied.
 func pickController(l object.VirtualDeviceList, bus int, ct string) (types.BaseVirtualController, error) {
 	log.Printf("[DEBUG] pickController: Looking for %s controller at bus number %d", ct, bus)
 	l = l.Select(func(device types.BaseVirtualDevice) bool {
@@ -880,7 +880,7 @@ func ideControllerListString(ctlrs []*types.VirtualIDEController) string {
 	return DeviceListString(l)
 }
 
-// scsiControllerListString pretty-prints a slice of SATA controllers.
+// sataControllerListString pretty-prints a slice of SATA controllers.
 func sataControllerListString(ctlrs []types.BaseVirtualSATAController) string {
 	var l object.VirtualDeviceList
 	for _, ctlr := range ctlrs {
