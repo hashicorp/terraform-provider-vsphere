@@ -3,33 +3,33 @@ jobs:
   build:
     docker:
     - image: circleci/golang:1.13
-    working_directory: ~/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: ~/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - run:
         name: "Run Tests"
         command: |
-          cd $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          cd $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
           make test
     - run:
         name: "Run docscheck script "
         command: |
-          cd $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          cd $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
           make docscheck
     - run:
         name: "Run Build"
         command: |
-          cd $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          cd $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
           make build
   linters:
     docker:
     - image: circleci/golang:1.13
-    working_directory: $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
@@ -40,12 +40,12 @@ jobs:
         no_output_timeout: 90m
         name: "Run tfproviderlint"
         command: |
-          cd $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          cd $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
           tfproviderlint -AT00{1..3} -R00{2..4} -S0{{01..12},{14..19}}  ./...
   revert_snapshot:
     docker:
     - image: circleci/golang:1.13
-    working_directory: $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - add_ssh_keys:
@@ -62,18 +62,18 @@ jobs:
     - run:
         name: "revert snapshot"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/revert_snapshot.sh
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/revert_snapshot.sh
   test_acc_Client:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -89,19 +89,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh Client
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh Client
 
   test_acc_DataSourceVSphereComputeCluster:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -117,19 +117,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereComputeCluster
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereComputeCluster
 
   test_acc_DataSourceVSphereCustomAttribute:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -145,19 +145,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereCustomAttribute
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereCustomAttribute
 
   test_acc_DataSourceVSphereDatacenter:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -173,19 +173,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereDatacenter
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereDatacenter
 
   test_acc_DataSourceVSphereDatastore:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -201,19 +201,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereDatastore
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereDatastore
 
   test_acc_DataSourceVSphereDatastoreCluster:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -229,19 +229,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereDatastoreCluster
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereDatastoreCluster
 
   test_acc_DataSourceVSphereDistributedVirtualSwitch:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -257,19 +257,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereDistributedVirtualSwitch
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereDistributedVirtualSwitch
 
   test_acc_DataSourceVSphereFolder:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -285,19 +285,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereFolder
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereFolder
 
   test_acc_DataSourceVSphereHost:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -313,19 +313,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereHost
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereHost
 
   test_acc_DataSourceVSphereNetwork:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -341,19 +341,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereNetwork
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereNetwork
 
   test_acc_DataSourceVSphereResourcePool:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -369,19 +369,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereResourcePool
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereResourcePool
 
   test_acc_DataSourceVSphereTag:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -397,19 +397,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereTag
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereTag
 
   test_acc_DataSourceVSphereTagCategory:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -425,19 +425,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereTagCategory
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereTagCategory
 
   test_acc_DataSourceVSphereVAppContainer:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -453,19 +453,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereVAppContainer
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereVAppContainer
 
   test_acc_DataSourceVSphereVirtualMachine:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -481,19 +481,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereVirtualMachine
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereVirtualMachine
 
   test_acc_DataSourceVSphereVmfsDisks:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -509,19 +509,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereVmfsDisks
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh DataSourceVSphereVmfsDisks
 
   test_acc_ResourceVSphereComputeCluster:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -537,19 +537,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereComputeCluster
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereComputeCluster
 
   test_acc_ResourceVSphereComputeClusterHostGroup:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -565,19 +565,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereComputeClusterHostGroup
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereComputeClusterHostGroup
 
   test_acc_ResourceVSphereComputeClusterVMAffinityRule:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -593,19 +593,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereComputeClusterVMAffinityRule
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereComputeClusterVMAffinityRule
 
   test_acc_ResourceVSphereComputeClusterVMAntiAffinityRule:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -621,19 +621,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereComputeClusterVMAntiAffinityRule
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereComputeClusterVMAntiAffinityRule
 
   test_acc_ResourceVSphereComputeClusterVMDependencyRule:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -649,19 +649,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereComputeClusterVMDependencyRule
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereComputeClusterVMDependencyRule
 
   test_acc_ResourceVSphereComputeClusterVMGroup:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -677,19 +677,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereComputeClusterVMGroup
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereComputeClusterVMGroup
 
   test_acc_ResourceVSphereComputeClusterVMHostRule:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -705,19 +705,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereComputeClusterVMHostRule
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereComputeClusterVMHostRule
 
   test_acc_ResourceVSphereCustomAttribute:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -733,19 +733,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereCustomAttribute
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereCustomAttribute
 
   test_acc_ResourceVSphereDatacenter:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -761,19 +761,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereDatacenter
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereDatacenter
 
   test_acc_ResourceVSphereDatastoreCluster:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -789,19 +789,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereDatastoreCluster
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereDatastoreCluster
 
   test_acc_ResourceVSphereDatastoreClusterVMAntiAffinityRule:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -817,19 +817,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereDatastoreClusterVMAntiAffinityRule
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereDatastoreClusterVMAntiAffinityRule
 
   test_acc_ResourceVSphereDistributedPortGroup:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -845,19 +845,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereDistributedPortGroup
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereDistributedPortGroup
 
   test_acc_ResourceVSphereDistributedVirtualSwitch:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -873,19 +873,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereDistributedVirtualSwitch
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereDistributedVirtualSwitch
 
   test_acc_ResourceVSphereDPMHostOverride:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -901,19 +901,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereDPMHostOverride
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereDPMHostOverride
 
   test_acc_ResourceVSphereDRSVMOverride:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -929,19 +929,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereDRSVMOverride
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereDRSVMOverride
 
   test_acc_ResourceVSphereFile:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -957,19 +957,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereFile
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereFile
 
   test_acc_ResourceVSphereFolder:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -985,19 +985,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereFolder
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereFolder
 
   test_acc_ResourceVSphereHAVMOverride:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -1013,19 +1013,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereHAVMOverride
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereHAVMOverride
 
   test_acc_ResourceVSphereHost:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -1041,19 +1041,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereHost
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereHost
 
   test_acc_ResourceVSphereHostPortGroup:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -1069,19 +1069,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereHostPortGroup
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereHostPortGroup
 
   test_acc_ResourceVSphereHostVirtualSwitch:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -1097,19 +1097,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereHostVirtualSwitch
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereHostVirtualSwitch
 
   test_acc_ResourceVSphereLicense:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -1125,19 +1125,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereLicense
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereLicense
 
   test_acc_ResourceVSphereNasDatastore:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -1153,19 +1153,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereNasDatastore
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereNasDatastore
 
   test_acc_ResourceVSphereResourcePool:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -1181,19 +1181,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereResourcePool
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereResourcePool
 
   test_acc_ResourceVSphereStorageDrsVMOverride:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -1209,19 +1209,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereStorageDrsVMOverride
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereStorageDrsVMOverride
 
   test_acc_ResourceVSphereTag:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -1237,19 +1237,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereTag
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereTag
 
   test_acc_ResourceVSphereTagCategory:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -1265,19 +1265,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereTagCategory
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereTagCategory
 
   test_acc_ResourceVSphereVAppContainer:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -1293,19 +1293,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereVAppContainer
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereVAppContainer
 
   test_acc_ResourceVSphereVAppEntity:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -1321,19 +1321,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereVAppEntity
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereVAppEntity
 
   test_acc_ResourceVSphereVirtualDisk:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -1349,19 +1349,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereVirtualDisk
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereVirtualDisk
 
   test_acc_ResourceVSphereVirtualMachine:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -1377,19 +1377,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereVirtualMachine
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereVirtualMachine
 
   test_acc_ResourceVSphereVirtualMachineSnapshot:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -1405,19 +1405,19 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereVirtualMachineSnapshot
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereVirtualMachineSnapshot
 
   test_acc_ResourceVSphereVmfsDatastore:
     docker:
     - image: circleci/golang:1.13
-    working_directory: /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere
+    working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
     - run:
         name: "Move to GOPATH"
         command: |
-          mkdir -p $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
-          mv /home/circleci/src/github.com/terraform-providers/terraform-provider-vsphere/* $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere
+          mkdir -p $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
+          mv /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere/* $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere
     - add_ssh_keys:
         fingerprints:
           - "62:4d:8d:04:48:f7:0f:5a:63:da:de:a6:30:f4:b4:12"
@@ -1433,7 +1433,7 @@ jobs:
         no_output_timeout: 90m
         name: "Run Acceptance Tests"
         command: |
-          $GOPATH/src/github.com/terraform-providers/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereVmfsDatastore
+          $GOPATH/src/github.com/hashicorp/terraform-provider-vsphere/scripts/test_runner.sh ResourceVSphereVmfsDatastore
 
 workflows:
   version: 2

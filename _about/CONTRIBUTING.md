@@ -16,7 +16,7 @@ To learn more about how to create issues and pull requests in this repository, a
 First, you will want to clone the repository into your working directory:
 
 ```sh
-git clone git@github.com:terraform-providers/terraform-provider-vsphere
+git clone git@github.com:hashicorp/terraform-provider-vsphere
 ```
 
 ## Running the Build
@@ -44,8 +44,8 @@ make install
 work is not being duplicated. For further clarification, you can also ask in a
 new issue.
 
-[gh-issues]: https://github.com/terraform-providers/terraform-provider-vsphere/issues
-[gh-prs]: https://github.com/terraform-providers/terraform-provider-vsphere/pulls
+[gh-issues]: https://github.com/hashicorp/terraform-provider-vsphere/issues
+[gh-prs]: https://github.com/hashicorp/terraform-provider-vsphere/pulls
 
 If you wish to work on the provider, you'll first need [Go][go-website]
 installed on your machine (version 1.14+ is **required**). You'll also need to

@@ -68,7 +68,7 @@ run with:
 . scripts/preload_vars.sh
 ```
 
-[ref-tf-vsphere-github]: https://github.com/terraform-providers/terraform-provider-vsphere
+[ref-tf-vsphere-github]: https://github.com/hashicorp/terraform-provider-vsphere
 
 Once done, run:
 
