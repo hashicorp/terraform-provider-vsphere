@@ -753,6 +753,10 @@ func pickController(l object.VirtualDeviceList, bus int, ct string) (types.BaseV
 			if ct == "ide" {
 				return d.GetVirtualController().BusNumber == int32(bus)
 			}
+		case *types.VirtualPCIController:
+			if ct == "pci" {
+				return d.GetVirtualController().BusNumber == int32(bus)
+			}
 		}
 		return false
 	})
