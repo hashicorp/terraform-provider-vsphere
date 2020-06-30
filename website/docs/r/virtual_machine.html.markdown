@@ -283,7 +283,7 @@ data "vsphere_network" "network" {
 }
 
 resource "vsphere_virtual_machine" "vmFromLocalOvf" {
-  name = "vm1"
+  name                       = "vm1"
   resource_pool_id           = data.vsphere_resource_pool.pool.id
   datastore_id               = data.vsphere_datastore.datastore.id
   host_system_id             = data.vsphere_host.host.id
@@ -295,16 +295,16 @@ resource "vsphere_virtual_machine" "vmFromLocalOvf" {
     disk_provisioning    = "thin"
     ip_protocol          = "IPV4"
     ip_allocation_policy = "STATIC_MANUAL"
-    ovf_network_map      = {
-                "ESX-port-1" = data.vsphere_network.network.id
-                "ESX-port-2" = data.vsphere_network.network.id
-               }
+    ovf_network_map = {
+      "ESX-port-1" = data.vsphere_network.network.id
+      "ESX-port-2" = data.vsphere_network.network.id
+    }
   }
   vapp {
-      properties = {
-        "guestinfo.tf.internal.id" = "42"
-      }
-   }
+    properties = {
+      "guestinfo.tf.internal.id" = "42"
+    }
+  }
 }
 
 resource "vsphere_virtual_machine" "vmFromRemoteOvf" {
@@ -780,20 +780,20 @@ An abridged multi-disk example is below:
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
-  ...
+  # ... other configuration ...
 
   disk {
     label = "disk0"
     size  = "10"
   }
-  
+
   disk {
     label       = "disk1"
     size        = "100"
     unit_number = 1
   }
 
-  ...
+  # ... other configuration ...
 }
 ```
 
@@ -932,14 +932,14 @@ Given the following example:
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
-  ...
+  # ... other configuration ...
 
   network_interface {
-    network_id   = "${data.vsphere_network.public.id}"
+    network_id = "${data.vsphere_network.public.id}"
   }
 
   network_interface {
-    network_id   = "${data.vsphere_network.private.id}"
+    network_id = "${data.vsphere_network.private.id}"
   }
 }
 ```
@@ -984,7 +984,7 @@ An example is below:
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
-  ...
+  # ... other configuration ...
 
   cdrom {
     datastore_id = "${data.vsphere_datastore.iso_datastore.id}"
@@ -1087,27 +1087,27 @@ Given the following example:
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
-  ...
+  # ... other configuration ...
 
   network_interface {
-    network_id   = "${data.vsphere_network.public.id}"
+    network_id = "${data.vsphere_network.public.id}"
   }
 
   network_interface {
-    network_id   = "${data.vsphere_network.private.id}"
+    network_id = "${data.vsphere_network.private.id}"
   }
 
   clone {
-    ...
+    # ... other configuration ...
 
     customize {
-      ...
+      # ... other configuration ...
 
       network_interface {
         ipv4_address = "10.0.0.10"
         ipv4_netmask = 24
       }
-      
+
       network_interface {
         ipv4_address = "172.16.0.10"
         ipv4_netmask = 24
@@ -1127,21 +1127,21 @@ being configured. So the above example would look like:
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
-  ...
+  # ... other configuration ...
 
   network_interface {
-    network_id   = "${data.vsphere_network.public.id}"
+    network_id = "${data.vsphere_network.public.id}"
   }
 
   network_interface {
-    network_id   = "${data.vsphere_network.private.id}"
+    network_id = "${data.vsphere_network.private.id}"
   }
 
   clone {
-    ...
+    # ... other configuration ...
 
     customize {
-      ...
+      # ... other configuration ...
 
       network_interface {}
 
@@ -1216,13 +1216,13 @@ Example:
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
-  ...
+  # ... other configuration ...
 
   clone {
-    ...
+    # ... other configuration ...
 
     customize {
-      ...
+      # ... other configuration ...
 
       linux_options {
         host_name = "terraform-test"
@@ -1256,13 +1256,13 @@ Example:
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
-  ...
+  # ... other configuration ...
 
   clone {
-    ...
+    # ... other configuration ...
 
     customize {
-      ...
+      # ... other configuration ...
 
       windows_options {
         computer_name  = "terraform-test"
@@ -1330,13 +1330,13 @@ Example below:
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
-  ...
+  # ... other configuration ...
 
   clone {
-    ...
+    # ... other configuration ...
 
     customize {
-      ...
+      # ... other configuration ...
 
       windows_sysprep_text = "${file("${path.module}/sysprep.xml")}"
     }
@@ -1394,15 +1394,15 @@ The configuration looks similar to the one below:
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
-  ...
+  # ... other configuration ...
 
   clone {
     template_uuid = "${data.vsphere_virtual_machine.template_from_ovf.id}"
   }
 
   vapp {
-    properties {
-      "guestinfo.tf.internal.id" = "42"
+    properties = {
+      guestinfo.tf.internal.id = "42"
     }
   }
 }
@@ -1488,15 +1488,15 @@ where it is.
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
-  ...
+  # ... other configuration ...
 
-  datastore_id     = "${data.vsphere_datastore.vm_datastore.id}"
+  datastore_id = "${data.vsphere_datastore.vm_datastore.id}"
 
   disk {
     label = "disk0"
     size  = 10
   }
-  
+
   disk {
     datastore_id = "${data.vsphere_datastore.pinned_datastore.id}"
     label        = "disk1"
@@ -1504,7 +1504,7 @@ resource "vsphere_virtual_machine" "vm" {
     unit_number  = 1
   }
 
-  ...
+  # ... other configuration ...
 }
 ```
 

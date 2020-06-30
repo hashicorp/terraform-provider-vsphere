@@ -19,9 +19,9 @@ resource "vsphere_license" "licenseKey" {
 
   labels {
     VpxClientLicenseLabel = "Hello World"
-    Workflow = "Hello World"
+    Workflow              = "Hello World"
   }
-  
+
 }
 ```
 
