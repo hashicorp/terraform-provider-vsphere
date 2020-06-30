@@ -1397,7 +1397,7 @@ resource "vsphere_virtual_machine" "vm" {
     template_uuid = "${data.vsphere_virtual_machine.template_from_ovf.id}"
   }
 
-  vapp = {
+  vapp {
     properties = {
       guestinfo.tf.internal.id = "42"
     }
