@@ -1161,7 +1161,7 @@ func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 // order that they would be added in if a clone were to be done.
 func ReadDiskAttrsForDataSource(l object.VirtualDeviceList, d *schema.ResourceData) ([]map[string]interface{}, error) {
 	log.Printf("[DEBUG] ReadDiskAttrsForDataSource: Fetching select attributes for disks")
-	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
+	devices := SelectDisks(l, d.Get("scsi_controller_scan_count").(int), d.Get("sata_controller_scan_count").(int), d.Get("ide_controller_scan_count").(int))
 	log.Printf("[DEBUG] ReadDiskAttrsForDataSource: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
@@ -1989,7 +1989,7 @@ func (r *Subresource) findControllerInfo(l object.VirtualDeviceList, disk *types
 		unit = unit + 2*sc.GetVirtualController().BusNumber
 		return int(unit), ctlr.(types.BaseVirtualController), nil
 	}
-	return 0, nil, fmt.Errorf("Unable to locate controller info for disk: %s", disk.Key)
+	return 0, nil, fmt.Errorf("unable to locate controller info for disk: %d", disk.Key)
 }
 
 // diskRelocateListString pretty-prints a list of

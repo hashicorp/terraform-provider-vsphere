@@ -587,7 +587,7 @@ func NormalizeBus(l object.VirtualDeviceList, d *schema.ResourceData) (object.Vi
 		}
 	}
 	log.Printf("[DEBUG] NormalizeBus: Current SCSI bus contents: %s", scsiControllerListString(scsiCtlrs))
-	// Now iterate over the controllers
+	// Now iterate over the SCSI controllers
 	for n, ctlr := range scsiCtlrs {
 		if ctlr == nil {
 			log.Printf("[DEBUG] NormalizeBus: Creating SCSI controller of type %s at bus number %d", scsiType, n)
@@ -615,7 +615,7 @@ func NormalizeBus(l object.VirtualDeviceList, d *schema.ResourceData) (object.Vi
 		continue
 	}
 	log.Printf("[DEBUG] NormalizeBus: Current SATA bus contents: %s", sataControllerListString(sataCtlrs))
-	// Now iterate over the controllers
+	// Now iterate over the SATA controllers
 	for n, ctlr := range sataCtlrs {
 		if ctlr == nil {
 			log.Printf("[DEBUG] NormalizeBus: Creating SATA controller at bus number %d", n)
@@ -627,7 +627,7 @@ func NormalizeBus(l object.VirtualDeviceList, d *schema.ResourceData) (object.Vi
 		}
 	}
 	log.Printf("[DEBUG] NormalizeBus: Current IDE bus contents: %s", ideControllerListString(ideCtlrs))
-	// Now iterate over the controllers
+	// Now iterate over the IDE controllers
 	for n, ctlr := range ideCtlrs {
 		if ctlr == nil {
 			log.Printf("[DEBUG] NormalizeBus: Creating IDE controller at bus number %d", n)

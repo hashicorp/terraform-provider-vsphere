@@ -31,6 +31,18 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 				Optional:    true,
 				Default:     1,
 			},
+			"sata_controller_scan_count": {
+				Type:        schema.TypeInt,
+				Description: "The number of SATA controllers to scan for disk sizes and controller types on.",
+				Optional:    true,
+				Default:     0,
+			},
+			"ide_controller_scan_count": {
+				Type:        schema.TypeInt,
+				Description: "The number of IDE controllers to scan for disk sizes and controller types on.",
+				Optional:    true,
+				Default:     2,
+			},
 			"guest_id": {
 				Type:        schema.TypeString,
 				Description: "The guest ID of the virtual machine.",

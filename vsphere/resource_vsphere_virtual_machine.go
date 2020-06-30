@@ -1153,32 +1153,9 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 			ideBus[dev.GetVirtualController().BusNumber] = true
 		}
 	}
-	var scsiCtlrCnt int
-	for _, v := range scsiBus {
-		if !v {
-			break
-		}
-		scsiCtlrCnt++
-	}
-	d.Set("scsi_controller_count", scsiCtlrCnt)
-
-	var sataCtlrCnt int
-	for _, v := range sataBus {
-		if !v {
-			break
-		}
-		sataCtlrCnt++
-	}
-	d.Set("sata_controller_count", sataCtlrCnt)
-
-	var ideCtlrCnt int
-	for _, v := range ideBus {
-		if !v {
-			break
-		}
-		ideCtlrCnt++
-	}
-	d.Set("ide_controller_count", ideCtlrCnt)
+	d.Set("scsi_controller_count", controllerCount(scsiBus))
+	d.Set("sata_controller_count", controllerCount(sataBus))
+	d.Set("ide_controller_count", controllerCount(ideBus))
 
 	// Validate the disks in the VM to make sure that they will work with the
 	// resource. This is mainly ensuring that all disks are SCSI disks, but a
@@ -1204,6 +1181,17 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 
 	log.Printf("[DEBUG] %s: Import complete, resource is ready for read", resourceVSphereVirtualMachineIDString(d))
 	return []*schema.ResourceData{d}, nil
+}
+
+func controllerCount(bus []bool) int{
+	var ctlrCnt int
+	for _, v := range bus {
+		if !v {
+			break
+		}
+		ctlrCnt++
+	}
+	return ctlrCnt
 }
 
 // resourceVSphereVirtualMachineCreateBare contains the "bare metal" VM
