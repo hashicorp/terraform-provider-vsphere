@@ -1183,7 +1183,7 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 	return []*schema.ResourceData{d}, nil
 }
 
-func controllerCount(bus []bool) int{
+func controllerCount(bus []bool) int {
 	var ctlrCnt int
 	for _, v := range bus {
 		if !v {
