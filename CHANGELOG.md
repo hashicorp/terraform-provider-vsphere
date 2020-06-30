@@ -1,4 +1,4 @@
-## 1.21.0 (Unreleased)
+## 1.21.0 (June 30, 2020)
 FEATURES:
 * `resource/vm`: Support for SATA and IDE disks. ([#1118](https://github.com/hashicorp/terraform-provider-vsphere/pull/1118))
 
