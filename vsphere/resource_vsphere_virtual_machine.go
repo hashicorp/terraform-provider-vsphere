@@ -171,12 +171,26 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Default:     true,
 			Description: "Set to true to force power-off a virtual machine if a graceful guest shutdown failed for a necessary operation.",
 		},
+		"sata_controller_count": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Default:      0,
+			Description:  "The number of SATA controllers that Terraform manages on this virtual machine. This directly affects the amount of disks you can add to the virtual machine and the maximum disk unit number. Note that lowering this value does not remove controllers.",
+			ValidateFunc: validation.IntBetween(0, 4),
+		},
+		"ide_controller_count": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Default:      2,
+			Description:  "The number of IDE controllers that Terraform manages on this virtual machine. This directly affects the amount of disks you can add to the virtual machine and the maximum disk unit number. Note that lowering this value does not remove controllers.",
+			ValidateFunc: validation.IntBetween(1, 2),
+		},
 		"scsi_controller_count": {
 			Type:         schema.TypeInt,
 			Optional:     true,
 			Default:      1,
 			Description:  "The number of SCSI controllers that Terraform manages on this virtual machine. This directly affects the amount of disks you can add to the virtual machine and the maximum disk unit number. Note that lowering this value does not remove controllers.",
-			ValidateFunc: validation.IntBetween(1, 4),
+			ValidateFunc: validation.IntBetween(0, 4),
 		},
 		"scsi_type": {
 			Type:         schema.TypeString,
@@ -1122,29 +1136,26 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 		return nil, fmt.Errorf("VM %q is a template and cannot be imported", name)
 	}
 
-	// Quickly walk the SCSI bus and determine the number of contiguous
-	// controllers starting from bus number 0. This becomes the current SCSI
+	// Quickly walk the storage busses and determine the number of contiguous
+	// controllers starting from bus number 0. This becomes the current
 	// controller count. Anything past this is managed by config.
-	log.Printf("[DEBUG] Determining number of SCSI controllers for VM %q", name)
+	log.Printf("[DEBUG] Determining number of controllers for VM %q", name)
 	scsiBus := make([]bool, 4)
+	sataBus := make([]bool, 4)
+	ideBus := make([]bool, 2)
 	for _, device := range props.Config.Hardware.Device {
-		sc, ok := device.(types.BaseVirtualSCSIController)
-		if !ok {
-			continue
+		switch dev := device.(type) {
+		case types.BaseVirtualSCSIController:
+			scsiBus[dev.GetVirtualSCSIController().BusNumber] = true
+		case types.BaseVirtualSATAController:
+			sataBus[dev.GetVirtualSATAController().BusNumber] = true
+		case *types.VirtualIDEController:
+			ideBus[dev.GetVirtualController().BusNumber] = true
 		}
-		scsiBus[sc.GetVirtualSCSIController().BusNumber] = true
 	}
-	var ctlrCnt int
-	for _, v := range scsiBus {
-		if !v {
-			break
-		}
-		ctlrCnt++
-	}
-	if ctlrCnt < 1 {
-		return nil, fmt.Errorf("VM %q has no SCSI controllers", name)
-	}
-	d.Set("scsi_controller_count", ctlrCnt)
+	d.Set("scsi_controller_count", controllerCount(scsiBus))
+	d.Set("sata_controller_count", controllerCount(sataBus))
+	d.Set("ide_controller_count", controllerCount(ideBus))
 
 	// Validate the disks in the VM to make sure that they will work with the
 	// resource. This is mainly ensuring that all disks are SCSI disks, but a
@@ -1170,6 +1181,17 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 
 	log.Printf("[DEBUG] %s: Import complete, resource is ready for read", resourceVSphereVirtualMachineIDString(d))
 	return []*schema.ResourceData{d}, nil
+}
+
+func controllerCount(bus []bool) int {
+	var ctlrCnt int
+	for _, v := range bus {
+		if !v {
+			break
+		}
+		ctlrCnt++
+	}
+	return ctlrCnt
 }
 
 // resourceVSphereVirtualMachineCreateBare contains the "bare metal" VM
@@ -1580,7 +1602,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
 	var delta []types.BaseVirtualDeviceConfigSpec
 	// First check the state of our SCSI bus. Normalize it if we need to.
-	devices, delta, err = virtualdevice.NormalizeSCSIBus(devices, d.Get("scsi_type").(string), d.Get("scsi_controller_count").(int), d.Get("scsi_bus_sharing").(string))
+	devices, delta, err = virtualdevice.NormalizeBus(devices, d)
 	if err != nil {
 		return nil, resourceVSphereVirtualMachineRollbackCreate(
 			d,
@@ -1863,7 +1885,7 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 	var spec, delta []types.BaseVirtualDeviceConfigSpec
 	var err error
 	// First check the state of our SCSI bus. Normalize it if we need to.
-	l, delta, err = virtualdevice.NormalizeSCSIBus(l, d.Get("scsi_type").(string), d.Get("scsi_controller_count").(int), d.Get("scsi_bus_sharing").(string))
+	l, delta, err = virtualdevice.NormalizeBus(l, d)
 	if err != nil {
 		return nil, err
 	}
