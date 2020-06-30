@@ -1393,7 +1393,7 @@ The configuration looks similar to the one below:
 resource "vsphere_virtual_machine" "vm" {
   # ... other configuration ...
 
-  clone = {
+  clone {
     template_uuid = "${data.vsphere_virtual_machine.template_from_ovf.id}"
   }
 
