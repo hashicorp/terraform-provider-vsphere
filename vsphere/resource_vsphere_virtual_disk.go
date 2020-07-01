@@ -11,6 +11,7 @@ import (
 	"context"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualdisk"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -33,6 +34,9 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 		Create: resourceVSphereVirtualDiskCreate,
 		Read:   resourceVSphereVirtualDiskRead,
 		Delete: resourceVSphereVirtualDiskDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceVSphereVirtualDiskImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			// Size in GB
@@ -291,13 +295,26 @@ func resourceVSphereVirtualDiskRead(d *schema.ResourceData, meta interface{}) er
 	log.Printf("[DEBUG] resourceVSphereVirtualDiskRead - fileinfo: %#v", fileInfo)
 	size := fileInfo.(*types.VmDiskFileInfo).CapacityKb / 1024 / 1024
 
+	dp := object.DatastorePath{
+		Datastore: vDisk.datastore,
+		Path:      vDisk.vmdkPath,
+	}
+	diskType, err := virtualdisk.QueryDiskType(client, dp.String(), dc)
+	if err != nil {
+		return errors.New("Failed to query disk type")
+	}
+
+	// adapter_type is deprecated, so just default.
+	rs := resourceVSphereVirtualDisk().Schema
+	d.Set("adapter_type", rs["adapter_type"].Default)
+
 	d.SetId(vDisk.vmdkPath)
 
 	d.Set("size", size)
+	d.Set("type", diskType)
 	d.Set("vmdk_path", vDisk.vmdkPath)
 	d.Set("datacenter", d.Get("datacenter"))
 	d.Set("datastore", d.Get("datastore"))
-	// Todo collect and write type info
 
 	return nil
 
@@ -464,4 +481,42 @@ func searchForDirectory(client *govmomi.Client, datacenter string, datastore str
 	log.Printf("[DEBUG] searchForDirectory - fileinfo: %#v", fileInfo)
 
 	return nil
+}
+
+func resourceVSphereVirtualDiskImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := meta.(*VSphereClient).vimClient
+	p := d.Id()
+	if !strings.HasPrefix(p, "/") {
+		return nil, errors.New("ID must start with a trailing slash")
+	}
+
+	// The path in the ID has the form `/<datacenter>/[<datastore>] path/to/vmdk`.
+	// Note that the values we care about in addrParts start at the first element as
+	// the zero-th element will be empty (that is, everything before the / prefix).
+	addrParts := strings.SplitN(p, "/", 3)
+	if len(addrParts) != 3 {
+		return nil, errors.New("ID must be of the form /<datacenter>/[<datastore>] spath/to/vmdk")
+	}
+
+	dc, err := getDatacenter(client, addrParts[1])
+	if err != nil {
+		return nil, err
+	}
+
+	di, err := virtualdisk.FromPath(client, addrParts[2], dc)
+	if err != nil {
+		return nil, err
+	}
+
+	dp, success := virtualdisk.DatastorePathFromString(di.Name)
+	if !success {
+		return nil, fmt.Errorf("Invalid datastore path '%s'", di.Name)
+	}
+
+	d.Set("datacenter", dc.Name())
+	d.Set("datastore", dp.Datastore)
+	d.Set("vmdk_path", dp.Path)
+	d.SetId(dp.Path)
+
+	return []*schema.ResourceData{d}, nil
 }
