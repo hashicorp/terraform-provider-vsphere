@@ -220,9 +220,15 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Default:     1024,
 			Description: "The size of the virtual machine's memory, in MB.",
 			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-				if len(d.Get("ovf_deploy").([]interface{})) > 0 {
+				ovf, ok := d.GetOk("ovf_deploy")
+				if !ok {
+					return false
+				}
+
+				if items, ok := ovf.([]interface{}); ok && len(items) > 0 {
 					return true
 				}
+
 				return false
 			},
 		},
@@ -243,9 +249,15 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Optional:    true,
 			Description: "User-provided description of the virtual machine.",
 			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-				if len(d.Get("ovf_deploy").([]interface{})) > 0 && new == "" {
+				ovf, ok := d.GetOk("ovf_deploy")
+				if !ok {
+					return false
+				}
+
+				if items, ok := ovf.([]interface{}); ok && len(items) > 0 && new == "" {
 					return true
 				}
+
 				return false
 			},
 		},
@@ -255,9 +267,15 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Computed:    true,
 			Description: "The guest ID for the operating system.",
 			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-				if len(d.Get("ovf_deploy").([]interface{})) > 0 {
+				ovf, ok := d.GetOk("ovf_deploy")
+				if !ok {
+					return false
+				}
+
+				if items, ok := ovf.([]interface{}); ok && len(items) > 0 && new == "" {
 					return true
 				}
+
 				return false
 			},
 		},
