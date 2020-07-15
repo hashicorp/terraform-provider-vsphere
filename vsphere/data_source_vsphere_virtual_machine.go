@@ -74,6 +74,10 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"label": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"size": {
 							Type:     schema.TypeInt,
 							Computed: true,
@@ -84,6 +88,10 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 						},
 						"thin_provisioned": {
 							Type:     schema.TypeBool,
+							Computed: true,
+						},
+						"unit_number": {
+							Type:     schema.TypeInt,
 							Computed: true,
 						},
 					},
