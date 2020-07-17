@@ -1003,6 +1003,10 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 			}
 			fallthrough
 		default:
+			// If guest_id is not set and the source is not a Content Library item, set it to the default.
+			if d.Get("guest_id") == "" {
+				d.SetNew("guest_id", "other-64")
+			}
 			// For most cases (all non-imported workflows), any changed attribute in
 			// the clone configuration namespace is a ForceNew. Flag those now.
 			for _, k := range d.GetChangedKeysPrefix("clone.0") {
@@ -1662,6 +1666,14 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 			fmt.Errorf("error reconfiguring virtual machine: %s", err),
 		)
 	}
+
+	vmprops, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return nil, err
+	}
+
+	// This should only change if deploying from a Content Library item.
+	d.Set("guest_id", vmprops.Config.GuestId)
 
 	// Upgrade the VM's hardware version if needed.
 	err = virtualmachine.SetHardwareVersion(vm, d.Get("hardware_version").(int))
