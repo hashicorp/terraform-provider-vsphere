@@ -252,7 +252,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 		"guest_id": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Default:     "other-64",
+			Computed:    true,
 			Description: "The guest ID for the operating system.",
 			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 				if len(d.Get("ovf_deploy").([]interface{})) > 0 {
