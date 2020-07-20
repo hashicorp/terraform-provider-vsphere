@@ -1,3 +1,4 @@
+## 1.22.0 (Unreleased)
 ## 1.21.1 (July 20, 2020)
 BUG FIXES:
 * `resource/vm`: Set guest_id before customization. ([#1139](https://github.com/hashicorp/terraform-provider-vsphere/pull/1139))
