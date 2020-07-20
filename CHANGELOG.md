@@ -1,4 +1,7 @@
-## 1.22.0 (Unreleased)
+## 1.21.1 (Unreleased)
+BUG FIXES:
+* `resource/vm`: Set guest_id before customization. ([#1139](https://github.com/hashicorp/terraform-provider-vsphere/pull/1139))
+
 ## 1.21.0 (June 30, 2020)
 FEATURES:
 * `resource/vm`: Support for SATA and IDE disks. ([#1118](https://github.com/hashicorp/terraform-provider-vsphere/pull/1118))
