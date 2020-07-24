@@ -24,8 +24,8 @@ func dataSourceVSphereHostThumbprint() *schema.Resource {
 				Description: "The port to connect to on the ESXi host.",
 			},
 			"insecure": {
-				Type: schema.TypeBool,
-				Optional: true,
+				Type:        schema.TypeBool,
+				Optional:    true,
 				Description: "Boolean that can be set to true to disable SSL certificate verification.",
 			},
 		},
