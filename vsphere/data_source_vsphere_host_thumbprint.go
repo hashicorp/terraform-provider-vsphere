@@ -23,13 +23,18 @@ func dataSourceVSphereHostThumbprint() *schema.Resource {
 				Default:     "443",
 				Description: "The port to connect to on the ESXi host.",
 			},
+			"insecure": {
+				Type: schema.TypeBool,
+				Optional: true,
+				Description: "Boolean that can be set to true to disable SSL certificate verification.",
+			},
 		},
 	}
 }
 
 func dataSourceVSphereHostThumbprintRead(d *schema.ResourceData, meta interface{}) error {
 	config := &tls.Config{}
-	config.InsecureSkipVerify = true
+	config.InsecureSkipVerify = d.Get("insecure").(bool)
 	conn, err := tls.Dial("tcp", d.Get("address").(string)+":"+d.Get("port").(string), config)
 	if err != nil {
 		return err
