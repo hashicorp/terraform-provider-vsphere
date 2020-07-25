@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -89,6 +90,41 @@ func schemaVMwareDVSConfigSpec() map[string]*schema.Schema {
 					},
 				},
 			},
+		},
+
+		// VMwareDVSPvlanMapEntry
+		"pvlan_mapping": {
+			Type:        schema.TypeSet,
+			Optional:    true,
+			Description: "A private VLAN (PVLAN) mapping.",
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"primary_vlan_id": {
+						Type:         schema.TypeInt,
+						Required:     true,
+						Description:  "The primary VLAN ID. The VLAN IDs of 0 and 4095 are reserved and cannot be used in this property.",
+						ValidateFunc: validation.IntBetween(1, 4094),
+					},
+					"secondary_vlan_id": {
+						Type:         schema.TypeInt,
+						Required:     true,
+						Description:  "The secondary VLAN ID. The VLAN IDs of 0 and 4095 are reserved and cannot be used in this property.",
+						ValidateFunc: validation.IntBetween(1, 4094),
+					},
+					"pvlan_type": {
+						Type:         schema.TypeString,
+						Required:     true,
+						Description:  "The private VLAN type. Valid values are promiscuous, community and isolated.",
+						ValidateFunc: validation.StringInSlice(privateVLANTypeAllowedValues, false),
+					},
+				},
+			},
+		},
+		"ignore_other_pvlan_mappings": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Whether to ignore existing PVLAN mappings not managed by this resource. Defaults to false.",
+			Default:     false,
 		},
 
 		// VMwareIpfixConfig (Netflow)
@@ -356,6 +392,116 @@ func flattenSliceOfDistributedVirtualSwitchHostMember(d *schema.ResourceData, me
 	return nil
 }
 
+// expandVMwareDVSPvlanConfigSpec reads certain keys from a Set object map
+// representing a VMwareDVSPvlanMapEntry and returns a
+// VMwareDVSPvlanConfigSpec.
+func expandVMwareDVSPvlanConfigSpec(d map[string]interface{}) types.VMwareDVSPvlanConfigSpec {
+	mapEntry := types.VMwareDVSPvlanMapEntry{
+		PrimaryVlanId:   int32(d["primary_vlan_id"].(int)),
+		SecondaryVlanId: int32(d["secondary_vlan_id"].(int)),
+		PvlanType:       d["pvlan_type"].(string),
+	}
+
+	obj := types.VMwareDVSPvlanConfigSpec{
+		PvlanEntry: mapEntry,
+	}
+	return obj
+}
+
+// flattenVMwareDVSPvlanMapEntry reads various fields
+// from a VMwareDVSPvlanMapEntry and returns a Set object
+// map.
+//
+// This is the flatten counterpart to
+// expandVMwareDVSPvlanConfigSpec.
+func flattenVMwareDVSPvlanMapEntry(obj types.VMwareDVSPvlanMapEntry) map[string]interface{} {
+	d := make(map[string]interface{})
+	d["primary_vlan_id"] = int(obj.PrimaryVlanId)
+	d["secondary_vlan_id"] = int(obj.SecondaryVlanId)
+	d["pvlan_type"] = obj.PvlanType
+	return d
+}
+
+// expandSliceOfVMwareDVSPvlanConfigSpec expands all pvlan mapping
+// entries for a VMware DVS, detecting if a pvlan mapping needs to be added,
+// removed, or updated as well. The whole slice is returned.
+func expandSliceOfVMwareDVSPvlanConfigSpec(d *schema.ResourceData) []types.VMwareDVSPvlanConfigSpec {
+	var specs []types.VMwareDVSPvlanConfigSpec
+	o, n := d.GetChange("pvlan_mapping")
+	os := o.(*schema.Set)
+	ns := n.(*schema.Set)
+
+	// Make an intersection set. These mappings have not changed so we don't bother
+	// with them.
+	is := os.Intersection(ns)
+	os = os.Difference(is)
+	ns = ns.Difference(is)
+
+	// Our old and new sets now have an accurate description of mappings that may
+	// have been added, removed, or changed. Add removed and modified mappings
+	// first.
+	for _, oe := range os.List() {
+		om := oe.(map[string]interface{})
+		var found bool
+		for _, ne := range ns.List() {
+			nm := ne.(map[string]interface{})
+			if nm["secondary_vlan_id"] == om["secondary_vlan_id"] && om["pvlan_type"] != "promiscuous" {
+				found = true
+			}
+		}
+		if !found {
+			spec := expandVMwareDVSPvlanConfigSpec(om)
+			spec.Operation = string(types.ConfigSpecOperationRemove)
+			specs = append(specs, spec)
+		}
+	}
+
+	// Process new mappings now. These are ones that are only present in the new
+	// set.
+	for _, ne := range ns.List() {
+		nm := ne.(map[string]interface{})
+		var found bool
+		for _, oe := range os.List() {
+			om := oe.(map[string]interface{})
+			if nm["secondary_vlan_id"] == om["secondary_vlan_id"] && om["pvlan_type"] != "promiscuous" {
+				found = true
+			}
+		}
+		spec := expandVMwareDVSPvlanConfigSpec(nm)
+		if !found {
+			spec.Operation = string(types.ConfigSpecOperationAdd)
+		} else {
+			spec.Operation = string(types.ConfigSpecOperationEdit)
+		}
+		specs = append(specs, spec)
+	}
+
+	// Done!
+	return specs
+}
+
+// flattenSliceOfVMwareDVSPvlanMapEntry creates a set of all host
+// entries for a supplied slice of VMwareDVSPvlanMapEntry.
+//
+// This is the flatten counterpart to
+// expandSliceOfVMwareDVSPvlanConfigSpec.
+func flattenSliceOfVMwareDVSPvlanMapEntry(d *schema.ResourceData, entries []types.VMwareDVSPvlanMapEntry) error {
+	oldPvlanMappings := d.Get("pvlan_mapping").(*schema.Set)
+	var mappings []map[string]interface{}
+	for _, entry := range entries {
+		// TODO: Should the ignore_other_pvlan_mappings immediately affect the way it treats existing resources or should it have to be applied first?
+		if flattened := flattenVMwareDVSPvlanMapEntry(entry); d.Get("ignore_other_pvlan_mappings").(bool) && !oldPvlanMappings.Contains(flattened) {
+			log.Printf("[DEBUG] Found unmanaged pvlan_mapping (%v) and ignore_other_pvlan_mappings is true. Not reading into state.", flattened)
+		} else {
+			mappings = append(mappings, flattened)
+		}
+	}
+	if err := d.Set("pvlan_mapping", mappings); err != nil {
+		return err
+	}
+	return nil
+}
+
 // expandVMwareIpfixConfig reads certain ResourceData keys and
 // returns a VMwareIpfixConfig.
 func expandVMwareIpfixConfig(d *schema.ResourceData) *types.VMwareIpfixConfig {
@@ -546,6 +692,7 @@ func expandVMwareDVSConfigSpec(d *schema.ResourceData) *types.VMwareDVSConfigSpe
 			NetworkResourceControlVersion:       d.Get("network_resource_control_version").(string),
 			UplinkPortPolicy:                    expandDVSNameArrayUplinkPortPolicy(d),
 		},
+		PvlanConfigSpec:             expandSliceOfVMwareDVSPvlanConfigSpec(d),
 		MaxMtu:                      int32(d.Get("max_mtu").(int)),
 		LinkDiscoveryProtocolConfig: expandLinkDiscoveryProtocolConfig(d),
 		IpfixConfig:                 expandVMwareIpfixConfig(d),
@@ -585,6 +732,9 @@ func flattenVMwareDVSConfigInfo(d *schema.ResourceData, obj *types.VMwareDVSConf
 		return err
 	}
 	if err := flattenSliceOfDistributedVirtualSwitchHostMember(d, obj.Host); err != nil {
+		return err
+	}
+	if err := flattenSliceOfVMwareDVSPvlanMapEntry(d, obj.PvlanConfig); err != nil {
 		return err
 	}
 	if err := flattenSliceOfDvsHostInfrastructureTrafficResource(d, obj.InfrastructureTrafficResourceConfig); err != nil {
