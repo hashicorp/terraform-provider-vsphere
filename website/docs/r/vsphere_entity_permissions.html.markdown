@@ -4,14 +4,14 @@ layout: "vsphere"
 page_title: "VMware vSphere: Entity Permissions"
 sidebar_current: "docs-vsphere-entity-permissions"
 description: |-
-  Provides CRUD operations on a vsphere entity permissions. Permissions can be created on an entity for a given user 
-  with the specified roles.
+  Provides CRUD operations on a vsphere entity permissions. Permissions can be created on an entity for a given user or 
+  group with the specified roles.
 ---
 
 # vsphere\_entity\_permissions
 
 The `vsphere_entity_permissions` resource can be used to create and manage entity permissions. 
-Permissions can be created on an entity for a given user with the specified role.
+Permissions can be created on an entity for a given user or group with the specified role.
 
 ## Example Usage
 
