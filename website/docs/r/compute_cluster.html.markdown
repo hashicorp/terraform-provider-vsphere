@@ -460,6 +460,24 @@ details, see the referenced link in the above paragraph.
   providers configured for this cluster.
   <sup>[\*](#vsphere-version-requirements)</sup>
 
+## Cluster vSAN settings
+* `vsan_enabled` - (Optional) Enables vSAN on the cluster.
+* `vsan_disk_group` - (Optional) Represents the configuration of a host disk
+  group in the cluster.
+  * `cache` - The canonical name of the disk to use for vSAN cache.
+  * `storage` - An array of disk canonical names for vSAN storage.
+```
+resource compute_cluster "compute_cluster" {
+...
+  vsan_disk_group {
+    cache = data.vsphere_vmfs_disks.cache_disks[0]
+    storage = data.vsphere_vmfs_disks.storage_disks
+  }
+...
+}
+```
+
+
 ## Attribute Reference
 
 The following attributes are exported:
