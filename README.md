@@ -1,4 +1,4 @@
-# Terraform vSphere Provider [![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/hashicorp/terraform-provider-vsphere?label=release)](https://github.com/hashicorp/terraform-provider-vsphere/releases) [![license](https://img.shields.io/github/license/hashicorp/terraform-provider-vsphere.svg)]()
+# vSphere Provider for Terraform [![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/hashicorp/terraform-provider-vsphere?label=release)](https://github.com/hashicorp/terraform-provider-vsphere/releases) [![license](https://img.shields.io/github/license/hashicorp/terraform-provider-vsphere.svg)]()
 
 
 <a href="https://terraform.io">
@@ -9,7 +9,7 @@
 * Mailing list: [Google Groups](http://groups.google.com/group/terraform-tool)
 
 
-This is the repository for the Terraform vSphere Provider, which one can use
+This is the repository for the vSphere Provider for Terraform, which one can use
 with Terraform to work with VMware vSphere Products, notably [vCenter
 Server][vmware-vcenter] and [ESXi][vmware-esxi].
 
@@ -40,7 +40,7 @@ version of the provider.
 
 ## Contributing to the provider
 
-The Terraform vSphere Provider is the work of many contributors. We appreciate your help!
+The vSphere Provider for Terraform is the work of many contributors. We appreciate your help!
 
 To contribute, please read the [contribution guidelines](_about/CONTRIBUTING.md). You may also [report an issue](https://github.com/hashicorp/terraform-provider-vsphere/issues/new/choose). Once you've filed an issue, it will follow the [issue lifecycle](_about/ISSUES.md).
 
