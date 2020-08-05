@@ -140,6 +140,9 @@ func ValidateVirtualMachineClone(d *schema.ResourceDiff, c *govmomi.Client) erro
 // with no children, to make sure there is no ambiguity when selecting a
 // snapshot for linked clones.
 func validateCloneSnapshots(props *mo.VirtualMachine) error {
+	if props.Config.Template {
+		return nil
+	}
 	if props.Snapshot == nil {
 		return fmt.Errorf("virtual machine or template %s must have a snapshot to be used as a linked clone", props.Config.Uuid)
 	}
@@ -197,9 +200,14 @@ func ExpandVirtualMachineCloneSpec(d *schema.ResourceData, c *govmomi.Client) (t
 		if err := validateCloneSnapshots(vprops); err != nil {
 			return spec, nil, err
 		}
-		spec.Snapshot = vprops.Snapshot.CurrentSnapshot
-		spec.Location.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsCreateNewChildDiskBacking)
-		log.Printf("[DEBUG] ExpandVirtualMachineCloneSpec: Snapshot for clone: %s", vprops.Snapshot.CurrentSnapshot.Value)
+		if vprops.Config.Template {
+			spec.Location.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsMoveAllDiskBackingsAndAllowSharing)
+			log.Printf("[DEBUG] ExpandVirtualMachineCloneSpec: No snapshot needed when cloning Template")
+		} else {
+			spec.Location.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsCreateNewChildDiskBacking)
+			spec.Snapshot = vprops.Snapshot.CurrentSnapshot
+			log.Printf("[DEBUG] ExpandVirtualMachineCloneSpec: Snapshot for clone: %s", vprops.Snapshot.CurrentSnapshot.Value)
+		}
 	}
 
 	// Set the target host system and resource pool.
