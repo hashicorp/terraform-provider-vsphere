@@ -1,4 +1,11 @@
 ## 1.22.0 (Unreleased)
+
+FEATURES:
+* `resource/compute_cluster`: Basic vSAN support on compute clusters. ([#1151](https://github.com/hashicorp/terraform-provider-vsphere/pull/1151))
+* `resource/role`: Resource and data source to create and manage vSphere roles. ([#1144](https://github.com/hashicorp/terraform-provider-vsphere/pull/1144))
+* `resource/entity_permission`: Resource to create and manage vSphere permissions. ([#1144](https://github.com/hashicorp/terraform-provider-vsphere/pull/1144))
+* `data/entity_permission`: Data source to acquire ESXi host thumbprints . ([#1142](https://github.com/hashicorp/terraform-provider-vsphere/pull/1142))
+
 ## 1.21.1 (July 20, 2020)
 BUG FIXES:
 * `resource/vm`: Set guest_id before customization. ([#1139](https://github.com/hashicorp/terraform-provider-vsphere/pull/1139))
