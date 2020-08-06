@@ -1313,15 +1313,12 @@ func hostStorageSystemPropertiesFromHostSystemID(client *govmomi.Client, hostID 
 }
 
 func generateDiskMap(client *govmomi.Client, host *object.HostSystem, list []interface{}) (*types.VsanHostDiskMapping, error) {
-	hssProps, err := hostStorageSystemPropertiesFromHostSystemID(client, host.Reference().Value)
 	diskMap := types.VsanHostDiskMapping{
 		NonSsd: []types.HostScsiDisk{},
 	}
+	hssProps, err := hostStorageSystemPropertiesFromHostSystemID(client, host.Reference().Value)
 	if err != nil {
 		return nil, err
-	}
-	if hssProps.StorageDeviceInfo == nil {
-		return &diskMap, nil
 	}
 	if hssProps.StorageDeviceInfo == nil {
 		return &diskMap, nil
