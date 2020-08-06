@@ -140,23 +140,23 @@ func ValidateVirtualMachineClone(d *schema.ResourceDiff, c *govmomi.Client) erro
 // with no children, to make sure there is no ambiguity when selecting a
 // snapshot for linked clones.
 func validateCloneSnapshots(props *mo.VirtualMachine) error {
-	if props.Config.Template {
-		return nil
-	}
+
+	// Ensure that the virtual machine has a snapshot attribute that we can check
 	if props.Snapshot == nil {
-		return fmt.Errorf("virtual machine or template %s must have a snapshot to be used as a linked clone", props.Config.Uuid)
+		return fmt.Errorf("virtual machine %s must have a snapshot to be used as a linked clone", props.Config.Uuid)
 	}
+
 	// Root snapshot list can only have a singular element
 	if len(props.Snapshot.RootSnapshotList) != 1 {
-		return fmt.Errorf("virtual machine or template %s must have exactly one root snapshot (has: %d)", props.Config.Uuid, len(props.Snapshot.RootSnapshotList))
+		return fmt.Errorf("virtual machine %s must have exactly one root snapshot (has: %d)", props.Config.Uuid, len(props.Snapshot.RootSnapshotList))
 	}
 	// Check to make sure the root snapshot has no children
 	if len(props.Snapshot.RootSnapshotList[0].ChildSnapshotList) > 0 {
-		return fmt.Errorf("virtual machine or template %s's root snapshot must not have children", props.Config.Uuid)
+		return fmt.Errorf("virtual machine %s's root snapshot must not have children", props.Config.Uuid)
 	}
 	// Current snapshot must match root snapshot (this should be the case anyway)
 	if props.Snapshot.CurrentSnapshot.Value != props.Snapshot.RootSnapshotList[0].Snapshot.Value {
-		return fmt.Errorf("virtual machine or template %s's current snapshot must match root snapshot", props.Config.Uuid)
+		return fmt.Errorf("virtual machine %s's current snapshot must match root snapshot", props.Config.Uuid)
 	}
 	return nil
 }
@@ -197,17 +197,26 @@ func ExpandVirtualMachineCloneSpec(d *schema.ResourceData, c *govmomi.Client) (t
 	if d.Get("clone.0.linked_clone").(bool) {
 		log.Printf("[DEBUG] ExpandVirtualMachineCloneSpec: Clone type is a linked clone")
 		log.Printf("[DEBUG] ExpandVirtualMachineCloneSpec: Fetching snapshot for VM/template UUID %s", tUUID)
-		if err := validateCloneSnapshots(vprops); err != nil {
-			return spec, nil, err
-		}
+
+		// If our properties tell us that the Template flag is set, then we need to use a
+		// different option to clone the disk so that way vSphere knows the disk is shared.
 		if vprops.Config.Template {
+			log.Printf("[DEBUG] Virtual machine %s was marked as a template", tUUID)
 			spec.Location.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsMoveAllDiskBackingsAndAllowSharing)
-			log.Printf("[DEBUG] ExpandVirtualMachineCloneSpec: No snapshot needed when cloning Template")
+
 		} else {
-			spec.Location.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsCreateNewChildDiskBacking)
+			// Otherwise this is a virtual machine, and in order to use our default option
+			// we'll need to ensure that there's a snapshot that we can clone the disk from.
+			log.Printf("[DEBUG] Virtual machine %s is a regular virtual machine", tUUID)
+			if err := validateCloneSnapshots(vprops); err != nil {
+				return spec, nil, err
+			}
 			spec.Snapshot = vprops.Snapshot.CurrentSnapshot
-			log.Printf("[DEBUG] ExpandVirtualMachineCloneSpec: Snapshot for clone: %s", vprops.Snapshot.CurrentSnapshot.Value)
+			log.Printf("[DEBUG] ExpandVirtualMachineCloneSpec: Using current snapshot for clone: %s", vprops.Snapshot.CurrentSnapshot.Value)
+
+			spec.Location.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsCreateNewChildDiskBacking)
 		}
+		log.Printf("[DEBUG] ExpandVirtualMachineCloneSpec: Using the disk move type as \"%s\"", spec.Location.DiskMoveType)
 	}
 
 	// Set the target host system and resource pool.
