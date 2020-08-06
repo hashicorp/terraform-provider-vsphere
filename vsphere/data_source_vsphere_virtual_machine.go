@@ -12,69 +12,65 @@ import (
 )
 
 func dataSourceVSphereVirtualMachine() *schema.Resource {
-	s := map[string]schema.Schema{
-		Read: dataSourceVSphereVirtualMachineRead,
-
-		Schema: map[string]*schema.Schema{
-			"datacenter_id": {
-				Type:        schema.TypeString,
-				Description: "The managed object ID of the datacenter the virtual machine is in. This is not required when using ESXi directly, or if there is only one datacenter in your infrastructure.",
-				Optional:    true,
-			},
-			"scsi_controller_scan_count": {
-				Type:        schema.TypeInt,
-				Description: "The number of SCSI controllers to scan for disk sizes and controller types on.",
-				Optional:    true,
-				Default:     1,
-			},
-			"sata_controller_scan_count": {
-				Type:        schema.TypeInt,
-				Description: "The number of SATA controllers to scan for disk sizes and controller types on.",
-				Optional:    true,
-				Default:     0,
-			},
-			"ide_controller_scan_count": {
-				Type:        schema.TypeInt,
-				Description: "The number of IDE controllers to scan for disk sizes and controller types on.",
-				Optional:    true,
-				Default:     2,
-			},
-			"scsi_type": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The common SCSI bus type of all controllers on the virtual machine.",
-			},
-			"scsi_bus_sharing": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Mode for sharing the SCSI bus.",
-			},
-			"disks": {
-				Type:        schema.TypeList,
-				Description: "Select configuration attributes from the disks on this virtual machine, sorted by bus and unit number.",
-				Computed:    true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"size": {
-							Type:     schema.TypeInt,
-							Computed: true,
-						},
-						"eagerly_scrub": {
-							Type:     schema.TypeBool,
-							Computed: true,
-						},
-						"thin_provisioned": {
-							Type:     schema.TypeBool,
-							Computed: true,
-						},
-						"label": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"unit_number": {
-							Type:     schema.TypeInt,
-							Computed: true,
-						},
+	s := map[string]*schema.Schema{
+		"datacenter_id": {
+			Type:        schema.TypeString,
+			Description: "The managed object ID of the datacenter the virtual machine is in. This is not required when using ESXi directly, or if there is only one datacenter in your infrastructure.",
+			Optional:    true,
+		},
+		"scsi_controller_scan_count": {
+			Type:        schema.TypeInt,
+			Description: "The number of SCSI controllers to scan for disk sizes and controller types on.",
+			Optional:    true,
+			Default:     1,
+		},
+		"sata_controller_scan_count": {
+			Type:        schema.TypeInt,
+			Description: "The number of SATA controllers to scan for disk sizes and controller types on.",
+			Optional:    true,
+			Default:     0,
+		},
+		"ide_controller_scan_count": {
+			Type:        schema.TypeInt,
+			Description: "The number of IDE controllers to scan for disk sizes and controller types on.",
+			Optional:    true,
+			Default:     2,
+		},
+		"scsi_type": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The common SCSI bus type of all controllers on the virtual machine.",
+		},
+		"scsi_bus_sharing": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "Mode for sharing the SCSI bus.",
+		},
+		"disks": {
+			Type:        schema.TypeList,
+			Description: "Select configuration attributes from the disks on this virtual machine, sorted by bus and unit number.",
+			Computed:    true,
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"size": {
+						Type:     schema.TypeInt,
+						Computed: true,
+					},
+					"eagerly_scrub": {
+						Type:     schema.TypeBool,
+						Computed: true,
+					},
+					"thin_provisioned": {
+						Type:     schema.TypeBool,
+						Computed: true,
+					},
+					"label": {
+						Type:     schema.TypeString,
+						Computed: true,
+					},
+					"unit_number": {
+						Type:     schema.TypeInt,
+						Computed: true,
 					},
 				},
 			},
@@ -93,9 +89,12 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 		},
 	}
 
-	// Merge the VirtualMachineConfig structure to inclde the number of cpus, memory, etc.
+	// Merge the VirtualMachineConfig structure so that we can include the number of
+	// include the number of cpus, memory, firmware, disks, etc.
 	structure.MergeSchema(s, schemaVirtualMachineConfigSpec())
 
+	// Now that the schema has been composed and merged, we can attach our reader and
+	// return the resource back to our host process.
 	return &schema.Resource{
 		Read:   dataSourceVSphereVirtualMachineRead,
 		Schema: s,
