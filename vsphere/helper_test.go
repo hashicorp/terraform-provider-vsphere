@@ -1144,6 +1144,64 @@ func testGetVmStoragePolicy(s *terraform.State, resourceName string) (string, er
 	return spbm.PolicyNameByID(tVars.client, policyId)
 }
 
+func testGetVsphereRole(s *terraform.State, resourceName string) (string, error) {
+
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_role.%s", resourceName))
+	if err != nil {
+		return "", err
+	}
+	id, ok := tVars.resourceAttributes["id"]
+	if !ok {
+		return "", fmt.Errorf("resource %q has no id", resourceName)
+	}
+
+	roleIdInt, err := strconv.ParseInt(id, 10, 32)
+	if err != nil {
+		return "", fmt.Errorf("error while coverting role id %s from string to int %s", id, err)
+	}
+	roleId := int32(roleIdInt)
+	authorizationManager := object.NewAuthorizationManager(tVars.client.Client)
+	roleList, err := authorizationManager.RoleList(context.Background())
+
+	if err != nil {
+		return "", fmt.Errorf("error while reading the role list %s", err)
+	}
+	role := roleList.ById(roleId)
+	if role == nil {
+		return "", fmt.Errorf("role not found")
+	}
+	return role.Name, nil
+}
+
+func testGetVsphereEntityPermission(s *terraform.State, resourceName string) (string, error) {
+
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_entity_permissions.%s", resourceName))
+	if err != nil {
+		return "", err
+	}
+	id, ok := tVars.resourceAttributes["id"]
+	if !ok {
+		return "", fmt.Errorf("resource %q has no id", resourceName)
+	}
+	entityType, ok := tVars.resourceAttributes["entity_type"]
+	if !ok {
+		return "", fmt.Errorf("resource %q has no entity_type", resourceName)
+	}
+	entityMor := types.ManagedObjectReference{
+		Type:  entityType,
+		Value: id,
+	}
+	authorizationManager := object.NewAuthorizationManager(tVars.client.Client)
+	permissionsArr, err := authorizationManager.RetrieveEntityPermissions(context.Background(), entityMor, false)
+	if err != nil {
+		return "", err
+	}
+	if len(permissionsArr) == 0 {
+		return "", fmt.Errorf("permissions not found for entity id %s", id)
+	}
+	return strconv.Itoa(len(permissionsArr)), nil
+}
+
 func RunSweepers() {
 	tagSweep("")
 	dcSweep("")
