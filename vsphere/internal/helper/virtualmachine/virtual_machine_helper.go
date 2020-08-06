@@ -23,6 +23,7 @@ import (
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/view"
+	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -211,6 +212,32 @@ func Properties(vm *object.VirtualMachine) (*mo.VirtualMachine, error) {
 		return nil, err
 	}
 	return &props, nil
+}
+
+// ConfigOptions is a convenience method that wraps fetching the VirtualMachine ConfigOptions
+// as returned by QueryConfigOption.
+func ConfigOptions(vm *object.VirtualMachine) (*types.VirtualMachineConfigOption, error) {
+
+    // First grab the properties so that we can sneak the EnvironmentBrowser out of it
+    props, err := Properties(vm)
+    if err != nil {
+        return nil, err
+    }
+
+	// Make a context so we can timeout according to the provider configuration
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+
+	// Build a request for the config option, and then query for configuration options
+	log.Printf("[DEBUG] Fetching configuration options for VM %q", vm.InventoryPath)
+	request := types.QueryConfigOption{This: props.EnvironmentBrowser}
+
+	response, err := methods.QueryConfigOption(ctx, vm.Client(), &request)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.Returnval, nil
 }
 
 // WaitForGuestIP waits for a virtual machine to have an IP address.
