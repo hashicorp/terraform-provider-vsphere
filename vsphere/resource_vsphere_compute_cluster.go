@@ -1,8 +1,11 @@
 package vsphere
 
 import (
+	"context"
 	"fmt"
 	"log"
+
+	"github.com/vmware/govmomi/vim25/mo"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
@@ -12,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/vsansystem"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
@@ -464,7 +468,32 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Description:   "Must be set if cluster enrollment is managed from host resource.",
 				ConflictsWith: []string{"host_system_ids"},
 			},
-
+			"vsan_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Whether the VSAN service is enabled for the cluster.",
+			},
+			"vsan_disks": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Computed:    true,
+				Description: "A list of disk UUIDs to add to the vSAN cluster.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"cache": {
+							Type:        schema.TypeString,
+							Description: "Cache disk.",
+							Optional:    true,
+						},
+						"storage": {
+							Type:        schema.TypeSet,
+							Description: "List of storage disks.",
+							Optional:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
 			vSphereTagAttributeKey:    tagsSchema(),
 			customattribute.ConfigKey: customattribute.ConfigSchema(),
 		},
@@ -573,6 +602,10 @@ func resourceVSphereComputeClusterUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	if err := resourceVSphereComputeClusterApplyCustomAttributes(d, meta, cluster); err != nil {
+		return err
+	}
+
+	if err = updateVsanDisks(d, cluster, meta); err != nil {
 		return err
 	}
 
@@ -687,7 +720,9 @@ func resourceVSphereComputeClusterApplyCreate(d *schema.ResourceData, meta inter
 	if err != nil {
 		return nil, fmt.Errorf("error creating cluster: %s", err)
 	}
-
+	if err = updateVsanDisks(d, cluster, meta); err != nil {
+		return nil, err
+	}
 	// Set the ID now before proceeding any further. Any other operation past
 	// this point is recoverable.
 	d.SetId(cluster.Reference().Value)
@@ -1172,6 +1207,12 @@ func resourceVSphereComputeClusterFlattenData(
 		}
 		d.Set("host_system_ids", hostList)
 	}
+
+	err = flattenVsanDisks(d, cluster, meta.(*VSphereClient).vimClient)
+	if err != nil {
+		return err
+	}
+
 	return flattenClusterConfigSpecEx(d, props.ConfigurationEx.(*types.ClusterConfigInfoEx), version)
 }
 
@@ -1190,7 +1231,190 @@ func expandClusterConfigSpecEx(d *schema.ResourceData, version viapi.VSphereVers
 		obj.ProactiveDrsConfig = expandClusterProactiveDrsConfigInfo(d)
 	}
 
+	obj.VsanConfig = expandVsanConfig(d)
+
 	return obj
+}
+
+func expandVsanConfig(d *schema.ResourceData) *types.VsanClusterConfigInfo {
+	conf := &types.VsanClusterConfigInfo{}
+	enabled := d.Get("vsan_enabled").(bool)
+
+	conf.Enabled = &enabled
+	conf.DefaultConfig = &types.VsanClusterConfigInfoHostDefaultInfo{}
+	return conf
+}
+
+func updateVsanDisks(d *schema.ResourceData, cluster *object.ClusterComputeResource, meta interface{}) error {
+	client := meta.(*VSphereClient).vimClient
+	od, nd := d.GetChange("vsan_disks")
+	delSet := structure.DiffSlice(od.([]interface{}), nd.([]interface{}))
+	addSet := structure.DiffSlice(nd.([]interface{}), od.([]interface{}))
+	delSetI := delSet
+	addSetI := addSet
+
+	for i, del := range delSetI {
+		r := del.(map[string]interface{})
+		for n, add := range addSetI {
+			a := add.(map[string]interface{})
+			if r["cache"].(string) != a["cache"].(string) {
+				continue
+			}
+
+			ds := r["storage"].(*schema.Set)
+			as := a["storage"].(*schema.Set)
+			switch {
+			case ds.Len() > as.Len():
+				addSet = structure.DropSliceItem(addSet, n)
+				delSet = structure.DropSliceItem(delSet, i)
+				r["storage"] = ds.Difference(as)
+				if r["storage"].(*schema.Set).Len() >= 1 {
+					r["cache"] = ""
+				}
+				delSet = append(delSet, r)
+			case ds.Len() < as.Len():
+				addSet = structure.DropSliceItem(addSet, n)
+				delSet = structure.DropSliceItem(delSet, i)
+				a["storage"] = as.Difference(ds)
+				addSet = append(addSet, a)
+			default:
+				addSet = structure.DropSliceItem(addSet, n)
+				delSet = structure.DropSliceItem(delSet, i)
+			}
+		}
+	}
+
+	hosts, err := clustercomputeresource.Hosts(cluster)
+	if err != nil {
+		return err
+	}
+
+	for _, host := range hosts {
+		if err = deleteVsanDisks(host, delSet, client); err != nil {
+			return err
+		}
+		if err = addVsanDisks(host, addSet, client); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func hostStorageSystemPropertiesFromHostSystemID(client *govmomi.Client, hostID string) (*mo.HostStorageSystem, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	hss, err := hostStorageSystemFromHostSystemID(client, hostID)
+	if err != nil {
+		return nil, err
+	}
+	var hssProps mo.HostStorageSystem
+	err = hss.Properties(ctx, hss.Reference(), nil, &hssProps)
+	return &hssProps, err
+}
+
+func generateDiskMap(client *govmomi.Client, host *object.HostSystem, list []interface{}) (*types.VsanHostDiskMapping, error) {
+	diskMap := types.VsanHostDiskMapping{
+		NonSsd: []types.HostScsiDisk{},
+	}
+	hssProps, err := hostStorageSystemPropertiesFromHostSystemID(client, host.Reference().Value)
+	if err != nil {
+		return nil, err
+	}
+	if hssProps.StorageDeviceInfo == nil {
+		return &diskMap, nil
+	}
+	for _, scsiLun := range hssProps.StorageDeviceInfo.ScsiLun {
+		for _, diskGroup := range list {
+			if hostDisk, ok := scsiLun.(*types.HostScsiDisk); ok {
+				if err != nil {
+					return nil, err
+				}
+				for _, storageDisk := range diskGroup.(map[string]interface{})["storage"].(*schema.Set).List() {
+					if hostDisk.CanonicalName == storageDisk.(string) {
+						diskMap.NonSsd = append(diskMap.NonSsd, *hostDisk)
+					}
+				}
+				if diskGroup.(map[string]interface{})["cache"].(string) == hostDisk.CanonicalName {
+					diskMap.Ssd = *hostDisk
+				}
+			}
+		}
+	}
+	return &diskMap, nil
+}
+
+func deleteVsanDisks(host *object.HostSystem, list []interface{}, client *govmomi.Client) error {
+	log.Printf("deleteVsanDisks: Starting removal of vSAN disks on %s.", host.Name())
+	hvs, err := vsansystem.FromHost(client, host, defaultAPITimeout)
+	if err != nil {
+		return nil
+	}
+	diskMap, err := generateDiskMap(client, host, list)
+	if err != nil {
+		return err
+	}
+	if diskMap.Ssd.CanonicalName != "" || len(diskMap.NonSsd) > 0 {
+		log.Printf("deleteVsanDisks: Scheduled disks are being removed.")
+		if err = vsansystem.RemoveDiskMapping(client, host, hvs, diskMap, defaultAPITimeout); err != nil {
+			return err
+		}
+		log.Printf("deleteVsanDisks: vSAN disks successfully removed.")
+	} else {
+		log.Printf("deleteVsanDisks: No vSAN disks to remove on %s.", host.Name())
+	}
+	return nil
+}
+
+func addVsanDisks(host *object.HostSystem, list []interface{}, client *govmomi.Client) error {
+	log.Printf("addVsanDisks: Starting initialization of vSAN disks on %s.", host.Name())
+	hvs, err := vsansystem.FromHost(client, host, defaultAPITimeout)
+	if err != nil {
+		return nil
+	}
+	diskMap, err := generateDiskMap(client, host, list)
+	if diskMap.Ssd.CanonicalName != "" {
+		log.Printf("addVsanDisks: Scheduled disks are being initialized.")
+		if err = vsansystem.InitializeDisks(client, host, hvs, diskMap, defaultAPITimeout); err != nil {
+			return err
+		}
+		log.Printf("addVsanDisks: vSAN disks successfully initialized.")
+	} else {
+		log.Printf("addVsanDisks: No vSAN disks to initialize on %s.", host.Name())
+	}
+	return nil
+}
+
+func flattenVsanDisks(d *schema.ResourceData, cluster *object.ClusterComputeResource, client *govmomi.Client) error {
+	diskMap := []interface{}{}
+
+	hosts, err := clustercomputeresource.Hosts(cluster)
+	if err != nil {
+		return err
+	}
+	for _, host := range hosts {
+		hvs, err := vsansystem.FromHost(client, host, defaultAPITimeout)
+		if err != nil {
+			return err
+		}
+		hvsProps, err := vsansystem.Properties(client, hvs, defaultAPITimeout)
+		if err != nil {
+			return err
+		}
+		if hvsProps.Config.StorageInfo == nil {
+			return nil
+		}
+		for _, diskGroup := range hvsProps.Config.StorageInfo.DiskMapping {
+			var vsanStorage []string
+			for _, disk := range diskGroup.NonSsd {
+				vsanStorage = append(vsanStorage, disk.CanonicalName)
+			}
+			diskMap = append(diskMap, map[string]interface{}{
+				"cache":   diskGroup.Ssd.CanonicalName,
+				"storage": vsanStorage,
+			})
+		}
+	}
+	return d.Set("vsan_disks", diskMap)
 }
 
 // flattenClusterConfigSpecEx saves a ClusterConfigSpecEx into the supplied
@@ -1205,6 +1429,7 @@ func flattenClusterConfigSpecEx(d *schema.ResourceData, obj *types.ClusterConfig
 	if err := flattenClusterDrsConfigInfo(d, obj.DrsConfig); err != nil {
 		return err
 	}
+	d.Set("vsan_enabled", obj.VsanConfigInfo.Enabled)
 
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
 		if err := flattenClusterInfraUpdateHaConfigInfo(d, obj.InfraUpdateHaConfig); err != nil {

@@ -150,6 +150,11 @@ func IsMember(cluster *object.ClusterComputeResource, host *object.HostSystem) (
 	return true, nil
 }
 
+func Hosts(cluster *object.ClusterComputeResource) ([]*object.HostSystem, error) {
+	ctx := context.TODO()
+	return cluster.Hosts(ctx)
+}
+
 // MoveHostsInto moves all of the supplied hosts into the cluster. All virtual
 // machines are moved to the cluster's root resource pool and any resource
 // pools on the host itself are deleted.

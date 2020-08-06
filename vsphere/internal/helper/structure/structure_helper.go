@@ -626,3 +626,30 @@ func ValuesAvailable(base string, keys []string, d *schema.ResourceDiff) bool {
 	}
 	return true
 }
+
+func DiffSlice(a, b []interface{}) []interface{} {
+	var c []interface{}
+	for _, aa := range a {
+		found := false
+		for _, bb := range b {
+			if reflect.DeepEqual(aa, bb) {
+				found = true
+			}
+		}
+		if found == false {
+			c = append(c, aa)
+		}
+	}
+	return c
+}
+
+func DropSliceItem(a []interface{}, n int) []interface{} {
+	var b []interface{}
+	if n > 0 {
+		b = a[:n-1]
+	}
+	if n < len(a)-1 {
+		b = append(b, a[n+1:]...)
+	}
+	return b
+}
