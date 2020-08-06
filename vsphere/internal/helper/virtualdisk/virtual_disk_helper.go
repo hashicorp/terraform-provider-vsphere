@@ -93,14 +93,11 @@ func Move(client *govmomi.Client, srcPath string, srcDC *object.Datacenter, dstP
 
 // QueryDiskType queries the disk type of the specified virtual disk.
 func QueryDiskType(client *govmomi.Client, name string, dc *object.Datacenter) (types.VirtualDiskType, error) {
-	vdm := object.NewVirtualDiskManager(client.Client)
-	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
-	defer cancel()
-	di, err := vdm.QueryVirtualDiskInfo(ctx, name, dc, false)
+	di, err := FromPath(client, name, dc)
 	if err != nil {
 		return types.VirtualDiskType(""), err
 	}
-	t := di[0].DiskType
+	t := di.DiskType
 	log.Printf("[DEBUG] QueryDiskType: Disk %q is of type %q", name, t)
 	return types.VirtualDiskType(t), nil
 }
@@ -142,4 +139,16 @@ func Delete(client *govmomi.Client, name string, dc *object.Datacenter) error {
 	}
 	log.Printf("[DEBUG] Virtual disk %q in datacenter %s deleted succesfully", name, dc)
 	return nil
+}
+
+// FromPath loads a datastore from its path.
+func FromPath(client *govmomi.Client, p string, dc *object.Datacenter) (*object.VirtualDiskInfo, error) {
+	vdm := object.NewVirtualDiskManager(client.Client)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	di, err := vdm.QueryVirtualDiskInfo(ctx, p, dc, false)
+	if err != nil {
+		return nil, err
+	}
+	return &di[0], nil
 }

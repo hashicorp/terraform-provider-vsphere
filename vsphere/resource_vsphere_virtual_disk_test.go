@@ -31,6 +31,19 @@ func TestAccResourceVSphereVirtualDisk_basic(t *testing.T) {
 					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", true),
 				),
 			},
+			{
+				ResourceName:      "vsphere_virtual_disk.foo",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdPrefix: fmt.Sprintf("/%s/[%s] ",
+					os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+					os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+				),
+				Config: testAccCheckVSphereVirtuaDiskConfig_basic(rString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", true),
+				),
+			},
 		},
 	})
 }
@@ -101,6 +114,20 @@ func TestAccResourceVSphereVirtualDisk_withParent(t *testing.T) {
 		CheckDestroy: testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", false),
 		Steps: []resource.TestStep{
 			{
+				Config: testAccCheckVSphereVirtuaDiskConfig_withParent(rString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", true),
+				),
+			},
+			{
+				ResourceName:            "vsphere_virtual_disk.foo",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"create_directories"},
+				ImportStateIdPrefix: fmt.Sprintf("/%s/[%s] ",
+					os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+					os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+				),
 				Config: testAccCheckVSphereVirtuaDiskConfig_withParent(rString),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", true),
