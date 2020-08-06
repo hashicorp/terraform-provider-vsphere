@@ -471,9 +471,10 @@ func resourceVSphereComputeCluster() *schema.Resource {
 			"vsan_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
+				Computed:    true,
 				Description: "Whether the VSAN service is enabled for the cluster.",
 			},
-			"vsan_disks": {
+			"vsan_disk_group": {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
@@ -1247,7 +1248,7 @@ func expandVsanConfig(d *schema.ResourceData) *types.VsanClusterConfigInfo {
 
 func updateVsanDisks(d *schema.ResourceData, cluster *object.ClusterComputeResource, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	od, nd := d.GetChange("vsan_disks")
+	od, nd := d.GetChange("vsan_disk_group")
 	delSet := structure.DiffSlice(od.([]interface{}), nd.([]interface{}))
 	addSet := structure.DiffSlice(nd.([]interface{}), od.([]interface{}))
 	delSetI := delSet
@@ -1414,7 +1415,7 @@ func flattenVsanDisks(d *schema.ResourceData, cluster *object.ClusterComputeReso
 			})
 		}
 	}
-	return d.Set("vsan_disks", diskMap)
+	return d.Set("vsan_disk_group", diskMap)
 }
 
 // flattenClusterConfigSpecEx saves a ClusterConfigSpecEx into the supplied
