@@ -91,9 +91,13 @@ func ValidateVirtualMachineClone(d *schema.ResourceDiff, c *govmomi.Client) erro
 		// to be a single snapshot on the template for it to be eligible.
 		linked := d.Get("clone.0.linked_clone").(bool)
 		if linked {
-			log.Printf("[DEBUG] ValidateVirtualMachineClone: Checking snapshots on %s for linked clone eligibility", tUUID)
-			if err := validateCloneSnapshots(vprops); err != nil {
-				return err
+			if vprops.Config.Template {
+				log.Printf("[DEBUG] ValidateVirtualMachineClone: Virtual machine %s is marked as a template and satisfies linked clone eligibility", tUUID)
+			} else {
+				log.Printf("[DEBUG] ValidateVirtualMachineClone: Checking snapshots on %s for linked clone eligibility", tUUID)
+				if err := validateCloneSnapshots(vprops); err != nil {
+					return err
+				}
 			}
 		}
 		// Check to make sure the disks for this VM/template line up with the disks
