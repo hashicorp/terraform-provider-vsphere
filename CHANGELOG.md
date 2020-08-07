@@ -1,4 +1,4 @@
-## 1.22.0 (Unreleased)
+## 1.22.0 (August 07, 2020)
 
 FEATURES:
 * `resource/compute_cluster`: Basic vSAN support on compute clusters. ([#1151](https://github.com/hashicorp/terraform-provider-vsphere/pull/1151))
