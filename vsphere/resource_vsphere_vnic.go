@@ -54,6 +54,7 @@ func resourceVsphereNicRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
+	_ = d.Set("netstack", vnic.Spec.NetStackInstanceKey)
 	_ = d.Set("portgroup", vnic.Portgroup)
 	if vnic.Spec.DistributedVirtualPort != nil {
 		_ = d.Set("distributed_switch_port", vnic.Spec.DistributedVirtualPort.SwitchUuid)
@@ -62,8 +63,8 @@ func resourceVsphereNicRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("mtu", vnic.Spec.Mtu)
 	_ = d.Set("mac", vnic.Spec.Mac)
 
-	// Do we have any ipv4 config ?
-	if _, ok := d.GetOk("ipv4"); ok {
+	// IpAddress will be an empty string if ipv4 is off
+	if vnic.Spec.Ip.IpAddress != "" {
 		// if DHCP is true then we should ignore whatever addresses are set here.
 		ipv4dict := make(map[string]interface{})
 		ipv4dict["dhcp"] = vnic.Spec.Ip.Dhcp
@@ -80,8 +81,8 @@ func resourceVsphereNicRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	// Do we have any ipv6 config ?
-	if _, ok := d.GetOk("ipv6"); ok {
+	// IpV6Config will be nil if ipv6 is off
+	if vnic.Spec.Ip.IpV6Config != nil {
 		ipv6dict := map[string]interface{}{
 			"dhcp":       *vnic.Spec.Ip.IpV6Config.DhcpV6Enabled,
 			"autoconfig": *vnic.Spec.Ip.IpV6Config.AutoConfigurationEnabled,
