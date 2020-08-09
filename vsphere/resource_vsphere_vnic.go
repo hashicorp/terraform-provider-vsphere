@@ -21,7 +21,7 @@ func resourceVsphereNic() *schema.Resource {
 		Update: resourceVsphereNicUpdate,
 		Delete: resourceVsphereNicDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceVSphereNicImport,
 		},
 		Schema: vNicSchema(),
 	}
@@ -43,9 +43,7 @@ func resourceVsphereNicRead(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.TODO()
 	client := meta.(*VSphereClient).vimClient
 
-	toks := strings.Split(d.Id(), "_")
-	hostId := toks[0]
-	nicId := toks[1]
+	hostId, nicId := splitHostIdNicId(d)
 
 	vnic, err := getVnicFromHost(ctx, client, hostId, nicId)
 	if err != nil {
@@ -139,15 +137,24 @@ func resourceVsphereNicUpdate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceVsphereNicDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	idParts := strings.Split(d.Id(), "_")
-	hostId := idParts[0]
-	nicId := idParts[1]
+	hostId, nicId := splitHostIdNicId(d)
 
 	err := removeVnic(client, hostId, nicId)
 	if err != nil {
 		return err
 	}
 	return resourceVsphereNicRead(d, meta)
+}
+
+func resourceVSphereNicImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	hostID, _ := splitHostIdNicId(d)
+
+	err := d.Set("host", hostID)
+	if err != nil {
+		return []*schema.ResourceData{}, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
 
 // VmKernelSchema returns the schema required to represent a vNIC adapter on an ESX Host.
@@ -263,9 +270,7 @@ func BaseVMKernelSchema() map[string]*schema.Schema {
 
 func updateVNic(d *schema.ResourceData, meta interface{}) (string, error) {
 	client := meta.(*VSphereClient).vimClient
-	idParts := strings.Split(d.Id(), "_")
-	hostId := idParts[0]
-	nicId := idParts[1]
+	hostId, nicId := splitHostIdNicId(d)
 	ctx := context.TODO()
 
 	nic, err := getNicSpecFromSchema(d)
@@ -519,4 +524,9 @@ func getVnicFromHost(ctx context.Context, client *govmomi.Client, hostId, nicId 
 		return nil, fmt.Errorf("vNic interface with id %s not found", nicId)
 	}
 	return &vNics[nicIdx], nil
+}
+
+func splitHostIdNicId(d *schema.ResourceData) (string, string) {
+	idParts := strings.Split(d.Id(), "_")
+	return idParts[0], idParts[1]
 }
