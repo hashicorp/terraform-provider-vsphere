@@ -48,6 +48,9 @@ func resourceVSphereHostPortGroup() *schema.Resource {
 		Read:   resourceVSphereHostPortGroupRead,
 		Update: resourceVSphereHostPortGroupUpdate,
 		Delete: resourceVSphereHostPortGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceVSphereHostPortGroupImport,
+		},
 		Schema: s,
 	}
 }
@@ -146,4 +149,20 @@ func resourceVSphereHostPortGroupDelete(d *schema.ResourceData, meta interface{}
 	}
 
 	return nil
+}
+
+func resourceVSphereHostPortGroupImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	hsID, name, err := portGroupIDsFromResourceID(d)
+
+	err = d.Set("host_system_id", hsID)
+	if err != nil {
+		return []*schema.ResourceData{}, err
+	}
+
+	err = d.Set("name", name)
+	if err != nil {
+		return []*schema.ResourceData{}, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
