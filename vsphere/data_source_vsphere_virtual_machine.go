@@ -5,103 +5,99 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 	"github.com/vmware/govmomi/object"
 )
 
 func dataSourceVSphereVirtualMachine() *schema.Resource {
-	return &schema.Resource{
-		Read: dataSourceVSphereVirtualMachineRead,
-
-		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:        schema.TypeString,
-				Description: "The name or path of the virtual machine.",
-				Required:    true,
-			},
-			"datacenter_id": {
-				Type:        schema.TypeString,
-				Description: "The managed object ID of the datacenter the virtual machine is in. This is not required when using ESXi directly, or if there is only one datacenter in your infrastructure.",
-				Optional:    true,
-			},
-			"scsi_controller_scan_count": {
-				Type:        schema.TypeInt,
-				Description: "The number of SCSI controllers to scan for disk sizes and controller types on.",
-				Optional:    true,
-				Default:     1,
-			},
-			"sata_controller_scan_count": {
-				Type:        schema.TypeInt,
-				Description: "The number of SATA controllers to scan for disk sizes and controller types on.",
-				Optional:    true,
-				Default:     0,
-			},
-			"ide_controller_scan_count": {
-				Type:        schema.TypeInt,
-				Description: "The number of IDE controllers to scan for disk sizes and controller types on.",
-				Optional:    true,
-				Default:     2,
-			},
-			"guest_id": {
-				Type:        schema.TypeString,
-				Description: "The guest ID of the virtual machine.",
-				Computed:    true,
-			},
-			"firmware": {
-				Type:        schema.TypeString,
-				Description: "The firmware type for this virtual machine.",
-				Computed:    true,
-			},
-			"alternate_guest_name": {
-				Type:        schema.TypeString,
-				Description: "The alternate guest name of the virtual machine when guest_id is a non-specific operating system, like otherGuest.",
-				Computed:    true,
-			},
-			"scsi_type": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The common SCSI bus type of all controllers on the virtual machine.",
-			},
-			"scsi_bus_sharing": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Mode for sharing the SCSI bus.",
-			},
-			"disks": {
-				Type:        schema.TypeList,
-				Description: "Select configuration attributes from the disks on this virtual machine, sorted by bus and unit number.",
-				Computed:    true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"size": {
-							Type:     schema.TypeInt,
-							Computed: true,
-						},
-						"eagerly_scrub": {
-							Type:     schema.TypeBool,
-							Computed: true,
-						},
-						"thin_provisioned": {
-							Type:     schema.TypeBool,
-							Computed: true,
-						},
+	s := map[string]*schema.Schema{
+		"datacenter_id": {
+			Type:        schema.TypeString,
+			Description: "The managed object ID of the datacenter the virtual machine is in. This is not required when using ESXi directly, or if there is only one datacenter in your infrastructure.",
+			Optional:    true,
+		},
+		"scsi_controller_scan_count": {
+			Type:        schema.TypeInt,
+			Description: "The number of SCSI controllers to scan for disk sizes and controller types on.",
+			Optional:    true,
+			Default:     1,
+		},
+		"sata_controller_scan_count": {
+			Type:        schema.TypeInt,
+			Description: "The number of SATA controllers to scan for disk sizes and controller types on.",
+			Optional:    true,
+			Default:     0,
+		},
+		"ide_controller_scan_count": {
+			Type:        schema.TypeInt,
+			Description: "The number of IDE controllers to scan for disk sizes and controller types on.",
+			Optional:    true,
+			Default:     2,
+		},
+		"scsi_type": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The common SCSI bus type of all controllers on the virtual machine.",
+		},
+		"scsi_bus_sharing": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "Mode for sharing the SCSI bus.",
+		},
+		"disks": {
+			Type:        schema.TypeList,
+			Description: "Select configuration attributes from the disks on this virtual machine, sorted by bus and unit number.",
+			Computed:    true,
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"size": {
+						Type:     schema.TypeInt,
+						Computed: true,
+					},
+					"eagerly_scrub": {
+						Type:     schema.TypeBool,
+						Computed: true,
+					},
+					"thin_provisioned": {
+						Type:     schema.TypeBool,
+						Computed: true,
+					},
+					"label": {
+						Type:     schema.TypeString,
+						Computed: true,
+					},
+					"unit_number": {
+						Type:     schema.TypeInt,
+						Computed: true,
 					},
 				},
 			},
-			"network_interface_types": {
-				Type:        schema.TypeList,
-				Description: "The types of network interfaces found on the virtual machine, sorted by unit number.",
-				Computed:    true,
-				Elem:        &schema.Schema{Type: schema.TypeString},
-			},
-			"guest_ip_addresses": {
-				Type:        schema.TypeList,
-				Description: "The current list of IP addresses on this virtual machine.",
-				Computed:    true,
-				Elem:        &schema.Schema{Type: schema.TypeString},
-			},
 		},
+		"network_interface_types": {
+			Type:        schema.TypeList,
+			Description: "The types of network interfaces found on the virtual machine, sorted by unit number.",
+			Computed:    true,
+			Elem:        &schema.Schema{Type: schema.TypeString},
+		},
+		"guest_ip_addresses": {
+			Type:        schema.TypeList,
+			Description: "The current list of IP addresses on this virtual machine.",
+			Computed:    true,
+			Elem:        &schema.Schema{Type: schema.TypeString},
+		},
+	}
+
+	// Merge the VirtualMachineConfig structure so that we can include the number of
+	// include the number of cpus, memory, firmware, disks, etc.
+	structure.MergeSchema(s, schemaVirtualMachineConfigSpec())
+
+	// Now that the schema has been composed and merged, we can attach our reader and
+	// return the resource back to our host process.
+	return &schema.Resource{
+		Read:   dataSourceVSphereVirtualMachineRead,
+		Schema: s,
 	}
 }
 
@@ -134,6 +130,11 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 
 	if props.Config.Uuid == "" {
 		return fmt.Errorf("virtual machine %q does not have a UUID", vm.InventoryPath)
+	}
+
+	// Read general VM config info
+	if err := flattenVirtualMachineConfigInfo(d, props.Config); err != nil {
+		return fmt.Errorf("error reading virtual machine configuration: %s", err)
 	}
 
 	d.SetId(props.Config.Uuid)

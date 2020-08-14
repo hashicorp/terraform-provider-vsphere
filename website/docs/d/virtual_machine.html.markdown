@@ -63,6 +63,14 @@ The following attributes are exported:
 * `guest_id` - The guest ID of the virtual machine or template.
 * `alternate_guest_name` - The alternate guest name of the virtual machine when
   guest_id is a non-specific operating system, like `otherGuest`.
+* `annotation` - The user-provided description of this virtual machine.
+* `memory` - The size of the virtual machine's memory, in MB.
+* `num_cpus` - The total number of virtual processor cores assigned to this
+  virtual machine.
+* `num_cores_per_socket` - The number of cores per socket for this virtual machine.
+* `firmware` - The firmware interface that is used by this virtual machine. Can be
+  either `bios` or `EFI`.
+* `hardware_version` - The hardware version number on this virtual machine.
 * `scsi_type` - The common type of all SCSI controllers on this virtual machine.
   Will be one of `lsilogic` (LSI Logic Parallel), `lsilogic-sas` (LSI Logic
   SAS), `pvscsi` (VMware Paravirtual), `buslogic` (BusLogic), or `mixed` when
@@ -79,9 +87,11 @@ The following attributes are exported:
   source must be the same on the destination virtual machine as the source.
   Only the first number of controllers defined by `scsi_controller_scan_count`
   are scanned for disks. The sub-attributes are:
+ * `label` -  The label for the disk.
  * `size` - The size of the disk, in GIB.
  * `eagerly_scrub` - Set to `true` if the disk has been eager zeroed.
  * `thin_provisioned` - Set to `true` if the disk has been thin provisioned.
+ * `unit_number` - The disk number on the storage bus.
 * `network_interface_types` - The network interface types for each network
   interface found on the virtual machine, in device bus order. Will be one of
   `e1000`, `e1000e`, `pcnet32`, `sriov`, `vmxnet2`, or `vmxnet3`.

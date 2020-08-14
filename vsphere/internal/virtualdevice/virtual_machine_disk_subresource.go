@@ -1186,9 +1186,17 @@ func ReadDiskAttrsForDataSource(l object.VirtualDeviceList, d *schema.ResourceDa
 		if backing.ThinProvisioned != nil {
 			thin = *backing.ThinProvisioned
 		}
+		if di, ok := disk.DeviceInfo.(*types.Description); ok {
+			m["label"] = di.Label
+		} else {
+			m["label"] = fmt.Sprintf("Disk %d", i)
+		}
+
 		m["size"] = diskCapacityInGiB(disk)
 		m["eagerly_scrub"] = eager
 		m["thin_provisioned"] = thin
+		m["unit_number"] = disk.UnitNumber
+
 		out = append(out, m)
 	}
 	log.Printf("[DEBUG] ReadDiskAttrsForDataSource: Attributes returned: %+v", out)
@@ -1486,6 +1494,12 @@ func (r *DiskSubresource) DiffExisting() error {
 
 	// Ensure that there is no change in either eagerly_scrub or thin_provisioned
 	// - these values cannot be changed once set.
+	if _, err = r.GetWithVeto("label"); err != nil {
+		return fmt.Errorf("virtual disk %q: %s", name, err)
+	}
+	if _, err = r.GetWithVeto("unit_number"); err != nil {
+		return fmt.Errorf("virtual disk %q: %s", name, err)
+	}
 	if _, err = r.GetWithVeto("eagerly_scrub"); err != nil {
 		return fmt.Errorf("virtual disk %q: %s", name, err)
 	}
@@ -1548,6 +1562,8 @@ func (r *DiskSubresource) DiffGeneral() error {
 		switch {
 		case r.Get("datastore_id").(string) == "":
 			return fmt.Errorf("datastore_id for disk %q is required when attach is set", name)
+		case r.Get("label").(int) > 0:
+			return fmt.Errorf("label for disk %q cannot be defined when attach is set", name)
 		case r.Get("size").(int) > 0:
 			return fmt.Errorf("size for disk %q cannot be defined when attach is set", name)
 		case r.Get("eagerly_scrub").(bool):
