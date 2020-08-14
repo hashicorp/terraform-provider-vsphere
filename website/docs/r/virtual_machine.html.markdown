@@ -1042,11 +1042,10 @@ The options available in the `clone` block are:
 
 * `template_uuid` - (Required) The UUID of the source virtual machine or
   template.
-* `linked_clone` - (Optional) Clone this virtual machine from a snapshot.
-  Templates must have a single snapshot only in order to be eligible. Default:
-  `false`.
-* `timeout` - (Optional) The timeout, in minutes, to wait for the virtual
-  machine clone to complete. Default: 30 minutes.
+* `linked_clone` - (Optional) Clone this virtual machine from a snapshot or
+  a template. Default: `false`.
+* `timeout` - (Optional) The timeout, in minutes, to wait for the cloning
+  process to complete. Default: 30 minutes.
 * `customize` - (Optional) The customization spec for this clone. This allows
   the user to configure the virtual machine post-clone. For more details, see
   [virtual machine customization](#virtual-machine-customization).
