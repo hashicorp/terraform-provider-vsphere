@@ -23,6 +23,7 @@ import (
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/view"
+	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -211,6 +212,32 @@ func Properties(vm *object.VirtualMachine) (*mo.VirtualMachine, error) {
 		return nil, err
 	}
 	return &props, nil
+}
+
+// ConfigOptions is a convenience method that wraps fetching the VirtualMachine ConfigOptions
+// as returned by QueryConfigOption.
+func ConfigOptions(vm *object.VirtualMachine) (*types.VirtualMachineConfigOption, error) {
+
+	// First grab the properties so that we can sneak the EnvironmentBrowser out of it
+	props, err := Properties(vm)
+	if err != nil {
+		return nil, err
+	}
+
+	// Make a context so we can timeout according to the provider configuration
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+
+	// Build a request for the config option, and then query for configuration options
+	log.Printf("[DEBUG] Fetching configuration options for VM %q", vm.InventoryPath)
+	request := types.QueryConfigOption{This: props.EnvironmentBrowser}
+
+	response, err := methods.QueryConfigOption(ctx, vm.Client(), &request)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.Returnval, nil
 }
 
 // WaitForGuestIP waits for a virtual machine to have an IP address.
@@ -889,25 +916,35 @@ func GetHardwareVersionNumber(vstring string) int {
 // SetHardwareVersion sets the virtual machine's hardware version. The virtual
 // machine must be powered off, and the version can only be increased.
 func SetHardwareVersion(vm *object.VirtualMachine, target int) error {
-	// First get current and target versions and validate
-	tv := GetHardwareVersionID(target)
-	vprops, err := Properties(vm)
+
+	// First query for the configuration options of the vm
+	copts, err := ConfigOptions(vm)
 	if err != nil {
 		return err
 	}
-	cv := vprops.Config.Version
-	// Skip the rest if there is no version change.
-	if cv == tv || tv == "" {
+
+	// Now we can grab its version to compare against the target
+	current := int(copts.HardwareOptions.HwVersion)
+	log.Printf("[DEBUG] Found current hardware version: %d", current)
+
+	// If the hardware version matches, then we're done here and can leave.
+	if current == target || target == 0 {
 		return nil
 	}
-	if err := ValidateHardwareVersion(GetHardwareVersionNumber(cv), target); err != nil {
+
+	// Otherwise we need to validate it to ensure we're not downgrading
+	// the hardware version.
+	log.Printf("[DEBUG] Validating the target hardware version: %d", target)
+	if err := ValidateHardwareVersion(current, target); err != nil {
 		return err
 	}
 
+	// We can now proceed to upgrade the hardware version on the vm
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 
-	task, err := vm.UpgradeVM(ctx, tv)
+	log.Printf("[DEBUG] Upgrading VM from hw version %d to hw version %d", current, target)
+	task, err := vm.UpgradeVM(ctx, GetHardwareVersionID(target))
 	_, err = task.WaitForResult(ctx, nil)
 	return err
 }
