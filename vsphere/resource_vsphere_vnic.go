@@ -21,7 +21,7 @@ func resourceVsphereNic() *schema.Resource {
 		Update: resourceVsphereNicUpdate,
 		Delete: resourceVsphereNicDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceVSphereNicImport,
 		},
 		Schema: vNicSchema(),
 	}
@@ -43,9 +43,7 @@ func resourceVsphereNicRead(d *schema.ResourceData, meta interface{}) error {
 	ctx := context.TODO()
 	client := meta.(*VSphereClient).vimClient
 
-	toks := strings.Split(d.Id(), "_")
-	hostId := toks[0]
-	nicId := toks[1]
+	hostId, nicId := splitHostIdNicId(d)
 
 	vnic, err := getVnicFromHost(ctx, client, hostId, nicId)
 	if err != nil {
@@ -54,6 +52,7 @@ func resourceVsphereNicRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
+	_ = d.Set("netstack", vnic.Spec.NetStackInstanceKey)
 	_ = d.Set("portgroup", vnic.Portgroup)
 	if vnic.Spec.DistributedVirtualPort != nil {
 		_ = d.Set("distributed_switch_port", vnic.Spec.DistributedVirtualPort.SwitchUuid)
@@ -63,7 +62,8 @@ func resourceVsphereNicRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("mac", vnic.Spec.Mac)
 
 	// Do we have any ipv4 config ?
-	if _, ok := d.GetOk("ipv4"); ok {
+	// IpAddress will be an empty string if ipv4 is off
+	if vnic.Spec.Ip.IpAddress != "" {
 		// if DHCP is true then we should ignore whatever addresses are set here.
 		ipv4dict := make(map[string]interface{})
 		ipv4dict["dhcp"] = vnic.Spec.Ip.Dhcp
@@ -81,7 +81,8 @@ func resourceVsphereNicRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Do we have any ipv6 config ?
-	if _, ok := d.GetOk("ipv6"); ok {
+	// IpV6Config will be nil if ipv6 is off
+	if vnic.Spec.Ip.IpV6Config != nil {
 		ipv6dict := map[string]interface{}{
 			"dhcp":       *vnic.Spec.Ip.IpV6Config.DhcpV6Enabled,
 			"autoconfig": *vnic.Spec.Ip.IpV6Config.AutoConfigurationEnabled,
@@ -138,15 +139,24 @@ func resourceVsphereNicUpdate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceVsphereNicDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*VSphereClient).vimClient
-	idParts := strings.Split(d.Id(), "_")
-	hostId := idParts[0]
-	nicId := idParts[1]
+	hostId, nicId := splitHostIdNicId(d)
 
 	err := removeVnic(client, hostId, nicId)
 	if err != nil {
 		return err
 	}
 	return resourceVsphereNicRead(d, meta)
+}
+
+func resourceVSphereNicImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	hostID, _ := splitHostIdNicId(d)
+
+	err := d.Set("host", hostID)
+	if err != nil {
+		return []*schema.ResourceData{}, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
 
 // VmKernelSchema returns the schema required to represent a vNIC adapter on an ESX Host.
@@ -262,9 +272,7 @@ func BaseVMKernelSchema() map[string]*schema.Schema {
 
 func updateVNic(d *schema.ResourceData, meta interface{}) (string, error) {
 	client := meta.(*VSphereClient).vimClient
-	idParts := strings.Split(d.Id(), "_")
-	hostId := idParts[0]
-	nicId := idParts[1]
+	hostId, nicId := splitHostIdNicId(d)
 	ctx := context.TODO()
 
 	nic, err := getNicSpecFromSchema(d)
@@ -518,4 +526,9 @@ func getVnicFromHost(ctx context.Context, client *govmomi.Client, hostId, nicId 
 		return nil, fmt.Errorf("vNic interface with id %s not found", nicId)
 	}
 	return &vNics[nicIdx], nil
+}
+
+func splitHostIdNicId(d *schema.ResourceData) (string, string) {
+	idParts := strings.Split(d.Id(), "_")
+	return idParts[0], idParts[1]
 }
