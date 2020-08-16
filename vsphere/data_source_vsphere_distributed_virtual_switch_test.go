@@ -2,7 +2,7 @@ package vsphere
 
 import (
 	"fmt"
-	"os"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -11,6 +11,7 @@ import (
 func TestAccDataSourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers: testAccProviders,
@@ -46,6 +47,7 @@ func TestAccDataSourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
 func TestAccDataSourceVSphereDistributedVirtualSwitch_absolutePathNoDatacenterSpecified(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers: testAccProviders,
@@ -81,6 +83,7 @@ func TestAccDataSourceVSphereDistributedVirtualSwitch_absolutePathNoDatacenterSp
 func TestAccDataSourceVSphereDistributedVirtualSwitch_CreatePortgroup(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers: testAccProviders,
@@ -116,48 +119,36 @@ func TestAccDataSourceVSphereDistributedVirtualSwitch_CreatePortgroup(t *testing
 
 func testAccDataSourceVSphereDistributedVirtualSwitchConfig() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
+%s
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-dvs"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
   uplinks       = ["tfup1", "tfup2"]
 }
 
 data "vsphere_distributed_virtual_switch" "dvs-data" {
   name          = "${vsphere_distributed_virtual_switch.dvs.name}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccDataSourceVSphereDistributedVirtualSwitchConfigWithPortgroup() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
+%s
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-dvs"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
   uplinks       = ["tfup1", "tfup2"]
 }
 
 data "vsphere_distributed_virtual_switch" "dvs-data" {
   name          = "${vsphere_distributed_virtual_switch.dvs.name}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_distributed_port_group" "pg" {
@@ -168,30 +159,24 @@ resource "vsphere_distributed_port_group" "pg" {
   standby_uplinks = ["${data.vsphere_distributed_virtual_switch.dvs-data.uplinks[1]}"]
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccDataSourceVSphereDistributedVirtualSwitchConfigAbsolute() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
+%s
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-dvs"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
   uplinks       = ["tfup1", "tfup2"]
 }
 
 data "vsphere_distributed_virtual_switch" "dvs-data" {
-  name          = "/${var.datacenter}/network/${vsphere_distributed_virtual_switch.dvs.name}"
+  name          = "/${data.vsphere_datacenter.rootdc1.name}/network/${vsphere_distributed_virtual_switch.dvs.name}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }

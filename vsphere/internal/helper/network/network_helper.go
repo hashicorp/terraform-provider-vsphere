@@ -86,6 +86,39 @@ func FromNameAndDVSUuid(client *govmomi.Client, name string, dc *object.Datacent
 	return nil, fmt.Errorf("%s %s not found", "Network", name)
 }
 
+func List(client *govmomi.Client) ([]*object.VmwareDistributedVirtualSwitch, error) {
+	return getSwitches(client, "/*")
+}
+
+func getSwitches(client *govmomi.Client, path string) ([]*object.VmwareDistributedVirtualSwitch, error) {
+	ctx := context.TODO()
+	var nets []*object.VmwareDistributedVirtualSwitch
+	finder := find.NewFinder(client.Client, false)
+	es, err := finder.ManagedObjectListChildren(ctx, path+"/*", "dvs", "folder")
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range es {
+		switch {
+		case id.Object.Reference().Type == "VmwareDistributedVirtualSwitch":
+			net, err := dvsFromMOID(client, id.Object.Reference().Value)
+			if err != nil {
+				return nil, err
+			}
+			nets = append(nets, net)
+		case id.Object.Reference().Type == "Folder":
+			newDSs, err := getSwitches(client, id.Path)
+			if err != nil {
+				return nil, err
+			}
+			nets = append(nets, newDSs...)
+		default:
+			continue
+		}
+	}
+	return nets, nil
+}
+
 // FromID loads a network via its managed object reference ID.
 func FromID(client *govmomi.Client, id string) (object.NetworkReference, error) {
 	// I'm not too sure if a more efficient method to do this exists, but if this

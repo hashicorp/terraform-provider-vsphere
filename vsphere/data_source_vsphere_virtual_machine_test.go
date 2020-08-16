@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"regexp"
 	"testing"
@@ -12,6 +13,7 @@ import (
 func TestAccDataSourceVSphereVirtualMachine_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccDataSourceVSphereVirtualMachinePreCheck(t)
 		},
@@ -48,6 +50,7 @@ func TestAccDataSourceVSphereVirtualMachine_basic(t *testing.T) {
 func TestAccDataSourceVSphereVirtualMachine_noDatacenterAndAbsolutePath(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccDataSourceVSphereVirtualMachinePreCheck(t)
 		},
@@ -92,43 +95,35 @@ func testAccDataSourceVSphereVirtualMachinePreCheck(t *testing.T) {
 
 func testAccDataSourceVSphereVirtualMachineConfig() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "template" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
 data "vsphere_virtual_machine" "template" {
   name          = "${var.template}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 	)
 }
 
 func testAccDataSourceVSphereVirtualMachineConfigAbsolutePath() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "template" {
   default = "%s"
 }
 
 data "vsphere_virtual_machine" "template" {
-  name = "/${var.datacenter}/vm/${var.template}"
+  name = "/${data.vsphere_datacenter.rootdc1.name}/vm/${var.template}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 	)
 }

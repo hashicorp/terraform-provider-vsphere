@@ -16,6 +16,7 @@ import (
 func TestAccResourceVSphereTagCategory_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -25,7 +26,7 @@ func TestAccResourceVSphereTagCategory_basic(t *testing.T) {
 				Config: testAccResourceVSphereTagCategoryConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereTagCategoryExists(true),
-					testAccResourceVSphereTagCategoryHasName("terraform-test-category"),
+					testAccResourceVSphereTagCategoryHasName("testacc-category"),
 					testAccResourceVSphereTagCategoryHasCardinality(vSphereTagCategoryCardinalitySingle),
 					testAccResourceVSphereTagCategoryHasTypes([]string{
 						vSphereTagTypeVirtualMachine,
@@ -33,11 +34,11 @@ func TestAccResourceVSphereTagCategory_basic(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      "vsphere_tag_category.terraform-test-category",
+				ResourceName:      "vsphere_tag_category.testacc-category",
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					cat, err := testGetTagCategory(s, "terraform-test-category")
+					cat, err := testGetTagCategory(s, "testacc-category")
 					if err != nil {
 						return "", err
 					}
@@ -55,6 +56,7 @@ func TestAccResourceVSphereTagCategory_basic(t *testing.T) {
 func TestAccResourceVSphereTagCategory_addType(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -86,6 +88,7 @@ func TestAccResourceVSphereTagCategory_addType(t *testing.T) {
 func TestAccResourceVSphereTagCategory_removeTypeShouldError(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -108,6 +111,7 @@ func TestAccResourceVSphereTagCategory_removeTypeShouldError(t *testing.T) {
 func TestAccResourceVSphereTagCategory_rename(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -123,7 +127,7 @@ func TestAccResourceVSphereTagCategory_rename(t *testing.T) {
 				Config: testAccResourceVSphereTagCategoryConfigAltName,
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereTagCategoryExists(true),
-					testAccResourceVSphereTagCategoryHasName("terraform-test-category-renamed"),
+					testAccResourceVSphereTagCategoryHasName("testacc-category-renamed"),
 				),
 			},
 		},
@@ -133,6 +137,7 @@ func TestAccResourceVSphereTagCategory_rename(t *testing.T) {
 func TestAccResourceVSphereTagCategory_singleCardinality(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -152,6 +157,7 @@ func TestAccResourceVSphereTagCategory_singleCardinality(t *testing.T) {
 func TestAccResourceVSphereTagCategory_multiCardinality(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -170,7 +176,7 @@ func TestAccResourceVSphereTagCategory_multiCardinality(t *testing.T) {
 
 func testAccResourceVSphereTagCategoryExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		_, err := testGetTagCategory(s, "terraform-test-category")
+		_, err := testGetTagCategory(s, "testacc-category")
 		if err != nil {
 			if strings.Contains(err.Error(), "404 Not Found") && !expected {
 				// Expected missing
@@ -187,7 +193,7 @@ func testAccResourceVSphereTagCategoryExists(expected bool) resource.TestCheckFu
 
 func testAccResourceVSphereTagCategoryHasTypes(expected []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		cat, err := testGetTagCategory(s, "terraform-test-category")
+		cat, err := testGetTagCategory(s, "testacc-category")
 		if err != nil {
 			return err
 		}
@@ -205,7 +211,7 @@ func testAccResourceVSphereTagCategoryHasTypes(expected []string) resource.TestC
 
 func testAccResourceVSphereTagCategoryHasName(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		cat, err := testGetTagCategory(s, "terraform-test-category")
+		cat, err := testGetTagCategory(s, "testacc-category")
 		if err != nil {
 			return err
 		}
@@ -219,7 +225,7 @@ func testAccResourceVSphereTagCategoryHasName(expected string) resource.TestChec
 
 func testAccResourceVSphereTagCategoryHasCardinality(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		cat, err := testGetTagCategory(s, "terraform-test-category")
+		cat, err := testGetTagCategory(s, "testacc-category")
 		if err != nil {
 			return err
 		}
@@ -232,8 +238,8 @@ func testAccResourceVSphereTagCategoryHasCardinality(expected string) resource.T
 }
 
 const testAccResourceVSphereTagCategoryConfigBasic = `
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-category"
   description = "Managed by Terraform"
   cardinality = "SINGLE"
 
@@ -244,8 +250,8 @@ resource "vsphere_tag_category" "terraform-test-category" {
 `
 
 const testAccResourceVSphereTagCategoryConfigMultiType = `
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-category"
   description = "Managed by Terraform"
   cardinality = "SINGLE"
 
@@ -257,8 +263,8 @@ resource "vsphere_tag_category" "terraform-test-category" {
 `
 
 const testAccResourceVSphereTagCategoryConfigMultiCardinality = `
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-category"
   description = "Managed by Terraform"
   cardinality = "MULTIPLE"
 
@@ -269,8 +275,8 @@ resource "vsphere_tag_category" "terraform-test-category" {
 `
 
 const testAccResourceVSphereTagCategoryConfigAltName = `
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-category-renamed"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-category-renamed"
   description = "Managed by Terraform"
   cardinality = "MULTIPLE"
 
@@ -281,8 +287,8 @@ resource "vsphere_tag_category" "terraform-test-category" {
 `
 
 const testAccResourceVSphereTagCategoryConfigSingleCardinality = `
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-category"
   description = "Managed by Terraform"
   cardinality = "SINGLE"
 

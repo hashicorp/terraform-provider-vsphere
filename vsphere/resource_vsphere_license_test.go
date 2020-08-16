@@ -24,6 +24,7 @@ func TestAccResourceVSphereLicense_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccVSpherePreLicenseBasicCheck(t)
 		},
@@ -45,6 +46,7 @@ func TestAccResourceVSphereLicense_invalid(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -66,6 +68,7 @@ func TestAccResourceVSphereLicense_withLabelsOnVCenter(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccVSpherePreLicenseBasicCheck(t)
 			testAccVspherePreLicenseESXiServerIsNotSetCheck(t)
@@ -74,7 +77,8 @@ func TestAccResourceVSphereLicense_withLabelsOnVCenter(t *testing.T) {
 		CheckDestroy: testAccVSphereLicenseDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVSphereLicenseWithLabelConfig(),
+				Destroy: false,
+				Config:  testAccVSphereLicenseWithLabelConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereLicenseWithLabelExists("vsphere_license.foo"),
 				),
@@ -88,6 +92,7 @@ func TestAccResourceVSphereLicense_withLabelsOnESXiServer(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccVSpherePreLicenseBasicCheck(t)
 			testAccSkipIfNotEsxi(t)
@@ -128,6 +133,10 @@ func testAccVSphereLicenseBasicConfig() string {
 	return fmt.Sprintf(`
 resource "vsphere_license" "foo" {
  license_key = "%s"
+  labels {
+    VpxClientLicenseLabel = "Hello World"
+	TestTitle             = "fooBar"
+  }
 }
 `, os.Getenv("TF_VAR_VSPHERE_LICENSE"))
 }

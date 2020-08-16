@@ -65,6 +65,39 @@ func IsUUIDNotFoundError(err error) bool {
 	return ok
 }
 
+func List(client *govmomi.Client) ([]*object.VirtualMachine, error) {
+	return vmsByPath(client, "/*")
+}
+
+func vmsByPath(client *govmomi.Client, path string) ([]*object.VirtualMachine, error) {
+	ctx := context.TODO()
+	var vms []*object.VirtualMachine
+	finder := find.NewFinder(client.Client, false)
+	es, err := finder.ManagedObjectListChildren(ctx, path+"/*", "vm", "folder", "pool")
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range es {
+		switch {
+		case id.Object.Reference().Type == "VirtualMachine":
+			vm, err := FromMOID(client, id.Object.Reference().Value)
+			if err != nil {
+				return nil, err
+			}
+			vms = append(vms, vm)
+		case id.Object.Reference().Type == "Folder" || id.Object.Reference().Type == "ResourcePool":
+			newRPs, err := vmsByPath(client, id.Path)
+			if err != nil {
+				return nil, err
+			}
+			vms = append(vms, newRPs...)
+		default:
+			continue
+		}
+	}
+	return vms, nil
+}
+
 // FromUUID locates a virtualMachine by its UUID.
 func FromUUID(client *govmomi.Client, uuid string) (*object.VirtualMachine, error) {
 	log.Printf("[DEBUG] Locating virtual machine with UUID %q", uuid)

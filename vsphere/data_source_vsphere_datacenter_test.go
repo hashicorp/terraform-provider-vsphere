@@ -14,6 +14,7 @@ var testAccDataSourceVSphereDatacenterExpectedRegexp = regexp.MustCompile("^data
 func TestAccDataSourceVSphereDatacenter_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccDataSourceVSphereDatacenterPreCheck(t)
 		},
@@ -36,6 +37,7 @@ func TestAccDataSourceVSphereDatacenter_basic(t *testing.T) {
 func TestAccDataSourceVSphereDatacenter_defaultDatacenter(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccDataSourceVSphereDatacenterPreCheck(t)
 		},

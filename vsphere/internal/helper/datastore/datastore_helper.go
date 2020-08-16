@@ -52,6 +52,39 @@ func FromPath(client *govmomi.Client, name string, dc *object.Datacenter) (*obje
 	return finder.Datastore(ctx, name)
 }
 
+func List(client *govmomi.Client) ([]*object.Datastore, error) {
+	return getDatastores(client, "/*")
+}
+
+func getDatastores(client *govmomi.Client, path string) ([]*object.Datastore, error) {
+	ctx := context.TODO()
+	var dss []*object.Datastore
+	finder := find.NewFinder(client.Client, false)
+	es, err := finder.ManagedObjectListChildren(ctx, path+"/*", "datastore", "folder", "storagepod")
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range es {
+		switch {
+		case id.Object.Reference().Type == "Datastore":
+			ds, err := FromID(client, id.Object.Reference().Value)
+			if err != nil {
+				return nil, err
+			}
+			dss = append(dss, ds)
+		case id.Object.Reference().Type == "Folder" || id.Object.Reference().Type == "Storagepod":
+			newDSs, err := getDatastores(client, id.Path)
+			if err != nil {
+				return nil, err
+			}
+			dss = append(dss, newDSs...)
+		default:
+			continue
+		}
+	}
+	return dss, nil
+}
+
 // Properties is a convenience method that wraps fetching the
 // Datastore MO from its higher-level object.
 func Properties(ds *object.Datastore) (*mo.Datastore, error) {
@@ -62,6 +95,28 @@ func Properties(ds *object.Datastore) (*mo.Datastore, error) {
 		return nil, err
 	}
 	return &props, nil
+}
+
+func Unmount(client *govmomi.Client, ds *object.Datastore) error {
+	dsprops, err := Properties(ds)
+	if err != nil {
+		return err
+	}
+	for _, h := range dsprops.Host {
+		host, err := hostsystem.FromID(client, h.Key.Value)
+		if err != nil {
+			return err
+		}
+		hds, err := host.ConfigManager().DatastoreSystem(context.TODO())
+		if err != nil {
+			return err
+		}
+		err = hds.Remove(context.TODO(), ds)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // MoveToFolder is a complex method that moves a datastore to a given

@@ -32,6 +32,7 @@ func TestAccResourceVSphereFile_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccCheckEnvVariables(t, []string{"TF_VAR_VSPHERE_DATACENTER", "TF_VAR_VSPHERE_NFS_DS_NAME"})
 		},
@@ -79,6 +80,7 @@ func TestAccResourceVSphereFile_basicUploadAndCopy(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccCheckEnvVariables(t, []string{"TF_VAR_VSPHERE_DATACENTER", "TF_VAR_VSPHERE_NFS_DS_NAME"})
 		},
@@ -133,6 +135,7 @@ func TestAccResourceVSphereFile_renamePostCreation(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccCheckEnvVariables(t, []string{"TF_VAR_VSPHERE_DATACENTER", "TF_VAR_VSPHERE_NFS_DS_NAME"})
 		},
@@ -197,6 +200,7 @@ func TestAccResourceVSphereFile_uploadAndCopyAndUpdate(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccCheckEnvVariables(t, []string{"TF_VAR_VSPHERE_DATACENTER", "TF_VAR_VSPHERE_NFS_DS_NAME"})
 		},
@@ -335,25 +339,25 @@ func testAccCheckVSphereFileExists(n string, df string, exists bool) resource.Te
 
 const testAccCheckVSphereFileConfig = `
 resource "vsphere_file" "%s" {
-	datacenter = "%s"
-	datastore = "%s"
-	source_file = "%s"
+	datacenter       = "%s"
+	datastore        = "%s"
+	source_file      = "%s"
 	destination_file = "%s"
 }
 `
 const testAccCheckVSphereFileCopyConfig = `
 resource "vsphere_file" "%s" {
-	datacenter = "%s"
-	datastore = "%s"
-	source_file = "%s"
+	datacenter       = "%s"
+	datastore        = "%s"
+	source_file      = "%s"
 	destination_file = "%s"
 }
 resource "vsphere_file" "%s" {
 	source_datacenter = "%s"
-	datacenter = "%s"
-	source_datastore = "%s"
-	datastore = "%s"
-	source_file = "%s"
-	destination_file = "%s"
+	datacenter        = "%s"
+	source_datastore  = "%s"
+	datastore         = "%s"
+	source_file       = "%s"
+	destination_file  = "%s"
 }
 `

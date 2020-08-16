@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"reflect"
 	"sort"
@@ -21,6 +22,7 @@ import (
 func TestAccResourceVSphereComputeClusterVMGroup_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterVMGroupPreCheck(t)
 		},
@@ -76,6 +78,7 @@ func TestAccResourceVSphereComputeClusterVMGroup_basic(t *testing.T) {
 func TestAccResourceVSphereComputeClusterVMGroup_update(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterVMGroupPreCheck(t)
 		},
@@ -216,50 +219,17 @@ func testAccResourceVSphereComputeClusterVMGroupGetMultiple(s *terraform.State) 
 
 func testAccResourceVSphereComputeClusterVMGroupConfig(count int) string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "datastore" {
-  default = "%s"
-}
-
-variable "cluster" {
-  default = "%s"
-}
-
-variable "network_label" {
-  default = "%s"
-}
+%s
 
 variable "vm_count" {
   default = "%d"
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-data "vsphere_datastore" "datastore" {
-  name          = "${var.datastore}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_compute_cluster" "cluster" {
-  name          = "${var.cluster}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_network" "network" {
-  name          = "${var.network_label}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
 resource "vsphere_virtual_machine" "vm" {
   count            = "${var.vm_count}"
   name             = "terraform-test-${count.index}"
-  resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
+  datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -268,7 +238,7 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = "${data.vsphere_network.network1.id}"
   }
 
   disk {
@@ -279,14 +249,11 @@ resource "vsphere_virtual_machine" "vm" {
 
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
   name                = "terraform-test-cluster-group"
-  compute_cluster_id  = "${data.vsphere_compute_cluster.cluster.id}"
+  compute_cluster_id  = "${data.vsphere_compute_cluster.rootcompute_cluster1.id}"
   virtual_machine_ids = "${vsphere_virtual_machine.vm.*.id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
-		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
-		os.Getenv("TF_VAR_VSPHERE_PG_NAME"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 		count,
 	)
 }

@@ -59,19 +59,36 @@ func datacenterCustomAttributes(dc *object.Datacenter) (*mo.Datacenter, error) {
 }
 
 func listDatacenters(client *govmomi.Client) ([]*object.Datacenter, error) {
-	finder := find.NewFinder(client.Client, true)
-	l, err := finder.ManagedObjectListChildren(context.TODO(), "/")
-	if err != nil {
-		return nil, nil
-	}
+	return dcsByPath(client, "/")
+}
+
+func dcsByPath(client *govmomi.Client, path string) ([]*object.Datacenter, error) {
+	ctx := context.TODO()
 	var dcs []*object.Datacenter
-	for _, item := range l {
-		if item.Object.Reference().Type == "Datacenter" {
-			dc, err := getDatacenter(client, item.Path)
+	finder := find.NewFinder(client.Client, false)
+	if path != "/" {
+		path = path + "/*"
+	}
+	es, err := finder.ManagedObjectListChildren(ctx, path, "datacenter", "folder")
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range es {
+		switch {
+		case id.Object.Reference().Type == "Datacenter":
+			dc, err := datacenterFromID(client, id.Object.Reference().Value)
 			if err != nil {
 				return nil, err
 			}
 			dcs = append(dcs, dc)
+		case id.Object.Reference().Type == "Folder":
+			newDCs, err := dcsByPath(client, id.Path)
+			if err != nil {
+				return nil, err
+			}
+			dcs = append(dcs, newDCs...)
+		default:
+			continue
 		}
 	}
 	return dcs, nil

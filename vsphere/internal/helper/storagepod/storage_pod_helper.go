@@ -40,6 +40,39 @@ func FromID(client *govmomi.Client, id string) (*object.StoragePod, error) {
 	return pod, nil
 }
 
+func List(client *govmomi.Client) ([]*object.StoragePod, error) {
+	return getDatastoreClusters(client, "/*")
+}
+
+func getDatastoreClusters(client *govmomi.Client, path string) ([]*object.StoragePod, error) {
+	ctx := context.TODO()
+	var dss []*object.StoragePod
+	finder := find.NewFinder(client.Client, false)
+	es, err := finder.ManagedObjectListChildren(ctx, path+"/*", "folder", "storagepod")
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range es {
+		switch {
+		case id.Object.Reference().Type == "StoragePod":
+			ds, err := FromID(client, id.Object.Reference().Value)
+			if err != nil {
+				return nil, err
+			}
+			dss = append(dss, ds)
+		case id.Object.Reference().Type == "Folder":
+			newDSs, err := getDatastoreClusters(client, id.Path)
+			if err != nil {
+				return nil, err
+			}
+			dss = append(dss, newDSs...)
+		default:
+			continue
+		}
+	}
+	return dss, nil
+}
+
 // FromPath loads a StoragePod from its path. The datacenter is optional if the
 // path is specific enough to not require it.
 func FromPath(client *govmomi.Client, name string, dc *object.Datacenter) (*object.StoragePod, error) {

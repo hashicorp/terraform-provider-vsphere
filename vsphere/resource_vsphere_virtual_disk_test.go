@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"strings"
 	"testing"
@@ -19,6 +20,7 @@ func TestAccResourceVSphereVirtualDisk_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualDiskPreCheck(t)
 		},
@@ -26,19 +28,6 @@ func TestAccResourceVSphereVirtualDisk_basic(t *testing.T) {
 		CheckDestroy: testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckVSphereVirtuaDiskConfig_basic(rString),
-				Check: resource.ComposeTestCheckFunc(
-					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", true),
-				),
-			},
-			{
-				ResourceName:      "vsphere_virtual_disk.foo",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdPrefix: fmt.Sprintf("/%s/[%s] ",
-					os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-					os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
-				),
 				Config: testAccCheckVSphereVirtuaDiskConfig_basic(rString),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", true),
@@ -53,6 +42,7 @@ func TestAccResourceVSphereVirtualDisk_multi(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualDiskPreCheck(t)
 		},
@@ -80,6 +70,7 @@ func TestAccResourceVSphereVirtualDisk_multiWithParent(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualDiskPreCheck(t)
 		},
@@ -107,6 +98,7 @@ func TestAccResourceVSphereVirtualDisk_withParent(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualDiskPreCheck(t)
 		},
@@ -114,20 +106,6 @@ func TestAccResourceVSphereVirtualDisk_withParent(t *testing.T) {
 		CheckDestroy: testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckVSphereVirtuaDiskConfig_withParent(rString),
-				Check: resource.ComposeTestCheckFunc(
-					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", true),
-				),
-			},
-			{
-				ResourceName:            "vsphere_virtual_disk.foo",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"create_directories"},
-				ImportStateIdPrefix: fmt.Sprintf("/%s/[%s] ",
-					os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-					os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
-				),
 				Config: testAccCheckVSphereVirtuaDiskConfig_withParent(rString),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", true),
@@ -194,25 +172,15 @@ func testAccCheckVSphereVirtualDiskIsFileNotFoundError(err error) bool {
 
 func testAccCheckVSphereVirtuaDiskConfig_basic(rName string) string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "datastore" {
-  default = "%s"
-}
+%s
 
 variable "rstring" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
 data "vsphere_datastore" "ds" {
-  name          = "${var.datastore}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = vsphere_nas_datastore.ds1.name
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_virtual_disk" "foo" {
@@ -224,33 +192,22 @@ resource "vsphere_virtual_disk" "foo" {
   datastore    = "${data.vsphere_datastore.ds.name}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 		rName,
 	)
 }
 
 func testAccCheckVSphereVirtuaDiskConfig_multi(rName string) string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "datastore" {
-  default = "%s"
-}
+%s
 
 variable "rstring" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
 data "vsphere_datastore" "ds" {
-  name          = "${var.datastore}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = vsphere_nas_datastore.ds1.name
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_virtual_disk" "foo" {
@@ -263,33 +220,22 @@ resource "vsphere_virtual_disk" "foo" {
   datastore    = "${data.vsphere_datastore.ds.name}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 		rName,
 	)
 }
 
 func testAccCheckVSphereVirtuaDiskConfig_multiWithParent(rName string) string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "datastore" {
-  default = "%s"
-}
+%s
 
 variable "rstring" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
 data "vsphere_datastore" "ds" {
-  name          = "${var.datastore}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = vsphere_nas_datastore.ds1.name
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_virtual_disk" "foo" {
@@ -303,33 +249,22 @@ resource "vsphere_virtual_disk" "foo" {
   create_directories = true
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 		rName,
 	)
 }
 
 func testAccCheckVSphereVirtuaDiskConfig_withParent(rName string) string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "datastore" {
-  default = "%s"
-}
+%s
 
 variable "rstring" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
 data "vsphere_datastore" "ds" {
-  name          = "${var.datastore}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = vsphere_nas_datastore.ds1.name
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_virtual_disk" "foo" {
@@ -342,8 +277,7 @@ resource "vsphere_virtual_disk" "foo" {
   create_directories = true
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 		rName,
 	)
 }

@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/network"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/spbm"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"github.com/vmware/govmomi/vapi/library"
 	"github.com/vmware/govmomi/vapi/rest"
 	"os"
@@ -87,8 +89,8 @@ func testClientVariablesForResource(s *terraform.State, addr string) (testCheckV
 		tagsManager:        tm,
 		resourceID:         rs.Primary.ID,
 		resourceAttributes: rs.Primary.Attributes,
-		esxiHost:           os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
-		datacenter:         os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		esxiHost:           testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
+		datacenter:         testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		timeout:            time.Minute * 5,
 	}, nil
 }
@@ -1144,37 +1146,201 @@ func testGetVmStoragePolicy(s *terraform.State, resourceName string) (string, er
 	return spbm.PolicyNameByID(tVars.client, policyId)
 }
 
-func testGetVsphereRole(s *terraform.State, resourceName string) (string, error) {
+func RunSweepers() {
+	tagSweep("")
+	dcSweep("")
+	vmSweep("")
+	rpSweep("")
+	dsSweep("")
+	netSweep("")
+	folderSweep("")
+}
 
-	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_role.%s", resourceName))
+func tagSweep(r string) error {
+	ctx := context.TODO()
+	client, err := sweepVSphereClient()
 	if err != nil {
-		return "", err
+		return err
 	}
-	id, ok := tVars.resourceAttributes["id"]
-	if !ok {
-		return "", fmt.Errorf("resource %q has no id", resourceName)
+	tm, err := client.TagsManager()
+	if err != nil {
+		return err
 	}
+	cats, err := tm.GetCategories(ctx)
+	if err != nil {
+		return err
+	}
+	for _, cat := range cats {
+		if regexp.MustCompile("testacc").Match([]byte(cat.Name)) {
+			tm.DeleteCategory(ctx, &cat)
+		}
+	}
+	return nil
+}
 
-	roleIdInt, err := strconv.ParseInt(id, 10, 32)
+func dcSweep(r string) error {
+	client, err := sweepVSphereClient()
 	if err != nil {
-		return "", fmt.Errorf("error while coverting role id %s from string to int %s", id, err)
+		return err
 	}
-	roleId := int32(roleIdInt)
-	authorizationManager := object.NewAuthorizationManager(tVars.client.Client)
-	roleList, err := authorizationManager.RoleList(context.Background())
+	dcs, err := listDatacenters(client.vimClient)
+	if err != nil {
+		return err
+	}
+	for _, dc := range dcs {
+		if regexp.MustCompile("testacc").Match([]byte(dc.Name())) {
+			_, err := dc.Destroy(context.TODO())
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
 
+func vmSweep(r string) error {
+	client, err := sweepVSphereClient()
 	if err != nil {
-		return "", fmt.Errorf("error while reading the role list %s", err)
+		return err
 	}
-	role := roleList.ById(roleId)
-	if role == nil {
-		return "", fmt.Errorf("role not found")
+	vms, err := virtualmachine.List(client.vimClient)
+	if err != nil {
+		return err
 	}
-	return role.Name, nil
+	for _, vm := range vms {
+		if regexp.MustCompile("testacc").Match([]byte(vm.Name())) {
+			virtualmachine.PowerOff(vm)
+			virtualmachine.Destroy(vm)
+		}
+	}
+	return nil
+}
+
+func rpSweep(r string) error {
+	client, err := sweepVSphereClient()
+	if err != nil {
+		return err
+	}
+	rps, err := resourcepool.List(client.vimClient)
+	if err != nil {
+		return err
+	}
+	for _, rp := range rps {
+		if regexp.MustCompile("testacc").Match([]byte(rp.Name())) {
+			return resourcepool.Delete(rp)
+		}
+	}
+	return nil
+}
+
+func dsSweep(r string) error {
+	client, err := sweepVSphereClient()
+	if err != nil {
+		return err
+	}
+	dss, err := datastore.List(client.vimClient)
+	if err != nil {
+		return err
+	}
+	for _, ds := range dss {
+		if regexp.MustCompile("testacc").Match([]byte(ds.Name())) {
+			return datastore.Unmount(client.vimClient, ds)
+		}
+	}
+	return nil
+}
+
+func dspSweep(r string) error {
+	client, err := sweepVSphereClient()
+	if err != nil {
+		return err
+	}
+	dsps, err := storagepod.List(client.vimClient)
+	if err != nil {
+		return err
+	}
+	for _, dsp := range dsps {
+		if regexp.MustCompile("testacc").Match([]byte(dsp.Name())) {
+			return storagepod.Delete(dsp)
+		}
+	}
+	return nil
+}
+
+func ccSweep(r string) error {
+	client, err := sweepVSphereClient()
+	if err != nil {
+		return err
+	}
+	dsps, err := clustercomputeresource.List(client.vimClient)
+	if err != nil {
+		return err
+	}
+	for _, dsp := range dsps {
+		if regexp.MustCompile("testacc").Match([]byte(dsp.Name())) {
+			return clustercomputeresource.Delete(dsp)
+		}
+	}
+	return nil
+}
+
+func netSweep(r string) error {
+	client, err := sweepVSphereClient()
+	if err != nil {
+		return err
+	}
+	nets, err := network.List(client.vimClient)
+	if err != nil {
+		return err
+	}
+	for _, net := range nets {
+		if regexp.MustCompile("testacc").Match([]byte(net.Name())) {
+			_, err = net.Destroy(context.TODO())
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func folderSweep(r string) error {
+	client, err := sweepVSphereClient()
+	if err != nil {
+		return err
+	}
+	folders, err := folder.List(client.vimClient)
+	if err != nil {
+		return err
+	}
+	for _, f := range folders {
+		if regexp.MustCompile("testacc").Match([]byte(f.Name())) {
+			_, err = f.Destroy(context.TODO())
+			return err
+		}
+	}
+	return nil
+}
+
+func sessionSweep(r string) error {
+	client, err := sweepVSphereClient()
+	if err != nil {
+		return err
+	}
+	folders, err := folder.List(client.vimClient)
+	if err != nil {
+		return err
+	}
+	for _, f := range folders {
+		if regexp.MustCompile("testacc").Match([]byte(f.Name())) {
+			_, err = f.Destroy(context.TODO())
+			return err
+		}
+	}
+	return nil
 }
 
 func testGetVsphereEntityPermission(s *terraform.State, resourceName string) (string, error) {
-
 	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_entity_permissions.%s", resourceName))
 	if err != nil {
 		return "", err
@@ -1202,51 +1368,31 @@ func testGetVsphereEntityPermission(s *terraform.State, resourceName string) (st
 	return strconv.Itoa(len(permissionsArr)), nil
 }
 
-func RunSweepers() {
-	tagSweep("")
-	dcSweep("")
-}
+func testGetVsphereRole(s *terraform.State, resourceName string) (string, error) {
 
-func tagSweep(r string) error {
-	ctx := context.TODO()
-	client, err := sweepVSphereClient()
+	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_role.%s", resourceName))
 	if err != nil {
-		return err
+		return "", err
 	}
-	tm, err := client.TagsManager()
-	if err != nil {
-		return err
+	id, ok := tVars.resourceAttributes["id"]
+	if !ok {
+		return "", fmt.Errorf("resource %q has no id", resourceName)
 	}
-	cats, err := tm.GetCategories(ctx)
-	if err != nil {
-		return err
-	}
-	for _, cat := range cats {
-		if regexp.MustCompile("save").Match([]byte(cat.Name)) {
-			continue
-		}
-		tm.DeleteCategory(ctx, &cat)
-	}
-	return nil
-}
 
-func dcSweep(r string) error {
-	client, err := sweepVSphereClient()
+	roleIdInt, err := strconv.ParseInt(id, 10, 32)
 	if err != nil {
-		return err
+		return "", fmt.Errorf("error while coverting role id %s from string to int %s", id, err)
 	}
-	dcs, err := listDatacenters(client.vimClient)
+	roleId := int32(roleIdInt)
+	authorizationManager := object.NewAuthorizationManager(tVars.client.Client)
+	roleList, err := authorizationManager.RoleList(context.Background())
+
 	if err != nil {
-		return err
+		return "", fmt.Errorf("error while reading the role list %s", err)
 	}
-	for _, dc := range dcs {
-		if regexp.MustCompile("save").Match([]byte(dc.Name())) {
-			continue
-		}
-		_, err := dc.Destroy(context.TODO())
-		if err != nil {
-			return err
-		}
+	role := roleList.ById(roleId)
+	if role == nil {
+		return "", fmt.Errorf("role not found")
 	}
-	return nil
+	return role.Name, nil
 }

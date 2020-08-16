@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"strings"
 	"testing"
@@ -23,7 +24,7 @@ func TestAccResourceVSphereFolderMigrateState_basic(t *testing.T) {
 	testAccPreCheck(t)
 
 	is := &terraform.InstanceState{
-		ID: fmt.Sprintf("%v/%v", os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_FOLDER_V0_PATH")),
+		ID: fmt.Sprintf("%v/%v", testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_FOLDER_V0_PATH")),
 		Attributes: map[string]string{
 			"path": os.Getenv("TF_VAR_VSPHERE_FOLDER_V0_PATH"),
 		},

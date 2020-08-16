@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"regexp"
 	"testing"
@@ -12,6 +13,7 @@ import (
 func TestAccDataSourceVSphereResourcePool_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccDataSourceVSphereResourcePoolPreCheck(t)
 			testAccSkipIfEsxi(t)
@@ -31,6 +33,7 @@ func TestAccDataSourceVSphereResourcePool_basic(t *testing.T) {
 func TestAccDataSourceVSphereResourcePool_noDatacenterAndAbsolutePath(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccDataSourceVSphereResourcePoolPreCheck(t)
 			testAccSkipIfEsxi(t)
@@ -50,6 +53,7 @@ func TestAccDataSourceVSphereResourcePool_noDatacenterAndAbsolutePath(t *testing
 func TestAccDataSourceVSphereResourcePool_defaultResourcePoolForESXi(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccDataSourceVSphereResourcePoolPreCheck(t)
 			testAccSkipIfNotEsxi(t)
@@ -69,6 +73,7 @@ func TestAccDataSourceVSphereResourcePool_defaultResourcePoolForESXi(t *testing.
 func TestAccDataSourceVSphereResourcePool_emptyNameOnVCenterShouldError(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccDataSourceVSphereResourcePoolPreCheck(t)
 			testAccSkipIfEsxi(t)
@@ -102,53 +107,37 @@ func testAccDataSourceVSphereResourcePoolPreCheck(t *testing.T) {
 
 func testAccDataSourceVSphereResourcePoolConfig() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "cluster" {
-  default = "%s"
-}
+%s
 
 variable "resource_pool" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
 data "vsphere_resource_pool" "pool" {
-  name          = "${var.cluster}/Resources/${var.resource_pool}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "${data.vsphere_compute_cluster.rootcompute_cluster1.name}/Resources/${var.resource_pool}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigDataRootComputeCluster1()),
+
 		os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL"),
 	)
 }
 
 func testAccDataSourceVSphereResourcePoolConfigAbsolutePath() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "cluster" {
-  default = "%s"
-}
+%s
 
 variable "resource_pool" {
   default = "%s"
 }
 
 data "vsphere_resource_pool" "pool" {
-  name = "/${var.datacenter}/host/${var.cluster}/Resources/${var.resource_pool}"
+  name = "/${data.vsphere_datacenter.rootdc1.name}/host/${data.vsphere_compute_cluster.rootcompute_cluster1.name}/Resources/${var.resource_pool}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigDataRootComputeCluster1()),
+
 		os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL"),
 	)
 }

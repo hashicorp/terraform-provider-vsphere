@@ -14,6 +14,7 @@ var testAccDataSourceVSphereFolderExpectedRegexp = regexp.MustCompile("^group-v"
 func TestAccDataSourceVSphereFolder_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccDataSourceVSphereFolderPreCheck(t)
 		},
@@ -52,7 +53,7 @@ resource "vsphere_folder" "folder" {
 }
 
 data "vsphere_folder" "folder" {
-  path = "/${data.vsphere_datacenter.dc.name}/vm/vsphere_folder.folder.path}"
+  path = "/${data.vsphere_datacenter.dc.name}/vm/${vsphere_folder.folder.path}"
 }
 `, os.Getenv("TF_VAR_VSPHERE_DATACENTER"))
 }

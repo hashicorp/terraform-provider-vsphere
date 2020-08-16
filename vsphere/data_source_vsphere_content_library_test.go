@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"regexp"
 	"testing"
@@ -12,6 +13,7 @@ import (
 func TestAccDataSourceVSphereContentLibrary_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccDataSourceVSphereContentLibraryPreCheck(t)
 		},
@@ -37,33 +39,11 @@ func testAccDataSourceVSphereContentLibraryPreCheck(t *testing.T) {
 
 func testAccDataSourceVSphereContentLibraryConfig() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  type    = "string"
-  default = "%s"
-}
-
-variable "datastore" {
-  type    = "string"
-  default = "%s"
-}
-
-variable "file_list" {
-  type    = list(string)
-  default = %s 
-}
-
-data "vsphere_datacenter" "dc" {
-  name = var.datacenter
-}
-
-data "vsphere_datastore" "ds" {
-  datacenter_id = data.vsphere_datacenter.dc.id
-  name = var.datastore
-}
+%s
 
 resource "vsphere_content_library" "library" {
   name            = "ContentLibrary_test"
-  storage_backing = [ data.vsphere_datastore.ds.id ]
+  storage_backing = [ vsphere_nas_datastore.ds1.id ]
   description     = "Library Description"
 }
 
@@ -72,8 +52,6 @@ data "vsphere_content_library" "library" {
 }
 
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
-		os.Getenv("TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }

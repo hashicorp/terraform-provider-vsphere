@@ -3,6 +3,7 @@ package vsphere
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 func TestAccResourceVSphereResourcePool_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
@@ -64,6 +66,7 @@ func TestAccResourceVSphereResourcePool_basic(t *testing.T) {
 func TestAccResourceVSphereResourcePool_updateRename(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
@@ -92,6 +95,7 @@ func TestAccResourceVSphereResourcePool_updateRename(t *testing.T) {
 func TestAccResourceVSphereResourcePool_updateToCustom(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
@@ -136,6 +140,7 @@ func TestAccResourceVSphereResourcePool_updateToCustom(t *testing.T) {
 func TestAccResourceVSphereResourcePool_updateToDefaults(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
@@ -179,6 +184,7 @@ func TestAccResourceVSphereResourcePool_updateToDefaults(t *testing.T) {
 func TestAccResourceVSphereResourcePool_esxiHost(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
@@ -198,6 +204,7 @@ func TestAccResourceVSphereResourcePool_esxiHost(t *testing.T) {
 func TestAccResourceVSphereResourcePool_updateParent(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
@@ -225,6 +232,7 @@ func TestAccResourceVSphereResourcePool_updateParent(t *testing.T) {
 func TestAccResourceVSphereResourcePool_tags(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
@@ -235,7 +243,7 @@ func TestAccResourceVSphereResourcePool_tags(t *testing.T) {
 				Config: testAccResourceVSphereResourcePoolConfigTags(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereResourcePoolCheckExists(true),
-					testAccResourceVSphereResourcePoolCheckTags("terraform-test-tag"),
+					testAccResourceVSphereResourcePoolCheckTags("testacc-tag"),
 				),
 			},
 		},
@@ -450,31 +458,16 @@ func testAccResourceVSphereResourcePoolCheckName(value string) resource.TestChec
 
 func testAccResourceVSphereResourcePoolConfigAltParent() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "cluster" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-data "vsphere_compute_cluster" "cluster" {
-  name          = "${var.cluster}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
+%s
 
 resource "vsphere_resource_pool" "parent_resource_pool" {
   name                    = "terraform-resource-pool-test-parent"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
+  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
 }
 
 resource "vsphere_resource_pool" "alt_parent_resource_pool" {
   name                    = "alt-terraform-resource-pool-test-paren"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
+  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
 }
 
 resource "vsphere_resource_pool" "resource_pool" {
@@ -482,33 +475,17 @@ resource "vsphere_resource_pool" "resource_pool" {
   parent_resource_pool_id = "${vsphere_resource_pool.alt_parent_resource_pool.id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccResourceVSphereResourcePoolConfigNonDefault() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "cluster" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-data "vsphere_compute_cluster" "cluster" {
-  name          = "${var.cluster}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
+%s
 
 resource "vsphere_resource_pool" "parent_resource_pool" {
   name                    = "terraform-resource-pool-test-parent"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
+  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
 }
 
 resource "vsphere_resource_pool" "resource_pool" {
@@ -526,28 +503,21 @@ resource "vsphere_resource_pool" "resource_pool" {
   memory_limit            = 20
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccResourceVSphereResourcePoolConfigEsxiHost() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "host" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
 data "vsphere_host" "host" {
   name          = "${var.host}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_resource_pool" "resource_pool" {
@@ -555,32 +525,17 @@ resource "vsphere_resource_pool" "resource_pool" {
   parent_resource_pool_id = "${data.vsphere_host.host.resource_pool_id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
 	)
 }
 
 func testAccResourceVSphereResourcePoolConfigTags() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
-variable "cluster" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-data "vsphere_compute_cluster" "cluster" {
-  name          = "${var.cluster}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-tag-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-tag-category"
   cardinality = "MULTIPLE"
 
   associable_types = [
@@ -588,44 +543,28 @@ resource "vsphere_tag_category" "terraform-test-category" {
   ]
 }
 
-resource "vsphere_tag" "terraform-test-tag" {
-  name        = "terraform-test-tag"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+resource "vsphere_tag" "testacc-tag" {
+  name        = "testacc-tag"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
 resource "vsphere_resource_pool" "resource_pool" {
   name                    = "terraform-resource-pool-test"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
-  tags                    = ["${vsphere_tag.terraform-test-tag.id}"]
+  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
+  tags                    = ["${vsphere_tag.testacc-tag.id}"]
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccResourceVSphereResourcePoolConfigRename() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "cluster" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-data "vsphere_compute_cluster" "cluster" {
-  name          = "${var.cluster}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
+%s
 
 resource "vsphere_resource_pool" "parent_resource_pool" {
   name                    = "terraform-resource-pool-test-parent"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
+  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
 }
 
 resource "vsphere_resource_pool" "resource_pool" {
@@ -633,33 +572,17 @@ resource "vsphere_resource_pool" "resource_pool" {
   parent_resource_pool_id = "${vsphere_resource_pool.parent_resource_pool.id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccResourceVSphereResourcePoolConfigBasic() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "cluster" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-data "vsphere_compute_cluster" "cluster" {
-  name          = "${var.cluster}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
+%s
 
 resource "vsphere_resource_pool" "parent_resource_pool" {
   name                    = "terraform-resource-pool-test-parent"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
+  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
 }
 
 resource "vsphere_resource_pool" "resource_pool" {
@@ -667,7 +590,6 @@ resource "vsphere_resource_pool" "resource_pool" {
   parent_resource_pool_id = "${vsphere_resource_pool.parent_resource_pool.id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }

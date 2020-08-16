@@ -3,6 +3,7 @@ package vsphere
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"path"
 	"reflect"
@@ -18,6 +19,7 @@ import (
 func TestAccResourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
@@ -54,6 +56,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
 func TestAccResourceVSphereDistributedVirtualSwitch_noHosts(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
@@ -73,6 +76,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_noHosts(t *testing.T) {
 func TestAccResourceVSphereDistributedVirtualSwitch_removeNIC(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
@@ -98,6 +102,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_removeNIC(t *testing.T) {
 func TestAccResourceVSphereDistributedVirtualSwitch_standbyWithExplicitFailoverOrder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
@@ -120,6 +125,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_standbyWithExplicitFailoverO
 func TestAccResourceVSphereDistributedVirtualSwitch_basicToStandbyWithFailover(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
@@ -148,6 +154,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_basicToStandbyWithFailover(t
 func TestAccResourceVSphereDistributedVirtualSwitch_upgradeVersion(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
@@ -175,6 +182,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_upgradeVersion(t *testing.T)
 func TestAccResourceVSphereDistributedVirtualSwitch_networkResourceControl(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
@@ -198,6 +206,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_networkResourceControl(t *te
 func TestAccResourceVSphereDistributedVirtualSwitch_explicitUplinks(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
@@ -218,6 +227,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_explicitUplinks(t *testing.T
 func TestAccResourceVSphereDistributedVirtualSwitch_modifyUplinks(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
@@ -257,6 +267,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_modifyUplinks(t *testing.T) 
 func TestAccResourceVSphereDistributedVirtualSwitch_inFolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
@@ -277,6 +288,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_inFolder(t *testing.T) {
 func TestAccResourceVSphereDistributedVirtualSwitch_singleTag(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
@@ -287,7 +299,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_singleTag(t *testing.T) {
 				Config: testAccResourceVSphereDistributedVirtualSwitchConfigSingleTag(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereDistributedVirtualSwitchExists(true),
-					testAccResourceVSphereDistributedVirtualSwitchCheckTags("terraform-test-tag"),
+					testAccResourceVSphereDistributedVirtualSwitchCheckTags("testacc-tag"),
 				),
 			},
 		},
@@ -297,6 +309,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_singleTag(t *testing.T) {
 func TestAccResourceVSphereDistributedVirtualSwitch_modifyTags(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
@@ -307,14 +320,14 @@ func TestAccResourceVSphereDistributedVirtualSwitch_modifyTags(t *testing.T) {
 				Config: testAccResourceVSphereDistributedVirtualSwitchConfigSingleTag(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereDistributedVirtualSwitchExists(true),
-					testAccResourceVSphereDistributedVirtualSwitchCheckTags("terraform-test-tag"),
+					testAccResourceVSphereDistributedVirtualSwitchCheckTags("testacc-tag"),
 				),
 			},
 			{
 				Config: testAccResourceVSphereDistributedVirtualSwitchConfigMultiTag(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereDistributedVirtualSwitchExists(true),
-					testAccResourceVSphereDistributedVirtualSwitchCheckTags("terraform-test-tags-alt"),
+					testAccResourceVSphereDistributedVirtualSwitchCheckTags("testacc-tags-alt"),
 				),
 			},
 		},
@@ -324,6 +337,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_modifyTags(t *testing.T) {
 func TestAccResourceVSphereDistributedVirtualSwitch_netflow(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
@@ -344,6 +358,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_netflow(t *testing.T) {
 func TestAccResourceVSphereDistributedVirtualSwitch_vlanRanges(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
@@ -365,6 +380,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_vlanRanges(t *testing.T) {
 func TestAccResourceVSphereDistributedVirtualSwitch_singleCustomAttribute(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
@@ -385,6 +401,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_singleCustomAttribute(t *tes
 func TestAccResourceVSphereDistributedVirtualSwitch_multiCustomAttribute(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
@@ -630,16 +647,7 @@ func testAccResourceVSphereDistributedVirtualSwitchCheckCustomAttributes() resou
 
 func testAccResourceVSphereDistributedVirtualSwitchConfig() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "esxi_hosts" {
-  default = [
-    "%s",
-    "%s",
-  ]
-}
+%s
 
 variable "network_interfaces" {
   default = [
@@ -647,48 +655,30 @@ variable "network_interfaces" {
   ]
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
 data "vsphere_host" "host" {
-  count         = "${length(var.esxi_hosts)}"
-  name          = "${var.esxi_hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  count         = 1
+  name          = vsphere_host.nested-esxi1.hostname
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-dvs"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 
   host {
     host_system_id = "${data.vsphere_host.host.0.id}"
-    devices = "${var.network_interfaces}"
-  }
-
-  host {
-    host_system_id = "${data.vsphere_host.host.1.id}"
-    devices = "${var.network_interfaces}"
-  }
-
-  host {
-    host_system_id = "${data.vsphere_host.host.2.id}"
-    devices = "${var.network_interfaces}"
+    devices = "vmnic1"
   }
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
 	)
 }
 
 func testAccResourceVSphereDistributedVirtualSwitchConfigStaticVersion(version string) string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "esxi_hosts" {
   default = [
@@ -707,19 +697,15 @@ variable "dvs_version" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
 data "vsphere_host" "host" {
   count         = "${length(var.esxi_hosts)}"
   name          = "${var.esxi_hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-dvs"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
   version       = "${var.dvs_version}"
 
   host {
@@ -738,7 +724,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   }
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
 		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
 		os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
@@ -748,9 +734,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 
 func testAccResourceVSphereDistributedVirtualSwitchConfigSingleNIC() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "esxi_hosts" {
   default = [
@@ -765,19 +749,15 @@ variable "network_interfaces" {
   ]
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
 data "vsphere_host" "host" {
   count         = "${length(var.esxi_hosts)}"
   name          = "${var.esxi_hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-dvs"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 
   host {
     host_system_id = "${data.vsphere_host.host.0.id}"
@@ -795,7 +775,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   }
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
 		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
 		os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
@@ -804,9 +784,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 
 func testAccResourceVSphereDistributedVirtualSwitchConfigNetworkResourceControl() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "esxi_hosts" {
   default = [
@@ -821,19 +799,15 @@ variable "network_interfaces" {
   ]
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
 data "vsphere_host" "host" {
   count         = "${length(var.esxi_hosts)}"
   name          = "${var.esxi_hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-dvs"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 
   network_resource_control_enabled = true
   network_resource_control_version = "version3"
@@ -854,7 +828,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   }
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
 		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
 		os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
@@ -863,9 +837,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 
 func testAccResourceVSphereDistributedVirtualSwitchConfigUplinks() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "esxi_hosts" {
   default = [
@@ -880,19 +852,15 @@ variable "network_interfaces" {
   ]
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
 data "vsphere_host" "host" {
   count         = "${length(var.esxi_hosts)}"
   name          = "${var.esxi_hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-dvs"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 
   uplinks = ["tfup1", "tfup2"]
 
@@ -912,7 +880,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   }
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
 		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
 		os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
@@ -921,9 +889,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 
 func testAccResourceVSphereDistributedVirtualSwitchConfigStandbyLink() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "esxi_hosts" {
   default = [
@@ -938,19 +904,15 @@ variable "network_interfaces" {
   ]
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
 data "vsphere_host" "host" {
   count         = "${length(var.esxi_hosts)}"
   name          = "${var.esxi_hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-dvs"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 
   uplinks         = ["tfup1", "tfup2"]
   active_uplinks  = ["tfup1"]
@@ -972,7 +934,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   }
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
 		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
 		os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
@@ -981,61 +943,43 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 
 func testAccResourceVSphereDistributedVirtualSwitchConfigNoHosts() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
+%s
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-dvs"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccResourceVSphereDistributedVirtualSwitchConfigInFolder() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
+%s
 
 resource "vsphere_folder" "folder" {
   path          = "tf-network-folder"
   type          = "network"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-dvs"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
   folder        = "${vsphere_folder.folder.path}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccResourceVSphereDistributedVirtualSwitchConfigSingleTag() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-tag-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-tag-category"
   cardinality = "MULTIPLE"
 
   associable_types = [
@@ -1043,26 +987,24 @@ resource "vsphere_tag_category" "terraform-test-category" {
   ]
 }
 
-resource "vsphere_tag" "terraform-test-tag" {
-  name        = "terraform-test-tag"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+resource "vsphere_tag" "testacc-tag" {
+  name        = "testacc-tag"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-  tags          = ["${vsphere_tag.terraform-test-tag.id}"]
+  name          = "testacc-dvs"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  tags          = ["${vsphere_tag.testacc-tag.id}"]
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccResourceVSphereDistributedVirtualSwitchConfigMultiTag() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "extra_tags" {
   default = [
@@ -1071,12 +1013,8 @@ variable "extra_tags" {
   ]
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-tag-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-tag-category"
   cardinality = "MULTIPLE"
 
   associable_types = [
@@ -1084,40 +1022,34 @@ resource "vsphere_tag_category" "terraform-test-category" {
   ]
 }
 
-resource "vsphere_tag" "terraform-test-tag" {
-  name        = "terraform-test-tag"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+resource "vsphere_tag" "testacc-tag" {
+  name        = "testacc-tag"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
-resource "vsphere_tag" "terraform-test-tags-alt" {
+resource "vsphere_tag" "testacc-tags-alt" {
   count       = "${length(var.extra_tags)}"
   name        = "${var.extra_tags[count.index]}"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-  tags          = "${vsphere_tag.terraform-test-tags-alt.*.id}"
+  name          = "testacc-dvs"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  tags          = "${vsphere_tag.testacc-tags-alt.*.id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccResourceVSphereDistributedVirtualSwitchConfigNetflow() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
+%s
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-dvs"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 
   ipv4_address                  = "10.0.0.100"
   netflow_enabled               = true
@@ -1130,23 +1062,17 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   netflow_sampling_rate         = 10
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccResourceVSphereDistributedVirtualSwitchConfigMultiVlanRange() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
+%s
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-dvs"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 
   vlan_range {
     min_vlan = 1000
@@ -1159,65 +1085,53 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   }
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccResourceVSphereDistributedVirtualSwitchConfigSingleCustomAttribute() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_custom_attribute" "terraform-test-attribute" {
-  name                = "terraform-test-attribute"
+resource "vsphere_custom_attribute" "testacc-attribute" {
+  name                = "testacc-attribute"
   managed_object_type = "VmwareDistributedVirtualSwitch"
 }
 
 locals {
   vs_attrs = {
-    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
+    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
   }
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-dvs"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 
   custom_attributes = "${local.vs_attrs}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccResourceVSphereDistributedVirtualSwitchConfigMultiCustomAttribute() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "custom_attrs" {
   default = [
-    "terraform-test-attribute-1",
+    "testacc-attribute-1",
     "terraform-test-attriubute-2"
   ]
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_custom_attribute" "terraform-test-attribute" {
-  name                = "terraform-test-attribute"
+resource "vsphere_custom_attribute" "testacc-attribute" {
+  name                = "testacc-attribute"
   managed_object_type = "VmwareDistributedVirtualSwitch"
 }
 
-resource "vsphere_custom_attribute" "terraform-test-attribute-alt" {
+resource "vsphere_custom_attribute" "testacc-attribute-alt" {
   count               = "${length(var.custom_attrs)}"
   name                = "${var.custom_attrs[count.index]}"
   managed_object_type = "VmwareDistributedVirtualSwitch"
@@ -1225,18 +1139,18 @@ resource "vsphere_custom_attribute" "terraform-test-attribute-alt" {
 
 locals {
   vs_attrs = {
-    "${vsphere_custom_attribute.terraform-test-attribute-alt.0.id}" = "value"
-    "${vsphere_custom_attribute.terraform-test-attribute-alt.1.id}" = "value-2"
+    "${vsphere_custom_attribute.testacc-attribute-alt.0.id}" = "value"
+    "${vsphere_custom_attribute.testacc-attribute-alt.1.id}" = "value-2"
   }
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-dvs"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 
   custom_attributes = "${local.vs_attrs}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }

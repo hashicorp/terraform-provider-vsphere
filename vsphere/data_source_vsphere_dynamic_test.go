@@ -61,7 +61,7 @@ func TestAccDataSourceVSphereDynamic_multiResult(t *testing.T) {
 			},
 			{
 				Config:      testAccDataSourceVSphereConfigMultiMatch(),
-				ExpectError: regexp.MustCompile("multiple object match the supplied criteria"),
+				ExpectError: regexp.MustCompile("multiple objects match the supplied criteria"),
 			},
 		},
 	})
@@ -97,19 +97,6 @@ func testMatchDatacenterIds(a, b string) resource.TestCheckFunc {
 		}
 		return nil
 	}
-}
-
-func init() {
-	resource.AddTestSweepers("tags", &resource.Sweeper{
-		Name:         "tag_cleanup",
-		Dependencies: nil,
-		F:            tagSweep,
-	})
-	resource.AddTestSweepers("datacenters", &resource.Sweeper{
-		Name:         "datacenter_cleanup",
-		Dependencies: nil,
-		F:            dcSweep,
-	})
 }
 
 func testAccDataSourceVSphereDynamicConfigBase() string {
