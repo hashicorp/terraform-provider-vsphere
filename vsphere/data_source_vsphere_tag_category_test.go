@@ -10,6 +10,7 @@ import (
 func TestAccDataSourceVSphereTagCategory_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers: testAccProviders,
@@ -18,33 +19,33 @@ func TestAccDataSourceVSphereTagCategory_basic(t *testing.T) {
 				Config: testAccDataSourceVSphereTagCategoryConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"data.vsphere_tag_category.terraform-test-category-data",
+						"data.vsphere_tag_category.testacc-category-data",
 						"name",
 						testAccDataSourceVSphereTagCategoryConfigName,
 					),
 					resource.TestCheckResourceAttr(
-						"data.vsphere_tag_category.terraform-test-category-data",
+						"data.vsphere_tag_category.testacc-category-data",
 						"description",
 						testAccDataSourceVSphereTagCategoryConfigDescription,
 					),
 					resource.TestCheckResourceAttr(
-						"data.vsphere_tag_category.terraform-test-category-data",
+						"data.vsphere_tag_category.testacc-category-data",
 						"cardinality",
 						testAccDataSourceVSphereTagCategoryConfigCardinality,
 					),
 					resource.TestCheckResourceAttr(
-						"data.vsphere_tag_category.terraform-test-category-data",
+						"data.vsphere_tag_category.testacc-category-data",
 						"associable_types.#",
 						"1",
 					),
 					resource.TestCheckResourceAttr(
-						"data.vsphere_tag_category.terraform-test-category-data",
+						"data.vsphere_tag_category.testacc-category-data",
 						"associable_types.3125094965",
 						testAccDataSourceVSphereTagCategoryConfigAssociableType,
 					),
 					resource.TestCheckResourceAttrPair(
-						"data.vsphere_tag_category.terraform-test-category-data", "id",
-						"vsphere_tag_category.terraform-test-category", "id",
+						"data.vsphere_tag_category.testacc-category-data", "id",
+						"vsphere_tag_category.testacc-category", "id",
 					),
 				),
 			},
@@ -52,7 +53,7 @@ func TestAccDataSourceVSphereTagCategory_basic(t *testing.T) {
 	})
 }
 
-const testAccDataSourceVSphereTagCategoryConfigName = "terraform-test-category"
+const testAccDataSourceVSphereTagCategoryConfigName = "testacc-category"
 const testAccDataSourceVSphereTagCategoryConfigDescription = "Managed by Terraform"
 const testAccDataSourceVSphereTagCategoryConfigCardinality = vSphereTagCategoryCardinalitySingle
 const testAccDataSourceVSphereTagCategoryConfigAssociableType = vSphereTagTypeVirtualMachine
@@ -77,7 +78,7 @@ variable "tag_category_associable_types" {
   ]
 }
 
-resource "vsphere_tag_category" "terraform-test-category" {
+resource "vsphere_tag_category" "testacc-category" {
   name        = "${var.tag_category_name}"
   description = "${var.tag_category_description}"
   cardinality = "${var.tag_category_cardinality}"
@@ -85,8 +86,8 @@ resource "vsphere_tag_category" "terraform-test-category" {
   associable_types = "${var.tag_category_associable_types}"
 }
 
-data "vsphere_tag_category" "terraform-test-category-data" {
-  name = "${vsphere_tag_category.terraform-test-category.name}"
+data "vsphere_tag_category" "testacc-category-data" {
+  name = "${vsphere_tag_category.testacc-category.name}"
 }
 `,
 		testAccDataSourceVSphereTagCategoryConfigName,

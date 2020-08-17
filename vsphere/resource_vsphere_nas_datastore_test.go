@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"path"
 	"testing"
@@ -16,6 +17,7 @@ import (
 func TestAccResourceVSphereNasDatastore_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereNasDatastorePreCheck(t)
 		},
@@ -41,6 +43,7 @@ func TestAccResourceVSphereNasDatastore_basic(t *testing.T) {
 func TestAccResourceVSphereNasDatastore_multiHost(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereNasDatastorePreCheck(t)
 			testAccSkipIfEsxi(t)
@@ -61,6 +64,7 @@ func TestAccResourceVSphereNasDatastore_multiHost(t *testing.T) {
 func TestAccResourceVSphereNasDatastore_basicToMultiHost(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereNasDatastorePreCheck(t)
 		},
@@ -87,6 +91,7 @@ func TestAccResourceVSphereNasDatastore_basicToMultiHost(t *testing.T) {
 func TestAccResourceVSphereNasDatastore_multiHostToBasic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereNasDatastorePreCheck(t)
 			testAccSkipIfEsxi(t)
@@ -113,6 +118,7 @@ func TestAccResourceVSphereNasDatastore_multiHostToBasic(t *testing.T) {
 func TestAccResourceVSphereNasDatastore_renameDatastore(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereNasDatastorePreCheck(t)
 		},
@@ -129,7 +135,7 @@ func TestAccResourceVSphereNasDatastore_renameDatastore(t *testing.T) {
 				Config: testAccResourceVSphereNasDatastoreConfigBasicAltName(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereNasDatastoreExists(true),
-					testAccResourceVSphereNasDatastoreHasName("terraform-test-nas-renamed"),
+					testAccResourceVSphereNasDatastoreHasName("testacc-nas-renamed"),
 				),
 			},
 		},
@@ -139,6 +145,7 @@ func TestAccResourceVSphereNasDatastore_renameDatastore(t *testing.T) {
 func TestAccResourceVSphereNasDatastore_inFolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereNasDatastorePreCheck(t)
 			// NOTE: This test can't run on ESXi without giving a "dangling
@@ -165,6 +172,7 @@ func TestAccResourceVSphereNasDatastore_inFolder(t *testing.T) {
 func TestAccResourceVSphereNasDatastore_moveToFolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereNasDatastorePreCheck(t)
 		},
@@ -192,6 +200,7 @@ func TestAccResourceVSphereNasDatastore_moveToFolder(t *testing.T) {
 func TestAccResourceVSphereNasDatastore_inDatastoreCluster(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereNasDatastorePreCheck(t)
 			testAccSkipIfEsxi(t)
@@ -213,6 +222,7 @@ func TestAccResourceVSphereNasDatastore_inDatastoreCluster(t *testing.T) {
 func TestAccResourceVSphereNasDatastore_moveToDatastoreCluster(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereNasDatastorePreCheck(t)
 		},
@@ -239,6 +249,7 @@ func TestAccResourceVSphereNasDatastore_moveToDatastoreCluster(t *testing.T) {
 func TestAccResourceVSphereNasDatastore_singleTag(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereNasDatastorePreCheck(t)
 		},
@@ -249,7 +260,7 @@ func TestAccResourceVSphereNasDatastore_singleTag(t *testing.T) {
 				Config: testAccResourceVSphereNasDatastoreConfigBasicTags(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereNasDatastoreExists(true),
-					testAccResourceVSphereDatastoreCheckTags("vsphere_nas_datastore.datastore", "terraform-test-tag"),
+					testAccResourceVSphereDatastoreCheckTags("vsphere_nas_datastore.datastore", "testacc-tag"),
 				),
 			},
 		},
@@ -259,6 +270,7 @@ func TestAccResourceVSphereNasDatastore_singleTag(t *testing.T) {
 func TestAccResourceVSphereNasDatastore_modifyTags(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereNasDatastorePreCheck(t)
 		},
@@ -269,14 +281,14 @@ func TestAccResourceVSphereNasDatastore_modifyTags(t *testing.T) {
 				Config: testAccResourceVSphereNasDatastoreConfigBasicTags(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereNasDatastoreExists(true),
-					testAccResourceVSphereDatastoreCheckTags("vsphere_nas_datastore.datastore", "terraform-test-tag"),
+					testAccResourceVSphereDatastoreCheckTags("vsphere_nas_datastore.datastore", "testacc-tag"),
 				),
 			},
 			{
 				Config: testAccResourceVSphereNasDatastoreConfigMultiTags(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereNasDatastoreExists(true),
-					testAccResourceVSphereDatastoreCheckTags("vsphere_nas_datastore.datastore", "terraform-test-tags-alt"),
+					testAccResourceVSphereDatastoreCheckTags("vsphere_nas_datastore.datastore", "testacc-tags-alt"),
 				),
 			},
 		},
@@ -286,6 +298,7 @@ func TestAccResourceVSphereNasDatastore_modifyTags(t *testing.T) {
 func TestAccResourceVSphereNasDatastore_singleCustomAttribute(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereNasDatastorePreCheck(t)
 		},
@@ -306,6 +319,7 @@ func TestAccResourceVSphereNasDatastore_singleCustomAttribute(t *testing.T) {
 func TestAccResourceVSphereNasDatastore_multiCustomAttribute(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereNasDatastorePreCheck(t)
 		},
@@ -333,12 +347,6 @@ func TestAccResourceVSphereNasDatastore_multiCustomAttribute(t *testing.T) {
 func testAccResourceVSphereNasDatastorePreCheck(t *testing.T) {
 	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_vmfs_disks acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_ESXI_HOST2") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST2 to run vsphere_vmfs_disks acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_ESXI_HOST3") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST3 to run vsphere_vmfs_disks acceptance tests")
 	}
 	if os.Getenv("TF_VAR_VSPHERE_NAS_HOST") == "" {
 		t.Skip("set TF_VAR_VSPHERE_NAS_HOST to run vsphere_nas_datastore acceptance tests")
@@ -429,9 +437,7 @@ variable "nfs_path" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -439,14 +445,14 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_nas_datastore" "datastore" {
-  name            = "terraform-test-nas"
+  name            = "testacc-nas"
   host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
   remote_path  = "${var.nfs_path}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigMultiHost() string {
@@ -469,9 +475,7 @@ variable "esxi_hosts" {
   ]
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   count         = "${length(var.esxi_hosts)}"
@@ -480,14 +484,14 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_nas_datastore" "datastore" {
-  name            = "terraform-test-nas"
+  name            = "testacc-nas"
   host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
   remote_path  = "${var.nfs_path}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"), os.Getenv("TF_VAR_VSPHERE_ESXI_HOST2"), os.Getenv("TF_VAR_VSPHERE_ESXI_HOST3"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_ESXI_HOST2"), os.Getenv("TF_VAR_VSPHERE_ESXI_HOST3"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigBasicAltName() string {
@@ -502,9 +506,7 @@ variable "nfs_path" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -512,14 +514,14 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_nas_datastore" "datastore" {
-  name            = "terraform-test-nas-renamed"
+  name            = "testacc-nas-renamed"
   host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
   remote_path  = "${var.nfs_path}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigBasicFolder() string {
@@ -539,9 +541,7 @@ variable "folder" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -549,7 +549,7 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_nas_datastore" "datastore" {
-  name            = "terraform-test-nas"
+  name            = "testacc-nas"
   host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
   folder          = "${var.folder}"
 
@@ -557,7 +557,7 @@ resource "vsphere_nas_datastore" "datastore" {
   remote_hosts = ["${var.nfs_host}"]
   remote_path  = "${var.nfs_path}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigBasicTags() string {
@@ -572,17 +572,15 @@ variable "nfs_path" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
   datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
 }
 
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-tag-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-tag-category"
   cardinality = "MULTIPLE"
 
   associable_types = [
@@ -590,22 +588,22 @@ resource "vsphere_tag_category" "terraform-test-category" {
   ]
 }
 
-resource "vsphere_tag" "terraform-test-tag" {
-  name        = "terraform-test-tag"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+resource "vsphere_tag" "testacc-tag" {
+  name        = "testacc-tag"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
 resource "vsphere_nas_datastore" "datastore" {
-  name            = "terraform-test-nas"
+  name            = "testacc-nas"
   host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
   remote_path  = "${var.nfs_path}"
 
-  tags = ["${vsphere_tag.terraform-test-tag.id}"]
+  tags = ["${vsphere_tag.testacc-tag.id}"]
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigMultiTags() string {
@@ -627,17 +625,15 @@ variable "extra_tags" {
   ]
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
   datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
 }
 
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-tag-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-tag-category"
   cardinality = "MULTIPLE"
 
   associable_types = [
@@ -645,28 +641,28 @@ resource "vsphere_tag_category" "terraform-test-category" {
   ]
 }
 
-resource "vsphere_tag" "terraform-test-tag" {
-  name        = "terraform-test-tag"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+resource "vsphere_tag" "testacc-tag" {
+  name        = "testacc-tag"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
-resource "vsphere_tag" "terraform-test-tags-alt" {
+resource "vsphere_tag" "testacc-tags-alt" {
   count       = "${length(var.extra_tags)}"
   name        = "${var.extra_tags[count.index]}"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
 resource "vsphere_nas_datastore" "datastore" {
-  name            = "terraform-test-nas"
+  name            = "testacc-nas"
   host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
   remote_path  = "${var.nfs_path}"
 
-  tags = "${vsphere_tag.terraform-test-tags-alt.*.id}"
+  tags = "${vsphere_tag.testacc-tags-alt.*.id}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigSingleCustomAttribute() string {
@@ -681,28 +677,26 @@ variable "nfs_path" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
   datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
 }
 
-resource "vsphere_custom_attribute" "terraform-test-attribute" {
-  name                = "terraform-test-attribute"
+resource "vsphere_custom_attribute" "testacc-attribute" {
+  name                = "testacc-attribute"
   managed_object_type = "Datastore"
 }
 
 locals {
   nas_attrs = {
-    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
+    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
   }
 }
 
 resource "vsphere_nas_datastore" "datastore" {
-  name            = "terraform-test-nas"
+  name            = "testacc-nas"
   host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
 
   type         = "NFS"
@@ -711,7 +705,7 @@ resource "vsphere_nas_datastore" "datastore" {
 
   custom_attributes = "${local.nas_attrs}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigMultiCustomAttributes() string {
@@ -726,34 +720,32 @@ variable "nfs_path" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
   datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
 }
 
-resource "vsphere_custom_attribute" "terraform-test-attribute" {
-  name                = "terraform-test-attribute"
+resource "vsphere_custom_attribute" "testacc-attribute" {
+  name                = "testacc-attribute"
   managed_object_type = "Datastore"
 }
 
-resource "vsphere_custom_attribute" "terraform-test-attribute-2" {
-  name                = "terraform-test-attribute-2"
+resource "vsphere_custom_attribute" "testacc-attribute-2" {
+  name                = "testacc-attribute-2"
   managed_object_type = "Datastore"
 }
 
 locals {
   nas_attrs = {
-    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
-    "${vsphere_custom_attribute.terraform-test-attribute-2.id}" = "value-2"
+    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
+    "${vsphere_custom_attribute.testacc-attribute-2.id}" = "value-2"
   }
 }
 
 resource "vsphere_nas_datastore" "datastore" {
-  name            = "terraform-test-nas"
+  name            = "testacc-nas"
   host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
 
   type         = "NFS"
@@ -762,7 +754,7 @@ resource "vsphere_nas_datastore" "datastore" {
 
   custom_attributes = "${local.nas_attrs}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigDatastoreCluster() string {
@@ -782,9 +774,7 @@ variable "folder" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -792,12 +782,12 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
-  name          = "terraform-datastore-cluster-test"
+  name          = "testacc-datastore-cluster"
   datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
 }
 
 resource "vsphere_nas_datastore" "datastore" {
-  name                 = "terraform-test-nas"
+  name                 = "testacc-nas"
   host_system_ids      = "${data.vsphere_host.esxi_host.*.id}"
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
@@ -805,5 +795,5 @@ resource "vsphere_nas_datastore" "datastore" {
   remote_hosts = ["${var.nfs_host}"]
   remote_path  = "${var.nfs_path}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }

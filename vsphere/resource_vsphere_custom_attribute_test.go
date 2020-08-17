@@ -12,6 +12,7 @@ import (
 func TestAccResourceVSphereCustomAttribute_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -21,16 +22,16 @@ func TestAccResourceVSphereCustomAttribute_basic(t *testing.T) {
 				Config: testAccResourceVSphereCustomAttributeConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereCustomAttributeExists(true),
-					testAccResourceVSphereCustomAttributeHasName("terraform-test-attribute"),
+					testAccResourceVSphereCustomAttributeHasName("testacc-attribute"),
 					testAccResourceVSphereCustomAttributeHasType(""),
 				),
 			},
 			{
-				ResourceName:      "vsphere_custom_attribute.terraform-test-attribute",
+				ResourceName:      "vsphere_custom_attribute.testacc-attribute",
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					attr, err := testGetCustomAttribute(s, "terraform-test-attribute")
+					attr, err := testGetCustomAttribute(s, "testacc-attribute")
 					if err != nil {
 						return "", err
 					}
@@ -50,6 +51,7 @@ func TestAccResourceVSphereCustomAttribute_basic(t *testing.T) {
 func TestAccResourceVSphereCustomAttribute_withType(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -59,7 +61,7 @@ func TestAccResourceVSphereCustomAttribute_withType(t *testing.T) {
 				Config: testAccResourceVSphereCustomAttributeConfigType,
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereCustomAttributeExists(true),
-					testAccResourceVSphereCustomAttributeHasName("terraform-test-attribute"),
+					testAccResourceVSphereCustomAttributeHasName("testacc-attribute"),
 					testAccResourceVSphereCustomAttributeHasType("VirtualMachine"),
 				),
 			},
@@ -69,6 +71,7 @@ func TestAccResourceVSphereCustomAttribute_withType(t *testing.T) {
 func TestAccResourceVSphereCustomAttribute_rename(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -84,7 +87,7 @@ func TestAccResourceVSphereCustomAttribute_rename(t *testing.T) {
 				Config: testAccResourceVSphereCustomAttributeConfigAltName,
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereCustomAttributeExists(true),
-					testAccResourceVSphereCustomAttributeHasName("terraform-test-attribute-renamed"),
+					testAccResourceVSphereCustomAttributeHasName("testacc-attribute-renamed"),
 				),
 			},
 		},
@@ -94,6 +97,7 @@ func TestAccResourceVSphereCustomAttribute_rename(t *testing.T) {
 func TestAccResourceVSphereCustomAttribute_changeType(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -119,7 +123,7 @@ func TestAccResourceVSphereCustomAttribute_changeType(t *testing.T) {
 
 func testAccResourceVSphereCustomAttributeExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		attr, err := testGetCustomAttribute(s, "terraform-test-attribute")
+		attr, err := testGetCustomAttribute(s, "testacc-attribute")
 		if err != nil {
 			return err
 		}
@@ -134,7 +138,7 @@ func testAccResourceVSphereCustomAttributeExists(expected bool) resource.TestChe
 
 func testAccResourceVSphereCustomAttributeHasName(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		attr, err := testGetCustomAttribute(s, "terraform-test-attribute")
+		attr, err := testGetCustomAttribute(s, "testacc-attribute")
 		if err != nil {
 			return err
 		}
@@ -148,7 +152,7 @@ func testAccResourceVSphereCustomAttributeHasName(expected string) resource.Test
 
 func testAccResourceVSphereCustomAttributeHasType(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		attr, err := testGetCustomAttribute(s, "terraform-test-attribute")
+		attr, err := testGetCustomAttribute(s, "testacc-attribute")
 		if err != nil {
 			return err
 		}
@@ -161,20 +165,20 @@ func testAccResourceVSphereCustomAttributeHasType(expected string) resource.Test
 }
 
 const testAccResourceVSphereCustomAttributeConfigBasic = `
-resource "vsphere_custom_attribute" "terraform-test-attribute" {
-  name = "terraform-test-attribute"
+resource "vsphere_custom_attribute" "testacc-attribute" {
+  name = "testacc-attribute"
 }
 `
 
 const testAccResourceVSphereCustomAttributeConfigType = `
-resource "vsphere_custom_attribute" "terraform-test-attribute" {
-  name                = "terraform-test-attribute"
+resource "vsphere_custom_attribute" "testacc-attribute" {
+  name                = "testacc-attribute"
   managed_object_type = "VirtualMachine"
 }
 `
 
 const testAccResourceVSphereCustomAttributeConfigAltName = `
-resource "vsphere_custom_attribute" "terraform-test-attribute" {
-  name = "terraform-test-attribute-renamed"
+resource "vsphere_custom_attribute" "testacc-attribute" {
+  name = "testacc-attribute-renamed"
 }
 `

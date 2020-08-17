@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"reflect"
 	"testing"
@@ -19,6 +20,7 @@ import (
 func TestAccResourceVSphereComputeClusterVMDependencyRule_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterVMDependencyRulePreCheck(t)
 		},
@@ -86,6 +88,7 @@ func TestAccResourceVSphereComputeClusterVMDependencyRule_basic(t *testing.T) {
 func TestAccResourceVSphereComputeClusterVMDependencyRule_altGroup(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterVMDependencyRulePreCheck(t)
 		},
@@ -112,6 +115,7 @@ func TestAccResourceVSphereComputeClusterVMDependencyRule_altGroup(t *testing.T)
 func TestAccResourceVSphereComputeClusterVMDependencyRule_updateEnabled(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterVMDependencyRulePreCheck(t)
 		},
@@ -151,6 +155,7 @@ func TestAccResourceVSphereComputeClusterVMDependencyRule_updateEnabled(t *testi
 func TestAccResourceVSphereComputeClusterVMDependencyRule_updateGroup(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterVMDependencyRulePreCheck(t)
 		},
@@ -278,57 +283,26 @@ func testAccResourceVSphereComputeClusterVMDependencyRuleMatch(
 
 func testAccResourceVSphereComputeClusterVMDependencyRuleConfigBasic() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "hosts" {
-  default = [
-    "%s",
-    "%s",
-  ]
-}
-
-variable "datastore" {
-  default = "%s"
-}
-
-variable "network_label" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-data "vsphere_datastore" "datastore" {
-  name          = "${var.datastore}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_network" "network" {
-  name          = "${var.network_label}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
+%s
 
 data "vsphere_host" "hosts" {
 	count         = "${length(var.hosts)}"
-  name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name            = vsphere_host.nexted_esxi1.name
+  datacenter_id   = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_compute_cluster" "cluster" {
-  name            = "terraform-compute-cluster-test"
-  datacenter_id   = "${data.vsphere_datacenter.dc.id}"
+  name            = "testacc-compute-cluster"
+  datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
   host_system_ids = "${data.vsphere_host.hosts.*.id}"
 
   force_evacuate_on_destroy = true
 }
 
 resource "vsphere_virtual_machine" "vm" {
-  name             = "terraform-test"
+  name             = "testacc-test"
   resource_pool_id = "${vsphere_compute_cluster.cluster.resource_pool_id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -337,7 +311,7 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = "${data.vsphere_network.network1.id}"
   }
 
   disk {
@@ -349,7 +323,7 @@ resource "vsphere_virtual_machine" "vm" {
 resource "vsphere_virtual_machine" "dependent_vm" {
   name             = "terraform-test-dependency"
   resource_pool_id = "${vsphere_compute_cluster.cluster.resource_pool_id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -358,7 +332,7 @@ resource "vsphere_virtual_machine" "dependent_vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = "${data.vsphere_network.network1.id}"
   }
 
   disk {
@@ -386,19 +360,13 @@ resource "vsphere_compute_cluster_vm_dependency_rule" "cluster_vm_dependency_rul
   vm_group_name            = "${vsphere_compute_cluster_vm_group.cluster_vm_group.name}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
-		os.Getenv("TF_VAR_VSPHERE_PG_NAME"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigResNestedEsxi()),
 	)
 }
 
 func testAccResourceVSphereComputeClusterVMDependencyRuleConfigAltGroup() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "hosts" {
   default = [
@@ -407,46 +375,24 @@ variable "hosts" {
   ]
 }
 
-variable "datastore" {
-  default = "%s"
-}
-
-variable "network_label" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-data "vsphere_datastore" "datastore" {
-  name          = "${var.datastore}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_network" "network" {
-  name          = "${var.network_label}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
 data "vsphere_host" "hosts" {
 	count         = "${length(var.hosts)}"
   name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_compute_cluster" "cluster" {
-  name            = "terraform-compute-cluster-test"
-  datacenter_id   = "${data.vsphere_datacenter.dc.id}"
+  name            = "testacc-compute-cluster"
+  datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
   host_system_ids = "${data.vsphere_host.hosts.*.id}"
 
   force_evacuate_on_destroy = true
 }
 
 resource "vsphere_virtual_machine" "vm" {
-  name             = "terraform-test"
+  name             = "testacc-test"
   resource_pool_id = "${vsphere_compute_cluster.cluster.resource_pool_id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -455,7 +401,7 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = "${data.vsphere_network.network1.id}"
   }
 
   disk {
@@ -467,7 +413,7 @@ resource "vsphere_virtual_machine" "vm" {
 resource "vsphere_virtual_machine" "dependent_vm" {
   name             = "terraform-test-dependency"
   resource_pool_id = "${vsphere_compute_cluster.cluster.resource_pool_id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -476,7 +422,7 @@ resource "vsphere_virtual_machine" "dependent_vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = "${data.vsphere_network.network1.id}"
   }
 
   disk {
@@ -488,7 +434,7 @@ resource "vsphere_virtual_machine" "dependent_vm" {
 resource "vsphere_virtual_machine" "second_dependent_vm" {
   name             = "terraform-test-dependency2"
   resource_pool_id = "${vsphere_compute_cluster.cluster.resource_pool_id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -497,7 +443,7 @@ resource "vsphere_virtual_machine" "second_dependent_vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = "${data.vsphere_network.network1.id}"
   }
 
   disk {
@@ -531,19 +477,15 @@ resource "vsphere_compute_cluster_vm_dependency_rule" "cluster_vm_dependency_rul
   vm_group_name            = "${vsphere_compute_cluster_vm_group.cluster_vm_group.name}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
 		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
-		os.Getenv("TF_VAR_VSPHERE_PG_NAME"),
 	)
 }
 
 func testAccResourceVSphereComputeClusterVMDependencyRuleConfigDisabled() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "hosts" {
   default = [
@@ -552,46 +494,24 @@ variable "hosts" {
   ]
 }
 
-variable "datastore" {
-  default = "%s"
-}
-
-variable "network_label" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-data "vsphere_datastore" "datastore" {
-  name          = "${var.datastore}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_network" "network" {
-  name          = "${var.network_label}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
 data "vsphere_host" "hosts" {
 	count         = "${length(var.hosts)}"
   name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_compute_cluster" "cluster" {
-  name            = "terraform-compute-cluster-test"
-  datacenter_id   = "${data.vsphere_datacenter.dc.id}"
+  name            = "testacc-compute-cluster"
+  datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
   host_system_ids = "${data.vsphere_host.hosts.*.id}"
 
   force_evacuate_on_destroy = true
 }
 
 resource "vsphere_virtual_machine" "vm" {
-  name             = "terraform-test"
+  name             = "testacc-test"
   resource_pool_id = "${vsphere_compute_cluster.cluster.resource_pool_id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -600,7 +520,7 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = "${data.vsphere_network.network1.id}"
   }
 
   disk {
@@ -612,7 +532,7 @@ resource "vsphere_virtual_machine" "vm" {
 resource "vsphere_virtual_machine" "dependent_vm" {
   name             = "terraform-test-dependency"
   resource_pool_id = "${vsphere_compute_cluster.cluster.resource_pool_id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -621,7 +541,7 @@ resource "vsphere_virtual_machine" "dependent_vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = "${data.vsphere_network.network1.id}"
   }
 
   disk {
@@ -650,10 +570,8 @@ resource "vsphere_compute_cluster_vm_dependency_rule" "cluster_vm_dependency_rul
   enabled                  = false
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
 		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
-		os.Getenv("TF_VAR_VSPHERE_PG_NAME"),
 	)
 }

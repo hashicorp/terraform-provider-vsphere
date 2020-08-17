@@ -12,19 +12,21 @@ import (
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
 const (
-	testAccResourceVSphereComputeClusterNameStandard = "terraform-compute-cluster-test"
-	testAccResourceVSphereComputeClusterNameRenamed  = "terraform-compute-cluster-test-renamed"
+	testAccResourceVSphereComputeClusterNameStandard = "testacc-compute-cluster"
+	testAccResourceVSphereComputeClusterNameRenamed  = "testacc-compute-cluster-renamed"
 	testAccResourceVSphereComputeClusterFolder       = "compute-cluster-folder-test"
 )
 
 func TestAccResourceVSphereComputeCluster_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
@@ -62,6 +64,7 @@ func TestAccResourceVSphereComputeCluster_basic(t *testing.T) {
 func TestAccResourceVSphereComputeCluster_haAdmissionControlPolicyDisabled(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
@@ -82,6 +85,7 @@ func TestAccResourceVSphereComputeCluster_haAdmissionControlPolicyDisabled(t *te
 func TestAccResourceVSphereComputeCluster_drsHAEnabled(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
@@ -103,6 +107,7 @@ func TestAccResourceVSphereComputeCluster_drsHAEnabled(t *testing.T) {
 func TestAccResourceVSphereComputeCluster_explicitFailoverHost(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
@@ -126,6 +131,7 @@ func TestAccResourceVSphereComputeCluster_explicitFailoverHost(t *testing.T) {
 func TestAccResourceVSphereComputeCluster_rename(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
@@ -153,6 +159,7 @@ func TestAccResourceVSphereComputeCluster_rename(t *testing.T) {
 func TestAccResourceVSphereComputeCluster_inFolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
@@ -173,6 +180,7 @@ func TestAccResourceVSphereComputeCluster_inFolder(t *testing.T) {
 func TestAccResourceVSphereComputeCluster_moveToFolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
@@ -200,6 +208,7 @@ func TestAccResourceVSphereComputeCluster_moveToFolder(t *testing.T) {
 func TestAccResourceVSphereComputeCluster_singleTag(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
@@ -210,7 +219,7 @@ func TestAccResourceVSphereComputeCluster_singleTag(t *testing.T) {
 				Config: testAccResourceVSphereComputeClusterConfigSingleTag(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckTags("terraform-test-tag"),
+					testAccResourceVSphereComputeClusterCheckTags("testacc-tag"),
 				),
 			},
 		},
@@ -220,6 +229,7 @@ func TestAccResourceVSphereComputeCluster_singleTag(t *testing.T) {
 func TestAccResourceVSphereComputeCluster_multipleTags(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
@@ -230,7 +240,7 @@ func TestAccResourceVSphereComputeCluster_multipleTags(t *testing.T) {
 				Config: testAccResourceVSphereComputeClusterConfigMultiTag(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckTags("terraform-test-tags-alt"),
+					testAccResourceVSphereComputeClusterCheckTags("testacc-tags-alt"),
 				),
 			},
 		},
@@ -240,6 +250,7 @@ func TestAccResourceVSphereComputeCluster_multipleTags(t *testing.T) {
 func TestAccResourceVSphereComputeCluster_switchTags(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
@@ -250,14 +261,14 @@ func TestAccResourceVSphereComputeCluster_switchTags(t *testing.T) {
 				Config: testAccResourceVSphereComputeClusterConfigSingleTag(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckTags("terraform-test-tag"),
+					testAccResourceVSphereComputeClusterCheckTags("testacc-tag"),
 				),
 			},
 			{
 				Config: testAccResourceVSphereComputeClusterConfigMultiTag(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckTags("terraform-test-tags-alt"),
+					testAccResourceVSphereComputeClusterCheckTags("testacc-tags-alt"),
 				),
 			},
 		},
@@ -267,6 +278,7 @@ func TestAccResourceVSphereComputeCluster_switchTags(t *testing.T) {
 func TestAccResourceVSphereComputeCluster_singleCustomAttribute(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
@@ -287,6 +299,7 @@ func TestAccResourceVSphereComputeCluster_singleCustomAttribute(t *testing.T) {
 func TestAccResourceVSphereComputeCluster_multipleCustomAttribute(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
@@ -307,6 +320,7 @@ func TestAccResourceVSphereComputeCluster_multipleCustomAttribute(t *testing.T) 
 func TestAccResourceVSphereComputeCluster_switchCustomAttribute(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
@@ -532,49 +546,36 @@ func testAccResourceVSphereComputeClusterCheckCustomAttributes() resource.TestCh
 
 func testAccResourceVSphereComputeClusterConfigEmpty() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
+%s
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name            = "terraform-compute-cluster-test"
-  datacenter_id   = "${data.vsphere_datacenter.dc.id}"
+  name            = "testacc-compute-cluster"
+  datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccResourceVSphereComputeClusterConfigHAAdmissionControlPolicyDisabled() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "hosts" {
   default = [
     "%s",
-    "%s",
   ]
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
 }
 
 data "vsphere_host" "hosts" {
   count         = "${length(var.hosts)}"
   name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name                        = "terraform-compute-cluster-test"
-  datacenter_id               = "${data.vsphere_datacenter.dc.id}"
+  name                        = "testacc-compute-cluster"
+  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
   host_system_ids             = "${data.vsphere_host.hosts.*.id}"
   ha_enabled                  = true
   ha_admission_control_policy = "disabled"
@@ -582,75 +583,52 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   force_evacuate_on_destroy = true
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigResNestedEsxi()),
+		os.Getenv("TF_VAR_VSPHERE_ESXI_NESTED1"),
 	)
 }
 
 func testAccResourceVSphereComputeClusterConfigBasic() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "hosts" {
-  default = [
-    "%s",
-    "%s",
-  ]
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
+%s
 
 data "vsphere_host" "hosts" {
-  count         = "${length(var.hosts)}"
-  name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  count         = 1
+  name          = vsphere_host.nested-esxi1.hostname
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name            = "terraform-compute-cluster-test"
-  datacenter_id   = "${data.vsphere_datacenter.dc.id}"
-  host_system_ids = "${data.vsphere_host.hosts.*.id}"
+  name            = "testacc-compute-cluster"
+  datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
+  host_system_ids = [ vsphere_host.nested-esxi1.name ]
 
   force_evacuate_on_destroy = true
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigResNestedEsxi(), testhelper.ConfigDataRootDS1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigDataRootVMNet()),
 	)
 }
 
 func testAccResourceVSphereComputeClusterConfigDRSHABasic() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "hosts" {
   default = [
     "%s",
-    "%s",
   ]
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
 }
 
 data "vsphere_host" "hosts" {
   count         = "${length(var.hosts)}"
   name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name            = "terraform-compute-cluster-test"
-  datacenter_id   = "${data.vsphere_datacenter.dc.id}"
+  name            = "testacc-compute-cluster"
+  datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
   host_system_ids = "${data.vsphere_host.hosts.*.id}"
 
   drs_enabled          = true
@@ -661,38 +639,30 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 	force_evacuate_on_destroy = true
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigResNestedEsxi()),
+		os.Getenv("TF_VAR_VSPHERE_ESXI_NESTED1"),
 	)
 }
 
 func testAccResourceVSphereComputeClusterConfigDRSHABasicExplicitFailoverHost() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "hosts" {
   default = [
     "%s",
-    "%s",
   ]
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
 }
 
 data "vsphere_host" "hosts" {
   count         = "${length(var.hosts)}"
   name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name            = "terraform-compute-cluster-test"
-  datacenter_id   = "${data.vsphere_datacenter.dc.id}"
+  name            = "testacc-compute-cluster"
+  datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
   host_system_ids = "${data.vsphere_host.hosts.*.id}"
 
   drs_enabled          = true
@@ -706,75 +676,56 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   force_evacuate_on_destroy = true
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigResNestedEsxi()),
+		os.Getenv("TF_VAR_VSPHERE_ESXI_NESTED1"),
 	)
 }
 
 func testAccResourceVSphereComputeClusterConfigWithName(name string) string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
+%s
 
 resource "vsphere_compute_cluster" "compute_cluster" {
   name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		name,
 	)
 }
 
 func testAccResourceVSphereComputeClusterConfigWithFolder(f string) string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "folder" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
 resource "vsphere_folder" "compute_cluster_folder" {
   path          = "${var.folder}"
   type          = "host"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name          = "terraform-compute-cluster-test"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-compute-cluster"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
   folder        = "${vsphere_folder.compute_cluster_folder.path}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		f,
 	)
 }
 
 func testAccResourceVSphereComputeClusterConfigSingleTag() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-tag-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-tag-category"
   cardinality = "MULTIPLE"
 
   associable_types = [
@@ -782,29 +733,27 @@ resource "vsphere_tag_category" "terraform-test-category" {
   ]
 }
 
-resource "vsphere_tag" "terraform-test-tag" {
-  name        = "terraform-test-tag"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+resource "vsphere_tag" "testacc-tag" {
+  name        = "testacc-tag"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name          = "terraform-compute-cluster-test"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-compute-cluster"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 
   tags = [
-    "${vsphere_tag.terraform-test-tag.id}",
+    "${vsphere_tag.testacc-tag.id}",
   ]
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccResourceVSphereComputeClusterConfigMultiTag() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "extra_tags" {
   default = [
@@ -813,12 +762,8 @@ variable "extra_tags" {
   ]
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-tag-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-tag-category"
   cardinality = "MULTIPLE"
 
   associable_types = [
@@ -826,94 +771,82 @@ resource "vsphere_tag_category" "terraform-test-category" {
   ]
 }
 
-resource "vsphere_tag" "terraform-test-tag" {
-  name        = "terraform-test-tag"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+resource "vsphere_tag" "testacc-tag" {
+  name        = "testacc-tag"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
-resource "vsphere_tag" "terraform-test-tags-alt" {
+resource "vsphere_tag" "testacc-tags-alt" {
   count       = "${length(var.extra_tags)}"
   name        = "${var.extra_tags[count.index]}"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name          = "terraform-compute-cluster-test"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-compute-cluster"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 
-  tags = "${vsphere_tag.terraform-test-tags-alt.*.id}"
+  tags = "${vsphere_tag.testacc-tags-alt.*.id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccResourceVSphereComputeClusterConfigSingleCustomAttribute() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_custom_attribute" "terraform-test-attribute" {
-  name                = "terraform-test-attribute"
+resource "vsphere_custom_attribute" "testacc-attribute" {
+  name                = "testacc-attribute"
   managed_object_type = "ClusterComputeResource"
 }
 
 locals {
   attrs = {
-    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
+    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
   }
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name          = "terraform-compute-cluster-test"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-compute-cluster"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 
   custom_attributes = "${local.attrs}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccResourceVSphereComputeClusterConfigMultiCustomAttributes() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_custom_attribute" "terraform-test-attribute" {
-  name                = "terraform-test-attribute"
+resource "vsphere_custom_attribute" "testacc-attribute" {
+  name                = "testacc-attribute"
   managed_object_type = "ClusterComputeResource"
 }
 
-resource "vsphere_custom_attribute" "terraform-test-attribute-2" {
-  name                = "terraform-test-attribute-2"
+resource "vsphere_custom_attribute" "testacc-attribute-2" {
+  name                = "testacc-attribute-2"
   managed_object_type = "ClusterComputeResource"
 }
 
 locals {
   attrs = {
-    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
-    "${vsphere_custom_attribute.terraform-test-attribute-2.id}" = "value-2"
+    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
+    "${vsphere_custom_attribute.testacc-attribute-2.id}" = "value-2"
   }
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name          = "terraform-compute-cluster-test"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-compute-cluster"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 
   custom_attributes = "${local.attrs}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }

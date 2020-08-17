@@ -161,7 +161,7 @@ func ConfigResResourcePool1() string {
 	return fmt.Sprintf(`
 resource "vsphere_resource_pool" "pool1" {
   name                    = "testacc-resource-pool1"
-  parent_resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster.resource_pool_id
+  parent_resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
 }
 `)
 }
@@ -188,7 +188,7 @@ func ConfigResNestedEsxi() string {
 	return fmt.Sprintf(`
 resource "vsphere_virtual_machine" "nested-esxi1" {
   name             = "testacc-n-esxi1"
-  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster.resource_pool_id
+  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
   datastore_id     = data.vsphere_datastore.rootds1.id
   datacenter_id    = data.vsphere_datacenter.rootdc1.id
   host_system_id   = data.vsphere_host.roothost2.id
@@ -201,6 +201,7 @@ resource "vsphere_virtual_machine" "nested-esxi1" {
   memory   = 6144
   guest_id = "other3xLinux64Guest"
 
+  wait_for_guest_ip_timeout  = 5
   wait_for_guest_net_timeout = -1
 
   network_interface {

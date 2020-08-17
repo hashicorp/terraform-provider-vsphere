@@ -3,6 +3,7 @@ package vsphere
 import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"regexp"
 	"testing"
@@ -13,6 +14,7 @@ import (
 func TestAccResourceVSphereContentLibrary_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereContentLibraryPreCheck(t)
 		},
@@ -84,17 +86,14 @@ variable "datacenter" {
   default = "%s"
 }
 
-variable "datastore" {
-  type    = "string"
-  default = "%s"
-}
+
 
 data "vsphere_datacenter" "dc" {
-  name = var.datacenter
+  name = data.vsphere_datacenter.rootdc1.name
 }
 
 data "vsphere_datastore" "ds" {
-  datacenter_id = data.vsphere_datacenter.dc.id
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
   name = var.datastore
 }
 
@@ -104,8 +103,7 @@ resource "vsphere_content_library" "library" {
   description     = "Library Description"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 

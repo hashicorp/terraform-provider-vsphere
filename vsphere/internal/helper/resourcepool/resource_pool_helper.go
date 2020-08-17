@@ -42,6 +42,63 @@ func FromPathOrDefault(client *govmomi.Client, name string, dc *object.Datacente
 	return nil, fmt.Errorf("unsupported ApiType: %s", t)
 }
 
+func List(client *govmomi.Client) ([]*object.ResourcePool, error) {
+	return resourcepoolsByPath(client, "/*")
+}
+
+func resourcepoolsByPath(client *govmomi.Client, path string) ([]*object.ResourcePool, error) {
+	ctx := context.TODO()
+	var rps []*object.ResourcePool
+	finder := find.NewFinder(client.Client, false)
+	es, err := finder.ManagedObjectListChildren(ctx, path+"/*", "pool", "folder")
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range es {
+		if id.Object.Reference().Type == "ResourcePool" {
+			ds, err := FromID(client, id.Object.Reference().Value)
+			if err != nil {
+				return nil, err
+			}
+			rps = append(rps, ds)
+		}
+		if id.Object.Reference().Type == "Folder" || id.Object.Reference().Type == "ClusterComputeResource" || id.Object.Reference().Type == "ResourcePool" {
+			newRPs, err := resourcepoolsByPath(client, id.Path)
+			if err != nil {
+				return nil, err
+			}
+			rps = append(rps, newRPs...)
+		}
+	}
+	return rps, nil
+}
+
+func getChildren(client *govmomi.Client, parent *object.ResourcePool) ([]*object.ResourcePool, error) {
+	ctx := context.TODO()
+	finder := find.NewFinder(client.Client, false)
+	var rps []*object.ResourcePool
+	es, err := finder.ManagedObjectListChildren(ctx, parent.InventoryPath+"/*", "pool")
+	if err != nil {
+		return nil, err
+	}
+	for _, rpId := range es {
+		if rpId.Object.Reference().Type != "ResourcePool" {
+			continue
+		}
+		rp, err := FromID(client, rpId.Object.Reference().Value)
+		if err != nil {
+			return nil, err
+		}
+		rps = append(rps, rp)
+		children, err := getChildren(client, rp)
+		if err != nil {
+			return nil, err
+		}
+		rps = append(rps, children...)
+	}
+	return rps, nil
+}
+
 // FromID locates a ResourcePool by its managed object reference ID.
 func FromID(client *govmomi.Client, id string) (*object.ResourcePool, error) {
 	log.Printf("[DEBUG] Locating resource pool with ID %s", id)

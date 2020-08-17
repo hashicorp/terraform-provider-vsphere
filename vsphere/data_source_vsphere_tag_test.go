@@ -10,6 +10,7 @@ import (
 func TestAccDataSourceVSphereTag_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers: testAccProviders,
@@ -18,22 +19,22 @@ func TestAccDataSourceVSphereTag_basic(t *testing.T) {
 				Config: testAccDataSourceVSphereTagConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"data.vsphere_tag.terraform-test-tag-data",
+						"data.vsphere_tag.testacc-tag-data",
 						"name",
 						testAccDataSourceVSphereTagConfigName,
 					),
 					resource.TestCheckResourceAttr(
-						"data.vsphere_tag.terraform-test-tag-data",
+						"data.vsphere_tag.testacc-tag-data",
 						"description",
 						testAccDataSourceVSphereTagConfigDescription,
 					),
 					resource.TestCheckResourceAttrPair(
-						"data.vsphere_tag.terraform-test-tag-data", "id",
-						"vsphere_tag.terraform-test-tag", "id",
+						"data.vsphere_tag.testacc-tag-data", "id",
+						"vsphere_tag.testacc-tag", "id",
 					),
 					resource.TestCheckResourceAttrPair(
-						"data.vsphere_tag.terraform-test-tag-data", "category_id",
-						"vsphere_tag_category.terraform-test-category", "id",
+						"data.vsphere_tag.testacc-tag-data", "category_id",
+						"vsphere_tag_category.testacc-category", "id",
 					),
 				),
 			},
@@ -41,7 +42,7 @@ func TestAccDataSourceVSphereTag_basic(t *testing.T) {
 	})
 }
 
-const testAccDataSourceVSphereTagConfigName = "terraform-test-tag"
+const testAccDataSourceVSphereTagConfigName = "testacc-tag"
 const testAccDataSourceVSphereTagConfigDescription = "Managed by Terraform"
 
 func testAccDataSourceVSphereTagConfig() string {
@@ -72,7 +73,7 @@ variable "tag_description" {
   default = "%s"
 }
 
-resource "vsphere_tag_category" "terraform-test-category" {
+resource "vsphere_tag_category" "testacc-category" {
   name        = "${var.tag_category_name}"
   description = "${var.tag_category_description}"
   cardinality = "${var.tag_category_cardinality}"
@@ -80,15 +81,15 @@ resource "vsphere_tag_category" "terraform-test-category" {
   associable_types = "${var.tag_category_associable_types}"
 }
 
-resource "vsphere_tag" "terraform-test-tag" {
+resource "vsphere_tag" "testacc-tag" {
   name        = "${var.tag_name}"
   description = "${var.tag_description}"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
-data "vsphere_tag" "terraform-test-tag-data" {
-  name        = "${vsphere_tag.terraform-test-tag.name}"
-  category_id = "${vsphere_tag.terraform-test-tag.category_id}"
+data "vsphere_tag" "testacc-tag-data" {
+  name        = "${vsphere_tag.testacc-tag.name}"
+  category_id = "${vsphere_tag.testacc-tag.category_id}"
 }
 `,
 		testAccDataSourceVSphereTagCategoryConfigName,

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"reflect"
 	"testing"
@@ -19,6 +20,7 @@ import (
 func TestAccResourceVSphereDPMHostOverride_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDPMHostOverridePreCheck(t)
 		},
@@ -69,6 +71,7 @@ func TestAccResourceVSphereDPMHostOverride_basic(t *testing.T) {
 func TestAccResourceVSphereDPMHostOverride_overrides(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDPMHostOverridePreCheck(t)
 		},
@@ -89,6 +92,7 @@ func TestAccResourceVSphereDPMHostOverride_overrides(t *testing.T) {
 func TestAccResourceVSphereDPMHostOverride_update(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDPMHostOverridePreCheck(t)
 		},
@@ -183,30 +187,17 @@ func testAccResourceVSphereDPMHostOverrideMatch(behavior types.DpmBehavior, enab
 
 func testAccResourceVSphereDPMHostOverrideConfigDefaults() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "hosts" {
-  default = [
-    "%s",
-    "%s",
-  ]
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
+%s
 
 data "vsphere_host" "hosts" {
-  count         = "${length(var.hosts)}"
-  name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  count         = 1
+  name          = vsphere_host.nested-esxi1.hostname
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name            = "terraform-compute-cluster-test"
-  datacenter_id   = "${data.vsphere_datacenter.dc.id}"
+  name            = "testacc-compute-cluster"
+  datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
   host_system_ids = "${data.vsphere_host.hosts.*.id}"
 
   force_evacuate_on_destroy = true
@@ -217,17 +208,13 @@ resource "vsphere_dpm_host_override" "dpm_host_override" {
   host_system_id       = "${data.vsphere_host.hosts.0.id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigResNestedEsxi(), testhelper.ConfigDataRootDS1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigDataRootVMNet()),
 	)
 }
 
 func testAccResourceVSphereDPMHostOverrideConfigOverrides() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "hosts" {
   default = [
@@ -236,19 +223,15 @@ variable "hosts" {
   ]
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
 data "vsphere_host" "hosts" {
   count         = "${length(var.hosts)}"
   name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name            = "terraform-compute-cluster-test"
-  datacenter_id   = "${data.vsphere_datacenter.dc.id}"
+  name            = "testacc-compute-cluster"
+  datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
   host_system_ids = "${data.vsphere_host.hosts.*.id}"
 
   force_evacuate_on_destroy = true
@@ -261,7 +244,7 @@ resource "vsphere_dpm_host_override" "dpm_host_override" {
   dpm_automation_level = "automated"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
 		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
 	)

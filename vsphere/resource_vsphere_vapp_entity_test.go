@@ -3,6 +3,7 @@ package vsphere
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 func TestAccResourceVSphereVAppEntity_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVAppEntityPreCheck(t)
 		},
@@ -44,6 +46,7 @@ func TestAccResourceVSphereVAppEntity_basic(t *testing.T) {
 func TestAccResourceVSphereVAppEntity_nonDefault(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVAppEntityPreCheck(t)
 		},
@@ -69,6 +72,7 @@ func TestAccResourceVSphereVAppEntity_nonDefault(t *testing.T) {
 func TestAccResourceVSphereVAppEntity_update(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVAppEntityPreCheck(t)
 		},
@@ -106,6 +110,7 @@ func TestAccResourceVSphereVAppEntity_update(t *testing.T) {
 func TestAccResourceVSphereVAppEntity_multi(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVAppEntityPreCheck(t)
 		},
@@ -141,6 +146,7 @@ func TestAccResourceVSphereVAppEntity_multi(t *testing.T) {
 func TestAccResourceVSphereVAppEntity_multiUpdate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVAppEntityPreCheck(t)
 		},
@@ -306,50 +312,22 @@ func testAccResourceVSphereVAppEntityWaitForGuest(name string, value bool) resou
 
 func testAccResourceVSphereVAppEntityConfigBasic() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "cluster" {
-  default = "%s"
-}
-
-variable "datastore" {
-	default = "%s"
-}
-
-variable "network_label" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
+%s
 
 data "vsphere_datastore" "datastore" {
 	name = "${var.datastore}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_network" "network" {
-  name          = "${var.network_label}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_compute_cluster" "cluster" {
-  name          = "${var.cluster}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_resource_pool" "parent_resource_pool" {
   name                    = "terraform-resource-pool-test-parent"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
+  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
 }
 
 resource "vsphere_folder" "parent_folder" {
 	path = "parent_folder"
 	type = "vm"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_vapp_container" "vapp_container" {
@@ -366,7 +344,7 @@ resource "vsphere_vapp_entity" "vapp_entity" {
 resource "vsphere_virtual_machine" "vm" {
 	name = "terraform-virtual-machine-test"
 	resource_pool_id = "${vsphere_vapp_container.vapp_container.id}"
-	datastore_id = "${data.vsphere_datastore.datastore.id}"
+	datastore_id = vsphere_nas_datastore.ds1.id
 
 	num_cpus = 2
 	memory   = 2048
@@ -380,63 +358,27 @@ resource "vsphere_virtual_machine" "vm" {
 	}
 
 	network_interface {
-		network_id = "${data.vsphere_network.network.id}"
+		network_id = "${data.vsphere_network.network1.id}"
 	}
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
-		os.Getenv("TF_VAR_VSPHERE_PG_NAME"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccResourceVSphereVAppEntityConfigNonDefault() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "cluster" {
-  default = "%s"
-}
-
-variable "datastore" {
-  default = "%s"
-}
-
-variable "network_label" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-data "vsphere_datastore" "datastore" {
-  name          = "${var.datastore}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_network" "network" {
-  name          = "${var.network_label}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_compute_cluster" "cluster" {
-  name          = "${var.cluster}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
+%s
 
 resource "vsphere_resource_pool" "parent_resource_pool" {
   name                    = "terraform-resource-pool-test-parent"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
+  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
 }
 
 resource "vsphere_folder" "parent_folder" {
   path          = "parent_folder"
   type          = "vm"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_vapp_container" "vapp_container" {
@@ -459,7 +401,7 @@ resource "vsphere_vapp_entity" "vapp_entity" {
 resource "vsphere_virtual_machine" "vm" {
   name             = "terraform-virtual-machine-test"
   resource_pool_id = "${vsphere_vapp_container.vapp_container.id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus                   = 2
   memory                     = 2048
@@ -472,63 +414,27 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = "${data.vsphere_network.network1.id}"
   }
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
-		os.Getenv("TF_VAR_VSPHERE_PG_NAME"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccResourceVSphereVAppEntityConfigMultipleDefault() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "cluster" {
-  default = "%s"
-}
-
-variable "datastore" {
-  default = "%s"
-}
-
-variable "network_label" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-data "vsphere_datastore" "datastore" {
-  name          = "${var.datastore}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_network" "network" {
-  name          = "${var.network_label}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_compute_cluster" "cluster" {
-  name          = "${var.cluster}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
+%s
 
 resource "vsphere_resource_pool" "parent_resource_pool" {
   name                    = "terraform-resource-pool-test-parent"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
+  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
 }
 
 resource "vsphere_folder" "parent_folder" {
   path          = "parent_folder"
   type          = "vm"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_vapp_container" "vapp_container" {
@@ -550,7 +456,7 @@ resource "vsphere_vapp_entity" "vapp_entity2" {
 resource "vsphere_virtual_machine" "vm1" {
   name             = "terraform-virtual-machine-test-1"
   resource_pool_id = "${vsphere_vapp_container.vapp_container.id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus                   = 2
   memory                     = 1024
@@ -563,14 +469,14 @@ resource "vsphere_virtual_machine" "vm1" {
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = "${data.vsphere_network.network1.id}"
   }
 }
 
 resource "vsphere_virtual_machine" "vm2" {
   name             = "terraform-virtual-machine-test-2"
   resource_pool_id = "${vsphere_vapp_container.vapp_container.id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus                   = 2
   memory                     = 1024
@@ -583,62 +489,26 @@ resource "vsphere_virtual_machine" "vm2" {
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = "${data.vsphere_network.network1.id}"
   }
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
-		os.Getenv("TF_VAR_VSPHERE_PG_NAME"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 func testAccResourceVSphereVAppEntityConfigMultipleNonDefault() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "cluster" {
-  default = "%s"
-}
-
-variable "datastore" {
-  default = "%s"
-}
-
-variable "network_label" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-data "vsphere_datastore" "datastore" {
-  name          = "${var.datastore}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_network" "network" {
-  name          = "${var.network_label}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_compute_cluster" "cluster" {
-  name          = "${var.cluster}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
+%s
 
 resource "vsphere_resource_pool" "parent_resource_pool" {
   name                    = "terraform-resource-pool-test-parent"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
+  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
 }
 
 resource "vsphere_folder" "parent_folder" {
   path          = "parent_folder"
   type          = "vm"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_vapp_container" "vapp_container" {
@@ -672,7 +542,7 @@ resource "vsphere_vapp_entity" "vapp_entity2" {
 resource "vsphere_virtual_machine" "vm1" {
   name             = "terraform-virtual-machine-test-1"
   resource_pool_id = "${vsphere_vapp_container.vapp_container.id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus                   = 2
   memory                     = 1024
@@ -685,14 +555,14 @@ resource "vsphere_virtual_machine" "vm1" {
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = "${data.vsphere_network.network1.id}"
   }
 }
 
 resource "vsphere_virtual_machine" "vm2" {
   name             = "terraform-virtual-machine-test-2"
   resource_pool_id = "${vsphere_vapp_container.vapp_container.id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus                   = 2
   memory                     = 1024
@@ -705,13 +575,10 @@ resource "vsphere_virtual_machine" "vm2" {
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = "${data.vsphere_network.network1.id}"
   }
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
-		os.Getenv("TF_VAR_VSPHERE_PG_NAME"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }

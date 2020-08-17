@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"regexp"
 	"testing"
@@ -12,6 +13,7 @@ import (
 func TestAccDataSourceVSphereHost_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccDataSourceVSphereHostPreCheck(t)
 		},
@@ -34,6 +36,7 @@ func TestAccDataSourceVSphereHost_basic(t *testing.T) {
 func TestAccDataSourceVSphereHost_defaultHost(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccDataSourceVSphereHostPreCheck(t)
 			testAccSkipIfNotEsxi(t)
@@ -72,21 +75,19 @@ func testAccDataSourceVSphereHostExpectedRegexp() *regexp.Regexp {
 
 func testAccDataSourceVSphereHostConfig() string {
 	return fmt.Sprintf(`
-data "vsphere_datacenter" "dc" {
-	name = "%s"
-}
+%s
 
 data "vsphere_host" "host" {
   name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_ESXI1"))
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }
 
 const testAccDataSourceVSphereHostConfigDefault = `
 data "vsphere_datacenter" "dc" {}
 
 data "vsphere_host" "host" {
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 `

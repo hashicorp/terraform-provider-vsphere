@@ -2,7 +2,7 @@ package vsphere
 
 import (
 	"fmt"
-	"os"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -11,6 +11,7 @@ import (
 func TestAccDataSourceVSphereComputeCluster_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
@@ -36,6 +37,7 @@ func TestAccDataSourceVSphereComputeCluster_basic(t *testing.T) {
 func TestAccDataSourceVSphereComputeCluster_absolutePathNoDatacenter(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
@@ -60,17 +62,11 @@ func TestAccDataSourceVSphereComputeCluster_absolutePathNoDatacenter(t *testing.
 
 func testAccDataSourceVSphereComputeClusterConfigBasic() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
+%s
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name          = "terraform-datastore-cluster-test"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-datastore-cluster"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 data "vsphere_compute_cluster" "compute_cluster_data" {
@@ -78,29 +74,23 @@ data "vsphere_compute_cluster" "compute_cluster_data" {
   datacenter_id = "${vsphere_compute_cluster.compute_cluster.datacenter_id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccDataSourceVSphereComputeClusterConfigAbsolutePath() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
+%s
 
 resource "vsphere_compute_cluster" "compute_cluster" {
-  name          = "terraform-datastore-cluster-test"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-datastore-cluster"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 data "vsphere_compute_cluster" "compute_cluster_data" {
-  name          = "/${var.datacenter}/host/${vsphere_compute_cluster.compute_cluster.name}"
+  name          = "/${data.vsphere_datacenter.rootdc1.name}/host/${vsphere_compute_cluster.compute_cluster.name}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }

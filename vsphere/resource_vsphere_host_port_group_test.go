@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"reflect"
 	"testing"
@@ -13,6 +14,7 @@ import (
 func TestAccResourceVSphereHostPortGroup_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereHostPortGroupPreCheck(t)
 		},
@@ -32,6 +34,7 @@ func TestAccResourceVSphereHostPortGroup_basic(t *testing.T) {
 func TestAccResourceVSphereHostPortGroup_complexWithOverrides(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereHostPortGroupPreCheck(t)
 		},
@@ -55,6 +58,7 @@ func TestAccResourceVSphereHostPortGroup_complexWithOverrides(t *testing.T) {
 func TestAccResourceVSphereHostPortGroup_basicToComplex(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereHostPortGroupPreCheck(t)
 		},
@@ -178,9 +182,7 @@ variable "host_nic0" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -202,7 +204,7 @@ resource "vsphere_host_port_group" "pg" {
   virtual_switch_name = "${vsphere_host_virtual_switch.switch.name}"
 }
 `, os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }
 
@@ -212,9 +214,7 @@ variable "host_nic0" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -242,6 +242,6 @@ resource "vsphere_host_port_group" "pg" {
   allow_promiscuous = true
 }
 `, os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }

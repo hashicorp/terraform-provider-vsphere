@@ -386,6 +386,33 @@ func FromID(client *govmomi.Client, id string) (*object.Folder, error) {
 	return folder.(*object.Folder), nil
 }
 
+func List(client *govmomi.Client) ([]*object.Folder, error) {
+	return getFolders(client, "/*")
+}
+
+func getFolders(client *govmomi.Client, path string) ([]*object.Folder, error) {
+	ctx := context.TODO()
+	var folders []*object.Folder
+	finder := find.NewFinder(client.Client, false)
+	es, err := finder.ManagedObjectListChildren(ctx, path+"/*", "folder")
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range es {
+		switch {
+		case id.Object.Reference().Type == "Folder":
+			newFolders, err := getFolders(client, id.Path)
+			if err != nil {
+				return nil, err
+			}
+			folders = append(folders, newFolders...)
+		default:
+			continue
+		}
+	}
+	return folders, nil
+}
+
 // Properties is a convenience method that wraps fetching the
 // Folder MO from its higher-level object.
 func Properties(folder *object.Folder) (*mo.Folder, error) {

@@ -1,6 +1,7 @@
 package vsphere
 
 import (
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"io/ioutil"
 	"log"
 	"os"
@@ -10,6 +11,54 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
+
+func init() {
+	resource.AddTestSweepers("tags", &resource.Sweeper{
+		Name:         "tag_cleanup",
+		Dependencies: nil,
+		F:            tagSweep,
+	})
+	resource.AddTestSweepers("datacenters", &resource.Sweeper{
+		Name:         "datacenter_cleanup",
+		Dependencies: nil,
+		F:            dcSweep,
+	})
+	resource.AddTestSweepers("vms", &resource.Sweeper{
+		Name:         "vm_cleanup",
+		Dependencies: nil,
+		F:            vmSweep,
+	})
+	resource.AddTestSweepers("rps", &resource.Sweeper{
+		Name:         "rp_cleanup",
+		Dependencies: nil,
+		F:            rpSweep,
+	})
+	resource.AddTestSweepers("net", &resource.Sweeper{
+		Name:         "net_cleanup",
+		Dependencies: nil,
+		F:            netSweep,
+	})
+	resource.AddTestSweepers("folder", &resource.Sweeper{
+		Name:         "folder_cleanup",
+		Dependencies: nil,
+		F:            folderSweep,
+	})
+	resource.AddTestSweepers("dss", &resource.Sweeper{
+		Name:         "ds_cleanup",
+		Dependencies: nil,
+		F:            dsSweep,
+	})
+	resource.AddTestSweepers("dsps", &resource.Sweeper{
+		Name:         "dsp_cleanup",
+		Dependencies: nil,
+		F:            dspSweep,
+	})
+	resource.AddTestSweepers("ccs", &resource.Sweeper{
+		Name:         "cc_cleanup",
+		Dependencies: nil,
+		F:            ccSweep,
+	})
+}
 
 func testAccClientPreCheck(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {

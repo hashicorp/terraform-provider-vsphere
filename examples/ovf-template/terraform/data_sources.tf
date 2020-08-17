@@ -1,7 +1,7 @@
 // example_datacenter looks up the datacenter where all resources will be
 // placed.
 data "vsphere_datacenter" "example_datacenter" {
-  name = "${var.datacenter}"
+  name = "${data.vsphere_datacenter.rootdc1.name}"
 }
 
 // example_hosts looks up the IDs for the hosts that will be used during

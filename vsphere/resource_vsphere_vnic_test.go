@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"github.com/vmware/govmomi"
 	"os"
 	"strconv"
@@ -41,6 +42,7 @@ func generateSteps(cfgFunc genTfConfig, netstack string) []resource.TestStep {
 func TestAccResourceVSphereVNic_dvs(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -52,6 +54,7 @@ func TestAccResourceVSphereVNic_dvs(t *testing.T) {
 func TestAccResourceVSphereVNic_dvs_vmotion(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -63,6 +66,7 @@ func TestAccResourceVSphereVNic_dvs_vmotion(t *testing.T) {
 func TestAccResourceVSphereVNic_hvs(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -87,6 +91,7 @@ func TestAccResourceVSphereVNic_hvs(t *testing.T) {
 func TestAccResourceVSphereVNic_hvs_vmotion(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -256,13 +261,11 @@ func nicExists(client *govmomi.Client, nicId string) (bool, error) {
 
 func testAccVSphereVNicConfig_hvs(netConfig string) string {
 	return fmt.Sprintf(`
-	data "vsphere_datacenter" "dc" {
-	  name = "%s"
-	}
-	
+%s
+
 	data "vsphere_host" "h1" {
 	  name          = "%s"
-	  datacenter_id = data.vsphere_datacenter.dc.id
+	  datacenter_id = data.vsphere_datacenter.rootdc1.id
 	}
 	
 	
@@ -285,7 +288,7 @@ func testAccVSphereVNicConfig_hvs(netConfig string) string {
 	  portgroup = vsphere_host_port_group.p1.name
 	  %s
 	}
-	`, os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+	`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI_HOST3"),
 		os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"),
 		os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"),
@@ -296,19 +299,17 @@ func testAccVSphereVNicConfig_hvs(netConfig string) string {
 
 func testAccVSphereVNicConfig_dvs(netConfig string) string {
 	return fmt.Sprintf(`
-	data "vsphere_datacenter" "dc" {
-	  name = "%s"
-	}
-	
+%s
+
 	data "vsphere_host" "h1" {
 	  name          = "%s"
-	  datacenter_id = data.vsphere_datacenter.dc.id
+	  datacenter_id = data.vsphere_datacenter.rootdc1.id
 	}
 	
 	
 	resource "vsphere_distributed_virtual_switch" "d1" {
 	  name          = "hashi-dc_DVPG0"
-	  datacenter_id = data.vsphere_datacenter.dc.id
+	  datacenter_id = data.vsphere_datacenter.rootdc1.id
 	  host {
 		host_system_id = data.vsphere_host.h1.id
 		devices        = ["%s"]
@@ -327,8 +328,8 @@ func testAccVSphereVNicConfig_dvs(netConfig string) string {
 	  distributed_port_group  = vsphere_distributed_port_group.p1.id
 	  %s
 	}
-	`, os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+	`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"),
 		netConfig)
 }

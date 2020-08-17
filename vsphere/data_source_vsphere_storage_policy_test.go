@@ -13,6 +13,7 @@ import (
 func skipTestAccDataSourceVSphereStoragePolicy_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccDataSourceVSphereStoragePolicyPreCheck(t)
 			testAccSkipIfEsxi(t)

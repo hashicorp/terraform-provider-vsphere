@@ -3,7 +3,7 @@ package vsphere
 import (
 	"context"
 	"fmt"
-	"os"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"regexp"
 	"testing"
 
@@ -14,7 +14,7 @@ import (
 	"github.com/vmware/govmomi/object"
 )
 
-const testAccResourceVSphereFolderConfigExpectedName = "terraform-test-folder"
+const testAccResourceVSphereFolderConfigExpectedName = "testacc-folder"
 const testAccResourceVSphereFolderConfigExpectedAltName = "terraform-renamed-folder"
 const testAccResourceVSphereFolderConfigExpectedParentName = "terraform-test-parent"
 const testAccResourceVSphereFolderConfigOOBName = "terraform-test-oob"
@@ -22,6 +22,7 @@ const testAccResourceVSphereFolderConfigOOBName = "terraform-test-oob"
 func TestAccResourceVSphereFolder_vmFolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -66,6 +67,7 @@ func TestAccResourceVSphereFolder_vmFolder(t *testing.T) {
 func TestAccResourceVSphereFolder_datastoreFolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -89,6 +91,7 @@ func TestAccResourceVSphereFolder_datastoreFolder(t *testing.T) {
 func TestAccResourceVSphereFolder_networkFolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -112,6 +115,7 @@ func TestAccResourceVSphereFolder_networkFolder(t *testing.T) {
 func TestAccResourceVSphereFolder_hostFolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -135,6 +139,7 @@ func TestAccResourceVSphereFolder_hostFolder(t *testing.T) {
 func TestAccResourceVSphereFolder_datacenterFolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -158,6 +163,7 @@ func TestAccResourceVSphereFolder_datacenterFolder(t *testing.T) {
 func TestAccResourceVSphereFolder_rename(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -192,6 +198,7 @@ func TestAccResourceVSphereFolder_rename(t *testing.T) {
 func TestAccResourceVSphereFolder_subfolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -216,6 +223,7 @@ func TestAccResourceVSphereFolder_subfolder(t *testing.T) {
 func TestAccResourceVSphereFolder_moveToSubfolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -252,6 +260,7 @@ func TestAccResourceVSphereFolder_moveToSubfolder(t *testing.T) {
 func TestAccResourceVSphereFolder_tags(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -263,7 +272,7 @@ func TestAccResourceVSphereFolder_tags(t *testing.T) {
 					testAccResourceVSphereFolderExists(true),
 					testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
 					testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
-					testAccResourceVSphereFolderCheckTags("terraform-test-tag"),
+					testAccResourceVSphereFolderCheckTags("testacc-tag"),
 				),
 			},
 		},
@@ -273,6 +282,7 @@ func TestAccResourceVSphereFolder_tags(t *testing.T) {
 func TestAccResourceVSphereFolder_modifyTags(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -284,7 +294,7 @@ func TestAccResourceVSphereFolder_modifyTags(t *testing.T) {
 					testAccResourceVSphereFolderExists(true),
 					testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
 					testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
-					testAccResourceVSphereFolderCheckTags("terraform-test-tag"),
+					testAccResourceVSphereFolderCheckTags("testacc-tag"),
 				),
 			},
 			{
@@ -293,7 +303,7 @@ func TestAccResourceVSphereFolder_modifyTags(t *testing.T) {
 					testAccResourceVSphereFolderExists(true),
 					testAccResourceVSphereFolderHasName(testAccResourceVSphereFolderConfigExpectedName),
 					testAccResourceVSphereFolderHasType(folder.VSphereFolderTypeVM),
-					testAccResourceVSphereFolderCheckTags("terraform-test-tags-alt"),
+					testAccResourceVSphereFolderCheckTags("testacc-tags-alt"),
 				),
 			},
 		},
@@ -303,6 +313,7 @@ func TestAccResourceVSphereFolder_modifyTags(t *testing.T) {
 func TestAccResourceVSphereFolder_modifyTagsMultiStage(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -339,6 +350,7 @@ func TestAccResourceVSphereFolder_modifyTagsMultiStage(t *testing.T) {
 func TestAccResourceVSphereFolder_customAttributes(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -360,6 +372,7 @@ func TestAccResourceVSphereFolder_customAttributes(t *testing.T) {
 func TestAccResourceVSphereFolder_modifyCustomAttributes(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -390,6 +403,7 @@ func TestAccResourceVSphereFolder_modifyCustomAttributes(t *testing.T) {
 func TestAccResourceVSphereFolder_removeAllCustomAttributes(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -422,6 +436,7 @@ func TestAccResourceVSphereFolder_preventDeleteIfNotEmpty(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -637,9 +652,7 @@ func testAccResourceVSphereFolderDeleteOOB(s *terraform.State) error {
 
 func testAccResourceVSphereFolderConfigBasic(name string, ft folder.VSphereFolderType) string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "folder_name" {
   default = "%s"
@@ -649,17 +662,13 @@ variable "folder_type" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
 resource "vsphere_folder" "folder" {
   path          = "${var.folder_name}"
   type          = "${var.folder_type}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		name,
 		ft,
 	)
@@ -667,9 +676,7 @@ resource "vsphere_folder" "folder" {
 
 func testAccResourceVSphereFolderConfigSubFolder(name string, ft folder.VSphereFolderType) string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "folder_name" {
   default = "%s"
@@ -683,23 +690,19 @@ variable "parent_name" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
 resource "vsphere_folder" "parent" {
   path          = "${var.parent_name}"
   type          = "${var.folder_type}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_folder" "folder" {
   path          = "${vsphere_folder.parent.path}/${var.folder_name}"
   type          = "${var.folder_type}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		name,
 		ft,
 		testAccResourceVSphereFolderConfigExpectedParentName,
@@ -728,9 +731,7 @@ resource "vsphere_folder" "folder" {
 
 func testAccResourceVSphereFolderConfigTag() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "folder_name" {
   default = "%s"
@@ -740,12 +741,8 @@ variable "folder_type" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-tag-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-tag-category"
   cardinality = "MULTIPLE"
 
   associable_types = [
@@ -753,19 +750,19 @@ resource "vsphere_tag_category" "terraform-test-category" {
   ]
 }
 
-resource "vsphere_tag" "terraform-test-tag" {
-  name        = "terraform-test-tag"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+resource "vsphere_tag" "testacc-tag" {
+  name        = "testacc-tag"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
 resource "vsphere_folder" "folder" {
   path          = "${var.folder_name}"
   type          = "${var.folder_type}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-  tags          = ["${vsphere_tag.terraform-test-tag.id}"]
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  tags          = ["${vsphere_tag.testacc-tag.id}"]
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		testAccResourceVSphereFolderConfigExpectedName,
 		folder.VSphereFolderTypeVM,
 	)
@@ -773,9 +770,7 @@ resource "vsphere_folder" "folder" {
 
 func testAccResourceVSphereFolderConfigAllTag() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "folder_name" {
   default = "%s"
@@ -792,12 +787,8 @@ variable "extra_tags" {
   ]
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-tag-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-tag-category"
   cardinality = "MULTIPLE"
 
   associable_types = [
@@ -805,25 +796,25 @@ resource "vsphere_tag_category" "terraform-test-category" {
   ]
 }
 
-resource "vsphere_tag" "terraform-test-tag" {
-  name        = "terraform-test-tag"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+resource "vsphere_tag" "testacc-tag" {
+  name        = "testacc-tag"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
-resource "vsphere_tag" "terraform-test-tags-alt" {
+resource "vsphere_tag" "testacc-tags-alt" {
   count       = "${length(var.extra_tags)}"
   name        = "${var.extra_tags[count.index]}"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
 resource "vsphere_folder" "folder" {
   path          = "${var.folder_name}"
   type          = "${var.folder_type}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-  tags          = ["${vsphere_tag.terraform-test-tag.id}", "${vsphere_tag.terraform-test-tags-alt.0.id}", "${vsphere_tag.terraform-test-tags-alt.1.id}"]
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  tags          = ["${vsphere_tag.testacc-tag.id}", "${vsphere_tag.testacc-tags-alt.0.id}", "${vsphere_tag.testacc-tags-alt.1.id}"]
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		testAccResourceVSphereFolderConfigExpectedName,
 		folder.VSphereFolderTypeVM,
 	)
@@ -831,9 +822,7 @@ resource "vsphere_folder" "folder" {
 
 func testAccResourceVSphereFolderConfigMultiTag() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "folder_name" {
   default = "%s"
@@ -850,12 +839,8 @@ variable "extra_tags" {
   ]
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-tag-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-tag-category"
   cardinality = "MULTIPLE"
 
   associable_types = [
@@ -863,25 +848,25 @@ resource "vsphere_tag_category" "terraform-test-category" {
   ]
 }
 
-resource "vsphere_tag" "terraform-test-tag" {
-  name        = "terraform-test-tag"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+resource "vsphere_tag" "testacc-tag" {
+  name        = "testacc-tag"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
-resource "vsphere_tag" "terraform-test-tags-alt" {
+resource "vsphere_tag" "testacc-tags-alt" {
   count       = "${length(var.extra_tags)}"
   name        = "${var.extra_tags[count.index]}"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
 resource "vsphere_folder" "folder" {
   path          = "${var.folder_name}"
   type          = "${var.folder_type}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-  tags          = "${vsphere_tag.terraform-test-tags-alt.*.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  tags          = "${vsphere_tag.testacc-tags-alt.*.id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		testAccResourceVSphereFolderConfigExpectedName,
 		folder.VSphereFolderTypeVM,
 	)
@@ -889,9 +874,7 @@ resource "vsphere_folder" "folder" {
 
 func testAccResourceVSphereFolderCustomAttribute() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "folder_name" {
   default = "%s"
@@ -901,29 +884,25 @@ variable "folder_type" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_custom_attribute" "terraform-test-attribute" {
-  name                = "terraform-test-attribute"
+resource "vsphere_custom_attribute" "testacc-attribute" {
+  name                = "testacc-attribute"
   managed_object_type = "Folder"
 }
 
 locals {
   folder_attrs = {
-    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
+    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
   }
 }
 
 resource "vsphere_folder" "folder" {
   path          = "${var.folder_name}"
   type          = "${var.folder_type}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
   custom_attributes = "${local.folder_attrs}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		testAccResourceVSphereFolderConfigExpectedName,
 		folder.VSphereFolderTypeVM,
 	)
@@ -931,9 +910,7 @@ resource "vsphere_folder" "folder" {
 
 func testAccResourceVSphereFolderMultiCustomAttributes() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "folder_name" {
   default = "%s"
@@ -943,35 +920,31 @@ variable "folder_type" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_custom_attribute" "terraform-test-attribute" {
-  name                = "terraform-test-attribute"
+resource "vsphere_custom_attribute" "testacc-attribute" {
+  name                = "testacc-attribute"
   managed_object_type = "Folder"
 }
 
-resource "vsphere_custom_attribute" "terraform-test-attribute-2" {
-  name                = "terraform-test-attribute-2"
+resource "vsphere_custom_attribute" "testacc-attribute-2" {
+  name                = "testacc-attribute-2"
   managed_object_type = "Folder"
 }
 
 locals {
   folder_attrs = {
-    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
-    "${vsphere_custom_attribute.terraform-test-attribute-2.id}" = "value-2"
+    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
+    "${vsphere_custom_attribute.testacc-attribute-2.id}" = "value-2"
   }
 }
 
 resource "vsphere_folder" "folder" {
   path          = "${var.folder_name}"
   type          = "${var.folder_type}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
   custom_attributes = "${local.folder_attrs}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		testAccResourceVSphereFolderConfigExpectedName,
 		folder.VSphereFolderTypeVM,
 	)
@@ -979,9 +952,7 @@ resource "vsphere_folder" "folder" {
 
 func testAccResourceVSphereFolderRemovedCustomAttributes() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "folder_name" {
   default = "%s"
@@ -991,27 +962,23 @@ variable "folder_type" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-resource "vsphere_custom_attribute" "terraform-test-attribute" {
-  name                = "terraform-test-attribute"
+resource "vsphere_custom_attribute" "testacc-attribute" {
+  name                = "testacc-attribute"
   managed_object_type = "Folder"
 }
 
-resource "vsphere_custom_attribute" "terraform-test-attribute-2" {
-  name                = "terraform-test-attribute-2"
+resource "vsphere_custom_attribute" "testacc-attribute-2" {
+  name                = "testacc-attribute-2"
   managed_object_type = "Folder"
 }
 
 resource "vsphere_folder" "folder" {
   path          = "${var.folder_name}"
   type          = "${var.folder_type}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		testAccResourceVSphereFolderConfigExpectedName,
 		folder.VSphereFolderTypeVM,
 	)

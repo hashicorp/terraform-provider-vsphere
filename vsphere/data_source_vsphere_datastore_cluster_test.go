@@ -2,7 +2,7 @@ package vsphere
 
 import (
 	"fmt"
-	"os"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -11,6 +11,7 @@ import (
 func TestAccDataSourceVSphereDatastoreCluster_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
@@ -32,6 +33,7 @@ func TestAccDataSourceVSphereDatastoreCluster_basic(t *testing.T) {
 func TestAccDataSourceVSphereDatastoreCluster_absolutePathNoDatacenter(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
@@ -52,17 +54,11 @@ func TestAccDataSourceVSphereDatastoreCluster_absolutePathNoDatacenter(t *testin
 
 func testAccDataSourceVSphereDatastoreClusterConfigBasic() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
+%s
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
-  name          = "terraform-datastore-cluster-test"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-datastore-cluster"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 data "vsphere_datastore_cluster" "datastore_cluster_data" {
@@ -70,29 +66,23 @@ data "vsphere_datastore_cluster" "datastore_cluster_data" {
   datacenter_id = "${vsphere_datastore_cluster.datastore_cluster.datacenter_id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccDataSourceVSphereDatastoreClusterConfigAbsolutePath() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
+%s
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
-  name          = "terraform-datastore-cluster-test"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-datastore-cluster"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 data "vsphere_datastore_cluster" "datastore_cluster_data" {
-  name          = "/${var.datacenter}/datastore/${vsphere_datastore_cluster.datastore_cluster.name}"
+  name          = "/${data.vsphere_datacenter.rootdc1.name}/datastore/${vsphere_datastore_cluster.datastore_cluster.name}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }

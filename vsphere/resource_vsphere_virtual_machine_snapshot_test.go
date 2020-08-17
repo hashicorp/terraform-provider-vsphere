@@ -3,6 +3,7 @@ package vsphere
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 func TestAccResourceVSphereVirtualMachineSnapshot_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachineSnapshotPreCheck(t)
 		},
@@ -140,17 +142,7 @@ func testAccCheckVirtualMachineHasNoSnapshots(n string) resource.TestCheckFunc {
 
 func testAccResourceVSphereVirtualMachineSnapshotConfig(enabled bool) string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
-
-variable "resource_pool" {
-  default = "%s"
-}
-
-variable "network_label" {
-  default = "%s"
-}
+%s
 
 variable "ipv4_address" {
   default = "%s"
@@ -164,10 +156,6 @@ variable "ipv4_gateway" {
   default = "%s"
 }
 
-variable "datastore" {
-  default = "%s"
-}
-
 variable "template" {
   default = "%s"
 }
@@ -176,41 +164,27 @@ variable "snapshot_enabled" {
   default = "%t"
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
-data "vsphere_datastore" "datastore" {
-  name          = "${var.datastore}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
 data "vsphere_resource_pool" "pool" {
   name          = "${var.resource_pool}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_network" "network" {
-  name          = "${var.network_label}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 data "vsphere_virtual_machine" "template" {
   name          = "${var.template}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_virtual_machine" "vm" {
-  name             = "terraform-test"
-  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  name             = "testacc-test"
+  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
+  datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus = 2
   memory   = 1024
   guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
 
   network_interface {
-    network_id   = "${data.vsphere_network.network.id}"
+    network_id   = "${data.vsphere_network.network1.id}"
     adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
   }
 
@@ -223,11 +197,7 @@ resource "vsphere_virtual_machine" "vm" {
     template_uuid = "${data.vsphere_virtual_machine.template.id}"
     linked_clone  = true
 
-    customize {
-      linux_options {
-        host_name = "terraform-test"
-        domain    = "test.internal"
-      }
+
 
       network_interface {
         ipv4_address = "${var.ipv4_address}"
@@ -248,13 +218,10 @@ resource "vsphere_virtual_machine_snapshot" "snapshot" {
   quiesce              = true
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL"),
-		os.Getenv("TF_VAR_VSPHERE_NETWORK_LABEL"),
 		os.Getenv("TF_VAR_VSPHERE_IPV4_ADDRESS"),
 		os.Getenv("TF_VAR_VSPHERE_IPV4_PREFIX"),
 		os.Getenv("TF_VAR_VSPHERE_IPV4_GATEWAY"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 		enabled,
 	)

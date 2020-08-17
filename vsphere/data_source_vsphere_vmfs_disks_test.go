@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 func TestAccDataSourceVSphereVmfsDisks_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccDataSourceVSphereVmfsDisksPreCheck(t)
 		},
@@ -20,7 +22,7 @@ func TestAccDataSourceVSphereVmfsDisks_basic(t *testing.T) {
 			{
 				Config: testAccDataSourceVSphereVmfsDisksConfig(),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckOutputBool("found", true),
+					testCheckOutputBool("found", "true"),
 				),
 			},
 		},
@@ -34,7 +36,7 @@ func testAccDataSourceVSphereVmfsDisksPreCheck(t *testing.T) {
 }
 
 // testCheckOutputBool checks an output in the Terraform configuration
-func testCheckOutputBool(name string, value bool) resource.TestCheckFunc {
+func testCheckOutputBool(name string, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		ms := s.RootModule()
 		rs, ok := ms.Outputs[name]
@@ -42,7 +44,7 @@ func testCheckOutputBool(name string, value bool) resource.TestCheckFunc {
 			return fmt.Errorf("Not found: %s", name)
 		}
 
-		if rs.Value != value {
+		if rs.Value.(string) != value {
 			return fmt.Errorf(
 				"Output '%s': expected %#v, got %#v",
 				name,
@@ -56,13 +58,11 @@ func testCheckOutputBool(name string, value bool) resource.TestCheckFunc {
 
 func testAccDataSourceVSphereVmfsDisksConfig() string {
 	return fmt.Sprintf(`
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 data "vsphere_vmfs_disks" "available" {
@@ -74,7 +74,7 @@ output "found" {
   value = "${length(data.vsphere_vmfs_disks.available.disks) >= 1 ? "true" : "false" }"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
 	)
 }

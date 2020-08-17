@@ -3,6 +3,7 @@ package vsphere
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"regexp"
 	"testing"
@@ -14,6 +15,7 @@ import (
 func TestAccResourceVSphereHostVirtualSwitch_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
 		},
@@ -49,6 +51,7 @@ func TestAccResourceVSphereHostVirtualSwitch_basic(t *testing.T) {
 func TestAccResourceVSphereHostVirtualSwitch_removeNIC(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
 		},
@@ -74,6 +77,7 @@ func TestAccResourceVSphereHostVirtualSwitch_removeNIC(t *testing.T) {
 func TestAccResourceVSphereHostVirtualSwitch_noNICs(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
 		},
@@ -94,6 +98,7 @@ func TestAccResourceVSphereHostVirtualSwitch_noNICs(t *testing.T) {
 func TestAccResourceVSphereHostVirtualSwitch_badActiveNICList(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
 		},
@@ -116,6 +121,7 @@ func TestAccResourceVSphereHostVirtualSwitch_badActiveNICList(t *testing.T) {
 func TestAccResourceVSphereHostVirtualSwitch_badStandbyNICList(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
 		},
@@ -138,6 +144,7 @@ func TestAccResourceVSphereHostVirtualSwitch_badStandbyNICList(t *testing.T) {
 func TestAccResourceVSphereHostVirtualSwitch_removeAllNICs(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
 		},
@@ -241,9 +248,7 @@ variable "host_nic0" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -260,7 +265,7 @@ resource "vsphere_host_virtual_switch" "switch" {
   standby_nics = []
 }
 `, os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }
 
@@ -270,9 +275,7 @@ variable "host_nic0" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -289,7 +292,7 @@ resource "vsphere_host_virtual_switch" "switch" {
   standby_nics = []
 }
 `, os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }
 
@@ -299,9 +302,7 @@ variable "host_nic0" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -318,7 +319,7 @@ resource "vsphere_host_virtual_switch" "switch" {
   standby_nics = []
 }
 `, os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }
 
@@ -328,9 +329,7 @@ variable "host_nic0" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -347,7 +346,7 @@ resource "vsphere_host_virtual_switch" "switch" {
   standby_nics = []
 }
 `, os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }
 
@@ -357,9 +356,7 @@ variable "host_nic0" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -376,6 +373,6 @@ resource "vsphere_host_virtual_switch" "switch" {
   standby_nics = ["${var.host_nic0}"]
 }
 `, os.Getenv("TF_VAR_VSPHERE_ESXI_TRUNK_NIC"),
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }

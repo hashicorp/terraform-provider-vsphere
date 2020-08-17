@@ -1,0 +1,203 @@
+variable "VSPHERE_LICENSE" {
+}
+
+variable "VSPHERE_DATACENTER" {
+}
+  
+variable "VSPHERE_CLUSTER" {                    
+}
+
+variable "VSPHERE_ESXI_TRUNK_NIC" {
+}
+
+variable "VSPHERE_RESOURCE_POOL" {
+}
+
+variable "VSPHERE_DVS_NAME" {
+}
+    
+variable "VSPHERE_NFS_DS_NAME" {
+}
+  
+variable "VSPHERE_PG_NAME" {
+}
+   
+variable "VSPHERE_TEMPLATE" {}
+
+variable "PACKET_AUTH" {}
+
+variable "PACKET_PROJECT" {}
+
+variable "PRIV_KEY" {}
+
+provider "packet" {
+  auth_token = var.PACKET_AUTH
+}
+
+locals {
+  project_id = var.PACKET_PROJECT
+}
+
+provider "vsphere" {
+  user                 = "administrator@vcenter.vspheretest.internal"
+  password             = "Password123!"
+  vsphere_server       = cidrhost("${data.packet_device.esxi1.network.0.address}/${data.packet_device.esxi1.network.0.cidr}",3)
+  allow_unverified_ssl = true
+}
+
+data "packet_device" "esxi1" {
+  project_id = local.project_id
+  hostname       = "esxi1.vspheretest.internal"
+}
+
+
+resource "packet_device" "esxi1" {
+  hostname         = "esxi1.vspheretest.internal"
+  plan             = "c3.medium.x86"
+  facilities         = ["sjc1"]
+  operating_system = "vmware_esxi_6_7"
+  billing_cycle    = "hourly"
+  project_id       = local.project_id
+}
+
+resource "packet_device_network_type" "esxi1" {
+  device_id = packet_device.esxi1.id
+  type = "hybrid"
+}
+
+resource "packet_device" "esxi2" {
+  hostname         = "esxi2.vspheretest.internal"
+  plan             = "c3.medium.x86"
+  facilities         = ["sjc1"]
+  operating_system = "vmware_esxi_6_7"
+  billing_cycle    = "hourly"
+  project_id       = local.project_id
+}
+
+resource "packet_device_network_type" "esxi2" {
+  device_id = packet_device.esxi2.id
+  type = "hybrid"
+}
+
+resource "packet_device" "storage1" {
+  hostname         = "storage1.vspheretest.internal"
+  plan             = "c1.small.x86"
+  facilities         = ["sjc1"]
+  operating_system = "ubuntu_20_04"
+  billing_cycle    = "hourly"
+  project_id       = local.project_id
+  provisioner "remote-exec" {
+    inline = [
+      "mkdir /nfs",
+      "apt-get update",
+      "apt-get install nfs-common nfs-kernel-server -y",
+      "echo \"/nfs *(rw,no_root_squash)\" > /etc/exports",
+      "exportfs -a",
+    ]
+    connection {
+      host = packet_device.storage1.network.0.address
+      private_key = var.PRIV_KEY
+    }
+  }
+}
+
+data "packet_precreated_ip_block" "private" {
+  facility         = "sjc1"
+  project_id       = local.project_id
+  address_family   = 4
+  public           = false
+}
+
+data "packet_precreated_ip_block" "public" {
+  facility         = "sjc1"
+  project_id       = local.project_id
+  address_family   = 4
+  public           = true
+}
+
+resource "vsphere_resource_pool" "pool" {
+  name                    = var.VSPHERE_RESOURCE_POOL
+  parent_resource_pool_id = vsphere_compute_cluster.compute_cluster.resource_pool_id
+}
+
+resource "vsphere_nas_datastore" "ds" {
+  name            = var.VSPHERE_NFS_DS_NAME
+  host_system_ids = [vsphere_host.host1.id, vsphere_host.host2.id]
+  type            = "NFS"
+  remote_hosts    = [packet_device.storage1.network.0.address]
+  remote_path     = "/nfs"
+}
+
+resource "vsphere_distributed_virtual_switch" "dvs" {
+  name          = var.VSPHERE_DVS_NAME
+  datacenter_id = vsphere_datacenter.dc.moid
+
+  uplinks         = ["uplink1", "uplink2"]
+  active_uplinks  = ["uplink1"]
+  standby_uplinks = ["uplink2"]
+
+  host {
+    host_system_id = vsphere_host.host1.id
+    devices        = [var.VSPHERE_ESXI_TRUNK_NIC]
+  }
+
+  host {
+    host_system_id = vsphere_host.host2.id
+    devices        = [var.VSPHERE_ESXI_TRUNK_NIC]
+  }
+}
+
+resource "vsphere_distributed_port_group" "pg" {
+  name                            = var.VSPHERE_PG_NAME
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.dvs.id
+
+  //vlan_id = var.VSPHERE_PXE_VLAN
+}
+
+
+resource "vsphere_datacenter" "dc" {
+  name = var.VSPHERE_DATACENTER
+}
+resource "vsphere_license" "license" {
+  license_key = var.VSPHERE_LICENSE
+}
+
+data "vsphere_host_thumbprint" "esxi1" {  
+  address  = packet_device.esxi1.network.0.address
+  insecure = true
+}  
+
+data "vsphere_host_thumbprint" "esxi2" {  
+  address  = packet_device.esxi2.network.0.address
+  insecure = true
+}  
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name          = var.VSPHERE_CLUSTER
+  datacenter_id = vsphere_datacenter.dc.moid
+  host_managed  = true
+
+  drs_enabled          = true
+  drs_automation_level = "manual"
+  ha_enabled = false
+}
+
+resource "vsphere_host" "host1" {
+  hostname   = packet_device.esxi1.network.0.address
+  username   = "root"
+  password   = packet_device.esxi1.root_password
+  license    = vsphere_license.license.license_key
+  force      = true
+  cluster    = vsphere_compute_cluster.compute_cluster.id
+  thumbprint = data.vsphere_host_thumbprint.esxi1.id
+}
+
+resource "vsphere_host" "host2" {
+  hostname   = packet_device.esxi2.network.0.address
+  username   = "root"
+  password   = packet_device.esxi2.root_password
+  license    = vsphere_license.license.license_key
+  force      = true
+  cluster    = vsphere_compute_cluster.compute_cluster.id
+  thumbprint = data.vsphere_host_thumbprint.esxi2.id
+}

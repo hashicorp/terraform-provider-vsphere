@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"strings"
 	"testing"
 
@@ -15,6 +15,7 @@ import (
 func TestAccResourceVSphereTag_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -24,21 +25,21 @@ func TestAccResourceVSphereTag_basic(t *testing.T) {
 				Config: testAccResourceVSphereTagConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereTagExists(true),
-					testAccResourceVSphereTagHasName("terraform-test-tag"),
+					testAccResourceVSphereTagHasName("testacc-tag"),
 					testAccResourceVSphereTagHasDescription("Managed by Terraform"),
 					testAccResourceVSphereTagHasCategory(),
 				),
 			},
 			{
-				ResourceName:      "vsphere_tag.terraform-test-tag",
+				ResourceName:      "vsphere_tag.testacc-tag",
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					cat, err := testGetTagCategory(s, "terraform-test-category")
+					cat, err := testGetTagCategory(s, "testacc-category")
 					if err != nil {
 						return "", err
 					}
-					tag, err := testGetTag(s, "terraform-test-tag")
+					tag, err := testGetTag(s, "testacc-tag")
 					if err != nil {
 						return "", err
 					}
@@ -64,6 +65,7 @@ func TestAccResourceVSphereTag_basic(t *testing.T) {
 func TestAccResourceVSphereTag_changeName(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -79,7 +81,7 @@ func TestAccResourceVSphereTag_changeName(t *testing.T) {
 				Config: testAccResourceVSphereTagConfigAltName,
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereTagExists(true),
-					testAccResourceVSphereTagHasName("terraform-test-tag-renamed"),
+					testAccResourceVSphereTagHasName("testacc-tag-renamed"),
 				),
 			},
 		},
@@ -89,6 +91,7 @@ func TestAccResourceVSphereTag_changeName(t *testing.T) {
 func TestAccResourceVSphereTag_changeDescription(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -114,6 +117,7 @@ func TestAccResourceVSphereTag_changeDescription(t *testing.T) {
 func TestAccResourceVSphereTag_detachAllTags(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -138,7 +142,7 @@ func TestAccResourceVSphereTag_detachAllTags(t *testing.T) {
 
 func testAccResourceVSphereTagExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		_, err := testGetTag(s, "terraform-test-tag")
+		_, err := testGetTag(s, "testacc-tag")
 		if err != nil {
 			if strings.Contains(err.Error(), "404 Not Found") && !expected {
 				// Expected missing
@@ -155,7 +159,7 @@ func testAccResourceVSphereTagExists(expected bool) resource.TestCheckFunc {
 
 func testAccResourceVSphereTagHasName(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		tag, err := testGetTag(s, "terraform-test-tag")
+		tag, err := testGetTag(s, "testacc-tag")
 		if err != nil {
 			return err
 		}
@@ -169,7 +173,7 @@ func testAccResourceVSphereTagHasName(expected string) resource.TestCheckFunc {
 
 func testAccResourceVSphereTagHasDescription(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		tag, err := testGetTag(s, "terraform-test-tag")
+		tag, err := testGetTag(s, "testacc-tag")
 		if err != nil {
 			return err
 		}
@@ -183,11 +187,11 @@ func testAccResourceVSphereTagHasDescription(expected string) resource.TestCheck
 
 func testAccResourceVSphereTagHasCategory() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		tag, err := testGetTag(s, "terraform-test-tag")
+		tag, err := testGetTag(s, "testacc-tag")
 		if err != nil {
 			return err
 		}
-		category, err := testGetTagCategory(s, "terraform-test-category")
+		category, err := testGetTagCategory(s, "testacc-category")
 		if err != nil {
 			return err
 		}
@@ -202,8 +206,8 @@ func testAccResourceVSphereTagHasCategory() resource.TestCheckFunc {
 }
 
 const testAccResourceVSphereTagConfigBasic = `
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-category"
   cardinality = "SINGLE"
 
   associable_types = [
@@ -211,16 +215,16 @@ resource "vsphere_tag_category" "terraform-test-category" {
   ]
 }
 
-resource "vsphere_tag" "terraform-test-tag" {
-  name        = "terraform-test-tag"
+resource "vsphere_tag" "testacc-tag" {
+  name        = "testacc-tag"
   description = "Managed by Terraform"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 `
 
 const testAccResourceVSphereTagConfigAltName = `
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-category"
   cardinality = "SINGLE"
 
   associable_types = [
@@ -228,16 +232,16 @@ resource "vsphere_tag_category" "terraform-test-category" {
   ]
 }
 
-resource "vsphere_tag" "terraform-test-tag" {
-  name        = "terraform-test-tag-renamed"
+resource "vsphere_tag" "testacc-tag" {
+  name        = "testacc-tag-renamed"
   description = "Managed by Terraform"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 `
 
 const testAccResourceVSphereTagConfigAltDescription = `
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-category"
   cardinality = "SINGLE"
 
   associable_types = [
@@ -245,21 +249,19 @@ resource "vsphere_tag_category" "terraform-test-category" {
   ]
 }
 
-resource "vsphere_tag" "terraform-test-tag" {
-  name        = "terraform-test-tag"
+resource "vsphere_tag" "testacc-tag" {
+  name        = "testacc-tag"
   description = "Still managed by Terraform"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 `
 
 func testAccResourceVSphereTagConfigOnFolderAttached() string {
 	return fmt.Sprintf(`
-data "vsphere_datacenter" "dc" {
-  name = "%s"
-}
+  %s
 
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-category"
   cardinality = "SINGLE"
 
   associable_types = [
@@ -267,32 +269,30 @@ resource "vsphere_tag_category" "terraform-test-category" {
   ]
 }
 
-resource "vsphere_tag" "terraform-test-tag" {
-  name        = "terraform-test-tag"
+resource "vsphere_tag" "testacc-tag" {
+  name        = "testacc-tag"
   description = "Managed by Terraform"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
 resource "vsphere_folder" "folder" {
-  path          = "terraform-test-folder"
+  path          = "testacc-folder"
   type          = "vm"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 
-  tags = ["${vsphere_tag.terraform-test-tag.id}"]
+  tags = ["${vsphere_tag.testacc-tag.id}"]
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccResourceVSphereTagConfigOnFolderNotAttached() string {
 	return fmt.Sprintf(`
-data "vsphere_datacenter" "dc" {
-  name = "%s"
-}
+%s
 
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-category"
   cardinality = "SINGLE"
 
   associable_types = [
@@ -300,18 +300,18 @@ resource "vsphere_tag_category" "terraform-test-category" {
   ]
 }
 
-resource "vsphere_tag" "terraform-test-tag" {
-  name        = "terraform-test-tag"
+resource "vsphere_tag" "testacc-tag" {
+  name        = "testacc-tag"
   description = "Managed by Terraform"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
 resource "vsphere_folder" "folder" {
-  path          = "terraform-test-folder"
+  path          = "testacc-folder"
   type          = "vm"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }

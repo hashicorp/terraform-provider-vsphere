@@ -16,6 +16,7 @@ func TestAccResourceVMStoragePolicy_basic(t *testing.T) {
 	policyName := "terraform_test_policy" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,

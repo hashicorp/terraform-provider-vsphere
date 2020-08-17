@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"path"
 	"regexp"
@@ -17,6 +18,7 @@ import (
 func TestAccResourceVSphereVmfsDatastore_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVmfsDatastorePreCheck(t)
 		},
@@ -51,6 +53,7 @@ func TestAccResourceVSphereVmfsDatastore_basic(t *testing.T) {
 func TestAccResourceVSphereVmfsDatastore_multiDisk(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVmfsDatastorePreCheck(t)
 		},
@@ -70,6 +73,7 @@ func TestAccResourceVSphereVmfsDatastore_multiDisk(t *testing.T) {
 func TestAccResourceVSphereVmfsDatastore_discoveryViaDatasource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVmfsDatastorePreCheck(t)
 		},
@@ -89,6 +93,7 @@ func TestAccResourceVSphereVmfsDatastore_discoveryViaDatasource(t *testing.T) {
 func TestAccResourceVSphereVmfsDatastore_addDisksThroughUpdate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVmfsDatastorePreCheck(t)
 		},
@@ -114,6 +119,7 @@ func TestAccResourceVSphereVmfsDatastore_addDisksThroughUpdate(t *testing.T) {
 func TestAccResourceVSphereVmfsDatastore_renameDatastore(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVmfsDatastorePreCheck(t)
 		},
@@ -140,6 +146,7 @@ func TestAccResourceVSphereVmfsDatastore_renameDatastore(t *testing.T) {
 func TestAccResourceVSphereVmfsDatastore_withFolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVmfsDatastorePreCheck(t)
 			// NOTE: This test can't run on ESXi without giving a "dangling
@@ -166,6 +173,7 @@ func TestAccResourceVSphereVmfsDatastore_withFolder(t *testing.T) {
 func TestAccResourceVSphereVmfsDatastore_moveToFolderAfter(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVmfsDatastorePreCheck(t)
 		},
@@ -193,6 +201,7 @@ func TestAccResourceVSphereVmfsDatastore_moveToFolderAfter(t *testing.T) {
 func TestAccResourceVSphereVmfsDatastore_withDatastoreCluster(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVmfsDatastorePreCheck(t)
 			testAccSkipIfEsxi(t)
@@ -214,6 +223,7 @@ func TestAccResourceVSphereVmfsDatastore_withDatastoreCluster(t *testing.T) {
 func TestAccResourceVSphereVmfsDatastore_moveToDatastoreClusterAfter(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVmfsDatastorePreCheck(t)
 		},
@@ -240,6 +250,7 @@ func TestAccResourceVSphereVmfsDatastore_moveToDatastoreClusterAfter(t *testing.
 func TestAccResourceVSphereVmfsDatastore_singleTag(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVmfsDatastorePreCheck(t)
 		},
@@ -250,7 +261,7 @@ func TestAccResourceVSphereVmfsDatastore_singleTag(t *testing.T) {
 				Config: testAccResourceVSphereVmfsDatastoreConfigTags(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVmfsDatastoreExists(true),
-					testAccResourceVSphereDatastoreCheckTags("vsphere_vmfs_datastore.datastore", "terraform-test-tag"),
+					testAccResourceVSphereDatastoreCheckTags("vsphere_vmfs_datastore.datastore", "testacc-tag"),
 				),
 			},
 		},
@@ -260,6 +271,7 @@ func TestAccResourceVSphereVmfsDatastore_singleTag(t *testing.T) {
 func TestAccResourceVSphereVmfsDatastore_modifyTags(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVmfsDatastorePreCheck(t)
 		},
@@ -270,14 +282,14 @@ func TestAccResourceVSphereVmfsDatastore_modifyTags(t *testing.T) {
 				Config: testAccResourceVSphereVmfsDatastoreConfigTags(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVmfsDatastoreExists(true),
-					testAccResourceVSphereDatastoreCheckTags("vsphere_vmfs_datastore.datastore", "terraform-test-tag"),
+					testAccResourceVSphereDatastoreCheckTags("vsphere_vmfs_datastore.datastore", "testacc-tag"),
 				),
 			},
 			{
 				Config: testAccResourceVSphereVmfsDatastoreConfigMultiTags(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVmfsDatastoreExists(true),
-					testAccResourceVSphereDatastoreCheckTags("vsphere_vmfs_datastore.datastore", "terraform-test-tags-alt"),
+					testAccResourceVSphereDatastoreCheckTags("vsphere_vmfs_datastore.datastore", "testacc-tags-alt"),
 				),
 			},
 		},
@@ -287,6 +299,7 @@ func TestAccResourceVSphereVmfsDatastore_modifyTags(t *testing.T) {
 func TestAccResourceVSphereVmfsDatastore_badDiskEntry(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVmfsDatastorePreCheck(t)
 		},
@@ -309,6 +322,7 @@ func TestAccResourceVSphereVmfsDatastore_badDiskEntry(t *testing.T) {
 func TestAccResourceVSphereVmfsDatastore_duplicateDiskEntry(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVmfsDatastorePreCheck(t)
 		},
@@ -331,6 +345,7 @@ func TestAccResourceVSphereVmfsDatastore_duplicateDiskEntry(t *testing.T) {
 func TestAccResourceVSphereVmfsDatastore_singleCustomAttribute(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVmfsDatastorePreCheck(t)
 		},
@@ -351,6 +366,7 @@ func TestAccResourceVSphereVmfsDatastore_singleCustomAttribute(t *testing.T) {
 func TestAccResourceVSphereVmfsDatastore_multiCustomAttribute(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVmfsDatastorePreCheck(t)
 		},
@@ -378,15 +394,6 @@ func TestAccResourceVSphereVmfsDatastore_multiCustomAttribute(t *testing.T) {
 func testAccResourceVSphereVmfsDatastorePreCheck(t *testing.T) {
 	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_vmfs_disks acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DS_VMFS_DISK0 to run vsphere_vmfs_datastore acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK1") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DS_VMFS_DISK1 to run vsphere_vmfs_datastore acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK2") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DS_VMFS_DISK2 to run vsphere_vmfs_datastore acceptance tests")
 	}
 	if os.Getenv("TF_VAR_VSPHERE_VMFS_REGEXP") == "" {
 		t.Skip("set TF_VAR_VSPHERE_VMFS_REGEXP to run vsphere_vmfs_datastore acceptance tests")
@@ -470,9 +477,7 @@ variable "disk0" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -480,14 +485,14 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "terraform-test"
+  name           = "testacc-test"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
   disks = [
     "${var.disk0}",
   ]
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigStaticSingleAltName() string {
@@ -497,9 +502,7 @@ variable "disk0" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -514,7 +517,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
     "${var.disk0}",
   ]
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigStaticMulti() string {
@@ -534,9 +537,7 @@ variable "disk2" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -544,7 +545,7 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "terraform-test"
+  name           = "testacc-test"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
   disks = [
@@ -553,7 +554,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
     "${var.disk2}",
   ]
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK1"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK2"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK1"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK2"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigDiscoverDatasource() string {
@@ -563,9 +564,7 @@ variable "regexp" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -579,12 +578,12 @@ data "vsphere_vmfs_disks" "available" {
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "terraform-test"
+  name           = "testacc-test"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
   disks = "${data.vsphere_vmfs_disks.available.disks}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_VMFS_REGEXP"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_VMFS_REGEXP"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigStaticSingleFolder() string {
@@ -599,9 +598,7 @@ variable "folder" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -609,7 +606,7 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "terraform-test"
+  name           = "testacc-test"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
   folder         = "${var.folder}"
 
@@ -617,7 +614,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
     "${var.disk0}",
   ]
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigTags() string {
@@ -627,17 +624,15 @@ variable "disk0" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
   datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
 }
 
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-tag-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-tag-category"
   cardinality = "MULTIPLE"
 
   associable_types = [
@@ -645,22 +640,22 @@ resource "vsphere_tag_category" "terraform-test-category" {
   ]
 }
 
-resource "vsphere_tag" "terraform-test-tag" {
-  name        = "terraform-test-tag"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+resource "vsphere_tag" "testacc-tag" {
+  name        = "testacc-tag"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "terraform-test"
+  name           = "testacc-test"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
   disks = [
     "${var.disk0}",
   ]
 
-  tags = ["${vsphere_tag.terraform-test-tag.id}"]
+  tags = ["${vsphere_tag.testacc-tag.id}"]
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigMultiTags() string {
@@ -677,17 +672,15 @@ variable "extra_tags" {
   ]
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
   datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
 }
 
-resource "vsphere_tag_category" "terraform-test-category" {
-  name        = "terraform-test-tag-category"
+resource "vsphere_tag_category" "testacc-category" {
+  name        = "testacc-tag-category"
   cardinality = "MULTIPLE"
 
   associable_types = [
@@ -695,28 +688,28 @@ resource "vsphere_tag_category" "terraform-test-category" {
   ]
 }
 
-resource "vsphere_tag" "terraform-test-tag" {
-  name        = "terraform-test-tag"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+resource "vsphere_tag" "testacc-tag" {
+  name        = "testacc-tag"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
-resource "vsphere_tag" "terraform-test-tags-alt" {
+resource "vsphere_tag" "testacc-tags-alt" {
   count       = "${length(var.extra_tags)}"
   name        = "${var.extra_tags[count.index]}"
-  category_id = "${vsphere_tag_category.terraform-test-category.id}"
+  category_id = "${vsphere_tag_category.testacc-category.id}"
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "terraform-test"
+  name           = "testacc-test"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
   disks = [
     "${var.disk0}",
   ]
 
-  tags = "${vsphere_tag.terraform-test-tags-alt.*.id}"
+  tags = "${vsphere_tag.testacc-tags-alt.*.id}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigBadDisk() string {
@@ -731,9 +724,7 @@ variable "disk1" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -741,7 +732,7 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "terraform-test"
+  name           = "testacc-test"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
   disks = [
@@ -750,7 +741,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
     "",
   ]
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK1"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK1"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigDuplicateDisk() string {
@@ -765,9 +756,7 @@ variable "disk1" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -775,7 +764,7 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "terraform-test"
+  name           = "testacc-test"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
   disks = [
@@ -784,7 +773,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
     "${var.disk1}",
   ]
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK1"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK1"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigCustomAttributes() string {
@@ -794,28 +783,26 @@ variable "disk0" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
   datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
 }
 
-resource "vsphere_custom_attribute" "terraform-test-attribute" {
-  name                = "terraform-test-attribute"
+resource "vsphere_custom_attribute" "testacc-attribute" {
+  name                = "testacc-attribute"
   managed_object_type = "Datastore"
 }
 
 locals {
   vmfs_attrs = {
-    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
+    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
   }
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "terraform-test"
+  name           = "testacc-test"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
   disks = [
@@ -824,7 +811,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 
   custom_attributes = "${local.vmfs_attrs}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigMultiCustomAttributes() string {
@@ -834,34 +821,32 @@ variable "disk0" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
   datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
 }
 
-resource "vsphere_custom_attribute" "terraform-test-attribute" {
-  name                = "terraform-test-attribute"
+resource "vsphere_custom_attribute" "testacc-attribute" {
+  name                = "testacc-attribute"
   managed_object_type = "Datastore"
 }
 
-resource "vsphere_custom_attribute" "terraform-test-attribute-2" {
-  name                = "terraform-test-attribute-2"
+resource "vsphere_custom_attribute" "testacc-attribute-2" {
+  name                = "testacc-attribute-2"
   managed_object_type = "Datastore"
 }
 
 locals {
   vmfs_attrs = {
-    "${vsphere_custom_attribute.terraform-test-attribute.id}" = "value"
-    "${vsphere_custom_attribute.terraform-test-attribute-2.id}" = "value-2"
+    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
+    "${vsphere_custom_attribute.testacc-attribute-2.id}" = "value-2"
   }
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "terraform-test"
+  name           = "testacc-test"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
   disks = [
@@ -870,7 +855,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 
   custom_attributes = "${local.vmfs_attrs}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigDatastoreCluster() string {
@@ -885,9 +870,7 @@ variable "folder" {
   default = "%s"
 }
 
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
@@ -895,12 +878,12 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
-  name          = "terraform-datastore-cluster-test"
+  name          = "testacc-datastore-cluster"
   datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name                 = "terraform-test"
+  name                 = "testacc-test"
   host_system_id       = "${data.vsphere_host.esxi_host.id}"
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
@@ -908,5 +891,5 @@ resource "vsphere_vmfs_datastore" "datastore" {
     "${var.disk0}",
   ]
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
 }

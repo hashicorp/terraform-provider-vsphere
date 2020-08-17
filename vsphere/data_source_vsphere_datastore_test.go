@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"testing"
 
@@ -11,6 +12,7 @@ import (
 func TestAccDataSourceVSphereDatastore_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccDataSourceVSphereDatastorePreCheck(t)
 		},
@@ -21,7 +23,7 @@ func TestAccDataSourceVSphereDatastore_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrPair(
 						"data.vsphere_datastore.datastore_data", "id",
-						"vsphere_nas_datastore.datastore", "id",
+						"vsphere_nas_datastore.ds1", "id",
 					),
 				),
 			},
@@ -32,6 +34,7 @@ func TestAccDataSourceVSphereDatastore_basic(t *testing.T) {
 func TestAccDataSourceVSphereDatastore_noDatacenterAndAbsolutePath(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccDataSourceVSphereDatastorePreCheck(t)
 		},
@@ -42,7 +45,7 @@ func TestAccDataSourceVSphereDatastore_noDatacenterAndAbsolutePath(t *testing.T)
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrPair(
 						"data.vsphere_datastore.datastore_data", "id",
-						"vsphere_nas_datastore.datastore", "id",
+						"vsphere_nas_datastore.ds1", "id",
 					),
 				),
 			},
@@ -61,31 +64,25 @@ func testAccDataSourceVSphereDatastorePreCheck(t *testing.T) {
 
 func testAccDataSourceVSphereDatastoreConfig() string {
 	return fmt.Sprintf(`
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_datastore" "datastore_data" {
-  name          = "%s"
-  datacenter_id = data.vsphere_datacenter.datacenter.id
+  name          = vsphere_nas_datastore.ds1.name
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
 func testAccDataSourceVSphereDatastoreConfigAbsolutePath() string {
 	return fmt.Sprintf(`
-data "vsphere_datacenter" "datacenter" {
-  name = "%s"
-}
+%s
 
 data "vsphere_datastore" "datastore_data" {
-  name = "/${data.vsphere_datacenter.datacenter.name}/datastore/%s"
+  name = "/${data.vsphere_datacenter.rootdc1.name}/datastore/${vsphere_nas_datastore.ds1.name}"
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }

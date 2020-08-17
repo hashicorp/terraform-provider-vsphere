@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"reflect"
 	"sort"
@@ -21,6 +22,7 @@ import (
 func TestAccResourceVSphereDatastoreClusterVMAntiAffinityRule_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDatastoreClusterVMAntiAffinityRulePreCheck(t)
 		},
@@ -81,6 +83,7 @@ func TestAccResourceVSphereDatastoreClusterVMAntiAffinityRule_basic(t *testing.T
 func TestAccResourceVSphereDatastoreClusterVMAntiAffinityRule_updateEnabled(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDatastoreClusterVMAntiAffinityRulePreCheck(t)
 		},
@@ -118,6 +121,7 @@ func TestAccResourceVSphereDatastoreClusterVMAntiAffinityRule_updateEnabled(t *t
 func TestAccResourceVSphereDatastoreClusterVMAntiAffinityRule_updateCount(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereDatastoreClusterVMAntiAffinityRulePreCheck(t)
 		},
@@ -156,26 +160,17 @@ func testAccResourceVSphereDatastoreClusterVMAntiAffinityRulePreCheck(t *testing
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_datastore_cluster_vm_anti_affinity_rule acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_NAS_HOST") == "" {
+	if os.Getenv("TF_VAR_VSPHERE_NAS_HOST2") == "" {
 		t.Skip("set TF_VAR_VSPHERE_NAS_HOST to run vsphere_datastore_cluster_vm_anti_affinity_rule acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_NFS_PATH") == "" {
+	if os.Getenv("TF_VAR_VSPHERE_NFS_PATH2") == "" {
 		t.Skip("set TF_VAR_VSPHERE_NFS_PATH to run vsphere_datastore_cluster_vm_anti_affinity_rule acceptance tests")
 	}
 	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_datastore_cluster_vm_anti_affinity_rule acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_ESXI_HOST2") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST2 to run vsphere_datastore_cluster_vm_anti_affinity_rule acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_ESXI_HOST3") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST3 to run vsphere_datastore_cluster_vm_anti_affinity_rule acceptance tests")
-	}
 	if os.Getenv("TF_VAR_VSPHERE_CLUSTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_CLUSTER to run vsphere_datastore_cluster_vm_anti_affinity_rule acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_PG_NAME") == "" {
-		t.Skip("set TF_VAR_VSPHERE_PG_NAME to run vsphere_datastore_cluster_vm_anti_affinity_rule acceptance tests")
 	}
 }
 
@@ -314,9 +309,7 @@ func testAccResourceVSphereDatastoreClusterVMAntiAffinityRuleGetMultiple(s *terr
 
 func testAccResourceVSphereDatastoreClusterVMAntiAffinityRuleConfig(count int, enabled bool) string {
 	return fmt.Sprintf(`
-variable "datacenter" {
-  default = "%s"
-}
+%s
 
 variable "nfs_host" {
   default = "%s"
@@ -326,53 +319,20 @@ variable "nfs_path" {
   default = "%s"
 }
 
-variable "esxi_hosts" {
-  default = [
-    "%s",
-    "%s",
-  ]
-}
-
-variable "cluster" {
-  default = "%s"
-}
-
-variable "network_label" {
-  default = "%s"
-}
-
-variable "vm_count" {
-  default = "%d"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
-}
-
 data "vsphere_host" "esxi_hosts" {
-  count         = "${length(var.esxi_hosts)}"
-  name          = "${var.esxi_hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_compute_cluster" "cluster" {
-  name          = "${var.cluster}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
-}
-
-data "vsphere_network" "network" {
-  name          = "${var.network_label}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  count         = 1
+  name          = vsphere_host.nested-esxi1.hostname
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
-  name          = "terraform-datastore-cluster-test"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "testacc-datastore-cluster"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
   sdrs_enabled  = true
 }
 
 resource "vsphere_nas_datastore" "datastore" {
-  name                 = "terraform-test-nas"
+  name                 = "testacc-nas"
   host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
@@ -384,7 +344,7 @@ resource "vsphere_nas_datastore" "datastore" {
 resource "vsphere_virtual_machine" "vm" {
   count                = "${var.vm_count}"
   name                 = "terraform-test-${count.index}"
-  resource_pool_id     = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
+  resource_pool_id     = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   num_cpus = 2
@@ -394,7 +354,7 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = "${data.vsphere_network.network1.id}"
   }
 
   disk {
@@ -412,14 +372,9 @@ resource "vsphere_datastore_cluster_vm_anti_affinity_rule" "cluster_vm_anti_affi
   enabled              = %t
 }
 `,
-		os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
-		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_PATH"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
-		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
-		os.Getenv("TF_VAR_VSPHERE_PG_NAME"),
-		count,
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigResNestedEsxi(), testhelper.ConfigDataRootDS1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigDataRootVMNet()),
+		os.Getenv("TF_VAR_VSPHERE_NAS_HOST2"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
 		enabled,
 	)
 }
