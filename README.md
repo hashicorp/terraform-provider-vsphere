@@ -24,6 +24,10 @@ website][tf-website] and the [GitHub project page][tf-github].
 
 This provider plugin is maintained by the Terraform team at [HashiCorp](https://www.hashicorp.com/).
 
+## Trending contributors
+
+[![](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/images/0)](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/links/0)[![](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/images/1)](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/links/1)[![](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/images/2)](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/links/2)[![](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/images/3)](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/links/3)[![](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/images/4)](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/links/4)[![](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/images/5)](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/links/5)[![](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/images/6)](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/links/6)[![](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/images/7)](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/links/7)
+
 ## Requirements
 -	[Terraform](https://www.terraform.io/downloads.html) 0.12.x
     - Note that version 0.11.x currently works, but is [deprecated](https://www.hashicorp.com/blog/deprecating-terraform-0-11-support-in-terraform-providers/)
