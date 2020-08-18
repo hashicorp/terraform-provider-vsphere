@@ -42,6 +42,10 @@ version of the provider.
 
 The vSphere Provider for Terraform is the work of many contributors. We appreciate your help!
 
+### Trending contributors
+
+[![](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/images/0)](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/links/0)[![](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/images/1)](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/links/1)[![](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/images/2)](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/links/2)[![](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/images/3)](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/links/3)[![](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/images/4)](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/links/4)[![](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/images/5)](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/links/5)[![](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/images/6)](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/links/6)[![](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/images/7)](https://sourcerer.io/fame/bill-rich-private/hashicorp/terraform-provider-vsphere/links/7)
+
 To contribute, please read the [contribution guidelines](_about/CONTRIBUTING.md). You may also [report an issue](https://github.com/hashicorp/terraform-provider-vsphere/issues/new/choose). Once you've filed an issue, it will follow the [issue lifecycle](_about/ISSUES.md).
 
 Also available are some answers to [Frequently Asked Questions](_about/FAQ.md).
