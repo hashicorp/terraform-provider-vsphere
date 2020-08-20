@@ -1,4 +1,14 @@
-## 1.22.1 (Unreleased)
+## 1.23.0 (Unreleased)
+
+BUG FIXES:
+* `resource/vnic`: Fix missing fields on vnic import. ([#1162](https://github.com/hashicorp/terraform-provider-vsphere/pull/1162))
+* `resource/virtual_machine`: Ignore thin_provisioned and eagerly_scrub during DiskPostCloneOperation. ([#1161](https://github.com/hashicorp/terraform-provider-vsphere/pull/1161))
+* `resource/virtual_machine`: Fix SetHardwareOptions to fetch the hardware version from QueryConfigOption. ([#1159](https://github.com/hashicorp/terraform-provider-vsphere/pull/1159))
+
+IMPROVEMENTS:
+* `resource/virtual_machine`: Allow performing a linked-clone from a template. ([#1158](https://github.com/hashicorp/terraform-provider-vsphere/pull/1158))
+* `data/virtual_machine`: Merge the virtual machine configuration schema. ([#1157](https://github.com/hashicorp/terraform-provider-vsphere/pull/1157))
+
 ## 1.22.0 (August 07, 2020)
 
 FEATURES:
