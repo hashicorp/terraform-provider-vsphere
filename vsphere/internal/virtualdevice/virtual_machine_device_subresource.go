@@ -694,18 +694,18 @@ func createSCSIController(l *object.VirtualDeviceList, ct string, st string) ([]
 // depending on if all controllers are one specific kind or not. Only the first
 // number of controllers specified by count are checked.
 func ReadSCSIBusType(l object.VirtualDeviceList, count int) string {
-	ctlrs := make([]types.BaseVirtualSCSIController, count)
+	controllers := make([]types.BaseVirtualSCSIController, count)
 	for _, dev := range l {
 		if sc, ok := dev.(types.BaseVirtualSCSIController); ok && sc.GetVirtualSCSIController().BusNumber < int32(count) {
-			ctlrs[sc.GetVirtualSCSIController().BusNumber] = sc
+			controllers[sc.GetVirtualSCSIController().BusNumber] = sc
 		}
 	}
-	log.Printf("[DEBUG] ReadSCSIBusType: SCSI controller layout for first %d controllers: %s", count, scsiControllerListString(ctlrs))
-	if len(ctlrs) == 0 {
+	log.Printf("[DEBUG] ReadSCSIBusType: SCSI controller layout for first %d controllers: %s", count, scsiControllerListString(controllers))
+	if len(controllers) == 0 || controllers[0] == nil {
 		return subresourceControllerTypeUnknown
 	}
-	last := l.Type(ctlrs[0].(types.BaseVirtualDevice))
-	for _, ctlr := range ctlrs[1:] {
+	last := l.Type(controllers[0].(types.BaseVirtualDevice))
+	for _, ctlr := range controllers[1:] {
 		if ctlr == nil || l.Type(ctlr.(types.BaseVirtualDevice)) != last {
 			return subresourceControllerTypeMixed
 		}
