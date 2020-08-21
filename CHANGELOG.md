@@ -1,5 +1,4 @@
-## 1.24.0 (Unreleased)
-## 1.23.0 (August 21, 2020)
+## 1.23.0 (Unreleased)
 
 BUG FIXES:
 * `resource/vnic`: Fix missing fields on vnic import. ([#1162](https://github.com/hashicorp/terraform-provider-vsphere/pull/1162))
