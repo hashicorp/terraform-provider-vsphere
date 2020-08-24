@@ -4,17 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/vmware/govmomi/vapi/library"
-	"github.com/vmware/govmomi/vapi/rest"
-	"github.com/vmware/govmomi/vapi/vcenter"
 	"log"
 	"net"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/vmware/govmomi/vapi/library"
+	"github.com/vmware/govmomi/vapi/rest"
+	"github.com/vmware/govmomi/vapi/vcenter"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
@@ -526,59 +530,129 @@ func Clone(c *govmomi.Client, src *object.VirtualMachine, f *object.Folder, name
 	return FromMOID(c, result.Result.(types.ManagedObjectReference).Value)
 }
 
-func DeployDest(name string, annotation string, rp *object.ResourcePool, host *object.HostSystem, folder *object.Folder, ds viapi.ManagedObject, spId string, nm []vcenter.NetworkMapping) *vcenter.Deploy {
-	rpId := ""
-	hostId := ""
-	folderId := ""
+func Deploy(d *schema.ResourceData, vimClient *govmomi.Client, restClient *rest.Client) (*types.ManagedObjectReference, error) {
+	log.Printf("[DEBUG] virtualmachine.Deploy: Deploying VM from Content Library item.")
+	// Get OVF mappings for NICs
+	nm := contentlibrary.MapNetworkDevices(d)
 
-	if rp != nil {
-		rpId = rp.Reference().Value
+	dsID := d.Get("datastore_id").(string)
+
+	spId := d.Get("storage_policy_id").(string)
+
+	m := vcenter.NewManager(restClient)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+
+	item, err := contentlibrary.ItemFromID(restClient, d.Get("clone.0.template_uuid").(string))
+	if err != nil {
+		return nil, err
 	}
-	if host != nil {
-		hostId = host.Reference().Value
+
+	resourcePool, err := resourcepool.FromID(vimClient, d.Get("resource_pool_id").(string))
+	if err != nil {
+		return nil, err
 	}
-	if folder != nil {
+
+	folderId := ""
+	if d.Get("folder").(string) != "" {
+		folder, err := folder.VirtualMachineFolderFromObject(vimClient, resourcePool, d.Get("folder").(string))
+		if err != nil {
+			return nil, err
+		}
 		folderId = folder.Reference().Value
 	}
 
-	d := vcenter.Deploy{
-		DeploymentSpec: vcenter.DeploymentSpec{
-			Name:                name,
-			Annotation:          annotation,
-			AcceptAllEULA:       true,
-			NetworkMappings:     nm,
-			StorageMappings:     nil,
-			StorageProvisioning: "",
-			StorageProfileID:    spId,
-			Locale:              "",
-			Flags:               nil,
-			AdditionalParams:    nil,
-			DefaultDatastoreID:  ds.Reference().Value,
-		},
-		Target: vcenter.Target{
-			ResourcePoolID: rpId,
-			HostID:         hostId,
-			FolderID:       folderId,
-		},
+	ref := &types.ManagedObjectReference{}
+	switch item.Type {
+	case library.ItemTypeOVF:
+		deploy := vcenter.Deploy{
+			DeploymentSpec: vcenter.DeploymentSpec{
+				Name:               d.Get("name").(string),
+				DefaultDatastoreID: d.Get("datastore_id").(string),
+				AcceptAllEULA:      true,
+				Annotation:         d.Get("annotation").(string),
+				AdditionalParams: []vcenter.AdditionalParams{
+					{
+						Class: vcenter.ClassDeploymentOptionParams,
+						Type:  vcenter.TypeDeploymentOptionParams,
+					},
+					{
+						Class:      vcenter.ClassPropertyParams,
+						Type:       vcenter.TypePropertyParams,
+						Properties: vAppProperties(d.Get("vapp.0.properties").(map[string]interface{})),
+					},
+				},
+				NetworkMappings:     nm,
+				StorageProvisioning: diskType(d),
+				StorageProfileID:    d.Get("storage_policy_id").(string),
+			},
+			Target: vcenter.Target{
+				ResourcePoolID: d.Get("resource_pool_id").(string),
+				HostID:         d.Get("host_system_id").(string),
+				FolderID:       folderId,
+			},
+		}
+		ref, err = m.DeployLibraryItem(ctx, item.ID, deploy)
+		if err != nil {
+			return nil, err
+		}
+	case library.ItemTypeVMTX:
+		storage := &vcenter.DiskStorage{
+			Datastore: dsID,
+			StoragePolicy: &vcenter.StoragePolicy{
+				Policy: spId,
+				Type:   "USE_SOURCE_POLICY",
+			},
+		}
+		if spId != "" {
+			storage.StoragePolicy.Type = "USE_SPECIFIED_POLICY"
+		}
+
+		deploy := vcenter.DeployTemplate{
+			Name:          d.Get("name").(string),
+			Description:   d.Get("annotation").(string),
+			DiskStorage:   storage,
+			VMHomeStorage: storage,
+			Placement: &vcenter.Placement{
+				ResourcePool: d.Get("resource_pool_id").(string),
+				Host:         d.Get("host_system_id").(string),
+				Folder:       folderId,
+			},
+		}
+		ref, err = m.DeployTemplateLibraryItem(ctx, item.ID, deploy)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("unsupported library item type: %s", item.Type)
 	}
-	return &d
+	return ref, nil
 }
 
-func Deploy(c *rest.Client, item *library.Item, deploy *vcenter.Deploy, timeout int) (*types.ManagedObjectReference, error) {
-	log.Printf("[DEBUG] virtualmachine.Deploy: Deploying VM from Content Library item %s", item.Name)
-	m := vcenter.NewManager(c)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*time.Duration(timeout))
-	defer cancel()
-
-	mo, err := m.DeployLibraryItem(ctx, item.ID, *deploy)
-	if err != nil {
-		if ctx.Err() == context.DeadlineExceeded {
-			err = errors.New("timeout waiting for deploy to complete")
+func vAppProperties(propertyMap map[string]interface{}) []vcenter.Property {
+	properties := []vcenter.Property{}
+	for key, value := range propertyMap {
+		property := vcenter.Property{
+			ID:    key,
+			Label: "",
+			Value: value.(string),
 		}
-		return nil, err
+		properties = append(properties, property)
 	}
-	log.Printf("[DEBUG] virtualmachine.Deploy: Successfully deployed VM from Content Library item %s", item.Name)
-	return mo, nil
+	return properties
+}
+
+func diskType(d *schema.ResourceData) string {
+	thin := d.Get("disk.0.thin_provisioned").(bool)
+	eagerlyScrub := d.Get("disk.0.eagerly_scrub").(bool)
+	switch {
+	case thin:
+		return "thin"
+	case eagerlyScrub:
+		return "eagerZeroedThick"
+	default:
+		return "thick"
+	}
 }
 
 // Customize wraps the customization of a virtual machine and the subsequent

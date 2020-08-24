@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/ovfdeploy"
 	"log"
 	"net"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/ovfdeploy"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
@@ -1488,6 +1489,7 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta interface{}) (*object.VirtualMachine, error) {
 	log.Printf("[DEBUG] %s: VM being created from clone", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*VSphereClient).vimClient
+	rclient := meta.(*VSphereClient).restClient
 
 	// Find the folder based off the path to the resource pool. Basically what we
 	// are saying here is that the VM folder that we are placing this VM in needs
@@ -1508,40 +1510,8 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	timeout := d.Get("clone.0.timeout").(int)
 	var vm *object.VirtualMachine
 	if contentlibrary.IsContentLibraryItem(meta.(*VSphereClient).restClient, d.Get("clone.0.template_uuid").(string)) {
-		// Clone source is an item from a Content Library. Prepare required resources.
 
-		// First, if a host is set, check that it is valid.
-		host := &object.HostSystem{}
-		if hid := d.Get("host_system_id").(string); hid != "" {
-			host, err = hostsystem.FromID(client, hid)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// Get OVF mappings for NICs
-		nm := contentlibrary.MapNetworkDevices(d)
-
-		// Validate the specified datastore
-		dsID := d.Get("datastore_id")
-		ds, err := datastore.FromID(client, dsID.(string))
-		if err != nil {
-			return nil, err
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		spId := d.Get("storage_policy_id").(string)
-
-		dd := virtualmachine.DeployDest(name, d.Get("annotation").(string), pool, host, fo, ds, spId, nm)
-
-		rclient := meta.(*VSphereClient).restClient
-		item, err := contentlibrary.ItemFromID(rclient, d.Get("clone.0.template_uuid").(string))
-		if err != nil {
-			return nil, err
-		}
-		vmoid, err := virtualmachine.Deploy(rclient, item, dd, 30)
+		vmoid, err := virtualmachine.Deploy(d, client, rclient)
 		if err != nil {
 			return nil, err
 		}
