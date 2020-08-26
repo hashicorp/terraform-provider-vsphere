@@ -20,7 +20,13 @@ func dataSourceVSphereContentLibraryItem() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "ID of the content library to contain item",
+				Description: "ID of the content library to contain item.",
+			},
+			"type": {
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Type of content library item.",
 			},
 		},
 	}
@@ -33,6 +39,7 @@ func dataSourceVSphereContentLibraryItemRead(d *schema.ResourceData, meta interf
 	if err != nil {
 		return provider.ProviderError(d.Get("name").(string), "dataSourceVSphereContentLibraryItemRead", err)
 	}
+	d.Set("type", item.Type)
 	d.SetId(item.ID)
 	return nil
 }
