@@ -277,13 +277,13 @@ func expandHostNetworkPolicy(d *schema.ResourceData) *types.HostNetworkPolicy {
 // flattenHostNetworkPolicy reads various fields from a HostNetworkPolicy into
 // the passed in ResourceData.
 func flattenHostNetworkPolicy(d *schema.ResourceData, obj *types.HostNetworkPolicy) error {
-	if err := flattenHostNetworkSecurityPolicy(d, obj.Security); err != nil {
+	if err := flattenHostNetworkSecurityPolicy(d, obj.Security); obj.Security != nil && err != nil {
 		return err
 	}
-	if err := flattenHostNicTeamingPolicy(d, obj.NicTeaming); err != nil {
+	if err := flattenHostNicTeamingPolicy(d, obj.NicTeaming); obj.NicTeaming != nil && err != nil {
 		return err
 	}
-	if err := flattenHostNetworkTrafficShapingPolicy(d, obj.ShapingPolicy); err != nil {
+	if err := flattenHostNetworkTrafficShapingPolicy(d, obj.ShapingPolicy); obj.ShapingPolicy != nil && err != nil {
 		return err
 	}
 	return nil
