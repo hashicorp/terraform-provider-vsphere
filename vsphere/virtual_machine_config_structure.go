@@ -323,6 +323,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 		"storage_policy_id": {
 			Type:        schema.TypeString,
 			Optional:    true,
+			Computed:    true,
 			Description: "The ID of the storage policy to assign to the virtual machine home directory.",
 		},
 		"hardware_version": {
