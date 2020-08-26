@@ -724,7 +724,7 @@ func ReadSCSIBusSharing(l object.VirtualDeviceList, count int) string {
 		}
 	}
 	log.Printf("[DEBUG] ReadSCSIBusSharing: SCSI controller layout for first %d controllers: %s", count, scsiControllerListString(ctlrs))
-	if len(ctlrs) == 0 {
+	if len(ctlrs) == 0 || ctlrs[0] == nil {
 		return subresourceControllerSharingUnknown
 	}
 	last := ctlrs[0].(types.BaseVirtualSCSIController).GetVirtualSCSIController().SharedBus
