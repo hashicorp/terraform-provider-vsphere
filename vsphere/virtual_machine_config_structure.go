@@ -219,18 +219,6 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Optional:    true,
 			Default:     1024,
 			Description: "The size of the virtual machine's memory, in MB.",
-			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-				ovf, ok := d.GetOk("ovf_deploy")
-				if !ok {
-					return false
-				}
-
-				if items, ok := ovf.([]interface{}); ok && len(items) > 0 {
-					return true
-				}
-
-				return false
-			},
 		},
 		"memory_hot_add_enabled": {
 			Type:        schema.TypeBool,
@@ -248,18 +236,6 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Type:        schema.TypeString,
 			Optional:    true,
 			Description: "User-provided description of the virtual machine.",
-			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-				ovf, ok := d.GetOk("ovf_deploy")
-				if !ok {
-					return false
-				}
-
-				if items, ok := ovf.([]interface{}); ok && len(items) > 0 && new == "" {
-					return true
-				}
-
-				return false
-			},
 		},
 		"guest_id": {
 			Type:        schema.TypeString,
