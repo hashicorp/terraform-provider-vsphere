@@ -35,6 +35,94 @@ func resourceVSphereContentLibrary() *schema.Resource {
 				Description: "The name of the content library.",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
+			"publication": {
+				Type:          schema.TypeList,
+				Optional:      true,
+				ForceNew:      true,
+				Computed:      true,
+				Description:   "Publication configuration for content library.",
+				ConflictsWith: []string{"subscription"},
+				MaxItems:      1,
+				Elem: &schema.Resource{Schema: map[string]*schema.Schema{
+					"authentication_method": {
+						Type:     schema.TypeString,
+						Optional: true,
+						ForceNew: true,
+						Default:  "NONE",
+					},
+					"username": {
+						Type:     schema.TypeString,
+						ForceNew: true,
+						Computed: true,
+						Optional: true,
+					},
+					"password": {
+						Type:     schema.TypeString,
+						ForceNew: true,
+						Computed: true,
+						Optional: true,
+					},
+					"published": {
+						Type:     schema.TypeBool,
+						ForceNew: true,
+						Optional: true,
+						Default:  false,
+					},
+					"publish_url": {
+						Type:     schema.TypeString,
+						ForceNew: true,
+						Computed: true,
+					},
+				},
+				},
+			},
+			"subscription": {
+				Type:          schema.TypeList,
+				Optional:      true,
+				ForceNew:      true,
+				Description:   "Publication configuration for content library.",
+				ConflictsWith: []string{"publication"},
+				MaxItems:      1,
+				Elem: &schema.Resource{Schema: map[string]*schema.Schema{
+					"authentication_method": {
+						Type:     schema.TypeString,
+						Optional: true,
+						ForceNew: true,
+						Default:  "NONE",
+					},
+					"subscription_url": {
+						Type:     schema.TypeString,
+						Optional: true,
+						ForceNew: true,
+						Default:  "NONE",
+					},
+					"username": {
+						Type:     schema.TypeString,
+						ForceNew: true,
+						Computed: true,
+						Optional: true,
+					},
+					"password": {
+						Type:     schema.TypeString,
+						ForceNew: true,
+						Computed: true,
+						Optional: true,
+					},
+					"on_demand": {
+						Type:     schema.TypeBool,
+						ForceNew: true,
+						Optional: true,
+						Default:  true,
+					},
+					"automatic_sync": {
+						Type:     schema.TypeBool,
+						ForceNew: true,
+						Optional: true,
+						Default:  false,
+					},
+				},
+				},
+			},
 		},
 	}
 }
@@ -47,31 +135,34 @@ func resourceVSphereContentLibraryRead(d *schema.ResourceData, meta interface{})
 		if strings.Contains(err.Error(), "404 Not Found") {
 			d.SetId("")
 			return nil
-		} else {
-			return err
 		}
-	}
-	d.SetId(lib.ID)
-	sb := contentlibrary.FlattenStorageBackings(lib.Storage)
-	d.Set("name", lib.Name)
-	d.Set("description", lib.Description)
-	err = d.Set("storage_backing", sb)
-	if err != nil {
 		return err
 	}
+	d.SetId(lib.ID)
+	if err = contentlibrary.FlattenPublication(d, lib.Publication); err != nil {
+		return err
+	}
+	if err = contentlibrary.FlattenSubscription(d, lib.Subscription); err != nil {
+		return err
+	}
+	if err = contentlibrary.FlattenStorageBackings(d, lib.Storage); err != nil {
+		return err
+	}
+	d.Set("name", lib.Name)
+	d.Set("description", lib.Description)
 	log.Printf("[DEBUG] resourceVSphereContentLibraryRead : Content Library (%s) read is complete", d.Id())
 	return nil
 }
 
 func resourceVSphereContentLibraryCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] resourceVSphereContentLibraryCreate : Beginning Content Library (%s) creation", d.Get("name").(string))
-	vc := meta.(*VSphereClient).vimClient
-	rc := meta.(*VSphereClient).restClient
-	backings, err := contentlibrary.ExpandStorageBackings(vc, d)
+	vimClient := meta.(*VSphereClient).vimClient
+	restClient := meta.(*VSphereClient).restClient
+	backings, err := contentlibrary.ExpandStorageBackings(vimClient, d)
 	if err != nil {
 		return err
 	}
-	id, err := contentlibrary.CreateLibrary(rc, d.Get("name").(string), d.Get("description").(string), backings)
+	id, err := contentlibrary.CreateLibrary(d, restClient, backings)
 	if err != nil {
 		return err
 	}

@@ -3,16 +3,18 @@ package contentlibrary
 import (
 	"context"
 	"fmt"
+	"log"
+	"path/filepath"
+	"time"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/vapi/library"
 	"github.com/vmware/govmomi/vapi/rest"
 	"github.com/vmware/govmomi/vapi/vcenter"
-	"log"
-	"path/filepath"
-	"time"
 )
 
 // FromName accepts a Content Library name and returns a Library object.
@@ -48,15 +50,37 @@ func FromID(c *rest.Client, id string) (*library.Library, error) {
 }
 
 // CreateLibrary creates a Content Library.
-func CreateLibrary(c *rest.Client, name string, description string, backings []library.StorageBackings) (string, error) {
+func CreateLibrary(d *schema.ResourceData, restclient *rest.Client, backings []library.StorageBackings) (string, error) {
+	name := d.Get("name").(string)
 	log.Printf("[DEBUG] contentlibrary.CreateLibrary: Creating content library %s", name)
-	clm := library.NewManager(c)
+	clm := library.NewManager(restclient)
 	ctx := context.TODO()
 	lib := library.Library{
-		Description: description,
+		Description: d.Get("description").(string),
 		Name:        name,
 		Storage:     backings,
-		Type:        "LOCAL", // govmomi only supports LOCAL library creation
+		Type:        "LOCAL",
+	}
+	if len(d.Get("publication").([]interface{})) > 0 {
+		publication := d.Get("publication").([]interface{})[0].(map[string]interface{})
+		lib.Publication = &library.Publication{
+			Published:            structure.BoolPtr(publication["published"].(bool)),
+			AuthenticationMethod: publication["authentication_method"].(string),
+			UserName:             publication["username"].(string),
+			Password:             publication["password"].(string),
+		}
+	}
+	if len(d.Get("subscription").([]interface{})) > 0 {
+		subscription := d.Get("subscription").([]interface{})[0].(map[string]interface{})
+		lib.Subscription = &library.Subscription{
+			AutomaticSyncEnabled: structure.BoolPtr(subscription["automatic_sync"].(bool)),
+			OnDemand:             structure.BoolPtr(subscription["on_demand"].(bool)),
+			AuthenticationMethod: subscription["authentication_method"].(string),
+			UserName:             subscription["username"].(string),
+			Password:             subscription["password"].(string),
+			SubscriptionURL:      subscription["subscription_url"].(string),
+		}
+		lib.Type = "SUBSCRIBED"
 	}
 	id, err := clm.CreateLibrary(ctx, lib)
 	if err != nil {
@@ -66,7 +90,7 @@ func CreateLibrary(c *rest.Client, name string, description string, backings []l
 	return id, nil
 }
 
-func UpdateLibrary(c *rest.Client, ol *library.Library, name string, description string, backings []library.StorageBackings) error {
+func updateLibrary(c *rest.Client, ol *library.Library, name string, description string, backings []library.StorageBackings) error {
 	// Not currently supported in govmomi
 	return nil
 }
@@ -195,8 +219,8 @@ func DeleteLibraryItem(c *rest.Client, item *library.Item) error {
 func ExpandStorageBackings(c *govmomi.Client, d *schema.ResourceData) ([]library.StorageBackings, error) {
 	log.Printf("[DEBUG] contentlibrary.ExpandStorageBackings: Expanding OVF storage backing.")
 	sb := []library.StorageBackings{}
-	for _, dsId := range d.Get("storage_backing").(*schema.Set).List() {
-		ds, err := datastore.FromID(c, dsId.(string))
+	for _, dsID := range d.Get("storage_backing").(*schema.Set).List() {
+		ds, err := datastore.FromID(c, dsID.(string))
 		if err != nil {
 			return nil, provider.ProviderError(d.Id(), "ExpandStorageBackings", err)
 		}
@@ -209,8 +233,39 @@ func ExpandStorageBackings(c *govmomi.Client, d *schema.ResourceData) ([]library
 	return sb, nil
 }
 
+// FlattenPublication takes a Publication sub resource and sets it in ResourceData.
+func FlattenPublication(d *schema.ResourceData, publication *library.Publication) error {
+	if publication == nil {
+		return nil
+	}
+	log.Printf("[DEBUG] contentlibrary.FlattenPublication: Flattening publication.")
+	flatPublication := map[string]interface{}{}
+	flatPublication["authentication_method"] = publication.AuthenticationMethod
+	flatPublication["username"] = publication.UserName
+	flatPublication["password"] = d.Get("publication.0.password").(string)
+	flatPublication["publish_url"] = publication.PublishURL
+	flatPublication["published"] = publication.Published
+	return d.Set("publication", []interface{}{flatPublication})
+}
+
+// FlattenSubscription takes a Subscription sub resource and sets it in ResourceData.
+func FlattenSubscription(d *schema.ResourceData, subscription *library.Subscription) error {
+	if subscription == nil {
+		return nil
+	}
+	log.Printf("[DEBUG] contentlibrary.FlattenSubscription: Flattening subscription.")
+	flatSubscription := map[string]interface{}{}
+	flatSubscription["authentication_method"] = subscription.AuthenticationMethod
+	flatSubscription["username"] = subscription.UserName
+	flatSubscription["password"] = d.Get("subscription.0.password").(string)
+	flatSubscription["subscription_url"] = subscription.SubscriptionURL
+	flatSubscription["automatic_sync"] = subscription.AutomaticSyncEnabled
+	flatSubscription["on_demand"] = subscription.OnDemand
+	return d.Set("subscription", []interface{}{flatSubscription})
+}
+
 // FlattenStorageBackings takes a list of StorageBackings, and returns a list of datastore IDs.
-func FlattenStorageBackings(sb []library.StorageBackings) []string {
+func FlattenStorageBackings(d *schema.ResourceData, sb []library.StorageBackings) error {
 	log.Printf("[DEBUG] contentlibrary.FlattenStorageBackings: Flattening OVF storage backing.")
 	sbl := []string{}
 	for _, backing := range sb {
@@ -219,7 +274,7 @@ func FlattenStorageBackings(sb []library.StorageBackings) []string {
 		}
 	}
 	log.Printf("[DEBUG] contentlibrary.FlattenStorageBackings: Successfully flattened OVF storage backing.")
-	return sbl
+	return d.Set("storage_backing", sbl)
 }
 
 // MapStorageDevices maps disks defined in the OVF to datastores.
