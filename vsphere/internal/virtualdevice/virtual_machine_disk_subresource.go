@@ -219,6 +219,7 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 		"storage_policy_id": {
 			Type:        schema.TypeString,
 			Optional:    true,
+			Computed:    true,
 			Description: "The ID of the storage policy to assign to the virtual disk in VM.",
 		},
 		"controller_type": {
