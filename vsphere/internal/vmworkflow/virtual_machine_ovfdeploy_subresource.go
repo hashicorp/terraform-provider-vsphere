@@ -49,5 +49,12 @@ func VirtualMachineOvfDeploySchema() map[string]*schema.Schema {
 			Default:     true,
 			Description: "Allow unverified ssl certificates while deploying ovf/ova from url.",
 		},
+		"enable_hidden_properties": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Default:     false,
+			Description: "Allow properties with ovf:userConfigurable=false to be set.",
+			ForceNew:    true,
+		},
 	}
 }

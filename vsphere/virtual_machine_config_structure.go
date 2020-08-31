@@ -673,12 +673,15 @@ func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) (*types.Vm
 	}
 	allProperties := vmProps.Config.VAppConfig.GetVmConfigInfo().Property
 
+	enableHiddenProperties := d.Get("ovf_deploy.0.enable_hidden_properties").(bool)
+
 	for _, p := range allProperties {
-		if *p.UserConfigurable == true {
+		if enableHiddenProperties {
 			defaultValue := " "
 			if p.DefaultValue != "" {
 				defaultValue = p.DefaultValue
 			}
+			userConfigurable := true
 			prop := types.VAppPropertySpec{
 				ArrayUpdateSpec: types.ArrayUpdateSpec{
 					Operation: types.ArrayUpdateOperationEdit,
@@ -687,7 +690,7 @@ func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) (*types.Vm
 					Key:              p.Key,
 					Id:               p.Id,
 					Value:            defaultValue,
-					UserConfigurable: p.UserConfigurable,
+					UserConfigurable: &userConfigurable,
 				},
 			}
 
@@ -698,9 +701,34 @@ func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) (*types.Vm
 			}
 			props = append(props, prop)
 		} else {
-			_, ok := newMap[p.Id]
-			if ok {
-				return nil, fmt.Errorf("vApp property with userConfigurable=false specified in vapp.properties: %+v", reflect.ValueOf(newMap).MapKeys())
+			if *p.UserConfigurable == true {
+				defaultValue := " "
+				if p.DefaultValue != "" {
+					defaultValue = p.DefaultValue
+				}
+				prop := types.VAppPropertySpec{
+					ArrayUpdateSpec: types.ArrayUpdateSpec{
+						Operation: types.ArrayUpdateOperationEdit,
+					},
+					Info: &types.VAppPropertyInfo{
+						Key:              p.Key,
+						Id:               p.Id,
+						Value:            defaultValue,
+						UserConfigurable: p.UserConfigurable,
+					},
+				}
+
+				newValue, ok := newMap[p.Id]
+				if ok {
+					prop.Info.Value = newValue.(string)
+					delete(newMap, p.Id)
+				}
+				props = append(props, prop)
+			} else {
+				_, ok := newMap[p.Id]
+				if ok {
+					return nil, fmt.Errorf("vApp property with userConfigurable=false specified in vapp.properties: %+v", reflect.ValueOf(newMap).MapKeys())
+				}
 			}
 		}
 	}
