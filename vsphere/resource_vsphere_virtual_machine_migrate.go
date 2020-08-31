@@ -14,7 +14,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-// resourceVSphereVirtualMachineMigrateState is the master state migration function for
+// resourceVSphereVirtualMachineMigrateState is the main state migration function for
 // the vsphere_virtual_machine resource.
 func resourceVSphereVirtualMachineMigrateState(version int, os *terraform.InstanceState, meta interface{}) (*terraform.InstanceState, error) {
 	// Guard against a nil state.

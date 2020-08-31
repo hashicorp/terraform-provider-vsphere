@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
 )
 
-// resourceVSphereFolderMigrateState is the master state migration function for
+// resourceVSphereFolderMigrateState is the main state migration function for
 // the vsphere_folder resource.
 func resourceVSphereFolderMigrateState(version int, os *terraform.InstanceState, meta interface{}) (*terraform.InstanceState, error) {
 	// Guard against a nil state.
