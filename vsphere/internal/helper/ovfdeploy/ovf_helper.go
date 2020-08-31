@@ -78,10 +78,7 @@ func DeployOvfAndGetResult(ovfCreateImportSpecResult *types.OvfCreateImportSpecR
 				if totalBytes == 0 {
 					break
 				}
-				progress = getTotalBytesRead(&currBytesRead) * 100 / totalBytes
-				if progress == 100 {
-					close(statusChannel)
-				}
+				progress = (getTotalBytesRead(&currBytesRead) / totalBytes) * 100
 				nfcLease.Progress(context.Background(), int32(progress))
 				time.Sleep(10 * time.Second)
 			}
