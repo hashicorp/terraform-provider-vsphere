@@ -2,16 +2,19 @@ package vsphere
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
+	"io"
+	"net/http"
 	"os"
 	"regexp"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
-func TestAccResourceVSphereContentLibraryItem_basic(t *testing.T) {
+func TestAccResourceVSphereContentLibraryItem_localOva(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -22,22 +25,58 @@ func TestAccResourceVSphereContentLibraryItem_basic(t *testing.T) {
 		CheckDestroy: testAccResourceVSphereContentLibraryItemCheckExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereContentLibraryItemConfig(),
+				PreConfig: testAccResourceVSphereContentLibraryItemGetOva,
+				Config:    testAccResourceVSphereContentLibraryItemConfig_localOva(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestMatchResourceAttr(
 						"vsphere_content_library_item.item", "id", regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"),
 					),
 					resource.TestMatchResourceAttr(
-						"vsphere_content_library_item.item", "description", regexp.MustCompile("Ubuntu Description"),
+						"vsphere_content_library_item.item", "description", regexp.MustCompile("TestAcc Description"),
 					),
 					resource.TestMatchResourceAttr(
-						"vsphere_content_library_item.item", "name", regexp.MustCompile("ubuntu"),
+						"vsphere_content_library_item.item", "name", regexp.MustCompile("testacc-item"),
 					),
 					resource.TestMatchResourceAttr(
 						"vsphere_content_library_item.item", "type", regexp.MustCompile("ovf"),
 					),
-					testAccResourceVSphereContentLibraryItemDescription(regexp.MustCompile("Ubuntu Description")),
-					testAccResourceVSphereContentLibraryItemName(regexp.MustCompile("ubuntu")),
+					testAccResourceVSphereContentLibraryItemDescription(regexp.MustCompile("TestAcc Description")),
+					testAccResourceVSphereContentLibraryItemName(regexp.MustCompile("testacc-item")),
+					testAccResourceVSphereContentLibraryItemType(regexp.MustCompile("ovf")),
+					testAccResourceVSphereContentLibraryItemDestroyFile("./test.ova"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereContentLibraryItem_remoteOvf(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereContentLibraryItemPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereContentLibraryItemCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereContentLibraryItemConfig_remoteOvf(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr(
+						"vsphere_content_library_item.item", "id", regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"),
+					),
+					resource.TestMatchResourceAttr(
+						"vsphere_content_library_item.item", "description", regexp.MustCompile("TestAcc Description"),
+					),
+					resource.TestMatchResourceAttr(
+						"vsphere_content_library_item.item", "name", regexp.MustCompile("testacc-item"),
+					),
+					resource.TestMatchResourceAttr(
+						"vsphere_content_library_item.item", "type", regexp.MustCompile("ovf"),
+					),
+					testAccResourceVSphereContentLibraryItemDescription(regexp.MustCompile("TestAcc Description")),
+					testAccResourceVSphereContentLibraryItemName(regexp.MustCompile("testacc-item")),
 					testAccResourceVSphereContentLibraryItemType(regexp.MustCompile("ovf")),
 				),
 			},
@@ -48,10 +87,74 @@ func TestAccResourceVSphereContentLibraryItem_basic(t *testing.T) {
 				ImportStateVerifyIgnore: []string{
 					"file_url",
 				},
-				Config: testAccResourceVSphereContentLibraryItemConfig(),
+				Config: testAccResourceVSphereContentLibraryItemConfig_remoteOvf(),
 			},
 		},
 	})
+}
+
+func TestAccResourceVSphereContentLibraryItem_remoteOva(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereContentLibraryItemPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereContentLibraryItemCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereContentLibraryItemConfig_remoteOva(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr(
+						"vsphere_content_library_item.item", "id", regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"),
+					),
+					resource.TestMatchResourceAttr(
+						"vsphere_content_library_item.item", "description", regexp.MustCompile("TestAcc Description"),
+					),
+					resource.TestMatchResourceAttr(
+						"vsphere_content_library_item.item", "name", regexp.MustCompile("testacc-item"),
+					),
+					resource.TestMatchResourceAttr(
+						"vsphere_content_library_item.item", "type", regexp.MustCompile("ovf"),
+					),
+					testAccResourceVSphereContentLibraryItemDescription(regexp.MustCompile("TestAcc Description")),
+					testAccResourceVSphereContentLibraryItemName(regexp.MustCompile("testacc-item")),
+					testAccResourceVSphereContentLibraryItemType(regexp.MustCompile("ovf")),
+				),
+			},
+			{
+				ResourceName:      "vsphere_content_library_item.item",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"file_url",
+				},
+				Config: testAccResourceVSphereContentLibraryItemConfig_remoteOva(),
+			},
+		},
+	})
+}
+
+func testAccResourceVSphereContentLibraryItemGetOva() {
+	testAccResourceVSphereContentLibraryItemGetFile(os.Getenv("TF_VAR_VSPHERE_TEST_OVA"), "./test.ova")
+}
+
+func testAccResourceVSphereContentLibraryItemGetFile(url, file string) {
+	resp, _ := http.Get(url)
+	defer resp.Body.Close()
+
+	out, _ := os.Create(file)
+	defer out.Close()
+
+	io.Copy(out, resp.Body)
+}
+
+func testAccResourceVSphereContentLibraryItemDestroyFile(file string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		os.Remove(file)
+		return nil
+	}
 }
 
 func testAccResourceVSphereContentLibraryItemPreCheck(t *testing.T) {
@@ -60,9 +163,6 @@ func testAccResourceVSphereContentLibraryItemPreCheck(t *testing.T) {
 	}
 	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_content_library acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES") == "" {
-		t.Skip("set TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES to run vsphere_content_library acceptance tests")
 	}
 }
 
@@ -105,41 +205,84 @@ func testAccResourceVSphereContentLibraryItemType(expected *regexp.Regexp) resou
 	}
 }
 
-func testAccResourceVSphereContentLibraryItemConfig() string {
+func testAccResourceVSphereContentLibraryItemConfig_localOva() string {
 	return fmt.Sprintf(`
 %s
 
-variable "file_list" {
-  type    = list(string)
-  default = %s 
-}
-
-data "vsphere_datacenter" "dc" {
-  name = data.vsphere_datacenter.rootdc1.name
-}
-
-data "vsphere_datastore" "ds" {
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
-  name = vsphere_nas_datastore.ds1.name
-}
-
 resource "vsphere_content_library" "library" {
-  name            = "ContentLibrary_test"
-  storage_backing = [ data.vsphere_datastore.ds.id ]
+  name            = "testacc_content_library"
+  storage_backing = [ data.vsphere_datastore.rootds1.id ]
   description     = "Library Description"
 }
 
 resource "vsphere_content_library_item" "item" {
-  name        = "ubuntu"
-  description = "Ubuntu Description"
+  name        = "testacc-item"
+  description = "TestAcc Description"
   library_id  = vsphere_content_library.library.id
   type        = "ovf"
-  file_url    = var.file_list
+  file_url    = "./test.ova"
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
-		os.Getenv("TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES"),
+		testAccResourceVSphereContentLibraryItemConfig_base(),
 	)
+}
+
+func testAccResourceVSphereContentLibraryItemConfig_remoteOvf() string {
+	return fmt.Sprintf(`
+%s
+
+variable "file" {
+  default = "%s" 
+}
+
+resource "vsphere_content_library" "library" {
+  name            = "testacc_content_library"
+  storage_backing = [ data.vsphere_datastore.rootds1.id ]
+  description     = "Library Description"
+}
+
+resource "vsphere_content_library_item" "item" {
+  name        = "testacc-item"
+  description = "TestAcc Description"
+  library_id  = vsphere_content_library.library.id
+  type        = "ovf"
+  file_url    = var.file
+}
+`,
+		testAccResourceVSphereContentLibraryItemConfig_base(),
+		os.Getenv("TF_VAR_VSPHERE_TEST_OVF"),
+	)
+}
+
+func testAccResourceVSphereContentLibraryItemConfig_remoteOva() string {
+	return fmt.Sprintf(`
+%s
+
+variable "file" {
+  default = "%s" 
+}
+
+resource "vsphere_content_library" "library" {
+  name            = "testacc_content_library"
+  storage_backing = [ data.vsphere_datastore.rootds1.id ]
+  description     = "Library Description"
+}
+
+resource "vsphere_content_library_item" "item" {
+  name        = "testacc-item"
+  description = "TestAcc Description"
+  library_id  = vsphere_content_library.library.id
+  type        = "ovf"
+  file_url    = var.file
+}
+`,
+		testAccResourceVSphereContentLibraryItemConfig_base(),
+		os.Getenv("TF_VAR_VSPHERE_TEST_OVA"),
+	)
+}
+
+func testAccResourceVSphereContentLibraryItemConfig_base() string {
+	return testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootDS1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1())
 }
 
 func testAccResourceVSphereContentLibraryItemCheckExists(expected bool) resource.TestCheckFunc {

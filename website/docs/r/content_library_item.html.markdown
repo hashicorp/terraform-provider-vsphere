@@ -9,12 +9,9 @@ description: |-
 
 # vsphere\_content\_library_item
 
-The `vsphere_content_library_item` resource can be used to create items in a Content Library. Each item can contain 
-multiple files. Each `file_url` must be accessible from the vSphere environment as it will be downloaded from the
+The `vsphere_content_library_item` resource can be used to create items in a Content Library.
+`file_url` must be accessible from the vSphere environment as it will be downloaded from the
 specified location and stored on the Content Library's storage backing.
-
-To make a `content_library_item` a functioning template, the template must be in OVF format. The .ovf and .vmdk
-file(s) can then be set as the `file_url` list.
 
 ## Example Usage
 
@@ -42,10 +39,7 @@ resource "vsphere_content_library_item" "ubuntu1804" {
   name        = "Ubuntu Bionic 18.04"
   description = "Ubuntu template"
   library_id  = vsphere_content_library.library.id
-  file_url = ["https://fileserver/ubuntu/ubuntu-bionic-18.04-cloudimg.ovf",
-    "https://fileserver/ubuntu/ubuntu-bionic-18.04-cloudimg.mf",
-    "https://fileserver/ubuntu/ubuntu-bionic-18.04-cloudimg.vmdk"
-  ]
+  file_url = "https://fileserver/ubuntu/ubuntu-bionic-18.04-cloudimg.ovf
 }
 
 ```
@@ -56,7 +50,9 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the item to be created in the Content Library.
 * `library_id` - (Required) The ID of the Content Library the item should be created in.
-* `file_url` - (Optional) A list of files to download for the Content Library item.
+* `file_url` - (Optional) File to import into the Content Library item. OVFs and
+  OVAs will be parsed and associated files will also be imported.
+* `source_uuid` - (Optional) Virtual machine UUID to clone to Content Library.
 * `description` - (Optional) A description for the item.
 
 ## Attribute Reference
