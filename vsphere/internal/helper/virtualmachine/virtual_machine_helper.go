@@ -4,15 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/vmware/govmomi/vapi/library"
-	"github.com/vmware/govmomi/vapi/rest"
-	"github.com/vmware/govmomi/vapi/vcenter"
 	"log"
 	"net"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/vmware/govmomi/vapi/library"
+	"github.com/vmware/govmomi/vapi/vcenter"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
@@ -44,6 +45,24 @@ var vmUUIDSearchIndexVersion = viapi.VSphereVersion{
 // virtual machine could not be found by UUID.
 type UUIDNotFoundError struct {
 	s string
+}
+
+// VCenterDeploy containss everything required to create a VM from a content
+// library item, and reduces the number of arguments passed between functions.
+type VCenterDeploy struct {
+	VCenterManager *vcenter.Manager
+
+	VMName          string
+	Annotation      string
+	FolderID        string
+	DatastoreID     string
+	ResourcePoolID  string
+	HostSystemID    string
+	StoragePolicyID string
+	DiskType        string
+	NetworkMap      []vcenter.NetworkMapping
+	VAppProperties  []vcenter.Property
+	LibraryItem     *library.Item
 }
 
 // Error implements error for UUIDNotFoundError.
@@ -526,59 +545,109 @@ func Clone(c *govmomi.Client, src *object.VirtualMachine, f *object.Folder, name
 	return FromMOID(c, result.Result.(types.ManagedObjectReference).Value)
 }
 
-func DeployDest(name string, annotation string, rp *object.ResourcePool, host *object.HostSystem, folder *object.Folder, ds viapi.ManagedObject, spId string, nm []vcenter.NetworkMapping) *vcenter.Deploy {
-	rpId := ""
-	hostId := ""
-	folderId := ""
+// Deploy clones a virtual machine from a content library item.
+func Deploy(deployData *VCenterDeploy) (*types.ManagedObjectReference, error) {
+	log.Printf("[DEBUG] virtualmachine.Deploy: Deploying VM from Content Library item.")
+	// Get OVF mappings for NICs
 
-	if rp != nil {
-		rpId = rp.Reference().Value
+	switch deployData.LibraryItem.Type {
+	case library.ItemTypeOVF:
+		return deployData.deployOvf()
+	case library.ItemTypeVMTX:
+		return deployData.deployVmtx()
+	default:
+		return nil, fmt.Errorf("unsupported library item type: %s", deployData.LibraryItem.Type)
 	}
-	if host != nil {
-		hostId = host.Reference().Value
-	}
-	if folder != nil {
-		folderId = folder.Reference().Value
-	}
-
-	d := vcenter.Deploy{
-		DeploymentSpec: vcenter.DeploymentSpec{
-			Name:                name,
-			Annotation:          annotation,
-			AcceptAllEULA:       true,
-			NetworkMappings:     nm,
-			StorageMappings:     nil,
-			StorageProvisioning: "",
-			StorageProfileID:    spId,
-			Locale:              "",
-			Flags:               nil,
-			AdditionalParams:    nil,
-			DefaultDatastoreID:  ds.Reference().Value,
-		},
-		Target: vcenter.Target{
-			ResourcePoolID: rpId,
-			HostID:         hostId,
-			FolderID:       folderId,
-		},
-	}
-	return &d
 }
 
-func Deploy(c *rest.Client, item *library.Item, deploy *vcenter.Deploy, timeout int) (*types.ManagedObjectReference, error) {
-	log.Printf("[DEBUG] virtualmachine.Deploy: Deploying VM from Content Library item %s", item.Name)
-	m := vcenter.NewManager(c)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*time.Duration(timeout))
-	defer cancel()
-
-	mo, err := m.DeployLibraryItem(ctx, item.ID, *deploy)
-	if err != nil {
-		if ctx.Err() == context.DeadlineExceeded {
-			err = errors.New("timeout waiting for deploy to complete")
-		}
-		return nil, err
+func (deployData *VCenterDeploy) deployVmtx() (*types.ManagedObjectReference, error) {
+	storage := &vcenter.DiskStorage{
+		Datastore: deployData.DatastoreID,
+		StoragePolicy: &vcenter.StoragePolicy{
+			Policy: deployData.StoragePolicyID,
+			Type:   "USE_SOURCE_POLICY",
+		},
 	}
-	log.Printf("[DEBUG] virtualmachine.Deploy: Successfully deployed VM from Content Library item %s", item.Name)
-	return mo, nil
+	if deployData.StoragePolicyID != "" {
+		storage.StoragePolicy.Type = "USE_SPECIFIED_POLICY"
+	}
+
+	deploy := vcenter.DeployTemplate{
+		Name:          deployData.VMName,
+		Description:   deployData.Annotation,
+		DiskStorage:   storage,
+		VMHomeStorage: storage,
+		Placement: &vcenter.Placement{
+			ResourcePool: deployData.ResourcePoolID,
+			Host:         deployData.HostSystemID,
+			Folder:       deployData.FolderID,
+		},
+	}
+	ctx := context.TODO()
+	return deployData.VCenterManager.DeployTemplateLibraryItem(ctx, deployData.LibraryItem.ID, deploy)
+}
+
+func (deployData *VCenterDeploy) deployOvf() (*types.ManagedObjectReference, error) {
+	deploy := vcenter.Deploy{
+		DeploymentSpec: vcenter.DeploymentSpec{
+			Name:               deployData.VMName,
+			DefaultDatastoreID: deployData.DatastoreID,
+			AcceptAllEULA:      true,
+			Annotation:         deployData.Annotation,
+			AdditionalParams: []vcenter.AdditionalParams{
+				{
+					Class: vcenter.ClassDeploymentOptionParams,
+					Type:  vcenter.TypeDeploymentOptionParams,
+				},
+				{
+					Class:      vcenter.ClassPropertyParams,
+					Type:       vcenter.TypePropertyParams,
+					Properties: deployData.VAppProperties,
+				},
+			},
+			NetworkMappings:     deployData.NetworkMap,
+			StorageProvisioning: deployData.DiskType,
+			StorageProfileID:    deployData.StoragePolicyID,
+		},
+		Target: vcenter.Target{
+			ResourcePoolID: deployData.ResourcePoolID,
+			HostID:         deployData.HostSystemID,
+			FolderID:       deployData.FolderID,
+		},
+	}
+	ctx := context.TODO()
+	return deployData.VCenterManager.DeployLibraryItem(ctx, deployData.LibraryItem.ID, deploy)
+}
+
+// VAppProperties converts the vApp properties from the configuration and
+// converts them into a slice of vcenter.Properties to be used while deploying
+// content library items as VMs.
+func VAppProperties(propertyMap map[string]interface{}) []vcenter.Property {
+	properties := []vcenter.Property{}
+	for key, value := range propertyMap {
+		property := vcenter.Property{
+			ID:    key,
+			Label: "",
+			Value: value.(string),
+		}
+		properties = append(properties, property)
+	}
+	return properties
+}
+
+// DiskType converts standard disk type labels into labels used in content
+// library deployment specs.
+func DiskType(d *schema.ResourceData) string {
+	thin := d.Get("disk.0.thin_provisioned").(bool)
+	eagerlyScrub := d.Get("disk.0.eagerly_scrub").(bool)
+	switch {
+	case thin:
+		return "thin"
+	case eagerlyScrub:
+		return "eagerZeroedThick"
+	default:
+		return "thick"
+	}
 }
 
 // Customize wraps the customization of a virtual machine and the subsequent
