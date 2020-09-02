@@ -1,4 +1,4 @@
-## 1.24.0 (Unreleased)
+## 1.24.0 (September 02, 2020)
 
 BUG FIXES:
 * `resource/vm`: Skip SCSI controller check when empty. ([#1179](https://github.com/hashicorp/terraform-provider-vsphere/pull/1179))
