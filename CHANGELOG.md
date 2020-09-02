@@ -1,4 +1,19 @@
 ## 1.24.0 (Unreleased)
+
+BUG FIXES:
+* `resource/vm`: Skip SCSI controller check when empty. ([#1179](https://github.com/hashicorp/terraform-provider-vsphere/pull/1179))
+* `resource/vm`: Make storage_policy_id computed to prevent flapping when unset. ([#1185](https://github.com/hashicorp/terraform-provider-vsphere/pull/1185))
+* `resource/vm`: Ignore nil objects in host network on read. ([#1186](https://github.com/hashicorp/terraform-provider-vsphere/pull/1186))
+* `resource/vm`: Keep progress channel open when deploying an OVF. ([#1187](https://github.com/hashicorp/terraform-provider-vsphere/pull/1187))
+* `resource/vm`: Set SCSI controller type to unknown when nil. ([#1188](https://github.com/hashicorp/terraform-provider-vsphere/pull/1188))
+
+IMPROVEMENTS:
+* `resource/content_library_item`: Add local upload, OVA, and vm-template 
+  sources. ([#1196](https://github.com/hashicorp/terraform-provider-vsphere/pull/1196))
+* `resource/content_library`: Subscription and publication support. ([#1197](https://github.com/hashicorp/terraform-provider-vsphere/pull/1197))
+* `resource/vm`: Content library vm-template, disk type, and vApp property 
+  support. ([#1198](https://github.com/hashicorp/terraform-provider-vsphere/pull/1198))
+
 ## 1.23.0 (August 21, 2020)
 
 BUG FIXES:
