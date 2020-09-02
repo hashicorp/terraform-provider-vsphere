@@ -191,9 +191,6 @@ func CreateLibraryItem(c *rest.Client, l *library.Library, name string, desc str
 	if err != nil {
 		return nil, provider.ProviderError(name, "CreateLibraryItem", err)
 	}
-	defer func() {
-		_ = clm.CompleteLibraryItemUpdateSession(ctx, session)
-	}()
 	uploadSession.UploadSession = session
 	defer func() {
 		_ = clm.CompleteLibraryItemUpdateSession(ctx, session)
