@@ -1,10 +1,12 @@
 package vsphere
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
 	"log"
 	"strings"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 )
 
 func resourceVSphereContentLibraryItem() *schema.Resource {
@@ -12,6 +14,12 @@ func resourceVSphereContentLibraryItem() *schema.Resource {
 		Create: resourceVSphereContentLibraryItemCreate,
 		Delete: resourceVSphereContentLibraryItemDelete,
 		Read:   resourceVSphereContentLibraryItemRead,
+		StateUpgraders: []schema.StateUpgrader{{
+			Version: 0,
+			Type:    resourceVSphereContentLibraryItemResourceV0().CoreConfigSchema().ImpliedType(),
+			Upgrade: resourceVSphereContentLibraryItemUpgradeV0,
+		}},
+		SchemaVersion: 1,
 		Importer: &schema.ResourceImporter{
 			State: resourceVSphereContentLibraryItemImport,
 		},
@@ -35,11 +43,11 @@ func resourceVSphereContentLibraryItem() *schema.Resource {
 				Description: "Optional description of the content library item.",
 			},
 			"file_url": {
-				Type:        schema.TypeSet,
-				Required:    true,
-				ForceNew:    true,
-				Elem:        &schema.Schema{Type: schema.TypeString},
-				Description: "ID of source VM of content library item.",
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Description:   "ID of source VM of content library item.",
+				ConflictsWith: []string{"source_uuid"},
 			},
 			"type": {
 				Type:        schema.TypeString,
@@ -48,8 +56,32 @@ func resourceVSphereContentLibraryItem() *schema.Resource {
 				ForceNew:    true,
 				Description: "Type of content library item.",
 			},
+			"source_uuid": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Description:   "The managed object ID of an existing VM to be cloned to the content library.",
+				ConflictsWith: []string{"file_url"},
+			},
 		},
 	}
+}
+
+func resourceVSphereContentLibraryItemUpgradeV0(rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+	if len(rawState["file_url"].([]interface{})) < 1 {
+		rawState["file_url"] = interface{}("")
+		return rawState, nil
+	}
+
+	for _, file := range rawState["file_url"].([]interface{}) {
+		if strings.HasSuffix(file.(string), "ova") || strings.HasSuffix(file.(string), "ovf") || strings.HasSuffix(file.(string), "iso") {
+			rawState["file_url"] = interface{}(file.(string))
+			return rawState, nil
+		}
+	}
+
+	rawState["file_url"] = rawState["file_url"].([]interface{})[0]
+	return rawState, nil
 }
 
 func resourceVSphereContentLibraryItemRead(d *schema.ResourceData, meta interface{}) error {
@@ -60,9 +92,8 @@ func resourceVSphereContentLibraryItemRead(d *schema.ResourceData, meta interfac
 		if strings.Contains(err.Error(), "404 Not Found") {
 			d.SetId("")
 			return nil
-		} else {
-			return err
 		}
+		return err
 	}
 	d.Set("name", item.Name)
 	d.Set("description", item.Description)
@@ -79,12 +110,18 @@ func resourceVSphereContentLibraryItemCreate(d *schema.ResourceData, meta interf
 	if err != nil {
 		return err
 	}
-	files := d.Get("file_url").(*schema.Set)
-	id, err := contentlibrary.CreateLibraryItem(rc, lib, d.Get("name").(string), d.Get("description").(string), d.Get("type").(string), files.List())
+	var moid virtualmachine.MOIDForUUIDResult
+	if uuid, ok := d.GetOk("source_uuid"); ok {
+		moid, err = virtualmachine.MOIDForUUID(meta.(*VSphereClient).vimClient, uuid.(string))
+		if err != nil {
+			return err
+		}
+	}
+	id, err := contentlibrary.CreateLibraryItem(rc, lib, d.Get("name").(string), d.Get("description").(string), d.Get("type").(string), d.Get("file_url").(string), moid.MOID)
 	if err != nil {
 		return err
 	}
-	d.SetId(id)
+	d.SetId(*id)
 	log.Printf("[DEBUG] resourceVSphereContentLibraryItemCreate : Content Library item (%s) creation complete", d.Get("name").(string))
 	return resourceVSphereContentLibraryItemRead(d, meta)
 }
