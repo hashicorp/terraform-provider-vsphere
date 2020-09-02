@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/ovfdeploy"
 	"log"
 	"net"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/ovfdeploy"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
@@ -30,6 +31,7 @@ import (
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/ovf"
+	"github.com/vmware/govmomi/vapi/vcenter"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -1483,6 +1485,31 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 	return vm, nil
 }
 
+func createVCenterDeploy(d *schema.ResourceData, meta interface{}) (*virtualmachine.VCenterDeploy, error) {
+	restClient := meta.(*VSphereClient).restClient
+	vCenterManager := vcenter.NewManager(restClient)
+
+	item, err := contentlibrary.ItemFromID(restClient, d.Get("clone.0.template_uuid").(string))
+	if err != nil {
+		return nil, err
+	}
+
+	return &virtualmachine.VCenterDeploy{
+		VMName:          d.Get("name").(string),
+		Annotation:      d.Get("annotation").(string),
+		FolderID:        d.Get("folder_id").(string),
+		DatastoreID:     d.Get("datastore_id").(string),
+		NetworkMap:      contentlibrary.MapNetworkDevices(d),
+		ResourcePoolID:  d.Get("resource_pool_id").(string),
+		HostSystemID:    d.Get("host_system_id").(string),
+		StoragePolicyID: d.Get("storage_policy_id").(string),
+		VAppProperties:  virtualmachine.VAppProperties(d.Get("vapp.0.properties").(map[string]interface{})),
+		DiskType:        virtualmachine.DiskType(d),
+		VCenterManager:  vCenterManager,
+		LibraryItem:     item,
+	}, nil
+}
+
 // resourceVSphereVirtualMachineCreateClone contains the clone VM deploy
 // path. The VM is returned.
 func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta interface{}) (*object.VirtualMachine, error) {
@@ -1507,41 +1534,13 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	name := d.Get("name").(string)
 	timeout := d.Get("clone.0.timeout").(int)
 	var vm *object.VirtualMachine
-	if contentlibrary.IsContentLibraryItem(meta.(*VSphereClient).restClient, d.Get("clone.0.template_uuid").(string)) {
-		// Clone source is an item from a Content Library. Prepare required resources.
-
-		// First, if a host is set, check that it is valid.
-		host := &object.HostSystem{}
-		if hid := d.Get("host_system_id").(string); hid != "" {
-			host, err = hostsystem.FromID(client, hid)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// Get OVF mappings for NICs
-		nm := contentlibrary.MapNetworkDevices(d)
-
-		// Validate the specified datastore
-		dsID := d.Get("datastore_id")
-		ds, err := datastore.FromID(client, dsID.(string))
+	switch contentlibrary.IsContentLibraryItem(meta.(*VSphereClient).restClient, d.Get("clone.0.template_uuid").(string)) {
+	case true:
+		deploySpec, err := createVCenterDeploy(d, meta)
 		if err != nil {
 			return nil, err
 		}
-		if err != nil {
-			return nil, err
-		}
-
-		spId := d.Get("storage_policy_id").(string)
-
-		dd := virtualmachine.DeployDest(name, d.Get("annotation").(string), pool, host, fo, ds, spId, nm)
-
-		rclient := meta.(*VSphereClient).restClient
-		item, err := contentlibrary.ItemFromID(rclient, d.Get("clone.0.template_uuid").(string))
-		if err != nil {
-			return nil, err
-		}
-		vmoid, err := virtualmachine.Deploy(rclient, item, dd, 30)
+		vmoid, err := virtualmachine.Deploy(deploySpec)
 		if err != nil {
 			return nil, err
 		}
@@ -1552,7 +1551,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 		// There is not currently a way to pull config values from Content Library items. If we do not send the values,
 		// the defaults from the template will be used.
 		d.Set("guest_id", "")
-	} else {
+	case false:
 		// Expand the clone spec. We get the source VM here too.
 		cloneSpec, srcVM, err := vmworkflow.ExpandVirtualMachineCloneSpec(d, client)
 		if err != nil {
