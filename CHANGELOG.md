@@ -1,3 +1,8 @@
+## 1.24.1 (Unreleased)
+
+IMPROVEMENTS:
+* `data/content_library_item`: Add `type` to content library item data source. ([#1184](https://github.com/hashicorp/terraform-provider-vsphere/pull/1184))
+
 ## 1.24.0 (September 02, 2020)
 
 BUG FIXES:
