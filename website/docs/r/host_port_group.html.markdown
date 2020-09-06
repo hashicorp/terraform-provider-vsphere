@@ -130,3 +130,16 @@ The following attributes are exported:
   explaining the effective policy for this port group.
 * `key` - The key for this port group as returned from the vSphere API.
 * `ports` - A list of ports that currently exist and are used on this port group.
+
+## Importing 
+
+An existing host port group can be [imported][docs-import] into this resource
+using the host port group's ID. An example is below:
+
+[docs-import]: /docs/import/index.html
+
+```
+terraform import vsphere_host_port_group.management tf-HostPortGroup:host-123:Management
+```
+
+The above would import the `Management` host port group from host with ID `host-123`.
