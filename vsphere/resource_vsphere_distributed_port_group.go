@@ -226,8 +226,8 @@ func resourceVSphereDistributedPortGroupImport(d *schema.ResourceData, meta inte
 	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return nil, err
 	}
-	p := d.Id()
-	pg, err := dvportgroup.FromPath(client, p, nil)
+	moId := d.Id()
+	pg, err := dvportgroup.FromMOID(client, moId)
 	if err != nil {
 		return nil, fmt.Errorf("error locating portgroup: %s", err)
 	}
