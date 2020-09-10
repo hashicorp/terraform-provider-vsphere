@@ -1430,6 +1430,37 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 	}
 
 	ovfManager := ovf.NewManager(client.Client)
+
+	if dep, ok := d.GetOk("ovf_deploy.0.deployment"); ok {
+		ovfParseDescriptorParams := types.OvfParseDescriptorParams{}
+		ovfParsedDescriptor, err := ovfManager.ParseDescriptor(context.Background(), ovfDescriptor, ovfParseDescriptorParams)
+		if err != nil {
+			return nil, err
+		}
+
+		validDeployments := []string{}
+		for _, deploymentOption := range ovfParsedDescriptor.DeploymentOption {
+			validDeployments = append(validDeployments, deploymentOption.Key)
+		}
+
+		deployment := dep.(string)
+		if len(validDeployments) == 0 {
+			return nil, fmt.Errorf("ovf deployment %s specified, but the ovf does not contain any deployments", deployment)
+		}
+
+		validDeployment := false
+		for _, option := range validDeployments {
+			if deployment == option {
+				validDeployment = true
+			}
+		}
+		if validDeployment {
+			importSpecParam.DeploymentOption = deployment
+		} else {
+			return nil, fmt.Errorf("invalid ovf deployment %s specified, valid deployments are: %s", deployment, strings.Join(validDeployments, ", "))
+		}
+	}
+
 	ovfCreateImportSpecResult, err := ovfManager.CreateImportSpec(context.Background(), ovfDescriptor,
 		resourcePoolMor, dsMor, importSpecParam)
 	if err != nil {

@@ -1373,6 +1373,8 @@ The options available in the `ovf_deploy` block are:
    VI infrastructure.
 * `allow_unverified_ssl_cert` - (Optional) Allow unverified ssl certificates while deploying ovf/ova from url.
    Defaults true.   
+* `deployment` - (Optional) If the ova/ovf specifies multiple deployment options, specifying one will select it to be
+   used instead of the default deployment option specified in the ova/ovf.
 
 ### Using vApp properties to supply OVF/OVA configuration
 
