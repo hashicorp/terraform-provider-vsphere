@@ -537,7 +537,7 @@ func expandVMwareDVSConfigSpec(d *schema.ResourceData) *types.VMwareDVSConfigSpe
 		DVSConfigSpec: types.DVSConfigSpec{
 			Name:                                d.Get("name").(string),
 			ConfigVersion:                       d.Get("config_version").(string),
-			DefaultPortConfig:                   expandVMwareDVSPortSetting(d),
+			DefaultPortConfig:                   expandVMwareDVSPortSetting(d, "distributed_virtual_switch"),
 			Host:                                expandSliceOfDistributedVirtualSwitchHostMemberConfigSpec(d),
 			Description:                         d.Get("description").(string),
 			Contact:                             expandDVSContactInfo(d),
