@@ -165,7 +165,7 @@ func expandDVPortgroupConfigSpec(d *schema.ResourceData) types.DVPortgroupConfig
 		Name:                         d.Get("name").(string),
 		NumPorts:                     int32(d.Get("number_of_ports").(int)),
 		PortNameFormat:               d.Get("port_name_format").(string),
-		DefaultPortConfig:            expandVMwareDVSPortSetting(d),
+		DefaultPortConfig:            expandVMwareDVSPortSetting(d, "distributed_port_group"),
 		Description:                  d.Get("description").(string),
 		Type:                         d.Get("type").(string),
 		Policy:                       expandVMwareDVSPortgroupPolicy(d),
