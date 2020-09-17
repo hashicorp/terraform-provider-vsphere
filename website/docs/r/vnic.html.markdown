@@ -134,4 +134,4 @@ via supplying the vNic's ID. An example is below:
 terraform import vsphere_vnic.v1 host-123_vmk2
 ```
 
-The above would import the the vnic `vmk2` from host with ID `host-123`.
+The above would import the vnic `vmk2` from host with ID `host-123`.
