@@ -235,14 +235,13 @@ ID][docs-about-morefs] to another resource, be sure to use the `id` field.
 
 ## Importing
 
-An existing port group can be [imported][docs-import] into this resource via
-the path to the port group, via the following command:
+An existing port group can be [imported][docs-import] into this resource using
+the managed object id of the port group, via the following command:
 
 [docs-import]: https://www.terraform.io/docs/import/index.html
 
 ```
-terraform import vsphere_distributed_port_group.pg /dc1/network/pg
+terraform import vsphere_distributed_port_group.pg dvportgroup-67
 ```
 
-The above would import the port group named `pg` that is located in the `dc1`
-datacenter.
+The above would import the port group named `pg` with managed object id `dvportgroup-67`.
