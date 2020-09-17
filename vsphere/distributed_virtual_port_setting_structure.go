@@ -91,7 +91,7 @@ func schemaVMwareDVSPortSetting() map[string]*schema.Schema {
 			Type:        schema.TypeList,
 			Optional:    true,
 			Computed:    true,
-			Description: "List of active uplinks used for load balancing, matching the names of the uplinks assigned in the DVS.",
+			Description: "List of standby uplinks used for load balancing, matching the names of the uplinks assigned in the DVS.",
 			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
 
