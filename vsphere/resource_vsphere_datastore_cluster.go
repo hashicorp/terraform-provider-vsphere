@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datacenter"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
@@ -302,7 +303,14 @@ func resourceVSphereDatastoreClusterImport(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return nil, fmt.Errorf("error loading datastore cluster: %s", err)
 	}
+	client := meta.(*VSphereClient).vimClient
+	dc, err := datacenter.DatacenterFromInventoryPath(client, pod.InventoryPath)
+	if err != nil {
+		return nil, fmt.Errorf("error getting datacenter of datastore cluster: %s", err)
+	}
+
 	d.SetId(pod.Reference().Value)
+	d.Set("datacenter_id", dc.Reference().Value)
 	return []*schema.ResourceData{d}, nil
 }
 
