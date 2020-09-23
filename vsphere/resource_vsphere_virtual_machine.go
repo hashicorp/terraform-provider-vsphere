@@ -1447,6 +1447,7 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 
 func createVCenterDeploy(d *schema.ResourceData, meta interface{}) (*virtualmachine.VCenterDeploy, error) {
 	restClient := meta.(*VSphereClient).restClient
+	vimClient := meta.(*VSphereClient).vimClient
 	vCenterManager := vcenter.NewManager(restClient)
 
 	item, err := contentlibrary.ItemFromID(restClient, d.Get("clone.0.template_uuid").(string))
@@ -1454,10 +1455,21 @@ func createVCenterDeploy(d *schema.ResourceData, meta interface{}) (*virtualmach
 		return nil, err
 	}
 
+	poolID := d.Get("resource_pool_id").(string)
+	poolObj, err := resourcepool.FromID(vimClient, poolID)
+	if err != nil {
+		return nil, fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
+	}
+
+	folderObj, err := folder.VirtualMachineFolderFromObject(vimClient, poolObj, d.Get("folder").(string))
+	if err != nil {
+		return nil, err
+	}
+
 	return &virtualmachine.VCenterDeploy{
 		VMName:          d.Get("name").(string),
 		Annotation:      d.Get("annotation").(string),
-		FolderID:        d.Get("folder_id").(string),
+		FolderID:        folderObj.Reference().Value,
 		DatastoreID:     d.Get("datastore_id").(string),
 		NetworkMap:      contentlibrary.MapNetworkDevices(d),
 		ResourcePoolID:  d.Get("resource_pool_id").(string),
