@@ -200,12 +200,6 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Default:      virtualdevice.SubresourceControllerTypeParaVirtual,
 			Description:  "The type of SCSI bus this virtual machine will have. Can be one of lsilogic, lsilogic-sas or pvscsi.",
 			ValidateFunc: validation.StringInSlice(virtualdevice.SCSIBusTypeAllowedValues, false),
-			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-				if len(d.Get("ovf_deploy").([]interface{})) > 0 {
-					return true
-				}
-				return false
-			},
 		},
 		"scsi_bus_sharing": {
 			Type:         schema.TypeString,
@@ -213,12 +207,6 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Default:      string(types.VirtualSCSISharingNoSharing),
 			Description:  "Mode for sharing the SCSI bus. The modes are physicalSharing, virtualSharing, and noSharing.",
 			ValidateFunc: validation.StringInSlice(virtualdevice.SCSIBusSharingAllowedValues, false),
-			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-				if len(d.Get("ovf_deploy").([]interface{})) > 0 {
-					return true
-				}
-				return false
-			},
 		},
 		// NOTE: disk is only optional so that we can flag it as computed and use
 		// it in ResourceDiff. We validate this field in ResourceDiff to enforce it
@@ -231,12 +219,6 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Description: "A specification for a virtual disk device on this virtual machine.",
 			MaxItems:    60,
 			Elem:        &schema.Resource{Schema: virtualdevice.DiskSubresourceSchema()},
-			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-				if len(d.Get("ovf_deploy").([]interface{})) > 0 {
-					return true
-				}
-				return false
-			},
 		},
 		"network_interface": {
 			Type:        schema.TypeList,
@@ -244,13 +226,6 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Description: "A specification for a virtual NIC on this virtual machine.",
 			MaxItems:    10,
 			Elem:        &schema.Resource{Schema: virtualdevice.NetworkInterfaceSubresourceSchema()},
-			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-				//no network_interface diff for ovf template deployment
-				if len(d.Get("ovf_deploy").([]interface{})) > 0 {
-					return true
-				}
-				return false
-			},
 		},
 		"cdrom": {
 			Type:        schema.TypeList,
@@ -258,12 +233,6 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Description: "A specification for a CDROM device on this virtual machine.",
 			MaxItems:    1,
 			Elem:        &schema.Resource{Schema: virtualdevice.CdromSubresourceSchema()},
-			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-				if len(d.Get("ovf_deploy").([]interface{})) > 0 {
-					return true
-				}
-				return false
-			},
 		},
 		"pci_device_id": {
 			Type:        schema.TypeSet,
@@ -1459,11 +1428,6 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 
 	log.Printf("[DEBUG] VM %q - UUID is %q", vm.InventoryPath, vprops.Config.Uuid)
 	d.SetId(vprops.Config.Uuid)
-	pTimeoutStr := fmt.Sprintf("%ds", d.Get("poweron_timeout").(int))
-	pTimeout, err := time.ParseDuration(pTimeoutStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse poweron_timeout as a valid duration: %s", err)
-	}
 	// update vapp properties
 	vappConfig, err := expandVAppConfig(d, client)
 	if err != nil {
@@ -1478,11 +1442,7 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 			return nil, fmt.Errorf("error while applying vapp config %s", err)
 		}
 	}
-	// Start the virtual machine
-	if err := virtualmachine.PowerOn(vm, pTimeout); err != nil {
-		return nil, fmt.Errorf("error powering on virtual machine: %s", err)
-	}
-	return vm, nil
+	return vm, resourceVSphereVirtualMachinePostDeployChanges(d, meta, vm)
 }
 
 func createVCenterDeploy(d *schema.ResourceData, meta interface{}) (*virtualmachine.VCenterDeploy, error) {
@@ -1566,16 +1526,23 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 			return nil, fmt.Errorf("error cloning virtual machine: %s", err)
 		}
 	}
-	// The VM has been created. We still need to do post-clone configuration, and
-	// while the resource should have an ID until this is done, we need it to go
-	// through post-clone rollback workflows. All rollback functions will remove
-	// the ID after it has done its rollback.
-	//
-	// It's generally safe to not rollback after the initial re-configuration is
-	// fully complete and we move on to sending the customization spec.
+	return vm, resourceVSphereVirtualMachinePostDeployChanges(d, meta, vm)
+}
+
+// resourceVSphereVirtualMachinePostDeployChanges will do post-clone
+// configuration, and while the resource should have an ID until this is
+// done, we need it to go through post-clone rollback workflows. All
+// rollback functions will remove the ID after it has done its rollback.
+//
+// It's generally safe to not rollback after the initial re-configuration is
+// fully complete and we move on to sending the customization spec.
+func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta interface{}, vm *object.VirtualMachine) error {
+	client := meta.(*VSphereClient).vimClient
+	poolID := d.Get("resource_pool_id").(string)
+	pool, err := resourcepool.FromID(client, poolID)
 	vprops, err := virtualmachine.Properties(vm)
 	if err != nil {
-		return nil, resourceVSphereVirtualMachineRollbackCreate(
+		return resourceVSphereVirtualMachineRollbackCreate(
 			d,
 			meta,
 			vm,
@@ -1591,7 +1558,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	// along.
 	cfgSpec, err := expandVirtualMachineConfigSpec(d, client)
 	if err != nil {
-		return nil, resourceVSphereVirtualMachineRollbackCreate(
+		return resourceVSphereVirtualMachineRollbackCreate(
 			d,
 			meta,
 			vm,
@@ -1607,7 +1574,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	// First check the state of our SCSI bus. Normalize it if we need to.
 	devices, delta, err = virtualdevice.NormalizeBus(devices, d)
 	if err != nil {
-		return nil, resourceVSphereVirtualMachineRollbackCreate(
+		return resourceVSphereVirtualMachineRollbackCreate(
 			d,
 			meta,
 			vm,
@@ -1618,7 +1585,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	// Disks
 	devices, delta, err = virtualdevice.DiskPostCloneOperation(d, client, devices)
 	if err != nil {
-		return nil, resourceVSphereVirtualMachineRollbackCreate(
+		return resourceVSphereVirtualMachineRollbackCreate(
 			d,
 			meta,
 			vm,
@@ -1629,7 +1596,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	// Network devices
 	devices, delta, err = virtualdevice.NetworkInterfacePostCloneOperation(d, client, devices)
 	if err != nil {
-		return nil, resourceVSphereVirtualMachineRollbackCreate(
+		return resourceVSphereVirtualMachineRollbackCreate(
 			d,
 			meta,
 			vm,
@@ -1640,7 +1607,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	// CDROM
 	devices, delta, err = virtualdevice.CdromPostCloneOperation(d, client, devices)
 	if err != nil {
-		return nil, resourceVSphereVirtualMachineRollbackCreate(
+		return resourceVSphereVirtualMachineRollbackCreate(
 			d,
 			meta,
 			vm,
@@ -1658,7 +1625,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 		err = virtualmachine.Reconfigure(vm, cfgSpec)
 	}
 	if err != nil {
-		return nil, resourceVSphereVirtualMachineRollbackCreate(
+		return resourceVSphereVirtualMachineRollbackCreate(
 			d,
 			meta,
 			vm,
@@ -1668,7 +1635,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 
 	vmprops, err := virtualmachine.Properties(vm)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// This should only change if deploying from a Content Library item.
@@ -1677,7 +1644,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	// Upgrade the VM's hardware version if needed.
 	err = virtualmachine.SetHardwareVersion(vm, d.Get("hardware_version").(int))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var cw *virtualMachineCustomizationWaiter
@@ -1685,34 +1652,33 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	if len(d.Get("clone.0.customize").([]interface{})) > 0 {
 		family, err := resourcepool.OSFamily(client, pool, d.Get("guest_id").(string))
 		if err != nil {
-			return nil, fmt.Errorf("cannot find OS family for guest ID %q: %s", d.Get("guest_id").(string), err)
+			return fmt.Errorf("cannot find OS family for guest ID %q: %s", d.Get("guest_id").(string), err)
 		}
 		custSpec := vmworkflow.ExpandCustomizationSpec(d, family)
 		cw = newVirtualMachineCustomizationWaiter(client, vm, d.Get("clone.0.customize.0.timeout").(int))
 		if err := virtualmachine.Customize(vm, custSpec); err != nil {
 			// Roll back the VMs as per the error handling in reconfigure.
 			if derr := resourceVSphereVirtualMachineDelete(d, meta); derr != nil {
-				return nil, fmt.Errorf(formatVirtualMachinePostCloneRollbackError, vm.InventoryPath, err, derr)
+				return fmt.Errorf(formatVirtualMachinePostCloneRollbackError, vm.InventoryPath, err, derr)
 			}
 			d.SetId("")
-			return nil, fmt.Errorf("error sending customization spec: %s", err)
+			return fmt.Errorf("error sending customization spec: %s", err)
 		}
 	}
 	// Finally time to power on the virtual machine!
 	pTimeout := time.Duration(d.Get("poweron_timeout").(int)) * time.Second
 	if err := virtualmachine.PowerOn(vm, pTimeout); err != nil {
-		return nil, fmt.Errorf("error powering on virtual machine: %s", err)
+		return fmt.Errorf("error powering on virtual machine: %s", err)
 	}
 	// If we customized, wait on customization.
 	if cw != nil {
 		log.Printf("[DEBUG] %s: Waiting for VM customization to complete", resourceVSphereVirtualMachineIDString(d))
 		<-cw.Done()
 		if err := cw.Err(); err != nil {
-			return nil, fmt.Errorf(formatVirtualMachineCustomizationWaitError, vm.InventoryPath, err)
+			return fmt.Errorf(formatVirtualMachineCustomizationWaitError, vm.InventoryPath, err)
 		}
 	}
-	// Clone is complete and ready to return
-	return vm, nil
+	return nil
 }
 
 // resourceVSphereVirtualMachineCreateCloneWithSDRS runs the clone part of
