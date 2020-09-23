@@ -974,10 +974,6 @@ func resourceVSphereVirtualMachineCustomizeDiff(d *schema.ResourceDiff, meta int
 			}
 			fallthrough
 		default:
-			// If guest_id is not set and the source is not a Content Library item, set it to the default.
-			if d.Get("guest_id") == "" {
-				d.SetNew("guest_id", "other-64")
-			}
 			// For most cases (all non-imported workflows), any changed attribute in
 			// the clone configuration namespace is a ForceNew. Flag those now.
 			for _, k := range d.GetChangedKeysPrefix("clone.0") {
@@ -1212,7 +1208,11 @@ func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interf
 	// environment info in the resource pool, which we can then filter through
 	// our device CRUD lifecycles to get a full deviceChange attribute for our
 	// configspec.
-	devices, err := resourcepool.DefaultDevices(client, pool, d.Get("guest_id").(string))
+	var guestID interface{}
+	if _, ok := d.GetOk("guest_id"); !ok {
+		guestID = "other-64"
+	}
+	devices, err := resourcepool.DefaultDevices(client, pool, guestID.(string))
 	if err != nil {
 		return nil, fmt.Errorf("error loading default device list: %s", err)
 	}
