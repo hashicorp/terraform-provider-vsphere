@@ -2,6 +2,16 @@
 
 IMPROVEMENTS:
 * `data/content_library_item`: Add `type` to content library item data source. ([#1184](https://github.com/hashicorp/terraform-provider-vsphere/pull/1184))
+* `resource/virtual_switch`: Fix port group resource to enable LACP in virtual switch only. ([#1214](https://github.com/hashicorp/terraform-provider-vsphere/pull/1214))
+* `resource/distributed_port_group`: Import distributed port group using MOID. ([#1208](https://github.com/hashicorp/terraform-provider-vsphere/pull/1208))
+* `resource/host_port_group`: Add support for importing. ([#1194](https://github.com/hashicorp/terraform-provider-vsphere/pull/1194))
+* `resource/VM`: Allow more config options to be changed from OVF. ([#1218](https://github.com/hashicorp/terraform-provider-vsphere/pull/1218))
+* `resource/VM`: Convert folder path to MOID. ([#1207](https://github.com/hashicorp/terraform-provider-vsphere/pull/1207))
+
+BUG FIXES:
+* `resource/datastore_cluster`: Fix missing field in import. ([#1203](https://github.com/hashicorp/terraform-provider-vsphere/pull/1203))
+* `resource/VM`: Change default OS method on bare VMs. ([#1217](https://github.com/hashicorp/terraform-provider-vsphere/pull/1217))
+* `resource/VM`: Read virtual machine after clone and OVF/OVA deploy. ([#1221](https://github.com/hashicorp/terraform-provider-vsphere/pull/1221))
 
 ## 1.24.0 (September 02, 2020)
 
