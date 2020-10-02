@@ -7178,11 +7178,17 @@ resource "vsphere_virtual_machine" "vm" {
   datacenter_id              = data.vsphere_datacenter.rootdc1.id
   host_system_id             = data.vsphere_host.roothost1.id
   wait_for_guest_net_timeout = 0
-  wait_for_guest_ip_timeout  = 1
+  wait_for_guest_ip_timeout  = 0
   num_cpus                   = 2
   ovf_deploy {
     remote_ovf_url = "%s"
   }
+	disk{
+		size           = 40
+		unit_number    = 0
+		label          = "disk0"
+		io_share_count = 1000
+	}
   cdrom {
     client_device = true
   }

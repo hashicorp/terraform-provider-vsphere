@@ -80,6 +80,7 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 		"datastore_id": {
 			Type:          schema.TypeString,
 			Optional:      true,
+			Computed:      true,
 			ConflictsWith: []string{"datastore_cluster_id"},
 			Description:   "The datastore ID for this virtual disk, if different than the virtual machine.",
 		},
