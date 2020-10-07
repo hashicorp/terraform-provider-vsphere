@@ -18,7 +18,7 @@ The `vsphere_dynamic` data source can be used to get the [managed object
 ## Example Usage
 
 ```hcl
-data "vsphere_tag_cetegory" "cat" {
+data "vsphere_tag_category" "cat" {
   name = "SomeCategory"
 }
 
