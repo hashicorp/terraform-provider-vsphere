@@ -1208,12 +1208,9 @@ func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interf
 	// environment info in the resource pool, which we can then filter through
 	// our device CRUD lifecycles to get a full deviceChange attribute for our
 	// configspec.
-	var guestID string
-	guestInterface, ok := d.GetOk("guest_id")
-	if ok {
+	guestID := "other-64"
+	if guestInterface, ok := d.GetOk("guest_id"); ok {
 		guestID = guestInterface.(string)
-	} else {
-		guestID = "other-64"
 	}
 	devices, err := resourcepool.DefaultDevices(client, pool, guestID)
 	if err != nil {
