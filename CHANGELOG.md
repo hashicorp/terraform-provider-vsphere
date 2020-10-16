@@ -1,4 +1,4 @@
-## 1.24.2 (Unreleased)
+## 1.24.2 (October 16, 2020)
 
 BUG FIXES:
 * `resource/vm`: Prevent guest_id nil condition. ([#1203](https://github.com/hashicorp/terraform-provider-vsphere/pull/1234))
