@@ -1005,7 +1005,10 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 
 	log.Printf("[DEBUG] DiskPostCloneOperation: Looking for and applying device changes in source disks")
 	for i, device := range devices {
-		src := curSet[i].(map[string]interface{})
+		src := map[string]interface{}{}
+		if i < len(curSet) {
+			src = curSet[i].(map[string]interface{})
+		}
 		vd := device.GetVirtualDevice()
 		ctlr := l.FindByKey(vd.ControllerKey)
 		if ctlr == nil {
@@ -1060,15 +1063,17 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 	}
 
 	// Any disk past the current device list is a new device. Create those now.
-	for _, ni := range curSet[len(devices):] {
-		r := NewDiskSubresource(c, d, ni.(map[string]interface{}), nil, len(updates))
-		cspec, err := r.Create(l)
-		if err != nil {
-			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+	if len(devices) <= len(curSet) {
+		for _, ni := range curSet[len(devices):] {
+			r := NewDiskSubresource(c, d, ni.(map[string]interface{}), nil, len(updates))
+			cspec, err := r.Create(l)
+			if err != nil {
+				return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+			}
+			l = applyDeviceChange(l, cspec)
+			spec = append(spec, cspec...)
+			updates = append(updates, r.Data())
 		}
-		l = applyDeviceChange(l, cspec)
-		spec = append(spec, cspec...)
-		updates = append(updates, r.Data())
 	}
 
 	log.Printf("[DEBUG] DiskPostCloneOperation: Post-clone final resource list: %s", subresourceListString(updates))

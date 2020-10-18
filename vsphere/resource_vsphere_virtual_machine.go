@@ -1690,7 +1690,7 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			return fmt.Errorf(formatVirtualMachineCustomizationWaitError, vm.InventoryPath, err)
 		}
 	}
-	return resourceVSphereVirtualMachineRead(d, meta)
+	return nil
 }
 
 // resourceVSphereVirtualMachineCreateCloneWithSDRS runs the clone part of
