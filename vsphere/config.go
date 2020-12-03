@@ -20,6 +20,7 @@ import (
 	"github.com/vmware/govmomi/pbm"
 	"github.com/vmware/govmomi/session"
 	"github.com/vmware/govmomi/session/cache"
+	"github.com/vmware/govmomi/session/keepalive"
 	"github.com/vmware/govmomi/vapi/tags"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/debug"
@@ -171,7 +172,7 @@ func (c *Config) Client() (*VSphereClient, error) {
 		if err != nil {
 			return nil, err
 		}
-		client.restClient, err = c.SavedRestSessionOrNew(s)
+		client.restClient, err = c.SavedRestSessionOrNew(s, c.KeepAlive)
 		if err != nil {
 			return nil, err
 		}
@@ -224,7 +225,7 @@ func (c *Config) restURL() (*cache.Session, error) {
 	return s, err
 }
 
-func (c *Config) SavedRestSessionOrNew(s *cache.Session) (*rest.Client, error) {
+func (c *Config) SavedRestSessionOrNew(s *cache.Session, keepAlive int) (*rest.Client, error) {
 	log.Printf("[DEBUG] Setting up REST client")
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
@@ -236,6 +237,12 @@ func (c *Config) SavedRestSessionOrNew(s *cache.Session) (*rest.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Setup keepalive functionality
+	var f func() error
+	t := keepalive.NewHandlerREST(restClient, time.Duration(c.KeepAlive)*time.Minute, f)
+	t.Start()
+	restClient.Transport = t
+
 	log.Println("[DEBUG] CIS REST client configuration successful")
 	return restClient, nil
 }
