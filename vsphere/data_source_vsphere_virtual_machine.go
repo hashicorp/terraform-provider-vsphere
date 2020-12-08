@@ -212,6 +212,9 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 	if err := d.Set("network_interface_types", nics); err != nil {
 		return fmt.Errorf("error setting network interface types: %s", err)
 	}
+	if err := d.Set("network_interfaces", networkInterfaces); err != nil {
+		return fmt.Errorf("error setting network interfaces: %s", err)
+	}
 	if props.Guest != nil {
 		if err := buildAndSelectGuestIPs(d, *props.Guest); err != nil {
 			return fmt.Errorf("error setting guest IP addresses: %s", err)
