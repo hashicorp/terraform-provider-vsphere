@@ -115,6 +115,9 @@ The following arguments are used to configure the VMware vSphere Provider:
   10 minutes to ensure that operations that take a longer than 30 minutes
   without API interaction do not result in a session timeout. Can also be
   specified with the `VSPHERE_VIM_KEEP_ALIVE` environment variable.
+* `api_timeout` - (Optional) Sets the number of minutes to wait for operations
+  to complete. The default timeout is 5 minutes. Currently it will override
+  the timeout for all VM creation operations.
 
 ### Session persistence options
 

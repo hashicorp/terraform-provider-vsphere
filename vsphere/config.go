@@ -40,6 +40,9 @@ type VSphereClient struct {
 
 	// The REST client used for tags and content library.
 	restClient *rest.Client
+
+	// client timeout for certain operations
+	timeout time.Duration
 }
 
 // TagsManager returns the embedded tags manager used for tags, after determining
@@ -87,6 +90,7 @@ type Config struct {
 	VimSessionPath  string
 	RestSessionPath string
 	KeepAlive       int
+	ApiTimeout      time.Duration
 }
 
 // NewConfig returns a new Config from a supplied ResourceData.
@@ -104,6 +108,9 @@ func NewConfig(d *schema.ResourceData) (*Config, error) {
 		return nil, fmt.Errorf("one of vsphere_server or [deprecated] vcenter_server must be provided")
 	}
 
+	timeoutCfg := time.Duration(d.Get("api_timeout").(int))
+	timeout := time.Duration(timeoutCfg * time.Minute)
+
 	c := &Config{
 		User:            d.Get("user").(string),
 		Password:        d.Get("password").(string),
@@ -116,6 +123,7 @@ func NewConfig(d *schema.ResourceData) (*Config, error) {
 		VimSessionPath:  d.Get("vim_session_path").(string),
 		RestSessionPath: d.Get("rest_session_path").(string),
 		KeepAlive:       d.Get("vim_keep_alive").(int),
+		ApiTimeout:      timeout,
 	}
 
 	return c, nil
@@ -194,6 +202,8 @@ func (c *Config) Client() (*VSphereClient, error) {
 	if err := c.SaveRestClient(client.restClient, s); err != nil {
 		return nil, fmt.Errorf("error persisting REST session to disk: %s", err)
 	}
+
+	client.timeout = c.ApiTimeout
 
 	return client, nil
 }

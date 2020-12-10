@@ -493,9 +493,10 @@ func blockUntilReadyForMethod(method string, vm *object.VirtualMachine, ctx cont
 
 // Create wraps the creation of a virtual machine and the subsequent waiting of
 // the task. A higher-level virtual machine object is returned.
-func Create(c *govmomi.Client, f *object.Folder, s types.VirtualMachineConfigSpec, p *object.ResourcePool, h *object.HostSystem) (*object.VirtualMachine, error) {
+func Create(c *govmomi.Client, f *object.Folder, s types.VirtualMachineConfigSpec, p *object.ResourcePool,
+	h *object.HostSystem, timeout time.Duration) (*object.VirtualMachine, error) {
 	log.Printf("[DEBUG] Creating virtual machine %q", fmt.Sprintf("%s/%s", f.InventoryPath, s.Name))
-	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	var task *object.Task
 	// Check to see if the resource pool is a vApp
@@ -511,7 +512,7 @@ func Create(c *govmomi.Client, f *object.Folder, s types.VirtualMachineConfigSpe
 	if err != nil {
 		return nil, err
 	}
-	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	tctx, tcancel := context.WithTimeout(context.Background(), timeout)
 	defer tcancel()
 	result, err := task.WaitForResult(tctx, nil)
 	if err != nil {
