@@ -1278,7 +1278,8 @@ func resourceVSphereVirtualMachineCreateBareWithSDRS(
 		return nil, fmt.Errorf("error getting datastore cluster: %s", err)
 	}
 
-	vm, err := storagepod.CreateVM(client, fo, spec, pool, hs, pod)
+	timeout := meta.(*VSphereClient).timeout
+	vm, err := storagepod.CreateVM(client, fo, spec, pool, hs, pod, timeout)
 	if err != nil {
 		return nil, fmt.Errorf("error creating virtual machine on datastore cluster %q: %s", pod.Name(), err)
 	}
@@ -1307,7 +1308,8 @@ func resourceVSphereVirtualMachineCreateBareStandard(
 		VmPathName: fmt.Sprintf("[%s]", ds.Name()),
 	}
 
-	vm, err := virtualmachine.Create(client, fo, spec, pool, hs)
+	timeout := meta.(*VSphereClient).timeout
+	vm, err := virtualmachine.Create(client, fo, spec, pool, hs, timeout)
 	if err != nil {
 		return nil, fmt.Errorf("error creating virtual machine: %s", err)
 	}

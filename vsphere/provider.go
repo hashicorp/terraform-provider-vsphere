@@ -91,6 +91,12 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_VIM_KEEP_ALIVE", 10),
 				Description: "Keep alive interval for the VIM session in minutes",
 			},
+			"api_timeout": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_API_TIMEOUT", 5),
+				Description: "API timeout in minutes (Default: 5)",
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{

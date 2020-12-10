@@ -195,6 +195,7 @@ func CreateVM(
 	pool *object.ResourcePool,
 	host *object.HostSystem,
 	pod *object.StoragePod,
+	timeout time.Duration,
 ) (*object.VirtualMachine, error) {
 	sdrsEnabled, err := StorageDRSEnabled(pod)
 	if err != nil {
@@ -222,7 +223,7 @@ func CreateVM(
 		sps.Host = types.NewReference(host.Reference())
 	}
 
-	placement, err := recommendSDRS(client, sps, provider.DefaultAPITimeout)
+	placement, err := recommendSDRS(client, sps, timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -234,12 +235,12 @@ func CreateVM(
 		case viapi.IsManagedObjectNotFoundError(err):
 			// This isn't a vApp container, so continue with normal SDRS work flow.
 		case err == nil:
-			return createVAppVMFromSPS(client, placement, spec, sps, vc)
+			return createVAppVMFromSPS(client, placement, spec, sps, vc, timeout)
 		default:
 			return nil, err
 		}
 	}
-	return applySDRS(client, placement, provider.DefaultAPITimeout)
+	return applySDRS(client, placement, timeout)
 }
 
 // CloneVM clones a virtual machine to a datastore cluster via the
@@ -428,6 +429,7 @@ func createVAppVMFromSPS(
 	spec types.VirtualMachineConfigSpec,
 	sps types.StoragePlacementSpec,
 	vc *object.VirtualApp,
+	timeout time.Duration,
 ) (*object.VirtualMachine, error) {
 	ds, err := datastore.FromID(client, placement.Recommendations[0].Action[0].(*types.StoragePlacementAction).Destination.Reference().Value)
 	if err != nil {
@@ -441,7 +443,7 @@ func createVAppVMFromSPS(
 	if err != nil {
 		return nil, err
 	}
-	return virtualmachine.Create(client, f, spec, vc.ResourcePool, nil)
+	return virtualmachine.Create(client, f, spec, vc.ResourcePool, nil, timeout)
 }
 
 // HasDiskCreationOperations is an exported function that checks a list of
