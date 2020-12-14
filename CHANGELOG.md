@@ -1,7 +1,13 @@
+## 1.24.3 (Unreleased)
+
+BUG FIXES:
+* `resource/vm`: Support for no disks in config ([#1241](https://github.com/hashicorp/terraform-provider-vsphere/1241))
+* `resource/vm`: Make API timeout configurable when building VMs ([#1278](https://github.com/hashicorp/terraform-provider-vsphere/1278))
+
 ## 1.24.2 (October 16, 2020)
 
 BUG FIXES:
-* `resource/vm`: Prevent guest_id nil condition. ([#1203](https://github.com/hashicorp/terraform-provider-vsphere/pull/1234))
+* `resource/vm`: Prevent guest_id nil condition. ([#1234](https://github.com/hashicorp/terraform-provider-vsphere/pull/1234))
 
 ## 1.24.1 (October 07, 2020)
 
