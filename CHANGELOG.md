@@ -1,4 +1,4 @@
-## 1.24.3 (Unreleased)
+## 1.24.3 (December 14, 2020)
 
 BUG FIXES:
 * `resource/vm`: Support for no disks in config ([#1241](https://github.com/hashicorp/terraform-provider-vsphere/1241))
