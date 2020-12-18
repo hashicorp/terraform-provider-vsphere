@@ -889,6 +889,18 @@ func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.Res
 		}
 	}
 
+	if d.Get("vbs_enabled").(bool) {
+		if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 7}) {
+			return fmt.Errorf("vbs_enabled is only supported on vSphere 6.7 and higher")
+		}
+	}
+
+	if d.Get("vvtd_enabled").(bool) {
+		if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 7}) {
+			return fmt.Errorf("vvtd_enabled is only supported on vSphere 6.7 and higher")
+		}
+	}
+
 	// Validate cdrom sub-resources when not deploying from ovf
 	if len(d.Get("ovf_deploy").([]interface{})) == 0 {
 		if err := virtualdevice.CdromDiffOperation(d, client); err != nil {

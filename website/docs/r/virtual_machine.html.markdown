@@ -772,6 +772,13 @@ behavior.
 
 * `enable_disk_uuid` - (Optional) Expose the UUIDs of attached virtual disks to
   the virtual machine, allowing access to them in the guest. Default: `false`.
+* `vbs_enabled` - (Optional) Enable Virtualization Based Security. Requires
+  `firmware` to be `efi`, and `vvtd_enabled`, `nested_hv_enabled` and
+  `efi_secure_boot_enabled` must all have a value of `true`. Supported on
+  vSphere 6.7 and higher. Default: `false`.
+* `vvtd_enabled` - (Optional) Flag to specify if Intel Virtualization Technology 
+  for Directed I/O is enabled for this virtual machine (_I/O MMU_ in the
+  vSphere Client). Supported on vSphere 6.7 and higher. Default: `false`.
 * `hv_mode` - (Optional) The (non-nested) hardware virtualization setting for
   this virtual machine. Can be one of `hvAuto`, `hvOn`, or `hvOff`. Default:
   `hvAuto`.
