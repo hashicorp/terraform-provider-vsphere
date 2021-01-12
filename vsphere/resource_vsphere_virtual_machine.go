@@ -1401,6 +1401,29 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 	}
 
 	ovfManager := ovf.NewManager(client.Client)
+	deploymentOption := d.Get("ovf_deploy.0.deployment_option").(string)
+	if deploymentOption != "" {
+		ovfParseDescriptorParams := types.OvfParseDescriptorParams{}
+		ovfParsedDescriptor, err := ovfManager.ParseDescriptor(context.Background(), ovfDescriptor, ovfParseDescriptorParams)
+		if err != nil {
+			return nil, fmt.Errorf("error while parsing the ovf descriptor file %s", err)
+		}
+		var validDeployments []string
+		for _, deploymentOption := range ovfParsedDescriptor.DeploymentOption {
+			validDeployments = append(validDeployments, deploymentOption.Key)
+		}
+		deploymentOptionValid := false
+		for _, option := range validDeployments {
+			if deploymentOption == option {
+				deploymentOptionValid = true
+				break
+			}
+		}
+		if !deploymentOptionValid {
+			return nil, fmt.Errorf("invalid ovf deployment %s specified, valid deployments are: %s", deploymentOption, strings.Join(validDeployments, ", "))
+		}
+		importSpecParam.DeploymentOption = deploymentOption
+	}
 	ovfCreateImportSpecResult, err := ovfManager.CreateImportSpec(context.Background(), ovfDescriptor,
 		resourcePoolMor, dsMor, importSpecParam)
 	if err != nil {
