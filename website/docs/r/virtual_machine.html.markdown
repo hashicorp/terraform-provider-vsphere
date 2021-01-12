@@ -1369,6 +1369,7 @@ The options available in the `ovf_deploy` block are:
 * `ip_protocol` - (Optional) The IP protocol.
 * `disk_provisioning` - (Optional) The disk provisioning. If set, all the disks in the deployed OVF will have 
    the same specified disk type (accepted values {thin, flat, thick, sameAsSource}).
+* `deployment_option` - (Optional) The key of the chosen deployment option. If empty, the default option is chosen.   
 * `ovf_network_map` - (Optional) The mapping of name of network identifiers from the ovf descriptor to network UUID in the 
    VI infrastructure.
 * `allow_unverified_ssl_cert` - (Optional) Allow unverified ssl certificates while deploying ovf/ova from url.
