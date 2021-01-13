@@ -9,6 +9,7 @@ import (
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 	"log"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -119,6 +120,11 @@ func resourceEntityPermissionsRead(d *schema.ResourceData, meta interface{}) err
 		permissionObj["role_id"] = strconv.Itoa(int(permission.RoleId))
 		permissionObjs = append(permissionObjs, permissionObj)
 	}
+
+	sort.Slice(permissionObjs[:], func(i, j int) bool {
+		return strings.ToLower(permissionObjs[i]["user_or_group"].(string)) <
+			strings.ToLower(permissionObjs[j]["user_or_group"].(string))
+	})
 	d.Set("permissions", permissionObjs)
 	return nil
 }
