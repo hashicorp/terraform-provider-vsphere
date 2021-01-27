@@ -230,9 +230,10 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 					Description: "The IPv4 address assigned to this network adapter. If left blank, DHCP is used.",
 				},
 				"ipv4_netmask": {
-					Type:        schema.TypeInt,
-					Optional:    true,
-					Description: "The IPv4 CIDR netmask for the supplied IP address. Ignored if DHCP is selected.",
+					Type:         schema.TypeInt,
+					Optional:     true,
+					Description:  "The IPv4 CIDR netmask for the supplied IP address. Ignored if DHCP is selected.",
+					ValidateFunc: validation.IntAtMost(32),
 				},
 				"ipv6_address": {
 					Type:        schema.TypeString,
@@ -240,9 +241,10 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 					Description: "The IPv6 address assigned to this network adapter. If left blank, default auto-configuration is used.",
 				},
 				"ipv6_netmask": {
-					Type:        schema.TypeInt,
-					Optional:    true,
-					Description: "The IPv6 CIDR netmask for the supplied IP address. Ignored if auto-configuration is selected.",
+					Type:         schema.TypeInt,
+					Optional:     true,
+					Description:  "The IPv6 CIDR netmask for the supplied IP address. Ignored if auto-configuration is selected.",
+					ValidateFunc: validation.IntAtMost(128),
 				},
 			}},
 		},
