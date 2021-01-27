@@ -628,7 +628,9 @@ func expandVAppConfig(d *schema.ResourceData, client *govmomi.Client) (*types.Vm
 	if newVApps != nil && len(newVApps) > 0 && newVApps[0] != nil {
 		newVApp := newVApps[0].(map[string]interface{})
 		if props, ok := newVApp["properties"].(map[string]interface{}); ok {
-			newMap = props
+			for k, v := range props {
+				newMap[k] = v
+			}
 		}
 	}
 
