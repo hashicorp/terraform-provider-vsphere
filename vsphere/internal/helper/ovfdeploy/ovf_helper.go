@@ -68,18 +68,18 @@ func DeployOvfAndGetResult(ovfCreateImportSpecResult *types.OvfCreateImportSpecR
 	statusChannel := make(chan bool)
 	// Create a go routine to update progress regularly
 	go func() {
-		var progress int64 = 0
 		for {
 			select {
 			case <-statusChannel:
 				break
 			default:
-				log.Printf("Uploaded %v of %v Bytes", getTotalBytesRead(&currBytesRead), totalBytes)
 				if totalBytes == 0 {
-					break
+					_ = nfcLease.Progress(context.Background(), 100)
+					return
 				}
-				progress = (getTotalBytesRead(&currBytesRead) / totalBytes) * 100
-				nfcLease.Progress(context.Background(), int32(progress))
+				log.Printf("Uploaded %v of %v Bytes", getTotalBytesRead(&currBytesRead), totalBytes)
+				progress := (getTotalBytesRead(&currBytesRead) / totalBytes) * 100
+				_ = nfcLease.Progress(context.Background(), int32(progress))
 				time.Sleep(10 * time.Second)
 			}
 		}
