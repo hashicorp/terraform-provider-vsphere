@@ -1318,129 +1318,28 @@ func resourceVSphereVirtualMachineCreateBareStandard(
 
 // Deploy vm from ovf/ova template
 func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interface{}) (*object.VirtualMachine, error) {
-
-	localOvfPath := d.Get("ovf_deploy.0.local_ovf_path").(string)
-	remoteOvfUrl := d.Get("ovf_deploy.0.remote_ovf_url").(string)
-
-	// check if Ovf or Ova is to be deployed from local/remote
-	deployOva := false
-	fromLocal := true
-	filePath := localOvfPath
-
-	if remoteOvfUrl != "" {
-		fromLocal = false
-		filePath = remoteOvfUrl
+	client := meta.(*VSphereClient).vimClient
+	ovfParams, err := NewOvfParamsFromResourceData(client, d)
+	if err != nil {
+		return nil, fmt.Errorf("while extracting OVF parameters: %s", err)
 	}
-	if strings.HasSuffix(filePath, ".ova") {
-		deployOva = true
+
+	log.Print(" [DEBUG] start deploying from ovf/ova Template")
+	err = ovfParams.DeployOvfAndGetResult(client)
+	if err != nil {
+		return nil, fmt.Errorf("error while importing ovf/ova template, %s", err)
 	}
-	log.Printf("[DEBUG] VM is being deployed from ovf/ova template %s", filePath)
 
 	dataCenterId := d.Get("datacenter_id").(string)
 	if dataCenterId == "" {
 		return nil, fmt.Errorf("data center ID is required for ovf deployment")
 	}
-
-	client := meta.(*VSphereClient).vimClient
-	name := d.Get("name").(string)
-	var vm *object.VirtualMachine
-
-	poolID := d.Get("resource_pool_id").(string)
-	poolObj, err := resourcepool.FromID(client, poolID)
-	if err != nil {
-		return nil, fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
-	}
-	resourcePoolMor := poolObj.Reference()
-
-	folderObj, err := folder.VirtualMachineFolderFromObject(client, poolObj, d.Get("folder").(string))
-	if err != nil {
-		return nil, err
-	}
-
-	hostId := d.Get("host_system_id").(string)
-	if hostId == "" {
-		return nil, fmt.Errorf("host system ID is required for ovf deployment")
-	}
-	hostObj, err := hostsystem.FromID(client, hostId)
-	if err != nil {
-		return nil, fmt.Errorf("could not find host with ID %q: %s", hostId, err)
-	}
-	hostMor := hostObj.Reference()
-
-	dsId := d.Get("datastore_id").(string)
-	if dsId == "" {
-		return nil, fmt.Errorf("data store ID is required for ovf deployment")
-	}
-	dsObj, err := datastore.FromID(client, dsId)
-	if err != nil {
-		return nil, fmt.Errorf("could not find datastore with ID %q: %s", dsId, err)
-	}
-	dsMor := dsObj.Reference()
-
-	allowUnverifiedSSL := d.Get("ovf_deploy.0.allow_unverified_ssl_cert").(bool)
-	networkMapping, err := ovfdeploy.GetNetworkMapping(client, d)
-	if err != nil {
-		return nil, err
-	}
-	importSpecParam := types.OvfCreateImportSpecParams{
-		EntityName:         name,
-		HostSystem:         &hostMor,
-		NetworkMapping:     networkMapping,
-		IpAllocationPolicy: d.Get("ovf_deploy.0.ip_allocation_policy").(string),
-		IpProtocol:         d.Get("ovf_deploy.0.ip_protocol").(string),
-		DiskProvisioning:   d.Get("ovf_deploy.0.disk_provisioning").(string),
-	}
-
-	ovfDescriptor, err := ovfdeploy.GetOvfDescriptor(filePath, deployOva, fromLocal, allowUnverifiedSSL)
-	if err != nil {
-		return nil, fmt.Errorf("error while reading the ovf file %s, %s ", filePath, err)
-	}
-
-	if ovfDescriptor == "" {
-		return nil, fmt.Errorf("the given ovf file %s is empty", filePath)
-	}
-
-	ovfManager := ovf.NewManager(client.Client)
-	deploymentOption := d.Get("ovf_deploy.0.deployment_option").(string)
-	if deploymentOption != "" {
-		ovfParseDescriptorParams := types.OvfParseDescriptorParams{}
-		ovfParsedDescriptor, err := ovfManager.ParseDescriptor(context.Background(), ovfDescriptor, ovfParseDescriptorParams)
-		if err != nil {
-			return nil, fmt.Errorf("error while parsing the ovf descriptor file %s", err)
-		}
-		var validDeployments []string
-		for _, deploymentOption := range ovfParsedDescriptor.DeploymentOption {
-			validDeployments = append(validDeployments, deploymentOption.Key)
-		}
-		deploymentOptionValid := false
-		for _, option := range validDeployments {
-			if deploymentOption == option {
-				deploymentOptionValid = true
-				break
-			}
-		}
-		if !deploymentOptionValid {
-			return nil, fmt.Errorf("invalid ovf deployment %s specified, valid deployments are: %s", deploymentOption, strings.Join(validDeployments, ", "))
-		}
-		importSpecParam.DeploymentOption = deploymentOption
-	}
-	ovfCreateImportSpecResult, err := ovfManager.CreateImportSpec(context.Background(), ovfDescriptor,
-		resourcePoolMor, dsMor, importSpecParam)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Print(" [DEBUG] start deploying from ovf/ova Template")
-	err = ovfdeploy.DeployOvfAndGetResult(ovfCreateImportSpecResult, poolObj, folderObj, hostObj, filePath, deployOva, fromLocal, allowUnverifiedSSL)
-	if err != nil {
-		return nil, fmt.Errorf("error while importing ovf/ova template, %s", err)
-	}
-
 	datacenterObj, err := datacenterFromID(client, dataCenterId)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting datacenter with id %s %s", dataCenterId, err)
 	}
-	vm, err = virtualmachine.FromPath(client, name, datacenterObj)
+
+	vm, err := virtualmachine.FromPath(client, ovfParams.Name, datacenterObj)
 	if err != nil {
 		return nil, fmt.Errorf("error while fetching the created vm, %s", err)
 	}
@@ -1467,6 +1366,7 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 			return nil, fmt.Errorf("error while applying vapp config %s", err)
 		}
 	}
+
 	return vm, resourceVSphereVirtualMachinePostDeployChanges(d, meta, vm)
 }
 
@@ -1941,4 +1841,139 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 // vsphere_virtual_machine resource.
 func resourceVSphereVirtualMachineIDString(d structure.ResourceIDStringer) string {
 	return structure.ResourceIDString(d, "vsphere_virtual_machine")
+}
+
+type OvfParams struct {
+	AllowUnverifiedSSL bool
+	Datastore          *object.Datastore
+	DeploymentOption   string
+	DeployOva          bool
+	DiskProvisioning   string
+	FilePath           string
+	Folder             *object.Folder
+	IsLocal            bool
+	Name               string
+	HostSystem         *object.HostSystem
+	IpAllocationPolicy string
+	IpProtocol         string
+	NetworkMapping     []types.OvfNetworkMapping
+	OvfPath            string
+	OvfUrl             string
+	ResourcePool       *object.ResourcePool
+}
+
+func NewOvfParamsFromResourceData(client *govmomi.Client, d *schema.ResourceData) (*OvfParams, error) {
+	ovfParams := &OvfParams{
+		AllowUnverifiedSSL: d.Get("ovf_deploy.0.allow_unverified_ssl_cert").(bool),
+		DeploymentOption:   d.Get("ovf_deploy.0.deployment_option").(string),
+		DiskProvisioning:   d.Get("ovf_deploy.0.disk_provisioning").(string),
+		IpAllocationPolicy: d.Get("ovf_deploy.0.ip_allocation_policy").(string),
+		IpProtocol:         d.Get("ovf_deploy.0.ip_protocol").(string),
+		Name:               d.Get("name").(string),
+	}
+
+	ovfParams.DeployOva = false
+	ovfParams.IsLocal = true
+	ovfParams.FilePath = d.Get("ovf_deploy.0.local_ovf_path").(string)
+
+	ovfUrl := d.Get("ovf_deploy.0.remote_ovf_url").(string)
+	if ovfUrl != "" {
+		ovfParams.IsLocal = false
+		ovfParams.FilePath = ovfUrl
+	}
+
+	if strings.HasSuffix(ovfParams.FilePath, ".ova") {
+		ovfParams.DeployOva = true
+	}
+
+	//Resource pool
+	poolID := d.Get("resource_pool_id").(string)
+	poolObj, err := resourcepool.FromID(client, poolID)
+	if err != nil {
+		return nil, fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
+	}
+	ovfParams.ResourcePool = poolObj
+
+	// Folder
+	folderObj, err := folder.VirtualMachineFolderFromObject(client, poolObj, d.Get("folder").(string))
+	if err != nil {
+		return nil, err
+	}
+	ovfParams.Folder = folderObj
+
+	//Host
+	hostId := d.Get("host_system_id").(string)
+	if hostId == "" {
+		return nil, fmt.Errorf("host system ID is required for ovf deployment")
+	}
+	hostObj, err := hostsystem.FromID(client, hostId)
+	if err != nil {
+		return nil, fmt.Errorf("could not find host with ID %q: %s", hostId, err)
+	}
+	ovfParams.HostSystem = hostObj
+
+	//Datastore
+	dsId := d.Get("datastore_id").(string)
+	if dsId == "" {
+		return nil, fmt.Errorf("data store ID is required for ovf deployment")
+	}
+	dsObj, err := datastore.FromID(client, dsId)
+	if err != nil {
+		return nil, fmt.Errorf("could not find datastore with ID %q: %s", dsId, err)
+	}
+	ovfParams.Datastore = dsObj
+
+	//Network Mapping
+	networkMapping, err := ovfdeploy.GetNetworkMapping(client, d)
+	if err != nil {
+		return nil, fmt.Errorf("while getting OVF network mapping: %s", err)
+	}
+	ovfParams.NetworkMapping = networkMapping
+
+	return ovfParams, nil
+}
+
+func (o *OvfParams) GetImportSpec(client *govmomi.Client) (*types.OvfCreateImportSpecResult, error) {
+
+	hsRef := o.HostSystem.Reference()
+	importSpecParam := types.OvfCreateImportSpecParams{
+		EntityName:         o.Name,
+		HostSystem:         &hsRef,
+		NetworkMapping:     o.NetworkMapping,
+		IpAllocationPolicy: o.IpAllocationPolicy,
+		IpProtocol:         o.IpProtocol,
+		DiskProvisioning:   o.DiskProvisioning,
+	}
+
+	ovfDescriptor, err := ovfdeploy.GetOvfDescriptor(o.FilePath, o.DeployOva, o.IsLocal, o.AllowUnverifiedSSL)
+	if err != nil {
+		return nil, fmt.Errorf("error while reading the ovf file %s, %s ", o.FilePath, err)
+	}
+
+	if ovfDescriptor == "" {
+		return nil, fmt.Errorf("the given ovf file %s is empty", o.FilePath)
+	}
+
+	ovfManager := ovf.NewManager(client.Client)
+	deploymentOption := o.DeploymentOption
+	if deploymentOption != "" {
+		err := ovfdeploy.CheckDeploymentOption(client, deploymentOption, ovfDescriptor)
+		if err != nil {
+			return nil, fmt.Errorf("while checking deployment option: %s", err)
+		}
+		importSpecParam.DeploymentOption = deploymentOption
+	}
+
+	return ovfManager.CreateImportSpec(context.Background(), ovfDescriptor,
+		o.ResourcePool.Reference(), o.Datastore.Reference(), importSpecParam)
+}
+
+func (o *OvfParams) DeployOvfAndGetResult(client *govmomi.Client) error {
+	ovfCreateImportSpecResult, err := o.GetImportSpec(client)
+	if err != nil {
+		return err
+	}
+
+	return ovfdeploy.DeployOvfAndGetResult(ovfCreateImportSpecResult, o.ResourcePool, o.Folder, o.HostSystem,
+		o.FilePath, o.DeployOva, o.IsLocal, o.AllowUnverifiedSSL)
 }

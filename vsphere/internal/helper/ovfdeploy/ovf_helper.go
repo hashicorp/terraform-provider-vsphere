@@ -6,12 +6,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/network"
-	"github.com/vmware/govmomi"
-	"github.com/vmware/govmomi/object"
-	"github.com/vmware/govmomi/vim25/soap"
-	"github.com/vmware/govmomi/vim25/types"
 	"io"
 	"io/ioutil"
 	"log"
@@ -20,6 +14,14 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/network"
+	"github.com/vmware/govmomi"
+	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/ovf"
+	"github.com/vmware/govmomi/vim25/soap"
+	"github.com/vmware/govmomi/vim25/types"
 )
 
 func getTotalBytesRead(totalBytes *int64) int64 {
@@ -355,16 +357,14 @@ func findAndUploadDiskFromOva(ovaFile io.Reader, diskName string, ovfFileItem ty
 func GetNetworkMapping(client *govmomi.Client, d *schema.ResourceData) ([]types.OvfNetworkMapping, error) {
 	var ovfNetworkMappings []types.OvfNetworkMapping
 	m := d.Get("ovf_deploy.0.ovf_network_map").(map[string]interface{})
-	if m != nil {
-		for key, val := range m {
+	for key, val := range m {
 
-			networkObj, err := network.FromID(client, fmt.Sprint(val))
-			if err != nil {
-				return nil, err
-			}
-			networkMapping := types.OvfNetworkMapping{Name: key, Network: networkObj.Reference()}
-			ovfNetworkMappings = append(ovfNetworkMappings, networkMapping)
+		networkObj, err := network.FromID(client, fmt.Sprint(val))
+		if err != nil {
+			return nil, err
 		}
+		networkMapping := types.OvfNetworkMapping{Name: key, Network: networkObj.Reference()}
+		ovfNetworkMappings = append(ovfNetworkMappings, networkMapping)
 	}
 	return ovfNetworkMappings, nil
 }
@@ -378,4 +378,23 @@ func getClient(allowUnverifiedSSL bool) *http.Client {
 	} else {
 		return &http.Client{}
 	}
+}
+
+func CheckDeploymentOption(client *govmomi.Client, deploymentOption, ovfDescriptor string) error {
+	ovfManager := ovf.NewManager(client.Client)
+
+	ovfParseDescriptorParams := types.OvfParseDescriptorParams{}
+	ovfParsedDescriptor, err := ovfManager.ParseDescriptor(context.Background(), ovfDescriptor, ovfParseDescriptorParams)
+	if err != nil {
+		return fmt.Errorf("error while parsing the ovf descriptor file %s", err)
+	}
+	var validDeployments []string
+	for _, option := range ovfParsedDescriptor.DeploymentOption {
+		validDeployments = append(validDeployments, option.Key)
+		if deploymentOption == option.Key {
+			return nil
+		}
+	}
+	// If we get to this point it means that no matches were found.
+	return fmt.Errorf("invalid ovf deployment %s specified, valid deployments are: %s", deploymentOption, strings.Join(validDeployments, ", "))
 }
