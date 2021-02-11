@@ -1526,7 +1526,7 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 	}
 	cfgSpec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec.DeviceChange, delta...)
 	// Disks
-	devices, delta, err = virtualdevice.DiskPostCloneOperation(d, client, devices, false)
+	devices, delta, err = virtualdevice.DiskPostCloneOperation(d, client, devices, postOvf)
 	if err != nil {
 		return resourceVSphereVirtualMachineRollbackCreate(
 			d,
