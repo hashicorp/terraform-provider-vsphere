@@ -222,7 +222,6 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		"network_interface": {
 			Type:        schema.TypeList,
 			Optional:    true,
-			Computed:    true,
 			Description: "A specification for a virtual NIC on this virtual machine.",
 			MaxItems:    10,
 			Elem:        &schema.Resource{Schema: virtualdevice.NetworkInterfaceSubresourceSchema()},
