@@ -30,7 +30,6 @@ import (
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/vmworkflow"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
-	"github.com/vmware/govmomi/ovf"
 	"github.com/vmware/govmomi/vapi/vcenter"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -1319,13 +1318,20 @@ func resourceVSphereVirtualMachineCreateBareStandard(
 // Deploy vm from ovf/ova template
 func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interface{}) (*object.VirtualMachine, error) {
 	client := meta.(*VSphereClient).vimClient
-	ovfParams, err := NewOvfParamsFromResourceData(client, d)
+
+	ovfParams := NewOvfHelperParamsFromVMResource(d)
+	ovfHelper, err := ovfdeploy.NewOvfHelper(client, ovfParams)
 	if err != nil {
 		return nil, fmt.Errorf("while extracting OVF parameters: %s", err)
 	}
 
+	ovfImportspec, err := ovfHelper.GetImportSpec(client)
+	if err != nil {
+		return nil, fmt.Errorf("while retrieving ovf import spec from the API: %s", err)
+	}
+
 	log.Print(" [DEBUG] start deploying from ovf/ova Template")
-	err = ovfParams.DeployOvfAndGetResult(client)
+	err = ovfHelper.DeployOvf(ovfImportspec)
 	if err != nil {
 		return nil, fmt.Errorf("error while importing ovf/ova template, %s", err)
 	}
@@ -1339,7 +1345,7 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 		return nil, fmt.Errorf("error while getting datacenter with id %s %s", dataCenterId, err)
 	}
 
-	vm, err := virtualmachine.FromPath(client, ovfParams.Name, datacenterObj)
+	vm, err := virtualmachine.FromPath(client, ovfHelper.Name, datacenterObj)
 	if err != nil {
 		return nil, fmt.Errorf("error while fetching the created vm, %s", err)
 	}
@@ -1843,137 +1849,21 @@ func resourceVSphereVirtualMachineIDString(d structure.ResourceIDStringer) strin
 	return structure.ResourceIDString(d, "vsphere_virtual_machine")
 }
 
-type OvfParams struct {
-	AllowUnverifiedSSL bool
-	Datastore          *object.Datastore
-	DeploymentOption   string
-	DeployOva          bool
-	DiskProvisioning   string
-	FilePath           string
-	Folder             *object.Folder
-	IsLocal            bool
-	Name               string
-	HostSystem         *object.HostSystem
-	IpAllocationPolicy string
-	IpProtocol         string
-	NetworkMapping     []types.OvfNetworkMapping
-	OvfPath            string
-	OvfUrl             string
-	ResourcePool       *object.ResourcePool
-}
-
-func NewOvfParamsFromResourceData(client *govmomi.Client, d *schema.ResourceData) (*OvfParams, error) {
-	ovfParams := &OvfParams{
+func NewOvfHelperParamsFromVMResource(d *schema.ResourceData) *ovfdeploy.OvfHelperParams {
+	ovfParams := &ovfdeploy.OvfHelperParams{
 		AllowUnverifiedSSL: d.Get("ovf_deploy.0.allow_unverified_ssl_cert").(bool),
+		DatastoreId:        d.Get("datastore_id").(string),
 		DeploymentOption:   d.Get("ovf_deploy.0.deployment_option").(string),
 		DiskProvisioning:   d.Get("ovf_deploy.0.disk_provisioning").(string),
+		FilePath:           d.Get("ovf_deploy.0.local_ovf_path").(string),
+		Folder:             d.Get("folder").(string),
+		HostId:             d.Get("host_system_id").(string),
 		IpAllocationPolicy: d.Get("ovf_deploy.0.ip_allocation_policy").(string),
 		IpProtocol:         d.Get("ovf_deploy.0.ip_protocol").(string),
 		Name:               d.Get("name").(string),
+		NetworkMappings:    d.Get("ovf_deploy.0.ovf_network_map").(map[string]interface{}),
+		OvfUrl:             d.Get("ovf_deploy.0.remote_ovf_url").(string),
+		PoolId:             d.Get("resource_pool_id").(string),
 	}
-
-	ovfParams.DeployOva = false
-	ovfParams.IsLocal = true
-	ovfParams.FilePath = d.Get("ovf_deploy.0.local_ovf_path").(string)
-
-	ovfUrl := d.Get("ovf_deploy.0.remote_ovf_url").(string)
-	if ovfUrl != "" {
-		ovfParams.IsLocal = false
-		ovfParams.FilePath = ovfUrl
-	}
-
-	if strings.HasSuffix(ovfParams.FilePath, ".ova") {
-		ovfParams.DeployOva = true
-	}
-
-	//Resource pool
-	poolID := d.Get("resource_pool_id").(string)
-	poolObj, err := resourcepool.FromID(client, poolID)
-	if err != nil {
-		return nil, fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
-	}
-	ovfParams.ResourcePool = poolObj
-
-	// Folder
-	folderObj, err := folder.VirtualMachineFolderFromObject(client, poolObj, d.Get("folder").(string))
-	if err != nil {
-		return nil, err
-	}
-	ovfParams.Folder = folderObj
-
-	//Host
-	hostId := d.Get("host_system_id").(string)
-	if hostId == "" {
-		return nil, fmt.Errorf("host system ID is required for ovf deployment")
-	}
-	hostObj, err := hostsystem.FromID(client, hostId)
-	if err != nil {
-		return nil, fmt.Errorf("could not find host with ID %q: %s", hostId, err)
-	}
-	ovfParams.HostSystem = hostObj
-
-	//Datastore
-	dsId := d.Get("datastore_id").(string)
-	if dsId == "" {
-		return nil, fmt.Errorf("data store ID is required for ovf deployment")
-	}
-	dsObj, err := datastore.FromID(client, dsId)
-	if err != nil {
-		return nil, fmt.Errorf("could not find datastore with ID %q: %s", dsId, err)
-	}
-	ovfParams.Datastore = dsObj
-
-	//Network Mapping
-	networkMapping, err := ovfdeploy.GetNetworkMapping(client, d)
-	if err != nil {
-		return nil, fmt.Errorf("while getting OVF network mapping: %s", err)
-	}
-	ovfParams.NetworkMapping = networkMapping
-
-	return ovfParams, nil
-}
-
-func (o *OvfParams) GetImportSpec(client *govmomi.Client) (*types.OvfCreateImportSpecResult, error) {
-
-	hsRef := o.HostSystem.Reference()
-	importSpecParam := types.OvfCreateImportSpecParams{
-		EntityName:         o.Name,
-		HostSystem:         &hsRef,
-		NetworkMapping:     o.NetworkMapping,
-		IpAllocationPolicy: o.IpAllocationPolicy,
-		IpProtocol:         o.IpProtocol,
-		DiskProvisioning:   o.DiskProvisioning,
-	}
-
-	ovfDescriptor, err := ovfdeploy.GetOvfDescriptor(o.FilePath, o.DeployOva, o.IsLocal, o.AllowUnverifiedSSL)
-	if err != nil {
-		return nil, fmt.Errorf("error while reading the ovf file %s, %s ", o.FilePath, err)
-	}
-
-	if ovfDescriptor == "" {
-		return nil, fmt.Errorf("the given ovf file %s is empty", o.FilePath)
-	}
-
-	ovfManager := ovf.NewManager(client.Client)
-	deploymentOption := o.DeploymentOption
-	if deploymentOption != "" {
-		err := ovfdeploy.CheckDeploymentOption(client, deploymentOption, ovfDescriptor)
-		if err != nil {
-			return nil, fmt.Errorf("while checking deployment option: %s", err)
-		}
-		importSpecParam.DeploymentOption = deploymentOption
-	}
-
-	return ovfManager.CreateImportSpec(context.Background(), ovfDescriptor,
-		o.ResourcePool.Reference(), o.Datastore.Reference(), importSpecParam)
-}
-
-func (o *OvfParams) DeployOvfAndGetResult(client *govmomi.Client) error {
-	ovfCreateImportSpecResult, err := o.GetImportSpec(client)
-	if err != nil {
-		return err
-	}
-
-	return ovfdeploy.DeployOvfAndGetResult(ovfCreateImportSpecResult, o.ResourcePool, o.Folder, o.HostSystem,
-		o.FilePath, o.DeployOva, o.IsLocal, o.AllowUnverifiedSSL)
+	return ovfParams
 }

@@ -15,7 +15,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
+
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/network"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
@@ -354,11 +358,9 @@ func findAndUploadDiskFromOva(ovaFile io.Reader, diskName string, ovfFileItem ty
 	return fmt.Errorf("disk %s not found inside ova", diskName)
 }
 
-func GetNetworkMapping(client *govmomi.Client, d *schema.ResourceData) ([]types.OvfNetworkMapping, error) {
+func GetNetworkMapping(client *govmomi.Client, m map[string]interface{}) ([]types.OvfNetworkMapping, error) {
 	var ovfNetworkMappings []types.OvfNetworkMapping
-	m := d.Get("ovf_deploy.0.ovf_network_map").(map[string]interface{})
 	for key, val := range m {
-
 		networkObj, err := network.FromID(client, fmt.Sprint(val))
 		if err != nil {
 			return nil, err
@@ -397,4 +399,148 @@ func CheckDeploymentOption(client *govmomi.Client, deploymentOption, ovfDescript
 	}
 	// If we get to this point it means that no matches were found.
 	return fmt.Errorf("invalid ovf deployment %s specified, valid deployments are: %s", deploymentOption, strings.Join(validDeployments, ", "))
+}
+
+type OvfHelper struct {
+	AllowUnverifiedSSL bool
+	Datastore          *object.Datastore
+	DeploymentOption   string
+	DeployOva          bool
+	DiskProvisioning   string
+	FilePath           string
+	Folder             *object.Folder
+	IsLocal            bool
+	Name               string
+	HostSystem         *object.HostSystem
+	IpAllocationPolicy string
+	IpProtocol         string
+	NetworkMapping     []types.OvfNetworkMapping
+	ResourcePool       *object.ResourcePool
+}
+
+type OvfHelperParams struct {
+	AllowUnverifiedSSL bool
+	DatastoreId        string
+	DeploymentOption   string
+	DiskProvisioning   string
+	FilePath           string
+	Folder             string
+	HostId             string
+	IpAllocationPolicy string
+	IpProtocol         string
+	Name               string
+	NetworkMappings    map[string]interface{}
+	OvfUrl             string
+	PoolId             string
+}
+
+func NewOvfHelper(client *govmomi.Client, o *OvfHelperParams) (*OvfHelper, error) {
+	ovfParams := &OvfHelper{
+		AllowUnverifiedSSL: o.AllowUnverifiedSSL,
+		DeploymentOption:   o.DeploymentOption,
+		DiskProvisioning:   o.DiskProvisioning,
+		IpAllocationPolicy: o.IpAllocationPolicy,
+		IpProtocol:         o.IpProtocol,
+		Name:               o.Name,
+	}
+
+	ovfParams.DeployOva = false
+	ovfParams.IsLocal = true
+	ovfParams.FilePath = o.FilePath
+
+	ovfUrl := o.OvfUrl
+	if ovfUrl != "" {
+		ovfParams.IsLocal = false
+		ovfParams.FilePath = ovfUrl
+	}
+
+	if strings.HasSuffix(ovfParams.FilePath, ".ova") {
+		ovfParams.DeployOva = true
+	}
+
+	//Resource pool
+	poolID := o.PoolId
+	poolObj, err := resourcepool.FromID(client, poolID)
+	if err != nil {
+		return nil, fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
+	}
+	ovfParams.ResourcePool = poolObj
+
+	// Folder
+	folderObj, err := folder.VirtualMachineFolderFromObject(client, poolObj, o.Folder)
+	if err != nil {
+		return nil, err
+	}
+	ovfParams.Folder = folderObj
+
+	//Host
+	hostId := o.HostId
+	if hostId == "" {
+		return nil, fmt.Errorf("host system ID is required for ovf deployment")
+	}
+	hostObj, err := hostsystem.FromID(client, hostId)
+	if err != nil {
+		return nil, fmt.Errorf("could not find host with ID %q: %s", hostId, err)
+	}
+	ovfParams.HostSystem = hostObj
+
+	//Datastore
+	dsId := o.DatastoreId
+	if dsId == "" {
+		return nil, fmt.Errorf("data store ID is required for ovf deployment")
+	}
+	dsObj, err := datastore.FromID(client, dsId)
+	if err != nil {
+		return nil, fmt.Errorf("could not find datastore with ID %q: %s", dsId, err)
+	}
+	ovfParams.Datastore = dsObj
+
+	//Network Mapping
+	networkMapping, err := GetNetworkMapping(client, o.NetworkMappings)
+	if err != nil {
+		return nil, fmt.Errorf("while getting OVF network mapping: %s", err)
+	}
+	ovfParams.NetworkMapping = networkMapping
+
+	return ovfParams, nil
+}
+
+func (o *OvfHelper) GetImportSpec(client *govmomi.Client) (*types.OvfCreateImportSpecResult, error) {
+
+	hsRef := o.HostSystem.Reference()
+	importSpecParam := types.OvfCreateImportSpecParams{
+		EntityName:         o.Name,
+		HostSystem:         &hsRef,
+		NetworkMapping:     o.NetworkMapping,
+		IpAllocationPolicy: o.IpAllocationPolicy,
+		IpProtocol:         o.IpProtocol,
+		DiskProvisioning:   o.DiskProvisioning,
+	}
+
+	ovfDescriptor, err := GetOvfDescriptor(o.FilePath, o.DeployOva, o.IsLocal, o.AllowUnverifiedSSL)
+	if err != nil {
+		return nil, fmt.Errorf("error while reading the ovf file %s, %s ", o.FilePath, err)
+	}
+
+	if ovfDescriptor == "" {
+		return nil, fmt.Errorf("the given ovf file %s is empty", o.FilePath)
+	}
+
+	ovfManager := ovf.NewManager(client.Client)
+	deploymentOption := o.DeploymentOption
+	if deploymentOption != "" {
+		err := CheckDeploymentOption(client, deploymentOption, ovfDescriptor)
+		if err != nil {
+			return nil, fmt.Errorf("while checking deployment option: %s", err)
+		}
+		importSpecParam.DeploymentOption = deploymentOption
+	}
+
+	return ovfManager.CreateImportSpec(context.Background(), ovfDescriptor,
+		o.ResourcePool.Reference(), o.Datastore.Reference(), importSpecParam)
+}
+
+func (o *OvfHelper) DeployOvf(spec *types.OvfCreateImportSpecResult) error {
+	return DeployOvfAndGetResult(spec, o.ResourcePool, o.Folder, o.HostSystem,
+		o.FilePath, o.DeployOva, o.IsLocal, o.AllowUnverifiedSSL)
 }
