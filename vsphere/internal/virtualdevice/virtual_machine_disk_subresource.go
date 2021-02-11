@@ -982,7 +982,7 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 // This differs from a regular apply operation in that a configuration is
 // already present, but we don't have any existing state, which the standard
 // virtual device operations rely pretty heavily on.
-func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, postOvf bool) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] DiskPostCloneOperation: Looking for disk device changes post-clone")
 	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
 	log.Printf("[DEBUG] DiskPostCloneOperation: Disk devices located: %s", DeviceListString(devices))
@@ -1020,6 +1020,10 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 		if err != nil {
 			return nil, nil, fmt.Errorf("error computing device address: %s", err)
 		}
+
+		if _, ok := src["label"]; !ok && postOvf {
+			src["label"] = fmt.Sprintf("disk%d", i)
+		}
 		// Copy the source set into old. This allows us to patch a copy of the
 		// product of this set with the source, creating a diff.
 		old, err := copystructure.Copy(src)
@@ -1041,10 +1045,14 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 			//
 			// TODO: Remove "name" after 2.0.
 			switch k {
-			case "label", "path", "name", "datastore_id", "uuid", "thin_provisioned", "eagerly_scrub":
+			case "path", "name", "datastore_id", "uuid", "thin_provisioned", "eagerly_scrub":
 				continue
 			case "io_share_count":
 				if src["io_share_level"] != string(types.SharesLevelCustom) {
+					continue
+				}
+			case "label":
+				if !postOvf {
 					continue
 				}
 			}

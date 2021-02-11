@@ -222,6 +222,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		"network_interface": {
 			Type:        schema.TypeList,
 			Optional:    true,
+			Computed:    true,
 			Description: "A specification for a virtual NIC on this virtual machine.",
 			MaxItems:    10,
 			Elem:        &schema.Resource{Schema: virtualdevice.NetworkInterfaceSubresourceSchema()},
@@ -1373,7 +1374,7 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 		}
 	}
 
-	return vm, resourceVSphereVirtualMachinePostDeployChanges(d, meta, vm)
+	return vm, resourceVSphereVirtualMachinePostDeployChanges(d, meta, vm, true)
 }
 
 func createVCenterDeploy(d *schema.ResourceData, meta interface{}) (*virtualmachine.VCenterDeploy, error) {
@@ -1469,7 +1470,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 			return nil, fmt.Errorf("error cloning virtual machine: %s", err)
 		}
 	}
-	return vm, resourceVSphereVirtualMachinePostDeployChanges(d, meta, vm)
+	return vm, resourceVSphereVirtualMachinePostDeployChanges(d, meta, vm, false)
 }
 
 // resourceVSphereVirtualMachinePostDeployChanges will do post-clone
@@ -1479,7 +1480,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 //
 // It's generally safe to not rollback after the initial re-configuration is
 // fully complete and we move on to sending the customization spec.
-func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta interface{}, vm *object.VirtualMachine) error {
+func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta interface{}, vm *object.VirtualMachine, postOvf bool) error {
 	client := meta.(*VSphereClient).vimClient
 	poolID := d.Get("resource_pool_id").(string)
 	pool, err := resourcepool.FromID(client, poolID)
@@ -1526,7 +1527,7 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 	}
 	cfgSpec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec.DeviceChange, delta...)
 	// Disks
-	devices, delta, err = virtualdevice.DiskPostCloneOperation(d, client, devices)
+	devices, delta, err = virtualdevice.DiskPostCloneOperation(d, client, devices, false)
 	if err != nil {
 		return resourceVSphereVirtualMachineRollbackCreate(
 			d,

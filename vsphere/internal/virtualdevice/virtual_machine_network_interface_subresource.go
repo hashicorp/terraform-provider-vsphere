@@ -479,6 +479,11 @@ func NetworkInterfacePostCloneOperation(d *schema.ResourceData, c *govmomi.Clien
 
 	// Any other device past the end of the network devices listed in config needs to be removed.
 	if len(curSet) < len(srcSet) {
+		ovfNetworks := map[string]int{}
+		for _, v := range d.Get("ovf_deploy.0.ovf_network_map").(map[string]interface{}) {
+			ovfNetworks[v.(string)] = 1
+		}
+
 		for i, si := range srcSet[len(curSet):] {
 			sm, ok := si.(map[string]interface{})
 			if !ok {
@@ -486,12 +491,33 @@ func NetworkInterfacePostCloneOperation(d *schema.ResourceData, c *govmomi.Clien
 				continue
 			}
 			r := NewNetworkInterfaceSubresource(c, d, sm, nil, i+len(curSet))
-			dspec, err := r.Delete(l)
-			if err != nil {
-				return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+
+			// If the VM was built via OVF then the network interfaces have not been imported yet.
+			// Since the remaining devices are so far unknown to us, this is a good opportunity to import then.
+			var pgId string
+			for k, _ := range ovfNetworks {
+				if r.Data()["network_id"].(string) == k {
+					pgId = k
+					break
+				}
 			}
-			l = applyDeviceChange(l, dspec)
-			spec = append(spec, dspec...)
+			delete(ovfNetworks, pgId)
+
+			if pgId != "" {
+				cspec, err := r.Update(l)
+				if err != nil {
+					return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+				}
+				l = applyDeviceChange(l, cspec)
+				spec = append(spec, cspec...)
+			} else {
+				dspec, err := r.Delete(l)
+				if err != nil {
+					return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+				}
+				l = applyDeviceChange(l, dspec)
+				spec = append(spec, dspec...)
+			}
 		}
 	}
 
@@ -831,12 +857,20 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 	}
 	version := viapi.ParseVersionFromClient(r.client)
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+		var shareLevel string
+		bwShareLevel := r.Get("bandwidth_share_level")
+		switch bwShareLevel.(type) {
+		case string:
+			shareLevel = bwShareLevel.(string)
+		case types.SharesLevel:
+			shareLevel = string(bwShareLevel.(types.SharesLevel))
+		}
 		alloc := &types.VirtualEthernetCardResourceAllocation{
 			Limit:       structure.Int64Ptr(int64(r.Get("bandwidth_limit").(int))),
 			Reservation: structure.Int64Ptr(int64(r.Get("bandwidth_reservation").(int))),
 			Share: types.SharesInfo{
 				Shares: int32(r.Get("bandwidth_share_count").(int)),
-				Level:  types.SharesLevel(r.Get("bandwidth_share_level").(string)),
+				Level:  types.SharesLevel(shareLevel),
 			},
 		}
 		card.ResourceAllocation = alloc
