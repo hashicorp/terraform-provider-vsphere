@@ -103,7 +103,6 @@ func dataSourceVSphereOvfVMTemplate() *schema.Resource {
 		"datastore_id": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Computed:    true,
 			Description: "The ID of the virtual machine's datastore. The virtual machine configuration is placed here, along with any virtual disks that are created without datastores.",
 		},
 		"folder": {
