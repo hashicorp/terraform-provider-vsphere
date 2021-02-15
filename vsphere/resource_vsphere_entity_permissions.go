@@ -27,11 +27,12 @@ func resourceVsphereEntityPermissions() *schema.Resource {
 			Description: "The entity managed object type.",
 		},
 		"permissions": {
-			Type:        schema.TypeList,
-			Required:    true,
-			MinItems:    1,
-			Description: "Permissions to be given to the entity.",
-			Elem:        &schema.Resource{Schema: administrationroles.VspherePermissionSchema()},
+			Type:             schema.TypeList,
+			Required:         true,
+			MinItems:         1,
+			Description:      "Permissions to be given to the entity.",
+			Elem:             &schema.Resource{Schema: administrationroles.VspherePermissionSchema()},
+			DiffSuppressFunc: permissionsDiffSuppressFunc,
 		},
 	}
 
@@ -226,4 +227,30 @@ func resourceVSphereEntityPermissionsCustomizeDiff(d *schema.ResourceDiff, meta 
 		}
 	}
 	return nil
+}
+
+func permissionsDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	oldPermissions, newPermissions := d.GetChange("permissions")
+	oldPermissionsArr := oldPermissions.([]interface{})
+	newPermissionsArr := newPermissions.([]interface{})
+	if len(oldPermissionsArr) != len(newPermissionsArr) {
+		return false
+	}
+	sort.Slice(newPermissionsArr[:], func(i, j int) bool {
+		return strings.ToLower(newPermissionsArr[i].(map[string]interface{})["user_or_group"].(string)) <
+			strings.ToLower(newPermissionsArr[j].(map[string]interface{})["user_or_group"].(string))
+	})
+	for i := 0; i < len(oldPermissionsArr); i++ {
+		if strings.ToLower(oldPermissionsArr[i].(map[string]interface{})["user_or_group"].(string)) !=
+			strings.ToLower(newPermissionsArr[i].(map[string]interface{})["user_or_group"].(string)) ||
+			oldPermissionsArr[i].(map[string]interface{})["role_id"].(string) !=
+				newPermissionsArr[i].(map[string]interface{})["role_id"].(string) ||
+			oldPermissionsArr[i].(map[string]interface{})["is_group"].(bool) !=
+				newPermissionsArr[i].(map[string]interface{})["is_group"].(bool) ||
+			oldPermissionsArr[i].(map[string]interface{})["propagate"].(bool) !=
+				newPermissionsArr[i].(map[string]interface{})["propagate"].(bool) {
+			return false
+		}
+	}
+	return true
 }
