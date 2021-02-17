@@ -114,7 +114,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 		"vvtd_enabled": {
 			Type:        schema.TypeBool,
 			Optional:    true,
-			Description: "Flag to specify if Intel Virtualization Technology for Directed I/O is enabled for this virtual machine",
+			Description: "Flag to specify if I/O MMU virtualization, also called Intel Virtualization Technology for Directed I/O (VT-d) and AMD I/O Virtualization (AMD-Vi or IOMMU), is enabled.",
 		},
 		"hv_mode": {
 			Type:         schema.TypeString,
@@ -372,8 +372,8 @@ func flattenVirtualMachineBootOptions(d *schema.ResourceData, obj *types.Virtual
 func expandVirtualMachineFlagInfo(d *schema.ResourceData) *types.VirtualMachineFlagInfo {
 	obj := &types.VirtualMachineFlagInfo{
 		DiskUuidEnabled:  getBoolWithRestart(d, "enable_disk_uuid"),
-		VbsEnabled:  getBoolWithRestart(d, "vbs_enabled"),
-		VvtdEnabled:  getBoolWithRestart(d, "vvtd_enabled"),
+		VbsEnabled:       getBoolWithRestart(d, "vbs_enabled"),
+		VvtdEnabled:      getBoolWithRestart(d, "vvtd_enabled"),
 		VirtualExecUsage: getWithRestart(d, "hv_mode").(string),
 		VirtualMmuUsage:  getWithRestart(d, "ept_rvi_mode").(string),
 		EnableLogging:    getBoolWithRestart(d, "enable_logging"),
