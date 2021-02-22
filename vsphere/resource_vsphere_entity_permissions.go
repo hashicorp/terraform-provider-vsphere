@@ -9,6 +9,7 @@ import (
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 	"log"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -236,21 +237,21 @@ func permissionsDiffSuppressFunc(k, old, new string, d *schema.ResourceData) boo
 	if len(oldPermissionsArr) != len(newPermissionsArr) {
 		return false
 	}
-	sort.Slice(newPermissionsArr[:], func(i, j int) bool {
-		return strings.ToLower(newPermissionsArr[i].(map[string]interface{})["user_or_group"].(string)) <
-			strings.ToLower(newPermissionsArr[j].(map[string]interface{})["user_or_group"].(string))
-	})
-	for i := 0; i < len(oldPermissionsArr); i++ {
-		if strings.ToLower(oldPermissionsArr[i].(map[string]interface{})["user_or_group"].(string)) !=
-			strings.ToLower(newPermissionsArr[i].(map[string]interface{})["user_or_group"].(string)) ||
-			oldPermissionsArr[i].(map[string]interface{})["role_id"].(string) !=
-				newPermissionsArr[i].(map[string]interface{})["role_id"].(string) ||
-			oldPermissionsArr[i].(map[string]interface{})["is_group"].(bool) !=
-				newPermissionsArr[i].(map[string]interface{})["is_group"].(bool) ||
-			oldPermissionsArr[i].(map[string]interface{})["propagate"].(bool) !=
-				newPermissionsArr[i].(map[string]interface{})["propagate"].(bool) {
-			return false
-		}
+	for _, oldPermission := range oldPermissionsArr {
+		oldPermission.(map[string]interface{})["user_or_group"] =
+			strings.ToLower(oldPermission.(map[string]interface{})["user_or_group"].(string))
 	}
-	return true
+	for _, newPermission := range newPermissionsArr {
+		newPermission.(map[string]interface{})["user_or_group"] =
+			strings.ToLower(newPermission.(map[string]interface{})["user_or_group"].(string))
+	}
+	sort.Slice(oldPermissionsArr[:], func(i, j int) bool {
+		return oldPermissionsArr[i].(map[string]interface{})["user_or_group"].(string) <
+			oldPermissionsArr[j].(map[string]interface{})["user_or_group"].(string)
+	})
+	sort.Slice(newPermissionsArr[:], func(i, j int) bool {
+		return newPermissionsArr[i].(map[string]interface{})["user_or_group"].(string) <
+			newPermissionsArr[j].(map[string]interface{})["user_or_group"].(string)
+	})
+	return reflect.DeepEqual(oldPermissionsArr, newPermissionsArr)
 }
