@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -132,6 +133,7 @@ func testAccResourceVSphereDPMHostOverridePreCheck(t *testing.T) {
 func testAccResourceVSphereDPMHostOverrideExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		info, err := testGetComputeClusterDPMHostConfig(s, "dpm_host_override")
+
 		if err != nil {
 			if expected == false {
 				if viapi.IsManagedObjectNotFoundError(err) {

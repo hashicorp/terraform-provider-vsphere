@@ -3,15 +3,16 @@ package vsphere
 import (
 	"context"
 	"fmt"
+	"log"
+	"strconv"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
-	"log"
-	"strconv"
-	"strings"
 )
 
 func resourceVsphereNic() *schema.Resource {
@@ -410,8 +411,8 @@ func getNicSpecFromSchema(d *schema.ResourceData) (*types.HostVirtualNicSpec, er
 		oldAddrsIntf, newAddrsIntf := d.GetChange("ipv6.0.addresses")
 		oldAddrs := oldAddrsIntf.([]interface{})
 		newAddrs := newAddrsIntf.([]interface{})
-		removeAddrs := make([]string, len(oldAddrs))
 		addAddrs := make([]string, len(newAddrs))
+		var removeAddrs []string
 
 		// calculate addresses to remove
 		for _, old := range oldAddrs {
@@ -444,8 +445,8 @@ func getNicSpecFromSchema(d *schema.ResourceData) (*types.HostVirtualNicSpec, er
 
 		if len(removeAddrs) > 0 || len(addAddrs) > 0 {
 			addrs := make([]types.HostIpConfigIpV6Address, 0)
-			for _, oldAddr := range oldAddrs {
-				addrParts := strings.Split(oldAddr.(string), "/")
+			for _, removeAddr := range removeAddrs {
+				addrParts := strings.Split(removeAddr, "/")
 				addr := addrParts[0]
 				prefix, err := strconv.ParseInt(addrParts[1], 0, 32)
 				if err != nil {

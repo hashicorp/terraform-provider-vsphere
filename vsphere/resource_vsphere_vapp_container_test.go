@@ -3,9 +3,10 @@ package vsphere
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"testing"
+
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -562,7 +563,13 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigResNestedEsxi(),
+			testhelper.ConfigDataRootHost2(),
+			testhelper.ConfigDataRootDS1()),
 
 		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
 		os.Getenv("TF_VAR_VSPHERE_NAS_HOST2"),
@@ -641,7 +648,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigResNestedEsxi()),
 
 		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
 		os.Getenv("TF_VAR_VSPHERE_NAS_HOST2"),
@@ -649,7 +656,7 @@ resource "vsphere_virtual_machine" "vm" {
 }
 
 func testAccResourceVSphereVAppContainerConfigVmSdrsClone() string {
-	return fmt.Sprintf(`
+	x := fmt.Sprintf(`
 %s
 
 variable "nfs_path" {
@@ -733,12 +740,22 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigResDS1(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2(),
+			testhelper.ConfigDataRootVMNet(),
+			testhelper.ConfigResNestedEsxi(),
+			testhelper.ConfigDataRootPortGroup1()),
 
 		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
 		os.Getenv("TF_VAR_VSPHERE_NAS_HOST2"),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 	)
+
+	return x
 }
 
 func testAccResourceVSphereVAppContainerConfigVmClone() string {
@@ -791,12 +808,23 @@ resource "vsphere_virtual_machine" "vm" {
     size  = "%s"
   }
 
+  cdrom {
+    client_device = true
+  }
+
   network_interface {
     network_id = "${data.vsphere_network.network1.id}"
   }
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2(),
+			testhelper.ConfigResDS1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigResResourcePool1(),
+			testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 		os.Getenv("TF_VAR_VSPHERE_CLONED_VM_DISK_SIZE"),
 	)
@@ -894,11 +922,7 @@ resource "vsphere_virtual_machine" "vm" {
 
 func testAccResourceVSphereVAppContainerConfigChildImport() string {
 	return fmt.Sprintf(`
-data "vsphere_datacenter" "dc" {
-  name = "%s"
-}
-
-
+%s
 
 resource "vsphere_folder" "parent_folder" {
   path          = "terraform-test-parent-folder"
@@ -916,6 +940,6 @@ resource "vsphere_vapp_container" "child" {
   name                    = "childVApp"
   parent_resource_pool_id = vsphere_vapp_container.parent.id
 }`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
 	)
 }

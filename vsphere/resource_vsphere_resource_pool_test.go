@@ -475,7 +475,7 @@ resource "vsphere_resource_pool" "resource_pool" {
   parent_resource_pool_id = "${vsphere_resource_pool.alt_parent_resource_pool.id}"
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
 	)
 }
 
@@ -503,7 +503,7 @@ resource "vsphere_resource_pool" "resource_pool" {
   memory_limit            = 20
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
 	)
 }
 
@@ -525,7 +525,7 @@ resource "vsphere_resource_pool" "resource_pool" {
   parent_resource_pool_id = "${data.vsphere_host.host.resource_pool_id}"
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
 	)
 }
@@ -554,7 +554,7 @@ resource "vsphere_resource_pool" "resource_pool" {
   tags                    = ["${vsphere_tag.testacc-tag.id}"]
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
 	)
 }
 
@@ -572,7 +572,7 @@ resource "vsphere_resource_pool" "resource_pool" {
   parent_resource_pool_id = "${vsphere_resource_pool.parent_resource_pool.id}"
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
 	)
 }
 
@@ -590,6 +590,6 @@ resource "vsphere_resource_pool" "resource_pool" {
   parent_resource_pool_id = "${vsphere_resource_pool.parent_resource_pool.id}"
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
 	)
 }
