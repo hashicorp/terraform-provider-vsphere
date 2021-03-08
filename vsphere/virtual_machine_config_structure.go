@@ -916,15 +916,17 @@ func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, client *govmo
 	log.Printf("[DEBUG] %s: Expanding of old config complete", resourceVSphereVirtualMachineIDString(d))
 
 	newSpec, err := expandVirtualMachineConfigSpec(d, client)
-	// Don't include the hardware version in the UpdateSpec. It is only needed
-	// when created new VMs.
-	newSpec.Version = ""
 	if err != nil {
 		return types.VirtualMachineConfigSpec{}, false, err
 	}
 
+	isVMConfigSpecChanged := !reflect.DeepEqual(oldSpec, newSpec)
+	// Don't include the hardware version in the UpdateSpec. It is only needed
+	// when creating new VMs.
+	newSpec.Version = ""
+
 	// Return the new spec and compare
-	return newSpec, !reflect.DeepEqual(oldSpec, newSpec), nil
+	return newSpec, isVMConfigSpecChanged, nil
 }
 
 // getMemoryReservationLockedToMax determines if the memory_reservation is not
