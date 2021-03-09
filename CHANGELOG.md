@@ -1,4 +1,10 @@
-## 1.24.3 (December 14, 2020)
+
+## 1.24.4 (UNRELEASED)
+
+IMPROVEMENTS:
+* `resource/vm`: Added `replace_trigger` to support replacement of vms based external changes such as cloud_init ([#1190](https://github.com/hashicorp/terraform-provider-vsphere/issues/1190))
+
+## 1.24.3 (December 14, 2020)´
 
 BUG FIXES:
 * `resource/vm`: Support for no disks in config ([#1241](https://github.com/hashicorp/terraform-provider-vsphere/1241))
