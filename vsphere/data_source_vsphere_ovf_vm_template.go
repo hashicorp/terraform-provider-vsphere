@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/ovfdeploy"
 
@@ -81,6 +82,26 @@ func dataSourceVSphereOvfVMTemplate() *schema.Resource {
 			Type:        schema.TypeString,
 			Computed:    true,
 			Description: "The firmware interface to use on the virtual machine. Can be one of bios or EFI.",
+		},
+		"sata_controller_count": {
+			Type:        schema.TypeInt,
+			Computed:    true,
+			Description: "The number of SATA controllers that Terraform manages on this virtual machine. This directly affects the amount of disks you can add to the virtual machine and the maximum disk unit number. Note that lowering this value does not remove controllers.",
+		},
+		"ide_controller_count": {
+			Type:        schema.TypeInt,
+			Computed:    true,
+			Description: "The number of IDE controllers that Terraform manages on this virtual machine. This directly affects the amount of disks you can add to the virtual machine and the maximum disk unit number. Note that lowering this value does not remove controllers.",
+		},
+		"scsi_controller_count": {
+			Type:        schema.TypeInt,
+			Computed:    true,
+			Description: "The number of SCSI controllers that Terraform manages on this virtual machine. This directly affects the amount of disks you can add to the virtual machine and the maximum disk unit number. Note that lowering this value does not remove controllers.",
+		},
+		"scsi_type": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The type of SCSI bus this virtual machine will have. Can be one of lsilogic, lsilogic-sas or pvscsi.",
 		},
 	}
 	s := map[string]*schema.Schema{
@@ -166,6 +187,47 @@ func dataSourceVSphereOvfVMTemplateRead(d *schema.ResourceData, meta interface{}
 	_ = d.Set("guest_id", vmConfigSpec.GuestId)
 	_ = d.Set("alternate_guest_name", vmConfigSpec.AlternateGuestName)
 	_ = d.Set("firmware", vmConfigSpec.Firmware)
+
+	controllers := map[string]int{}
+	var scsiType string
+
+	for _, dvc := range vmConfigSpec.DeviceChange {
+		dvcSpec := dvc.GetVirtualDeviceConfigSpec()
+
+		switch reflect.TypeOf(dvcSpec.Device) {
+		case reflect.TypeOf(&types.VirtualLsiLogicController{}):
+			if scsiType == "" {
+				scsiType = "lsilogic"
+			} else if scsiType != "lsilogic" {
+				return fmt.Errorf("multiple scsi controller types are not supported (found %s and %s)", scsiType, "lsilogic")
+			}
+			controllers["scsi"] = controllers["scsi"] + 1
+		case reflect.TypeOf(&types.VirtualLsiLogicSASController{}):
+			if scsiType == "" {
+				scsiType = "lsilogic-sas"
+			} else if scsiType != "lsilogic-sas" {
+				return fmt.Errorf("multiple scsi controller types are not supported (found %s and %s)", scsiType, "lsilogic-sas")
+			}
+			controllers["scsi"] = controllers["scsi"] + 1
+		case reflect.TypeOf(&types.ParaVirtualSCSIController{}):
+			if scsiType == "" {
+				scsiType = "pvscsi"
+			} else if scsiType != "pvscsi" {
+				return fmt.Errorf("multiple scsi controller types are not supported (found %s and %s)", scsiType, "pvsci")
+			}
+			controllers["scsi"] = controllers["scsi"] + 1
+		case reflect.TypeOf(&types.VirtualSATAController{}):
+			controllers["sata"] = controllers["sata"] + 1
+		case reflect.TypeOf(&types.VirtualIDEController{}):
+			controllers["ide"] = controllers["ide"] + 1
+		}
+	}
+
+	_ = d.Set("scsi_type", scsiType)
+	_ = d.Set("scsi_controller_count", controllers["scsi"])
+	_ = d.Set("sata_controller_count", controllers["sata"])
+	_ = d.Set("ide_controller_count", controllers["ide"])
+
 	d.SetId(d.Get("name").(string))
 
 	return nil

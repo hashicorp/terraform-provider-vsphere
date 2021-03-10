@@ -2569,6 +2569,14 @@ func TestAccResourceVSphereVirtualMachine_deployOvaFromUrl(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "name", vmName),
+					resource.TestCheckResourceAttrPair("data.vsphere_ovf_vm_template.ovf", "scsi_type",
+						"vsphere_virtual_machine.vm", "scsi_type"),
+					resource.TestCheckResourceAttrPair("data.vsphere_ovf_vm_template.ovf", "scsi_controller_count",
+						"vsphere_virtual_machine.vm", "scsi_controller_count"),
+					resource.TestCheckResourceAttrPair("data.vsphere_ovf_vm_template.ovf", "ide_controller_count",
+						"vsphere_virtual_machine.vm", "ide_controller_count"),
+					resource.TestCheckResourceAttrPair("data.vsphere_ovf_vm_template.ovf", "sata_controller_count",
+						"vsphere_virtual_machine.vm", "sata_controller_count"),
 				),
 			},
 			{
@@ -7236,7 +7244,7 @@ data "vsphere_ovf_vm_template" "ovf" {
   remote_ovf_url    = var.ova_url
 
   ovf_network_map   = {
-    "Network 1": data.vsphere_network.network1.id
+    "Network 1": data.vsphere_network.network1.id,
   }
 }
 
@@ -7244,14 +7252,18 @@ data "vsphere_ovf_vm_template" "ovf" {
 resource "vsphere_virtual_machine" "vm" {
   datacenter_id    = data.vsphere_datacenter.rootdc1.id
 
-  annotation       = data.vsphere_ovf_vm_template.ovf.annotation
-  name             = data.vsphere_ovf_vm_template.ovf.name
-  num_cpus         = data.vsphere_ovf_vm_template.ovf.num_cpus
-  memory           = data.vsphere_ovf_vm_template.ovf.memory
-  guest_id         = data.vsphere_ovf_vm_template.ovf.guest_id
-  resource_pool_id = data.vsphere_ovf_vm_template.ovf.resource_pool_id
-  datastore_id     = data.vsphere_ovf_vm_template.ovf.datastore_id
-  host_system_id   = data.vsphere_ovf_vm_template.ovf.host_system_id
+  annotation            = data.vsphere_ovf_vm_template.ovf.annotation
+  name                  = data.vsphere_ovf_vm_template.ovf.name
+  num_cpus              = data.vsphere_ovf_vm_template.ovf.num_cpus
+  memory                = data.vsphere_ovf_vm_template.ovf.memory
+  guest_id              = data.vsphere_ovf_vm_template.ovf.guest_id
+  resource_pool_id      = vsphere_resource_pool.pool1.id
+  datastore_id          = vsphere_nas_datastore.ds1.id
+  host_system_id        = data.vsphere_ovf_vm_template.ovf.host_system_id
+  scsi_type             = data.vsphere_ovf_vm_template.ovf.scsi_type
+  scsi_controller_count = data.vsphere_ovf_vm_template.ovf.scsi_controller_count
+  sata_controller_count = data.vsphere_ovf_vm_template.ovf.sata_controller_count
+  ide_controller_count  = data.vsphere_ovf_vm_template.ovf.ide_controller_count
 
   dynamic "network_interface" {
     for_each = data.vsphere_ovf_vm_template.ovf.ovf_network_map
@@ -7261,7 +7273,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   ovf_deploy {
-	  remote_ovf_url    = var.ova_url
+	  remote_ovf_url  = var.ova_url
+	  ovf_network_map = data.vsphere_ovf_vm_template.ovf.ovf_network_map
   }
 }
 `,
