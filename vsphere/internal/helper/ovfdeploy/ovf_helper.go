@@ -536,8 +536,16 @@ func (o *OvfHelper) GetImportSpec(client *govmomi.Client) (*types.OvfCreateImpor
 		importSpecParam.DeploymentOption = deploymentOption
 	}
 
-	return ovfManager.CreateImportSpec(context.Background(), ovfDescriptor,
+	is, err := ovfManager.CreateImportSpec(context.Background(), ovfDescriptor,
 		o.ResourcePool.Reference(), o.Datastore.Reference(), importSpecParam)
+	if len(is.Error) > 0 {
+		out := "while getting ovf import spec: \n"
+		for _, e := range is.Error {
+			out = fmt.Sprintf("%s\n- %s", out, e.LocalizedMessage)
+		}
+		return nil, fmt.Errorf(out)
+	}
+	return is, nil
 }
 
 func (o *OvfHelper) DeployOvf(spec *types.OvfCreateImportSpecResult) error {
