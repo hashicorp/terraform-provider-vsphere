@@ -19,7 +19,7 @@ This example creates entity permissions on the virtual machine VM1 for the user 
 consumer and for user group ExternalIDPUsers with role my_terraform_role. The `entity_id` can be the managed object id
 (or uuid for some resources). The `entity_type` is one of the vmware managed object types which can be found from the 
 managed object types section in [vmware_api_7](https://code.vmware.com/apis/968/vsphere). Keep the permissions sorted
-alphabetically on `user_or_group` for a better user experience.
+alphabetically, ignoring case on `user_or_group` for a better user experience.
 
 
 ```hcl
