@@ -1,8 +1,12 @@
 ## 1.25.0 (Unreleased)
 
 BUG FIXES:
-* `resource/vsphere_entity_permissions`: Sorting permission objects on username/groupname before storing. ([#1311](https://github.com/hashicorp/terraform-provider-vsphere/pull/1311)) 
+* `resource/vsphere_entity_permissions`: Sorting permission objects on username/groupname before storing. ([#1311](https://github.com/hashicorp/terraform-provider-vsphere/pull/1311))
+* `resource/vm`: Limit netmask length for ipv4 and ipv6 netmasks. ([#1321](https://github.com/hashicorp/terraform-provider-vsphere/pull/1321))
+* `resource/vm`: Fix missing vApp properties. ([#1322](https://github.com/hashicorp/terraform-provider-vsphere/pull/1322))
 
+IMPROVEMENTS:
+* `resource/distributed_virtual_switch`: Allow vsphere 7. ([#1363](https://github.com/hashicorp/terraform-provider-vsphere/pull/1363))
 
 ## 1.24.3 (December 14, 2020)
 
