@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform-provider-vsphere
 
-go 1.16
+go 1.14
 
 require (
 	github.com/aws/aws-sdk-go v1.28.8 // indirect
