@@ -123,7 +123,7 @@ func resourceEntityPermissionsRead(d *schema.ResourceData, meta interface{}) err
 		permissionObjs = append(permissionObjs, permissionObj)
 	}
 
-	sort.Slice(permissionObjs[:], func(i, j int) bool {
+	sort.Slice(permissionObjs, func(i, j int) bool {
 		return strings.ToLower(permissionObjs[i]["user_or_group"].(string)) <
 			strings.ToLower(permissionObjs[j]["user_or_group"].(string))
 	})
@@ -245,11 +245,11 @@ func permissionsDiffSuppressFunc(k, old, new string, d *schema.ResourceData) boo
 		newPermission.(map[string]interface{})["user_or_group"] =
 			strings.ToLower(newPermission.(map[string]interface{})["user_or_group"].(string))
 	}
-	sort.Slice(oldPermissionsArr[:], func(i, j int) bool {
+	sort.Slice(oldPermissionsArr, func(i, j int) bool {
 		return oldPermissionsArr[i].(map[string]interface{})["user_or_group"].(string) <
 			oldPermissionsArr[j].(map[string]interface{})["user_or_group"].(string)
 	})
-	sort.Slice(newPermissionsArr[:], func(i, j int) bool {
+	sort.Slice(newPermissionsArr, func(i, j int) bool {
 		return newPermissionsArr[i].(map[string]interface{})["user_or_group"].(string) <
 			newPermissionsArr[j].(map[string]interface{})["user_or_group"].(string)
 	})
