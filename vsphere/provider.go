@@ -156,6 +156,7 @@ func Provider() terraform.ResourceProvider {
 			"vsphere_host_pci_device":            dataSourceVSphereHostPciDevice(),
 			"vsphere_host_thumbprint":            dataSourceVSphereHostThumbprint(),
 			"vsphere_network":                    dataSourceVSphereNetwork(),
+			"vsphere_ovf_vm_template":            dataSourceVSphereOvfVMTemplate(),
 			"vsphere_resource_pool":              dataSourceVSphereResourcePool(),
 			"vsphere_storage_policy":             dataSourceVSphereStoragePolicy(),
 			"vsphere_tag":                        dataSourceVSphereTag(),

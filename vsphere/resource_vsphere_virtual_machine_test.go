@@ -3,8 +3,6 @@ package vsphere
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"net"
 	"os"
 	"path"
@@ -14,6 +12,9 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -7171,33 +7172,52 @@ func testAccResourceVSphereVirtualMachineDeployOvfFromUrl(vmName string) string 
 	return fmt.Sprintf(`
 %s
 
-resource "vsphere_virtual_machine" "vm" {
-  name                       = "%s"
-  resource_pool_id           = vsphere_resource_pool.pool1.id
-  datastore_id               = vsphere_nas_datastore.ds1.id
-  datacenter_id              = data.vsphere_datacenter.rootdc1.id
-  host_system_id             = data.vsphere_host.roothost1.id
-  wait_for_guest_net_timeout = 0
-  wait_for_guest_ip_timeout  = 0
-  num_cpus                   = 2
-  ovf_deploy {
-    remote_ovf_url = "%s"
+variable "ovf_url" {
+	default = "%s"
+}
+
+data "vsphere_ovf_vm_template" "ovf" {
+  name              = "%s"
+  resource_pool_id  = vsphere_resource_pool.pool1.id
+  datastore_id      = vsphere_nas_datastore.ds1.id
+  host_system_id    = data.vsphere_host.roothost1.id
+  remote_ovf_url    = var.ovf_url
+
+  ovf_network_map   = {
+    "Production_DVS - Mgmt": data.vsphere_network.network1.id
   }
-	disk{
-		size           = 40
-		unit_number    = 0
-		label          = "disk0"
-		io_share_count = 1000
-	}
-  cdrom {
-    client_device = true
+}
+
+
+resource "vsphere_virtual_machine" "vm" {
+  datacenter_id    = data.vsphere_datacenter.rootdc1.id
+
+  annotation       = data.vsphere_ovf_vm_template.ovf.annotation
+  name             = data.vsphere_ovf_vm_template.ovf.name
+  num_cpus         = data.vsphere_ovf_vm_template.ovf.num_cpus
+  memory           = data.vsphere_ovf_vm_template.ovf.memory
+  guest_id         = data.vsphere_ovf_vm_template.ovf.guest_id
+  resource_pool_id = data.vsphere_ovf_vm_template.ovf.resource_pool_id
+  datastore_id     = data.vsphere_ovf_vm_template.ovf.datastore_id
+  host_system_id   = data.vsphere_ovf_vm_template.ovf.host_system_id
+
+  dynamic "network_interface" {
+    for_each = data.vsphere_ovf_vm_template.ovf.ovf_network_map
+    content {
+        network_id = network_interface.value
+    }
+  }
+
+  ovf_deploy {
+	  remote_ovf_url  = var.ovf_url
+	  ovf_network_map = data.vsphere_ovf_vm_template.ovf.ovf_network_map
   }
 }
 
 `,
 		testAccResourceVSphereVirtualMachineConfigBase(),
+		os.Getenv("TF_VAR_VSPHERE_TEST_OVF"),
 		vmName,
-		os.Getenv("TF_VAR_REMOTE_OVF_URL"),
 	)
 }
 
@@ -7205,27 +7225,51 @@ func testAccResourceVSphereVirtualMachineDeployOvaFromUrl(vmName string) string 
 	return fmt.Sprintf(`
 %s // Mix and match config
 
+variable "ova_url" {
+	default = "%s"
+}
+
+data "vsphere_ovf_vm_template" "ovf" {
+  name              = "%s"
+  resource_pool_id  = vsphere_resource_pool.pool1.id
+  datastore_id      = vsphere_nas_datastore.ds1.id
+  host_system_id    = data.vsphere_host.roothost1.id
+  remote_ovf_url    = var.ova_url
+
+  ovf_network_map   = {
+    "Production_DVS - Mgmt": data.vsphere_network.network1.id,
+  }
+}
+
+
 resource "vsphere_virtual_machine" "vm" {
-  name                       = "%s"
-  num_cpus                   = 2
-  resource_pool_id           = vsphere_resource_pool.pool1.id
-  datastore_id               = vsphere_nas_datastore.ds1.id
-  datacenter_id              = data.vsphere_datacenter.rootdc1.id
-  host_system_id             = data.vsphere_host.roothost1.id
-  wait_for_guest_net_timeout = 0
-  wait_for_guest_ip_timeout  = 0
-  ovf_deploy {
-    remote_ovf_url = "%s"
+  datacenter_id    = data.vsphere_datacenter.rootdc1.id
+
+  annotation            = data.vsphere_ovf_vm_template.ovf.annotation
+  name                  = data.vsphere_ovf_vm_template.ovf.name
+  num_cpus              = data.vsphere_ovf_vm_template.ovf.num_cpus
+  memory                = data.vsphere_ovf_vm_template.ovf.memory
+  guest_id              = data.vsphere_ovf_vm_template.ovf.guest_id
+  resource_pool_id      = vsphere_resource_pool.pool1.id
+  datastore_id          = vsphere_nas_datastore.ds1.id
+  host_system_id        = data.vsphere_ovf_vm_template.ovf.host_system_id
+
+  dynamic "network_interface" {
+    for_each = data.vsphere_ovf_vm_template.ovf.ovf_network_map
+    content {
+        network_id = network_interface.value
+    }
   }
 
-  cdrom {
-    client_device = true
+  ovf_deploy {
+	  remote_ovf_url  = var.ova_url
+	  ovf_network_map = data.vsphere_ovf_vm_template.ovf.ovf_network_map
   }
 }
 `,
 		testAccResourceVSphereVirtualMachineConfigBase(),
+		os.Getenv("TF_VAR_VSPHERE_TEST_OVA"),
 		vmName,
-		os.Getenv("TF_VAR_REMOTE_OVA_URL"),
 	)
 }
 
