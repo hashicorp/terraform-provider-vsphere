@@ -10,6 +10,7 @@ FEATURES:
 
 IMPROVEMENTS:
 * `resource/distributed_virtual_switch`: Allow vsphere 7. ([#1363](https://github.com/hashicorp/terraform-provider-vsphere/pull/1363))
+* `provider`: Bump Go to version 1.16. ([#1365](https://github.com/hashicorp/terraform-provider-vsphere/pull/1365))
 
 ## 1.24.3 (December 14, 2020)
 
