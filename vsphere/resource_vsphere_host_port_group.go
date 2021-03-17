@@ -5,7 +5,7 @@ import (
 
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 )
 
@@ -32,7 +32,6 @@ func resourceVSphereHostPortGroup() *schema.Resource {
 			Type:        schema.TypeList,
 			Description: "The ports that currently exist and are used on this port group.",
 			Computed:    true,
-			MaxItems:    1,
 			Elem:        portGroupPortSchema(),
 		},
 	}

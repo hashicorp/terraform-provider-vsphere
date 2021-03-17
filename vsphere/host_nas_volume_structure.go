@@ -3,8 +3,8 @@ package vsphere
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -84,7 +84,7 @@ func schemaHostNasVolumeSpec() map[string]*schema.Schema {
 			),
 		},
 		"protocol_endpoint": {
-			Type:        schema.TypeString,
+			Type:        schema.TypeBool,
 			Description: "Indicates that this NAS volume is a protocol endpoint. This field is only populated if the host supports virtual datastores.",
 			Computed:    true,
 		},
