@@ -1,10 +1,6 @@
 module github.com/hashicorp/terraform-provider-vsphere
 
-// Because we vendor/ we cannot bump the go directive past go1.13, this issue may be related?
-// https://github.com/golang/go/issues/39100
-// Dropping vendor/ would likely avoid issue
-// The issue may be specific to how Travis is setup?
-go 1.13
+go 1.16
 
 require (
 	github.com/aws/aws-sdk-go v1.28.8 // indirect
