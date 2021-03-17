@@ -1,4 +1,4 @@
-## 1.25.0 (Unreleased)
+## 1.25.0 (March 17, 2021)
 
 BUG FIXES:
 * `resource/vsphere_entity_permissions`: Sorting permission objects on username/groupname before storing. ([#1311](https://github.com/hashicorp/terraform-provider-vsphere/pull/1311))
