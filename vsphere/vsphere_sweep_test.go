@@ -1,12 +1,15 @@
 package vsphere
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"os"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
 func TestMain(m *testing.M) {
+	acctest.UseBinaryDriver("vsphere", Provider)
 	resource.TestMain(m)
 }
 
