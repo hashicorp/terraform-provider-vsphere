@@ -16,6 +16,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/computeresource"
@@ -1748,6 +1751,24 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithLinkedClone(t *tes
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_Instantclone(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreInstantCloneCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigInstant(),
+				Check:  testAccResourceVSphereVirtualMachineCheckExists(true),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithoutLinkedClone(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -2631,7 +2652,38 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 		t.Skip("set TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES to run vsphere_virtual_machine acceptance tests")
 	}
 }
-
+func testAccResourceVSphereVirtualMachinePreInstantCloneCheck(t *testing.T) {
+	// Note that TF_VAR_VSPHERE_USE_INSTANT_CLONE is also a variable and its presence
+	// speeds up tests greatly, but it's not a necessary variable, so we don't
+	// enforce it here.
+	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("TF_VAR_VSPHERE_CLUSTER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_CLUSTER to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("TF_VAR_VSPHERE_PG_NAME") == "" {
+		t.Skip("set TF_VAR_VSPHERE_NETWORK_LABEL to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
+		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL") == "" {
+		t.Skip("set TF_VAR_VSPHERE_RESOURCE_POOL to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE") == "" {
+		t.Skip("set TF_VAR_VSPHERE_TEMPLATE to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("TF_VAR_VSPHERE_ESXI1") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("TF_VAR_VSPHERE_ESXI2") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST2 to run vsphere_virtual_machine acceptance tests")
+	}
+	if os.Getenv("TF_VAR_VSPHERE_USE_INSTANT_CLONE") == "" {
+		t.Skip("set TF_VAR_VSPHERE_USE_INSTANT_CLONE to run vsphere_virtual_machine acceptance tests")
+	}
+}
 func testAccResourceVSphereVirtualMachineCheckExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		_, err := testGetVirtualMachine(s, "vm")
@@ -3663,6 +3715,16 @@ func testAccResourceVSphereVirtualMachineConfigBase() string {
 		testhelper.ConfigDataRootComputeCluster1(),
 		testhelper.ConfigResResourcePool1(),
 		testhelper.ConfigDataRootPortGroup1())
+}
+
+func testAccResourceVSphereVirtualMachineInstantCloneConfigBase() string {
+	return testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootHost2(),
+		testhelper.ConfigDataRootDS1(),
+		testhelper.ConfigDataRootComputeCluster1(),
+		testhelper.ConfigDataRootVMNet())
 }
 
 func testAccResourceVSphereVirtualMachineConfigComputedValue() string {
@@ -5557,6 +5619,48 @@ resource "vsphere_virtual_machine" "vm" {
 		testAccResourceVSphereVirtualMachineConfigBase(),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 		os.Getenv("TF_VAR_VSPHERE_USE_LINKED_CLONE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigInstant() string {
+	return fmt.Sprintf(`
+
+
+%s  // Mix and match config
+  data "vsphere_virtual_machine" "template" {
+	name          = "%s"
+	datacenter_id = data.vsphere_datacenter.rootdc1.id
+  }
+  variable "instant_clone" {
+	default = "%s"
+  }
+  resource "vsphere_virtual_machine" "vm" {
+	name             = "testacc-test"
+	resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
+	datastore_id     = "${data.vsphere_datastore.rootds1.id}"
+	wait_for_guest_net_timeout = -1
+	guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  
+	network_interface {
+	  network_id   = "${data.vsphere_network.vmnet.id}"
+	}
+  
+	disk {
+	  label            = "disk0"
+	  size             = 20
+	}
+  
+	clone {
+	  template_uuid = "${data.vsphere_virtual_machine.template.id}"
+	  instant_clone  = true
+	}
+
+}
+
+  `,
+		testAccResourceVSphereVirtualMachineInstantCloneConfigBase(),
+		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
+		os.Getenv("TF_VAR_VSPHERE_USE_INSTANT_CLONE"),
 	)
 }
 

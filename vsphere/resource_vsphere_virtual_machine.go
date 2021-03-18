@@ -518,19 +518,21 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	// Read the state of the SCSI bus.
 	d.Set("scsi_type", virtualdevice.ReadSCSIBusType(devices, d.Get("scsi_controller_count").(int)))
 	d.Set("scsi_bus_sharing", virtualdevice.ReadSCSIBusSharing(devices, d.Get("scsi_controller_count").(int)))
-	// Disks first
-	if err := virtualdevice.DiskRefreshOperation(d, client, devices); err != nil {
-		return err
-	}
-	// Network devices
-	if err := virtualdevice.NetworkInterfaceRefreshOperation(d, client, devices); err != nil {
-		return err
-	}
-	// CDROM
-	if err := virtualdevice.CdromRefreshOperation(d, client, devices); err != nil {
-		return err
-	}
+	if !d.Get("clone.0.instant_clone").(bool) {
+		// Disks first
+		if err := virtualdevice.DiskRefreshOperation(d, client, devices); err != nil {
+			return err
+		}
+		// Network devices
+		if err := virtualdevice.NetworkInterfaceRefreshOperation(d, client, devices); err != nil {
+			return err
+		}
+		// CDROM
+		if err := virtualdevice.CdromRefreshOperation(d, client, devices); err != nil {
+			return err
+		}
 
+	}
 	// Read tags if we have the ability to do so
 	if tagsClient, _ := meta.(*VSphereClient).TagsManager(); tagsClient != nil {
 		if err := readTagsForResource(tagsClient, vm, d); err != nil {
@@ -1437,6 +1439,20 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 	name := d.Get("name").(string)
 	timeout := d.Get("clone.0.timeout").(int)
 	var vm *object.VirtualMachine
+	// instant Clone
+	if d.Get("clone.0.instant_clone").(bool) {
+		log.Printf("[DEBUG] %s: Instant Clone being created from VM", resourceVSphereVirtualMachineIDString(d))
+		// Expand the clone spec. We get the source VM here too.
+		cloneSpec, srcVM, err := vmworkflow.ExpandVirtualMachineInstantCloneSpec(d, client)
+		if err != nil {
+			return nil, err
+		}
+		vm, err = virtualmachine.InstantClone(client, srcVM, fo, name, cloneSpec, timeout)
+		if err != nil {
+			return nil, fmt.Errorf("error Instant cloning virtual machine: %s", err)
+		}
+		return vm, resourceVSphereVirtualMachinePostDeployInstantCloneChanges(d, meta, vm)
+	}
 	switch contentlibrary.IsContentLibraryItem(meta.(*VSphereClient).restClient, d.Get("clone.0.template_uuid").(string)) {
 	case true:
 		deploySpec, err := createVCenterDeploy(d, meta)
@@ -1621,6 +1637,34 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			return fmt.Errorf(formatVirtualMachineCustomizationWaitError, vm.InventoryPath, err)
 		}
 	}
+	return nil
+}
+
+// resourceVSphereVirtualMachinePostDeployInstantCloneChanges will do post-clone
+// configuration for instant clone, and while the resource should have an ID until this is
+// done, we need it to go through post-clone rollback workflows. All
+// rollback functions will remove the ID after it has done its rollback.
+//
+// It's generally safe to not rollback after the initial re-configuration is
+// fully complete and we move on to sending the customization spec.
+func resourceVSphereVirtualMachinePostDeployInstantCloneChanges(d *schema.ResourceData, meta interface{}, vm *object.VirtualMachine) error {
+	vprops, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return resourceVSphereVirtualMachineRollbackCreate(
+			d,
+			meta,
+			vm,
+			fmt.Errorf("cannot fetch properties of created virtual machine: %s", err),
+		)
+	}
+	log.Printf("[DEBUG] VM %q - UUID is %q", vm.InventoryPath, vprops.Config.Uuid)
+	d.SetId(vprops.Config.Uuid)
+	vmprops, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return err
+	}
+	// This should only change if deploying from a Content Library item.
+	d.Set("guest_id", vmprops.Config.GuestId)
 	return nil
 }
 
