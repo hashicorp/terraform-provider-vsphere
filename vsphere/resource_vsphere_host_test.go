@@ -393,9 +393,9 @@ func testAccVSphereHostConfig() string {
 
 	resource "vsphere_host" "h1" {
 	  # Useful only for connection
-	  hostname = vsphere_host.nested-esxi1.hostname
-	  username = vsphere_host.nested-esxi1.username
-	  thumbprint = vsphere_host.nested-esxi1.password
+	  hostname = data.vsphere_host.roothost3.hostname
+	  username = data.vsphere_host.roothost3.username
+	  thumbprint = data.vsphere_host.roothost3.password
 	  thumbprint = data.vsphere_host_thumbprint.id
 
 	  # Makes sense to update
@@ -413,9 +413,9 @@ func testAccVSphereHostConfig_rootFolder() string {
 
 	resource "vsphere_host" "h1" {
 	  # Useful only for connection
-	  hostname = vsphere_host.nested-esxi1.hostname
-	  username = vsphere_host.nested-esxi1.username
-	  password = vsphere_host.nested-esxi1.password
+	  hostname = data.vsphere_host.roothost3.hostname
+	  username = data.vsphere_host.roothost3.username
+	  password = data.vsphere_host.roothost3.password
 	  thumbprint = data.vsphere_host_thumbprint.id
 
 	  # Makes sense to update
@@ -431,9 +431,9 @@ func testAccVSphereHostConfig_emptyLicense() string {
 	%s 
 	resource "vsphere_host" "h1" {
 	  # Useful only for connection
-	  hostname = vsphere_host.nested-esxi1.hostname
-	  username = vsphere_host.nested-esxi1.username
-	  thumbprint = vsphere_host.nested-esxi1.password
+	  hostname = data.vsphere_host.roothost3.hostname
+	  username = data.vsphere_host.roothost3.username
+	  thumbprint = data.vsphere_host.roothost3.password
 	  thumbprint = data.vsphere_host_thumbprint.id
 
 	  # Makes sense to update
@@ -453,9 +453,9 @@ func testAccVSphereHostConfig_import() string {
 		
 	resource "vsphere_host" "h1" {
 	  # Useful only for connection
-	  hostname = vsphere_host.nested-esxi1.hostname
-	  username = vsphere_host.nested-esxi1.username
-	  thumbprint = vsphere_host.nested-esxi1.password
+	  hostname = data.vsphere_host.roothost3.hostname
+	  username = data.vsphere_host.roothost3.username
+	  thumbprint = data.vsphere_host.roothost3.password
 	  thumbprint = data.vsphere_host_thumbprint.id
 	
 	  # Makes sense to update
@@ -477,9 +477,9 @@ func testAccVSphereHostConfig_connection(connection bool) string {
 	}
 		
 	resource "vsphere_host" "h1" {
-	  hostname = vsphere_host.nested-esxi1.hostname
-	  username = vsphere_host.nested-esxi1.username
-	  thumbprint = vsphere_host.nested-esxi1.password
+	  hostname = data.vsphere_host.roothost3.hostname
+	  username = data.vsphere_host.roothost3.username
+	  thumbprint = data.vsphere_host.roothost3.password
 	  thumbprint = data.vsphere_host_thumbprint.id
 	
 	  license = "%s"
@@ -502,9 +502,9 @@ func testAccVSphereHostConfig_maintenance(maintenance bool) string {
 	}
 		
 	resource "vsphere_host" "h1" {
-	  hostname = vsphere_host.nested-esxi1.hostname
-	  username = vsphere_host.nested-esxi1.username
-	  thumbprint = vsphere_host.nested-esxi1.password
+	  hostname = data.vsphere_host.roothost3.hostname
+	  username = data.vsphere_host.roothost3.username
+	  thumbprint = data.vsphere_host.roothost3.password
 	  thumbprint = data.vsphere_host_thumbprint.id
 	
 	  license = "%s"
@@ -528,9 +528,9 @@ func testAccVSphereHostConfig_lockdown(lockdown string) string {
 	}
 		
 	resource "vsphere_host" "h1" {
-	  hostname = vsphere_host.nested-esxi1.hostname
-	  username = vsphere_host.nested-esxi1.username
-	  thumbprint = vsphere_host.nested-esxi1.password
+	  hostname = data.vsphere_host.roothost3.hostname
+	  username = data.vsphere_host.roothost3.username
+	  thumbprint = data.vsphere_host.roothost3.password
 	  thumbprint = data.vsphere_host_thumbprint.id
 	
 	  license = "%s"

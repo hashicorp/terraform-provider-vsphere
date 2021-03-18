@@ -4,12 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/network"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/spbm"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
-	"github.com/vmware/govmomi/vapi/library"
-	"github.com/vmware/govmomi/vapi/rest"
 	"os"
 	"path"
 	"reflect"
@@ -17,6 +11,13 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/network"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/spbm"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
+	"github.com/vmware/govmomi/vapi/library"
+	"github.com/vmware/govmomi/vapi/rest"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -822,8 +823,8 @@ func testGetDatastoreClusterSDRSVMConfig(s *terraform.State, resourceName string
 
 // testGetComputeCluster is a convenience method to fetch a compute cluster by
 // resource name.
-func testGetComputeCluster(s *terraform.State, resourceName string) (*object.ClusterComputeResource, error) {
-	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereComputeClusterName, resourceName))
+func testGetComputeCluster(s *terraform.State, resourceName string, resourceType string) (*object.ClusterComputeResource, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceType, resourceName))
 	if err != nil {
 		return nil, err
 	}
@@ -844,7 +845,7 @@ func testGetComputeClusterFromDataSource(s *terraform.State, resourceName string
 // step to testGetComputeCluster to get the properties of a
 // ClusterComputeResource.
 func testGetComputeClusterProperties(s *terraform.State, resourceName string) (*mo.ClusterComputeResource, error) {
-	cluster, err := testGetComputeCluster(s, resourceName)
+	cluster, err := testGetComputeCluster(s, resourceName, resourceVSphereComputeClusterName)
 	if err != nil {
 		return nil, err
 	}
