@@ -43,7 +43,7 @@ func TestAccResourceVSphereContentLibraryItem_localOva(t *testing.T) {
 					testAccResourceVSphereContentLibraryItemDescription(regexp.MustCompile("TestAcc Description")),
 					testAccResourceVSphereContentLibraryItemName(regexp.MustCompile("testacc-item")),
 					testAccResourceVSphereContentLibraryItemType(regexp.MustCompile("ovf")),
-					testAccResourceVSphereContentLibraryItemDestroyFile("./test.ova"),
+					testAccResourceVSphereContentLibraryItemDestroyFile("./testdata/test.ova"),
 				),
 			},
 		},
@@ -137,7 +137,7 @@ func TestAccResourceVSphereContentLibraryItem_remoteOva(t *testing.T) {
 }
 
 func testAccResourceVSphereContentLibraryItemGetOva() {
-	testAccResourceVSphereContentLibraryItemGetFile(os.Getenv("TF_VAR_VSPHERE_TEST_OVA"), "./test.ova")
+	testAccResourceVSphereContentLibraryItemGetFile(os.Getenv("TF_VAR_VSPHERE_TEST_OVA"), "./testdata/test.ova")
 }
 
 func testAccResourceVSphereContentLibraryItemGetFile(url, file string) {
@@ -220,7 +220,7 @@ resource "vsphere_content_library_item" "item" {
   description = "TestAcc Description"
   library_id  = vsphere_content_library.library.id
   type        = "ovf"
-  file_url    = "./test.ova"
+  file_url    = "./testdata/test.ova"
 }
 `,
 		testAccResourceVSphereContentLibraryItemConfig_base(),

@@ -9,6 +9,7 @@ import (
 
 func TestAccDataSourceVSphereTagCategory_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
+		DisableBinaryDriver: true, // test uses precalculated hash indexes
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
