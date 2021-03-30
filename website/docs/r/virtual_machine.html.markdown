@@ -674,6 +674,8 @@ and require vCenter.
 
 * `storage_policy_id` - (Optional) The UUID of the storage policy to assign to VM home directory.
 
+* `keepers` - (Optional) Arbitrary map of values that, when changed, will trigger recreation of the virtual machine.
+
 ### CPU and memory options
 
 The following options control CPU and memory settings on the virtual machine:

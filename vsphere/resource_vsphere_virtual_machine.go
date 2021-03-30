@@ -253,6 +253,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			MaxItems:    1,
 			Elem:        &schema.Resource{Schema: vmworkflow.VirtualMachineOvfDeploySchema()},
 		},
+		"keepers": {
+			Description: "Arbitrary map of values that, when changed, will trigger recreation of the virtual machine.",
+			Type:        schema.TypeMap,
+			Optional:    true,
+			ForceNew:    true,
+		},
 		"reboot_required": {
 			Type:        schema.TypeBool,
 			Computed:    true,
