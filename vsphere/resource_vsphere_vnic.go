@@ -3,15 +3,16 @@ package vsphere
 import (
 	"context"
 	"fmt"
+	"log"
+	"strconv"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
-	"log"
-	"strconv"
-	"strings"
 )
 
 func resourceVsphereNic() *schema.Resource {
@@ -262,8 +263,8 @@ func BaseVMKernelSchema() map[string]*schema.Schema {
 		"netstack": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "TCP/IP stack setting for this interface. Possible values are 'default', 'vmotion', 'provisioning'",
-			Default:     "default",
+			Description: "TCP/IP stack setting for this interface. Possible values are 'defaultTcpipStack', 'vmotion', 'provisioning'",
+			Default:     "defaultTcpipStack",
 			ForceNew:    true,
 		},
 	}
