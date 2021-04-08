@@ -4,14 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
-	"github.com/vmware/govmomi"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
+	"github.com/vmware/govmomi"
 )
 
 type genTfConfig func(string) string
@@ -289,7 +290,7 @@ func testAccVSphereVNicConfig_hvs(netConfig string) string {
 	  %s
 	}
 	`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
-		os.Getenv("TF_VAR_VSPHERE_ESXI_HOST3"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI3"),
 		os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"),
 		os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"),
 		os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"),
@@ -301,17 +302,11 @@ func testAccVSphereVNicConfig_dvs(netConfig string) string {
 	return fmt.Sprintf(`
 %s
 
-	data "vsphere_host" "h1" {
-	  name          = "%s"
-	  datacenter_id = data.vsphere_datacenter.rootdc1.id
-	}
-	
-	
 	resource "vsphere_distributed_virtual_switch" "d1" {
 	  name          = "hashi-dc_DVPG0"
 	  datacenter_id = data.vsphere_datacenter.rootdc1.id
 	  host {
-		host_system_id = data.vsphere_host.h1.id
+		host_system_id = data.vsphere_host.roothost1.id
 		devices        = ["%s"]
 	  }
 	}
@@ -323,13 +318,15 @@ func testAccVSphereVNicConfig_dvs(netConfig string) string {
 	}
 	
 	resource "vsphere_vnic" "v1" {
-	  host                    = data.vsphere_host.h1.id
+	  host                    = data.vsphere_host.roothost1.id
 	  distributed_switch_port = vsphere_distributed_virtual_switch.d1.id
 	  distributed_port_group  = vsphere_distributed_port_group.p1.id
 	  %s
 	}
-	`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
+	`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootHost1(),
+	),
 		os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"),
 		netConfig)
 }

@@ -3,15 +3,16 @@ package vsphere
 import (
 	"context"
 	"fmt"
+	"log"
+	"strconv"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
-	"log"
-	"strconv"
-	"strings"
 )
 
 func resourceVsphereNic() *schema.Resource {
@@ -40,6 +41,7 @@ func vNicSchema() map[string]*schema.Schema {
 }
 
 func resourceVsphereNicRead(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] starting resource_vnic")
 	ctx := context.TODO()
 	client := meta.(*VSphereClient).vimClient
 
@@ -87,6 +89,7 @@ func resourceVsphereNicRead(d *schema.ResourceData, meta interface{}) error {
 			"dhcp":       *vnic.Spec.Ip.IpV6Config.DhcpV6Enabled,
 			"autoconfig": *vnic.Spec.Ip.IpV6Config.AutoConfigurationEnabled,
 		}
+
 		// First we need to filter out addresses that were configured via dhcp or autoconfig
 		// or link local or any other mechanism
 		addrList := make([]string, 0)
@@ -95,16 +98,21 @@ func resourceVsphereNicRead(d *schema.ResourceData, meta interface{}) error {
 				addrList = append(addrList, fmt.Sprintf("%s/%d", addr.IpAddress, addr.PrefixLength))
 			}
 		}
-		ipv6dict["addresses"] = addrList
-		if vnic.Spec.IpRouteSpec != nil {
-			ipv6dict["gw"] = vnic.Spec.IpRouteSpec.IpRouteConfig.GetHostIpRouteConfig().IpV6DefaultGateway
-		} else if _, ok := d.GetOk("ipv6.0.gw"); ok {
-			// There is a gw set in the config, but none set on the Host.
-			ipv6dict["gw"] = ""
-		}
-		err = d.Set("ipv6", []map[string]interface{}{ipv6dict})
-		if err != nil {
-			return err
+		if (len(addrList) == 0) && !*vnic.Spec.Ip.IpV6Config.DhcpV6Enabled && !*vnic.Spec.Ip.IpV6Config.AutoConfigurationEnabled {
+			d.Set("ipv6", nil)
+		} else {
+			ipv6dict["addresses"] = addrList
+
+			if vnic.Spec.IpRouteSpec != nil {
+				ipv6dict["gw"] = vnic.Spec.IpRouteSpec.IpRouteConfig.GetHostIpRouteConfig().IpV6DefaultGateway
+			} else if _, ok := d.GetOk("ipv6.0.gw"); ok {
+				// There is a gw set in the config, but none set on the Host.
+				ipv6dict["gw"] = ""
+			}
+			err = d.Set("ipv6", []map[string]interface{}{ipv6dict})
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -410,8 +418,8 @@ func getNicSpecFromSchema(d *schema.ResourceData) (*types.HostVirtualNicSpec, er
 		oldAddrsIntf, newAddrsIntf := d.GetChange("ipv6.0.addresses")
 		oldAddrs := oldAddrsIntf.([]interface{})
 		newAddrs := newAddrsIntf.([]interface{})
-		removeAddrs := make([]string, len(oldAddrs))
 		addAddrs := make([]string, len(newAddrs))
+		var removeAddrs []string
 
 		// calculate addresses to remove
 		for _, old := range oldAddrs {
@@ -444,8 +452,8 @@ func getNicSpecFromSchema(d *schema.ResourceData) (*types.HostVirtualNicSpec, er
 
 		if len(removeAddrs) > 0 || len(addAddrs) > 0 {
 			addrs := make([]types.HostIpConfigIpV6Address, 0)
-			for _, oldAddr := range oldAddrs {
-				addrParts := strings.Split(oldAddr.(string), "/")
+			for _, removeAddr := range removeAddrs {
+				addrParts := strings.Split(removeAddr, "/")
 				addr := addrParts[0]
 				prefix, err := strconv.ParseInt(addrParts[1], 0, 32)
 				if err != nil {
