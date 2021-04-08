@@ -136,16 +136,34 @@ data "vsphere_host" "roothost2" {
 `, os.Getenv("TF_VAR_VSPHERE_ESXI2"))
 }
 
+func ConfigDataRootHost3() string {
+	return fmt.Sprintf(`
+data "vsphere_host" "roothost3" {
+  name          = "%s"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+`, os.Getenv("TF_VAR_VSPHERE_ESXI3"))
+}
+
+func ConfigDataRootHost4() string {
+	return fmt.Sprintf(`
+data "vsphere_host" "roothost4" {
+  name          = "%s"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+`, os.Getenv("TF_VAR_VSPHERE_ESXI4"))
+}
+
 func ConfigResDS1() string {
 	return fmt.Sprintf(`
 resource "vsphere_nas_datastore" "ds1" {
-  name            = "testacc-nfsds1"
+  name            = "%s"
   host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
   type            = "NFS"
   remote_hosts    = ["%s"]
   remote_path     = "%s"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"))
+`, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"), os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"))
 }
 
 func ConfigDataRootComputeCluster1() string {
@@ -198,8 +216,8 @@ resource "vsphere_virtual_machine" "nested-esxi1" {
   enable_disk_uuid  = true
 
   num_cpus = 2
-  memory   = 6144
-  guest_id = "other3xLinux64Guest"
+  memory   = 8192
+  guest_id = "vmkernel65Guest"
 
   wait_for_guest_ip_timeout  = 5
   wait_for_guest_net_timeout = -1
@@ -209,24 +227,10 @@ resource "vsphere_virtual_machine" "nested-esxi1" {
   }
 
   ovf_deploy {
-    remote_ovf_url = "https://download3.vmware.com/software/vmw-tools/Nested_ESXi6.7u3_Appliance_Template_v1.0/Nested_ESXi6.7u3_Appliance_Template_v1.ovf"
+    remote_ovf_url = "%s"
     ovf_network_map = {
       "VM Network" = data.vsphere_network.vmnet.id
     }
-  }
-  disk {
-    label = "disk0"
-    size  = 2
-  }
-
-  disk {
-    label = "disk1"
-    size  = 4
-  }
-
-  disk {
-    label = "disk2"
-    size  = 8
   }
 
   cdrom {
@@ -236,6 +240,7 @@ resource "vsphere_virtual_machine" "nested-esxi1" {
 
 data "vsphere_host_thumbprint" "thumb" {
   address = vsphere_virtual_machine.nested-esxi1.default_ip_address
+  insecure = true
 }
 
 resource "vsphere_host" "nested-esxi1" {
@@ -247,5 +252,5 @@ resource "vsphere_host" "nested-esxi1" {
   thumbprint                 = data.vsphere_host_thumbprint.thumb.id
   datacenter                 = data.vsphere_datacenter.rootdc1.id
 }
-`, os.Getenv("TF_VAR_VSPHERE_LICENSE"))
+`, os.Getenv("TF_VAR_VSPHERE_ESXI_OVF_URL"), os.Getenv("TF_VAR_VSPHERE_LICENSE"))
 }

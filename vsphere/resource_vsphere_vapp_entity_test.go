@@ -3,9 +3,10 @@ package vsphere
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"testing"
+
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -314,11 +315,6 @@ func testAccResourceVSphereVAppEntityConfigBasic() string {
 	return fmt.Sprintf(`
 %s
 
-data "vsphere_datastore" "datastore" {
-	name = "${var.datastore}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-}
-
 resource "vsphere_resource_pool" "parent_resource_pool" {
   name                    = "terraform-resource-pool-test-parent"
   parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
@@ -333,11 +329,11 @@ resource "vsphere_folder" "parent_folder" {
 resource "vsphere_vapp_container" "vapp_container" {
   name                    = "terraform-resource-pool-test"
   parent_resource_pool_id = "${vsphere_resource_pool.parent_resource_pool.id}"
-	parent_folder_id = "${vsphere_folder.parent_folder.id}"
+  parent_folder_id        = "${vsphere_folder.parent_folder.id}"
 }
 
 resource "vsphere_vapp_entity" "vapp_entity" {
-	target_id = "${vsphere_virtual_machine.vm.moid}"
+	target_id    = "${vsphere_virtual_machine.vm.moid}"
 	container_id = "${vsphere_vapp_container.vapp_container.id}"
 }
 
@@ -362,7 +358,14 @@ resource "vsphere_virtual_machine" "vm" {
 	}
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2(),
+			testhelper.ConfigResDS1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigResResourcePool1(),
+			testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
