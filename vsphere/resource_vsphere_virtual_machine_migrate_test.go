@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datacenter"
+
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/virtualdevice"
@@ -87,7 +89,11 @@ func TestAccResourceVSphereVirtualMachine_migrateStateV3_fromV2(t *testing.T) {
 
 	client := meta.(*VSphereClient).vimClient
 	pth := os.Getenv("TF_VAR_VSPHERE_VM_V1_PATH")
-	vm, err := virtualmachine.FromPath(client, pth, nil)
+	dc, err := datacenter.FromPath(client, os.Getenv("TF_VAR_VSPHERE_DATACENTER"))
+	if err != nil {
+		t.Fatalf("error while fetching datacenter: %s", err)
+	}
+	vm, err := virtualmachine.FromPath(client, pth, dc)
 	if err != nil {
 		t.Fatalf("error fetching virtual machine: %s", err)
 	}
@@ -127,7 +133,11 @@ func TestAccResourceVSphereVirtualMachine_migrateStateV3FromV1(t *testing.T) {
 	client := meta.(*VSphereClient).vimClient
 	pth := os.Getenv("TF_VAR_VSPHERE_VM_V1_PATH")
 	name := path.Base(pth)
-	vm, err := virtualmachine.FromPath(client, pth, nil)
+	dc, err := datacenter.FromPath(client, os.Getenv("TF_VAR_VSPHERE_DATACENTER"))
+	if err != nil {
+		t.Fatalf("error while fetching datacenter: %s", err)
+	}
+	vm, err := virtualmachine.FromPath(client, pth, dc)
 	if err != nil {
 		t.Fatalf("error fetching virtual machine: %s", err)
 	}
@@ -181,7 +191,11 @@ func TestAccResourceVSphereVirtualMachine_migrateStateV2(t *testing.T) {
 	client := meta.(*VSphereClient).vimClient
 	pth := os.Getenv("TF_VAR_VSPHERE_VM_V1_PATH")
 	name := path.Base(pth)
-	vm, err := virtualmachine.FromPath(client, pth, nil)
+	dc, err := datacenter.FromPath(client, os.Getenv("TF_VAR_VSPHERE_DATACENTER"))
+	if err != nil {
+		t.Fatalf("error while fetching datacenter: %s", err)
+	}
+	vm, err := virtualmachine.FromPath(client, pth, dc)
 	if err != nil {
 		t.Fatalf("error fetching virtual machine: %s", err)
 	}
