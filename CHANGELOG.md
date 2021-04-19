@@ -4,7 +4,8 @@ BUG FIXES:
 * Minor fixes of issues that came up during testing against vSphere 7.0
 
 IMPROVEMENTS:
-* provider: vSphere 7 compatibility validation
+* `provider`: vSphere 7 compatibility validation ([1381](https://github.com/hashicorp/terraform-provider-vsphere/pull/1381))
+* `resource/vm`: Allow hardware version up to 19 ([1391](https://github.com/hashicorp/terraform-provider-vsphere/pull/1391))
 
 ## 1.25.0 (March 17, 2021)
 
