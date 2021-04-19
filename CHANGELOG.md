@@ -1,3 +1,11 @@
+## 1.26.0 (Unreleased)
+
+BUG FIXES:
+* Minor fixes of issues that came up during testing against vSphere 7.0
+
+IMPROVEMENTS:
+* provider: vSphere 7 compatibility validation
+
 ## 1.25.0 (March 17, 2021)
 
 BUG FIXES:
