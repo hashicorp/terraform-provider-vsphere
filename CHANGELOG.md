@@ -1,4 +1,4 @@
-## 1.26.0 (Unreleased)
+## 1.26.0 (April 20, 2021)
 
 BUG FIXES:
 * Minor fixes of issues that came up during testing against vSphere 7.0
