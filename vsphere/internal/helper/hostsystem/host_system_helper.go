@@ -114,7 +114,7 @@ func HostInMaintenance(host *object.HostSystem) (bool, error) {
 // to true, all powered off VMs will be removed from the host, or the task will
 // block until this is the case, depending on whether or not DRS is on or off
 // for the host's cluster. This parameter is ignored on direct ESXi.
-func EnterMaintenanceMode(host *object.HostSystem, timeout int, evacuate bool) error {
+func EnterMaintenanceMode(host *object.HostSystem, timeout time.Duration, evacuate bool) error {
 	if err := viapi.VimValidateVirtualCenter(host.Client()); err != nil {
 		evacuate = false
 	}
@@ -127,9 +127,9 @@ func EnterMaintenanceMode(host *object.HostSystem, timeout int, evacuate bool) e
 
 	log.Printf("[DEBUG] Host %q is entering maintenance mode (evacuate: %t)", host.Name(), evacuate)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(timeout))
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	task, err := host.EnterMaintenanceMode(ctx, int32(timeout), evacuate, nil)
+	task, err := host.EnterMaintenanceMode(ctx, int32(timeout.Seconds()), evacuate, nil)
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func EnterMaintenanceMode(host *object.HostSystem, timeout int, evacuate bool) e
 }
 
 // ExitMaintenanceMode takes a host out of maintenance mode.
-func ExitMaintenanceMode(host *object.HostSystem, timeout int) error {
+func ExitMaintenanceMode(host *object.HostSystem, timeout time.Duration) error {
 	maintMode, err := HostInMaintenance(host)
 	if !maintMode {
 		log.Printf("[DEBUG] Host %q is already not in maintenance mode", host.Name())
@@ -161,13 +161,9 @@ func ExitMaintenanceMode(host *object.HostSystem, timeout int) error {
 
 	log.Printf("[DEBUG] Host %q is exiting maintenance mode", host.Name())
 
-	// Add 5 minutes to timeout for the context timeout to allow for any issues
-	// with the request after.
-	// TODO: Fix this so that it ultimately uses the provider context.
-	ctxTimeout := timeout + 300
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(ctxTimeout))
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	task, err := host.ExitMaintenanceMode(ctx, int32(timeout))
+	task, err := host.ExitMaintenanceMode(ctx, int32(timeout.Seconds()))
 	if err != nil {
 		return err
 	}
