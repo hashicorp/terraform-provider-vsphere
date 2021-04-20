@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/computeresource"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
@@ -231,7 +232,8 @@ func MoveHostsInto(client *govmomi.Client, cluster *object.ClusterComputeResourc
 				}
 			}
 
-			err = hostsystem.EnterMaintenanceMode(hs, int(provider.DefaultAPITimeout.Seconds())+(int(provider.DefaultAPITimeout.Seconds())*len(hsProps.Vm)), evacuate)
+			totalVmTimeout := provider.DefaultAPITimeout * time.Duration(len(hsProps.Vm)+1)
+			err = hostsystem.EnterMaintenanceMode(hs, totalVmTimeout, evacuate)
 			if err != nil {
 				return fmt.Errorf("while putting host %q in maintenance mode: %s", hs.Reference().Value, err)
 			}
@@ -279,7 +281,8 @@ func MoveHostsOutOf(cluster *object.ClusterComputeResource, hosts []*object.Host
 
 func moveHostOutOf(cluster *object.ClusterComputeResource, host *object.HostSystem, timeout int) error {
 	// Place the host into maintenance mode. This blocks until the host is ready.
-	if err := hostsystem.EnterMaintenanceMode(host, timeout, true); err != nil {
+	timeoutDuration := time.Duration(timeout) * time.Second
+	if err := hostsystem.EnterMaintenanceMode(host, timeoutDuration, true); err != nil {
 		return fmt.Errorf("error putting host %q into maintenance mode: %s", host.Name(), err)
 	}
 
@@ -294,7 +297,7 @@ func moveHostOutOf(cluster *object.ClusterComputeResource, host *object.HostSyst
 	}
 
 	// Move the host out of maintenance mode now that it's out of the cluster.
-	if err := hostsystem.ExitMaintenanceMode(host, timeout); err != nil {
+	if err := hostsystem.ExitMaintenanceMode(host, timeoutDuration); err != nil {
 		return fmt.Errorf("error taking host %q out of maintenance mode: %s", host.Name(), err)
 	}
 

@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
+
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
@@ -294,9 +295,9 @@ func resourceVsphereHostCreate(d *schema.ResourceData, meta interface{}) error {
 
 	maintenanceMode := d.Get("maintenance").(bool)
 	if maintenanceMode {
-		err = hostsystem.EnterMaintenanceMode(host, int(defaultAPITimeout/time.Minute), true)
+		err = hostsystem.EnterMaintenanceMode(host, provider.DefaultAPITimeout, true)
 	} else {
-		err = hostsystem.ExitMaintenanceMode(host, int(defaultAPITimeout/time.Minute))
+		err = hostsystem.ExitMaintenanceMode(host, provider.DefaultAPITimeout)
 	}
 	if err != nil {
 		return fmt.Errorf("error while toggling maintenance mode for host %s. Error: %s", hostID, err)
@@ -478,9 +479,9 @@ func resourceVSphereHostUpdateMaintenanceMode(d *schema.ResourceData, meta, old,
 
 	maintenanceMode := newVal.(bool)
 	if maintenanceMode {
-		err = hostsystem.EnterMaintenanceMode(host, int(defaultAPITimeout/time.Minute), true)
+		err = hostsystem.EnterMaintenanceMode(host, provider.DefaultAPITimeout, true)
 	} else {
-		err = hostsystem.ExitMaintenanceMode(host, int(defaultAPITimeout/time.Minute))
+		err = hostsystem.ExitMaintenanceMode(host, provider.DefaultAPITimeout)
 	}
 	if err != nil {
 		return fmt.Errorf("error while toggling maintenance mode for host %s. Error: %s", host.Name(), err)
@@ -517,7 +518,7 @@ func resourceVSphereHostUpdateCluster(d *schema.ResourceData, meta, old, newVal 
 		return fmt.Errorf("error while retrieving HostSystem object for host ID %s. Error: %s", hostID, err)
 	}
 
-	err = hostsystem.EnterMaintenanceMode(hs, int(defaultAPITimeout/time.Minute), true)
+	err = hostsystem.EnterMaintenanceMode(hs, provider.DefaultAPITimeout, true)
 	if err != nil {
 		return fmt.Errorf("error while putting host to maintenance mode: %s", err.Error())
 	}
@@ -532,7 +533,7 @@ func resourceVSphereHostUpdateCluster(d *schema.ResourceData, meta, old, newVal 
 		return fmt.Errorf("error while moving host to new cluster (%s): %s", newClusterID, err)
 	}
 
-	err = hostsystem.ExitMaintenanceMode(hs, int(defaultAPITimeout/time.Minute))
+	err = hostsystem.ExitMaintenanceMode(hs, provider.DefaultAPITimeout)
 	if err != nil {
 		return fmt.Errorf("error while taking host out of maintenance mode: %s", err.Error())
 	}
@@ -568,7 +569,7 @@ func resourceVSphereHostReconnect(d *schema.ResourceData, meta interface{}) erro
 
 	maintenanceConfig := d.Get("maintenance").(bool)
 	if maintenanceState && !maintenanceConfig {
-		err := hostsystem.ExitMaintenanceMode(host, int(defaultAPITimeout/time.Minute))
+		err := hostsystem.ExitMaintenanceMode(host, provider.DefaultAPITimeout)
 		if err != nil {
 			return fmt.Errorf("error while taking host %s out of maintenance mode. Error: %s", host.Name(), err)
 		}

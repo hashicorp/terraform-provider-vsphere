@@ -153,10 +153,11 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				StateFunc:   folder.NormalizePath,
 			},
 			"host_cluster_exit_timeout": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Default:     3600,
-				Description: "The timeout for each host maintenance mode operation when removing hosts from a cluster.",
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      3600,
+				Description:  "The timeout for each host maintenance mode operation when removing hosts from a cluster.",
+				ValidateFunc: validation.IntBetween(0, 604800),
 			},
 			"force_evacuate_on_destroy": {
 				Type:        schema.TypeBool,
@@ -806,7 +807,7 @@ func resourceVSphereComputeClusterProcessHostUpdate(
 				return fmt.Errorf("while fetching properties for host %q: %s", hs.Reference().Value, err)
 			}
 			if hsProps.Runtime.InMaintenanceMode {
-				err := hostsystem.ExitMaintenanceMode(hs, int(provider.DefaultAPITimeout))
+				err := hostsystem.ExitMaintenanceMode(hs, provider.DefaultAPITimeout)
 				if err != nil {
 					return fmt.Errorf("while getting host %q out of maintenance mode: %s", hs.Reference().Value, err)
 				}
