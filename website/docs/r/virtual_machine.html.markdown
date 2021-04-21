@@ -245,11 +245,7 @@ resource "vsphere_virtual_machine" "vm" {
 Ovf and ova templates can be deployed both from local system and remote URL into the 
 vcenter using the `ovf_deploy` property. When deploying from local system, the 
 path to the ovf or ova template needs to be provided. While deploying ovf, all other 
-necessary files like vmdk files also should be present in the same directory as the ovf file. 
-While deploying, the VM properties like `name`, `datacenter_id`, `resource_pool_id`, `datastore_id`, 
-`host_system_id`, `folder`, `scsi_controller_count`, `sata_controller_count`, 
-`ide_controller_count`, and `vapp` can only be set. All other VM properties are taken from the ovf 
-template and setting them in the configuration file is redundant.
+necessary files like vmdk files also should be present in the same directory as the ovf file.
 
 ~> **NOTE:** Only the vApp properties which are pre-defined in the ovf template can be overwritten. 
 vApp properties from scratch cannot be created.
@@ -321,6 +317,88 @@ resource "vsphere_virtual_machine" "vmFromRemoteOvf" {
   }
 }
 ```
+
+Using the OVF/OVA to deploy virtual machines can result in situations where the resulting VM does
+match what's specified in the OVF specification because the provider will attempt to apply its own
+settings on top of that. For example if `memory` is not set in a `vsphere_virtual_machine` resource,
+then terraform will assume that it has to apply the default. There are also cases where the hardware
+specifications may not be applicable and changes need to be made. The way to work around these cases
+is to use the `vsphere_ovf_vm_template` data source that will parse the OVF template and export the
+settings as outputs, that are then passed as parameters to the `vsphere_virtual_machine` resource.
+Please note that the parameters to `ovf_deploy` are still required, in order for vSphere to do the
+actual deployment, as shown in the example below:
+
+```hcl
+provider "vsphere" {}
+
+data "vsphere_datacenter" "dc" {
+  name = "hashidc"
+}
+
+data "vsphere_host" "hs" {
+  name = "172.16.12.125"
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+data "vsphere_compute_cluster" "compute_cluster" {
+  name          = "c1"
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+resource "vsphere_resource_pool" "rp" {
+  name = "rp1"
+  parent_resource_pool_id = data.vsphere_compute_cluster.compute_cluster.resource_pool_id
+}
+
+data "vsphere_network" "net" {
+  name = "VM Network"
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+data "vsphere_datastore" "ds" {
+  name          = "nfs-vol1"
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+data "vsphere_ovf_vm_template" "ovf" {
+  name             = "testOVF"
+  resource_pool_id = vsphere_resource_pool.rp.id
+  datastore_id     = data.vsphere_datastore.ds.id
+  host_system_id   = data.vsphere_host.hs.id
+  remote_ovf_url   = "https://download3.vmware.com/software/vmw-tools/nested-esxi/Nested_ESXi7.0_Appliance_Template_v1.ova"
+  
+  ovf_network_map = {
+    "Network 1": data.vsphere_network.net.id
+  }
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  datacenter_id = data.vsphere_datacenter.dc.id
+
+  name             = data.vsphere_ovf_vm_template.ovf.name
+  num_cpus         = data.vsphere_ovf_vm_template.ovf.num_cpus
+  memory           = data.vsphere_ovf_vm_template.ovf.memory
+  guest_id         = data.vsphere_ovf_vm_template.ovf.guest_id
+  resource_pool_id = data.vsphere_ovf_vm_template.ovf.resource_pool_id
+  datastore_id     = data.vsphere_ovf_vm_template.ovf.datastore_id
+  host_system_id   = data.vsphere_ovf_vm_template.ovf.host_system_id
+
+  dynamic "network_interface" {
+    for_each = data.vsphere_ovf_vm_template.ovf.ovf_network_map
+    content {
+      network_id = network_interface.value
+    }
+  }
+  
+  ovf_deploy {
+    ovf_network_map = data.vsphere_ovf_vm_template.ovf.ovf_network_map
+    remote_ovf_url  = data.vsphere_ovf_vm_template.ovf.remote_ovf_url
+  }
+}
+
+
+```
+
 
 ### Cloning from an OVF/OVA-created template with vApp properties
 
@@ -1373,6 +1451,7 @@ The options available in the `ovf_deploy` block are:
 * `ip_protocol` - (Optional) The IP protocol.
 * `disk_provisioning` - (Optional) The disk provisioning. If set, all the disks in the deployed OVF will have 
    the same specified disk type (accepted values {thin, flat, thick, sameAsSource}).
+* `deployment_option` - (Optional) The key of the chosen deployment option. If empty, the default option is chosen.   
 * `ovf_network_map` - (Optional) The mapping of name of network identifiers from the ovf descriptor to network UUID in the 
    VI infrastructure.
 * `allow_unverified_ssl_cert` - (Optional) Allow unverified ssl certificates while deploying ovf/ova from url.

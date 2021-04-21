@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -40,7 +41,7 @@ func TestAccResourceVSphereDRSVMOverride_drs(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					cluster, err := testGetComputeClusterFromDataSource(s, "cluster")
+					cluster, err := testGetComputeClusterFromDataSource(s, "rootcompute_cluster1")
 					if err != nil {
 						return "", err
 					}
@@ -223,7 +224,13 @@ resource "vsphere_drs_vm_override" "drs_vm_override" {
   drs_enabled        = false
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2(),
+			testhelper.ConfigResDS1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigResResourcePool1(),
+			testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 

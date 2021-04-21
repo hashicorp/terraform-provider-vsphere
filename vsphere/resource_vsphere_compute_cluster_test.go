@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/vim25/types"
@@ -45,7 +44,7 @@ func TestAccResourceVSphereComputeCluster_basic(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					cluster, err := testGetComputeCluster(s, "compute_cluster")
+					cluster, err := testGetComputeCluster(s, "compute_cluster", resourceVSphereComputeClusterName)
 					if err != nil {
 						return "", err
 					}
@@ -121,7 +120,7 @@ func TestAccResourceVSphereComputeCluster_explicitFailoverHost(t *testing.T) {
 					testAccResourceVSphereComputeClusterCheckDRSEnabled(true),
 					testAccResourceVSphereComputeClusterCheckHAEnabled(true),
 					testAccResourceVSphereComputeClusterCheckAdmissionControlMode(clusterAdmissionControlTypeFailoverHosts),
-					testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(os.Getenv("TF_VAR_VSPHERE_ESXI_HOST1")),
+					testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(os.Getenv("TF_VAR_VSPHERE_ESXI3")),
 				),
 			},
 		},
@@ -349,11 +348,11 @@ func testAccResourceVSphereComputeClusterPreCheck(t *testing.T) {
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_compute_cluster acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_ESXI1") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI1 to run vsphere_compute_cluster acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_ESXI3") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI3 to run vsphere_compute_cluster acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_ESXI2") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI2 to run vsphere_compute_cluster acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_ESXI4") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI4 to run vsphere_compute_cluster acceptance tests")
 	}
 	if os.Getenv("TF_VAR_VSPHERE_PG_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_PG_NAME to run vsphere_virtual_machine acceptance tests")
@@ -365,7 +364,7 @@ func testAccResourceVSphereComputeClusterPreCheck(t *testing.T) {
 
 func testAccResourceVSphereComputeClusterCheckExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		_, err := testGetComputeCluster(s, "compute_cluster")
+		_, err := testGetComputeCluster(s, "compute_cluster", resourceVSphereComputeClusterName)
 		if err != nil {
 			if viapi.IsManagedObjectNotFoundError(err) && expected == false {
 				// Expected missing
@@ -465,7 +464,7 @@ func testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(expec
 			return fmt.Errorf("expected failover host name to be %s, got %s", expected, actual)
 		}
 
-		if failoverHostsPolicy.ResourceReductionToToleratePercent != structure.Int32Ptr(0) {
+		if *failoverHostsPolicy.ResourceReductionToToleratePercent != 0 {
 			return fmt.Errorf("expected ha_admission_control_performance_tolerance be 0, got %d", failoverHostsPolicy.ResourceReductionToToleratePercent)
 		}
 
@@ -475,7 +474,7 @@ func testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(expec
 
 func testAccResourceVSphereComputeClusterCheckName(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		cluster, err := testGetComputeCluster(s, "compute_cluster")
+		cluster, err := testGetComputeCluster(s, "compute_cluster", resourceVSphereComputeClusterName)
 		if err != nil {
 			return err
 		}
@@ -489,7 +488,7 @@ func testAccResourceVSphereComputeClusterCheckName(expected string) resource.Tes
 
 func testAccResourceVSphereComputeClusterMatchInventoryPath(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		cluster, err := testGetComputeCluster(s, "compute_cluster")
+		cluster, err := testGetComputeCluster(s, "compute_cluster", resourceVSphereComputeClusterName)
 		if err != nil {
 			return err
 		}
@@ -522,7 +521,7 @@ func testAccResourceVSphereComputeClusterCheckDRSDefaultAutomationLevel(expected
 
 func testAccResourceVSphereComputeClusterCheckTags(tagResName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		cluster, err := testGetComputeCluster(s, "compute_cluster")
+		cluster, err := testGetComputeCluster(s, "compute_cluster", resourceVSphereComputeClusterName)
 		if err != nil {
 			return err
 		}
@@ -561,30 +560,25 @@ func testAccResourceVSphereComputeClusterConfigHAAdmissionControlPolicyDisabled(
 	return fmt.Sprintf(`
 %s
 
-variable "hosts" {
-  default = [
-    "%s",
-  ]
-}
-
-data "vsphere_host" "hosts" {
-  count         = "${length(var.hosts)}"
-  name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-}
-
 resource "vsphere_compute_cluster" "compute_cluster" {
   name                        = "testacc-compute-cluster"
   datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids             = "${data.vsphere_host.hosts.*.id}"
+  host_system_ids             = [data.vsphere_host.roothost3.id]
   ha_enabled                  = true
   ha_admission_control_policy = "disabled"
 
   force_evacuate_on_destroy = true
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigResNestedEsxi()),
-		os.Getenv("TF_VAR_VSPHERE_ESXI_NESTED1"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootHost2(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootVMNet(),
+		),
 	)
 }
 
@@ -592,44 +586,26 @@ func testAccResourceVSphereComputeClusterConfigBasic() string {
 	return fmt.Sprintf(`
 %s
 
-data "vsphere_host" "hosts" {
-  count         = 1
-  name          = vsphere_host.nested-esxi1.hostname
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
-}
-
 resource "vsphere_compute_cluster" "compute_cluster" {
   name            = "testacc-compute-cluster"
   datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids = [ vsphere_host.nested-esxi1.name ]
+  host_system_ids = [ data.vsphere_host.roothost3.id ]
 
   force_evacuate_on_destroy = true
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigResNestedEsxi(), testhelper.ConfigDataRootDS1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigDataRootVMNet()),
-	)
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost3()))
 }
 
 func testAccResourceVSphereComputeClusterConfigDRSHABasic() string {
 	return fmt.Sprintf(`
 %s
 
-variable "hosts" {
-  default = [
-    "%s",
-  ]
-}
-
-data "vsphere_host" "hosts" {
-  count         = "${length(var.hosts)}"
-  name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-}
-
 resource "vsphere_compute_cluster" "compute_cluster" {
   name            = "testacc-compute-cluster"
   datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids = "${data.vsphere_host.hosts.*.id}"
+  host_system_ids = [data.vsphere_host.roothost3.id]
 
   drs_enabled          = true
   drs_automation_level = "fullyAutomated"
@@ -639,8 +615,15 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 	force_evacuate_on_destroy = true
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigResNestedEsxi()),
-		os.Getenv("TF_VAR_VSPHERE_ESXI_NESTED1"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootHost2(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootVMNet(),
+		),
 	)
 }
 
@@ -648,36 +631,31 @@ func testAccResourceVSphereComputeClusterConfigDRSHABasicExplicitFailoverHost() 
 	return fmt.Sprintf(`
 %s
 
-variable "hosts" {
-  default = [
-    "%s",
-  ]
-}
-
-data "vsphere_host" "hosts" {
-  count         = "${length(var.hosts)}"
-  name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-}
-
 resource "vsphere_compute_cluster" "compute_cluster" {
   name            = "testacc-compute-cluster"
   datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids = "${data.vsphere_host.hosts.*.id}"
+  host_system_ids = [data.vsphere_host.roothost3.id, data.vsphere_host.roothost4.id]
 
   drs_enabled          = true
   drs_automation_level = "fullyAutomated"
 
   ha_enabled                                    = true
   ha_admission_control_policy                   = "failoverHosts"
-  ha_admission_control_failover_host_system_ids = "${data.vsphere_host.hosts.*.id}"
+  ha_admission_control_failover_host_system_ids = [data.vsphere_host.roothost3.id]
   ha_admission_control_performance_tolerance    = 0
 
   force_evacuate_on_destroy = true
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigResNestedEsxi()),
-		os.Getenv("TF_VAR_VSPHERE_ESXI_NESTED1"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootHost4(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootVMNet(),
+		),
 	)
 }
 

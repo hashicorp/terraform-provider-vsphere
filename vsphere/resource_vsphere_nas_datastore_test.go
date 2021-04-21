@@ -2,10 +2,11 @@ package vsphere
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -135,7 +136,7 @@ func TestAccResourceVSphereNasDatastore_renameDatastore(t *testing.T) {
 				Config: testAccResourceVSphereNasDatastoreConfigBasicAltName(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereNasDatastoreExists(true),
-					testAccResourceVSphereNasDatastoreHasName("testacc-nas-renamed"),
+					testAccResourceVSphereNasDatastoreHasName(fmt.Sprintf("%s-renamed", os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"))),
 				),
 			},
 		},
@@ -439,20 +440,22 @@ variable "nfs_path" {
 
 %s
 
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
-
 resource "vsphere_nas_datastore" "datastore" {
-  name            = "testacc-nas"
-  host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
+  name            = "%s"
+  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
   remote_path  = "${var.nfs_path}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2(),
+		),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigMultiHost() string {
@@ -467,31 +470,23 @@ variable "nfs_path" {
   default = "%s"
 }
 
-variable "esxi_hosts" {
-  default = [
-    "%s",
-    "%s",
-    "%s",
-  ]
-}
-
-%s
-
-data "vsphere_host" "esxi_host" {
-  count         = "${length(var.esxi_hosts)}"
-  name          = "${var.esxi_hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
+%s 
 
 resource "vsphere_nas_datastore" "datastore" {
-  name            = "testacc-nas"
-  host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
+  name            = "%s"
+  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
   remote_path  = "${var.nfs_path}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_ESXI_HOST2"), os.Getenv("TF_VAR_VSPHERE_ESXI_HOST3"), os.Getenv("TF_VAR_VSPHERE_DATACENTER"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2()),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"),
+	)
 }
 
 func testAccResourceVSphereNasDatastoreConfigBasicAltName() string {
@@ -508,20 +503,20 @@ variable "nfs_path" {
 
 %s
 
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
-
 resource "vsphere_nas_datastore" "datastore" {
-  name            = "testacc-nas-renamed"
-  host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
+  name            = "%s-renamed"
+  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
   remote_path  = "${var.nfs_path}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2()),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigBasicFolder() string {
@@ -543,21 +538,29 @@ variable "folder" {
 
 %s
 
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+resource "vsphere_folder" "folder" {
+  path          = var.folder
+  type          = "datastore"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_nas_datastore" "datastore" {
-  name            = "testacc-nas"
-  host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
-  folder          = "${var.folder}"
+  name            = "%s"
+  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
+  folder          = vsphere_folder.folder.path
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
   remote_path  = "${var.nfs_path}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
+		os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2()),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigBasicTags() string {
@@ -574,11 +577,6 @@ variable "nfs_path" {
 
 %s
 
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
-
 resource "vsphere_tag_category" "testacc-category" {
   name        = "testacc-tag-category"
   cardinality = "MULTIPLE"
@@ -594,8 +592,8 @@ resource "vsphere_tag" "testacc-tag" {
 }
 
 resource "vsphere_nas_datastore" "datastore" {
-  name            = "testacc-nas"
-  host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
+  name            = "%s"
+  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
@@ -603,7 +601,13 @@ resource "vsphere_nas_datastore" "datastore" {
 
   tags = ["${vsphere_tag.testacc-tag.id}"]
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2()),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigMultiTags() string {
@@ -627,11 +631,6 @@ variable "extra_tags" {
 
 %s
 
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
-
 resource "vsphere_tag_category" "testacc-category" {
   name        = "testacc-tag-category"
   cardinality = "MULTIPLE"
@@ -653,8 +652,8 @@ resource "vsphere_tag" "testacc-tags-alt" {
 }
 
 resource "vsphere_nas_datastore" "datastore" {
-  name            = "testacc-nas"
-  host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
+  name            = "%s"
+  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
@@ -662,7 +661,13 @@ resource "vsphere_nas_datastore" "datastore" {
 
   tags = "${vsphere_tag.testacc-tags-alt.*.id}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2()),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigSingleCustomAttribute() string {
@@ -679,11 +684,6 @@ variable "nfs_path" {
 
 %s
 
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
-
 resource "vsphere_custom_attribute" "testacc-attribute" {
   name                = "testacc-attribute"
   managed_object_type = "Datastore"
@@ -696,8 +696,8 @@ locals {
 }
 
 resource "vsphere_nas_datastore" "datastore" {
-  name            = "testacc-nas"
-  host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
+  name            = "%s"
+  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
@@ -705,7 +705,11 @@ resource "vsphere_nas_datastore" "datastore" {
 
   custom_attributes = "${local.nas_attrs}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2()),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"))
 }
 
 func testAccResourceVSphereNasDatastoreConfigMultiCustomAttributes() string {
@@ -721,11 +725,6 @@ variable "nfs_path" {
 }
 
 %s
-
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
 
 resource "vsphere_custom_attribute" "testacc-attribute" {
   name                = "testacc-attribute"
@@ -745,8 +744,8 @@ locals {
 }
 
 resource "vsphere_nas_datastore" "datastore" {
-  name            = "testacc-nas"
-  host_system_ids = "${data.vsphere_host.esxi_host.*.id}"
+  name            = "%s"
+  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
@@ -754,7 +753,13 @@ resource "vsphere_nas_datastore" "datastore" {
 
   custom_attributes = "${local.nas_attrs}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2()),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"),
+	)
 }
 
 func testAccResourceVSphereNasDatastoreConfigDatastoreCluster() string {
@@ -776,24 +781,26 @@ variable "folder" {
 
 %s
 
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
-
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_nas_datastore" "datastore" {
-  name                 = "testacc-nas"
-  host_system_ids      = "${data.vsphere_host.esxi_host.*.id}"
+  name            = "%s"
+  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
   remote_path  = "${var.nfs_path}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH"), os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
+		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
+		os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2()),
+		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"))
 }

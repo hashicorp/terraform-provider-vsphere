@@ -9,6 +9,8 @@ import (
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 	"log"
+	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -26,11 +28,12 @@ func resourceVsphereEntityPermissions() *schema.Resource {
 			Description: "The entity managed object type.",
 		},
 		"permissions": {
-			Type:        schema.TypeList,
-			Required:    true,
-			MinItems:    1,
-			Description: "Permissions to be given to the entity.",
-			Elem:        &schema.Resource{Schema: administrationroles.VspherePermissionSchema()},
+			Type:             schema.TypeList,
+			Required:         true,
+			MinItems:         1,
+			Description:      "Permissions to be given to the entity.",
+			Elem:             &schema.Resource{Schema: administrationroles.VspherePermissionSchema()},
+			DiffSuppressFunc: permissionsDiffSuppressFunc,
 		},
 	}
 
@@ -119,6 +122,11 @@ func resourceEntityPermissionsRead(d *schema.ResourceData, meta interface{}) err
 		permissionObj["role_id"] = strconv.Itoa(int(permission.RoleId))
 		permissionObjs = append(permissionObjs, permissionObj)
 	}
+
+	sort.Slice(permissionObjs, func(i, j int) bool {
+		return strings.ToLower(permissionObjs[i]["user_or_group"].(string)) <
+			strings.ToLower(permissionObjs[j]["user_or_group"].(string))
+	})
 	d.Set("permissions", permissionObjs)
 	return nil
 }
@@ -220,4 +228,30 @@ func resourceVSphereEntityPermissionsCustomizeDiff(d *schema.ResourceDiff, meta 
 		}
 	}
 	return nil
+}
+
+func permissionsDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	oldPermissions, newPermissions := d.GetChange("permissions")
+	oldPermissionsArr := oldPermissions.([]interface{})
+	newPermissionsArr := newPermissions.([]interface{})
+	if len(oldPermissionsArr) != len(newPermissionsArr) {
+		return false
+	}
+	for _, oldPermission := range oldPermissionsArr {
+		oldPermission.(map[string]interface{})["user_or_group"] =
+			strings.ToLower(oldPermission.(map[string]interface{})["user_or_group"].(string))
+	}
+	for _, newPermission := range newPermissionsArr {
+		newPermission.(map[string]interface{})["user_or_group"] =
+			strings.ToLower(newPermission.(map[string]interface{})["user_or_group"].(string))
+	}
+	sort.Slice(oldPermissionsArr, func(i, j int) bool {
+		return oldPermissionsArr[i].(map[string]interface{})["user_or_group"].(string) <
+			oldPermissionsArr[j].(map[string]interface{})["user_or_group"].(string)
+	})
+	sort.Slice(newPermissionsArr, func(i, j int) bool {
+		return newPermissionsArr[i].(map[string]interface{})["user_or_group"].(string) <
+			newPermissionsArr[j].(map[string]interface{})["user_or_group"].(string)
+	})
+	return reflect.DeepEqual(oldPermissionsArr, newPermissionsArr)
 }

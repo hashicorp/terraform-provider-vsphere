@@ -30,7 +30,6 @@ import (
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/vmworkflow"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
-	"github.com/vmware/govmomi/ovf"
 	"github.com/vmware/govmomi/vapi/vcenter"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -1318,106 +1317,35 @@ func resourceVSphereVirtualMachineCreateBareStandard(
 
 // Deploy vm from ovf/ova template
 func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interface{}) (*object.VirtualMachine, error) {
+	client := meta.(*VSphereClient).vimClient
 
-	localOvfPath := d.Get("ovf_deploy.0.local_ovf_path").(string)
-	remoteOvfUrl := d.Get("ovf_deploy.0.remote_ovf_url").(string)
-
-	// check if Ovf or Ova is to be deployed from local/remote
-	deployOva := false
-	fromLocal := true
-	filePath := localOvfPath
-
-	if remoteOvfUrl != "" {
-		fromLocal = false
-		filePath = remoteOvfUrl
+	ovfParams := NewOvfHelperParamsFromVMResource(d)
+	ovfHelper, err := ovfdeploy.NewOvfHelper(client, ovfParams)
+	if err != nil {
+		return nil, fmt.Errorf("while extracting OVF parameters: %s", err)
 	}
-	if strings.HasSuffix(filePath, ".ova") {
-		deployOva = true
+
+	ovfImportspec, err := ovfHelper.GetImportSpec(client)
+	if err != nil {
+		return nil, fmt.Errorf("while retrieving ovf import spec from the API: %s", err)
 	}
-	log.Printf("[DEBUG] VM is being deployed from ovf/ova template %s", filePath)
+
+	log.Print(" [DEBUG] start deploying from ovf/ova Template")
+	err = ovfHelper.DeployOvf(ovfImportspec)
+	if err != nil {
+		return nil, fmt.Errorf("error while importing ovf/ova template, %s", err)
+	}
 
 	dataCenterId := d.Get("datacenter_id").(string)
 	if dataCenterId == "" {
 		return nil, fmt.Errorf("data center ID is required for ovf deployment")
 	}
-
-	client := meta.(*VSphereClient).vimClient
-	name := d.Get("name").(string)
-	var vm *object.VirtualMachine
-
-	poolID := d.Get("resource_pool_id").(string)
-	poolObj, err := resourcepool.FromID(client, poolID)
-	if err != nil {
-		return nil, fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
-	}
-	resourcePoolMor := poolObj.Reference()
-
-	folderObj, err := folder.VirtualMachineFolderFromObject(client, poolObj, d.Get("folder").(string))
-	if err != nil {
-		return nil, err
-	}
-
-	hostId := d.Get("host_system_id").(string)
-	if hostId == "" {
-		return nil, fmt.Errorf("host system ID is required for ovf deployment")
-	}
-	hostObj, err := hostsystem.FromID(client, hostId)
-	if err != nil {
-		return nil, fmt.Errorf("could not find host with ID %q: %s", hostId, err)
-	}
-	hostMor := hostObj.Reference()
-
-	dsId := d.Get("datastore_id").(string)
-	if dsId == "" {
-		return nil, fmt.Errorf("data store ID is required for ovf deployment")
-	}
-	dsObj, err := datastore.FromID(client, dsId)
-	if err != nil {
-		return nil, fmt.Errorf("could not find datastore with ID %q: %s", dsId, err)
-	}
-	dsMor := dsObj.Reference()
-
-	allowUnverifiedSSL := d.Get("ovf_deploy.0.allow_unverified_ssl_cert").(bool)
-	networkMapping, err := ovfdeploy.GetNetworkMapping(client, d)
-	if err != nil {
-		return nil, err
-	}
-	importSpecParam := types.OvfCreateImportSpecParams{
-		EntityName:         name,
-		HostSystem:         &hostMor,
-		NetworkMapping:     networkMapping,
-		IpAllocationPolicy: d.Get("ovf_deploy.0.ip_allocation_policy").(string),
-		IpProtocol:         d.Get("ovf_deploy.0.ip_protocol").(string),
-		DiskProvisioning:   d.Get("ovf_deploy.0.disk_provisioning").(string),
-	}
-
-	ovfDescriptor, err := ovfdeploy.GetOvfDescriptor(filePath, deployOva, fromLocal, allowUnverifiedSSL)
-	if err != nil {
-		return nil, fmt.Errorf("error while reading the ovf file %s, %s ", filePath, err)
-	}
-
-	if ovfDescriptor == "" {
-		return nil, fmt.Errorf("the given ovf file %s is empty", filePath)
-	}
-
-	ovfManager := ovf.NewManager(client.Client)
-	ovfCreateImportSpecResult, err := ovfManager.CreateImportSpec(context.Background(), ovfDescriptor,
-		resourcePoolMor, dsMor, importSpecParam)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Print(" [DEBUG] start deploying from ovf/ova Template")
-	err = ovfdeploy.DeployOvfAndGetResult(ovfCreateImportSpecResult, poolObj, folderObj, hostObj, filePath, deployOva, fromLocal, allowUnverifiedSSL)
-	if err != nil {
-		return nil, fmt.Errorf("error while importing ovf/ova template, %s", err)
-	}
-
 	datacenterObj, err := datacenterFromID(client, dataCenterId)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting datacenter with id %s %s", dataCenterId, err)
 	}
-	vm, err = virtualmachine.FromPath(client, name, datacenterObj)
+
+	vm, err := virtualmachine.FromPath(client, ovfHelper.Name, datacenterObj)
 	if err != nil {
 		return nil, fmt.Errorf("error while fetching the created vm, %s", err)
 	}
@@ -1444,7 +1372,8 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 			return nil, fmt.Errorf("error while applying vapp config %s", err)
 		}
 	}
-	return vm, resourceVSphereVirtualMachinePostDeployChanges(d, meta, vm)
+
+	return vm, resourceVSphereVirtualMachinePostDeployChanges(d, meta, vm, true)
 }
 
 func createVCenterDeploy(d *schema.ResourceData, meta interface{}) (*virtualmachine.VCenterDeploy, error) {
@@ -1540,7 +1469,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 			return nil, fmt.Errorf("error cloning virtual machine: %s", err)
 		}
 	}
-	return vm, resourceVSphereVirtualMachinePostDeployChanges(d, meta, vm)
+	return vm, resourceVSphereVirtualMachinePostDeployChanges(d, meta, vm, false)
 }
 
 // resourceVSphereVirtualMachinePostDeployChanges will do post-clone
@@ -1550,7 +1479,7 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 //
 // It's generally safe to not rollback after the initial re-configuration is
 // fully complete and we move on to sending the customization spec.
-func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta interface{}, vm *object.VirtualMachine) error {
+func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta interface{}, vm *object.VirtualMachine, postOvf bool) error {
 	client := meta.(*VSphereClient).vimClient
 	poolID := d.Get("resource_pool_id").(string)
 	pool, err := resourcepool.FromID(client, poolID)
@@ -1597,7 +1526,7 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 	}
 	cfgSpec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec.DeviceChange, delta...)
 	// Disks
-	devices, delta, err = virtualdevice.DiskPostCloneOperation(d, client, devices)
+	devices, delta, err = virtualdevice.DiskPostCloneOperation(d, client, devices, postOvf)
 	if err != nil {
 		return resourceVSphereVirtualMachineRollbackCreate(
 			d,
@@ -1918,4 +1847,23 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 // vsphere_virtual_machine resource.
 func resourceVSphereVirtualMachineIDString(d structure.ResourceIDStringer) string {
 	return structure.ResourceIDString(d, "vsphere_virtual_machine")
+}
+
+func NewOvfHelperParamsFromVMResource(d *schema.ResourceData) *ovfdeploy.OvfHelperParams {
+	ovfParams := &ovfdeploy.OvfHelperParams{
+		AllowUnverifiedSSL: d.Get("ovf_deploy.0.allow_unverified_ssl_cert").(bool),
+		DatastoreId:        d.Get("datastore_id").(string),
+		DeploymentOption:   d.Get("ovf_deploy.0.deployment_option").(string),
+		DiskProvisioning:   d.Get("ovf_deploy.0.disk_provisioning").(string),
+		FilePath:           d.Get("ovf_deploy.0.local_ovf_path").(string),
+		Folder:             d.Get("folder").(string),
+		HostId:             d.Get("host_system_id").(string),
+		IpAllocationPolicy: d.Get("ovf_deploy.0.ip_allocation_policy").(string),
+		IpProtocol:         d.Get("ovf_deploy.0.ip_protocol").(string),
+		Name:               d.Get("name").(string),
+		NetworkMappings:    d.Get("ovf_deploy.0.ovf_network_map").(map[string]interface{}),
+		OvfUrl:             d.Get("ovf_deploy.0.remote_ovf_url").(string),
+		PoolId:             d.Get("resource_pool_id").(string),
+	}
+	return ovfParams
 }

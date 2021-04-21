@@ -5,9 +5,9 @@
 The HashiCorp Terraform vSphere provider team is :
 
 * Phil Sautter, Product Manager - [@redeux](https://github.com/redeux)
-* Bill Rich, Engineer - [@bill-rich](https://github.com/bill-rich)
+* Alex Pilon, Engineer - [@appilon](https://github.com/appilon)
 * Kyriakos Oikonomakos, Engineer - [@koikonom](https://github.com/koikonom)
-* Aareet Shermon, Engineering Manager - [@aareet](https://github.com/aareet)
+* Aareet Mahadevan, Engineering Manager - [@aareet](https://github.com/aareet)
 
 ### Why isn’t my PR merged yet?
 

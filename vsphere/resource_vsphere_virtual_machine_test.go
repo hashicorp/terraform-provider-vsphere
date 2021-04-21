@@ -3,8 +3,6 @@ package vsphere
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"net"
 	"os"
 	"path"
@@ -14,6 +12,9 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -1968,8 +1969,7 @@ func TestAccResourceVSphereVirtualMachine_resourcePoolVMotion(t *testing.T) {
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config:             testAccResourceVSphereVirtualMachineConfigResourcePoolVMotion(os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL")),
-				ExpectNonEmptyPlan: true,
+				Config: testAccResourceVSphereVirtualMachineConfigResourcePoolVMotion(os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL")),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckResourcePool(os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL")),
@@ -2071,7 +2071,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionPinDatastore(t *testing.
 				Config: testAccResourceVSphereVirtualMachineConfigBase(),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionPinDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionPinDatastore("vsphere_nas_datastore.ds1.id"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
@@ -2080,7 +2080,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionPinDatastore(t *testing.
 				),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionPinDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")),
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionPinDatastore("data.vsphere_datastore.rootds1.id"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")),
@@ -2114,19 +2114,19 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionRenamedVirtualMachine(t 
 				),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("testacc-foobar-test", os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereVirtualMachineCheckExists(true),
-					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
-				),
-			},
-			{
-				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("foobar-test", os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")),
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("testacc-foobar-test", os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")),
 					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("foobar-test", os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
 				),
 			},
 		},
@@ -2149,7 +2149,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionLinkedClones(t *testing.
 				Config: testAccResourceVSphereVirtualMachineConfigBase(),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionLinkedClone(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")),
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionLinkedClone("data.vsphere_datastore.rootds1.id"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")),
@@ -2157,7 +2157,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionLinkedClones(t *testing.
 				),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionLinkedClone(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionLinkedClone("vsphere_nas_datastore.ds1.id"),
 				Check: resource.ComposeTestCheckFunc(
 					copyStatePtr(&state),
 					testAccResourceVSphereVirtualMachineCheckExists(true),
@@ -6088,15 +6088,12 @@ resource "vsphere_virtual_machine" "vm" {
   cdrom {
     client_device = true
   }
-
-  depends_on = ["vsphere_host.nested-esxi1"]
 }
 `,
 
 		testhelper.CombineConfigs(
 			testAccResourceVSphereVirtualMachineConfigBase(),
-			testhelper.ConfigDataRootVMNet(),
-			testhelper.ConfigResNestedEsxi()),
+			testhelper.ConfigDataRootVMNet()),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 		pool,
 		os.Getenv("TF_VAR_VSPHERE_USE_LINKED_CLONE"),
@@ -6230,7 +6227,7 @@ resource "vsphere_virtual_machine" "vm" {
 	)
 }
 
-func testAccResourceVSphereVirtualMachineConfigStorageVMotionPinDatastore(datastore string) string {
+func testAccResourceVSphereVirtualMachineConfigStorageVMotionPinDatastore(datastoreAddress string) string {
 	return fmt.Sprintf(`
 
 
@@ -6241,19 +6238,14 @@ data "vsphere_virtual_machine" "template" {
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
-variable "disk_datastore" {
+variable "ds_id" {
   default = "%s"
-}
-
-data "vsphere_datastore" "disk_datastore" {
-  name          = "${var.disk_datastore}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
   resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = data.vsphere_datastore.disk_datastore.id
+  datastore_id     = var.ds_id
 
   num_cpus = 2
   memory   = 2048
@@ -6270,11 +6262,12 @@ resource "vsphere_virtual_machine" "vm" {
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    datastore_id     = var.ds_id
   }
 
   disk {
     label        = "disk1"
-    datastore_id = "${data.vsphere_datastore.disk_datastore.id}"
+    datastore_id = %s
     size         = 1
     unit_number  = 1
   }
@@ -6292,7 +6285,7 @@ resource "vsphere_virtual_machine" "vm" {
 
 		testAccResourceVSphereVirtualMachineConfigBase(),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
-		datastore,
+		datastoreAddress, datastoreAddress,
 	)
 }
 
@@ -6337,6 +6330,7 @@ resource "vsphere_virtual_machine" "vm" {
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+	datastore_id     = data.vsphere_datastore.ds.id
   }
 
   clone {
@@ -6357,16 +6351,11 @@ resource "vsphere_virtual_machine" "vm" {
 	)
 }
 
-func testAccResourceVSphereVirtualMachineConfigStorageVMotionLinkedClone(datastore string) string {
+func testAccResourceVSphereVirtualMachineConfigStorageVMotionLinkedClone(datastoreAddress string) string {
 	return fmt.Sprintf(`
 
 
 %s  // Mix and match config
-
-data "vsphere_datastore" "ds" {
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
-  name          = "%s"
-}
 
 data "vsphere_virtual_machine" "template" {
   name          = "%s"
@@ -6377,10 +6366,14 @@ variable "linked_clone" {
   default = "%s"
 }
 
+variable "ds" {
+  default = %s
+}
+
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
   resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = data.vsphere_datastore.ds.id
+  datastore_id     = var.ds
 
   num_cpus = 2
   memory   = 2048
@@ -6396,6 +6389,7 @@ resource "vsphere_virtual_machine" "vm" {
     size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
     eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
     thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    datastore_id     = var.ds
   }
 
   clone {
@@ -6409,9 +6403,9 @@ resource "vsphere_virtual_machine" "vm" {
 }
 `,
 		testAccResourceVSphereVirtualMachineConfigBase(),
-		datastore,
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 		os.Getenv("TF_VAR_VSPHERE_USE_LINKED_CLONE"),
+		datastoreAddress,
 	)
 }
 
@@ -7066,14 +7060,10 @@ func testAccResourceVSphereVirtualMachineTestPathInterpolation() string {
 %s  // Mix and match config
 
 
-resource "null_resource" "n" {
-  count = 2
-}
-
 resource "vsphere_virtual_disk" "d" {
   count      = 2
   size       = 1
-  vmdk_path  = "${null_resource.n[count.index].id}.vmdk"
+  vmdk_path  = "disk-${count.index}.vmdk"
   datastore  = vsphere_nas_datastore.ds1.name
   datacenter = data.vsphere_datacenter.rootdc1.name
 }
@@ -7113,11 +7103,6 @@ func testAccResourceVSphereVirtualMachineConfigContentLibrary_basic() string {
 %s
 
 
-variable "file_list" {
-  type    = list(string)
-  default = %s 
-}
-
 resource "vsphere_content_library" "library" {
   name            = "ContentLibrary_test"
   storage_backing = [ data.vsphere_datastore.rootds1.id ]
@@ -7128,19 +7113,20 @@ resource "vsphere_content_library_item" "item" {
   name = "ubuntu"
   description = "Ubuntu Description"
   library_id = vsphere_content_library.library.id
-  file_url = var.file_list
+  file_url = "%s"
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
   resource_pool_id = vsphere_resource_pool.pool1.id
   datastore_id     = data.vsphere_datastore.rootds1.id
+  annotation       = "Name: yVM (a very small virtual machine)\nRelease date: 11th November 2015\nFor more information, please visit: cloudarchitectblog.wordpress.com"
 
   num_cpus = 1
   memory   = 2048
 
   wait_for_guest_net_timeout = -1
-  guest_id                   = "ubuntu64Guest"
+  guest_id                   = "otherLinuxGuest"
 
   network_interface {
     network_id = data.vsphere_network.network1.id
@@ -7171,33 +7157,52 @@ func testAccResourceVSphereVirtualMachineDeployOvfFromUrl(vmName string) string 
 	return fmt.Sprintf(`
 %s
 
-resource "vsphere_virtual_machine" "vm" {
-  name                       = "%s"
-  resource_pool_id           = vsphere_resource_pool.pool1.id
-  datastore_id               = vsphere_nas_datastore.ds1.id
-  datacenter_id              = data.vsphere_datacenter.rootdc1.id
-  host_system_id             = data.vsphere_host.roothost1.id
-  wait_for_guest_net_timeout = 0
-  wait_for_guest_ip_timeout  = 0
-  num_cpus                   = 2
-  ovf_deploy {
-    remote_ovf_url = "%s"
+variable "ovf_url" {
+	default = "%s"
+}
+
+data "vsphere_ovf_vm_template" "ovf" {
+  name              = "%s"
+  resource_pool_id  = vsphere_resource_pool.pool1.id
+  datastore_id      = vsphere_nas_datastore.ds1.id
+  host_system_id    = data.vsphere_host.roothost1.id
+  remote_ovf_url    = var.ovf_url
+
+  ovf_network_map   = {
+    "Production_DVS - Mgmt": data.vsphere_network.network1.id
   }
-	disk{
-		size           = 40
-		unit_number    = 0
-		label          = "disk0"
-		io_share_count = 1000
-	}
-  cdrom {
-    client_device = true
+}
+
+
+resource "vsphere_virtual_machine" "vm" {
+  datacenter_id    = data.vsphere_datacenter.rootdc1.id
+
+  annotation       = data.vsphere_ovf_vm_template.ovf.annotation
+  name             = data.vsphere_ovf_vm_template.ovf.name
+  num_cpus         = data.vsphere_ovf_vm_template.ovf.num_cpus
+  memory           = data.vsphere_ovf_vm_template.ovf.memory
+  guest_id         = data.vsphere_ovf_vm_template.ovf.guest_id
+  resource_pool_id = data.vsphere_ovf_vm_template.ovf.resource_pool_id
+  datastore_id     = data.vsphere_ovf_vm_template.ovf.datastore_id
+  host_system_id   = data.vsphere_ovf_vm_template.ovf.host_system_id
+
+  dynamic "network_interface" {
+    for_each = data.vsphere_ovf_vm_template.ovf.ovf_network_map
+    content {
+        network_id = network_interface.value
+    }
+  }
+
+  ovf_deploy {
+	  remote_ovf_url  = var.ovf_url
+	  ovf_network_map = data.vsphere_ovf_vm_template.ovf.ovf_network_map
   }
 }
 
 `,
 		testAccResourceVSphereVirtualMachineConfigBase(),
+		os.Getenv("TF_VAR_VSPHERE_TEST_OVF"),
 		vmName,
-		os.Getenv("TF_VAR_REMOTE_OVF_URL"),
 	)
 }
 
@@ -7205,27 +7210,51 @@ func testAccResourceVSphereVirtualMachineDeployOvaFromUrl(vmName string) string 
 	return fmt.Sprintf(`
 %s // Mix and match config
 
+variable "ova_url" {
+	default = "%s"
+}
+
+data "vsphere_ovf_vm_template" "ovf" {
+  name              = "%s"
+  resource_pool_id  = vsphere_resource_pool.pool1.id
+  datastore_id      = vsphere_nas_datastore.ds1.id
+  host_system_id    = data.vsphere_host.roothost1.id
+  remote_ovf_url    = var.ova_url
+
+  ovf_network_map   = {
+    "Production_DVS - Mgmt": data.vsphere_network.network1.id,
+  }
+}
+
+
 resource "vsphere_virtual_machine" "vm" {
-  name                       = "%s"
-  num_cpus                   = 2
-  resource_pool_id           = vsphere_resource_pool.pool1.id
-  datastore_id               = vsphere_nas_datastore.ds1.id
-  datacenter_id              = data.vsphere_datacenter.rootdc1.id
-  host_system_id             = data.vsphere_host.roothost1.id
-  wait_for_guest_net_timeout = 0
-  wait_for_guest_ip_timeout  = 0
-  ovf_deploy {
-    remote_ovf_url = "%s"
+  datacenter_id    = data.vsphere_datacenter.rootdc1.id
+
+  annotation            = data.vsphere_ovf_vm_template.ovf.annotation
+  name                  = data.vsphere_ovf_vm_template.ovf.name
+  num_cpus              = data.vsphere_ovf_vm_template.ovf.num_cpus
+  memory                = data.vsphere_ovf_vm_template.ovf.memory
+  guest_id              = data.vsphere_ovf_vm_template.ovf.guest_id
+  resource_pool_id      = vsphere_resource_pool.pool1.id
+  datastore_id          = vsphere_nas_datastore.ds1.id
+  host_system_id        = data.vsphere_ovf_vm_template.ovf.host_system_id
+
+  dynamic "network_interface" {
+    for_each = data.vsphere_ovf_vm_template.ovf.ovf_network_map
+    content {
+        network_id = network_interface.value
+    }
   }
 
-  cdrom {
-    client_device = true
+  ovf_deploy {
+	  remote_ovf_url  = var.ova_url
+	  ovf_network_map = data.vsphere_ovf_vm_template.ovf.ovf_network_map
   }
 }
 `,
 		testAccResourceVSphereVirtualMachineConfigBase(),
+		os.Getenv("TF_VAR_VSPHERE_TEST_OVA"),
 		vmName,
-		os.Getenv("TF_VAR_REMOTE_OVA_URL"),
 	)
 }
 
@@ -8240,7 +8269,7 @@ resource "vsphere_virtual_machine" "vm" {
 // Must be able to manage datastore cluster membership outside of datastore
 func testAccResourceVSphereVirtualMachineConfigCloneDatastoreCluster() string {
 	return fmt.Sprintf(`
-
+%s
 
 variable "nfs_host" {
   default = "%s"
@@ -8250,23 +8279,11 @@ variable "nfs_path" {
   default = "%s"
 }
 
-variable "esxi_hosts" {
-  default = [
-    "%s",
-    "%s",
-  ]
-}
-
 data "vsphere_virtual_machine" "template" {
   name          = "%s"
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
-data "vsphere_host" "esxi_hosts" {
-  count         = "${length(var.esxi_hosts)}"
-  name          = "${var.esxi_hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-}
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
@@ -8276,7 +8293,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name                 = "testacc-nas"
-  host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
+  host_system_ids      = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -8316,12 +8333,9 @@ resource "vsphere_virtual_machine" "vm" {
   depends_on = ["vsphere_nas_datastore.datastore"]
 }
 `,
-
+		testAccResourceVSphereVirtualMachineConfigBase(),
 		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 		os.Getenv("TF_VAR_VSPHERE_NFS_PATH"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
-
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 	)
 }
@@ -8350,6 +8364,7 @@ func skipTestAccResourceVSphereVirtualMachine_datastoreClusterClone(t *testing.T
 func testAccResourceVSphereVirtualMachineConfigStorageVMotionDatastoreCluster(clusterName string) string {
 	return fmt.Sprintf(`
 
+%s
 
 variable "nfs_host" {
   default = "%s"
@@ -8363,22 +8378,9 @@ variable "nfs_path2" {
   default = "%s"
 }
 
-variable "esxi_hosts" {
-  default = [
-    "%s",
-    "%s",
-  ]
-}
-
 data "vsphere_virtual_machine" "template" {
   name          = "%s"
   datacenter_id = data.vsphere_datacenter.rootdc1.id
-}
-
-data "vsphere_host" "esxi_hosts" {
-  count         = "${length(var.esxi_hosts)}"
-  name          = "${var.esxi_hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_datastore_cluster" "%s" {
@@ -8405,7 +8407,7 @@ resource "vsphere_datastore_cluster" "%s" {
 
 resource "vsphere_nas_datastore" "datastore2" {
   name                 = "testacc-nas2"
-  host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
+  host_system_ids      = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
   datastore_cluster_id = "${vsphere_datastore_cluster.%s.id}"
 
   type         = "NFS"
@@ -8448,13 +8450,10 @@ resource "vsphere_virtual_machine" "vm" {
 	]
 }
 `,
-
+		testAccResourceVSphereVirtualMachineConfigBase(),
 		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 		os.Getenv("TF_VAR_VSPHERE_NFS_PATH"),
 		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
-
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 		testAccResourceVSphereVirtualMachineDatastoreCluster,
 		testAccResourceVSphereVirtualMachineDatastoreCluster,
@@ -8698,7 +8697,7 @@ func skipTestAccResourceVSphereVirtualMachine_hostVMotionDatastoreCluster(t *tes
 
 func testAccResourceVSphereVirtualMachineConfigStorageVMotionDatastoreClusterSingleDiskStep0() string {
 	return fmt.Sprintf(`
-
+%s
 
 variable "nfs_host" {
   default = "%s"
@@ -8708,22 +8707,10 @@ variable "nfs_path" {
   default = "%s"
 }
 
-variable "esxi_hosts" {
-  default = [
-    "%s",
-    "%s",
-  ]
-}
 
 data "vsphere_virtual_machine" "template" {
   name          = "%s"
   datacenter_id = data.vsphere_datacenter.rootdc1.id
-}
-
-data "vsphere_host" "esxi_hosts" {
-  count         = "${length(var.esxi_hosts)}"
-  name          = "${var.esxi_hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
@@ -8734,7 +8721,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name                 = "testacc-nas"
-  host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
+  host_system_ids      = "[data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -8782,12 +8769,9 @@ resource "vsphere_virtual_machine" "vm" {
   ]
 }
 `,
-
+		testAccResourceVSphereVirtualMachineConfigBase(),
 		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 		os.Getenv("TF_VAR_VSPHERE_NFS_PATH"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
-
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 	)
 }
@@ -8804,12 +8788,6 @@ variable "nfs_path" {
   default = "%s"
 }
 
-variable "esxi_hosts" {
-  default = [
-    "%s",
-    "%s",
-  ]
-}
 
 %s  // Mix and match config
 
@@ -8820,12 +8798,6 @@ data "vsphere_virtual_machine" "template" {
 
 variable "disk_datastore" {
   default = "%s"
-}
-
-data "vsphere_host" "esxi_hosts" {
-  count         = "${length(var.esxi_hosts)}"
-  name          = "${var.esxi_hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 data "vsphere_datastore" "disk_datastore" {
@@ -8841,7 +8813,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name                 = "testacc-nas"
-  host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
+  host_system_ids      = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -8893,9 +8865,6 @@ resource "vsphere_virtual_machine" "vm" {
 
 		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 		os.Getenv("TF_VAR_VSPHERE_NFS_PATH"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
-
 		testAccResourceVSphereVirtualMachineConfigBase(),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 		datastore,

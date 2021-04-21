@@ -1,14 +1,37 @@
-
-## 1.24.4 (UNRELEASED)
+## 1.27.0 (UNRELEASED)
 
 IMPROVEMENTS:
 * `resource/vm`: Added `replace_trigger` to support replacement of vms based external changes such as cloud_init ([#1190](https://github.com/hashicorp/terraform-provider-vsphere/issues/1190))
 
-## 1.24.3 (December 14, 2020)´
+## 1.26.0 (April 20, 2021)
 
 BUG FIXES:
-* `resource/vm`: Support for no disks in config ([#1241](https://github.com/hashicorp/terraform-provider-vsphere/1241))
-* `resource/vm`: Make API timeout configurable when building VMs ([#1278](https://github.com/hashicorp/terraform-provider-vsphere/1278))
+* Minor fixes of issues that came up during testing against vSphere 7.0
+* Change the way we set the timeout for maintenance mode ([#1392](https://github.com/hashicorp/terraform-provider-vsphere/pull/1392)) 
+
+IMPROVEMENTS:
+* `provider`: vSphere 7 compatibility validation ([#1381](https://github.com/hashicorp/terraform-provider-vsphere/pull/1381))
+* `resource/vm`: Allow hardware version up to 19 ([#1391](https://github.com/hashicorp/terraform-provider-vsphere/pull/1391))
+
+## 1.25.0 (March 17, 2021)
+
+BUG FIXES:
+* `resource/vsphere_entity_permissions`: Sorting permission objects on username/groupname before storing. ([#1311](https://github.com/hashicorp/terraform-provider-vsphere/pull/1311))
+* `resource/vm`: Limit netmask length for ipv4 and ipv6 netmasks. ([#1321](https://github.com/hashicorp/terraform-provider-vsphere/pull/1321))
+* `resource/vm`: Fix missing vApp properties. ([#1322](https://github.com/hashicorp/terraform-provider-vsphere/pull/1322))
+
+FEATURES:
+* `data/vsphere_ovf_vm_template`: Created data source OVF VM Template. This new data source allows `vsphere_virtual_machine` to be created by its exported attributes. See PR for more details. ([#1339](https://github.com/hashicorp/terraform-provider-vsphere/pull/1339))
+
+IMPROVEMENTS:
+* `resource/distributed_virtual_switch`: Allow vsphere 7. ([#1363](https://github.com/hashicorp/terraform-provider-vsphere/pull/1363))
+* `provider`: Bump Go to version 1.16. ([#1365](https://github.com/hashicorp/terraform-provider-vsphere/pull/1365))
+
+## 1.24.3 (December 14, 2020)
+
+BUG FIXES:
+* `resource/vm`: Support for no disks in config ([#1241](https://github.com/hashicorp/terraform-provider-vsphere/pull/1241))
+* `resource/vm`: Make API timeout configurable when building VMs ([#1278](https://github.com/hashicorp/terraform-provider-vsphere/pull/1278))
 
 ## 1.24.2 (October 16, 2020)
 

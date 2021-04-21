@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -39,11 +40,11 @@ func TestAccResourceVSphereDPMHostOverride_basic(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					cluster, err := testGetComputeCluster(s, "compute_cluster")
+					cluster, err := testGetComputeCluster(s, "rootcompute_cluster1", "data.vsphere_compute_cluster")
 					if err != nil {
 						return "", err
 					}
-					host, err := testGetHostFromDataSource(s, "hosts.0")
+					host, err := testGetHostFromDataSource(s, "roothost1")
 					if err != nil {
 						return "", err
 					}
@@ -132,6 +133,7 @@ func testAccResourceVSphereDPMHostOverridePreCheck(t *testing.T) {
 func testAccResourceVSphereDPMHostOverrideExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		info, err := testGetComputeClusterDPMHostConfig(s, "dpm_host_override")
+
 		if err != nil {
 			if expected == false {
 				if viapi.IsManagedObjectNotFoundError(err) {
@@ -189,26 +191,15 @@ func testAccResourceVSphereDPMHostOverrideConfigDefaults() string {
 	return fmt.Sprintf(`
 %s
 
-data "vsphere_host" "hosts" {
-  count         = 1
-  name          = vsphere_host.nested-esxi1.hostname
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
-}
-
-resource "vsphere_compute_cluster" "compute_cluster" {
-  name            = "testacc-compute-cluster"
-  datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids = "${data.vsphere_host.hosts.*.id}"
-
-  force_evacuate_on_destroy = true
-}
-
 resource "vsphere_dpm_host_override" "dpm_host_override" {
-  compute_cluster_id   = "${vsphere_compute_cluster.compute_cluster.id}"
-  host_system_id       = "${data.vsphere_host.hosts.0.id}"
+  compute_cluster_id   = "${data.vsphere_compute_cluster.rootcompute_cluster1.id}"
+  host_system_id       = "${data.vsphere_host.roothost1.id}"
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigResNestedEsxi(), testhelper.ConfigDataRootDS1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigDataRootVMNet()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+		),
 	)
 }
 
@@ -216,36 +207,20 @@ func testAccResourceVSphereDPMHostOverrideConfigOverrides() string {
 	return fmt.Sprintf(`
 %s
 
-variable "hosts" {
-  default = [
-    "%s",
-    "%s",
-  ]
-}
-
-data "vsphere_host" "hosts" {
-  count         = "${length(var.hosts)}"
-  name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-}
-
-resource "vsphere_compute_cluster" "compute_cluster" {
-  name            = "testacc-compute-cluster"
-  datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids = "${data.vsphere_host.hosts.*.id}"
-
-  force_evacuate_on_destroy = true
-}
 
 resource "vsphere_dpm_host_override" "dpm_host_override" {
-  compute_cluster_id   = "${vsphere_compute_cluster.compute_cluster.id}"
-  host_system_id       = "${data.vsphere_host.hosts.0.id}"
+  compute_cluster_id   = "${data.vsphere_compute_cluster.rootcompute_cluster1.id}"
+  host_system_id       = data.vsphere_host.roothost1.id
   dpm_enabled          = true
   dpm_automation_level = "automated"
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
-		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
-		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2(),
+		),
 	)
 }

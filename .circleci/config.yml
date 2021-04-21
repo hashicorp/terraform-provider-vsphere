@@ -2,7 +2,7 @@ version: 2
 
 references:
   images:
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/circleci/golang:1.13
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/circleci/golang:1.16
 
 jobs:
   build:

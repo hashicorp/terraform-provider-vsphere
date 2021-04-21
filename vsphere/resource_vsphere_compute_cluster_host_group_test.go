@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -40,7 +41,7 @@ func TestAccResourceVSphereComputeClusterHostGroup_basic(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					cluster, err := testGetComputeCluster(s, "cluster")
+					cluster, err := testGetComputeCluster(s, "rootcompute_cluster1", "data.vsphere_compute_cluster")
 					if err != nil {
 						return "", err
 					}
@@ -211,28 +212,32 @@ func testAccResourceVSphereComputeClusterHostGroupGetMultiple(s *terraform.State
 
 func testAccResourceVSphereComputeClusterHostGroupConfig(count int) string {
 	return fmt.Sprintf(`
-%s
-
-data "vsphere_host" "hosts" {
-  count         = 1
-  name          = vsphere_host.nested-esxi1.hostname
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
+variable hosts {
+  default = [ %q, %q ]
 }
 
-resource "vsphere_compute_cluster" "cluster" {
-  name            = "testacc-compute-cluster"
-  datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids = "${data.vsphere_host.hosts.*.id}"
+%s 
 
-  force_evacuate_on_destroy = true
+data "vsphere_host" "hosts" {
+  count         = %d
+  name          = "${var.hosts[count.index]}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
   name               = "terraform-test-cluster-group"
-  compute_cluster_id = "${vsphere_compute_cluster.cluster.id}"
-  host_system_ids    = "${data.vsphere_host.hosts.*.id}"
+  compute_cluster_id = data.vsphere_compute_cluster.rootcompute_cluster1.id
+  host_system_ids    = data.vsphere_host.hosts.*.id
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigResNestedEsxi(), testhelper.ConfigDataRootDS1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigDataRootVMNet()),
-	)
+		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootVMNet(),
+		),
+		count)
 }
