@@ -2251,11 +2251,11 @@ func diskUUIDMatch(device types.BaseVirtualDevice, uuid string) bool {
 // data gets cleared, which seems to happen on upgrades.
 func diskCapacityInGiB(disk *types.VirtualDisk) int {
 	if disk.CapacityInBytes > 0 {
-		return int(structure.ByteToGiB(disk.CapacityInBytes).(int64))
+		return structure.ByteToGiB(disk.CapacityInBytes)
 	}
 	log.Printf(
 		"[DEBUG] diskCapacityInGiB: capacityInBytes missing for for %s, falling back to capacityInKB",
 		object.VirtualDeviceList{}.Name(disk),
 	)
-	return int(structure.ByteToGiB(disk.CapacityInKB * 1024).(int64))
+	return structure.ByteToGiB(disk.CapacityInKB * 1024)
 }
