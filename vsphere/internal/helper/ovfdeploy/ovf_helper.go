@@ -538,8 +538,11 @@ func (o *OvfHelper) GetImportSpec(client *govmomi.Client) (*types.OvfCreateImpor
 
 	is, err := ovfManager.CreateImportSpec(context.Background(), ovfDescriptor,
 		o.ResourcePool.Reference(), o.Datastore.Reference(), importSpecParam)
+	if err != nil {
+		return nil, fmt.Errorf("while getting ovf import spec: %s", err)
+	}
 	if len(is.Error) > 0 {
-		out := "while getting ovf import spec: \n"
+		out := "while creating import spec: \n"
 		for _, e := range is.Error {
 			out = fmt.Sprintf("%s\n- %s", out, e.LocalizedMessage)
 		}
