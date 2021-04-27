@@ -270,8 +270,8 @@ func BaseVMKernelSchema() map[string]*schema.Schema {
 		"netstack": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "TCP/IP stack setting for this interface. Possible values are 'default', 'vmotion', 'provisioning'",
-			Default:     "default",
+			Description: "TCP/IP stack setting for this interface. Possible values are 'defaultTcpipStack', 'vmotion', 'provisioning'",
+			Default:     "defaultTcpipStack",
 			ForceNew:    true,
 		},
 	}
