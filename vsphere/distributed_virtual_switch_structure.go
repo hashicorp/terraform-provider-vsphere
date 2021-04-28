@@ -42,6 +42,7 @@ var infrastructureTrafficClassValues = []string{
 	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassHbr),
 	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassVsan),
 	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassVdp),
+	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassBackupNfc),
 }
 
 var sharesLevelAllowedValues = []string{
@@ -617,9 +618,6 @@ func expandDvsHostInfrastructureTrafficResource(d *schema.ResourceData, key stri
 // DvsHostInfrastructureTrafficResource and sets appropriate keys in the
 // supplied ResourceData.
 func flattenDvsHostInfrastructureTrafficResource(d *schema.ResourceData, obj types.DvsHostInfrastructureTrafficResource, key string) error {
-	if strings.ToLower(key) == "backupnfc" { // this key does not appear to be defined in schema and results in a panic
-		return nil
-	}
 	shareLevelKey := fmt.Sprintf("%s_share_level", strings.ToLower(key))
 	shareCountKey := fmt.Sprintf("%s_share_count", strings.ToLower(key))
 	maxMbitKey := fmt.Sprintf("%s_maximum_mbit", strings.ToLower(key))
