@@ -9,7 +9,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.8.2 // indirect
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.6.1
 	github.com/mitchellh/copystructure v1.0.0
-	github.com/vmware/govmomi v0.22.2-0.20200523220130-61b30e20be49
+	github.com/vmware/govmomi v0.25.0
 	golang.org/x/tools v0.0.0-20201028111035-eafbe7b904eb // indirect
 	google.golang.org/api v0.34.0 // indirect
 )

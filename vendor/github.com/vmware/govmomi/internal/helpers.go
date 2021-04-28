@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014 VMware, Inc. All Rights Reserved.
+Copyright (c) 2020 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,36 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package debug
+package internal
 
 import (
-	"fmt"
-	"io"
-	"os"
+	"path"
+
+	"github.com/vmware/govmomi/vim25/mo"
 )
 
-type LogWriterCloser struct {
-}
+// InventoryPath composed of entities by Name
+func InventoryPath(entities []mo.ManagedEntity) string {
+	val := "/"
 
-func NewLogWriterCloser() *LogWriterCloser {
-	return &LogWriterCloser{}
-}
+	for _, entity := range entities {
+		// Skip root folder in building inventory path.
+		if entity.Parent == nil {
+			continue
+		}
+		val = path.Join(val, entity.Name)
+	}
 
-func (lwc *LogWriterCloser) Write(p []byte) (n int, err error) {
-	fmt.Fprint(os.Stderr, string(Scrub(p)))
-	return len(p), nil
-}
-
-func (lwc *LogWriterCloser) Close() error {
-	return nil
-}
-
-type LogProvider struct {
-}
-
-func (s *LogProvider) NewFile(p string) io.WriteCloser {
-	return NewLogWriterCloser()
-}
-
-func (s *LogProvider) Flush() {
+	return val
 }
