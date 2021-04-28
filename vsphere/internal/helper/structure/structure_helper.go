@@ -302,19 +302,15 @@ func ByteToGB(n interface{}) interface{} {
 	panic(fmt.Errorf("non-integer type %T for value", n))
 }
 
-// ByteToGiB returns n/1024^3. The input must be an integer that can be
-// appropriately divisible.
+// ByteToGiB returns n/1024^3, *rounded up*.
 //
-// Remember that int32 overflows at approximately 2GiB, so any values higher
-// than that will produce an inaccurate result.
-func ByteToGiB(n interface{}) interface{} {
-	switch v := n.(type) {
-	case int:
-		return v / int(math.Pow(1024, 3))
-	case int32:
-		return v / int32(math.Pow(1024, 3))
-	case int64:
-		return v / int64(math.Pow(1024, 3))
+// Standard integer division results in fractional GiB being discarded,
+// resulting in errors errors cloning virtual machines having disk size
+// in non-integer GiB. The result is rounded up to avoid this edge case.
+func ByteToGiB(n interface{}) int {
+	switch n.(type) {
+	case int, int32, int64:
+		return int(math.Ceil(float64(n.(int64)) / math.Pow(1024, 3)))
 	}
 	panic(fmt.Errorf("non-integer type %T for value", n))
 }
