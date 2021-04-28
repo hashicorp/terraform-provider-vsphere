@@ -6,12 +6,11 @@ import (
 	"path"
 	"testing"
 
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
-
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
 
@@ -429,12 +428,12 @@ func testAccResourceVSphereNasDatastoreHasCustomAttributes() resource.TestCheckF
 func testAccResourceVSphereNasDatastoreConfigBasic() string {
 	return fmt.Sprintf(`
 variable "nfs_host" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "nfs_path" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -461,12 +460,12 @@ resource "vsphere_nas_datastore" "datastore" {
 func testAccResourceVSphereNasDatastoreConfigMultiHost() string {
 	return fmt.Sprintf(`
 variable "nfs_host" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "nfs_path" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -492,12 +491,12 @@ resource "vsphere_nas_datastore" "datastore" {
 func testAccResourceVSphereNasDatastoreConfigBasicAltName() string {
 	return fmt.Sprintf(`
 variable "nfs_host" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "nfs_path" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -522,17 +521,17 @@ resource "vsphere_nas_datastore" "datastore" {
 func testAccResourceVSphereNasDatastoreConfigBasicFolder() string {
 	return fmt.Sprintf(`
 variable "nfs_host" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "nfs_path" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "folder" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -566,12 +565,12 @@ resource "vsphere_nas_datastore" "datastore" {
 func testAccResourceVSphereNasDatastoreConfigBasicTags() string {
 	return fmt.Sprintf(`
 variable "nfs_host" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "nfs_path" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -613,12 +612,12 @@ resource "vsphere_nas_datastore" "datastore" {
 func testAccResourceVSphereNasDatastoreConfigMultiTags() string {
 	return fmt.Sprintf(`
 variable "nfs_host" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "nfs_path" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -673,12 +672,12 @@ resource "vsphere_nas_datastore" "datastore" {
 func testAccResourceVSphereNasDatastoreConfigSingleCustomAttribute() string {
 	return fmt.Sprintf(`
 variable "nfs_host" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "nfs_path" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -715,12 +714,12 @@ resource "vsphere_nas_datastore" "datastore" {
 func testAccResourceVSphereNasDatastoreConfigMultiCustomAttributes() string {
 	return fmt.Sprintf(`
 variable "nfs_host" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "nfs_path" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -765,17 +764,17 @@ resource "vsphere_nas_datastore" "datastore" {
 func testAccResourceVSphereNasDatastoreConfigDatastoreCluster() string {
 	return fmt.Sprintf(`
 variable "nfs_host" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "nfs_path" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "folder" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 

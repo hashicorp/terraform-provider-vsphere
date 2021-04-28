@@ -5,8 +5,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -42,6 +42,7 @@ var infrastructureTrafficClassValues = []string{
 	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassHbr),
 	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassVsan),
 	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassVdp),
+	string(types.DistributedVirtualSwitchHostInfrastructureTrafficClassBackupNfc),
 }
 
 var sharesLevelAllowedValues = []string{
@@ -266,7 +267,7 @@ func expandDVSContactInfo(d *schema.ResourceData) *types.DVSContactInfo {
 // DVSContactInfo into the passed in ResourceData.
 func flattenDVSContactInfo(d *schema.ResourceData, obj types.DVSContactInfo) error {
 	d.Set("contact_name", obj.Name)
-	d.Set("conatct_detail", obj.Contact)
+	d.Set("contact_detail", obj.Contact)
 	return nil
 }
 

@@ -7,12 +7,11 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
-
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
 
@@ -474,7 +473,7 @@ func testAccResourceVSphereVmfsDatastoreHasCustomAttributes() resource.TestCheck
 func testAccResourceVSphereVmfsDatastoreConfigStaticSingle() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -499,7 +498,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 func testAccResourceVSphereVmfsDatastoreConfigStaticSingleAltName() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -524,12 +523,12 @@ resource "vsphere_vmfs_datastore" "datastore" {
 func testAccResourceVSphereVmfsDatastoreConfigStaticMulti() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "disk1" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -556,7 +555,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 func testAccResourceVSphereVmfsDatastoreConfigDiscoverDatasource() string {
 	return fmt.Sprintf(`
 variable "regexp" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -585,12 +584,12 @@ resource "vsphere_vmfs_datastore" "datastore" {
 func testAccResourceVSphereVmfsDatastoreConfigStaticSingleFolder() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "folder" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -623,7 +622,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 func testAccResourceVSphereVmfsDatastoreConfigTags() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -664,7 +663,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 func testAccResourceVSphereVmfsDatastoreConfigMultiTags() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -718,12 +717,12 @@ resource "vsphere_vmfs_datastore" "datastore" {
 func testAccResourceVSphereVmfsDatastoreConfigBadDisk() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "disk1" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -750,12 +749,12 @@ resource "vsphere_vmfs_datastore" "datastore" {
 func testAccResourceVSphereVmfsDatastoreConfigDuplicateDisk() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "disk1" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -782,7 +781,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 func testAccResourceVSphereVmfsDatastoreConfigCustomAttributes() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -820,7 +819,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 func testAccResourceVSphereVmfsDatastoreConfigMultiCustomAttributes() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -864,12 +863,12 @@ resource "vsphere_vmfs_datastore" "datastore" {
 func testAccResourceVSphereVmfsDatastoreConfigDatastoreCluster() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "folder" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
