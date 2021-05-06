@@ -797,6 +797,25 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoPoweredOffCdromRead(t *testing.
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_vvtdAndVbs(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigVbsEnabledAndVvtdEnabled(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckVVTD(true),
+					testAccResourceVSphereVirtualMachineCheckVBS(true),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVirtualMachine_cdromNoParameters(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -3507,6 +3526,34 @@ func testAccResourceVSphereVirtualMachineCheckVmxDatastoreCluster(expected strin
 	}
 }
 
+func testAccResourceVSphereVirtualMachineCheckVVTD(expected bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVirtualMachineProperties(s, "vm")
+		if err != nil {
+			return err
+		}
+		vvtdEnabled := *props.Config.Flags.VvtdEnabled
+		if vvtdEnabled != expected {
+			return fmt.Errorf("vvtd flag was %t, expected: %t", vvtdEnabled, expected)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereVirtualMachineCheckVBS(expected bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVirtualMachineProperties(s, "vm")
+		if err != nil {
+			return err
+		}
+		vbsEnabled := *props.Config.Flags.VbsEnabled
+		if vbsEnabled != expected {
+			return fmt.Errorf("vbs flag was %t, expected: %t", vbsEnabled, expected)
+		}
+		return nil
+	}
+}
+
 // testAccResourceVSphereVirtualMachineCheckVmdkDatastoreCluster checks the
 // datastore cluster that a specific VMDK file is in.
 func testAccResourceVSphereVirtualMachineCheckVmdkDatastoreCluster(diskIndex int, expected string) resource.TestCheckFunc {
@@ -4959,6 +5006,43 @@ resource "vsphere_virtual_machine" "vm" {
 }
 `,
 
+		testAccResourceVSphereVirtualMachineConfigBase(),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigVbsEnabledAndVvtdEnabled() string {
+	return fmt.Sprintf(`
+
+
+%s  // Mix and match config
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "testacc-test"
+  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
+  datastore_id     = vsphere_nas_datastore.ds1.id
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinux64Guest"
+
+  vbs_enabled             = true
+  firmware                = "efi"
+  vvtd_enabled            = true
+  nested_hv_enabled       = true
+  efi_secure_boot_enabled = true
+
+  wait_for_guest_net_timeout = -1
+
+  network_interface {
+    network_id = "${data.vsphere_network.network1.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
+}
+`,
 		testAccResourceVSphereVirtualMachineConfigBase(),
 	)
 }
