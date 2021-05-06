@@ -308,11 +308,10 @@ func resourceVSphereComputeClusterVMAntiAffinityRuleParseID(id string) (string, 
 		return "", 0, fmt.Errorf("bad ID %q", id)
 	}
 
-	key, err := strconv.Atoi(parts[1])
+	key, err := strconv.ParseInt(parts[1], 10, 32)
 	if err != nil {
-		return "", 0, fmt.Errorf("bad key in ID %q: %s", parts[1], err)
+		return "", 0, fmt.Errorf("while converting key in ID %q to int32: %s", parts[1], err)
 	}
-
 	return parts[0], int32(key), nil
 }
 

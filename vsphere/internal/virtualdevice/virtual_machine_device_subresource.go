@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"reflect"
 	"strconv"
 	"strings"
@@ -417,7 +418,7 @@ func findVirtualDeviceInListControllerSelectFunc(ct string, cb int) func(types.B
 			}
 		}
 		vc := device.(types.BaseVirtualController).GetVirtualController()
-		if vc.BusNumber == int32(cb) {
+		if cb <= math.MaxInt32 && vc.BusNumber == int32(cb) {
 			return true
 		}
 		return false
@@ -430,7 +431,7 @@ func findVirtualDeviceInListControllerSelectFunc(ct string, cb int) func(types.B
 func findVirtualDeviceInListDeviceSelectFunc(ckey int32, du int) func(types.BaseVirtualDevice) bool {
 	return func(d types.BaseVirtualDevice) bool {
 		vd := d.GetVirtualDevice()
-		if vd.ControllerKey == ckey && vd.UnitNumber != nil && *vd.UnitNumber == int32(du) {
+		if vd.ControllerKey == ckey && vd.UnitNumber != nil && du <= math.MaxInt32 && *vd.UnitNumber == int32(du) {
 			return true
 		}
 		return false
