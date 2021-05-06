@@ -106,6 +106,16 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Optional:    true,
 			Description: "Expose the UUIDs of attached virtual disks to the virtual machine, allowing access to them in the guest.",
 		},
+		"vbs_enabled": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Flag to specify if Virtualization-based security is enabled for this virtual machine.",
+		},
+		"vvtd_enabled": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Flag to specify if I/O MMU virtualization, also called Intel Virtualization Technology for Directed I/O (VT-d) and AMD I/O Virtualization (AMD-Vi or IOMMU), is enabled.",
+		},
 		"hv_mode": {
 			Type:         schema.TypeString,
 			Optional:     true,
@@ -362,6 +372,8 @@ func flattenVirtualMachineBootOptions(d *schema.ResourceData, obj *types.Virtual
 func expandVirtualMachineFlagInfo(d *schema.ResourceData) *types.VirtualMachineFlagInfo {
 	obj := &types.VirtualMachineFlagInfo{
 		DiskUuidEnabled:  getBoolWithRestart(d, "enable_disk_uuid"),
+		VbsEnabled:       getBoolWithRestart(d, "vbs_enabled"),
+		VvtdEnabled:      getBoolWithRestart(d, "vvtd_enabled"),
 		VirtualExecUsage: getWithRestart(d, "hv_mode").(string),
 		VirtualMmuUsage:  getWithRestart(d, "ept_rvi_mode").(string),
 		EnableLogging:    getBoolWithRestart(d, "enable_logging"),
@@ -373,6 +385,8 @@ func expandVirtualMachineFlagInfo(d *schema.ResourceData) *types.VirtualMachineF
 // VirtualMachineFlagInfo into the passed in ResourceData.
 func flattenVirtualMachineFlagInfo(d *schema.ResourceData, obj *types.VirtualMachineFlagInfo) error {
 	d.Set("enable_disk_uuid", obj.DiskUuidEnabled)
+	d.Set("vbs_enabled", obj.VbsEnabled)
+	d.Set("vvtd_enabled", obj.VvtdEnabled)
 	d.Set("hv_mode", obj.VirtualExecUsage)
 	d.Set("ept_rvi_mode", obj.VirtualMmuUsage)
 	d.Set("enable_logging", obj.EnableLogging)
