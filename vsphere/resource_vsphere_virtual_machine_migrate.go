@@ -84,9 +84,9 @@ func migrateVSphereVirtualMachineStateV3(is *terraform.InstanceState, meta inter
 		if !ok {
 			return fmt.Errorf("corrupt state: key disk.%d.key not found", i)
 		}
-		key, err := strconv.Atoi(v)
+		key, err := strconv.ParseInt(v, 10, 32)
 		if err != nil {
-			return fmt.Errorf("corrupt state: strconv.Atoi error on disk.%d.key: %s", i, err)
+			return fmt.Errorf("while converting disk.%d.key key to int32: %s", i, err)
 		}
 		if key < 1 {
 			// This is a possibility during v1 -> v3 migrations, and would fail to
@@ -167,7 +167,10 @@ func migrateVSphereVirtualMachineStateV2(is *terraform.InstanceState, meta inter
 		if !regexp.MustCompile("disk\\.[0-9]+\\.key").MatchString(k) {
 			continue
 		}
-		key, _ := strconv.Atoi(v)
+		key, err := strconv.ParseInt(v, 10, 32)
+		if err != nil {
+			return fmt.Errorf("while converting key %s to int32: %s", k, err)
+		}
 		if key < 1 {
 			continue
 		}
