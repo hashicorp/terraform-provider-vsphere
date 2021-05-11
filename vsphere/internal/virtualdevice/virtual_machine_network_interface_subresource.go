@@ -25,6 +25,10 @@ import (
 // networkInterfacePciDeviceOffset defines the PCI offset for virtual NICs on a vSphere PCI bus.
 const networkInterfacePciDeviceOffset = 7
 
+// sriovNetworkInterfacePciDeviceOffset defines the PCI offset for virtual SR-IOV NICs on a vSphere PCI bus.
+// sriov NICs have unitNubmer 45, 44 etc.
+const sriovNetworkInterfacePciDeviceOffset = 48
+
 const (
 	networkInterfaceSubresourceTypeE1000   = "e1000"
 	networkInterfaceSubresourceTypeE1000e  = "e1000e"
@@ -38,6 +42,7 @@ const (
 var networkInterfaceSubresourceTypeAllowedValues = []string{
 	networkInterfaceSubresourceTypeE1000,
 	networkInterfaceSubresourceTypeE1000e,
+	networkInterfaceSubresourceTypeSriov,
 	networkInterfaceSubresourceTypeVmxnet3,
 }
 
@@ -90,8 +95,13 @@ func NetworkInterfaceSubresourceSchema() map[string]*schema.Schema {
 			Type:         schema.TypeString,
 			Optional:     true,
 			Default:      networkInterfaceSubresourceTypeVmxnet3,
-			Description:  "The controller type. Can be one of e1000, e1000e, or vmxnet3.",
+			Description:  "The controller type. Can be one of e1000, e1000e, sriov, or vmxnet3.",
 			ValidateFunc: validation.StringInSlice(networkInterfaceSubresourceTypeAllowedValues, false),
+		},
+		"physical_function": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The ID of the Physical SR-IOV NIC to attach to, e.g. '0000:d8:00.0'",
 		},
 		"use_static_mac": {
 			Type:        schema.TypeBool,
@@ -227,7 +237,7 @@ nextOld:
 }
 
 // NetworkInterfaceRefreshOperation processes a refresh operation for all of
-// the disks in the resource.
+// the networks interfaces attached  to this resource.
 //
 // This functions similar to NetworkInterfaceApplyOperation, but nothing to
 // change is returned, all necessary values are just set and committed to
@@ -271,7 +281,15 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 			if err != nil {
 				return fmt.Errorf("%s: error parsing device address: %s", r, err)
 			}
-			newSet[idx-networkInterfacePciDeviceOffset] = r.Data()
+
+			// newSet is a list of interface with the first interfaces the non-SRIOV interfaces
+			// and the last few interfaes all the non-SRIOV interfaces
+			if r.Get("adapter_type").(string) != networkInterfaceSubresourceTypeSriov {
+				newSet[idx-networkInterfacePciDeviceOffset] = r.Data()
+			} else {
+				newSet[urange+idx-sriovNetworkInterfacePciDeviceOffset] = r.Data()
+
+			}
 			for i := 0; i < len(devices); i++ {
 				device := devices[i]
 				if device.GetVirtualDevice().Key == int32(r.Get("key").(int)) {
@@ -310,7 +328,13 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 			if err != nil {
 				return fmt.Errorf("%s: error parsing device address: %s", r, err)
 			}
-			newSet[idx-networkInterfacePciDeviceOffset] = r.Data()
+			if r.Get("adapter_type").(string) != networkInterfaceSubresourceTypeSriov {
+				newSet[idx-networkInterfacePciDeviceOffset] = r.Data()
+			} else {
+				newSet[urange+idx-sriovNetworkInterfacePciDeviceOffset] = r.Data()
+
+			}
+
 			devices = append(devices[:i], devices[i+1:]...)
 			i--
 		}
@@ -342,7 +366,14 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 		if err != nil {
 			return fmt.Errorf("%s: error parsing device address: %s", r, err)
 		}
-		newSet[idx-networkInterfacePciDeviceOffset] = r.Data()
+
+		if r.Get("adapter_type").(string) != networkInterfaceSubresourceTypeSriov {
+			newSet[idx-networkInterfacePciDeviceOffset] = r.Data()
+		} else {
+			newSet[urange+idx-sriovNetworkInterfacePciDeviceOffset] = r.Data()
+
+		}
+
 	}
 
 	// Prune any nils from the new device state. This could potentially happen in
@@ -425,7 +456,13 @@ func NetworkInterfacePostCloneOperation(d *schema.ResourceData, c *govmomi.Clien
 		if err != nil {
 			return nil, nil, fmt.Errorf("%s: error parsing device address: %s", r, err)
 		}
-		srcSet[idx-networkInterfacePciDeviceOffset] = r.Data()
+
+		if r.Get("adapter_type").(string) != networkInterfaceSubresourceTypeSriov {
+			srcSet[idx-networkInterfacePciDeviceOffset] = r.Data()
+		} else {
+			srcSet[urange+idx-sriovNetworkInterfacePciDeviceOffset] = r.Data()
+
+		}
 	}
 
 	// Now go over our current set, kind of treating it like an apply:
@@ -605,9 +642,28 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 	if err != nil {
 		return nil, err
 	}
+
 	device, err := l.CreateEthernetCard(r.Get("adapter_type").(string), backing)
 	if err != nil {
 		return nil, err
+	}
+	if len(r.Get("physical_function").(string)) > 0 {
+		log.Printf("[DEBUG] We have physical function")
+		// Based off https://vdc-download.vmware.com/vmwb-repository/dcr-public/b50dcbbf-051d-4204-a3e7-e1b618c1e384/538cf2ec-b34f-4bae-a332-3820ef9e7773/vim.vm.device.VirtualSriovEthernetCard.SriovBackingInfo.html
+		physical_function_conf := &types.VirtualPCIPassthroughDeviceBackingInfo{
+			Id:       r.Get("physical_function").(string),
+			DeviceId: "0",
+			SystemId: "BYPASS",
+			VendorId: 0,
+		}
+		sriov_conf := &types.VirtualSriovEthernetCardSriovBackingInfo{
+			PhysicalFunctionBacking: physical_function_conf,
+		}
+
+		device = &types.VirtualSriovEthernetCard{
+			VirtualEthernetCard: *device.(types.BaseVirtualEthernetCard).GetVirtualEthernetCard(),
+			SriovBacking:        sriov_conf,
+		}
 	}
 
 	// CreateEthernetCard does not attach stuff, however, assuming that you will
@@ -630,8 +686,9 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 		card.AddressType = string(types.VirtualEthernetCardMacTypeManual)
 		card.MacAddress = r.Get("mac_address").(string)
 	}
+
 	version := viapi.ParseVersionFromClient(r.client)
-	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+	if (version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) && r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov) {
 		alloc := &types.VirtualEthernetCardResourceAllocation{
 			Limit:       structure.Int64Ptr(int64(r.Get("bandwidth_limit").(int))),
 			Reservation: structure.Int64Ptr(int64(r.Get("bandwidth_reservation").(int))),
@@ -664,6 +721,7 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
 	if err != nil {
 		return fmt.Errorf("cannot find network device: %s", err)
 	}
+
 	device, err := baseVirtualDeviceToBaseVirtualEthernetCard(vd)
 	if err != nil {
 		return err
@@ -714,7 +772,7 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
 	r.Set("mac_address", card.MacAddress)
 
 	version := viapi.ParseVersionFromClient(r.client)
-	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) && r.Get("adapter_type").(string) != networkInterfaceSubresourceTypeSriov {
 		if card.ResourceAllocation != nil {
 			r.Set("bandwidth_limit", card.ResourceAllocation.Limit)
 			r.Set("bandwidth_reservation", card.ResourceAllocation.Reservation)
@@ -830,7 +888,7 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 		}
 	}
 	version := viapi.ParseVersionFromClient(r.client)
-	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+	if (version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) && r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov) {
 		alloc := &types.VirtualEthernetCardResourceAllocation{
 			Limit:       structure.Int64Ptr(int64(r.Get("bandwidth_limit").(int))),
 			Reservation: structure.Int64Ptr(int64(r.Get("bandwidth_reservation").(int))),
@@ -894,11 +952,31 @@ func (r *NetworkInterfaceSubresource) ValidateDiff() error {
 	// Ensure that network resource allocation options are only set on vSphere
 	// 6.0 and higher.
 	version := viapi.ParseVersionFromClient(r.client)
-	if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+	if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6}) && r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov {
 		if err := r.restrictResourceAllocationSettings(); err != nil {
 			return err
 		}
 	}
+
+	// Ensure physical adapter is set on all (and only on) SR-IOV NICs
+	if r.Get("adapter_type").(string) == networkInterfaceSubresourceTypeSriov {
+		if len(r.Get("physical_function").(string)) == 0 {
+			return fmt.Errorf("physical_function must be set on SR-IOV Network interface")
+		}
+	} else {
+		if len(r.Get("physical_function").(string)) > 0 {
+			return fmt.Errorf("cannot set physical_function on non SR-IOV Network interface")
+		}
+
+	}
+	// TODO: As per https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.networking.doc/GUID-898A3D66-9415-4854-8413-B40F2CB6FF8D.html we need to check that
+
+	// (1) The host is set for this VM (i.e.the Vm is not going to be created on some random host)
+	// (2) Verify that the relevant physical NIC has SR-IOV enabled and active
+	// (3) Verify that the virtual machine compatibility is ESXi 5.5 and later. (alreay done)
+	// (4) Verify that Red Hat Enterprise Linux 6 and later or Windows has been selected as the guest operating system
+	// (5) on the VM, Expand the Memory section, select Reserve all guest memory (All locked) and click OK
+	//      that is memory_reservation  is set on the VM resource and is equal to memory_limit
 
 	log.Printf("[DEBUG] %s: Diff validation complete", r)
 	return nil
@@ -929,35 +1007,72 @@ func (r *NetworkInterfaceSubresource) restrictResourceAllocationSettings() error
 // observed on vSphere in terms of reserved PCI unit numbers (the first NIC
 // automatically gets re-assigned to unit number 7 if it's not that already.)
 func (r *NetworkInterfaceSubresource) assignEthernetCard(l object.VirtualDeviceList, device types.BaseVirtualDevice, c types.BaseVirtualController) error {
-	// The PCI device offset. This seems to be where vSphere starts assigning
-	// virtual NICs on the PCI controller.
-	pciDeviceOffset := int32(networkInterfacePciDeviceOffset)
+	var newUnit int32
 
-	// The first part of this is basically the private newUnitNumber function
-	// from VirtualDeviceList, with a maximum unit count of 10. This basically
-	// means that no more than 10 virtual NICs can be assigned right now, which
-	// hopefully should be plenty.
-	units := make([]bool, 10)
+	if r.Get("adapter_type").(string) == networkInterfaceSubresourceTypeSriov {
+		// SR-IOV NICs are assgined the next free unitNumber below 45.
+		// The PCI device offset. This seems to be where vSphere starts assigning
+		// virtual NICs on the PCI controller.
+		sriovPciDeviceOffset := int32(sriovNetworkInterfacePciDeviceOffset)
 
-	ckey := c.GetVirtualController().Key
+		// The first part of this is basically the private newUnitNumber function
+		// from VirtualDeviceList, with a maximum unit count of 10. This basically
+		// means that no more than 10 virtual NICs can be assigned right now, which
+		// hopefully should be plenty.
+		units := make([]bool, 10)
 
-	for _, device := range l {
-		d := device.GetVirtualDevice()
-		if d.ControllerKey != ckey || d.UnitNumber == nil || *d.UnitNumber < pciDeviceOffset || *d.UnitNumber >= pciDeviceOffset+10 {
-			continue
+		ckey := c.GetVirtualController().Key
+
+		for _, device := range l {
+			d := device.GetVirtualDevice()
+			if d.ControllerKey != ckey || d.UnitNumber == nil || *d.UnitNumber > sriovPciDeviceOffset || *d.UnitNumber <= sriovPciDeviceOffset-10 {
+				continue
+			}
+			units[sriovPciDeviceOffset-*d.UnitNumber] = true
 		}
-		units[*d.UnitNumber-pciDeviceOffset] = true
-	}
 
-	// Now that we know which units are used, we can pick one
-	newUnit := int32(r.Index) + pciDeviceOffset
-	if units[newUnit-pciDeviceOffset] {
-		return fmt.Errorf("device unit at %d is currently in use on the PCI bus", newUnit)
+		// Now that we know which units are used, we can pick one
+		newUnit = sriovPciDeviceOffset - int32(r.Index)
+		if units[sriovPciDeviceOffset-newUnit] {
+			return fmt.Errorf("device unit at %d is currently in use on the PCI bus", newUnit)
+		}
+
+	} else {
+
+		// Non-SRIOV NIC are assigned the next free unitNumber above 7
+
+		// The PCI device offset. This seems to be where vSphere starts assigning
+		// virtual NICs on the PCI controller.
+		pciDeviceOffset := int32(networkInterfacePciDeviceOffset)
+
+		// The first part of this is basically the private newUnitNumber function
+		// from VirtualDeviceList, with a maximum unit count of 10. This basically
+		// means that no more than 10 virtual NICs can be assigned right now, which
+		// hopefully should be plenty.
+		units := make([]bool, 10)
+
+		ckey := c.GetVirtualController().Key
+
+		for _, device := range l {
+			d := device.GetVirtualDevice()
+			if d.ControllerKey != ckey || d.UnitNumber == nil || *d.UnitNumber < pciDeviceOffset || *d.UnitNumber >= pciDeviceOffset+10 {
+				continue
+			}
+			units[*d.UnitNumber-pciDeviceOffset] = true
+		}
+
+		// Now that we know which units are used, we can pick one
+		newUnit = int32(r.Index) + pciDeviceOffset
+		if units[newUnit-pciDeviceOffset] {
+			return fmt.Errorf("device unit at %d is currently in use on the PCI bus", newUnit)
+		}
+
 	}
 
 	d := device.GetVirtualDevice()
 	d.ControllerKey = c.GetVirtualController().Key
 	d.UnitNumber = &newUnit
+
 	if d.Key == 0 {
 		d.Key = -1
 	}
@@ -967,22 +1082,23 @@ func (r *NetworkInterfaceSubresource) assignEthernetCard(l object.VirtualDeviceL
 // nicUnitRange calculates a range of units given a certain VirtualDeviceList,
 // which should be network interfaces.  It's used in network interface refresh
 // logic to determine how many subresources may end up in state.
+
+// It returns the count of all virtual devices with a unit number > 7
 func nicUnitRange(l object.VirtualDeviceList) (int, error) {
 	// No NICs means no range
 	if len(l) < 1 {
 		return 0, nil
 	}
-
-	high := int32(networkInterfacePciDeviceOffset)
-
+	offset := int32(networkInterfacePciDeviceOffset)
+	var unitNumbers []int32
 	for _, v := range l {
 		d := v.GetVirtualDevice()
 		if d.UnitNumber == nil {
 			return 0, fmt.Errorf("device at key %d has no unit number", d.Key)
 		}
-		if *d.UnitNumber > high {
-			high = *d.UnitNumber
+		if *d.UnitNumber > offset {
+			unitNumbers = append(unitNumbers, *d.UnitNumber)
 		}
 	}
-	return int(high - networkInterfacePciDeviceOffset + 1), nil
+	return len(unitNumbers), nil
 }
