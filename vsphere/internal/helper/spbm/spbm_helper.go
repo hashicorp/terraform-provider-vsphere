@@ -24,7 +24,6 @@ func pbmClientFromGovmomiClient(ctx context.Context, client *govmomi.Client) (*p
 
 	pc, err := pbm.NewClient(ctx, client.Client)
 	return pc, err
-
 }
 
 // PolicyIDByName finds a SPBM storage policy by name and returns its ID.
@@ -39,24 +38,24 @@ func PolicyIDByName(client *govmomi.Client, name string) (string, error) {
 	return pc.ProfileIDByName(ctx, name)
 }
 
-// policyNameByID returns storage policy name by its ID.
+// PolicyNameByID returns storage policy name by its ID.
 func PolicyNameByID(client *govmomi.Client, id string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	pc, err := pbmClientFromGovmomiClient(ctx, client)
 	if err != nil {
-		return "", provider.ProviderError(id, "policyNameByID", err)
+		return "", provider.Error(id, "policyNameByID", err)
 	}
 
 	log.Printf("[DEBUG] Retrieving contents of storage profiles by id: %s.", id)
-	profileId := []pbmtypes.PbmProfileId{
-		pbmtypes.PbmProfileId{
+	profileID := []pbmtypes.PbmProfileId{
+		{
 			UniqueId: id,
 		},
 	}
-	policies, err := pc.RetrieveContent(ctx, profileId)
+	policies, err := pc.RetrieveContent(ctx, profileID)
 	if err != nil {
-		return "", provider.ProviderError(id, "RetrieveContent", err)
+		return "", provider.Error(id, "RetrieveContent", err)
 	}
 
 	return policies[0].GetPbmProfile().Name, err
@@ -77,7 +76,7 @@ func PolicyIDByVirtualDisk(client *govmomi.Client, vmMOID string, diskKey int) (
 	defer cancel()
 	pc, err := pbmClientFromGovmomiClient(ctx, client)
 	if err != nil {
-		return "", provider.ProviderError(vmMOID, "PolicyIDByVirtualDisk", err)
+		return "", provider.Error(vmMOID, "PolicyIDByVirtualDisk", err)
 	}
 
 	pbmSOR := pbmtypes.PbmServerObjectRef{
@@ -87,11 +86,11 @@ func PolicyIDByVirtualDisk(client *govmomi.Client, vmMOID string, diskKey int) (
 
 	policies, err := queryAssociatedProfile(ctx, pc, pbmSOR)
 	if err != nil {
-		return "", provider.ProviderError(vmMOID, "PolicyIDByVirtualDisk", err)
+		return "", provider.Error(vmMOID, "PolicyIDByVirtualDisk", err)
 	}
 
 	// If no policy returned then virtual disk is not associated with a policy
-	if policies == nil || len(policies) == 0 {
+	if len(policies) == 0 {
 		return "", nil
 	}
 
@@ -104,7 +103,7 @@ func PolicyIDByVirtualMachine(client *govmomi.Client, vmMOID string) (string, er
 	defer cancel()
 	pc, err := pbmClientFromGovmomiClient(ctx, client)
 	if err != nil {
-		return "", provider.ProviderError(vmMOID, "PolicyIDByVirtualMachine", err)
+		return "", provider.Error(vmMOID, "PolicyIDByVirtualMachine", err)
 	}
 
 	pbmSOR := pbmtypes.PbmServerObjectRef{
@@ -114,11 +113,11 @@ func PolicyIDByVirtualMachine(client *govmomi.Client, vmMOID string) (string, er
 
 	policies, err := queryAssociatedProfile(ctx, pc, pbmSOR)
 	if err != nil {
-		return "", provider.ProviderError(vmMOID, "PolicyIDByVirtualMachine", err)
+		return "", provider.Error(vmMOID, "PolicyIDByVirtualMachine", err)
 	}
 
 	// If no policy returned then VM is not associated with a policy
-	if policies == nil || len(policies) == 0 {
+	if len(policies) == 0 {
 		return "", nil
 	}
 
@@ -135,7 +134,7 @@ func queryAssociatedProfile(ctx context.Context, pc *pbm.Client, ref pbmtypes.Pb
 
 	res, err := methods.PbmQueryAssociatedProfile(ctx, pc, &req)
 	if err != nil {
-		return nil, provider.ProviderError(ref.Key, "queryAssociatedProfile", err)
+		return nil, provider.Error(ref.Key, "queryAssociatedProfile", err)
 	}
 
 	return res.Returnval, nil

@@ -553,7 +553,6 @@ func DiskDestroyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vi
 
 	log.Printf("[DEBUG] DiskDestroyOperation: Detaching devices with keep_on_remove enabled")
 	for oi, oe := range ds {
-
 		m := oe.(map[string]interface{})
 		if !m["keep_on_remove"].(bool) && !m["attach"].(bool) {
 			// We don't care about disks we haven't set to keep
@@ -611,15 +610,15 @@ func DiskDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 		curDiskPath := fmt.Sprintf("disk.%d.path", ni)
 		pathKnown := d.NewValueKnown(curDiskPath)
 		if nm["attach"].(bool) {
-			path := diskPathOrName(nm)
+			diskPath := diskPathOrName(nm)
 			if pathKnown {
-				if path == "" {
+				if diskPath == "" {
 					return fmt.Errorf("disk.%d: path or name cannot be empty when using attach", ni)
 				}
-				if _, ok := attachments[path]; ok {
-					return fmt.Errorf("disk: multiple entries trying to attach external disk %s", path)
+				if _, ok := attachments[diskPath]; ok {
+					return fmt.Errorf("disk: multiple entries trying to attach external disk %s", diskPath)
 				}
-				attachments[path] = struct{}{}
+				attachments[diskPath] = struct{}{}
 			} else {
 				log.Printf("[DEBUG] Disk path for disk %d is not known yet.", ni)
 			}
@@ -1034,7 +1033,7 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 		if err := rOld.Read(l); err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", rOld.Addr(), err)
 		}
-		new, err := copystructure.Copy(rOld.Data())
+		newValue, err := copystructure.Copy(rOld.Data())
 		if err != nil {
 			return nil, nil, fmt.Errorf("error copying current device state for disk at unit_number %d: %s", src["unit_number"].(int), err)
 		}
@@ -1056,9 +1055,9 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 					continue
 				}
 			}
-			new.(map[string]interface{})[k] = v
+			newValue.(map[string]interface{})[k] = v
 		}
-		rNew := NewDiskSubresource(c, d, new.(map[string]interface{}), rOld.Data(), i)
+		rNew := NewDiskSubresource(c, d, newValue.(map[string]interface{}), rOld.Data(), i)
 		if !reflect.DeepEqual(rNew.Data(), rOld.Data()) {
 			uspec, err := rNew.Update(l)
 			if err != nil {
@@ -1098,7 +1097,7 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 // machine's VirtualDeviceList to ensure it will be imported properly, and also
 // saves device addresses into state for disks defined in config. Both the
 // imported device list is sorted by the device's unit number on the SCSI bus.
-func DiskImportOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) error {
+func DiskImportOperation(d *schema.ResourceData, l object.VirtualDeviceList) error {
 	log.Printf("[DEBUG] DiskImportOperation: Performing pre-read import and validation of virtual disks")
 	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
 	// Sort the device list, in case it's not sorted already.
@@ -1578,11 +1577,8 @@ func (r *DiskSubresource) DiffGeneral() error {
 		case r.Get("keep_on_remove").(bool):
 			return fmt.Errorf("keep_on_remove for disk %q is implicit when attach is set, please remove this setting", name)
 		}
-	} else {
-		// Enforce size as a required field when attach is not set
-		if r.Get("size").(int) < 1 {
-			return fmt.Errorf("size for disk %q: required option not set", name)
-		}
+	} else if r.Get("size").(int) < 1 {
+		return fmt.Errorf("size for disk %q: required option not set", name)
 	}
 	// Block certain options from being set depending on the vSphere version.
 	version := viapi.ParseVersionFromClient(r.client)
@@ -1840,7 +1836,6 @@ func (r *DiskSubresource) assignBackingInfo(disk *types.VirtualDisk) error {
 				return fmt.Errorf("no datastore was set and was unable to find a default to fall back to")
 			}
 			dsID = vmprops.Datastore[0].Value
-
 		}
 	}
 	ds, err := datastore.FromID(r.client, dsID)
@@ -2001,15 +1996,15 @@ func (r *Subresource) findControllerInfo(l object.VirtualDeviceList, disk *types
 		if unit > sc.GetVirtualSCSIController().ScsiCtlrUnitNumber {
 			unit--
 		}
-		unit = unit + 15*sc.GetVirtualSCSIController().BusNumber
+		unit += 15 * sc.GetVirtualSCSIController().BusNumber
 		return int(unit), ctlr.(types.BaseVirtualController), nil
 	case types.BaseVirtualSATAController:
 		unit := *disk.UnitNumber
-		unit = unit + 30*sc.GetVirtualSATAController().BusNumber
+		unit += 30 * sc.GetVirtualSATAController().BusNumber
 		return int(unit), ctlr.(types.BaseVirtualController), nil
 	case *types.VirtualIDEController:
 		unit := *disk.UnitNumber
-		unit = unit + 2*sc.GetVirtualController().BusNumber
+		unit += 2 * sc.GetVirtualController().BusNumber
 		return int(unit), ctlr.(types.BaseVirtualController), nil
 	}
 	return 0, nil, fmt.Errorf("unable to locate controller info for disk: %d", disk.Key)
@@ -2100,16 +2095,6 @@ func (s virtualDiskSubresourceSorter) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-// datastorePathHasBase is a helper to check if a datastore path's file matches
-// a supplied file name.
-func datastorePathHasBase(p, b string) bool {
-	dp := &object.DatastorePath{}
-	if ok := dp.FromString(p); !ok {
-		return false
-	}
-	return path.Base(dp.Path) == path.Base(b)
-}
-
 // SelectDisks looks for disks that Terraform is supposed to manage. count is
 // the number of controllers that Terraform is managing and serves as an upper
 // limit (count - 1) of the SCSI bus number for a controller that eligible
@@ -2176,16 +2161,16 @@ func diskLabelOrName(data map[string]interface{}) (string, error) {
 //
 // TODO: This method will be removed in future releases.
 func diskPathOrName(data map[string]interface{}) string {
-	var path, name string
+	var diskPath, name string
 	if v, ok := data["path"]; ok && v != nil {
-		path = v.(string)
+		diskPath = v.(string)
 	}
 	if v, ok := data["name"]; ok && v != nil {
 		name = v.(string)
 	}
-	if path != "" {
-		log.Printf("[DEBUG] diskPathOrName: Using defined path value %q", path)
-		return path
+	if diskPath != "" {
+		log.Printf("[DEBUG] diskPathOrName: Using defined path value %q", diskPath)
+		return diskPath
 	}
 	log.Printf("[DEBUG] diskPathOrName: Using defined name value as fallback %q", name)
 	return name
