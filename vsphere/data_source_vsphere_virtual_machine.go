@@ -5,10 +5,12 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/vim25/types"
 )
 
 func dataSourceVSphereVirtualMachine() *schema.Resource {
@@ -81,6 +83,55 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 			Computed:    true,
 			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
+		"network_interfaces": {
+			Type:        schema.TypeList,
+			Description: "The types of network interfaces found on the virtual machine, sorted by unit number.",
+			Computed:    true,
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"adapter_type": {
+						Type:     schema.TypeString,
+						Computed: true,
+					},
+					"bandwidth_limit": {
+						Type:         schema.TypeInt,
+						Optional:     true,
+						Default:      -1,
+						Description:  "The upper bandwidth limit of this network interface, in Mbits/sec.",
+						ValidateFunc: validation.IntAtLeast(-1),
+					},
+					"bandwidth_reservation": {
+						Type:         schema.TypeInt,
+						Optional:     true,
+						Default:      0,
+						Description:  "The bandwidth reservation of this network interface, in Mbits/sec.",
+						ValidateFunc: validation.IntAtLeast(0),
+					},
+					"bandwidth_share_level": {
+						Type:         schema.TypeString,
+						Optional:     true,
+						Default:      string(types.SharesLevelNormal),
+						Description:  "The bandwidth share allocation level for this interface. Can be one of low, normal, high, or custom.",
+						ValidateFunc: validation.StringInSlice(sharesLevelAllowedValues, false),
+					},
+					"bandwidth_share_count": {
+						Type:         schema.TypeInt,
+						Optional:     true,
+						Computed:     true,
+						Description:  "The share count for this network interface when the share level is custom.",
+						ValidateFunc: validation.IntAtLeast(0),
+					},
+					"mac_address": {
+						Type:     schema.TypeString,
+						Computed: true,
+					},
+					"network_id": {
+						Type:     schema.TypeString,
+						Computed: true,
+					},
+				},
+			},
+		},
 		"guest_ip_addresses": {
 			Type:        schema.TypeList,
 			Description: "The current list of IP addresses on this virtual machine.",
@@ -151,11 +202,18 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return fmt.Errorf("error reading network interface types: %s", err)
 	}
+	networkInterfaces, err := virtualdevice.ReadNetworkInterfaces(object.VirtualDeviceList(props.Config.Hardware.Device))
+	if err != nil {
+		return fmt.Errorf("error reading network interfaces: %s", err)
+	}
 	if err := d.Set("disks", disks); err != nil {
 		return fmt.Errorf("error setting disk sizes: %s", err)
 	}
 	if err := d.Set("network_interface_types", nics); err != nil {
 		return fmt.Errorf("error setting network interface types: %s", err)
+	}
+	if err := d.Set("network_interfaces", networkInterfaces); err != nil {
+		return fmt.Errorf("error setting network interfaces: %s", err)
 	}
 	if props.Guest != nil {
 		if err := buildAndSelectGuestIPs(d, *props.Guest); err != nil {
