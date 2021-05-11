@@ -1039,7 +1039,7 @@ The options are:
 * `network_id` - (Required) The [managed object reference
   ID][docs-about-morefs] of the network to connect this interface to.
 * `adapter_type` - (Optional) The network interface type. Can be one of
-  `e1000`, `e1000e`, or `vmxnet3`. Default: `vmxnet3`.
+  `e1000`, `e1000e`, `sriov` or `vmxnet3`. Default: `vmxnet3`.
 * `use_static_mac` - (Optional) If true, the `mac_address` field is treated as
   a static MAC address and set accordingly. Setting this to `true` requires
   `mac_address` to be set. Default: `false`.
@@ -1058,6 +1058,40 @@ The options are:
 * `ovf_mapping` - (Optional) Specifies which OVF NIC the `network_interface`
   should be associated with. Only applies at creation and only when deploying
   from an OVF source.
+
+#### Using SR-IOV network interfaces
+
+In order to attach your virtual machine to an SR-IOV network interface, 
+there are a few requirements
+
+* The target host must be known, if creating a VM from scrath, this means setting the `host_system_id` option
+* SR-IOV must be enabled on the host, at this time, Terraform does *not* check for this
+* The `memory_reservation` must be fully set (that is, equal to the `memory`) for the VM
+* The `network_interface` sub-resoruce takes a `physical_function` argument:
+  * This **must** be set if you adapter type is `sriov`
+  * This **must not** be set if you adapter type is not `sriov`
+  * This can found by navigating to the relevant host in the vSPhere Client,
+    going the 'Configure' tab followed by Networking then Physical adapters and finding the 
+    relevant physical NIC, one o the properties fog the NIC is its PCI Local
+
+
+An example is below:
+
+```hcl
+resource "vsphere_virtual_machine" "vm" {
+  # ... other configuration ...
+  host_system_id      = data.vsphere_host.host.id
+  memory              = var.memory
+  memory_reservation  = var.memory_reservation
+  network_interface  {
+    network_id        = data.vsphere_network.network.id
+    adapter_type      = sriov
+    physical_function = "0000:3b:00.1" 
+  }
+  ... other network_interfaces... 
+}
+```
+
 
 ### CDROM options
 

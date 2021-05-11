@@ -523,6 +523,8 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return err
 	}
 	// Network devices
+	//Sunny
+	log.Printf("SUNNY Refreshing Network Interface for vm %s\n", vprops.Config)
 	if err := virtualdevice.NetworkInterfaceRefreshOperation(d, client, devices); err != nil {
 		return err
 	}
@@ -877,6 +879,7 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 	return nil
 }
 
+//Sunny.  meta interface{} is like saying meta Any I think
 func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.ResourceDiff, meta interface{}) error {
 	log.Printf("[DEBUG] %s: Performing diff customization and validation", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*VSphereClient).vimClient
@@ -910,8 +913,8 @@ func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.Res
 
 	if len(d.Get("ovf_deploy").([]interface{})) == 0 && len(d.Get("network_interface").([]interface{})) == 0 {
 		return fmt.Errorf("network_interface parameter is required when not deploying from ovf template")
-
 	}
+
 	// Validate network device sub-resources
 	if err := virtualdevice.NetworkInterfaceDiffOperation(d, client); err != nil {
 		return err
@@ -1012,6 +1015,69 @@ func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.Res
 		return err
 	}
 
+	// Sunny d *schema.ResourceDiff, meta interface{} are the args at the top of this fn
+	// Various steps related to using SR-IOV NICs:
+	usingSriovNic := false
+	var sriovPhysicalAdapters []string
+	// Sunny Get the network_interface from the schema resource diff
+	n := d.Get("network_interface")
+	// Sunny ni is the index of the  thing, ne is the thing itself. Not sure what the thing is. n([]interface{})
+	for ni, ne := range n.([]interface{}) {
+		// Sunny nm is a map with string keys and interface{} values, from ne. Not sure what the . means in ne.(map)
+		nm := ne.(map[string]interface{})
+		// Sunny set r to a NewNetworkInterfaceSubresource passing in client (the vsphere client,
+		// d the pointer to the resource diff, the map, nil, the index of the interface)
+		r := virtualdevice.NewNetworkInterfaceSubresource(client, d, nm, nil, ni)
+		// Sunny if the resource adapter_type is sriov then add to our array of physical
+		// adapters the name of the physical_function found on the resource
+		if r.Get("adapter_type").(string) == "sriov" {
+			usingSriovNic = true
+			sriovPhysicalAdapters = append(sriovPhysicalAdapters, r.Get("physical_function").(string))
+			break
+		}
+	}
+
+	if usingSriovNic {
+		// First check that the host system is known
+		// Sunny get the host_system_id from the schema and check that it is a legit
+		// hostsystem and doesn't throw an error
+		host, err := hostsystem.FromID(client, d.Get("host_system_id").(string))
+		if err != nil {
+			return fmt.Errorf("error: Trying to use an SR-IOV network interface but target host is not known")
+		}
+		// Sunny get some host properties, or error out if not found
+		hprops, err := hostsystem.Properties(host)
+		if err != nil {
+			return err
+		}
+		// Sunny physical nics variable set to the host properties config network Pnic assume physical nic
+		pnics := hprops.Config.Network.Pnic
+
+		// Next, loop through the sriovPhysicalAdapters and check they exist on the host
+		foundPhysicalNic := false
+		// Sunny loop through our list of adapters from our resource schema we made above and
+		// for each one loop through the phycial nics that are actually on the host and check
+		// that its Pci is the same as the sriov physical adapter name.
+		for _, sriovPhysicalAdapter := range sriovPhysicalAdapters {
+			for _, pnic := range pnics {
+				if pnic.Pci == sriovPhysicalAdapter {
+					log.Printf("[DEBUG] Found physical NIC with name %s", sriovPhysicalAdapter)
+					foundPhysicalNic = true
+					break
+				}
+			}
+			if !foundPhysicalNic {
+				return fmt.Errorf("error: Unable to find SR-IOV physical adapter %s on host %s", sriovPhysicalAdapter, d.Get("host_system_id").(string))
+			}
+		}
+		// TODO: Check the physical adapters have SRIOV enabled
+
+		// Next check Memory reservations have been locked to max
+		if d.Get("memory_reservation").(int) != d.Get("memory").(int) {
+			return fmt.Errorf("error: Trying to use SR-IOV NIC but memory reservation is less than memory, set memory_reservation equal to memory on VM")
+		}
+
+	}
 	log.Printf("[DEBUG] %s: Diff customization and validation complete", resourceVSphereVirtualMachineIDString(d))
 	return nil
 }
