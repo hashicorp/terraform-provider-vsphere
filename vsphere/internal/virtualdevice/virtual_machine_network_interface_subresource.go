@@ -955,21 +955,22 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
 	// type is VirtualSriovEthernetCard and if so access the backing, but all attempts return
 	// the type of the card as VirtualEthernetCard which is the parent type to VirtualSriovEthernetCard
 	// So I can't access the sriov fields.
-	if virtualEthernetCardString(device) == "sriov" {
-		log.Printf("SUNNY Read: Adapter type IS SRIOV ")
-		// vsphere/internal/virtualdevice/virtual_machine_network_interface_subresource.go:900:46: cannot convert card
-		//(type *types.VirtualEthernetCard) to type types.VirtualSriovEthernetCard
-		sriovcard := types.VirtualSriovEthernetCard(card)
-		sriovBacking := sriovcard.SriovBacking
 
-		if sriovBacking.PhysicalFunctionBacking == nil {
-			return fmt.Errorf("could not determine SRIOV physical_function from NIC")
-		}
-		r.Set("physical_function", sriovBacking.PhysicalFunctionBacking.Id)
-		log.Printf("SUNNY Read: Physical function is %s", r.Get("physical_function"))
-		log.Printf("SUNNY Read: Physical function is ")
-	} else {
-		log.Printf("SUNNY Read: Adapter type non SRIOV ")
+	log.Printf("SUNNY Read: Pre Adapter type test ")
+	switch v := interface{}(card).(type) {
+		case *types.VirtualSriovEthernetCard:
+			log.Printf("SUNNY Read: Adapter type IS SRIOV ")
+
+			sriovBacking := v.SriovBacking
+
+			if sriovBacking.PhysicalFunctionBacking == nil {
+				return fmt.Errorf("could not determine SRIOV physical_function from NIC")
+			}
+			r.Set("physical_function", sriovBacking.PhysicalFunctionBacking.Id)
+			log.Printf("SUNNY Read: Physical function is %s", r.Get("physical_function"))
+			log.Printf("SUNNY Read: Physical function is ")
+		default:
+			log.Printf("SUNNY Read: Adapter type non SRIOV ")
 	}
 
 	var test interface{} = card
