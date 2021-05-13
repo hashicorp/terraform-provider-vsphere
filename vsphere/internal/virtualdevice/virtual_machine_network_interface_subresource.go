@@ -63,22 +63,22 @@ func NetworkInterfaceSubresourceSchema() map[string]*schema.Schema {
 	s := map[string]*schema.Schema{
 		// VirtualEthernetCardResourceAllocation
 		"bandwidth_limit": {
-			Type:     schema.TypeInt,
-			Optional: true,
+			Type:         schema.TypeInt,
+			Optional:     true,
 			Default:      -1,
 			Description:  "The upper bandwidth limit of this network interface, in Mbits/sec.",
 			ValidateFunc: validation.IntAtLeast(-1),
 		},
 		"bandwidth_reservation": {
-			Type:     schema.TypeInt,
-			Optional: true,
+			Type:         schema.TypeInt,
+			Optional:     true,
 			Default:      0,
 			Description:  "The bandwidth reservation of this network interface, in Mbits/sec.",
 			ValidateFunc: validation.IntAtLeast(0),
 		},
 		"bandwidth_share_level": {
-			Type:     schema.TypeString,
-			Optional: true,
+			Type:         schema.TypeString,
+			Optional:     true,
 			Default:      string(types.SharesLevelNormal),
 			Description:  "The bandwidth share allocation level for this interface. Can be one of low, normal, high, or custom.",
 			ValidateFunc: validation.StringInSlice(sharesLevelAllowedValues, false),
@@ -831,22 +831,7 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 		return nil, err
 	}
 	if len(r.Get("physical_function").(string)) > 0 {
-		log.Printf("[DEBUG] We have physical function")
-		// Based off https://vdc-download.vmware.com/vmwb-repository/dcr-public/b50dcbbf-051d-4204-a3e7-e1b618c1e384/538cf2ec-b34f-4bae-a332-3820ef9e7773/vim.vm.device.VirtualSriovEthernetCard.SriovBackingInfo.html
-		physical_function_conf := &types.VirtualPCIPassthroughDeviceBackingInfo{
-			Id:       r.Get("physical_function").(string),
-			DeviceId: "0",
-			SystemId: "BYPASS",
-			VendorId: 0,
-		}
-		sriov_conf := &types.VirtualSriovEthernetCardSriovBackingInfo{
-			PhysicalFunctionBacking: physical_function_conf,
-		}
-
-		device = &types.VirtualSriovEthernetCard{
-			VirtualEthernetCard: *device.(types.BaseVirtualEthernetCard).GetVirtualEthernetCard(),
-			SriovBacking:        sriov_conf,
-		}
+		device, err = r.addPhysicalFunction(device)
 	}
 
 	if r.Get("adapter_type").(string) == networkInterfaceSubresourceTypeSriov {
@@ -1116,17 +1101,25 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 	// because the device unit numbers for sriov are from 45 downwards, and
 	// those for other networks are from 7 upwards, so it is too fiddly to support
 	// in-place modification.
-	if r.HasChange("adapter_type") {
+	if r.HasChange("adapter_type") || r.HasChange("physical_function") {
 		// Ensure network interfaces aren't changing adapter_type to or from sriov
 		if err := r.blockAdapterTypeChangeSriov(); err != nil {
 			return nil, err
 		}
-		log.Printf("[DEBUG] %s: Device type changing to %s, re-creating device", r, r.Get("adapter_type").(string))
+		if r.HasChange("adapter_type") {
+			log.Printf("[DEBUG] %s: Device type changing to %s, re-creating device", r, r.Get("adapter_type").(string))
+		} else if r.HasChange("physical_function") {
+			log.Printf("[DEBUG] %s: SRIOV Physical function changing to %s, re-creating device", r, r.Get("physical_function").(string))
+		}
 		card := device.GetVirtualEthernetCard()
 		newDevice, err := l.CreateEthernetCard(r.Get("adapter_type").(string), card.Backing)
 		if err != nil {
 			return nil, err
 		}
+		if len(r.Get("physical_function").(string)) > 0 {
+			newDevice, err = r.addPhysicalFunction(newDevice)
+		}
+
 		newCard := newDevice.(types.BaseVirtualEthernetCard).GetVirtualEthernetCard()
 		// Copy controller attributes and unit number
 		newCard.ControllerKey = card.ControllerKey
@@ -1141,6 +1134,11 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 		// If VMware tools is not running, this operation requires a reboot
 		if r.rdd.Get("vmware_tools_status").(string) != string(types.VirtualMachineToolsRunningStatusGuestToolsRunning) {
 			r.SetRestart("adapter_type")
+		}
+
+		if r.HasChange("physical_function") {
+			// If SRIOV physical function has changed, this operation requires a reboot
+			r.SetRestart("physical_function")
 		}
 		// Push the delete of the old device
 		bvd := baseVirtualEthernetCardToBaseVirtualDevice(device)
@@ -1240,6 +1238,28 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 	return spec, nil
 }
 
+func (r *NetworkInterfaceSubresource) addPhysicalFunction(device types.BaseVirtualDevice) (types.BaseVirtualDevice, error) {
+	log.Printf("[DEBUG] We have physical function")
+	var d2 interface{} = device
+	// Based off https://vdc-download.vmware.com/vmwb-repository/dcr-public/b50dcbbf-051d-4204-a3e7-e1b618c1e384/538cf2ec-b34f-4bae-a332-3820ef9e7773/vim.vm.device.VirtualSriovEthernetCard.SriovBackingInfo.html
+	physical_function_conf := &types.VirtualPCIPassthroughDeviceBackingInfo{
+		Id:       r.Get("physical_function").(string),
+		DeviceId: "0",
+		SystemId: "BYPASS",
+		VendorId: 0,
+	}
+	sriov_conf := &types.VirtualSriovEthernetCardSriovBackingInfo{
+		PhysicalFunctionBacking: physical_function_conf,
+	}
+
+	device = &types.VirtualSriovEthernetCard{
+		VirtualEthernetCard: *d2.(types.BaseVirtualEthernetCard).GetVirtualEthernetCard(),
+		SriovBacking:        sriov_conf,
+	}
+
+	return device, nil
+}
+
 // Delete deletes a vsphere_virtual_machine network_interface sub-resource.
 func (r *NetworkInterfaceSubresource) Delete(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] %s: Beginning delete", r)
@@ -1288,7 +1308,9 @@ func (r *NetworkInterfaceSubresource) blockAdapterTypeChangeSriov() error {
 			(oldAdapterType == networkInterfaceSubresourceTypeSriov || newAdapterType != networkInterfaceSubresourceTypeSriov) {
 			log.Printf("[DEBUG] blockAdapterTypeChangeSriov: Network interface %s index %d changing type from %s to %s. Block this", r, r.Index, oldAdapterType, newAdapterType)
 			return fmt.Errorf("Changing the network_interface list such that there is a change in adapter_type to"+
-				" or from sriov for a particular index of network_interface is not supported. Index %d Old adapter_type %s New adapter_type %s", r.Index, oldAdapterType, newAdapterType)
+				" or from sriov for a particular index of network_interface is not supported.\n"+
+				"Index %d, old adapter_type %s, new adapter_type %s\n"+
+				"Delete the network interfaces, apply, and then re-add them instead.", r.Index, oldAdapterType, newAdapterType)
 		}
 		return nil
 	} else {
@@ -1330,6 +1352,7 @@ func (r *NetworkInterfaceSubresource) ValidateDiff() error {
 	if err := r.blockAdapterTypeChangeSriov(); err != nil {
 		return err
 	}
+
 	// TODO: As per https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.networking.doc/GUID-898A3D66-9415-4854-8413-B40F2CB6FF8D.html we need to check that
 
 	// (1) The host is set for this VM (i.e.the Vm is not going to be created on some random host)
