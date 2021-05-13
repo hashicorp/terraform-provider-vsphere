@@ -1064,16 +1064,19 @@ The options are:
 In order to attach your virtual machine to an SR-IOV network interface, 
 there are a few requirements
 
-* The target host must be known, if creating a VM from scrath, this means setting the `host_system_id` option
+* The target host must be known, if creating a VM from scratxh, this means setting the `host_system_id` option
 * SR-IOV must be enabled on the host, at this time, Terraform does *not* check for this
 * The `memory_reservation` must be fully set (that is, equal to the `memory`) for the VM
 * The `network_interface` sub-resoruce takes a `physical_function` argument:
   * This **must** be set if you adapter type is `sriov`
   * This **must not** be set if you adapter type is not `sriov`
-  * This can found by navigating to the relevant host in the vSPhere Client,
-    going the 'Configure' tab followed by Networking then Physical adapters and finding the 
-    relevant physical NIC, one o the properties fog the NIC is its PCI Local
-
+  * This can found by navigating to the relevant host in the vSphere Client,
+    going the 'Configure' tab followed by 'Networking' then 'Physical adapters' and finding the 
+    relevant physical network adapeter, one of the properties og the NIC is its PCI Localation
+  * This is usally of the form "0000:ab:cd.e"
+* The `bandwidith_*` options on the network object are ignored 
+* Adding, modifying and deleting SR-IOV NICs is supported, though will require a VM restart
+* Modifying a NIC from VMXNET3 to SR-IOV (and vice-versa) is explcilty blocked. 
 
 An example is below:
 

@@ -832,6 +832,25 @@ func MoveToFolder(client *govmomi.Client, vm *object.VirtualMachine, relative st
 // the task to complete.
 func Reconfigure(vm *object.VirtualMachine, spec types.VirtualMachineConfigSpec) error {
 	log.Printf("[DEBUG] Reconfiguring virtual machine %q", vm.InventoryPath)
+	log.Printf("[ANDREW] NEW SPEC IS %s", spec)
+	log.Printf("[ANDREWLEE] NEW AHRDWARE 1 IS %s", spec.DeviceChange[0])
+	log.Printf("[ANDREWLEE] Bacing %s", spec.DeviceChange[0].GetVirtualDeviceConfigSpec().Backing)
+	log.Printf("[ANDREWLEE] evice %s", spec.DeviceChange[0].GetVirtualDeviceConfigSpec().Device)
+	log.Printf("[ANDREWLEE] operation %s", spec.DeviceChange[0].GetVirtualDeviceConfigSpec().Operation)
+
+	// log.Printf("[ANDREWLEE] NEW AHRDWARE 2 IS %s", spec.DeviceChange[1])
+	// log.Printf("[ANDREWLEE] NEW AHRDWARE 3 IS %s", spec.DeviceChange[2])
+
+	// log.Printf("[ANDREWLEE] Bacing %s", spec.DeviceChange[2].GetVirtualDeviceConfigSpec().Backing)
+	// log.Printf("[ANDREWLEE] evice %s", spec.DeviceChange[2].GetVirtualDeviceConfigSpec().Device)
+	// log.Printf("[ANDREWLEE] operation %s", spec.DeviceChange[2].GetVirtualDeviceConfigSpec().Operation)
+
+	// log.Printf("[ANDREWLEE] NEW AHRDWARE 3 IS %s", spec.DeviceChange[3])
+
+	// log.Printf("[ANDREWLEE] Bacing %s", spec.DeviceChange[3].GetVirtualDeviceConfigSpec().Backing)
+	// log.Printf("[ANDREWLEE] evice %s", spec.DeviceChange[3].GetVirtualDeviceConfigSpec().Device)
+	// log.Printf("[ANDREWLEE] operation %s", spec.DeviceChange[3].GetVirtualDeviceConfigSpec().Operation)
+
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
 	task, err := vm.Reconfigure(ctx, spec)
