@@ -1371,7 +1371,7 @@ func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtua
 		if err != nil {
 			return nil, fmt.Errorf("cannot assign disk: %s", err)
 		}
-		r.SetRestart("unit_number")
+		r.SetRestart("<unit_number>")
 		if err := r.SaveDevIDs(disk, ctlr); err != nil {
 			return nil, fmt.Errorf("error saving device address: %s", err)
 		}

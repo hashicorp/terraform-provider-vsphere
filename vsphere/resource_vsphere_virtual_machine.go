@@ -523,7 +523,6 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return err
 	}
 	// Network devices
-	log.Printf("ANDREW Refreshing Network Interface for vm %s\n", vprops.Config)
 	if err := virtualdevice.NetworkInterfaceRefreshOperation(d, client, devices); err != nil {
 		return err
 	}
@@ -676,7 +675,6 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		//Check to see if we need to shutdown the VM for this process.
 		if d.Get("reboot_required").(bool) && vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOff {
 			// Attempt a graceful shutdown of this process. We wrap this in a VM helper.
-			log.Printf("[ANDREW] GOnna power off")
 			timeout := d.Get("shutdown_wait_timeout").(int)
 			force := d.Get("force_power_off").(bool)
 			if err := virtualmachine.GracefulPowerOff(client, vm, timeout, force); err != nil {
@@ -727,16 +725,12 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 			}
 		}()
 
-		log.Printf("[ANDREW] spec is %s", spec)
-
 		// Perform updates.
 		if _, ok := d.GetOk("datastore_cluster_id"); ok {
 			err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, spec)
 		} else {
 			err = virtualmachine.Reconfigure(vm, spec)
 		}
-
-		log.Printf("[ANDREW] reconfiugred")
 
 		// Upgrade the VM's hardware version if needed.
 		err = virtualmachine.SetHardwareVersion(vm, d.Get("hardware_version").(int))
@@ -757,7 +751,6 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		}
 		// Power back on the VM, and wait for network if necessary.
 		if vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOn {
-			log.Printf("[ANDREW] GOnna power on")
 			pTimeoutStr := fmt.Sprintf("%ds", d.Get("poweron_timeout").(int))
 			pTimeout, err := time.ParseDuration(pTimeoutStr)
 			if err != nil {

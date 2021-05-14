@@ -969,12 +969,12 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 		newCard.Key = l.NewKey()
 		// If VMware tools is not running, this operation requires a reboot
 		if r.rdd.Get("vmware_tools_status").(string) != string(types.VirtualMachineToolsRunningStatusGuestToolsRunning) {
-			r.SetRestart("adapter_type")
+			r.SetRestart("<adapter_type>")
 		}
 
 		if r.HasChange("physical_function") {
 			// If SRIOV physical function has changed, this operation requires a reboot
-			r.SetRestart("physical_function")
+			r.SetRestart("<physical_function>")
 		}
 		// Push the delete of the old device
 		bvd := baseVirtualEthernetCardToBaseVirtualDevice(device)
