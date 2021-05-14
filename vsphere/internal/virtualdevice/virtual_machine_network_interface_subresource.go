@@ -147,7 +147,6 @@ func NewNetworkInterfaceSubresource(client *govmomi.Client, rdd resourceDataDiff
 		},
 	}
 	sr.Index = idx
-	log.Printf("ANDREW NewNetworkInterfaceSubresource Index %d and data %s", sr.Index, sr.data)
 	return sr
 }
 
@@ -163,8 +162,6 @@ func NetworkInterfaceApplyOperation(d *schema.ResourceData, c *govmomi.Client, l
 	log.Printf("[DEBUG] NetworkInterfaceApplyOperation: Beginning apply operation")
 
 	o, n := d.GetChange(subresourceTypeNetworkInterface)
-
-	log.Printf("[ANDREW] o is %s, ni s %", o, n)
 	ods := o.([]interface{})
 	nds := n.([]interface{})
 
@@ -179,10 +176,7 @@ nextOld:
 		for _, ne := range nds {
 			nm := ne.(map[string]interface{})
 			if om["key"] == nm["key"] {
-				log.Printf("ANDREW NetworkInterfaceApplyOperation Found key %s in new map matching key %s in old map", nm["key"], om["key"])
 				continue nextOld
-			} else {
-				log.Printf("ANDREW NetworkInterfaceApplyOperation New map key %s doesn't match old map key %s. If none found delete", nm["key"], om["key"])
 			}
 		}
 		r := NewNetworkInterfaceSubresource(c, d, om, nil, n)
@@ -214,7 +208,6 @@ nextOld:
 				continue
 			} else {
 				log.Printf("[DEBUG] NetworkInterfaceApplyOperation: key %d looks to have changed", nm["key"].(int))
-				log.Printf("[ANDREWNEW] nm is %s, om in %s", nm, om)
 			}
 			r := NewNetworkInterfaceSubresource(c, d, nm, om, n)
 			uspec, err := r.Update(l)
@@ -436,7 +429,6 @@ func NetworkInterfaceDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) er
 		if len(ods) > ni {
 			oe := ods[ni]
 			om := oe.(map[string]interface{})
-			log.Printf("ANDREW NetworkInterfaceDiffOperation: diff %d OLD %s and NEW %s", ni, om, nm)
 			r := NewNetworkInterfaceSubresource(c, d, nm, om, ni)
 			if err := r.ValidateDiff(); err != nil {
 				return fmt.Errorf("%s: %s", r.Addr(), err)
@@ -1057,8 +1049,6 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 			},
 		}
 		card.ResourceAllocation = alloc
-	} else {
-		log.Printf("[ANDREW] not setting resoruce allocation")
 	}
 
 	var op types.VirtualDeviceConfigSpecOperation
