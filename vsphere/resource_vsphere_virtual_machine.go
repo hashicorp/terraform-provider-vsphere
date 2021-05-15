@@ -278,6 +278,11 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Computed:    true,
 			Description: "The machine object ID from VMware vSphere.",
 		},
+                "power_state": {
+                        Type:        schema.TypeString,
+                        Computed:    true,
+                        Description: "Power state for the virtual machine.",
+                },
 		vSphereTagAttributeKey:    tagsSchema(),
 		customattribute.ConfigKey: customattribute.ConfigSchema(),
 	}
@@ -554,6 +559,13 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 			return fmt.Errorf("error reading virtual machine guest data: %s", err)
 		}
 	}
+
+        // Get the power state for the virtual machine.
+        if vprops.Runtime.PowerState == types.VirtualMachinePowerStatePoweredOn {
+                d.Set("power_state", "running")
+        } else {
+                d.Set("power_state", "shutdown")
+        }
 
 	log.Printf("[DEBUG] %s: Read complete", resourceVSphereVirtualMachineIDString(d))
 	return nil
@@ -1008,6 +1020,12 @@ func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.Res
 	if err = virtualdevice.VerifyVAppTransport(d); err != nil {
 		return err
 	}
+
+        // Check the power state diff for VM
+        power_state := d.Get("power_state").(string)
+        if power_state != "running" {
+                d.SetNew("power_state", "running")
+        }
 
 	log.Printf("[DEBUG] %s: Diff customization and validation complete", resourceVSphereVirtualMachineIDString(d))
 	return nil
