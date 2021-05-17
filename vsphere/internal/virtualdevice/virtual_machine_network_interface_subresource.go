@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/network"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/nsx"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
@@ -418,7 +419,6 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 // NetworkInterfaceDiffOperation performs operations relevant to managing the
 // diff on network_interface sub-resources.
 func NetworkInterfaceDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
-	// We just need the new values for now, as all we are doing is validating some values based on API version
 	o, n := d.GetChange(subresourceTypeNetworkInterface)
 	ods := o.([]interface{})
 	nds := n.([]interface{})
@@ -434,6 +434,91 @@ func NetworkInterfaceDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) er
 				return fmt.Errorf("%s: %s", r.Addr(), err)
 			}
 		}
+	}
+
+	// Various steps related to using SR-IOV NICs:
+	usingSriovNic := false
+	var sriovPhysicalAdapters []string
+	nInt := d.Get("network_interface")
+	for ni, ne := range nInt.([]interface{}) {
+		nm := ne.(map[string]interface{})
+		r := NewNetworkInterfaceSubresource(c, d, nm, nil, ni)
+		// If the resource adapter_type is sriov then add to our array of physical
+		// adapters the name of the physical_function found on the resource
+		if r.Get("adapter_type").(string) == "sriov" {
+			usingSriovNic = true
+			sriovPhysicalAdapters = append(sriovPhysicalAdapters, r.Get("physical_function").(string))
+		}
+	}
+
+	if usingSriovNic {
+		// Relevant SRIOV checks from https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.networking.doc/GUID-898A3D66-9415-4854-8413-B40F2CB6FF8D.html
+		// First check that the host system is known
+		host, err := hostsystem.FromID(c, d.Get("host_system_id").(string))
+		if err != nil {
+			return fmt.Errorf("error: Trying to use an SR-IOV network interface but target host is not known")
+		}
+		hprops, err := hostsystem.Properties(host)
+		if err != nil {
+			return err
+		}
+		pnics := hprops.Config.Network.Pnic
+
+		// Next, loop through the sriovPhysicalAdapters and check they exist on the host
+		for _, sriovPhysicalAdapter := range sriovPhysicalAdapters {
+			foundPhysicalNic := false
+			for _, pnic := range pnics {
+				if pnic.Pci == sriovPhysicalAdapter {
+					log.Printf("[DEBUG] Found physical NIC with name %s", sriovPhysicalAdapter)
+					foundPhysicalNic = true
+					break
+				}
+			}
+			if !foundPhysicalNic {
+				return fmt.Errorf("error: Unable to find SR-IOV physical adapter %s on host %s", sriovPhysicalAdapter, d.Get("host_system_id").(string))
+			}
+		}
+		// Check the physical adapters have SRIOV enabled
+		pciPassthru := hprops.Config.PciPassthruInfo
+
+		for _, sriovPhysicalAdapter := range sriovPhysicalAdapters {
+			foundSriovEnabled := false
+			for _, pciPassthruNic := range pciPassthru {
+				breakLoop := false
+				switch nicType := pciPassthruNic.(type) {
+				case *types.HostSriovInfo:
+					// Check for the SriovEnabled property of the SRIOV PCIPassthrough
+					if nicType.Id == sriovPhysicalAdapter {
+						if nicType.SriovEnabled == true {
+							foundSriovEnabled = true
+							breakLoop = true
+							break
+						}
+					}
+				case *types.HostPciPassthruInfo:
+					// If the PciPassthruInfo type isn't HostSriovInfo then SRIOV cannot be enabled
+					if nicType.Id == sriovPhysicalAdapter {
+						breakLoop = true
+						break
+					}
+				default:
+					// This would be most unexpected but just carry on, we will error out later
+					log.Printf("[DEBUG] Diff customization and validation: Found a different type PCI passthrough info %T for Id %s", nicType)
+				}
+				if breakLoop {
+					break
+				}
+			}
+			if !foundSriovEnabled {
+				return fmt.Errorf("error: SR-IOV physical adapter %s on host ID %s has SRIOV function disabled so cannot be used as the physical_function of a sriov network_interface.", sriovPhysicalAdapter, d.Get("host_system_id").(string))
+			}
+		}
+
+		// Next check Memory reservations have been locked to max
+		if d.Get("memory_reservation").(int) != d.Get("memory").(int) {
+			return fmt.Errorf("error: Trying to use SR-IOV NIC but memory reservation is less than memory, set memory_reservation equal to memory on VM")
+		}
+
 	}
 
 	log.Printf("[DEBUG] NetworkInterfaceDiffOperation: Diff validation complete")
@@ -1178,19 +1263,10 @@ func (r *NetworkInterfaceSubresource) ValidateDiff() error {
 	}
 
 	// Ensure network interfaces aren't changing adapter_type to or from sriov - this is too hard
-	// to cope with given the discrepency in unit number ranges
+	// to cope with given the discrepancy in unit number ranges
 	if err := r.blockAdapterTypeChangeSriov(); err != nil {
 		return err
 	}
-
-	// TODO: As per https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.networking.doc/GUID-898A3D66-9415-4854-8413-B40F2CB6FF8D.html we need to check that
-
-	// (1) The host is set for this VM (i.e.the Vm is not going to be created on some random host)
-	// (2) Verify that the relevant physical NIC has SR-IOV enabled and active
-	// (3) Verify that the virtual machine compatibility is ESXi 5.5 and later. (alreay done)
-	// (4) Verify that Red Hat Enterprise Linux 6 and later or Windows has been selected as the guest operating system
-	// (5) on the VM, Expand the Memory section, select Reserve all guest memory (All locked) and click OK
-	//      that is memory_reservation  is set on the VM resource and is equal to memory_limit
 
 	log.Printf("[DEBUG] %s: Diff validation complete", r)
 	return nil

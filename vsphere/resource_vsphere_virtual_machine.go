@@ -1012,56 +1012,6 @@ func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.Res
 		return err
 	}
 
-	// Various steps related to using SR-IOV NICs:
-	usingSriovNic := false
-	var sriovPhysicalAdapters []string
-	n := d.Get("network_interface")
-	for ni, ne := range n.([]interface{}) {
-		nm := ne.(map[string]interface{})
-		r := virtualdevice.NewNetworkInterfaceSubresource(client, d, nm, nil, ni)
-		// If the resource adapter_type is sriov then add to our array of physical
-		// adapters the name of the physical_function found on the resource
-		if r.Get("adapter_type").(string) == "sriov" {
-			usingSriovNic = true
-			sriovPhysicalAdapters = append(sriovPhysicalAdapters, r.Get("physical_function").(string))
-			break
-		}
-	}
-
-	if usingSriovNic {
-		// First check that the host system is known
-		host, err := hostsystem.FromID(client, d.Get("host_system_id").(string))
-		if err != nil {
-			return fmt.Errorf("error: Trying to use an SR-IOV network interface but target host is not known")
-		}
-		hprops, err := hostsystem.Properties(host)
-		if err != nil {
-			return err
-		}
-		pnics := hprops.Config.Network.Pnic
-
-		// Next, loop through the sriovPhysicalAdapters and check they exist on the host
-		foundPhysicalNic := false
-		for _, sriovPhysicalAdapter := range sriovPhysicalAdapters {
-			for _, pnic := range pnics {
-				if pnic.Pci == sriovPhysicalAdapter {
-					log.Printf("[DEBUG] Found physical NIC with name %s", sriovPhysicalAdapter)
-					foundPhysicalNic = true
-					break
-				}
-			}
-			if !foundPhysicalNic {
-				return fmt.Errorf("error: Unable to find SR-IOV physical adapter %s on host %s", sriovPhysicalAdapter, d.Get("host_system_id").(string))
-			}
-		}
-		// TODO: Check the physical adapters have SRIOV enabled
-
-		// Next check Memory reservations have been locked to max
-		if d.Get("memory_reservation").(int) != d.Get("memory").(int) {
-			return fmt.Errorf("error: Trying to use SR-IOV NIC but memory reservation is less than memory, set memory_reservation equal to memory on VM")
-		}
-
-	}
 	log.Printf("[DEBUG] %s: Diff customization and validation complete", resourceVSphereVirtualMachineIDString(d))
 	return nil
 }
