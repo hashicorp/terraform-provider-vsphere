@@ -1064,19 +1064,23 @@ The options are:
 In order to attach your virtual machine to an SR-IOV network interface, 
 there are a few requirements
 
-* The target host must be known, if creating a VM from scratxh, this means setting the `host_system_id` option
-* SR-IOV must be enabled on the host, at this time, Terraform does *not* check for this
+* The target host must be known, if creating a VM from scratch, this means setting the `host_system_id` option
+* SR-IOV must be enabled on the relevant physical adapter on the host
 * The `memory_reservation` must be fully set (that is, equal to the `memory`) for the VM
-* The `network_interface` sub-resoruce takes a `physical_function` argument:
-  * This **must** be set if you adapter type is `sriov`
-  * This **must not** be set if you adapter type is not `sriov`
+* The `network_interface` sub-resource takes a `physical_function` argument:
+  * This **must** be set if your adapter type is `sriov`
+  * This **must not** be set if your adapter type is not `sriov`
   * This can found by navigating to the relevant host in the vSphere Client,
     going the 'Configure' tab followed by 'Networking' then 'Physical adapters' and finding the 
-    relevant physical network adapeter, one of the properties og the NIC is its PCI Localation
+    relevant physical network adapter; one of the properties of the NIC is its PCI Location
   * This is usally of the form "0000:ab:cd.e"
 * The `bandwidith_*` options on the network object are ignored 
 * Adding, modifying and deleting SR-IOV NICs is supported, though will require a VM restart
-* Modifying a NIC from VMXNET3 to SR-IOV (and vice-versa) is explcilty blocked. 
+* Modifying a NIC from VMXNET3 to SR-IOV (and vice-versa) is explicitly blocked. As terraform uses the order of 
+  network_interface resources to apply NICs, this may also prevent deletion of VMXNET3 resources, if they precede
+  remaining SR-IOV NICs. (e.g. if your config had NICs vmxnet-1, vmxnet-2 and sriov-1 and you delete vmxnet-2, the 
+  second NIC in the list is modified from vmxnet to sriov and is blocked).  
+  If in doubt, delete all NICs for one terraform apply, and re-add them on a second terraform apply.
 
 An example is below:
 
