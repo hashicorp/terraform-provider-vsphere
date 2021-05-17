@@ -1074,7 +1074,7 @@ there are a few requirements
     going the 'Configure' tab followed by 'Networking' then 'Physical adapters' and finding the 
     relevant physical network adapter; one of the properties of the NIC is its PCI Location
   * This is usally of the form "0000:ab:cd.e"
-* The `bandwidith_*` options on the network object are ignored 
+* The `bandwidth_*` options on the network object are ignored 
 * Adding, modifying and deleting SR-IOV NICs is supported, though will require a VM restart
 * Modifying a NIC from VMXNET3 to SR-IOV (and vice-versa) is explicitly blocked. As terraform uses the order of 
   network_interface resources to apply NICs, this may also prevent deletion of VMXNET3 resources, if they precede
