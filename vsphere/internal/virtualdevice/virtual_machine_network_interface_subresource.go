@@ -443,6 +443,8 @@ func NetworkInterfaceDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) er
 
 	// Various steps related to using SR-IOV NICs:
 	usingSriovNic := false
+	maxNonSriovIndex := -1
+	minSriovIndex := (maxNetworkInterfaceCount * 2) + 1
 	var sriovPhysicalAdapters []string
 	nInt := d.Get("network_interface")
 	for ni, ne := range nInt.([]interface{}) {
@@ -453,10 +455,23 @@ func NetworkInterfaceDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) er
 		if r.Get("adapter_type").(string) == "sriov" {
 			usingSriovNic = true
 			sriovPhysicalAdapters = append(sriovPhysicalAdapters, r.Get("physical_function").(string))
+			if ni < minSriovIndex {
+				minSriovIndex = ni
+			}
+		} else if ni > maxNonSriovIndex {
+			maxNonSriovIndex = ni
 		}
 	}
 
 	if usingSriovNic {
+		// Check that all the sriov NICs are declared after the non-sriov ones
+		if maxNonSriovIndex > minSriovIndex {
+			log.Printf("[DEBUG] network_interfaces out of order. First SRIOV index %d, Last non-SRIOV index %d", minSriovIndex, maxNonSriovIndex)
+			return fmt.Errorf("network_interfaces out of order.\n" +
+				"network_interfaces with adapter_type 'sriov' must be declared after all network_interfaces with " +
+				"other adapter_types. Please reorder the network_interface sections.")
+		}
+
 		// Relevant SRIOV checks from https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.networking.doc/GUID-898A3D66-9415-4854-8413-B40F2CB6FF8D.html
 		// First check that the host system is known
 		host, err := hostsystem.FromID(c, d.Get("host_system_id").(string))
@@ -1027,6 +1042,8 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 	// because the device unit numbers for sriov are from 45 downwards, and
 	// those for other networks are from 7 upwards, so it is too fiddly to support
 	// in-place modification.
+	// A result of this is that if you have any SRIOV network interfaces, you
+	// cannot Update the count of non-SRIOV network interfaces.
 	if r.HasChange("adapter_type") || r.HasChange("physical_function") {
 		// Ensure network interfaces aren't changing adapter_type to or from sriov
 		if err := r.blockAdapterTypeChangeSriov(); err != nil {
@@ -1220,8 +1237,11 @@ func (r *NetworkInterfaceSubresource) Delete(l object.VirtualDeviceList) ([]type
 
 // A change that is vetoed is changing adapter type to or from sriov,
 // because the device unit numbers for sriov are from 45 downwards, and
-// those for other networks are from 7 upwards, so it is too fiddly to support
+// those for other networks are from 7 upwards, and when we Update a network
+// interface it copies the unit number from the old one, so it is too fiddly to support
 // in-place modification.
+// A result of this is that if you have any SRIOV network interfaces, you
+// cannot Update the count of non-SRIOV network interfaces.
 func (r *NetworkInterfaceSubresource) blockAdapterTypeChangeSriov() error {
 	if r.HasChange("adapter_type") {
 		oldAdapterType, newAdapterType := r.GetChange("adapter_type")

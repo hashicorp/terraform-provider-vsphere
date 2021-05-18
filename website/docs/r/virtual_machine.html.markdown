@@ -1064,6 +1064,7 @@ The options are:
 In order to attach your virtual machine to an SR-IOV network interface, 
 there are a few requirements
 
+* SR-IOV network interfaces must be declared after all non-SRIOV network interfaces
 * The target host must be known, if creating a VM from scratch, this means setting the `host_system_id` option
 * SR-IOV must be enabled on the relevant physical adapter on the host
 * The `memory_reservation` must be fully set (that is, equal to the `memory`) for the VM
@@ -1076,11 +1077,10 @@ there are a few requirements
   * This is usally of the form "0000:ab:cd.e"
 * The `bandwidth_*` options on the network object are ignored 
 * Adding, modifying and deleting SR-IOV NICs is supported, though will require a VM restart
-* Modifying a NIC from VMXNET3 to SR-IOV (and vice-versa) is explicitly blocked. As terraform uses the order of 
-  network_interface resources to apply NICs, this may also prevent deletion of VMXNET3 resources, if they precede
-  remaining SR-IOV NICs. (e.g. if your config had NICs vmxnet-1, vmxnet-2 and sriov-1 and you delete vmxnet-2, the 
-  second NIC in the list is modified from vmxnet to sriov and is blocked).  
-  If in doubt, delete all NICs for one terraform apply, and re-add them on a second terraform apply.
+* Modifying the number of non-SR-IOV (e.g. VMXNET3) interfaces when there are SR-IOV interfaces existing is
+  explicitly blocked (as terraform_vsphere_plugin doesn't support modifying an interface at the same index from 
+  non-SR-IOV to SR-IOV or vice-versa). To work around this delete all NICs for one terraform apply, and re-add 
+  them on a second terraform apply.
 
 An example is below:
 
