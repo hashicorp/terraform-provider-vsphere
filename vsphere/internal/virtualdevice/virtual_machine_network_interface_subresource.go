@@ -523,7 +523,7 @@ func NetworkInterfaceDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) er
 					}
 				default:
 					// This would be most unexpected but just carry on, we will error out later
-					log.Printf("[DEBUG] Diff customization and validation: Found a different type PCI passthrough info %T for Id %s", nicType)
+					log.Printf("[DEBUG] Diff customization and validation: Found a different type PCI passthrough info %T", nicType)
 				}
 				if breakLoop {
 					break
@@ -536,7 +536,7 @@ func NetworkInterfaceDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) er
 
 		// Next check Memory reservations have been locked to max
 		if d.Get("memory_reservation").(int) != d.Get("memory").(int) {
-			return fmt.Errorf("Trying to use SR-IOV NIC but memory reservation is less than memory, set memory_reservation equal to memory on VM")
+			return fmt.Errorf("Trying to use SR-IOV NIC but memory reservation is not equal to memory, set memory_reservation equal to memory on VM")
 		}
 
 	}
