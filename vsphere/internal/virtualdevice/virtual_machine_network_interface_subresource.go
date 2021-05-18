@@ -433,6 +433,11 @@ func NetworkInterfaceDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) er
 			if err := r.ValidateDiff(); err != nil {
 				return fmt.Errorf("%s: %s", r.Addr(), err)
 			}
+		} else {
+			r := NewNetworkInterfaceSubresource(c, d, nm, nil, ni)
+			if err := r.ValidateDiff(); err != nil {
+				return fmt.Errorf("%s: %s", r.Addr(), err)
+			}
 		}
 	}
 
@@ -456,7 +461,7 @@ func NetworkInterfaceDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) er
 		// First check that the host system is known
 		host, err := hostsystem.FromID(c, d.Get("host_system_id").(string))
 		if err != nil {
-			return fmt.Errorf("error: Trying to use an SR-IOV network interface but target host is not known")
+			return fmt.Errorf("Trying to use an SR-IOV network interface but target host is not known")
 		}
 		hprops, err := hostsystem.Properties(host)
 		if err != nil {
@@ -475,7 +480,7 @@ func NetworkInterfaceDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) er
 				}
 			}
 			if !foundPhysicalNic {
-				return fmt.Errorf("error: Unable to find SR-IOV physical adapter %s on host %s", sriovPhysicalAdapter, d.Get("host_system_id").(string))
+				return fmt.Errorf("Unable to find SR-IOV physical adapter %s on host %s", sriovPhysicalAdapter, host.Name())
 			}
 		}
 		// Check the physical adapters have SRIOV enabled
@@ -510,13 +515,13 @@ func NetworkInterfaceDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) er
 				}
 			}
 			if !foundSriovEnabled {
-				return fmt.Errorf("error: SR-IOV physical adapter %s on host ID %s has SRIOV function disabled so cannot be used as the physical_function of a sriov network_interface.", sriovPhysicalAdapter, d.Get("host_system_id").(string))
+				return fmt.Errorf("SR-IOV physical adapter %s on host %s has SRIOV function disabled so cannot be used as the physical_function of a sriov network_interface.", sriovPhysicalAdapter, host.Name())
 			}
 		}
 
 		// Next check Memory reservations have been locked to max
 		if d.Get("memory_reservation").(int) != d.Get("memory").(int) {
-			return fmt.Errorf("error: Trying to use SR-IOV NIC but memory reservation is less than memory, set memory_reservation equal to memory on VM")
+			return fmt.Errorf("Trying to use SR-IOV NIC but memory reservation is less than memory, set memory_reservation equal to memory on VM")
 		}
 
 	}
