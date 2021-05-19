@@ -1047,14 +1047,14 @@ The options are:
   only be manually set if `use_static_mac` is true, otherwise this is a
   computed value that gives the current MAC address of this interface.
 * `bandwidth_limit` - (Optional) The upper bandwidth limit of this network
-  interface, in Mbits/sec. The default is no limit.
+  interface, in Mbits/sec. The default is no limit. Not relevant for SRIOV interfaces.
 * `bandwidth_reservation` - (Optional) The bandwidth reservation of this
-  network interface, in Mbits/sec. The default is no reservation.
+  network interface, in Mbits/sec. The default is no reservation. Not relevant for SRIOV interfaces.
 * `bandwidth_share_level` - (Optional) The bandwidth share allocation level for
   this interface. Can be one of `low`, `normal`, `high`, or `custom`. Default:
-  `normal`.
+  `normal`. Not relevant for SRIOV interfaces.
 * `bandwidth_share_count` - (Optional) The share count for this network
-  interface when the share level is `custom`.
+  interface when the share level is `custom`. Not relevant for SRIOV interfaces.
 * `ovf_mapping` - (Optional) Specifies which OVF NIC the `network_interface`
   should be associated with. Only applies at creation and only when deploying
   from an OVF source.
