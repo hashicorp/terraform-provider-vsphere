@@ -1310,6 +1310,23 @@ func (r *NetworkInterfaceSubresource) blockAdapterTypeChangeSriov() error {
 	return nil
 }
 
+// Bandwidth settings are irrelevant for SR-IOV interfaces so we should warn if the user is trying
+// to set them.
+func (r *NetworkInterfaceSubresource) blockBandwidthSettingsSriov() error {
+	if r.Get("adapter_type") == networkInterfaceSubresourceTypeSriov {
+		if r.Get("bandwidth_limit") != defaultBandwidthLimit ||
+			r.Get("bandwidth_reservation") != defaultBandwidthReservation ||
+			r.Get("bandwidth_share_count") != defaultBandwidthShareCount {
+			return fmt.Errorf("Invalid bandwidth properties on sriov network interface. " +
+				"Bandwidth settings do not apply to SRIOV interfaces. Please remove them.")
+		}
+
+		return nil
+	}
+
+	return nil
+}
+
 // ValidateDiff performs any complex validation of an individual
 // network_interface sub-resource that can't be done in schema alone.
 func (r *NetworkInterfaceSubresource) ValidateDiff() error {
@@ -1340,6 +1357,11 @@ func (r *NetworkInterfaceSubresource) ValidateDiff() error {
 	// Ensure network interfaces aren't changing adapter_type to or from sriov - this is too hard
 	// to cope with given the discrepancy in unit number ranges
 	if err := r.blockAdapterTypeChangeSriov(); err != nil {
+		return err
+	}
+
+	// Don't allow bandwidth settings on SRIOV that aren't the defaults
+	if err := r.blockBandwidthSettingsSriov(); err != nil {
 		return err
 	}
 
