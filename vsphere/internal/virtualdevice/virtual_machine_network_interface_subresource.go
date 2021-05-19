@@ -42,6 +42,11 @@ const (
 	networkInterfaceSubresourceTypeUnknown = "unknown"
 )
 
+const defaultBandwidthLimit = -1
+const defaultBandwidthReservation = 0
+
+var defaultBandwidthShareCount = string(types.SharesLevelNormal)
+
 var networkInterfaceSubresourceTypeAllowedValues = []string{
 	networkInterfaceSubresourceTypeE1000,
 	networkInterfaceSubresourceTypeE1000e,
@@ -61,21 +66,21 @@ func NetworkInterfaceSubresourceSchema() map[string]*schema.Schema {
 		"bandwidth_limit": {
 			Type:         schema.TypeInt,
 			Optional:     true,
-			Default:      -1,
+			Default:      defaultBandwidthLimit,
 			Description:  "The upper bandwidth limit of this network interface, in Mbits/sec.",
-			ValidateFunc: validation.IntAtLeast(-1),
+			ValidateFunc: validation.IntAtLeast(defaultBandwidthLimit),
 		},
 		"bandwidth_reservation": {
 			Type:         schema.TypeInt,
 			Optional:     true,
-			Default:      0,
+			Default:      defaultBandwidthReservation,
 			Description:  "The bandwidth reservation of this network interface, in Mbits/sec.",
-			ValidateFunc: validation.IntAtLeast(0),
+			ValidateFunc: validation.IntAtLeast(defaultBandwidthReservation),
 		},
 		"bandwidth_share_level": {
 			Type:         schema.TypeString,
 			Optional:     true,
-			Default:      string(types.SharesLevelNormal),
+			Default:      defaultBandwidthShareCount,
 			Description:  "The bandwidth share allocation level for this interface. Can be one of low, normal, high, or custom.",
 			ValidateFunc: validation.StringInSlice(sharesLevelAllowedValues, false),
 		},
@@ -787,13 +792,21 @@ func ReadNetworkInterfaces(l object.VirtualDeviceList) ([]map[string]interface{}
 		}
 
 		// Set properties
+		switch v := interface{}(device).(type) {
+		case *types.VirtualSriovEthernetCard:
+			sriovBacking := v.SriovBacking
+			if sriovBacking.PhysicalFunctionBacking != nil {
+				m["physical_function"] = sriovBacking.PhysicalFunctionBacking.Id
+			}
+		default:
+			// Set the bandwidth properties
+			m["bandwidth_limit"] = ethernetCard.ResourceAllocation.Limit
+			m["bandwidth_reservation"] = ethernetCard.ResourceAllocation.Reservation
+			m["bandwidth_share_level"] = ethernetCard.ResourceAllocation.Share.Level
+			m["bandwidth_share_count"] = ethernetCard.ResourceAllocation.Share.Shares
+		}
 
 		m["adapter_type"] = virtualEthernetCardString(device.(types.BaseVirtualEthernetCard))
-		// TOOO: these only make sense in non SR-IOV world
-		m["bandwidth_limit"] = ethernetCard.ResourceAllocation.Limit
-		m["bandwidth_reservation"] = ethernetCard.ResourceAllocation.Reservation
-		m["bandwidth_share_level"] = ethernetCard.ResourceAllocation.Share.Level
-		m["bandwidth_share_count"] = ethernetCard.ResourceAllocation.Share.Shares
 		m["mac_address"] = ethernetCard.MacAddress
 		m["network_id"] = networkID
 
@@ -1021,12 +1034,20 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
 	r.Set("mac_address", card.MacAddress)
 
 	version := viapi.ParseVersionFromClient(r.client)
-	if (version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) && r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov) {
-		if card.ResourceAllocation != nil {
-			r.Set("bandwidth_limit", card.ResourceAllocation.Limit)
-			r.Set("bandwidth_reservation", card.ResourceAllocation.Reservation)
-			r.Set("bandwidth_share_count", card.ResourceAllocation.Share.Shares)
-			r.Set("bandwidth_share_level", card.ResourceAllocation.Share.Level)
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
+		if r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov {
+			if card.ResourceAllocation != nil {
+				r.Set("bandwidth_limit", card.ResourceAllocation.Limit)
+				r.Set("bandwidth_reservation", card.ResourceAllocation.Reservation)
+				r.Set("bandwidth_share_count", card.ResourceAllocation.Share.Shares)
+				r.Set("bandwidth_share_level", card.ResourceAllocation.Share.Level)
+			}
+		} else {
+			// SRIOV adapters don't support bandwidth properties. Set them to the defaults on the read resource
+			// to ensure that import and such work (as the schema has defaults for them).
+			r.Set("bandwidth_limit", defaultBandwidthLimit)
+			r.Set("bandwidth_reservation", defaultBandwidthReservation)
+			r.Set("bandwidth_share_level", defaultBandwidthShareCount)
 		}
 	}
 
