@@ -519,7 +519,8 @@ func NetworkInterfaceDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) er
 			}
 		}
 		// Check the physical adapters have SRIOV enabled
-		// Sort the sriovPhysicalAdapter addresses for efficiency.
+		// Sort the sriovPhysicalAdapter addresses so we can look for each in the pciPassthru list without starting
+		// from the beginning each time.
 		pciPassthru := hprops.Config.PciPassthruInfo
 		sort.Strings(sriovPhysicalAdapters)
 		configIdx := 0
