@@ -445,22 +445,42 @@ func NetworkInterfaceDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) er
 	usingSriovNic := false
 	maxNonSriovIndex := -1
 	minSriovIndex := (maxNetworkInterfaceCount * 2) + 1
+	countNonSriov := 0
+	countSriov := 0
 	var sriovPhysicalAdapters []string
 	nInt := d.Get("network_interface")
 	for ni, ne := range nInt.([]interface{}) {
 		nm := ne.(map[string]interface{})
 		r := NewNetworkInterfaceSubresource(c, d, nm, nil, ni)
 		// If the resource adapter_type is sriov then add to our array of physical
-		// adapters the name of the physical_function found on the resource
+		// adapters the name of the physical_function found on the resource, if
+		// not there already
 		if r.Get("adapter_type").(string) == "sriov" {
 			usingSriovNic = true
-			sriovPhysicalAdapters = append(sriovPhysicalAdapters, r.Get("physical_function").(string))
+			countSriov++
 			if ni < minSriovIndex {
 				minSriovIndex = ni
 			}
+			duplicate := false
+			for _, adapter := range sriovPhysicalAdapters {
+				if adapter == r.Get("physical_function").(string) {
+					duplicate = true
+				}
+			}
+			if !duplicate {
+				sriovPhysicalAdapters = append(sriovPhysicalAdapters, r.Get("physical_function").(string))
+			}
+
 		} else if ni > maxNonSriovIndex {
+			countNonSriov++
 			maxNonSriovIndex = ni
 		}
+	}
+
+	// Explicitly check for too many interfaces, as the schema MaxItems doesn't differentiate between non-SRIOV and SRIOV
+	if countSriov > maxNetworkInterfaceCount || countNonSriov > maxNetworkInterfaceCount {
+		return fmt.Errorf("network_interface list exceeded max items of %d non-sriov adapter_types and %d sriov adapter_types."+
+			" Config has %d and %d declared.", maxNetworkInterfaceCount, maxNetworkInterfaceCount, countNonSriov, countSriov)
 	}
 
 	if usingSriovNic {
@@ -499,38 +519,47 @@ func NetworkInterfaceDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) er
 			}
 		}
 		// Check the physical adapters have SRIOV enabled
+		// Sort the sriovPhysicalAdapter addresses for efficiency.
 		pciPassthru := hprops.Config.PciPassthruInfo
+		sort.Strings(sriovPhysicalAdapters)
+		configIdx := 0
+		pciIdx := 0
 
-		for _, sriovPhysicalAdapter := range sriovPhysicalAdapters {
+		// As the pciPassthru list can be quite long, avoid looping through from the top for each adapter.
+		// This relies upon the pciPassthruInfo being sorted in id order, which it does appear to be.
+		for configIdx < len(sriovPhysicalAdapters) {
+			foundAdapter := false
 			foundSriovEnabled := false
-			for _, pciPassthruNic := range pciPassthru {
-				breakLoop := false
-				switch nicType := pciPassthruNic.(type) {
-				case *types.HostSriovInfo:
-					// Check for the SriovEnabled property of the SRIOV PCIPassthrough
-					if nicType.Id == sriovPhysicalAdapter {
-						if nicType.SriovEnabled == true {
-							foundSriovEnabled = true
-							breakLoop = true
-							break
-						}
-					}
-				case *types.HostPciPassthruInfo:
-					// If the PciPassthruInfo type isn't HostSriovInfo then SRIOV cannot be enabled
-					if nicType.Id == sriovPhysicalAdapter {
-						breakLoop = true
-						break
-					}
-				default:
-					// This would be most unexpected but just carry on, we will error out later
-					log.Printf("[DEBUG] Diff customization and validation: Found a different type PCI passthrough info %T", nicType)
-				}
-				if breakLoop {
-					break
-				}
+
+			if pciIdx >= len(pciPassthru) {
+				return fmt.Errorf("Unable to find SR-IOV physical adapter PCI passthrough Id %s on host %s", sriovPhysicalAdapters[configIdx], host.Name())
 			}
-			if !foundSriovEnabled {
-				return fmt.Errorf("SR-IOV physical adapter %s on host %s has SRIOV function disabled so cannot be used as the physical_function of a sriov network_interface.", sriovPhysicalAdapter, host.Name())
+			switch nicType := pciPassthru[pciIdx].(type) {
+			case *types.HostSriovInfo:
+				// Check for the SriovEnabled property of the SRIOV PCIPassthrough
+				if nicType.Id == sriovPhysicalAdapters[configIdx] {
+					foundAdapter = true
+					if nicType.SriovEnabled == true {
+						foundSriovEnabled = true
+						log.Printf("[DEBUG] Found SRIOV enabled NIC with name %s", sriovPhysicalAdapters[configIdx])
+						configIdx++
+					}
+				}
+				pciIdx++
+			case *types.HostPciPassthruInfo:
+				// If the PciPassthruInfo type isn't HostSriovInfo then SRIOV cannot be enabled
+				if nicType.Id == sriovPhysicalAdapters[configIdx] {
+					foundAdapter = true
+				}
+				pciIdx++
+			default:
+				// This would be most unexpected but just carry on, we will error out later
+				log.Printf("[DEBUG] Diff customization and validation: Found a different type PCI passthrough info %T", nicType)
+				pciIdx++
+			}
+
+			if foundAdapter && !foundSriovEnabled {
+				return fmt.Errorf("SR-IOV physical adapter %s on host %s has SRIOV function disabled so cannot be used as the physical_function of a sriov network_interface.", sriovPhysicalAdapters[configIdx], host.Name())
 			}
 		}
 
@@ -538,7 +567,6 @@ func NetworkInterfaceDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) er
 		if d.Get("memory_reservation").(int) != d.Get("memory").(int) {
 			return fmt.Errorf("Trying to use SR-IOV NIC but memory reservation is not equal to memory, set memory_reservation equal to memory on VM")
 		}
-
 	}
 
 	log.Printf("[DEBUG] NetworkInterfaceDiffOperation: Diff validation complete")
@@ -1252,7 +1280,7 @@ func (r *NetworkInterfaceSubresource) blockAdapterTypeChangeSriov() error {
 			return fmt.Errorf("Changing the network_interface list such that there is a change in adapter_type to"+
 				" or from sriov for a particular index of network_interface is not supported.\n"+
 				"Index %d, old adapter_type %s, new adapter_type %s\n"+
-				"Delete the network interfaces, apply, and then re-add them instead.", r.Index, oldAdapterType, newAdapterType)
+				"Delete all the sriov network interfaces, apply, and then re-add network interfaces and reapply instead.", r.Index, oldAdapterType, newAdapterType)
 		}
 		return nil
 	}

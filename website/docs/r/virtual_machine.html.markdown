@@ -1079,8 +1079,8 @@ there are a few requirements
 * Adding, modifying and deleting SR-IOV NICs is supported, though will require a VM restart
 * Modifying the number of non-SR-IOV (e.g. VMXNET3) interfaces when there are SR-IOV interfaces existing is
   explicitly blocked (as terraform_vsphere_plugin doesn't support modifying an interface at the same index from 
-  non-SR-IOV to SR-IOV or vice-versa). To work around this delete all NICs for one terraform apply, and re-add 
-  them on a second terraform apply.
+  non-SR-IOV to SR-IOV or vice-versa). To work around this delete all SRIOV NICs for one terraform apply, and re-add 
+  them and any change in non-SRIOV NICs on a second terraform apply.
 
 An example is below:
 

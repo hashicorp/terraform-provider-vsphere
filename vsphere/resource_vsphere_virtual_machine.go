@@ -223,7 +223,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Type:        schema.TypeList,
 			Optional:    true,
 			Description: "A specification for a virtual NIC on this virtual machine.",
-			MaxItems:    10,
+			MaxItems:    20,
 			Elem:        &schema.Resource{Schema: virtualdevice.NetworkInterfaceSubresourceSchema()},
 		},
 		"cdrom": {
