@@ -886,14 +886,14 @@ func (l VirtualDeviceList) Name(device types.BaseVirtualDevice) string {
 	dtype := l.Type(device)
 	switch dtype {
 	case DeviceTypeEthernet:
-		// Ethernet devices of UnitNumber 7-19 are non-SRIOV. Ethernet devices of UnitNumber 45-35 descending are
+		// Ethernet devices of UnitNumber 7-19 are non-SRIOV. Ethernet devices of UnitNumber 45-36 descending are
 		// SRIOV
 		// See constants networkInterfacePciDeviceOffset and sriovNetworkInterfacePciDeviceOffset in
 		// virtual_machine_network_interface_subresource.go
-		if UnitNumber < 20 {
-			key = fmt.Sprintf("%d", UnitNumber-7)
-		}  else {
+		if UnitNumber <= 45 && UnitNumber >= 36 {
 			key = fmt.Sprintf("(sriov)-%d", 45-UnitNumber)
+		} else {
+			key = fmt.Sprintf("%d", UnitNumber-7)
 		}
 
 	case DeviceTypeDisk:
