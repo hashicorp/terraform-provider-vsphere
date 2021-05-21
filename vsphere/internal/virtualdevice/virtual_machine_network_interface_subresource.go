@@ -398,13 +398,13 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 	for i := 0; i < len(newSetNonSriov); i++ {
 		if newSetNonSriov[i] != nil {
 			newSetAll = append(newSetAll, newSetNonSriov[i])
-			i--
+			//	i--
 		}
 	}
 	for i := 0; i < len(newSetSriov); i++ {
 		if newSetSriov[i] != nil {
-			newSetAll = append(newSetAll, newSetNonSriov[i])
-			i--
+			newSetAll = append(newSetAll, newSetSriov[i])
+			//	i--
 		}
 	}
 
