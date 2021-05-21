@@ -391,23 +391,23 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 		}
 	}
 
-	// Prune any nils from the new device state arrays. This could potentially happen in
-	// edge cases where device unit numbers are not 100% sequential.
+	// Create the newSet of all devices from the combination of first the non-SRIOV devices and then the SRIOV devices
+	// with any nils so far (which could occur if there are gaps in the unit numbers of each) in the arrays removed.
+	// (so it might look like this in terms of unit numbers [7, 8, 9, 45, 44, 43])
+	var newSetAll []interface{}
 	for i := 0; i < len(newSetNonSriov); i++ {
-		if newSetNonSriov[i] == nil {
-			newSetNonSriov = append(newSetNonSriov[:i], newSetNonSriov[i+1:]...)
+		if newSetNonSriov[i] != nil {
+			newSetAll = append(newSetAll, newSetNonSriov[i])
 			i--
 		}
 	}
 	for i := 0; i < len(newSetSriov); i++ {
-		if newSetSriov[i] == nil {
-			newSetSriov = append(newSetSriov[:i], newSetSriov[i+1:]...)
+		if newSetSriov[i] != nil {
+			newSetAll = append(newSetAll, newSetNonSriov[i])
 			i--
 		}
 	}
-	// Create the newSet of all devices from the combination of first the non-SRIOV devices and then the SRIOV devices
-	// (so it might look like this in terms of unit numbers [7, 8, 9, 45, 44, 43])
-	newSetAll := append(newSetNonSriov, newSetSriov...)
+
 	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: %d devices and a new set of length %d", len(devices), len(newSetAll))
 
 	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Resource set to write after adding orphaned devices: %s", subresourceListString(newSetAll))
@@ -641,23 +641,24 @@ func NetworkInterfacePostCloneOperation(d *schema.ResourceData, c *govmomi.Clien
 		}
 	}
 
-	// Prune any nils from the new device state arrays. This could potentially happen in
-	// edge cases where device unit numbers are not 100% sequential.
+	// Create the srcSet of all devices from the combination of first the
+	// non-SRIOV devices and then the SRIOV devices with any nils so far
+	// (which could occur in edge cases where device unit numbers are not
+	// 100% sequential) in the arrays removed.
+	// (so it might look like this in terms of unit numbers [7, 8, 9, 45, 44, 43])
+	var srcSet []interface{}
 	for i := 0; i < len(srcSetNonSriov); i++ {
-		if srcSetNonSriov[i] == nil {
-			srcSetNonSriov = append(srcSetNonSriov[:i], srcSetNonSriov[i+1:]...)
+		if srcSetNonSriov[i] != nil {
+			srcSet = append(srcSet, srcSetNonSriov[i])
 			i--
 		}
 	}
 	for i := 0; i < len(srcSetSriov); i++ {
-		if srcSetSriov[i] == nil {
-			srcSetSriov = append(srcSetSriov[:i], srcSetSriov[i+1:]...)
+		if srcSetSriov[i] != nil {
+			srcSet = append(srcSet, srcSetSriov[i])
 			i--
 		}
 	}
-	// Create the srcSet of all devices from the combination of first the non-SRIOV devices and then the SRIOV devices
-	// (so it might look like this in terms of unit numbers [7, 8, 9, 45, 44, 43])
-	srcSet := append(srcSetNonSriov, srcSetSriov...)
 
 	// Now go over our current set, kind of treating it like an apply:
 	//
