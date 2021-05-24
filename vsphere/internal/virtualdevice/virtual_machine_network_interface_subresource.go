@@ -402,7 +402,7 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 	}
 	for i := 0; i < len(newSetSriov); i++ {
 		if newSetSriov[i] != nil {
-			newSetAll = append(newSetAll, newSetSriov[i])			
+			newSetAll = append(newSetAll, newSetSriov[i])
 		}
 	}
 
@@ -652,7 +652,7 @@ func NetworkInterfacePostCloneOperation(d *schema.ResourceData, c *govmomi.Clien
 	}
 	for i := 0; i < len(srcSetSriov); i++ {
 		if srcSetSriov[i] != nil {
-			srcSet = append(srcSet, srcSetSriov[i])			
+			srcSet = append(srcSet, srcSetSriov[i])
 		}
 	}
 
