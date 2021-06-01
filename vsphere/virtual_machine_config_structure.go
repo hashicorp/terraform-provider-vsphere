@@ -282,6 +282,12 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Description: "Extra configuration data for this virtual machine. Can be used to supply advanced parameters not normally in configuration, such as instance metadata, or configuration data for OVF images.",
 			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
+		"replace_trigger": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Triggers replacement of resource whenever it changes.",
+			ForceNew:    true,
+		},
 		"vapp": {
 			Type:        schema.TypeList,
 			Optional:    true,

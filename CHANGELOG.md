@@ -1,3 +1,8 @@
+## 1.27.0 (UNRELEASED)
+
+IMPROVEMENTS:
+* `resource/vm`: Added `replace_trigger` to support replacement of vms based external changes such as cloud_init ([#1190](https://github.com/hashicorp/terraform-provider-vsphere/issues/1190))
+
 ## 1.26.0 (April 20, 2021)
 
 BUG FIXES:

@@ -641,7 +641,7 @@ connections.
   Can be one of `bios` or `EFI`. Default: `bios`.
 * `extra_config` - (Optional) Extra configuration data for this virtual
   machine. Can be used to supply advanced parameters not normally in
-  configuration, such as instance metadata.
+  configuration, such as instance metadata. 
 
 ~> **NOTE:** Do not use `extra_config` when working with a template imported
 from OVF or OVA as more than likely your settings will be ignored. Use the
@@ -649,6 +649,10 @@ from OVF or OVA as more than likely your settings will be ignored. Use the
 supply OVF/OVA
 configuration](#using-vapp-properties-to-supply-ovf-ova-configuration).
 
+* `replace_trigger` - (Optional) Triggers replacement of resource whenever it changes.
+  `replace_trigger = sha256(format("%s-%s",data.template_file.cloud_init_metadata.rendered,data.template_file.cloud_init_userdata.rendered))`
+  will fingerprint the changes in cloud_init metadata and userdata templates. This will enable a replacement
+  of the resource whenever the dependant template renders a new configuration. (Forces a replacement)
 * `scsi_type` - (Optional) The type of SCSI bus this virtual machine will have.
   Can be one of lsilogic (LSI Logic Parallel), lsilogic-sas (LSI Logic SAS) or
   pvscsi (VMware Paravirtual). Defualt: `pvscsi`.
