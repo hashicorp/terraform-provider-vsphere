@@ -674,7 +674,7 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 	}
 	// Ensure the device starts connected
 	err = l.Connect(device)
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "is not connectable") {
 		return nil, err
 	}
 

@@ -900,19 +900,6 @@ machine. For more information, see the section on [importing](#importing).
 not recognize, such as disks that are attached externally. Terraform will issue
 an error if you try to label a disk with this prefix. 
 
-* `name` - (Optional) An alias for both `label` and `path`, the latter when
-  using `attach`. Required if not using `label`.
-
-~> **NOTE:** This parameter has been deprecated and will be removed in future
-versions of the vSphere provider. You cannot use `name` on a disk that has
-previously had a `label`, and using this argument is not recommend for new
-configurations.
-
-~> **NOTE:** In previous versions of the vSphere provider this argument
-controlled file names for non-attached disks - this behavior has now been
-removed, and the only time this controls path is when attaching a disk
-externally with `attach` when the `path` field is not specified.
-
 * `size` - (Required) The size of the disk, in GB.
 * `unit_number` - (Optional) The disk number on the storage bus. The maximum 
   value for this setting is the value of the controller count times the 
