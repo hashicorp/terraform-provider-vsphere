@@ -1,4 +1,4 @@
-## 2.0.0 (Unreleased)
+## 2.0.0 (June 02, 2021)
 
 BREAKING CHANGES:
 * `provider`: Moving forward this provider will only work with Terraform version v0.12 and later.
