@@ -1,8 +1,8 @@
 ## 2.0.0 (Unreleased)
 
 BREAKING CHANGES:
-* `resource/virtual_machine`: Moving forward this provider will only work with Terraform version v0.12 and later.
-* `resource/virtual_machine`: [Deprecated attribute `name`](https://github.com/hashicorp/terraform-provider-vsphere/blob/master/CHANGELOG.md#130-january-26-2018)has been removed from the disk subresource.
+* `provider`: Moving forward this provider will only work with Terraform version v0.12 and later.
+* `resource/virtual_machine`: [Deprecated attribute `name`](https://github.com/hashicorp/terraform-provider-vsphere/blob/master/CHANGELOG.md#130-january-26-2018) has been removed from the `disk` subresource.
 
 BUG FIXES:
 * `datasource/ovf_datasource`: Fix validation error when importing OVF spec. ([1398](https://github.com/hashicorp/terraform-provider-vsphere/pull/1398))
