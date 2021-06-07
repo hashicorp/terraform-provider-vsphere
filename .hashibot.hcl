@@ -1,16 +1,3 @@
-queued_behavior "release_commenter" "releases" {
-  repo_prefix = "terraform-provider-"
-  message = <<-EOF
-    This has been released in [version ${var.release_version} of the provider](${var.changelog_link}). To upgrade, change your provider block:
-    ```hcl
-    provider "${var.project_name}" {
-        version = "~> ${var.release_version}"
-    }
-    # ... other configuration ...
-    ```
-  EOF
-}
-
 behavior "pull_request_size_labeler" "size" {
     label_prefix = "size/"
     label_map = {
