@@ -372,14 +372,17 @@ func flattenVirtualMachineBootOptions(d *schema.ResourceData, obj *types.Virtual
 
 // expandVirtualMachineFlagInfo reads certain ResourceData keys and
 // returns a VirtualMachineFlagInfo.
-func expandVirtualMachineFlagInfo(d *schema.ResourceData) *types.VirtualMachineFlagInfo {
+func expandVirtualMachineFlagInfo(d *schema.ResourceData, client *govmomi.Client) *types.VirtualMachineFlagInfo {
 	obj := &types.VirtualMachineFlagInfo{
 		DiskUuidEnabled:  getBoolWithRestart(d, "enable_disk_uuid"),
-		VbsEnabled:       getBoolWithRestart(d, "vbs_enabled"),
-		VvtdEnabled:      getBoolWithRestart(d, "vvtd_enabled"),
 		VirtualExecUsage: getWithRestart(d, "hv_mode").(string),
 		VirtualMmuUsage:  getWithRestart(d, "ept_rvi_mode").(string),
 		EnableLogging:    getBoolWithRestart(d, "enable_logging"),
+	}
+	version := viapi.ParseVersionFromClient(client)
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
+		obj.VbsEnabled = getBoolWithRestart(d, "vbs_enabled")
+		obj.VvtdEnabled = getBoolWithRestart(d, "vvtd_enabled")
 	}
 	return obj
 }
@@ -860,7 +863,7 @@ func expandVirtualMachineConfigSpec(d *schema.ResourceData, client *govmomi.Clie
 		AlternateGuestName:           getWithRestart(d, "alternate_guest_name").(string),
 		Annotation:                   d.Get("annotation").(string),
 		Tools:                        expandToolsConfigInfo(d),
-		Flags:                        expandVirtualMachineFlagInfo(d),
+		Flags:                        expandVirtualMachineFlagInfo(d, client),
 		NumCPUs:                      expandCPUCountConfig(d),
 		NumCoresPerSocket:            int32(getWithRestart(d, "num_cores_per_socket").(int)),
 		MemoryMB:                     expandMemorySizeConfig(d),
