@@ -1,3 +1,8 @@
+## 2.0.1 (Unreleased)
+
+BUG FIXES:
+* `resource/virtual_machine`: Only set vvtd/vbs if vsphere version is newer than 6.5. ([1423](https://github.com/hashicorp/terraform-provider-vsphere/pull/1423))
+
 ## 2.0.0 (June 02, 2021)
 
 BREAKING CHANGES:
