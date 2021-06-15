@@ -194,7 +194,7 @@ func createFile(client *govmomi.Client, f *file) error {
 		if err != nil {
 			return fmt.Errorf("error %s", err)
 		}
-        case path.Ext(f.sourceFile) == ".vmdk":
+	case path.Ext(f.sourceFile) == ".vmdk":
 		_, fileName := path.Split(f.destinationFile)
 		// Temporary directory path to upload VMDK file.
 		tempDstFile := fmt.Sprintf("tfm-temp-%d/%s", time.Now().Nanosecond(), fileName)
