@@ -380,7 +380,7 @@ func expandVirtualMachineFlagInfo(d *schema.ResourceData, client *govmomi.Client
 		EnableLogging:    getBoolWithRestart(d, "enable_logging"),
 	}
 	version := viapi.ParseVersionFromClient(client)
-	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 7}) {
 		obj.VbsEnabled = getBoolWithRestart(d, "vbs_enabled")
 		obj.VvtdEnabled = getBoolWithRestart(d, "vvtd_enabled")
 	}
@@ -389,13 +389,17 @@ func expandVirtualMachineFlagInfo(d *schema.ResourceData, client *govmomi.Client
 
 // flattenVirtualMachineFlagInfo reads various fields from a
 // VirtualMachineFlagInfo into the passed in ResourceData.
-func flattenVirtualMachineFlagInfo(d *schema.ResourceData, obj *types.VirtualMachineFlagInfo) error {
+func flattenVirtualMachineFlagInfo(d *schema.ResourceData, obj *types.VirtualMachineFlagInfo, client *govmomi.Client) error {
 	_ = d.Set("enable_disk_uuid", obj.DiskUuidEnabled)
-	_ = d.Set("vbs_enabled", obj.VbsEnabled)
-	_ = d.Set("vvtd_enabled", obj.VvtdEnabled)
 	_ = d.Set("hv_mode", obj.VirtualExecUsage)
 	_ = d.Set("ept_rvi_mode", obj.VirtualMmuUsage)
 	_ = d.Set("enable_logging", obj.EnableLogging)
+
+	version := viapi.ParseVersionFromClient(client)
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 7}) {
+		_ = d.Set("vbs_enabled", obj.VbsEnabled)
+		_ = d.Set("vvtd_enabled", obj.VvtdEnabled)
+	}
 	return nil
 }
 
@@ -892,7 +896,7 @@ func expandVirtualMachineConfigSpec(d *schema.ResourceData, client *govmomi.Clie
 // VirtualMachineConfigInfo into the passed in ResourceData.
 //
 // This is the flatten counterpart to expandVirtualMachineConfigSpec.
-func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualMachineConfigInfo) error {
+func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualMachineConfigInfo, client *govmomi.Client) error {
 	_ = d.Set("name", obj.Name)
 	_ = d.Set("guest_id", obj.GuestId)
 	_ = d.Set("alternate_guest_name", obj.AlternateGuestName)
@@ -914,7 +918,7 @@ func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualM
 	if err := flattenToolsConfigInfo(d, obj.Tools); err != nil {
 		return err
 	}
-	if err := flattenVirtualMachineFlagInfo(d, &obj.Flags); err != nil {
+	if err := flattenVirtualMachineFlagInfo(d, &obj.Flags, client); err != nil {
 		return err
 	}
 	if err := flattenVirtualMachineResourceAllocation(d, obj.CpuAllocation, "cpu"); err != nil {
@@ -951,7 +955,7 @@ func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, client *govmo
 	oldData := resourceVSphereVirtualMachine().Data(&terraform.InstanceState{})
 	oldData.SetId(d.Id())
 	// Flatten the old config info into it
-	err := flattenVirtualMachineConfigInfo(oldData, info)
+	err := flattenVirtualMachineConfigInfo(oldData, info, client)
 	if err != nil {
 		return types.VirtualMachineConfigSpec{}, false, err
 	}
