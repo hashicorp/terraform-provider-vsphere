@@ -145,6 +145,11 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Optional:    true,
 			Description: "Enable guest clock synchronization with the host. Requires VMware tools to be installed.",
 		},
+		"sync_time_with_host_allowed": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Indicates whether VMware tools is allowed to synchronize the guest clock with the host. On vSphere 7 U1 and above, this must be set to true for clock synchronization. Requires VMware tools to be installed.",
+		},
 		"run_tools_scripts_after_power_on": {
 			Type:        schema.TypeBool,
 			Optional:    true,
@@ -407,12 +412,13 @@ func flattenVirtualMachineFlagInfo(d *schema.ResourceData, obj *types.VirtualMac
 // returns a ToolsConfigInfo.
 func expandToolsConfigInfo(d *schema.ResourceData) *types.ToolsConfigInfo {
 	obj := &types.ToolsConfigInfo{
-		SyncTimeWithHost:    structure.GetBool(d, "sync_time_with_host"),
-		AfterPowerOn:        getBoolWithRestart(d, "run_tools_scripts_after_power_on"),
-		AfterResume:         getBoolWithRestart(d, "run_tools_scripts_after_resume"),
-		BeforeGuestStandby:  getBoolWithRestart(d, "run_tools_scripts_before_guest_standby"),
-		BeforeGuestShutdown: getBoolWithRestart(d, "run_tools_scripts_before_guest_shutdown"),
-		BeforeGuestReboot:   getBoolWithRestart(d, "run_tools_scripts_before_guest_reboot"),
+		SyncTimeWithHost:        structure.GetBool(d, "sync_time_with_host"),
+		SyncTimeWithHostAllowed: structure.GetBool(d, "sync_time_with_host_allowed"),
+		AfterPowerOn:            getBoolWithRestart(d, "run_tools_scripts_after_power_on"),
+		AfterResume:             getBoolWithRestart(d, "run_tools_scripts_after_resume"),
+		BeforeGuestStandby:      getBoolWithRestart(d, "run_tools_scripts_before_guest_standby"),
+		BeforeGuestShutdown:     getBoolWithRestart(d, "run_tools_scripts_before_guest_shutdown"),
+		BeforeGuestReboot:       getBoolWithRestart(d, "run_tools_scripts_before_guest_reboot"),
 	}
 	return obj
 }
@@ -421,6 +427,7 @@ func expandToolsConfigInfo(d *schema.ResourceData) *types.ToolsConfigInfo {
 // ToolsConfigInfo into the passed in ResourceData.
 func flattenToolsConfigInfo(d *schema.ResourceData, obj *types.ToolsConfigInfo) error {
 	_ = d.Set("sync_time_with_host", obj.SyncTimeWithHost)
+	_ = d.Set("sync_time_with_host_allowed", obj.SyncTimeWithHostAllowed)
 	_ = d.Set("run_tools_scripts_after_power_on", obj.AfterPowerOn)
 	_ = d.Set("run_tools_scripts_after_resume", obj.AfterResume)
 	_ = d.Set("run_tools_scripts_before_guest_standby", obj.BeforeGuestStandby)
