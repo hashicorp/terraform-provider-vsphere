@@ -830,6 +830,28 @@ func TestAccResourceVSphereVirtualMachine_cdromNoParameters(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_cdromIsoBacking(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasicCdromIso(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckIsoCdrom(),
+				),
+			},
+			{
+				Config: testAccResourceVSphereEmpty,
+			},
+		},
+	})
+}
 func TestAccResourceVSphereVirtualMachine_cdromConflictingParameters(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -2897,6 +2919,36 @@ func testAccResourceVSphereVirtualMachineCheckMultiDevice(expectedD, expectedN [
 
 // testAccResourceVSphereVirtualMachineCheckIsoCdrom checks to make sure that the
 // subject VM has a CDROM device configured with iso backing and is connected.
+func testAccResourceVSphereVirtualMachineCheckIsoCdrom() resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVirtualMachineProperties(s, "vm")
+		if err != nil {
+			return err
+		}
+
+		for _, dev := range props.Config.Hardware.Device {
+			if cdrom, ok := dev.(*types.VirtualCdrom); ok {
+				if !cdrom.Connectable.Connected {
+					return fmt.Errorf("expected CDROM device to be connected")
+				}
+				if backing, ok := cdrom.Backing.(*types.VirtualCdromIsoBackingInfo); ok {
+					expected := &object.DatastorePath{
+						Datastore: os.Getenv("TF_VAR_VSPHERE_ISO_DATASTORE"),
+						Path:      os.Getenv("TF_VAR_VSPHERE_ISO_FILE"),
+					}
+					actual := new(object.DatastorePath)
+					actual.FromString(backing.FileName)
+					if !reflect.DeepEqual(expected, actual) {
+						return fmt.Errorf("expected %#v, got %#v", expected, actual)
+					}
+					return nil
+				}
+				return errors.New("could not locate proper backing file on CDROM device")
+			}
+		}
+		return errors.New("could not locate CDROM device on VM")
+	}
+}
 
 // testAccResourceVSphereVirtualMachineCheckClientCdrom checks to make sure that the
 // subject VM has a CDROM device mapped to a client device.
@@ -4146,6 +4198,58 @@ resource "vsphere_virtual_machine" "vm" {
 `,
 
 		testAccResourceVSphereVirtualMachineConfigBase(),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigBasicCdromIso() string {
+	return fmt.Sprintf(`
+
+
+%s  // Mix and match config
+
+variable "iso_datastore" {
+  default = "%s"
+}
+
+variable "iso_path" {
+  default = "%s"
+}
+
+data "vsphere_datastore" "iso_datastore" {
+  name          = "${var.iso_datastore}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "testacc-test"
+  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
+  datastore_id     = vsphere_nas_datastore.ds1.id
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinux64Guest"
+
+  wait_for_guest_net_timeout = -1
+
+  network_interface {
+    network_id = "${data.vsphere_network.network1.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
+
+  cdrom {
+    datastore_id  = "${data.vsphere_datastore.iso_datastore.id}"
+    path          = "${var.iso_path}"
+  }
+}
+`,
+
+		testAccResourceVSphereVirtualMachineConfigBase(),
+		os.Getenv("TF_VAR_VSPHERE_ISO_DATASTORE"),
+		os.Getenv("TF_VAR_VSPHERE_ISO_FILE"),
 	)
 }
 
