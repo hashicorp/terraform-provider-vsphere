@@ -330,7 +330,6 @@ func (tc *testAtleastVersion) Test(t *testing.T) {
 	} else {
 		actual = append(actual, testAtleastVersionOlder)
 	}
-
 	switch {
 	case len(actual) == 0:
 		if tc.expected == testAtleastVersionUnknown {
@@ -369,12 +368,12 @@ func TestAtLeast(t *testing.T) {
 		{
 			Name:     "older",
 			productA: "VMware vCenter Server",
-			versionA: "6.2.1",
+			versionA: "6.1.0",
 			buildA:   "1000000",
 			productB: "VMware vCenter Server",
-			versionB: "6.1.0",
-			buildB:   "1000000",
-			expected: testAtleastVersionNewer,
+			versionB: "6.2.1",
+			buildB:   "0",
+			expected: testAtleastVersionOlder,
 		},
 	}
 	for _, tc := range cases {
