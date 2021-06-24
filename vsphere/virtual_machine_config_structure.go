@@ -421,7 +421,7 @@ func expandToolsConfigInfo(d *schema.ResourceData, client *govmomi.Client) *type
 	}
 
 	version := viapi.ParseVersionFromClient(client)
-	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 1}) {
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0, Patch: 1}) {
 		obj.SyncTimeWithHostAllowed = structure.GetBool(d, "sync_time_with_host")
 		obj.SyncTimeWithHost = structure.GetBool(d, "sync_time_with_host_periodically")
 	}
@@ -439,7 +439,7 @@ func flattenToolsConfigInfo(d *schema.ResourceData, obj *types.ToolsConfigInfo, 
 	_ = d.Set("run_tools_scripts_before_guest_reboot", obj.BeforeGuestReboot)
 
 	version := viapi.ParseVersionFromClient(client)
-	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 1}) {
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0, Patch: 1}) {
 		_ = d.Set("sync_time_with_host", obj.SyncTimeWithHostAllowed)
 		_ = d.Set("sync_time_with_host_periodically", obj.SyncTimeWithHost)
 	}
