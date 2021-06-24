@@ -143,12 +143,12 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 		"sync_time_with_host": {
 			Type:        schema.TypeBool,
 			Optional:    true,
-			Description: "Enable guest clock synchronization with the host. Requires VMware tools to be installed.",
+			Description: "Enable guest clock synchronization with the host. On vSphere 7 U1 and above, with only this setting the clock is synchronized on startup and resume so consider also setting `sync_time_with_host_periodically`. Requires VMware tools to be installed.",
 		},
-		"sync_time_with_host_allowed": {
+		"sync_time_with_host_periodically": {
 			Type:        schema.TypeBool,
 			Optional:    true,
-			Description: "Indicates whether VMware tools is allowed to synchronize the guest clock with the host. On vSphere 7 U1 and above, this must be set to true for clock synchronization. Requires VMware tools to be installed.",
+			Description: "Enable periodic clock synchronization with the host. Supported only on vSphere 7 U1 and above. On older versions setting `sync_time_with_host` is enough for periodic synchronization. Requires VMware tools to be installed.",
 		},
 		"run_tools_scripts_after_power_on": {
 			Type:        schema.TypeBool,
@@ -410,29 +410,39 @@ func flattenVirtualMachineFlagInfo(d *schema.ResourceData, obj *types.VirtualMac
 
 // expandToolsConfigInfo reads certain ResourceData keys and
 // returns a ToolsConfigInfo.
-func expandToolsConfigInfo(d *schema.ResourceData) *types.ToolsConfigInfo {
+func expandToolsConfigInfo(d *schema.ResourceData, client *govmomi.Client) *types.ToolsConfigInfo {
 	obj := &types.ToolsConfigInfo{
-		SyncTimeWithHost:        structure.GetBool(d, "sync_time_with_host"),
-		SyncTimeWithHostAllowed: structure.GetBool(d, "sync_time_with_host_allowed"),
-		AfterPowerOn:            getBoolWithRestart(d, "run_tools_scripts_after_power_on"),
-		AfterResume:             getBoolWithRestart(d, "run_tools_scripts_after_resume"),
-		BeforeGuestStandby:      getBoolWithRestart(d, "run_tools_scripts_before_guest_standby"),
-		BeforeGuestShutdown:     getBoolWithRestart(d, "run_tools_scripts_before_guest_shutdown"),
-		BeforeGuestReboot:       getBoolWithRestart(d, "run_tools_scripts_before_guest_reboot"),
+		SyncTimeWithHost:    structure.GetBool(d, "sync_time_with_host"),
+		AfterPowerOn:        getBoolWithRestart(d, "run_tools_scripts_after_power_on"),
+		AfterResume:         getBoolWithRestart(d, "run_tools_scripts_after_resume"),
+		BeforeGuestStandby:  getBoolWithRestart(d, "run_tools_scripts_before_guest_standby"),
+		BeforeGuestShutdown: getBoolWithRestart(d, "run_tools_scripts_before_guest_shutdown"),
+		BeforeGuestReboot:   getBoolWithRestart(d, "run_tools_scripts_before_guest_reboot"),
+	}
+
+	version := viapi.ParseVersionFromClient(client)
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 1}) {
+		obj.SyncTimeWithHostAllowed = structure.GetBool(d, "sync_time_with_host")
+		obj.SyncTimeWithHost = structure.GetBool(d, "sync_time_with_host_periodically")
 	}
 	return obj
 }
 
 // flattenToolsConfigInfo reads various fields from a
 // ToolsConfigInfo into the passed in ResourceData.
-func flattenToolsConfigInfo(d *schema.ResourceData, obj *types.ToolsConfigInfo) error {
+func flattenToolsConfigInfo(d *schema.ResourceData, obj *types.ToolsConfigInfo, client *govmomi.Client) error {
 	_ = d.Set("sync_time_with_host", obj.SyncTimeWithHost)
-	_ = d.Set("sync_time_with_host_allowed", obj.SyncTimeWithHostAllowed)
 	_ = d.Set("run_tools_scripts_after_power_on", obj.AfterPowerOn)
 	_ = d.Set("run_tools_scripts_after_resume", obj.AfterResume)
 	_ = d.Set("run_tools_scripts_before_guest_standby", obj.BeforeGuestStandby)
 	_ = d.Set("run_tools_scripts_before_guest_shutdown", obj.BeforeGuestShutdown)
 	_ = d.Set("run_tools_scripts_before_guest_reboot", obj.BeforeGuestReboot)
+
+	version := viapi.ParseVersionFromClient(client)
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 1}) {
+		_ = d.Set("sync_time_with_host", obj.SyncTimeWithHostAllowed)
+		_ = d.Set("sync_time_with_host_periodically", obj.SyncTimeWithHost)
+	}
 	return nil
 }
 
@@ -873,7 +883,7 @@ func expandVirtualMachineConfigSpec(d *schema.ResourceData, client *govmomi.Clie
 		GuestId:                      getWithRestart(d, "guest_id").(string),
 		AlternateGuestName:           getWithRestart(d, "alternate_guest_name").(string),
 		Annotation:                   d.Get("annotation").(string),
-		Tools:                        expandToolsConfigInfo(d),
+		Tools:                        expandToolsConfigInfo(d, client),
 		Flags:                        expandVirtualMachineFlagInfo(d, client),
 		NumCPUs:                      expandCPUCountConfig(d),
 		NumCoresPerSocket:            int32(getWithRestart(d, "num_cores_per_socket").(int)),
@@ -922,7 +932,7 @@ func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualM
 	_ = d.Set("uuid", obj.Uuid)
 	_ = d.Set("hardware_version", virtualmachine.GetHardwareVersionNumber(obj.Version))
 
-	if err := flattenToolsConfigInfo(d, obj.Tools); err != nil {
+	if err := flattenToolsConfigInfo(d, obj.Tools, client); err != nil {
 		return err
 	}
 	if err := flattenVirtualMachineFlagInfo(d, &obj.Flags, client); err != nil {
