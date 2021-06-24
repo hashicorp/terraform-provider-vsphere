@@ -224,6 +224,15 @@ func (v VSphereVersion) newerVersion(other VSphereVersion) bool {
 	return vc > vo
 }
 
+// AtLeast returns true if this version's product is equal or greater than the one required
+func (v VSphereVersion) AtLeast(other VSphereVersion) bool {
+	if !v.ProductEqual(other) {
+		return false
+	}
+
+	return v.Equal(other) || v.Newer(other)
+}
+
 // Newer returns true if this version's product is the same, and composite of
 // the version and build numbers, are newer than the supplied version's
 // information.

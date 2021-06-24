@@ -489,7 +489,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	_ = d.Set("vmx_path", dp.Path)
 
 	// Read general VM config info
-	if err := flattenVirtualMachineConfigInfo(d, vprops.Config); err != nil {
+	if err := flattenVirtualMachineConfigInfo(d, vprops.Config, client); err != nil {
 		return fmt.Errorf("error reading virtual machine configuration: %s", err)
 	}
 
