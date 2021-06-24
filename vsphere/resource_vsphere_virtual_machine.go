@@ -901,13 +901,6 @@ func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.Res
 		}
 	}
 
-	// Validate cdrom sub-resources when not deploying from ovf
-	if len(d.Get("ovf_deploy").([]interface{})) == 0 {
-		if err := virtualdevice.CdromDiffOperation(d, client); err != nil {
-			return err
-		}
-	}
-
 	if len(d.Get("ovf_deploy").([]interface{})) == 0 && len(d.Get("network_interface").([]interface{})) == 0 {
 		return fmt.Errorf("network_interface parameter is required when not deploying from ovf template")
 	}
