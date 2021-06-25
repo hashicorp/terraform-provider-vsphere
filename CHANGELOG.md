@@ -1,3 +1,12 @@
+## 2.0.2 (Unreleased)
+
+BUG FIXES:
+* `resource/virtual_machine`: Fix logic bug that caused the provider to set unsupported fields when talking to vsphere 6.5. ([1430](https://github.com/hashicorp/terraform-provide-vsphere/pull/1430))
+* `resource/virtual_machine`: Fix resource diff bug where it was not possible to ignore changes to `cdrom` subresource. ([1433](https://github.com/hashicorp/terraform-provide-vsphere/pull/1433))
+
+IMPROVEMENTS:
+* `resource/virtual_machine`: Support periodic time syncing for VMs on vsphere 7.0U1 onwards. ([1431](https://github.com/hashicorp/terraform-provide-vsphere/pull/1431))
+
 ## 2.0.1 (June 09, 2021)
 
 BUG FIXES:
