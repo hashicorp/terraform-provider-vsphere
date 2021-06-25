@@ -1,4 +1,4 @@
-## 2.0.2 (Unreleased)
+## 2.0.2 (June 25, 2021)
 
 BUG FIXES:
 * `resource/virtual_machine`: Fix logic bug that caused the provider to set unsupported fields when talking to vsphere 6.5. ([1430](https://github.com/hashicorp/terraform-provide-vsphere/pull/1430))
