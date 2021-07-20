@@ -301,7 +301,8 @@ func resourceVSphereVirtualDiskRead(d *schema.ResourceData, meta interface{}) er
 	}
 	diskType, err := virtualdisk.QueryDiskType(client, dp.String(), dc)
 	if err != nil {
-		return errors.New("Failed to query disk type")
+		log.Printf("[WARN] Failed to query disk type")
+		return nil
 	}
 
 	// adapter_type is deprecated, so just default.
