@@ -939,7 +939,7 @@ an error if you try to label a disk with this prefix.
   Default: `persistent`. For an explanation of options, click
   [here][vmware-docs-disk-mode].
 
-[vmware-docs-disk-mode]: https://pubs.vmware.com/vsphere-6-5/topic/com.vmware.wssdk.apiref.doc/vim.vm.device.VirtualDiskOption.DiskMode.html
+[vmware-docs-disk-mode]: https://vdc-download.vmware.com/vmwb-repository/dcr-public/da47f910-60ac-438b-8b9b-6122f4d14524/16b7274a-bf8b-4b4c-a05e-746f2aa93c8c/doc/vim.vm.device.VirtualDiskOption.DiskMode.html
 
 * `eagerly_scrub` - (Optional) If set to `true`, the disk space is zeroed out
   on VM creation. This will delay the creation of the disk or virtual machine.
@@ -1144,7 +1144,7 @@ To perform virtual machine customization as a part of the clone process,
 specify the `customize` block with the respective customization options, nested
 within the `clone` block. Windows guests are customized using Sysprep, which
 will result in the machine SID being reset. Before using customization, check
-is that your source VM meets the [requirements](https://pubs.vmware.com/vsphere-50/index.jsp?topic=%2Fcom.vmware.vsphere.vm_admin.doc_50%2FGUID-80F3F5B5-F795-45F1-B0FA-3709978113D5.html)
+that your source VM meets the [requirements](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-E63B6FAA-8D35-428D-B40C-744769845906.html)
 for guest OS customization on vSphere. See the [cloning and customization
 example](#cloning-and-customization-example) for a usage synopsis.
 
@@ -1325,7 +1325,7 @@ The options are:
 * `time_zone` - (Optional) Sets the time zone. For a list of possible
   combinations, click [here][vmware-docs-valid-linux-tzs]. The default is UTC.
 
-[vmware-docs-valid-linux-tzs]: https://pubs.vmware.com/vsphere-6-5/topic/com.vmware.wssdk.apiref.doc/timezone.html
+[vmware-docs-valid-linux-tzs]: https://kb.vmware.com/s/article/2145518
 
 #### Windows customization options
 
