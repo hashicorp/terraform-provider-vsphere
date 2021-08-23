@@ -79,8 +79,7 @@ func schemaVMwareDVSConfigSpec() map[string]*schema.Schema {
 					"devices": {
 						Type:        schema.TypeList,
 						Description: "Name of the physical NIC to be added to the proxy switch.",
-						Required:    true,
-						MinItems:    1,
+						Optional:      true,
 						Elem:        &schema.Schema{Type: schema.TypeString},
 					},
 					"host_system_id": {
