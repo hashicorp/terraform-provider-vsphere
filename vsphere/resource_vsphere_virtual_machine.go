@@ -1577,7 +1577,7 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 	log.Printf("[DEBUG] %s: Final device change cfgSpec: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceChangeString(cfgSpec.DeviceChange))
 
 	// Perform updates
-  err = virtualmachine.Reconfigure(vm, cfgSpec)
+	err = virtualmachine.Reconfigure(vm, cfgSpec)
 	if err != nil {
 		return resourceVSphereVirtualMachineRollbackCreate(
 			d,
