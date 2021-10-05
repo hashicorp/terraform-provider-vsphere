@@ -10,6 +10,10 @@ cloud.google.com/go/internal/version
 cloud.google.com/go/storage
 # github.com/agext/levenshtein v1.2.2
 github.com/agext/levenshtein
+# github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412
+## explicit
+# github.com/alcortesm/tgz v0.0.0-20161220082320-9c5fe88206d7
+## explicit
 # github.com/apparentlymart/go-cidr v1.1.0
 ## explicit
 github.com/apparentlymart/go-cidr/cidr
@@ -171,6 +175,8 @@ github.com/jmespath/go-jmespath
 github.com/jstemmer/go-junit-report
 github.com/jstemmer/go-junit-report/formatter
 github.com/jstemmer/go-junit-report/parser
+# github.com/keybase/go-crypto v0.0.0-20161004153544-93f5b35093ba
+## explicit
 # github.com/klauspost/compress v1.11.2
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
