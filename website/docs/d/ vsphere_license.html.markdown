@@ -1,0 +1,36 @@
+---
+layout: "vsphere"
+page_title: "VMware vSphere: vsphere_license"
+sidebar_current: "docs-vsphere-data-source-inventory-license"
+description: |-
+  Provides a VMware vSphere license data source. This can be used to get the general attributes of a vSphere license.
+---
+
+# vsphere\_license
+
+The `vsphere_license` data source can be used to get the general attributes of a
+vSphere license.
+
+## Example Usage
+
+```hcl
+data "vsphere_license" "myLicense" {
+  license_key = "452CQ-2EK54-K8742-00000-00000"
+}
+```
+
+## Argument Reference
+
+The following arguments are supported:
+
+* `license_key` - (Required) The license key to add.
+
+## Attribute Reference
+
+The following attributes are exported:
+
+* `labels` - A map of key/value pairs to be attached as labels (tags) to the license key.
+* `edition_key` - The product edition of the license key.
+* `total` - Total number of units (example: CPUs) contained in the license.
+* `used` - The number of units (example: CPUs) assigned to this license.
+* `name` - The display name for the license.
