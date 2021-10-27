@@ -44,12 +44,11 @@ data "vsphere_datacenter" "dc" {
 
 data "vsphere_datastore" "datastore" {
   name          = "subscriber-datastore"
-  description   = "A subscribed content library."
   datacenter_id = data.vsphere_datacenter.dc.id
 }
 
 resource "vsphere_content_library" "library" {
-  name            = "Publishing Content Library"
+  name            = "Subscribed Content Library"
   description     = "A subscribed content library."
   storage_backing = data.vsphere_datastore.datastore.id
   subscription {
