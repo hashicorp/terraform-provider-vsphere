@@ -4,18 +4,18 @@ layout: "vsphere"
 page_title: "VMware vSphere: vsphere_content_library"
 sidebar_current: "docs-vsphere-resource-content-library"
 description: |-
-  Provides a vSphere content cibrary. Content libraries allow you to manage and share virtual machines, vApp templates, and other types of files. Content libraries enable you to share content across vCenter Server instances in the same or different locations.
+  Provides a VMware Content Library. Content libraries allow you to manage and share virtual machines, vApp templates, and other types of files Content libraries enable you to share content across vCenter Server instances in the same or different locations.
 ---
 
 # vsphere\_content\_library
 
 The `vsphere_content_library` resource can be used to manage content libraries.
 
-> **NOTE:** This resource requires a vCenter Server instance and is not available on direct ESXi host connections.
+> **NOTE:** This resource requires a vCenter Server instance and is not available on direct ESXi host.
 
 ## Example Usage
 
-The following example creates a publishing content library using the datastore named `publisher-datastore` as the storage backing.
+The following example creates a publishing content library using `publisher-datastore` as the storage backing.
 
 [tf-vsphere-vm-resource]: /docs/providers/vsphere/r/virtual_machine.html
 
@@ -24,38 +24,38 @@ data "vsphere_datacenter" "datacenter_a" {
   name = "dc-01-a"
 }
 
-data "vsphere_datastore" "publisher_datastore" {
+data "vsphere_datastore" "datastore" {
   name          = "publisher-datastore"
-  datacenter_id = data.vsphere_datacenter.datacenter_a.id
+  datacenter_id = data.vsphere_datacenter.dc.id
 }
 
-resource "vsphere_content_library" "publisher_content_library" {
-  name            = "Publisher Content Library"
+resource "vsphere_content_library" "library" {
+  name            = "Publishing Content Library"
   description     = "A publishing content library."
-  storage_backing = [data.vsphere_datastore.publisher_datastore.id]
+  storage_backing = data.vsphere_datastore.datastore.id
 }
 ```
-
-The next example creates a subscribed content library using the URL of the publisher content library as the source and the datastore named `subscriber-datastore` as the storage backing.
+The next example creates a subscribed content library using the publisher content library as the source and the `subscriber-datastore` as the storage backing.
 
 ```hcl
-data "vsphere_datacenter" "datacenter_b" {
-  name = "dc-01-b"
+data "vsphere_datacenter" "dc" {
+  name = "dc1"
 }
 
-data "vsphere_datastore" "subscriber_datastore" {
+data "vsphere_datastore" "datastore" {
   name          = "subscriber-datastore"
-  datacenter_id = data.vsphere_datacenter.datacenter_b.id
+  description   = "A subscribed content library."
+  datacenter_id = data.vsphere_datacenter.dc.id
 }
 
-resource "vsphere_content_library" "subscriber_content_library" {
-  name            = "Subscriber Content Library"
-  description     = "A subscribing content library."
-  storage_backing = [data.vsphere_datastore.subscriber_datastore.id]
+resource "vsphere_content_library" "library" {
+  name            = "Publishing Content Library"
+  description     = "A subscribed content library."
+  storage_backing = data.vsphere_datastore.datastore.id
   subscription {
-    subscription_url = "https://vc-01-a.example.com:443/cls/vcsp/lib/f42a4b25-844a-44ec-9063-a3a5e9cc88c7/lib.json"
-    automatic_sync   = true
-    on_demand        = false
+    subscription_url = "https://<vc-fqdn>:443/cls/vcsp/lib/<uuid>/lib.json"
+    automatic_sync   = true  // Default.
+    on_demand        = false // Default.
   }
 }
 ```
@@ -77,8 +77,8 @@ The following arguments are supported:
   * `authentication_method` - (Optional) Authentication method to connect ro a published content library. Must be `NONE` or `BASIC`.
   * `username` - (Optional) Username used for authentication.
   * `password` - (Optional) Password used for authentication.
-  * `automatic_sync` - (Optional) Enable automatic synchronization with the published library. Default `false`.
-  * `on_demand` - (Optional) Download the library from a content only when needed. Default `true`.
+  * `automatic_sync` - (Optional) Enable automatic synchronization with the published library. Default `true`.
+  * `on_demand` - (Optional) Download the library from a content only when needed. Default `false`; if `true`, overrides `automatic_sync`. 
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
@@ -94,6 +94,6 @@ An existing content library can be [imported][docs-import] into this resource by
 
 [docs-import]: https://www.terraform.io/docs/import/index.html
 
-```
-terraform import vsphere_content_library publisher_content_library f42a4b25-844a-44ec-9063-a3a5e9cc88c7
+```shell
+terraform import vsphere_content_library library f42a4b25-844a-44ec-9063-a3a5e9cc88c7
 ```
