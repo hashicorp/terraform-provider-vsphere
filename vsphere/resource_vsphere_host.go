@@ -100,6 +100,9 @@ func resourceVsphereHost() *schema.Resource {
 				Default:      "disabled",
 				ValidateFunc: validation.StringInSlice([]string{"disabled", "normal", "strict"}, true),
 			},
+
+			// Add tags schema
+			vSphereTagAttributeKey: tagsSchema(),
 		},
 	}
 }
@@ -171,6 +174,12 @@ func resourceVsphereHostRead(d *schema.ResourceData, meta interface{}) error {
 
 		if !licFound {
 			_ = d.Set("license", "")
+		}
+	}
+
+	if tagsClient, _ := meta.(*Client).TagsManager(); tagsClient != nil {
+		if err := readTagsForResource(tagsClient, host, d); err != nil {
+			return fmt.Errorf("error reading tags: %s", err)
 		}
 	}
 
@@ -270,6 +279,17 @@ func resourceVsphereHostCreate(d *schema.ResourceData, meta interface{}) error {
 	host, err := hostsystem.FromID(client, hostID)
 	if err != nil {
 		return fmt.Errorf("failed while retrieving host object for host %s. Error: %s", hostID, err)
+	}
+
+	tagsClient, err := tagsManagerIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+
+	if tagsClient != nil {
+		if err := processTagDiff(tagsClient, d, host); err != nil {
+			return fmt.Errorf("error updating tags: %s", err)
+		}
 	}
 
 	lockdownModeString := d.Get("lockdown").(string)
@@ -383,6 +403,20 @@ func resourceVsphereHostUpdate(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("error while updating %s: %s", k, err)
 		}
 	}
+
+	tagsClient, err := tagsManagerIfDefined(d, meta)
+	if err != nil {
+		return err
+	}
+
+	if tagsClient != nil {
+		if err := processTagDiff(tagsClient, d, hostObject); err != nil {
+			return fmt.Errorf("error updating tags: %s", err)
+		}
+	}
+
+	return nil
+
 	return resourceVsphereHostRead(d, meta)
 }
 
