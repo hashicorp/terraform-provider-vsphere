@@ -4,39 +4,36 @@ layout: "vsphere"
 page_title: "VMware vSphere: vsphere_distributed_virtual_switch"
 sidebar_current: "docs-vsphere-resource-networking-distributed-virtual-switch"
 description: |-
-  Provides a vSphere distributed virtual switch resource. This can be used to create and manage DVS resources in vCenter.
+  Provides a VMware vSphere Distributed Switch resource. This can be used to create and manage VDS resources in vCenter.
 ---
 
 # vsphere\_distributed\_virtual\_switch
 
-The `vsphere_distributed_virtual_switch` resource can be used to manage VMware
-Distributed Virtual Switches.
+The `vsphere_distributed_virtual_switch` resource can be used to manage vSphere Distributed Switches (VDS).
 
-An essential component of a distributed, scalable VMware datacenter, the
-vSphere Distributed Virtual Switch (DVS) provides centralized management and
-monitoring of the networking configuration of all the hosts that are associated
+An essential component of a distributed, scalable vSphere infrastructure, the
+vSphere Distributed Switch provides centralized management and
+monitoring of the networking configuration for all the hosts that are associated
 with the switch. In addition to adding port groups (see the
 [`vsphere_distributed_port_group`][distributed-port-group] resource) that can
-be used as networks for virtual machines, a DVS can be configured to perform
+be used as networks for virtual machines, a VDS can be configured to perform
 advanced high availability, traffic shaping, network monitoring, and more.
 
 For an overview on vSphere networking concepts, see [this
-page][ref-vsphere-net-concepts]. For more information on vSphere DVS, see [this
-page][ref-vsphere-dvs].
+page][ref-vsphere-net-concepts]. For more information on vSphere VDS, see [this
+page][ref-vsphere-vds].
 
 [distributed-port-group]: /docs/providers/vsphere/r/distributed_port_group.html
 [ref-vsphere-net-concepts]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.networking.doc/GUID-2B11DBB8-CB3C-4AFF-8885-EFEA0FC562F4.html
-[ref-vsphere-dvs]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.networking.doc/GUID-375B45C7-684C-4C51-BA3C-70E48DFABF04.html
+[ref-vsphere-vds]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.networking.doc/GUID-375B45C7-684C-4C51-BA3C-70E48DFABF04.html
 
-~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
+~> **NOTE:** This resource requires vCenter Server and is not available on direct ESXi host
 connections.
 
 ## Example Usage
 
 The following example below demonstrates a "standard" example of configuring a
-vSphere DVS in a 3-node vSphere datacenter named `dc1`, across 4 NICs with two
-being used as active, and two being used as passive. Note that the NIC failover
-order propagates to any port groups configured on this DVS and can be overridden
+vSphere Distributed Switch in a 3-node vSphere datacenter named `dc1`, across 4 NICs with two being used as active, and two being used as passive. Note that the NIC failover order propagates to any port groups configured on this VDS and can be overridden
 there.
 
 ```hcl
@@ -67,8 +64,8 @@ data "vsphere_host" "host" {
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
 
-resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
+resource "vsphere_distributed_virtual_switch" "vds" {
+  name          = "terraform-test-vds"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 
   uplinks         = ["uplink1", "uplink2", "uplink3", "uplink4"]
@@ -97,14 +94,14 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 The following abridged example below demonstrates how you can manage the number
 of uplinks, and the name of the uplinks via the `uplinks` parameter.
 
-Note that if you change the uplink naming and count after creating the DVS, you
+Note that if you change the uplink naming and count after creating the VDS, you
 may need to explicitly specify `active_uplinks` and `standby_uplinks` as these
 values are saved to Terraform state after creation, regardless of being
 specified in config, and will drift if not modified, causing errors.
 
 ```hcl
-resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "terraform-test-dvs"
+resource "vsphere_distributed_virtual_switch" "vds" {
+  name          = "terraform-test-vds"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 
   uplinks         = ["tfup1", "tfup2"]
@@ -113,7 +110,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 }
 ```
 
-~> **NOTE:** The default uplink names when a DVS is created are `uplink1`
+~> **NOTE:** The default uplink names when a VDS is created are `uplink1`
 through to `uplink4`, however this default is not guaranteed to be stable and
 you are encouraged to set your own.
 
@@ -121,56 +118,51 @@ you are encouraged to set your own.
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the distributed virtual switch.
-* `datacenter_id` - (Required) The ID of the datacenter where the distributed
-  virtual switch will be created. Forces a new resource if changed.
-* `folder` - (Optional) The folder to create the DVS in. Forces a new resource
+* `name` - (Required) The name of the VDS.
+* `datacenter_id` - (Required) The ID of the datacenter where the VDS will be created. Forces a new resource if changed.
+* `folder` - (Optional) The folder in which to create the VDS. Forces a new resource
   if changed.
-* `description` - (Optional) A detailed description for the DVS.
+* `description` - (Optional) A detailed description for the VDS.
 * `contact_name` - (Optional) The name of the person who is responsible for the
-  DVS.
+  VDS.
 * `contact_detail` - (Optional) The detailed contact information for the person
-  who is responsible for the DVS.
+  who is responsible for the VDS.
 * `ipv4_address` - (Optional) An IPv4 address to identify the switch. This is
   mostly useful when used with the [Netflow arguments](#netflow-arguments) found
   below.
 * `lacp_api_version` - (Optional) The Link Aggregation Control Protocol group
-  version to use with the switch. Possible values are `singleLag` and
+  version to use with the VDS. Possible values are `singleLag` and
   `multipleLag`.
 * `link_discovery_operation` - (Optional) Whether to `advertise` or `listen`
   for link discovery traffic.
 * `link_discovery_protocol` - (Optional) The discovery protocol type. Valid
   types are `cdp` and `lldp`.
-* `max_mtu` - (Optional) The maximum transmission unit (MTU) for the virtual
-  switch.
+* `max_mtu` - (Optional) The maximum transmission unit (MTU) for the VDS.
 * `multicast_filtering_mode` - (Optional) The multicast filtering mode to use
-  with the switch. Can be one of `legacyFiltering` or `snooping`.
-* `version` - (Optional) - The version of the DVS to create. The default is to
-  create the DVS at the latest version supported by the version of vSphere
-  being used. A DVS can be upgraded to another version, but cannot be
-  downgraded.
+  with the VDS. Can be one of `legacyFiltering` or `snooping`.
+* `version` - (Optional) - The version of the VDS. BY default, a VDS is created at the latest version supported by the vSphere version if not specified. A VDS can be upgraded to a newer version, but can not be downgraded.
 * `tags` - (Optional) The IDs of any tags to attach to this resource. See
   [here][docs-applying-tags] for a reference on how to apply tags.
 
 [docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
 
-~> **NOTE:** Tagging support requires vCenter 6.0 or higher.
+~> **NOTE:** Tagging support requires vCenter Server 6.0 or higher.
 
 * `custom_attributes` - (Optional) Map of custom attribute ids to attribute
-  value strings to set for virtual switch. See
+  value strings to set for VDS. See
   [here][docs-setting-custom-attributes] for a reference on how to set values
   for custom attributes.
 
 [docs-setting-custom-attributes]: /docs/providers/vsphere/r/custom_attribute.html#using-custom-attributes-in-a-supported-resource
 
-~> **NOTE:** Custom attributes are unsupported on direct ESXi connections
-and require vCenter.
+~> **NOTE:** Custom attributes are unsupported on direct ESXi host connections
+and require vCenter Server.
 
 ### Uplink arguments
 
 * `uplinks` - (Optional) A list of strings that uniquely identifies the names
-  of the uplinks on the DVS across hosts. The number of items in this list
-  controls the number of uplinks that exist on the DVS, in addition to the
+  of the uplinks on the VDS across hosts. The number of items in this list
+  controls the number of uplinks that exist on the VDS, in addition to the
   names.  See [here](#uplink-name-and-count-control) for an example on how to
   use this option.
 
@@ -179,8 +171,8 @@ and require vCenter.
 * `host` - (Optional) Use the `host` block to declare a host specification. The
   options are:
  * `host_system_id` - (Required) The host system ID of the host to add to the
-   DVS.
- * `devices` - (Required) The list of NIC devices to map to uplinks on the DVS,
+   VDS.
+ * `devices` - (Required) The list of NIC devices to map to uplinks on the VDS,
    added in order they are specified.
 
 ### Private VLAN mapping arguments
@@ -199,14 +191,13 @@ and require vCenter.
 ### Netflow arguments
 
 The following options control settings that you can use to configure Netflow on
-the DVS:
+the VDS:
 
 * `netflow_active_flow_timeout` - (Optional) The number of seconds after which
   active flows are forced to be exported to the collector. Allowed range is
   `60` to `3600`. Default: `60`.
 * `netflow_collector_ip_address` - (Optional) IP address for the Netflow
-  collector, using IPv4 or IPv6. IPv6 is supported in vSphere Distributed
-  Switch Version 6.0 or later. Must be set before Netflow can be enabled.
+  collector, using IPv4 or IPv6. IPv6 is supported in VDS version 6.0 or later. Must be set before Netflow can be enabled.
 * `netflow_collector_port` - (Optional) Port for the Netflow collector. This
   must be set before Netflow can be enabled.
 * `netflow_idle_flow_timeout` - (Optional) The number of seconds after which
@@ -219,14 +210,14 @@ the DVS:
   the Netflow collector.
 * `netflow_sampling_rate` - (Optional) The ratio of total number of packets to
   the number of packets analyzed. The default is `0`, which indicates that the
-  switch should analyze all packets. The maximum value is `1000`, which
+  VDS should analyze all packets. The maximum value is `1000`, which
   indicates an analysis rate of 0.001%.
 
 ### Network I/O control arguments
 
 The following arguments manage network I/O control. Network I/O control (also
 known as network resource control) can be used to set up advanced traffic
-shaping for the DVS, allowing control of various classes of traffic in a
+shaping for the VDS, allowing control of various classes of traffic in a
 fashion similar to how resource pools work for virtual machines. Configuration
 of network I/O control is also a requirement for the use of network resource
 pools, if their use is so desired.
@@ -268,7 +259,7 @@ For example, to set the traffic class resource options for virtual machine
 traffic, see the example below:
 
 ```hcl
-resource "vsphere_distributed_virtual_switch" "dvs" {
+resource "vsphere_distributed_virtual_switch" "vds" {
   # ... other configuration ...
   virtualmachine_share_level      = "custom"
   virtualmachine_share_count      = 150
@@ -293,19 +284,19 @@ The options are:
 The following arguments are shared with the
 [`vsphere_distributed_port_group`][distributed-port-group] resource. Setting
 them here defines a default policy here that will be inherited by other port
-groups on this switch that do not have these values otherwise overridden. Not
-defining these options in a DVS will infer defaults that can be seen in the
+groups on this VDS that do not have these values otherwise overridden. Not
+defining these options in a VDS will infer defaults that can be seen in the
 Terraform state after the initial apply.
 
-Of particular note to a DVS are the [HA policy options](#ha-policy-options),
+Of particular note to a VDS are the [HA policy options](#ha-policy-options),
 which is where the `active_uplinks` and `standby_uplinks` options are
 controlled, allowing the ability to create a NIC failover policy that applies
-to the entire DVS and all portgroups within it that don't override the policy.
+to the entire VDS and all port groups within it that do not override the policy.
 
 #### VLAN options
 
-The following options control the VLAN behaviour of the port groups the port
-policy applies to. One one of these 3 options may be set:
+The following options control the VLAN behavior of the port groups the port
+policy applies to. One of these 3 options may be set:
 
 * `vlan` - (Optional) The member VLAN for the ports this policy applies to. A
   value of `0` means no VLAN.
@@ -315,7 +306,7 @@ policy applies to. One one of these 3 options may be set:
   below:
 
 ```hcl
-resource "vsphere_distributed_virtual_switch" "dvs" {
+resource "vsphere_distributed_virtual_switch" "vds" {
   # ... other configuration ...
   vlan_range {
     min_vlan = 1
@@ -337,11 +328,11 @@ The following options control HA policy for ports that this policy applies to:
 
 * `active_uplinks` - (Optional) A list of active uplinks to be used in load
   balancing. These uplinks need to match the definitions in the
-  [`uplinks`](#uplinks) DVS argument. See
+  [`uplinks`](#uplinks) VDS argument. See
   [here](#uplink-name-and-count-control) for more details.
 * `standby_uplinks` - (Optional) A list of standby uplinks to be used in
   failover. These uplinks need to match the definitions in the
-  [`uplinks`](#uplinks) DVS argument. See
+  [`uplinks`](#uplinks) VDS argument. See
   [here](#uplink-name-and-count-control) for more details.
 * `check_beacon` - (Optional) Enables beacon probing as an additional measure
   to detect NIC failure.
@@ -354,8 +345,8 @@ probing.
 * `notify_switches` - (Optional) If `true`, the teaming policy will notify the
   broadcast network of an uplink failover, triggering cache updates.
 * `teaming_policy` - (Optional) The uplink teaming policy. Can be one of
-  `loadbalance_ip`, `loadbalance_srcmac`, `loadbalance_srcid`, or
-  `failover_explicit`.
+  `loadbalance_ip`, `loadbalance_srcmac`, `loadbalance_srcid`,
+  `failover_explicit`, or `loadbalance_loadbased`.
 
 #### LACP options
 
@@ -363,7 +354,7 @@ The following options allow the use of LACP for NIC teaming for ports that this
 policy applies to.
 
 ~> **NOTE:** These options are ignored for non-uplink port groups and hence are
-only useful at the DVS level.
+only useful at the VDS level.
 
 * `lacp_enabled` - (Optional) Enables LACP for the ports that this policy
   applies to.
@@ -415,7 +406,7 @@ applies to:
 * `netflow_enabled` - (Optional) Enables Netflow on all ports that this policy
   applies to.
 * `tx_uplink` - (Optional) Forward all traffic transmitted by ports for which
-  this policy applies to its DVS uplinks.
+  this policy applies to its VDS uplinks.
 * `directpath_gen2_allowed` - (Optional) Allow VMDirectPath Gen2 for the ports
   for which this policy applies to.
 
@@ -423,20 +414,20 @@ applies to:
 
 The following attributes are exported:
 
-* `id`: The UUID of the created DVS.
-* `config_version`: The current version of the DVS configuration, incremented
-  by subsequent updates to the DVS.
+* `id`: The UUID of the created VDS.
+* `config_version`: The current version of the VDS configuration, incremented
+  by subsequent updates to the VDS.
 
 ## Importing
 
-An existing DVS can be [imported][docs-import] into this resource via the path
-to the DVS, via the following command:
+An existing VDS can be [imported][docs-import] into this resource via the path
+to the VDS, via the following command:
 
 [docs-import]: https://www.terraform.io/docs/import/index.html
 
 ```
-terraform import vsphere_distributed_virtual_switch.dvs /dc1/network/dvs
+terraform import vsphere_distributed_virtual_switch.vds /dc1/network/vds
 ```
 
-The above would import the DVS named `dvs` that is located in the `dc1`
+The above would import the VDS named `vds` that is located in the `dc1`
 datacenter.
