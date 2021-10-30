@@ -34,6 +34,7 @@ var vmOverrideClusterDasConfigInfoServiceStateAllowedValues = []string{
 	string(types.ClusterDasVmSettingsRestartPriorityMedium),
 	string(types.ClusterDasVmSettingsRestartPriorityHigh),
 	string(types.ClusterDasVmSettingsRestartPriorityHighest),
+	string(types.ClusterDasVmSettingsRestartPriorityDisabled),
 }
 
 var vmOverrideClusterVMStorageProtectionForPDLAllowedValues = []string{
