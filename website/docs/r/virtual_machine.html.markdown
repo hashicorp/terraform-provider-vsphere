@@ -744,6 +744,11 @@ The following options control boot settings on a virtual machine:
 
 The following options control VMware Tools settings on the virtual machine:
 
+* `tools_upgrade_policy` - (Optional) Enable automatic upgrade of the VMware Tools
+version when the virtual machine is rebooted. If necessary, VMware Tools is upgraded
+to the latest version supported by the host on which the virtual machine is running.
+Requires VMware tools to be installed. One of `manual` or `upgradeAtPowerCycle`. Default: `manual`.
+
 * `sync_time_with_host` - (Optional) Enable the guest operating system to synchronization its clock with the host when the virtual machine is powered on or resumed. Requires vSphere 7.0 Update 1 and later. Requires VMware Tools to be installed. Default: `false`.
 
 * `sync_time_with_host_periodically` - (Optional) Enable the guest operating system to periodically synchronize its clock with the host. Requires vSphere 7.0 Update 1 and later. On previous versions, setting `sync_time_with_host` is will enable periodic synchronization. Requires VMware Tools to be installed. Default: `false`.
