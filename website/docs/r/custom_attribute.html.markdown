@@ -4,7 +4,7 @@ layout: "vsphere"
 page_title: "VMware vSphere: vsphere_custom_attribute"
 sidebar_current: "docs-vsphere-resource-inventory-custom-attribute"
 description: |-
-  Provides a vSphere custom attribute resource. This can be used to manage custom attributes in vSphere.
+  Provides a VMware vSphere custom attribute resource. This can be used to manage custom attributes in vSphere.
 ---
 
 # vsphere\_custom\_attribute
@@ -16,10 +16,10 @@ on the vCenter Server and not the managed object.
 
 For more information about custom attributes, click [here][ext-custom-attributes].
 
-[ext-custom-attributes]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.vcenterhost.doc/GUID-73606C4C-763C-4E27-A1DA-032E4C46219D.html
+[ext-custom-attributes]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vcenterhost.doc/GUID-73606C4C-763C-4E27-A1DA-032E4C46219D.html
 
-~> **NOTE:** Custom attributes are unsupported on direct ESXi connections 
-and require vCenter.
+~> **NOTE:** Custom attributes are unsupported on direct ESXi host connections 
+and require vCenter Server.
 
 ## Example Usage
 
@@ -33,27 +33,33 @@ resource "vsphere_custom_attribute" "attribute" {
 }
 ```
 
-## Using Custom Attributes in a Supported Resource
+## Using Custom Attributes on a Supported Resource
 
-Custom attributes can be set on vSphere resources in Terraform via the 
-`custom_attributes` argument in any supported resource.
+Custom attributes can be set on supported provider resources using the 
+`custom_attributes` argument.
 
-The following example builds on the above example by creating a 
-[`vsphere_virtual_machine`][docs-virtual-machine-resource] and assigning a 
-value to created custom attribute on it.
+The following example creates both a `vsphere_custom_attribute` resource and a
+[`vsphere_virtual_machine`][docs-virtual-machine-resource] resource. The custom attribute is then applied with an assigned value to the virtual machine.
 
 [docs-virtual-machine-resource]: /docs/providers/vsphere/r/virtual_machine.html
 
 ```hcl
+data "vsphere_custom_attribute" "attribute" {
+  depends_on = [
+    vsphere_custom_attribute.attribute
+  ]
+  name = "Owner"
+}
+
 resource "vsphere_custom_attribute" "attribute" {
-  name                = "terraform-test-attribute"
+  name                = "Owner"
   managed_object_type = "VirtualMachine"
 }
 
-resource "vpshere_virtual_machine" "web" {
+resource "vsphere_virtual_machine" "vm" { 
   # ... other configuration ...
-
-  custom_attributes = "${map(vsphere_custom_attribute.attribute.id, "value")}"
+  custom_attributes = tomap({"${data.vsphere_custom_attribute.attribute.id}" = "John Doe"})
+  # ... other configuration ...
 }
 ```
 
@@ -64,16 +70,13 @@ The following arguments are supported:
 * `name` - (Required) The name of the custom attribute.
 * `managed_object_type` - (Optional) The object type that this attribute may be
   applied to. If not set, the custom attribute may be applied to any object
-  type. For a full list, click [here](#managed-object-types). Forces a new
-  resource if changed.
+  type. For a full list, review the [Managed Object Types](#managed-object-types). Forces a new resource if changed.
 
 ## Managed Object Types
 
-The following table will help you determine what value you need to enter for 
-the managed object type you want the attribute to apply to.
+The following table provides the managed object values for which an attribute may apply.
 
-Note that if you want a attribute to apply to all objects, leave the type 
-unspecified.
+~> **Note:** If you want an attribute to apply to all objects, leave the type unspecified and it will be global.
 
 <table>
 <tr><th>Type</th><th>Value</th></tr>
