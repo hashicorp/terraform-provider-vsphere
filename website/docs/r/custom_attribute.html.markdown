@@ -62,6 +62,21 @@ resource "vsphere_virtual_machine" "vm" {
   # ... other configuration ...
 }
 ```
+The following example creates a [`vsphere_virtual_machine`][docs-virtual-machine-resource] resource and an existing custom attribute is then applied with an assigned value to the virtual machine.
+
+[docs-virtual-machine-resource]: /docs/providers/vsphere/r/virtual_machine.html
+
+```hcl
+data "vsphere_custom_attribute" "attribute" {
+  name = "Owner"
+}
+
+resource "vsphere_virtual_machine" "vm" { 
+  # ... other configuration ...
+  custom_attributes = tomap({"${data.vsphere_custom_attribute.attribute.id}" = "John Doe"})
+  # ... other configuration ...
+}
+```
 
 ## Argument Reference
 
