@@ -32,7 +32,7 @@ data "vsphere_datastore" "datastore" {
 resource "vsphere_content_library" "library" {
   name            = "Publishing Content Library"
   description     = "A publishing content library."
-  storage_backing = data.vsphere_datastore.datastore.id
+  storage_backing = toset([data.vsphere_datastore.datastore.id])
 }
 ```
 The next example creates a subscribed content library using the publisher content library as the source and the `subscriber-datastore` as the storage backing.
@@ -50,7 +50,7 @@ data "vsphere_datastore" "datastore" {
 resource "vsphere_content_library" "library" {
   name            = "Subscribed Content Library"
   description     = "A subscribed content library."
-  storage_backing = data.vsphere_datastore.datastore.id
+  storage_backing = toset([data.vsphere_datastore.datastore.id])
   subscription {
     subscription_url = "https://<vc-fqdn>:443/cls/vcsp/lib/<uuid>/lib.json"
     automatic_sync   = true  // Default.
