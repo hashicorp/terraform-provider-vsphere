@@ -292,3 +292,92 @@ func TestCompareVersion(t *testing.T) {
 		t.Run(tc.Name, tc.Test)
 	}
 }
+
+type testAtleastVersionExpectedResult string
+
+const (
+	testAtleastVersionNewer   = testAtleastVersionExpectedResult("atleast")
+	testAtleastVersionOlder   = testAtleastVersionExpectedResult("older")
+	testAtleastVersionUnknown = testAtleastVersionExpectedResult("unknown")
+)
+
+type testAtleastVersion struct {
+	Name string
+
+	productA string
+	versionA string
+	buildA   string
+	productB string
+	versionB string
+	buildB   string
+
+	expected testAtleastVersionExpectedResult
+}
+
+func (tc *testAtleastVersion) Test(t *testing.T) {
+	verA, err := parseVersion(tc.productA, tc.versionA, tc.buildA)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	verB, err := parseVersion(tc.productB, tc.versionB, tc.buildB)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	var actual []testAtleastVersionExpectedResult
+	if verA.AtLeast(verB) {
+		actual = append(actual, testAtleastVersionNewer)
+	} else {
+		actual = append(actual, testAtleastVersionOlder)
+	}
+	switch {
+	case len(actual) == 0:
+		if tc.expected == testAtleastVersionUnknown {
+			return
+		}
+		t.Fatalf("expected %s but result was unknown", tc.expected)
+	case len(actual) > 1:
+		t.Fatalf("expected only one result, got %s", actual)
+	case tc.expected != actual[0]:
+		t.Fatalf("expected %s, got %s", tc.expected, actual)
+	}
+}
+
+func TestAtLeast(t *testing.T) {
+	cases := []testAtleastVersion{
+		{
+			Name:     "atleast (newer)",
+			productA: "VMware vCenter Server",
+			versionA: "6.2.2",
+			buildA:   "0",
+			productB: "VMware vCenter Server",
+			versionB: "6.2.1",
+			buildB:   "1000000",
+			expected: testAtleastVersionNewer,
+		},
+		{
+			Name:     "atleast (equal)",
+			productA: "VMware vCenter Server",
+			versionA: "6.2.1",
+			buildA:   "1000000",
+			productB: "VMware vCenter Server",
+			versionB: "6.2.1",
+			buildB:   "1000000",
+			expected: testAtleastVersionNewer,
+		},
+		{
+			Name:     "older",
+			productA: "VMware vCenter Server",
+			versionA: "6.1.0",
+			buildA:   "1000000",
+			productB: "VMware vCenter Server",
+			versionB: "6.2.1",
+			buildB:   "0",
+			expected: testAtleastVersionOlder,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.Name, tc.Test)
+	}
+
+}

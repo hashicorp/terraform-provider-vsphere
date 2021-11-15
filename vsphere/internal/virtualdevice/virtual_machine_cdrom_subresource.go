@@ -397,26 +397,6 @@ func CdromPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object
 	return l, spec, nil
 }
 
-// CdromDiffOperation performs operations relevant to managing the
-// diff on cdrom sub-resources
-func CdromDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
-	log.Printf("[DEBUG] CdromDiffOperation: Beginning diff validation")
-	cr := d.Get(subresourceTypeCdrom)
-	for ci, ce := range cr.([]interface{}) {
-		cm := ce.(map[string]interface{})
-		r := NewCdromSubresource(c, d, cm, nil, ci)
-		if !structure.ValuesAvailable(fmt.Sprintf("%s.%d.", subresourceTypeCdrom, ci), []string{"datastore_id", "path"}, d) {
-			log.Printf("[DEBUG] CdromDiffOperation: Cdrom contains a value that depends on a computed value from another resource. Skipping validation")
-			return nil
-		}
-		if err := r.ValidateDiff(); err != nil {
-			return fmt.Errorf("%s: %s", r.Addr(), err)
-		}
-	}
-	log.Printf("[DEBUG] CdromDiffOperation: Diff validation complete")
-	return nil
-}
-
 // ValidateDiff performs any complex validation of an individual
 // cdrom sub-resource that can't be done in schema alone.
 func (r *CdromSubresource) ValidateDiff() error {
@@ -437,9 +417,13 @@ func (r *CdromSubresource) ValidateDiff() error {
 // Create creates a vsphere_virtual_machine cdrom sub-resource.
 func (r *CdromSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] %s: Running create", r)
+	err := r.ValidateDiff()
+	if err != nil {
+		return nil, err
+	}
 	var spec []types.BaseVirtualDeviceConfigSpec
 	var ctlr types.BaseVirtualController
-	ctlr, err := r.ControllerForCreateUpdate(l, SubresourceControllerTypeIDE, 0)
+	ctlr, err = r.ControllerForCreateUpdate(l, SubresourceControllerTypeIDE, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -521,6 +505,10 @@ func (r *CdromSubresource) Read(l object.VirtualDeviceList) error {
 // Update updates a vsphere_virtual_machine cdrom sub-resource.
 func (r *CdromSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] %s: Beginning update", r)
+	err := r.ValidateDiff()
+	if err != nil {
+		return nil, err
+	}
 	d, err := r.FindVirtualDevice(l)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find disk device: %s", err)

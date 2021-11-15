@@ -489,7 +489,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	_ = d.Set("vmx_path", dp.Path)
 
 	// Read general VM config info
-	if err := flattenVirtualMachineConfigInfo(d, vprops.Config); err != nil {
+	if err := flattenVirtualMachineConfigInfo(d, vprops.Config, client); err != nil {
 		return fmt.Errorf("error reading virtual machine configuration: %s", err)
 	}
 
@@ -899,13 +899,6 @@ func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.Res
 	if d.Get("vvtd_enabled").(bool) {
 		if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 7}) {
 			return fmt.Errorf("vvtd_enabled is only supported on vSphere 6.7 and higher")
-		}
-	}
-
-	// Validate cdrom sub-resources when not deploying from ovf
-	if len(d.Get("ovf_deploy").([]interface{})) == 0 {
-		if err := virtualdevice.CdromDiffOperation(d, client); err != nil {
-			return err
 		}
 	}
 

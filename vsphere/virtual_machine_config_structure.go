@@ -143,7 +143,12 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 		"sync_time_with_host": {
 			Type:        schema.TypeBool,
 			Optional:    true,
-			Description: "Enable guest clock synchronization with the host. Requires VMware tools to be installed.",
+			Description: "Enable guest clock synchronization with the host. On vSphere 7 U1 and above, with only this setting the clock is synchronized on startup and resume so consider also setting `sync_time_with_host_periodically`. Requires VMware tools to be installed.",
+		},
+		"sync_time_with_host_periodically": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Enable periodic clock synchronization with the host. Supported only on vSphere 7 U1 and above. On older versions setting `sync_time_with_host` is enough for periodic synchronization. Requires VMware tools to be installed.",
 		},
 		"run_tools_scripts_after_power_on": {
 			Type:        schema.TypeBool,
@@ -372,33 +377,40 @@ func flattenVirtualMachineBootOptions(d *schema.ResourceData, obj *types.Virtual
 
 // expandVirtualMachineFlagInfo reads certain ResourceData keys and
 // returns a VirtualMachineFlagInfo.
-func expandVirtualMachineFlagInfo(d *schema.ResourceData) *types.VirtualMachineFlagInfo {
+func expandVirtualMachineFlagInfo(d *schema.ResourceData, client *govmomi.Client) *types.VirtualMachineFlagInfo {
 	obj := &types.VirtualMachineFlagInfo{
 		DiskUuidEnabled:  getBoolWithRestart(d, "enable_disk_uuid"),
-		VbsEnabled:       getBoolWithRestart(d, "vbs_enabled"),
-		VvtdEnabled:      getBoolWithRestart(d, "vvtd_enabled"),
 		VirtualExecUsage: getWithRestart(d, "hv_mode").(string),
 		VirtualMmuUsage:  getWithRestart(d, "ept_rvi_mode").(string),
 		EnableLogging:    getBoolWithRestart(d, "enable_logging"),
+	}
+	version := viapi.ParseVersionFromClient(client)
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 7}) {
+		obj.VbsEnabled = getBoolWithRestart(d, "vbs_enabled")
+		obj.VvtdEnabled = getBoolWithRestart(d, "vvtd_enabled")
 	}
 	return obj
 }
 
 // flattenVirtualMachineFlagInfo reads various fields from a
 // VirtualMachineFlagInfo into the passed in ResourceData.
-func flattenVirtualMachineFlagInfo(d *schema.ResourceData, obj *types.VirtualMachineFlagInfo) error {
+func flattenVirtualMachineFlagInfo(d *schema.ResourceData, obj *types.VirtualMachineFlagInfo, client *govmomi.Client) error {
 	_ = d.Set("enable_disk_uuid", obj.DiskUuidEnabled)
-	_ = d.Set("vbs_enabled", obj.VbsEnabled)
-	_ = d.Set("vvtd_enabled", obj.VvtdEnabled)
 	_ = d.Set("hv_mode", obj.VirtualExecUsage)
 	_ = d.Set("ept_rvi_mode", obj.VirtualMmuUsage)
 	_ = d.Set("enable_logging", obj.EnableLogging)
+
+	version := viapi.ParseVersionFromClient(client)
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 7}) {
+		_ = d.Set("vbs_enabled", obj.VbsEnabled)
+		_ = d.Set("vvtd_enabled", obj.VvtdEnabled)
+	}
 	return nil
 }
 
 // expandToolsConfigInfo reads certain ResourceData keys and
 // returns a ToolsConfigInfo.
-func expandToolsConfigInfo(d *schema.ResourceData) *types.ToolsConfigInfo {
+func expandToolsConfigInfo(d *schema.ResourceData, client *govmomi.Client) *types.ToolsConfigInfo {
 	obj := &types.ToolsConfigInfo{
 		SyncTimeWithHost:    structure.GetBool(d, "sync_time_with_host"),
 		AfterPowerOn:        getBoolWithRestart(d, "run_tools_scripts_after_power_on"),
@@ -407,18 +419,30 @@ func expandToolsConfigInfo(d *schema.ResourceData) *types.ToolsConfigInfo {
 		BeforeGuestShutdown: getBoolWithRestart(d, "run_tools_scripts_before_guest_shutdown"),
 		BeforeGuestReboot:   getBoolWithRestart(d, "run_tools_scripts_before_guest_reboot"),
 	}
+
+	version := viapi.ParseVersionFromClient(client)
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0, Patch: 1}) {
+		obj.SyncTimeWithHostAllowed = structure.GetBool(d, "sync_time_with_host")
+		obj.SyncTimeWithHost = structure.GetBool(d, "sync_time_with_host_periodically")
+	}
 	return obj
 }
 
 // flattenToolsConfigInfo reads various fields from a
 // ToolsConfigInfo into the passed in ResourceData.
-func flattenToolsConfigInfo(d *schema.ResourceData, obj *types.ToolsConfigInfo) error {
+func flattenToolsConfigInfo(d *schema.ResourceData, obj *types.ToolsConfigInfo, client *govmomi.Client) error {
 	_ = d.Set("sync_time_with_host", obj.SyncTimeWithHost)
 	_ = d.Set("run_tools_scripts_after_power_on", obj.AfterPowerOn)
 	_ = d.Set("run_tools_scripts_after_resume", obj.AfterResume)
 	_ = d.Set("run_tools_scripts_before_guest_standby", obj.BeforeGuestStandby)
 	_ = d.Set("run_tools_scripts_before_guest_shutdown", obj.BeforeGuestShutdown)
 	_ = d.Set("run_tools_scripts_before_guest_reboot", obj.BeforeGuestReboot)
+
+	version := viapi.ParseVersionFromClient(client)
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0, Patch: 1}) {
+		_ = d.Set("sync_time_with_host", obj.SyncTimeWithHostAllowed)
+		_ = d.Set("sync_time_with_host_periodically", obj.SyncTimeWithHost)
+	}
 	return nil
 }
 
@@ -859,8 +883,8 @@ func expandVirtualMachineConfigSpec(d *schema.ResourceData, client *govmomi.Clie
 		GuestId:                      getWithRestart(d, "guest_id").(string),
 		AlternateGuestName:           getWithRestart(d, "alternate_guest_name").(string),
 		Annotation:                   d.Get("annotation").(string),
-		Tools:                        expandToolsConfigInfo(d),
-		Flags:                        expandVirtualMachineFlagInfo(d),
+		Tools:                        expandToolsConfigInfo(d, client),
+		Flags:                        expandVirtualMachineFlagInfo(d, client),
 		NumCPUs:                      expandCPUCountConfig(d),
 		NumCoresPerSocket:            int32(getWithRestart(d, "num_cores_per_socket").(int)),
 		MemoryMB:                     expandMemorySizeConfig(d),
@@ -889,7 +913,7 @@ func expandVirtualMachineConfigSpec(d *schema.ResourceData, client *govmomi.Clie
 // VirtualMachineConfigInfo into the passed in ResourceData.
 //
 // This is the flatten counterpart to expandVirtualMachineConfigSpec.
-func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualMachineConfigInfo) error {
+func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualMachineConfigInfo, client *govmomi.Client) error {
 	_ = d.Set("name", obj.Name)
 	_ = d.Set("guest_id", obj.GuestId)
 	_ = d.Set("alternate_guest_name", obj.AlternateGuestName)
@@ -908,10 +932,10 @@ func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualM
 	_ = d.Set("uuid", obj.Uuid)
 	_ = d.Set("hardware_version", virtualmachine.GetHardwareVersionNumber(obj.Version))
 
-	if err := flattenToolsConfigInfo(d, obj.Tools); err != nil {
+	if err := flattenToolsConfigInfo(d, obj.Tools, client); err != nil {
 		return err
 	}
-	if err := flattenVirtualMachineFlagInfo(d, &obj.Flags); err != nil {
+	if err := flattenVirtualMachineFlagInfo(d, &obj.Flags, client); err != nil {
 		return err
 	}
 	if err := flattenVirtualMachineResourceAllocation(d, obj.CpuAllocation, "cpu"); err != nil {
@@ -948,7 +972,7 @@ func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, client *govmo
 	oldData := resourceVSphereVirtualMachine().Data(&terraform.InstanceState{})
 	oldData.SetId(d.Id())
 	// Flatten the old config info into it
-	err := flattenVirtualMachineConfigInfo(oldData, info)
+	err := flattenVirtualMachineConfigInfo(oldData, info, client)
 	if err != nil {
 		return types.VirtualMachineConfigSpec{}, false, err
 	}

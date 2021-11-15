@@ -478,7 +478,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Description: "Whether the VSAN service is enabled for the cluster.",
 			},
 			"vsan_disk_group": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Optional:    true,
 				Computed:    true,
 				Description: "A list of disk UUIDs to add to the vSAN cluster.",

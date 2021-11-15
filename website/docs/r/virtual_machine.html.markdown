@@ -728,8 +728,14 @@ The following options control boot settings on the virtual machine:
 
 The following options control VMware tools options on the virtual machine:
 
-* `sync_time_with_host` - (Optional) Enable guest clock synchronization with
-  the host. Requires VMware tools to be installed. Default: `false`.
+* `sync_time_with_host` - (Optional) Enable guest clock synchronization with the host.
+On vSphere 7 U1 and above, with only this setting the clock is synchronized on
+startup and resume so consider also setting `sync_time_with_host_periodically`.
+Requires VMware tools to be installed. Default: `false`.
+* `sync_time_with_host_periodically` - (Optional) Enable periodic clock
+synchronization with the host. Supported only on vSphere 7 U1 and above.
+On older versions setting `sync_time_with_host` is enough for periodic
+synchronization. Requires VMware tools to be installed. Default: `false`.
 * `run_tools_scripts_after_power_on` - (Optional) Enable the execution of
   post-power-on scripts when VMware tools is installed. Default: `true`.
 * `run_tools_scripts_after_resume` - (Optional) Enable the execution of
