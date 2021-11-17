@@ -87,7 +87,6 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 
   host {
     host_system_id = "${data.vsphere_host.host.2.id}"
-    devices        = ["${var.network_interfaces}"]
   }
 }
 ```
@@ -180,7 +179,7 @@ and require vCenter.
   options are:
  * `host_system_id` - (Required) The host system ID of the host to add to the
    DVS.
- * `devices` - (Required) The list of NIC devices to map to uplinks on the DVS,
+ * `devices` - (Optional) The list of NIC devices to map to uplinks on the DVS,
    added in order they are specified.
 
 ### Private VLAN mapping arguments
