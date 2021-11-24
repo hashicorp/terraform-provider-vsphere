@@ -278,7 +278,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Type:         schema.TypeString,
 			Optional:     true,
 			Default:      string(types.GuestOsDescriptorFirmwareTypeBios),
-			Description:  "The firmware interface to use on the virtual machine. Can be one of bios or EFI.",
+			Description:  "The firmware interface to use on the virtual machine. Can be one of bios or efi.",
 			ValidateFunc: validation.StringInSlice(virtualMachineFirmwareAllowedValues, false),
 		},
 		"extra_config": {

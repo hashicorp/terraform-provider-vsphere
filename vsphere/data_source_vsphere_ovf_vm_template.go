@@ -80,7 +80,7 @@ func dataSourceVSphereOvfVMTemplate() *schema.Resource {
 		"firmware": {
 			Type:        schema.TypeString,
 			Computed:    true,
-			Description: "The firmware interface to use on the virtual machine. Can be one of bios or EFI.",
+			Description: "The firmware interface to use on the virtual machine. Can be one of bios or efi.",
 		},
 		"sata_controller_count": {
 			Type:        schema.TypeInt,
