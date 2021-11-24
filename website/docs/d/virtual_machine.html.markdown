@@ -69,7 +69,7 @@ The following attributes are exported:
   virtual machine.
 * `num_cores_per_socket` - The number of cores per socket for this virtual machine.
 * `firmware` - The firmware interface that is used by this virtual machine. Can be
-  either `bios` or `EFI`.
+  either `bios` or `efi`.
 * `hardware_version` - The hardware version number on this virtual machine.
 * `scsi_type` - The common type of all SCSI controllers on this virtual machine.
   Will be one of `lsilogic` (LSI Logic Parallel), `lsilogic-sas` (LSI Logic
