@@ -1600,6 +1600,44 @@ management of such disks would render their configuration unstable.
 
 [tf-vsphere-virtual-disk]: /docs/providers/vsphere/r/virtual_disk.html
 
+## Virtual Machine Reboot
+
+The virtual machine will be rebooted if any of the following parameters changed:
+
+* `extra_config`
+* `guest_id`
+* `alternate_guest_name`
+* `hardware_version`
+* `pci_device_id`
+* `memory` -  When reducing the memory size, or when increasing the memory size and `memory_hot_add_enabled` is set to `false`
+* `memory_hot_add_enabled`
+* `cpu_hot_add_enabled`
+* `cpu_hot_remove_enabled`
+* `num_cores_per_socket`
+* `swap_placement_policy`
+* `firmware`
+* `nested_hv_enabled`
+* `cpu_performance_counters_enabled`
+* `efi_secure_boot_enabled`
+* `enable_disk_uuid`
+* `hv_mode`
+* `ept_rvi_mode`
+* `enable_logging`
+* `vbs_enabled`
+* `vvtd_enabled`
+* `run_tools_scripts_after_power_on`
+* `run_tools_scripts_after_resume`
+* `run_tools_scripts_before_guest_standby`
+* `run_tools_scripts_before_guest_shutdown`
+* `run_tools_scripts_before_guest_reboot`
+* `disk.controller_type`
+* `disk.unit_number`
+* `disk.disk_mode`
+* `disk.write_through`
+* `disk.disk_sharing`
+* `network_interface` - When deleting a network interface and VMware Tools is not running.
+* `network_interface.adapter_type` - When VMware Tools is not running.
+
 ## Attribute Reference
 
 The following attributes are exported on the base level of this resource:
