@@ -1602,41 +1602,41 @@ management of such disks would render their configuration unstable.
 
 ## Virtual Machine Reboot
 
-The virtual machine will be rebooted if any of the following parameters changed:
+The virtual machine will be rebooted if any of the following parameters are changed:
 
-* `extra_config`
-* `guest_id`
 * `alternate_guest_name`
-* `hardware_version`
-* `pci_device_id`
-* `memory` -  When reducing the memory size, or when increasing the memory size and `memory_hot_add_enabled` is set to `false`
-* `memory_hot_add_enabled`
 * `cpu_hot_add_enabled`
 * `cpu_hot_remove_enabled`
-* `num_cores_per_socket`
-* `swap_placement_policy`
-* `firmware`
-* `nested_hv_enabled`
 * `cpu_performance_counters_enabled`
-* `efi_secure_boot_enabled`
-* `enable_disk_uuid`
-* `hv_mode`
-* `ept_rvi_mode`
-* `enable_logging`
-* `vbs_enabled`
-* `vvtd_enabled`
-* `run_tools_scripts_after_power_on`
-* `run_tools_scripts_after_resume`
-* `run_tools_scripts_before_guest_standby`
-* `run_tools_scripts_before_guest_shutdown`
-* `run_tools_scripts_before_guest_reboot`
 * `disk.controller_type`
 * `disk.unit_number`
 * `disk.disk_mode`
 * `disk.write_through`
 * `disk.disk_sharing`
+* `efi_secure_boot_enabled`
+* `ept_rvi_mode`
+* `enable_disk_uuid`
+* `enable_logging`
+* `extra_config`
+* `firmware`
+* `guest_id`
+* `hardware_version`
+* `hv_mode`
+* `memory` -  When reducing the memory size, or when increasing the memory size and `memory_hot_add_enabled` is set to `false`
+* `memory_hot_add_enabled`
+* `nested_hv_enabled`
 * `network_interface` - When deleting a network interface and VMware Tools is not running.
 * `network_interface.adapter_type` - When VMware Tools is not running.
+* `num_cores_per_socket`
+* `pci_device_id`
+* `run_tools_scripts_after_power_on`
+* `run_tools_scripts_after_resume`
+* `run_tools_scripts_before_guest_standby`
+* `run_tools_scripts_before_guest_shutdown`
+* `run_tools_scripts_before_guest_reboot`
+* `swap_placement_policy`
+* `vbs_enabled`
+* `vvtd_enabled`
 
 ## Attribute Reference
 
