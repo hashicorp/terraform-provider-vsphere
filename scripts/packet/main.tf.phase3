@@ -31,7 +31,7 @@ variable "PACKET_PROJECT" {}
 variable "PRIV_KEY" {}
 
 variable "ESXI_VERSION" {
-  default = "vmware_esxi_6_7"
+  default = "vmware_esxi_7_0"
 }
 
 variable "PACKET_FACILITY" {
@@ -145,19 +145,19 @@ resource "packet_port_vlan_attachment" "vmvlan_esxi2" {
   vlan_vnid = packet_vlan.vmvlan.vxlan
 }
 
-data "packet_precreated_ip_block" "private" {
-  facility         = var.PACKET_FACILITY
-  project_id       = local.project_id
-  address_family   = 4
-  public           = false
-}
+# data "packet_precreated_ip_block" "private" {
+#   facility         = var.PACKET_FACILITY
+#   project_id       = local.project_id
+#   address_family   = 4
+#   public           = false
+# }
 
-data "packet_precreated_ip_block" "public" {
-  facility         = var.PACKET_FACILITY
-  project_id       = local.project_id
-  address_family   = 4
-  public           = true
-}
+# data "packet_precreated_ip_block" "public" {
+#   facility         = var.PACKET_FACILITY
+#   project_id       = local.project_id
+#   address_family   = 4
+#   public           = true
+# }
 
 data "vsphere_network" "vmnet" {
   datacenter_id = vsphere_datacenter.dc.moid
@@ -194,6 +194,8 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
     host_system_id = vsphere_host.host2.id
     devices        = [var.VSPHERE_ESXI_TRUNK_NIC]
   }
+
+  version = "7.0.0"
 }
 
 resource "vsphere_distributed_port_group" "pg" {

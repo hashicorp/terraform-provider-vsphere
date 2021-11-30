@@ -33,7 +33,7 @@ variable "PRIV_KEY" {}
 variable "VCSA_DEPLOY_PATH" {}
 
 variable "ESXI_VERSION" {
-  default = "vmware_esxi_6_7"
+  default = "vmware_esxi_7_0"
 }
 
 variable "PACKET_FACILITY" {
@@ -137,19 +137,19 @@ resource "packet_port_vlan_attachment" "vmvlan_esxi2" {
   vlan_vnid = packet_vlan.vmvlan.vxlan
 }
 
-data "packet_precreated_ip_block" "private" {
-  facility         = var.PACKET_FACILITY
-  project_id       = local.project_id
-  address_family   = 4
-  public           = false
-}
+# data "packet_precreated_ip_block" "private" {
+#   facility         = var.PACKET_FACILITY
+#   project_id       = local.project_id
+#   address_family   = 4
+#   public           = false
+# }
 
-data "packet_precreated_ip_block" "public" {
-  facility         = var.PACKET_FACILITY
-  project_id       = local.project_id
-  address_family   = 4
-  public           = true
-}
+# data "packet_precreated_ip_block" "public" {
+#   facility         = var.PACKET_FACILITY
+#   project_id       = local.project_id
+#   address_family   = 4
+#   public           = true
+# }
 
 resource "local_file" "vcsa_template1" {
   content = templatefile("${path.cwd}/vcsa_deploy.json", {
