@@ -31,7 +31,7 @@ variable "PACKET_PROJECT" {}
 variable "PRIV_KEY" {}
 
 variable "ESXI_VERSION" {
-  default = "vmware_esxi_6_7"
+  default = "vmware_esxi_7_0"
 }
 variable "PACKET_FACILITY" {
   default = "sjc1"
@@ -43,6 +43,10 @@ variable ESXI_PLAN {
 
 variable STORAGE_PLAN {
   default = "c1.small.x86"
+}
+
+variable LAB_PREFIX {
+  default = ""
 }
 
 provider "packet" {
@@ -62,12 +66,12 @@ provider "vsphere" {
 
 data "packet_device" "esxi1" {
   project_id = local.project_id
-  hostname       = "esxi1.vspheretest.internal"
+  hostname       = "${var.LAB_PREFIX}esxi1.vspheretest.internal"
 }
 
 
 resource "packet_device" "esxi1" {
-  hostname         = "esxi1.vspheretest.internal"
+  hostname         = "${var.LAB_PREFIX}esxi1.vspheretest.internal"
   plan             = var.ESXI_PLAN
   facilities       = [var.PACKET_FACILITY]
   operating_system = var.ESXI_VERSION
@@ -81,7 +85,7 @@ resource "packet_device_network_type" "esxi1" {
 }
 
 resource "packet_device" "esxi2" {
-  hostname         = "esxi2.vspheretest.internal"
+  hostname         = "${var.LAB_PREFIX}esxi2.vspheretest.internal"
   plan             = var.ESXI_PLAN
   facilities       = [var.PACKET_FACILITY]
   operating_system = var.ESXI_VERSION
@@ -95,7 +99,7 @@ resource "packet_device_network_type" "esxi2" {
 }
 
 resource "packet_device" "storage1" {
-  hostname         = "storage1.vspheretest.internal"
+  hostname         = "${var.LAB_PREFIX}storage1.vspheretest.internal"
   plan             = var.STORAGE_PLAN
   facilities       = [var.PACKET_FACILITY]
   operating_system = "ubuntu_20_04"
@@ -180,6 +184,8 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
     host_system_id = vsphere_host.host2.id
     devices        = [var.VSPHERE_ESXI_TRUNK_NIC]
   }
+
+  version = "7.0.0"
 }
 
 resource "vsphere_distributed_port_group" "pg" {
