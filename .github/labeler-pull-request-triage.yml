@@ -2,7 +2,7 @@ dependencies:
   - 'vendor/**/*'
 documentation:
   - '**/*.md'
-  - 'examples/**/*''
+  - 'examples/**/*'
   - 'website/**/*'
 provider:
   - '.circleci/**/*'
