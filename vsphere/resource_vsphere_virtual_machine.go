@@ -278,6 +278,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Computed:    true,
 			Description: "The machine object ID from VMWare",
 		},
+		"desired_status": {
+			Type: schema.TypeString,
+			Optional:    true,
+			Computed: true,
+			Description: "Provide the desired status for virtual machine resource. Supported state: 'SHUTDOWN'",
+		},
 		vSphereTagAttributeKey:    tagsSchema(),
 		customattribute.ConfigKey: customattribute.ConfigSchema(),
 	}
@@ -576,6 +582,19 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	vm, err := virtualmachine.FromUUID(client, id)
 	if err != nil {
 		return fmt.Errorf("cannot locate virtual machine with UUID %q: %s", id, err)
+	}
+    
+	if d.HasChange("desired_status"){
+		desiredStatus := d.Get("desired_status").(string)
+        timeout := d.Get("shutdown_wait_timeout").(int)
+		if desiredStatus != " "{
+			if desiredStatus == "SHUTDOWN"{
+				if err := virtualmachine.GracefulPowerOff(client, vm, timeout, true); err != nil {
+					return fmt.Errorf("error shutting down virtual machine: %s", err)
+				}
+			}
+		}
+
 	}
 
 	if d.HasChange("resource_pool_id") {
