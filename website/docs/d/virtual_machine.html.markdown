@@ -117,6 +117,11 @@ The following attributes are exported:
  * `network_id` - The managed object reference ID of the network this interface is 
   connected to.
 * `firmware` - The firmware type for this virtual machine. Can be `bios` or `efi`.
+* `default_ip_address` - Whenever possible, this is the first IPv4 address that is reachable through
+  the default gateway configured on the machine, then the first reachable IPv6
+  address, and then the first general discovered address if neither exist. If
+  VMware tools is not running on the virtual machine, or if the VM is powered
+  off, this value will be blank.
 * `guest_ip_addresses` - A list of IP addresses as reported by VMWare tools.
 
 ~> **NOTE:** Keep in mind when using the results of `scsi_type` and
