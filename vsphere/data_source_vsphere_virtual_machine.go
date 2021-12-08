@@ -132,6 +132,11 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 				},
 			},
 		},
+		"default_ip_address": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The default IP address.",
+		},
 		"guest_ip_addresses": {
 			Type:        schema.TypeList,
 			Description: "The current list of IP addresses on this virtual machine.",
