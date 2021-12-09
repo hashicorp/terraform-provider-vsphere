@@ -2,6 +2,7 @@
 
 BUG FIXES:
 * `resource/virtual_machine`: Don't read `storage_policy_id` if vCenter is not configured. This is not a scenario we test or support explicitly [GH-1408]
+* `datasource/virtual_machine`: Fix silent failure and add `default_ip_address` attribute. [GH-1532]
 
 ## 2.0.2 (June 25, 2021)
 
