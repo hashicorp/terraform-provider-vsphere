@@ -282,6 +282,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Type: schema.TypeString,
 			Optional:    true,
 			Computed: true,
+			ValidateFunc: validation.StringInSlice([]string{"SHUTDOWN"}, false),
 			Description: "Provide the desired status for virtual machine resource. Supported state: 'SHUTDOWN'",
 		},
 		vSphereTagAttributeKey:    tagsSchema(),
@@ -592,6 +593,10 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 				if err := virtualmachine.GracefulPowerOff(client, vm, timeout, true); err != nil {
 					return fmt.Errorf("error shutting down virtual machine: %s", err)
 				}
+			}
+			if desiredStatus != "SHUTDOWN" {
+				return fmt.Errorf("Supported desired status value of the instance can only be 'SHUTDOWN'")
+				
 			}
 		}
 
