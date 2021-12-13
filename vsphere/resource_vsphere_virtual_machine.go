@@ -283,7 +283,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Optional:    true,
 			Computed: true,
 			ValidateFunc: validation.StringInSlice([]string{"SHUTDOWN"}, false),
-			Description: "Provide the desired status for virtual machine resource. Supported state: 'SHUTDOWN'",
+			Description: "Provide the desired status for a deployed virtual machine instance. Supported state is: 'SHUTDOWN'",
 		},
 		vSphereTagAttributeKey:    tagsSchema(),
 		customattribute.ConfigKey: customattribute.ConfigSchema(),
