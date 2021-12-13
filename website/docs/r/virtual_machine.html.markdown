@@ -677,7 +677,7 @@ requires vCenter 6.0 or higher.
 and require vCenter.
 
 * `storage_policy_id` - (Optional) The UUID of the storage policy to assign to VM home directory.
-* `desired_status` - (Optional) Desired status of the instance, supported state is "SHUTDOWN".
+* `desired_status` - (Optional) Desired status of the deployed virtual machine instance, supported state is "SHUTDOWN".
 
 ~> **NOTE** A running virtual machine instance can be powered off/shutdown using this "desired_status" option.
 
