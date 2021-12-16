@@ -3,10 +3,11 @@ package vsphere
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"regexp"
 	"sort"
 	"time"
+
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -37,29 +38,29 @@ func dataSourceVSphereVmfsDisks() *schema.Resource {
 			},
 			"disks": {
 				Type:        schema.TypeList,
-				Description: "The names of the disks discovered by the search.",
+				Description: "The canonical names of the disks discovered by the search.",
 				Computed:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
-			"disks_info": {
+			"disk_details": {
 				Type:        schema.TypeList,
 				Description: "The details of the disks discovered by the search.",
 				Computed:    true,
 				Elem: &schema.Resource{Schema: map[string]*schema.Schema{
-					"name": {
+					"display_name": {
 						Type:        schema.TypeString,
 						Computed:    true,
-						Description: "Display name of the disk",
+						Description: "Display name of the disk.",
 					},
-					"path": {
+					"device_path": {
 						Type:        schema.TypeString,
 						Computed:    true,
 						Description: "Path of the physical volume of the disk.",
 					},
-					"capacity_in_gb": {
+					"capacity_gb": {
 						Type:        schema.TypeInt,
 						Computed:    true,
-						Description: "Capacity in GB.",
+						Description: "Capacity of the disk in GiB.",
 					},
 				}},
 			},
@@ -93,28 +94,33 @@ func dataSourceVSphereVmfsDisksRead(d *schema.ResourceData, meta interface{}) er
 	d.SetId(time.Now().UTC().String())
 
 	var disks []string
-	var disksInfo []map[string]interface{}
+	diskDetailsMap := make(map[string]map[string]interface{})
 	for _, sl := range hss.StorageDeviceInfo.ScsiLun {
 		if hsd, ok := sl.(*types.HostScsiDisk); ok {
 			if matched, _ := regexp.MatchString(d.Get("filter").(string), hsd.CanonicalName); matched {
 				disk := make(map[string]interface{})
-				disk["name"] = hsd.DisplayName
-				disk["path"] = hsd.DevicePath
+				disk["display_name"] = hsd.DisplayName
+				disk["device_path"] = hsd.DevicePath
 				block := hsd.Capacity.Block
 				blockSize := int64(hsd.Capacity.BlockSize)
-				disk["capacity_in_gb"] = structure.ByteToGiB(block * blockSize)
-				disksInfo = append(disksInfo, disk)
+				disk["capacity_gb"] = structure.ByteToGiB(block * blockSize)
 				disks = append(disks, hsd.CanonicalName)
+				diskDetailsMap[hsd.CanonicalName] = disk
 			}
 		}
 	}
 	sort.Strings(disks)
+	// use the now sorted name list to create a matching order details list
+	diskDetails := make([]map[string]interface{}, len(disks))
+	for i, name := range disks {
+		diskDetails[i] = diskDetailsMap[name]
+	}
 
 	if err := d.Set("disks", disks); err != nil {
 		return fmt.Errorf("error saving results to state: %s", err)
 	}
 
-	if err := d.Set("disks_info", disksInfo); err != nil {
+	if err := d.Set("disk_details", diskDetails); err != nil {
 		return fmt.Errorf("error saving results to state: %s", err)
 	}
 

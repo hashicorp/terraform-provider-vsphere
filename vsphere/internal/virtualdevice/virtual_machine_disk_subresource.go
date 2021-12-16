@@ -206,15 +206,17 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 			Description: "The type of controller the disk should be connected to. Must be 'scsi', 'sata', or 'ide'.",
 		},
 		"rdm_lun_path": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			Description: "The path to the Lun to be used for RDM disk.",
+			Type:         schema.TypeString,
+			Optional:     true,
+			RequiredWith: []string{"compatibility_mode"},
+			Description:  "The path to the LUN to be used for RDM disk.",
 		},
 		"compatibility_mode": {
 			Type:         schema.TypeString,
 			Optional:     true,
+			RequiredWith: []string{"rdm_lun_path"},
 			ValidateFunc: validation.StringInSlice(diskSubresourceCompatibilityModeAllowedValues, false),
-			Description:  "compatibility mode for rdm disk {physical or virtual}.",
+			Description:  "Compatibility mode for RDM disk.",
 		},
 	}
 	structure.MergeSchema(s, subresourceSchema())
@@ -1562,14 +1564,11 @@ func (r *DiskSubresource) DiffGeneral() error {
 	if r.Get("eagerly_scrub").(bool) && r.Get("thin_provisioned").(bool) {
 		return fmt.Errorf("%s: eagerly_scrub and thin_provisioned cannot both be set to true", name)
 	}
-	if r.Get("rdm_lun_path").(string) != "" && r.Get("compatibility_mode").(string) == "" {
-		return fmt.Errorf("%s: To add a RDM Disk, compatibility_mode is a required parameter", name)
+
+	if r.Get("compatibility_mode").(string) == string(types.VirtualDiskCompatibilityModePhysicalMode) && r.Get("disk_mode").(string) != string(types.VirtualDiskModeIndependent_persistent) {
+		return fmt.Errorf("%s: To add RDM Disks in physical compatibility mode, only independent persistent disk mode is supported", name)
 	}
-	if r.Get("rdm_lun_path").(string) != "" && r.Get("compatibility_mode").(string) == string(types.VirtualDiskCompatibilityModePhysicalMode) {
-		if r.Get("disk_mode").(string) != string(types.VirtualDiskModeIndependent_persistent) {
-			return fmt.Errorf("%s: To add RDM Disks in physical compatibility mode, only independent persistent disk mode is supported", name)
-		}
-	}
+
 	log.Printf("[DEBUG] %s: Diff validation complete", r)
 	return nil
 }

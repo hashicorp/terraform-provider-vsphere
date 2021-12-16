@@ -101,7 +101,7 @@ data "vsphere_vmfs_disks" "available" {
 }
 
 output "found" {
-  value = "${length(data.vsphere_vmfs_disks.available.disks_info) >= 1 ? "true" : "false" }"
+  value = "${length(data.vsphere_vmfs_disks.available.disk_details) >= 1 ? "true" : "false" }"
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),

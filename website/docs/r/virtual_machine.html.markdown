@@ -891,7 +891,7 @@ resource "vsphere_virtual_machine" "vm" {
       label       = "disk2"
       size        = "10"
       unit_number = 2
-      rdm_lun_path = "//Target LUN path to add a RDM Disk"
+      rdm_lun_path = "/path/to/lun"
       compatibility_mode = "physicalMode"
     }
 

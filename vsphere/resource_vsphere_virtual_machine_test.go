@@ -546,6 +546,9 @@ func TestAccResourceVSphereVirtualMachine_RDMDisk(t *testing.T) {
 			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
+			if os.Getenv("TF_VAR_VSPHERE_RDM_DISK_LUN_PATH") == "" {
+				t.Skip("set TF_VAR_VSPHERE_RDM_DISK_LUN_PATH to run vsphere_virtual_machine RDM tests")
+			}
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
@@ -2572,9 +2575,6 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	}
 	if os.Getenv("TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES") == "" {
 		t.Skip("set TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES to run vsphere_virtual_machine acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_RDM_DISK_LUN_PATH") == "" {
-		t.Skip("set TF_VAR_VSPHERE_RDM_DISK_LUN_PATH to run vsphere_virtual_machine acceptance tests")
 	}
 }
 
