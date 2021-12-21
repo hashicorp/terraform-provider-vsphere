@@ -75,7 +75,7 @@ func dataSourceVSphereOvfVMTemplate() *schema.Resource {
 		"alternate_guest_name": {
 			Type:        schema.TypeString,
 			Computed:    true,
-			Description: "The guest name for the operating system when guest_id is other or other-64.",
+			Description: "The guest name for the operating system when guest_id is otherGuest or otherGuest64.",
 		},
 		"firmware": {
 			Type:        schema.TypeString,
