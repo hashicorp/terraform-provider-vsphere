@@ -816,7 +816,9 @@ func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l o
 	ods, nds := d.GetChange(subresourceTypeDisk)
 
 	var relocators []types.VirtualMachineRelocateSpecDiskLocator
-	var relocateOK bool
+
+	// We definitely need to relocate if the datastore cluster changed
+	relocateOK := d.HasChange("datastore_cluster_id")
 
 	// We are only concerned with resources that would normally be updated, as
 	// incoming or outgoing disks obviously won't need migrating. Hence, this is
