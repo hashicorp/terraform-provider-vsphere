@@ -308,7 +308,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     180,
-				Description: "When ha_vm_component_protection is enabled, controls the delay in minutes to wait after an APD timeout event to execute the response action defined in ha_datastore_apd_response.",
+				Description: "When ha_vm_component_protection is enabled, controls the delay in seconds to wait after an APD timeout event to execute the response action defined in ha_datastore_apd_response.",
 			},
 			// VM monitoring
 			"ha_vm_monitoring": {
