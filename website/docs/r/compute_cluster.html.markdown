@@ -126,9 +126,8 @@ within the cluster itself by Terraform.
 * `host_managed` - (Optional) Can be set to `true` if compute cluster
   membership will be managed through the `host` resource rather than the
   `compute_cluster` resource. Conflicts with: `host_system_ids`.
-* `host_cluster_exit_timeout` - The timeout for each host maintenance mode
-  operation when removing hosts from a cluster. The value is specified in
-  seconds. Default: `3600` (1 hour).
+* `host_cluster_exit_timeout` - The timeout, in seconds, for each host maintenance
+  mode operation when removing hosts from a cluster. Default: `3600` seconds (1 hour).
 * `force_evacuate_on_destroy` - When destroying the resource, setting this to
   `true` will auto-remove any hosts that are currently a member of the cluster,
   as if they were removed by taking their entry out of `host_system_ids` (see
@@ -231,12 +230,12 @@ ensure that any configured settings work correctly. For a full list, see the
   `appHbStatusGreen`. The default is `none`, which means that a virtual machine
   is considered ready immediately after a host is found to start it on.
   <sup>[\*](#vsphere-version-requirements)</sup>
-* `ha_vm_restart_additional_delay` - (Optional) Additional delay in seconds
+* `ha_vm_restart_additional_delay` - (Optional) Additional delay, in seconds,
   after ready condition is met. A VM is considered ready at this point.
-  Default: `0` (no delay). <sup>[\*](#vsphere-version-requirements)</sup>
+  Default: `0` seconds (no delay). <sup>[\*](#vsphere-version-requirements)</sup>
 * `ha_vm_restart_timeout` - (Optional) The maximum time, in seconds,
   that vSphere HA will wait for virtual machines in one priority to be ready
-  before proceeding with the next priority. Default: `600` (10 minutes).
+  before proceeding with the next priority. Default: `600` seconds (10 minutes).
   <sup>[\*](#vsphere-version-requirements)</sup>
 * `ha_host_isolation_response` - (Optional) The action to take on virtual
   machines when a host has detected that it has been isolated from the rest of
@@ -275,10 +274,10 @@ tuning these options.
   on virtual machines if an APD status on an affected datastore clears in the
   middle of an APD event. Can be one of `none` or `reset`. Default: `none`.
   <sup>[\*](#vsphere-version-requirements)</sup>
-* `ha_datastore_apd_response_delay` - (Optional) Controls the delay in minutes
-  to wait after an APD timeout event to execute the response action defined in
-  [`ha_datastore_apd_response`](#ha_datastore_apd_response). Default: `3`
-  minutes. <sup>[\*](#vsphere-version-requirements)</sup>
+* `ha_datastore_apd_response_delay` - (Optional) The time, in seconds,
+  to wait after an APD timeout event to run the response action defined in 
+  [`ha_datastore_apd_response`](#ha_datastore_apd_response). Default: `180`
+  seconds (3 minutes). <sup>[\*](#vsphere-version-requirements)</sup>
 
 #### HA virtual machine and application monitoring settings
 
@@ -288,20 +287,19 @@ virtual machine and application monitoring on vSphere HA.
 * `ha_vm_monitoring` - (Optional) The type of virtual machine monitoring to use
   when HA is enabled in the cluster. Can be one of `vmMonitoringDisabled`,
   `vmMonitoringOnly`, or `vmAndAppMonitoring`. Default: `vmMonitoringDisabled`.
-* `ha_vm_failure_interval` - (Optional) If a heartbeat from a virtual machine
-  is not received within this configured interval, the virtual machine is
-  marked as failed. The value is in seconds. Default: `30`.
+* `ha_vm_failure_interval` - (Optional) The time interval, in seconds, a heartbeat
+  from a virtual machine is not received within this configured interval, 
+  the virtual machine is marked as failed. Default: `30` seconds.
 * `ha_vm_minimum_uptime` - (Optional) The time, in seconds, that HA waits after
   powering on a virtual machine before monitoring for heartbeats. Default:
-  `120` (2 minutes).
+  `120` seconds (2 minutes).
 * `ha_vm_maximum_resets` - (Optional) The maximum number of resets that HA will
   perform to a virtual machine when responding to a failure event. Default: `3`
-* `ha_vm_maximum_failure_window` - (Optional) The length of the reset window in
+* `ha_vm_maximum_failure_window` - (Optional) The time, in seconds, for the reset window in
   which [`ha_vm_maximum_resets`](#ha_vm_maximum_resets) can operate. When this
   window expires, no more resets are attempted regardless of the setting
   configured in `ha_vm_maximum_resets`. `-1` means no window, meaning an
-  unlimited reset time is allotted. The value is specified in seconds. Default:
-  `-1` (no window).
+  unlimited reset time is allotted. Default: `-1` (no window).
 
 #### vSphere HA Admission Control settings
 

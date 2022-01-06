@@ -17,7 +17,7 @@ while not affecting the rest of the cluster.
 
 For more information on vSphere HA, see [this page][ref-vsphere-ha-clusters].
 
-[ref-vsphere-ha-clusters]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.avail.doc/GUID-5432CA24-14F1-44E3-87FB-61D937831CF6.html
+[ref-vsphere-ha-clusters]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.avail.doc/GUID-5432CA24-14F1-44E3-87FB-61D937831CF6.html
 
 ~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
 connections.
@@ -157,7 +157,7 @@ overrides.
   the middle of an APD event. Can be one of `useClusterDefault`, `none` or
   `reset`.  Default: `useClusterDefault`.
   <sup>[\*][tf-vsphere-cluster-resource-version-restrictions]</sup>
-* `ha_datastore_apd_response_delay` - (Optional) Controls the delay in minutes
+* `ha_datastore_apd_response_delay` - (Optional) Controls the delay in seconds
   to wait after an APD timeout event to execute the response action defined in
   [`ha_datastore_apd_response`](#ha_datastore_apd_response). Use `-1` to use
   the cluster default. Default: `-1`.
