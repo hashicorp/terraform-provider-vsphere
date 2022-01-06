@@ -1,6 +1,7 @@
 ## 2.1.0 (Unreleased)
 
 BUG FIXES:
+* `resource/compute_cluster`: Updates `ha_datastore_apd_response_delay` to the API default (180) for `vmTerminateDelayForAPDSec`. Previously set to 3 (minutes) however the codebase uses this value as seconds. Users who had the field left blank may see a warning about the state value drifting from 3 to 180, after applying this should go away. [GH-1542]
 * `resource/virtual_machine`: Don't read `storage_policy_id` if vCenter is not configured. This is not a scenario we test or support explicitly [GH-1408]
 * `datasource/virtual_machine`: Fix silent failure and add `default_ip_address` attribute. [GH-1532]
 * `resource/virtual_machine`: Attempt to fix race condition by always forcing a new datastore id [GH-1486]
