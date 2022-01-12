@@ -9,7 +9,7 @@ description: |-
 # vsphere\_virtual\_machine
 
 The `vsphere_virtual_machine` data source can be used to find the UUID of an
-existing virtual machine or template. THe most common purpose is for finding
+existing virtual machine or template. The most common purpose is for finding
 the UUID of a template to be used as the source for cloning to a new
 [`vsphere_virtual_machine`][docs-virtual-machine-resource] resource. It also
 reads the guest ID so that can be supplied as well.
