@@ -1,3 +1,7 @@
+<a href="https://terraform.io">
+    <img src=".github/tf.png" alt="Terraform logo" title="Terraform" align="left" height="50" />
+</a>
+
 # Terraform Provider for vSphere
 
 [![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/hashicorp/terraform-provider-vsphere?label=release&style=for-the-badge)](https://github.com/hashicorp/terraform-provider-vsphere/releases/latest) [![License](https://img.shields.io/github/license/hashicorp/terraform-provider-vsphere.svg?style=for-the-badge)](LICENSE)
