@@ -9,6 +9,8 @@ BUG FIXES:
 
 IMPROVEMENTS:
 * `resource/vapp_container`: Documentation updates. [GH-1551]
+* `resource/computer_cluster_vm_affinity_rule`: Documentation updates. [GH-1544]
+* `resource/computer_cluster_vm_anti_affinity_rule`: Documentation updates. [GH-1544]
 
 ## 2.0.2 (June 25, 2021)
 
