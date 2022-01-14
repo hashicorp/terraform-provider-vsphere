@@ -18,7 +18,7 @@ by the [`vsphere_compute_cluster`][tf-vsphere-cluster-data-source] data source.
 [tf-vsphere-cluster-resource]: /docs/providers/vsphere/r/compute_cluster.html
 [tf-vsphere-cluster-data-source]: /docs/providers/vsphere/d/compute_cluster.html
 
-This rule can be used to tell a set to virtual machines to run together on the
+This rule can be used to tell a set of virtual machines to run together on the
 same host within a cluster. When configured, DRS will make a best effort to
 ensure that the virtual machines run on the same host, or prevent any operation
 that would keep that from happening, depending on the value of the
@@ -61,31 +61,31 @@ data "vsphere_datacenter" "datacenter" {
 
 data "vsphere_datastore" "datastore" {
   name          = "datastore-01"
-  datacenter_id = "data.vsphere_datacenter.datacenter".id"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_compute_cluster" "cluster" {
   name          = "cluster-01"
-  datacenter_id = "data.vsphere_datacenter.datacenter".id"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_network" "network" {
   name          = "VM Network"
-  datacenter_id = "data.vsphere_datacenter.datacenter".id"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   count            = 2
   name             = "foo-${count.index}"
-  resource_pool_id = "data.vsphere_compute_cluster.cluster.resource_pool_id"
-  datastore_id     = "data.vsphere_datastore.datastore.id"
+  resource_pool_id = data.vsphere_compute_cluster.cluster.resource_pool_id
+  datastore_id     = data.vsphere_datastore.datastore.id
 
   num_cpus = 1
   memory   = 1024
   guest_id = "otherLinux64Guest"
 
   network_interface {
-    network_id = "data.vsphere_network.network.id"
+    network_id = data.vsphere_network.network.id
   }
 
   disk {
@@ -121,7 +121,7 @@ data "vsphere_datacenter" "datacenter" {
 
 data "vsphere_compute_cluster" "cluster" {
   name          = "cluster-01"
-  datacenter_id = "data.vsphere_datacenter.datacenter".id"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_virtual_machine" "vms" {
