@@ -5,6 +5,7 @@ BUG FIXES:
 * `resource/virtual_machine`: Don't read `storage_policy_id` if vCenter is not configured. This is not a scenario we test or support explicitly [GH-1408]
 * `datasource/virtual_machine`: Fix silent failure and add `default_ip_address` attribute. [GH-1532]
 * `resource/virtual_machine`: Attempt to fix race condition by always forcing a new datastore id. [GH-1486]
+* `resource/virtual_machine`: Fix default guest OS identifier. [GH-1543]
 
 IMPROVEMENTS:
 * `resource/vapp_container`: Documentation updates. [GH-1551]
