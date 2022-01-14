@@ -28,8 +28,6 @@ An affinity rule places a group of virtual machines on the same
 host within a cluster. When configured, vSphere DRS will make a best effort
 to ensure that the virtual machines run on the same host, or prevent any
 operation that would keep that from happening, depending on the value of the
-[`mandatory`](#mandatory) flag.
-
 -> An affinity rule can only be used to place virtual machines on the same
 _non-specific_ hosts. It cannot be used to pin virtual machines to a host. 
 To enable this capability, use the
