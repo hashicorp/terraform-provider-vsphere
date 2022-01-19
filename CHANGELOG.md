@@ -15,6 +15,10 @@ IMPROVEMENTS:
 * `resource/custom_attribute`: Documentation updates. [GH-1508]
 * `resource/vm_storage_policy`: Documentation updates. [GH-1541]
 * `datasource/storage_policy`: Documentation updates. [GH-1541]
+* `resource/distributed_virtual_switch`: Documentation updates. [GH-1504]
+* `datasource/distributed_virtual_switch`: Documentation updates. [GH-1504]
+
+
 
 
 
