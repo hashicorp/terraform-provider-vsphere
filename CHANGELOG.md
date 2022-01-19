@@ -13,6 +13,10 @@ IMPROVEMENTS:
 * `resource/computer_cluster_vm_anti_affinity_rule`: Documentation updates. [GH-1544]
 * `resource/virtual_machine`: Documentation updates. [GH-1513]
 * `resource/custom_attribute`: Documentation updates. [GH-1508]
+* `resource/vm_storage_policy`: Documentation updates. [GH-1541]
+* `datasource/storage_policy`: Documentation updates. [GH-1541]
+
+
 
 ## 2.0.2 (June 25, 2021)
 
