@@ -17,6 +17,7 @@ IMPROVEMENTS:
 * `datasource/storage_policy`: Documentation updates. [GH-1541]
 * `resource/distributed_virtual_switch`: Documentation updates. [GH-1504]
 * `datasource/distributed_virtual_switch`: Documentation updates. [GH-1504]
+* `resource/distributed_virtual_switch`: Add support for dvs versions `6.6.0` and `7.0.3`. [GH-1501]
 
 
 
