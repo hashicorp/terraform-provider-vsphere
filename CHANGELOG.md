@@ -18,9 +18,7 @@ IMPROVEMENTS:
 * `resource/distributed_virtual_switch`: Documentation updates. [GH-1504]
 * `datasource/distributed_virtual_switch`: Documentation updates. [GH-1504]
 * `resource/distributed_virtual_switch`: Add support for dvs versions `6.6.0` and `7.0.3`. [GH-1501]
-
-
-
+* `datasource/content_library_item`: Documentation updates. [GH-1507]
 
 
 ## 2.0.2 (June 25, 2021)
