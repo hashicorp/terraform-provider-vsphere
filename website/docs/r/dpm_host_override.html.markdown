@@ -17,7 +17,7 @@ at the default power management settings.
 For more information on DPM within vSphere clusters, see [this
 page][ref-vsphere-cluster-dpm].
 
-[ref-vsphere-cluster-dpm]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.resmgmt.doc/GUID-5E5E349A-4644-4C9C-B434-1C0243EBDC80.html
+[ref-vsphere-cluster-dpm]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.resmgmt.doc/GUID-5E5E349A-4644-4C9C-B434-1C0243EBDC80.html
 
 ~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
 connections.
