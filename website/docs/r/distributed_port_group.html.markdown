@@ -155,7 +155,7 @@ specify `number_of_ports`, you may wish to set `auto_expand` to `false`.
   the ports in this port group. See the `portNameFormat` attribute listed
   [here][ext-vsphere-portname-format] for details on the format syntax.
 
-[ext-vsphere-portname-format]: https://code.vmware.com/apis/196/vsphere#/doc/vim.dvs.DistributedVirtualPortgroup.ConfigInfo.html#portNameFormat
+[ext-vsphere-portname-format]: https://vdc-download.vmware.com/vmwb-repository/dcr-public/b50dcbbf-051d-4204-a3e7-e1b618c1e384/538cf2ec-b34f-4bae-a332-3820ef9e7773/vim.dvs.DistributedVirtualPortgroup.ConfigInfo.html#portNameFormat
 
 * `network_resource_pool_key` - (Optional) The key of a network resource pool
   to associate with this port group. The default is `-1`, which implies no

@@ -47,7 +47,8 @@ The following arguments are supported:
 * `name_regex` - (Optional) A regular expression that will be used to match
   the object's name.
 * `type` - (Optional) The managed object type the returned object must match.
-  For a full list, click [here](https://code.vmware.com/apis/196/vsphere).
+  The managed object types can be found in the managed object type section 
+  [here](https://developer.vmware.com/apis/968/vsphere).
 
 ## Attribute Reference
 

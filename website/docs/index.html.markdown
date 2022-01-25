@@ -259,7 +259,7 @@ inventory as it's presented to the API. It's normally accessed via
 `https://VSPHERE_SERVER/mob`. For more information, see
 [here][vsphere-docs-using-mob].
 
-[vsphere-docs-using-mob]: https://code.vmware.com/doc/preview?id=4205#/doc/PG_Appx_Using_MOB.21.2.html#994699
+[vsphere-docs-using-mob]: https://developer.vmware.com/doc/PG_Appx_Using_MOB.21.2.html#994699
 
 ~> **NOTE:** The MOB also offers API method invocation capabilities, and for
 security reasons should be used sparingly. Modern vSphere installations may
