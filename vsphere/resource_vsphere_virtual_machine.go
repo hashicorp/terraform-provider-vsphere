@@ -261,7 +261,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		"vmware_tools_status": {
 			Type:        schema.TypeString,
 			Computed:    true,
-			Description: "The state of VMware tools in the guest. This will determine the proper course of action for some device operations.",
+			Description: "The state of VMware Tools in the guest. This will determine the proper course of action for some device operations.",
 		},
 		"vmx_path": {
 			Type:        schema.TypeString,
@@ -276,7 +276,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		"moid": {
 			Type:        schema.TypeString,
 			Computed:    true,
-			Description: "The machine object ID from VMWare",
+			Description: "The machine object ID from VMware vSphere.",
 		},
 		vSphereTagAttributeKey:    tagsSchema(),
 		customattribute.ConfigKey: customattribute.ConfigSchema(),
@@ -429,7 +429,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	// Reset reboot_required. This is an update only variable and should not be
 	// set across TF runs.
 	_ = d.Set("reboot_required", false)
-	// Check to see if VMware tools is running.
+	// Check to see if VMware Tools is running.
 	if vprops.Guest != nil {
 		_ = d.Set("vmware_tools_status", vprops.Guest.ToolsRunningStatus)
 	}

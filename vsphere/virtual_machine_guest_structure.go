@@ -34,7 +34,7 @@ func (a int32arr) Len() int           { return len(a) }
 func (a int32arr) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a int32arr) Less(i, j int) bool { return a[i] < a[j] }
 
-// buildAndSelectGuestIPs builds a list of IP addresses known to VMware tools.
+// buildAndSelectGuestIPs builds a list of IP addresses known to VMware Tools.
 // From this list, it selects the first IP address it seems that's associated
 // with a default gateway - first IPv4, and then IPv6 if criteria can't be
 // satisfied - and sets that as the default_ip_address and also the IP address
@@ -106,7 +106,7 @@ func buildAndSelectGuestIPs(d *schema.ResourceData, guest types.GuestInfo) error
 
 	if len(addrs) < 1 {
 		// No IP addresses were discovered. This more than likely means that the VM
-		// is powered off, or VMware tools is not installed. We can return here,
+		// is powered off, or VMware Tools is not installed. We can return here,
 		// setting the empty set of addresses to avoid spurious diffs.
 		log.Printf("[DEBUG] %s: No IP addresses found in guest state", resourceVSphereVirtualMachineIDString(d))
 		return d.Set("guest_ip_addresses", addrs)
