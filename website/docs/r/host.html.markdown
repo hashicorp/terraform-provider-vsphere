@@ -80,6 +80,7 @@ The following arguments are supported:
 * `maintenance` - (Optional) Set the management state of the host. Default is `false`.
 * `lockdown` - (Optional) Set the lockdown state of the host. Valid options are
   `disabled`, `normal`, and `strict`. Default is `disabled`.
+* tags - (Optional) The IDs of any tags to attach to this resource. Please refer to the vsphere_tag resource for more information on applying tags to virtual machine resources.
 
 ## Attribute Reference
 
