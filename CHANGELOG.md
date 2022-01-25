@@ -819,7 +819,7 @@ IMPROVEMENTS:
   greatly improved, exposing more options and fixing several bugs. ([#244](https://github.com/hashicorp/terraform-provider-vsphere/issues/244))
 * `resource/vsphere_virtual_machine`: Added support for CPU and memory hot-plug.
   Several other VM reconfiguration operations are also supported while the VM is
-  powered on, guest type and VMware tools permitting in some cases. ([#244](https://github.com/hashicorp/terraform-provider-vsphere/issues/244))
+  powered on, guest type and VMware Tools permitting in some cases. ([#244](https://github.com/hashicorp/terraform-provider-vsphere/issues/244))
 * `resource/vsphere_virtual_machine`: The resource now supports both host and
   storage vMotion. Virtual machines can now be moved between hosts, clusters,
   resource pools, and datastores. Individual disks can be pinned to a single
