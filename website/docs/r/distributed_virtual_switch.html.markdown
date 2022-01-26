@@ -24,8 +24,8 @@ page][ref-vsphere-net-concepts]. For more information on vSphere VDS, see [this
 page][ref-vsphere-vds].
 
 [distributed-port-group]: /docs/providers/vsphere/r/distributed_port_group.html
-[ref-vsphere-net-concepts]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.networking.doc/GUID-2B11DBB8-CB3C-4AFF-8885-EFEA0FC562F4.html
-[ref-vsphere-vds]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.networking.doc/GUID-375B45C7-684C-4C51-BA3C-70E48DFABF04.html
+[ref-vsphere-net-concepts]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.networking.doc/GUID-2B11DBB8-CB3C-4AFF-8885-EFEA0FC562F4.html
+[ref-vsphere-vds]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.networking.doc/GUID-375B45C7-684C-4C51-BA3C-70E48DFABF04.html
 
 ~> **NOTE:** This resource requires vCenter Server and is not available on direct ESXi host
 connections.

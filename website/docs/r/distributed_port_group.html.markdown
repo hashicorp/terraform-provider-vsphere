@@ -23,8 +23,8 @@ page][ref-vsphere-net-concepts]. For more information on vSphere DVS
 portgroups, see [this page][ref-vsphere-dvportgroup].
 
 [distributed-virtual-switch]: /docs/providers/vsphere/r/distributed_virtual_switch.html
-[ref-vsphere-net-concepts]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.networking.doc/GUID-2B11DBB8-CB3C-4AFF-8885-EFEA0FC562F4.html
-[ref-vsphere-dvportgroup]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.networking.doc/GUID-69933F6E-2442-46CF-AA17-1196CB9A0A09.html
+[ref-vsphere-net-concepts]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.networking.doc/GUID-2B11DBB8-CB3C-4AFF-8885-EFEA0FC562F4.html
+[ref-vsphere-dvportgroup]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.networking.doc/GUID-69933F6E-2442-46CF-AA17-1196CB9A0A09.html
 
 ~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
 connections.
@@ -155,7 +155,7 @@ specify `number_of_ports`, you may wish to set `auto_expand` to `false`.
   the ports in this port group. See the `portNameFormat` attribute listed
   [here][ext-vsphere-portname-format] for details on the format syntax.
 
-[ext-vsphere-portname-format]: https://code.vmware.com/apis/196/vsphere#/doc/vim.dvs.DistributedVirtualPortgroup.ConfigInfo.html#portNameFormat
+[ext-vsphere-portname-format]: https://vdc-download.vmware.com/vmwb-repository/dcr-public/b50dcbbf-051d-4204-a3e7-e1b618c1e384/538cf2ec-b34f-4bae-a332-3820ef9e7773/vim.dvs.DistributedVirtualPortgroup.ConfigInfo.html#portNameFormat
 
 * `network_resource_pool_key` - (Optional) The key of a network resource pool
   to associate with this port group. The default is `-1`, which implies no

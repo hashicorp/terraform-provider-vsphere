@@ -674,7 +674,7 @@ The following options are general virtual machine and provider workflow options:
 
 * `guest_id` - (Optional) The guest ID for the operating system type. For a full list of possible values, see [here][vmware-docs-guest-ids]. Default: `otherGuest64`.
 
-[vmware-docs-guest-ids]: https://code.vmware.com/apis/358/doc/vim.vm.GuestOsDescriptor.GuestOsIdentifier.html
+[vmware-docs-guest-ids]: https://vdc-download.vmware.com/vmwb-repository/dcr-public/b50dcbbf-051d-4204-a3e7-e1b618c1e384/538cf2ec-b34f-4bae-a332-3820ef9e7773/vim.vm.GuestOsDescriptor.GuestOsIdentifier.html
 
 * `alternate_guest_name` - (Optional) The guest name for the operating system when `guest_id` is `otherGuest` or `otherGuest64`.
 
