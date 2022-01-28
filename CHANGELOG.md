@@ -6,6 +6,7 @@ BUG FIXES:
 * `datasource/virtual_machine`: Fix silent failure and add `default_ip_address` attribute. [GH-1532]
 * `resource/virtual_machine`: Attempt to fix race condition by always forcing a new datastore id. [GH-1486]
 * `resource/virtual_machine`: Fix default guest OS identifier. [GH-1543]
+* `resource/virtual_machine`: Updates `windows_options` to ensure all required options for domain join are provided [GH-1562]
 
 IMPROVEMENTS:
 * `resource/vapp_container`: Documentation updates. [GH-1551]
