@@ -20,6 +20,7 @@ IMPROVEMENTS:
 * `datasource/distributed_virtual_switch`: Documentation updates. [GH-1504]
 * `resource/distributed_virtual_switch`: Add support for dvs versions `6.6.0` and `7.0.3`. [GH-1501]
 * `datasource/content_library_item`: Documentation updates. [GH-1507]
+* `resource/vsphere_ha_vm_override`: Adds `disabled` option to `ha_vm_restart_priority`. [GH-1505]
 
 
 ## 2.0.2 (June 25, 2021)
