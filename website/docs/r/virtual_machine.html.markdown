@@ -160,7 +160,6 @@ resource "vsphere_virtual_machine" "vm" {
   disk {
     label            = "disk0"
     size             = data.vsphere_virtual_machine.template.disks.0.size
-    eagerly_scrub    = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
     thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
   clone {
@@ -544,7 +543,6 @@ resource "vsphere_virtual_machine" "vm" {
   disk {
     name             = "disk0"
     size             = data.vsphere_virtual_machine.template_from_ovf.disks.0.size
-    eagerly_scrub    = data.vsphere_virtual_machine.template_from_ovf.disks.0.eagerly_scrub
     thin_provisioned = data.vsphere_virtual_machine.template_from_ovf.disks.0.thin_provisioned
   }
   clone {
@@ -1291,7 +1289,30 @@ The options available in the `ovf_deploy` block are:
 
 ### Using vApp Properties for OVF/OVA Configuration
 
-You can use the `properties` section of the `vapp` block to supply configuration parameters to a virtual machine cloned from a template that originated from an imported OVF/OVA file. Both GuestInfo and ISO transport methods are supported. For templates that use ISO transport, a CD-ROM backed by a client device must be included. See the section on [CD-ROM options](#cd-rom-options) for more information. 
+You can use the `properties` section of the `vapp` block to supply configuration parameters to a virtual machine cloned from a template that originated from an imported OVF/OVA file. Both GuestInfo and ISO transport methods are supported. 
+
+For templates that use ISO transport, a CD-ROM backed by a client device must be included. 
+
+**Example**:
+
+```hcl
+resource "vsphere_virtual_machine" "vm" {
+  # ... other configuration ...
+  clone {
+    template_uuid = data.vsphere_virtual_machine.template_from_ovf.id
+  }
+  cdrom {
+    client_device = true
+  }
+  vapp {
+    properties = {
+      guestinfo.terraform.id = "foo"
+    }
+  }
+}
+```
+
+See the section on [CD-ROM options](#cd-rom-options) for more information. 
 
 ~> **NOTE:** The only supported usage path for vApp properties is for existing user-configurable keys. These generally come from an existing template created by importing an OVF or OVA file. You cannot set values for vApp properties on virtual machines created from scratch, virtual machines lacking a vApp configuration, or on property keys that do not exist.
 
