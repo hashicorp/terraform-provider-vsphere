@@ -1,7 +1,6 @@
 package vsphere
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"io/ioutil"
 	"log"
 	"os"
@@ -9,7 +8,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func init() {
@@ -67,7 +68,7 @@ func testAccClientPreCheck(t *testing.T) {
 	testAccPreCheck(t)
 }
 
-func testAccClientGenerateConfig(t *testing.T) *Config {
+func testAccClientGenerateConfig() *Config {
 	insecure, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_ALLOW_UNVERIFIED_SSL"))
 	debug, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_CLIENT_DEBUG"))
 
@@ -106,7 +107,7 @@ func testAccClientCheckStatNoExist(t *testing.T, p string) {
 	switch {
 	case err == nil:
 		t.Fatalf("expected session file %q to not exist", p)
-	case err != nil && os.IsNotExist(err):
+	case os.IsNotExist(err):
 		return
 	case err != nil:
 		t.Fatalf("could not stat path %q: %s", p, err)
@@ -135,7 +136,7 @@ func TestAccClient_persistence(t *testing.T) {
 		}
 	}()
 
-	c := testAccClientGenerateConfig(t)
+	c := testAccClientGenerateConfig()
 	c.Persist = true
 	c.VimSessionPath = vimSessionDir
 
@@ -171,7 +172,7 @@ func TestAccClient_noPersistence(t *testing.T) {
 		}
 	}()
 
-	c := testAccClientGenerateConfig(t)
+	c := testAccClientGenerateConfig()
 	// Just to be explicit on intent
 	c.Persist = false
 	c.VimSessionPath = vimSessionDir
@@ -202,17 +203,17 @@ func TestNewConfig(t *testing.T) {
 		VimSessionPath: "./baz",
 	}
 
-	r := &schema.Resource{Schema: Provider().(*schema.Provider).Schema}
+	r := &schema.Resource{Schema: Provider().Schema}
 	d := r.Data(nil)
-	d.Set("user", expected.User)
-	d.Set("password", expected.Password)
-	d.Set("allow_unverified_ssl", expected.InsecureFlag)
-	d.Set("vsphere_server", expected.VSphereServer)
-	d.Set("client_debug", expected.Debug)
-	d.Set("client_debug_path_run", expected.DebugPathRun)
-	d.Set("client_debug_path", expected.DebugPath)
-	d.Set("persist_session", expected.Persist)
-	d.Set("vim_session_path", expected.VimSessionPath)
+	_ = d.Set("user", expected.User)
+	_ = d.Set("password", expected.Password)
+	_ = d.Set("allow_unverified_ssl", expected.InsecureFlag)
+	_ = d.Set("vsphere_server", expected.VSphereServer)
+	_ = d.Set("client_debug", expected.Debug)
+	_ = d.Set("client_debug_path_run", expected.DebugPathRun)
+	_ = d.Set("client_debug_path", expected.DebugPath)
+	_ = d.Set("persist_session", expected.Persist)
+	_ = d.Set("vim_session_path", expected.VimSessionPath)
 
 	actual, err := NewConfig(d)
 	if err != nil {

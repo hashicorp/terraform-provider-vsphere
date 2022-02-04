@@ -2,11 +2,12 @@ package vsphere
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"regexp"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 )
 
 func TestAccDataSourceVSphereDynamic_regexAndTag(t *testing.T) {
@@ -112,12 +113,12 @@ func testAccDataSourceVSphereDynamicConfigBase() string {
 }
 
 func testAccDataSourceVSphereConfigRegexAndTag() string {
-	conf := fmt.Sprintf(`
-data "vsphere_dynamic" "dyn1" {
- filter     = [ vsphere_tag.tag1.id ]
- name_regex = "dc2"
-}
-`)
+	conf := `
+	data "vsphere_dynamic" "dyn1" {
+	 filter     = [ vsphere_tag.tag1.id ]
+	 name_regex = "dc2"
+	}
+	`
 	return testhelper.CombineConfigs(
 		testAccDataSourceVSphereDynamicConfigBase(),
 		conf,
@@ -126,12 +127,12 @@ data "vsphere_dynamic" "dyn1" {
 }
 
 func testAccDataSourceVSphereConfigMultiTag() string {
-	conf := fmt.Sprintf(`
-data "vsphere_dynamic" "dyn2" {
-  filter     = [ vsphere_tag.tag1.id, vsphere_tag.tag2.id ]
-  name_regex = ""
-}
-`)
+	conf := `
+	data "vsphere_dynamic" "dyn2" {
+	  filter     = [ vsphere_tag.tag1.id, vsphere_tag.tag2.id ]
+	  name_regex = ""
+	}
+	`
 	return testhelper.CombineConfigs(
 		testAccDataSourceVSphereDynamicConfigBase(),
 		conf,
@@ -140,12 +141,12 @@ data "vsphere_dynamic" "dyn2" {
 }
 
 func testAccDataSourceVSphereConfigMultiMatch() string {
-	conf := fmt.Sprintf(`
-data "vsphere_dynamic" "dyn3" {
-  filter     = [ vsphere_tag.tag1.id ]
-  name_regex = ""
-}
-`)
+	conf := `
+	data "vsphere_dynamic" "dyn3" {
+	  filter     = [ vsphere_tag.tag1.id ]
+	  name_regex = ""
+	}
+	`
 	return testhelper.CombineConfigs(
 		testAccDataSourceVSphereDynamicConfigBase(),
 		conf,
@@ -154,13 +155,13 @@ data "vsphere_dynamic" "dyn3" {
 }
 
 func testAccDataSourceVSphereConfigType() string {
-	conf := fmt.Sprintf(`
-data "vsphere_dynamic" "dyn4" {
- filter     = [ vsphere_tag.tag1.id, vsphere_tag.tag2.id ]
- name_regex = ""
- type       = "Datacenter"
-}
-`)
+	conf := `
+	data "vsphere_dynamic" "dyn4" {
+	 filter     = [ vsphere_tag.tag1.id, vsphere_tag.tag2.id ]
+	 name_regex = ""
+	 type       = "Datacenter"
+	}
+	`
 	return testhelper.CombineConfigs(
 		testAccDataSourceVSphereDynamicConfigBase(),
 		conf,

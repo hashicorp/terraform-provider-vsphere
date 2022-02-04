@@ -4,15 +4,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"reflect"
 	"sort"
 	"testing"
 
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
+
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
@@ -41,7 +42,7 @@ func TestAccResourceVSphereComputeClusterVMGroup_basic(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					cluster, err := testGetComputeClusterFromDataSource(s, "cluster")
+					cluster, err := testGetComputeClusterFromDataSource(s, "rootcompute_cluster1")
 					if err != nil {
 						return "", err
 					}
@@ -196,7 +197,7 @@ func testAccResourceVSphereComputeClusterVMGroupMatchMembershipVMIDs(s *terrafor
 		ids = testAccResourceVSphereComputeClusterVMGroupGetMultiple(s)
 	}
 
-	results, err := virtualmachine.MOIDsForUUIDs(testAccProvider.Meta().(*VSphereClient).vimClient, ids)
+	results, err := virtualmachine.MOIDsForUUIDs(testAccProvider.Meta().(*Client).vimClient, ids)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +254,14 @@ resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
   virtual_machine_ids = "${vsphere_virtual_machine.vm.*.id}"
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2(),
+			testhelper.ConfigResDS1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigResResourcePool1(),
+			testhelper.ConfigDataRootPortGroup1()),
 		count,
 	)
 }

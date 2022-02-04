@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build ppc64le,!gccgo,!appengine
+// +build gc,!purego
 
 #include "textflag.h"
 
@@ -58,7 +58,6 @@ DATA ·poly1305Mask<>+0x08(SB)/8, $0x0FFFFFFC0FFFFFFC
 GLOBL ·poly1305Mask<>(SB), RODATA, $16
 
 // func update(state *[7]uint64, msg []byte)
-
 TEXT ·update(SB), $0-32
 	MOVD state+0(FP), R3
 	MOVD msg_base+8(FP), R4
@@ -83,7 +82,7 @@ multiply:
 	BGE loop
 
 bytes_between_0_and_15:
-	CMP  $0, R5
+	CMP  R5, $0
 	BEQ  done
 	MOVD $0, R16 // h0
 	MOVD $0, R17 // h1
@@ -123,7 +122,7 @@ just1:
 	// Exactly 8
 	MOVD (R4), R16
 
-	CMP $0, R17
+	CMP R17, $0
 
 	// Check if we've already set R17; if not
 	// set 1 to indicate end of msg.
@@ -152,7 +151,7 @@ less4:
 	ADD   $2, R4
 
 less2:
-	CMP   $0, R5
+	CMP   R5, $0
 	BEQ   insert1
 	MOVBZ (R4), R21
 	SLD   R22, R21, R21
@@ -167,81 +166,16 @@ insert1:
 
 carry:
 	// Add new values to h0, h1, h2
-	ADDC R16, R8
-	ADDE R17, R9
-	ADDE $0, R10
-	MOVD $16, R5
-	ADD  R5, R4
-	BR   multiply
+	ADDC  R16, R8
+	ADDE  R17, R9
+	ADDZE R10, R10
+	MOVD  $16, R5
+	ADD   R5, R4
+	BR    multiply
 
 done:
 	// Save h0, h1, h2 in state
 	MOVD R8, 0(R3)
 	MOVD R9, 8(R3)
 	MOVD R10, 16(R3)
-	RET
-
-// func initialize(state *[7]uint64, key *[32]byte)
-TEXT ·initialize(SB), $0-16
-	MOVD state+0(FP), R3
-	MOVD key+8(FP), R4
-
-	// state[0...7] is initialized with zero
-	// Load key
-	MOVD 0(R4), R5
-	MOVD 8(R4), R6
-	MOVD 16(R4), R7
-	MOVD 24(R4), R8
-
-	// Address of key mask
-	MOVD $·poly1305Mask<>(SB), R9
-
-	// Save original key in state
-	MOVD R7, 40(R3)
-	MOVD R8, 48(R3)
-
-	// Get mask
-	MOVD (R9), R7
-	MOVD 8(R9), R8
-
-	// And with key
-	AND R5, R7, R5
-	AND R6, R8, R6
-
-	// Save masked key in state
-	MOVD R5, 24(R3)
-	MOVD R6, 32(R3)
-	RET
-
-// func finalize(tag *[TagSize]byte, state *[7]uint64)
-TEXT ·finalize(SB), $0-16
-	MOVD tag+0(FP), R3
-	MOVD state+8(FP), R4
-
-	// Get h0, h1, h2 from state
-	MOVD 0(R4), R5
-	MOVD 8(R4), R6
-	MOVD 16(R4), R7
-
-	// Save h0, h1
-	MOVD  R5, R8
-	MOVD  R6, R9
-	MOVD  $3, R20
-	MOVD  $-1, R21
-	SUBC  $-5, R5
-	SUBE  R21, R6
-	SUBE  R20, R7
-	MOVD  $0, R21
-	SUBZE R21
-
-	// Check for carry
-	CMP  $0, R21
-	ISEL $2, R5, R8, R5
-	ISEL $2, R6, R9, R6
-	MOVD 40(R4), R8
-	MOVD 48(R4), R9
-	ADDC R8, R5
-	ADDE R9, R6
-	MOVD R5, 0(R3)
-	MOVD R6, 8(R3)
 	RET

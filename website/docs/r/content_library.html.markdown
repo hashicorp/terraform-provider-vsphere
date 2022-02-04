@@ -57,7 +57,7 @@ The following arguments are supported:
   * `username` - (Optional) User name to log in with.
   * `password` - (Optional) Password to log in with.
   * `automatic_sync` - (Optional) Enable automatic synchronization with the external content library.
-  * `on_demand` - (Optional) Download all library content immediately.
+  * `on_demand` - (Optional) Boolean determining whether the content is immediately downloaded. When set to `true `, the library content will be downloaded when needed. When set to `false`, the library content will be downloaded immediately.
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 

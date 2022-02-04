@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/vmware/govmomi/find"
 )
 
@@ -21,13 +21,13 @@ resource "vsphere_datacenter" "testDC" {
 
 const testAccCheckVSphereDatacenterConfigSubfolder = `
 resource "vsphere_folder" "folder" {
-  name = "%s"
+  path = "%s"
   type = "datacenter"
 }
 
 resource "vsphere_datacenter" "testDC" {
   name   = "testDC"
-  folder = vsphere_folder.folder.name
+  folder = vsphere_folder.folder.path
 }
 `
 
@@ -129,7 +129,6 @@ resource "vsphere_datacenter" "testDC" {
 
 // Create a datacenter on the root folder
 func TestAccResourceVSphereDatacenter_createOnRootFolder(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -278,7 +277,7 @@ func TestAccResourceVSphereDatacenter_modifyCustomAttribute(t *testing.T) {
 }
 
 func testAccCheckVSphereDatacenterDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*VSphereClient).vimClient
+	client := testAccProvider.Meta().(*Client).vimClient
 	finder := find.NewFinder(client.Client, true)
 
 	for _, rs := range s.RootModule().Resources {
@@ -317,7 +316,7 @@ func testAccCheckVSphereDatacenterExists(n string, exists bool) resource.TestChe
 			return fmt.Errorf("no ID is set")
 		}
 
-		client := testAccProvider.Meta().(*VSphereClient).vimClient
+		client := testAccProvider.Meta().(*Client).vimClient
 		finder := find.NewFinder(client.Client, true)
 
 		path := rs.Primary.Attributes["name"]
@@ -349,7 +348,7 @@ func testAccResourceVSphereDatacenterCheckTags(tagResName string) resource.TestC
 		if err != nil {
 			return err
 		}
-		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsManager()
+		tagsClient, err := testAccProvider.Meta().(*Client).TagsManager()
 		if err != nil {
 			return err
 		}

@@ -2,12 +2,13 @@ package vsphere
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccDataSourceVSphereVirtualMachine_basic(t *testing.T) {
@@ -40,6 +41,14 @@ func TestAccDataSourceVSphereVirtualMachine_basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.unit_number"),
 					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.label"),
 					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interface_types.#"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.#"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.adapter_type"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.bandwidth_limit"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.bandwidth_reservation"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.bandwidth_share_level"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.bandwidth_share_count"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.mac_address"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.network_id"),
 					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "firmware"),
 				),
 			},
@@ -77,6 +86,14 @@ func TestAccDataSourceVSphereVirtualMachine_noDatacenterAndAbsolutePath(t *testi
 					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.unit_number"),
 					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.label"),
 					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interface_types.#"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.#"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.adapter_type"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.bandwidth_limit"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.bandwidth_reservation"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.bandwidth_share_level"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.bandwidth_share_count"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.mac_address"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.network_id"),
 					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "firmware"),
 				),
 			},

@@ -2,16 +2,16 @@ package vsphere
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"path"
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
 
@@ -136,7 +136,7 @@ func TestAccResourceVSphereVmfsDatastore_renameDatastore(t *testing.T) {
 				Config: testAccResourceVSphereVmfsDatastoreConfigStaticSingleAltName(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVmfsDatastoreExists(true),
-					testAccResourceVSphereVmfsDatastoreHasName("terraform-test-renamed"),
+					testAccResourceVSphereVmfsDatastoreHasName(fmt.Sprintf("%s-renamed", os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))),
 				),
 			},
 		},
@@ -392,7 +392,7 @@ func TestAccResourceVSphereVmfsDatastore_multiCustomAttribute(t *testing.T) {
 }
 
 func testAccResourceVSphereVmfsDatastorePreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
+	if os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_vmfs_disks acceptance tests")
 	}
 	if os.Getenv("TF_VAR_VSPHERE_VMFS_REGEXP") == "" {
@@ -473,163 +473,160 @@ func testAccResourceVSphereVmfsDatastoreHasCustomAttributes() resource.TestCheck
 func testAccResourceVSphereVmfsDatastoreConfigStaticSingle() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 %s
 
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "testacc-test"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  name           = "%s"
+  host_system_id = "${data.vsphere_host.roothost1.id}"
 
   disks = [
     "${var.disk0}",
   ]
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost1()), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigStaticSingleAltName() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 %s
 
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
-
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "terraform-test-renamed"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  name           = "%s-renamed"
+  host_system_id = "${data.vsphere_host.roothost1.id}"
 
   disks = [
     "${var.disk0}",
   ]
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost1()),
+		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigStaticMulti() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "disk1" {
-  type    = "string"
-  default = "%s"
-}
-
-variable "disk2" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 %s
 
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
-
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "testacc-test"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  name           = "%s"
+  host_system_id = "${data.vsphere_host.roothost1.id}"
 
   disks = [
     "${var.disk0}",
     "${var.disk1}",
-    "${var.disk2}",
   ]
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK1"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK2"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"),
+		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK1"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost1()),
+		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigDiscoverDatasource() string {
 	return fmt.Sprintf(`
 variable "regexp" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 %s
 
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
-
 data "vsphere_vmfs_disks" "available" {
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  host_system_id = "${data.vsphere_host.roothost1.id}"
   rescan         = true
   filter         = "${var.regexp}"
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "testacc-test"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  name           = "%s"
+  host_system_id = "${data.vsphere_host.roothost1.id}"
 
   disks = "${data.vsphere_vmfs_disks.available.disks}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_VMFS_REGEXP"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_VMFS_REGEXP"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost1()),
+		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigStaticSingleFolder() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "folder" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 %s
 
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+resource "vsphere_folder" "folder" {
+  path = var.folder
+  type = "datastore"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "testacc-test"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
-  folder         = "${var.folder}"
+  name           = "%s"
+  host_system_id = "${data.vsphere_host.roothost1.id}"
+  folder         = vsphere_folder.folder.path
 
   disks = [
     "${var.disk0}",
   ]
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"),
+		os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost1()),
+		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigTags() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 %s
-
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
 
 resource "vsphere_tag_category" "testacc-category" {
   name        = "testacc-tag-category"
@@ -646,8 +643,8 @@ resource "vsphere_tag" "testacc-tag" {
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "testacc-test"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  name           = "%s"
+  host_system_id = "${data.vsphere_host.roothost1.id}"
 
   disks = [
     "${var.disk0}",
@@ -655,13 +652,18 @@ resource "vsphere_vmfs_datastore" "datastore" {
 
   tags = ["${vsphere_tag.testacc-tag.id}"]
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost1()),
+		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigMultiTags() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
@@ -673,11 +675,6 @@ variable "extra_tags" {
 }
 
 %s
-
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
 
 resource "vsphere_tag_category" "testacc-category" {
   name        = "testacc-tag-category"
@@ -700,8 +697,8 @@ resource "vsphere_tag" "testacc-tags-alt" {
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "testacc-test"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  name           = "%s"
+  host_system_id = "${data.vsphere_host.roothost1.id}"
 
   disks = [
     "${var.disk0}",
@@ -709,31 +706,31 @@ resource "vsphere_vmfs_datastore" "datastore" {
 
   tags = "${vsphere_tag.testacc-tags-alt.*.id}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost1()),
+		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigBadDisk() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "disk1" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 %s
 
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
-
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "testacc-test"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  name           = "%s"
+  host_system_id = "${data.vsphere_host.roothost1.id}"
 
   disks = [
     "${var.disk0}",
@@ -741,31 +738,31 @@ resource "vsphere_vmfs_datastore" "datastore" {
     "",
   ]
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK1"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK1"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost1()),
+		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigDuplicateDisk() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "disk1" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 %s
 
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
-
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "testacc-test"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  name           = "%s"
+  host_system_id = "${data.vsphere_host.roothost1.id}"
 
   disks = [
     "${var.disk0}",
@@ -773,22 +770,22 @@ resource "vsphere_vmfs_datastore" "datastore" {
     "${var.disk1}",
   ]
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK1"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK1"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost1()),
+		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigCustomAttributes() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 %s
-
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
 
 resource "vsphere_custom_attribute" "testacc-attribute" {
   name                = "testacc-attribute"
@@ -802,8 +799,8 @@ locals {
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "testacc-test"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  name           = "%s"
+  host_system_id = "${data.vsphere_host.roothost1.id}"
 
   disks = [
     "${var.disk0}",
@@ -811,22 +808,22 @@ resource "vsphere_vmfs_datastore" "datastore" {
 
   custom_attributes = "${local.vmfs_attrs}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost1()),
+		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigMultiCustomAttributes() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 %s
-
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
 
 resource "vsphere_custom_attribute" "testacc-attribute" {
   name                = "testacc-attribute"
@@ -846,8 +843,8 @@ locals {
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name           = "testacc-test"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  name           = "%s"
+  host_system_id = "${data.vsphere_host.roothost1.id}"
 
   disks = [
     "${var.disk0}",
@@ -855,41 +852,45 @@ resource "vsphere_vmfs_datastore" "datastore" {
 
   custom_attributes = "${local.vmfs_attrs}"
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost1()),
+		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigDatastoreCluster() string {
 	return fmt.Sprintf(`
 variable "disk0" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 variable "folder" {
-  type    = "string"
+  type    = string
   default = "%s"
 }
 
 %s
-
-data "vsphere_host" "esxi_host" {
-  name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
-}
-
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
-  name                 = "testacc-test"
-  host_system_id       = "${data.vsphere_host.esxi_host.id}"
+  name                 = "%s"
+  host_system_id       = "${data.vsphere_host.roothost1.id}"
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   disks = [
     "${var.disk0}",
   ]
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"), testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME"))
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost1()),
+		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
 }

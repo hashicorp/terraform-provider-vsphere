@@ -20,6 +20,7 @@ website/node_modules
 *~
 .*.swp
 .idea
+.vscode
 *.iml
 *.test
 *.iml
@@ -30,3 +31,4 @@ website/vendor
 # Test exclusions
 !command/test-fixtures/**/*.tfstate
 !command/test-fixtures/**/.terraform/
+/.goreleaser.yml

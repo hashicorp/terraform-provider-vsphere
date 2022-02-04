@@ -7,17 +7,22 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 )
 
 // Basic file creation (upload to vSphere)
 func TestAccResourceVSphereFile_basic(t *testing.T) {
-	testVmdkFileData := []byte("# Disk DescriptorFile\n")
+	testVmdkFileData := []byte(`# Disk DescriptorFile
+version=1
+CID=fffffffe
+parentCID=ffffffff
+createType="twoGbMaxExtentSparse"
+`)
 	testVmdkFile := "/tmp/tf_test.vmdk"
-	err := ioutil.WriteFile(testVmdkFile, testVmdkFileData, 0644)
+	err := ioutil.WriteFile(testVmdkFile, testVmdkFileData, 0600)
 	if err != nil {
 		t.Errorf("error %s", err)
 		return
@@ -55,7 +60,7 @@ func TestAccResourceVSphereFile_basic(t *testing.T) {
 			},
 		},
 	})
-	os.Remove(testVmdkFile)
+	_ = os.Remove(testVmdkFile)
 }
 
 // Basic file copy within vSphere
@@ -72,7 +77,7 @@ func TestAccResourceVSphereFile_basicUploadAndCopy(t *testing.T) {
 	sourceFileCopy := "${vsphere_file." + uploadResourceName + ".destination_file}"
 	destinationFileCopy := "tf_file_test_copy.vmdk"
 
-	err := ioutil.WriteFile(sourceFile, testVmdkFileData, 0644)
+	err := ioutil.WriteFile(sourceFile, testVmdkFileData, 0600)
 	if err != nil {
 		t.Errorf("error %s", err)
 		return
@@ -112,14 +117,14 @@ func TestAccResourceVSphereFile_basicUploadAndCopy(t *testing.T) {
 			},
 		},
 	})
-	os.Remove(sourceFile)
+	_ = os.Remove(sourceFile)
 }
 
 // file creation followed by a rename of file (update)
 func TestAccResourceVSphereFile_renamePostCreation(t *testing.T) {
 	testVmdkFileData := []byte("# Disk DescriptorFile\n")
 	testVmdkFile := "/tmp/tf_test.vmdk"
-	err := ioutil.WriteFile(testVmdkFile, testVmdkFileData, 0644)
+	err := ioutil.WriteFile(testVmdkFile, testVmdkFileData, 0600)
 	if err != nil {
 		t.Errorf("error %s", err)
 		return
@@ -174,7 +179,7 @@ func TestAccResourceVSphereFile_renamePostCreation(t *testing.T) {
 			},
 		},
 	})
-	os.Remove(testVmdkFile)
+	_ = os.Remove(testVmdkFile)
 }
 
 // file upload, then copy, finally the copy is renamed (moved) (update)
@@ -192,7 +197,7 @@ func TestAccResourceVSphereFile_uploadAndCopyAndUpdate(t *testing.T) {
 	destinationFileCopy := "tf_file_test_copy.vmdk"
 	destinationFileMoved := "tf_test_file_moved.vmdk"
 
-	err := ioutil.WriteFile(sourceFile, testVmdkFileData, 0644)
+	err := ioutil.WriteFile(sourceFile, testVmdkFileData, 0600)
 	if err != nil {
 		t.Errorf("error %s", err)
 		return
@@ -256,11 +261,11 @@ func TestAccResourceVSphereFile_uploadAndCopyAndUpdate(t *testing.T) {
 			},
 		},
 	})
-	os.Remove(sourceFile)
+	_ = os.Remove(sourceFile)
 }
 
 func testAccCheckVSphereFileDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*VSphereClient).vimClient
+	client := testAccProvider.Meta().(*Client).vimClient
 	finder := find.NewFinder(client.Client, true)
 
 	for _, rs := range s.RootModule().Resources {
@@ -307,7 +312,7 @@ func testAccCheckVSphereFileExists(n string, df string, exists bool) resource.Te
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*VSphereClient).vimClient
+		client := testAccProvider.Meta().(*Client).vimClient
 		finder := find.NewFinder(client.Client, true)
 
 		dc, err := finder.Datacenter(context.TODO(), rs.Primary.Attributes["datacenter"])

@@ -3,13 +3,13 @@ package vsphere
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
@@ -165,7 +165,7 @@ func TestAccResourceVSphereVAppContainer_vmSDRS(t *testing.T) {
 		CheckDestroy: testAccResourceVSphereVAppContainerCheckExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereVAppContainerConfigVmSdrs(),
+				Config: testAccResourceVSphereVAppContainerConfigVMSdrs(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVAppContainerCheckExists(true),
 					testAccResourceVSphereVAppContainerContainsVM("vm"),
@@ -186,7 +186,7 @@ func TestAccResourceVSphereVAppContainer_vmClone(t *testing.T) {
 		CheckDestroy: testAccResourceVSphereVAppContainerCheckExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereVAppContainerConfigVmClone(),
+				Config: testAccResourceVSphereVAppContainerConfigVMClone(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVAppContainerCheckExists(true),
 					testAccResourceVSphereVAppContainerContainsVM("vm"),
@@ -207,7 +207,7 @@ func TestAccResourceVSphereVAppContainer_vmCloneSDRS(t *testing.T) {
 		CheckDestroy: testAccResourceVSphereVAppContainerCheckExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereVAppContainerConfigVmSdrsClone(),
+				Config: testAccResourceVSphereVAppContainerConfigVMSdrsClone(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVAppContainerCheckExists(true),
 					testAccResourceVSphereVAppContainerContainsVM("vm"),
@@ -228,14 +228,14 @@ func TestAccResourceVSphereVAppContainer_vmMoveIntoVAppSDRS(t *testing.T) {
 		CheckDestroy: testAccResourceVSphereVAppContainerCheckExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereVAppContainerConfigVmSdrsNoVApp(),
+				Config: testAccResourceVSphereVAppContainerConfigVMSdrsNoVApp(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVAppContainerCheckExists(true),
 					testAccResourceVSphereVAppContainerContainsVM("vm"),
 				),
 			},
 			{
-				Config: testAccResourceVSphereVAppContainerConfigVmSdrs(),
+				Config: testAccResourceVSphereVAppContainerConfigVMSdrs(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVAppContainerCheckExists(true),
 					testAccResourceVSphereVAppContainerContainsVM("vm"),
@@ -390,45 +390,6 @@ func testAccResourceVSphereVAppContainerCheckCPUShares(value int) resource.TestC
 	}
 }
 
-func testAccResourceVSphereVAppContainerCheckMemoryReservation(value int) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		props, err := testGetVAppContainerProperties(s, "vapp_container")
-		if err != nil {
-			return err
-		}
-		if *props.Config.MemoryAllocation.Reservation != *structure.Int64Ptr(int64(value)) {
-			return fmt.Errorf("MemoryAllocation.Reservation check failed. Expected: %d, got: %d", *props.Config.MemoryAllocation.Reservation, value)
-		}
-		return nil
-	}
-}
-
-func testAccResourceVSphereVAppContainerCheckMemoryExpandable(value bool) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		props, err := testGetVAppContainerProperties(s, "vapp_container")
-		if err != nil {
-			return err
-		}
-		if *props.Config.MemoryAllocation.ExpandableReservation != *structure.BoolPtr(value) {
-			return fmt.Errorf("MemoryAllocation.Expandable check failed. Expected: %t, got: %t", *props.Config.MemoryAllocation.ExpandableReservation, value)
-		}
-		return nil
-	}
-}
-
-func testAccResourceVSphereVAppContainerCheckMemoryLimit(value int) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		props, err := testGetVAppContainerProperties(s, "vapp_container")
-		if err != nil {
-			return err
-		}
-		if *props.Config.MemoryAllocation.Limit != *structure.Int64Ptr(int64(value)) {
-			return fmt.Errorf("MemoryAllocation.Limit check failed. Expected: %d, got: %d", *props.Config.MemoryAllocation.Limit, value)
-		}
-		return nil
-	}
-}
-
 func testAccResourceVSphereVAppContainerCheckMemoryShareLevel(value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		props, err := testGetVAppContainerProperties(s, "vapp_container")
@@ -490,7 +451,7 @@ resource "vsphere_vapp_container" "vapp_container" {
 	)
 }
 
-func testAccResourceVSphereVAppContainerConfigVmSdrsNoVApp() string {
+func testAccResourceVSphereVAppContainerConfigVMSdrsNoVApp() string {
 	return fmt.Sprintf(`
 %s
 
@@ -502,12 +463,6 @@ variable "nas_host" {
   default = "%s"
 }
 
-data "vsphere_host" "esxi_hosts" {
-  count         = 1
-  name          = vsphere_host.nested-esxi1.hostname
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
-}
-
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
   datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
@@ -516,7 +471,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore1" {
   name                 = "terraform-datastore-test1"
-  host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
+  host_system_ids      = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -562,14 +517,20 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2(),
+			testhelper.ConfigDataRootDS1()),
 
 		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
-		os.Getenv("TF_VAR_VSPHERE_NAS_HOST2"),
+		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 	)
 }
 
-func testAccResourceVSphereVAppContainerConfigVmSdrs() string {
+func testAccResourceVSphereVAppContainerConfigVMSdrs() string {
 	return fmt.Sprintf(`
 %s
 
@@ -581,12 +542,6 @@ variable "nas_host" {
   default = "%s"
 }
 
-data "vsphere_host" "esxi_hosts" {
-  count         = 1
-  name          = vsphere_host.nested-esxi1.hostname
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
-}
-
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
   datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
@@ -595,7 +550,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore1" {
   name                 = "terraform-datastore-test1"
-  host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
+  host_system_ids      = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -641,15 +596,19 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2()),
 
 		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
-		os.Getenv("TF_VAR_VSPHERE_NAS_HOST2"),
+		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 	)
 }
 
-func testAccResourceVSphereVAppContainerConfigVmSdrsClone() string {
-	return fmt.Sprintf(`
+func testAccResourceVSphereVAppContainerConfigVMSdrsClone() string {
+	x := fmt.Sprintf(`
 %s
 
 variable "nfs_path" {
@@ -662,12 +621,6 @@ variable "nas_host" {
 
 variable "template" {
   default = "%s"
-}
-
-data "vsphere_host" "esxi_hosts" {
-  count         = 1
-  name          = vsphere_host.nested-esxi1.hostname
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 data "vsphere_virtual_machine" "template" {
@@ -683,7 +636,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore1" {
   name                 = "terraform-datastore-test1"
-  host_system_ids      = "${data.vsphere_host.esxi_hosts.*.id}"
+  host_system_ids      = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -733,15 +686,24 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigResDS1(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2(),
+			testhelper.ConfigDataRootVMNet(),
+			testhelper.ConfigDataRootPortGroup1()),
 
 		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
-		os.Getenv("TF_VAR_VSPHERE_NAS_HOST2"),
+		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 	)
+
+	return x
 }
 
-func testAccResourceVSphereVAppContainerConfigVmClone() string {
+func testAccResourceVSphereVAppContainerConfigVMClone() string {
 	return fmt.Sprintf(`
 %s
 
@@ -791,12 +753,23 @@ resource "vsphere_virtual_machine" "vm" {
     size  = "%s"
   }
 
+  cdrom {
+    client_device = true
+  }
+
   network_interface {
     network_id = "${data.vsphere_network.network1.id}"
   }
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2(),
+			testhelper.ConfigResDS1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigResResourcePool1(),
+			testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 		os.Getenv("TF_VAR_VSPHERE_CLONED_VM_DISK_SIZE"),
 	)
@@ -894,11 +867,7 @@ resource "vsphere_virtual_machine" "vm" {
 
 func testAccResourceVSphereVAppContainerConfigChildImport() string {
 	return fmt.Sprintf(`
-data "vsphere_datacenter" "dc" {
-  name = "%s"
-}
-
-
+%s
 
 resource "vsphere_folder" "parent_folder" {
   path          = "terraform-test-parent-folder"
@@ -916,6 +885,6 @@ resource "vsphere_vapp_container" "child" {
   name                    = "childVApp"
   parent_resource_pool_id = vsphere_vapp_container.parent.id
 }`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
 	)
 }

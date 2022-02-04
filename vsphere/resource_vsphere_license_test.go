@@ -9,8 +9,8 @@ import (
 
 	"regexp"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/vmware/govmomi/license"
 )
 
@@ -21,7 +21,6 @@ resource "vsphere_license" "foo" {
 `
 
 func TestAccResourceVSphereLicense_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -39,11 +38,9 @@ func TestAccResourceVSphereLicense_basic(t *testing.T) {
 			},
 		},
 	})
-
 }
 
 func TestAccResourceVSphereLicense_invalid(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -61,11 +58,9 @@ func TestAccResourceVSphereLicense_invalid(t *testing.T) {
 			},
 		},
 	})
-
 }
 
 func TestAccResourceVSphereLicense_withLabelsOnVCenter(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -85,11 +80,9 @@ func TestAccResourceVSphereLicense_withLabelsOnVCenter(t *testing.T) {
 			},
 		},
 	})
-
 }
 
 func TestAccResourceVSphereLicense_withLabelsOnESXiServer(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -107,7 +100,6 @@ func TestAccResourceVSphereLicense_withLabelsOnESXiServer(t *testing.T) {
 			},
 		},
 	})
-
 }
 
 func testAccVspherePreLicenseESXiServerIsNotSetCheck(t *testing.T) {
@@ -133,16 +125,12 @@ func testAccVSphereLicenseBasicConfig() string {
 	return fmt.Sprintf(`
 resource "vsphere_license" "foo" {
  license_key = "%s"
-  labels {
-    VpxClientLicenseLabel = "Hello World"
-	TestTitle             = "fooBar"
-  }
 }
 `, os.Getenv("TF_VAR_VSPHERE_LICENSE"))
 }
 
 func testAccVSphereLicenseDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*VSphereClient).vimClient
+	client := testAccProvider.Meta().(*Client).vimClient
 	manager := license.NewManager(client.Client)
 	message := ""
 	for _, rs := range s.RootModule().Resources {
@@ -169,7 +157,7 @@ func testAccVSphereLicenseExists(name string) resource.TestCheckFunc {
 			return fmt.Errorf("%s key not found on the server", name)
 		}
 
-		client := testAccProvider.Meta().(*VSphereClient).vimClient
+		client := testAccProvider.Meta().(*Client).vimClient
 		manager := license.NewManager(client.Client)
 
 		if !isKeyPresent(rs.Primary.ID, manager) {
@@ -206,7 +194,7 @@ func testAccVSphereLicenseWithLabelExists(name string) resource.TestCheckFunc {
 			return fmt.Errorf("%s key not found on the server", name)
 		}
 
-		client := testAccProvider.Meta().(*VSphereClient).vimClient
+		client := testAccProvider.Meta().(*Client).vimClient
 		manager := license.NewManager(client.Client)
 
 		if !isKeyPresent(rs.Primary.ID, manager) {

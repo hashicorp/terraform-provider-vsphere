@@ -15,7 +15,7 @@ resource pools in standalone hosts or on compute clusters.
 For more information on vSphere resource pools, see [this
 page][ref-vsphere-resource_pools].
 
-[ref-vsphere-resource_pools]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.resmgmt.doc/GUID-60077B40-66FF-4625-934A-641703ED7601.html
+[ref-vsphere-resource_pools]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.resmgmt.doc/GUID-60077B40-66FF-4625-934A-641703ED7601.html
 
 ## Example Usage
 
