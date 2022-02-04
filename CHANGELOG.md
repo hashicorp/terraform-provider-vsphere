@@ -7,6 +7,7 @@ BUG FIXES:
 * `resource/virtual_machine`: Attempt to fix race condition by always forcing a new datastore id. [GH-1486]
 * `resource/virtual_machine`: Fix default guest OS identifier. [GH-1543]
 * `resource/virtual_machine`: Updates `windows_options` to ensure all required options for domain join are provided [GH-1562]
+* `resource/virtual_machine`: Fix migration of all disks and configuration files when the datastore_cluster_id is changed on the resource. [GH-1546]
 
 IMPROVEMENTS:
 * `resource/vapp_container`: Documentation updates. [GH-1551]
