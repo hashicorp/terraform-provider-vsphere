@@ -36,7 +36,7 @@ We welcome your feature requests and bug reports. Below you'll find short checkl
 
 1. The issue is reported on GitHub.
 
-2. The issue is ackknowledged and categorized by a provider collaborator. Categorization is done via GitHub labels. We use one of `bug`, `enhancement`, `feature`, `documentation`, or `question`.
+2. The issue is acknowledged and categorized by a provider collaborator. Categorization is done via GitHub labels. We use one of `bug`, `enhancement`, `feature`, `documentation`, or `question`.
 
 3. An initial triage process determines whether the issue is critical and must be addressed immediately, or can be left open for community discussion. In this step, we typically assign a size estimate to the work involved for that issue for our reference.
 
