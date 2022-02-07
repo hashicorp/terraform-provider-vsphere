@@ -833,7 +833,7 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 		// Ensure the device starts connected
 		// Set the key
 		newCard.Key = l.NewKey()
-		// If VMware tools is not running, this operation requires a reboot
+		// If VMware Tools is not running, this operation requires a reboot
 		if r.rdd.Get("vmware_tools_status").(string) != string(types.VirtualMachineToolsRunningStatusGuestToolsRunning) {
 			r.SetRestart("adapter_type")
 		}
@@ -928,7 +928,7 @@ func (r *NetworkInterfaceSubresource) Delete(l object.VirtualDeviceList) ([]type
 	if err != nil {
 		return nil, err
 	}
-	// If VMware tools is not running, this operation requires a reboot
+	// If VMware Tools is not running, this operation requires a reboot
 	if r.rdd.Get("vmware_tools_status").(string) != string(types.VirtualMachineToolsRunningStatusGuestToolsRunning) {
 		r.SetRestart("<device delete>")
 	}

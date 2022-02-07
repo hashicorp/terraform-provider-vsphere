@@ -414,7 +414,7 @@ func TestAccResourceVSphereVirtualMachine_removeMiddleDevices(t *testing.T) {
 			{
 				PreConfig: func() {
 					// As sometimes the OS image that we are using to test "bare metal"
-					// changes in how well it integrates VMware tools, we power down the
+					// changes in how well it integrates VMware Tools, we power down the
 					// VM for this operation. This is not necessarily checking that a
 					// hot-remove operation happened so it's not essential it's powered
 					// on.
@@ -2575,7 +2575,7 @@ func testAccResourceVSphereVirtualMachineCheckExists(expected bool) resource.Tes
 // a VirtualMachine's power state.
 
 // testAccResourceVSphereVirtualMachineCheckHostname is a check to check for a
-// VirtualMachine's hostname. The check uses guest info, so VMware tools needs
+// VirtualMachine's hostname. The check uses guest info, so VMware Tools needs
 // to be installed.
 func testAccResourceVSphereVirtualMachineCheckHostname(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -2711,7 +2711,7 @@ func testAccResourceVSphereVirtualMachineCheckCPUMem(expectedCPU, expectedMem in
 // machine's primary NIC has the given IP address and netmask assigned to it,
 // and that the appropriate gateway is present.
 //
-// This uses VMware tools to check this, so it needs to be installed on the
+// This uses VMware Tools to check this, so it needs to be installed on the
 // guest.
 func testAccResourceVSphereVirtualMachineCheckNet(expectedAddr, expectedPrefix, expectedGW string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -2776,7 +2776,7 @@ func testAccResourceVSphereVirtualMachineCheckNet(expectedAddr, expectedPrefix, 
 // machine with multiple NICs has the given IP address and netmask assigned to it,
 // and that the order of the NICs correspond to the declared order.
 //
-// This uses VMware tools to check this, so it needs to be installed on the
+// This uses VMware Tools to check this, so it needs to be installed on the
 // guest.
 
 func testAccResourceVSpherevirtualMachineCheckHostname(hostname string) resource.TestCheckFunc {

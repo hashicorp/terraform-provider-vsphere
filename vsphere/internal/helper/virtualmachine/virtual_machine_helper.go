@@ -788,7 +788,7 @@ func ShutdownGuest(client *govmomi.Client, vm *object.VirtualMachine, timeout in
 }
 
 // GracefulPowerOff is a meta-operation that handles powering down of virtual
-// machines. A graceful shutdown is attempted first if possible (VMware tools
+// machines. A graceful shutdown is attempted first if possible (VMware Tools
 // is installed, and the guest state is not suspended), and then, if allowed, a
 // power-off is forced if that fails.
 func GracefulPowerOff(client *govmomi.Client, vm *object.VirtualMachine, timeout int, force bool) error {
@@ -796,7 +796,7 @@ func GracefulPowerOff(client *govmomi.Client, vm *object.VirtualMachine, timeout
 	if err != nil {
 		return err
 	}
-	// First we attempt a guest shutdown if we have VMware tools and if the VM is
+	// First we attempt a guest shutdown if we have VMware Tools and if the VM is
 	// actually powered on (we don't expect that a graceful shutdown would
 	// complete on a suspended VM, so there's really no point in trying).
 	if vprops.Runtime.PowerState == types.VirtualMachinePowerStatePoweredOn && vprops.Guest != nil && vprops.Guest.ToolsRunningStatus == string(types.VirtualMachineToolsRunningStatusGuestToolsRunning) {

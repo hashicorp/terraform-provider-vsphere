@@ -4,7 +4,7 @@ layout: "vsphere"
 page_title: "VMware vSphere: vsphere_virtual_disk"
 sidebar_current: "docs-vsphere-resource-vm-virtual-disk"
 description: |-
-  Provides a VMware virtual disk resource.  This can be used to create and delete virtual disks.
+  Provides a vSphere virtual disk resource.  This can be used to create and delete virtual disks.
 ---
 
 # vsphere\_virtual\_disk
@@ -20,12 +20,21 @@ block with the [`attach`][docs-vsphere-virtual-machine-disk-attach] parameter.
 ## Example Usage
 
 ```hcl
-resource "vsphere_virtual_disk" "myDisk" {
-  size       = 2
-  vmdk_path  = "myDisk.vmdk"
-  datacenter = "Datacenter"
-  datastore  = "local"
-  type       = "thin"
+data "vsphere_datacenter" "datacenter" {
+  name = "dc-01"
+}
+
+data "vsphere_datacenter" "datastore" {
+  name = "datastore-01"
+}
+
+resource "vsphere_virtual_disk" "virtual_disk" {
+  size               = 40
+  type               = "thin"
+  vmdk_path          = "/foo/foo.vmdk"
+  create_directories = true
+  datacenter         = data.vsphere_datacenter.datacenter.name
+  datastore          = data.vsphere_datastore.datastore.name
 }
 ```
 
@@ -49,7 +58,7 @@ immutable and force a new resource if changed.
   information on what each kind of disk provisioning policy means, click
   [here][docs-vmware-vm-disk-provisioning].
 
-[docs-vmware-vm-disk-provisioning]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.vm_admin.doc/GUID-4C0F4D73-82F2-4B81-8AA7-1DD752A8A5AC.html
+[docs-vmware-vm-disk-provisioning]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-4C0F4D73-82F2-4B81-8AA7-1DD752A8A5AC.html
 
 * `adapter_type` - (Optional) The adapter type for this virtual disk. Can be
   one of `ide`, `lsiLogic`, or `busLogic`.  Default: `lsiLogic`.
@@ -76,13 +85,13 @@ destroyed.
 An existing virtual disk can be [imported][docs-import] into this resource
 via supplying the full datastore path to the virtual disk. An example is below:
 
-[docs-import]: /docs/import/index.html
+[docs-import]: https://www.terraform.io/docs/import/index.html
 
 ```
-terraform import vsphere_virtual_disk.disk /dc1/[ds1] disk1_vmdk_path
+terraform import vsphere_virtual_disk.virtual_disk "/dc-01/[datastore-01] foo/bar.vmdk"
 ```
 
-The above would import the virtual disk located at `disk1_vmdk_path` in the `ds1`
-datastore of the `dc1` datacenter.
+The above would import the virtual disk located at `foo/bar.vmdk` in the `datastore-01`
+datastore of the `dc-01` datacenter.
 
 ~> **NOTE:** Import is not supported if using the **deprecated** `adapter_type` field.

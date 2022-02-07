@@ -1,9 +1,29 @@
 ## 2.1.0 (Unreleased)
 
 BUG FIXES:
+* `resource/compute_cluster`: Updates `ha_datastore_apd_response_delay` to the API default (180) for `vmTerminateDelayForAPDSec`. Previously set to 3 (minutes) however the codebase uses this value as seconds. Users who had the field left blank may see a warning about the state value drifting from 3 to 180, after applying this should go away. [GH-1542]
 * `resource/virtual_machine`: Don't read `storage_policy_id` if vCenter is not configured. This is not a scenario we test or support explicitly [GH-1408]
 * `datasource/virtual_machine`: Fix silent failure and add `default_ip_address` attribute. [GH-1532]
-* `resource/virtual_machine`: Attempt to fix race condition by always forcing a new datastore id [GH-1486]
+* `resource/virtual_machine`: Attempt to fix race condition by always forcing a new datastore id. [GH-1486]
+* `resource/virtual_machine`: Fix default guest OS identifier. [GH-1543]
+* `resource/virtual_machine`: Updates `windows_options` to ensure all required options for domain join are provided [GH-1562]
+* `resource/virtual_machine`: Fix migration of all disks and configuration files when the datastore_cluster_id is changed on the resource. [GH-1546]
+
+IMPROVEMENTS:
+* `resource/vapp_container`: Documentation updates. [GH-1551]
+* `resource/computer_cluster_vm_affinity_rule`: Documentation updates. [GH-1544]
+* `resource/computer_cluster_vm_anti_affinity_rule`: Documentation updates. [GH-1544]
+* `resource/virtual_machine`: Documentation updates. [GH-1513]
+* `resource/custom_attribute`: Documentation updates. [GH-1508]
+* `resource/vm_storage_policy`: Documentation updates. [GH-1541]
+* `datasource/storage_policy`: Documentation updates. [GH-1541]
+* `resource/distributed_virtual_switch`: Documentation updates. [GH-1504]
+* `datasource/distributed_virtual_switch`: Documentation updates. [GH-1504]
+* `resource/distributed_virtual_switch`: Add support for dvs versions `6.6.0` and `7.0.3`. [GH-1501]
+* `datasource/content_library_item`: Documentation updates. [GH-1507]
+* `resource/ha_vm_override`: Adds `disabled` option to `ha_vm_restart_priority`. [GH-1505]
+* `resource/virtual_disk`: Documentation updates. [GH-1569]
+* `resource/virtual_machine`: Documentation updates. [GH-1566]
 
 ## 2.0.2 (June 25, 2021)
 
@@ -251,8 +271,8 @@ FEATURES:
 
 IMPROVEMENTS:
 * Switch to govmomi REST client ([#955](https://github.com/hashicorp/terraform-provider-vsphere/pull/955))
-* Add storage policy to `virtual_machine` resource. ** Requires `profile-driven
-  storage` permissions for Terraform user. ([#881](https://github.com/hashicorp/terraform-provider-vsphere/pull/881))
+* Add storage policy to `virtual_machine` resource. ** Requires `profile-driven 
+  storage` privilege on vCenter Server for the Terraform provider user. ([#881](https://github.com/hashicorp/terraform-provider-vsphere/pull/881))
 
 ## 1.15.0 (January 23, 2020)
 
@@ -803,7 +823,7 @@ IMPROVEMENTS:
   greatly improved, exposing more options and fixing several bugs. ([#244](https://github.com/hashicorp/terraform-provider-vsphere/issues/244))
 * `resource/vsphere_virtual_machine`: Added support for CPU and memory hot-plug.
   Several other VM reconfiguration operations are also supported while the VM is
-  powered on, guest type and VMware tools permitting in some cases. ([#244](https://github.com/hashicorp/terraform-provider-vsphere/issues/244))
+  powered on, guest type and VMware Tools permitting in some cases. ([#244](https://github.com/hashicorp/terraform-provider-vsphere/issues/244))
 * `resource/vsphere_virtual_machine`: The resource now supports both host and
   storage vMotion. Virtual machines can now be moved between hosts, clusters,
   resource pools, and datastores. Individual disks can be pinned to a single

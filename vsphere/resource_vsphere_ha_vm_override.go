@@ -34,6 +34,7 @@ var vmOverrideClusterDasConfigInfoServiceStateAllowedValues = []string{
 	string(types.ClusterDasVmSettingsRestartPriorityMedium),
 	string(types.ClusterDasVmSettingsRestartPriorityHigh),
 	string(types.ClusterDasVmSettingsRestartPriorityHighest),
+	string(types.ClusterDasVmSettingsRestartPriorityDisabled),
 }
 
 var vmOverrideClusterVMStorageProtectionForPDLAllowedValues = []string{
@@ -129,7 +130,7 @@ func resourceVSphereHAVMOverride() *schema.Resource {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     -1,
-				Description: "Controls the delay in minutes to wait after an APD timeout event to execute the response action defined in ha_datastore_apd_response. Specify -1 to use the cluster setting.",
+				Description: "Controls the delay in seconds to wait after an APD timeout event to execute the response action defined in ha_datastore_apd_response. Specify -1 to use the cluster setting.",
 			},
 			// VM monitoring
 			"ha_vm_monitoring_use_cluster_defaults": {
