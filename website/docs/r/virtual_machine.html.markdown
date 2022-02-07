@@ -720,11 +720,15 @@ The following options control CPU and memory settings on a virtual machine:
 
 * `memory` - (Optional) The memory size to assign to the virtual machine, in MB. Default: `1024` (1 GB).
 
-* `memory_hot_add_enabled` - (Optional) Allow memory to be added to the virtual machine while it is powered on.
+* `memory_hot_add_enabled` - (Optional) Allow memory to be added to the virtual machine while it is powered on. 
 
 ~> **NOTE:** CPU and memory hot add options are not available on all guest operating systems. Please refer to the [VMware Guest OS Compatibility Guide][vmware-docs-compat-guide] to which settings are allow for your guest operating system. In addition, at least one `terraform apply` must be run before you are able to use CPU and memory hot add.
 
 [vmware-docs-compat-guide]: http://partnerweb.vmware.com/comp_guide2/pdf/VMware_GOS_Compatibility_Guide.pdf
+
+~> **NOTE:** For Linux 64-bit guest operating systems with less than or equal to 3GB, the virtual machine must powered off to add memory beyond 3GB. Subsequent hot add of memory does not require the virtual machine to be powered-off to apply the plan. Please refer to [VMware KB 2008405][vmware-kb-2008405].
+
+[vmware-kb-2008405]: https://kb.vmware.com/s/article/2008405
 
 ### Boot Options 
 
