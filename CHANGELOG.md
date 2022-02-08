@@ -24,6 +24,7 @@ IMPROVEMENTS:
 * `resource/ha_vm_override`: Adds `disabled` option to `ha_vm_restart_priority`. [GH-1505]
 * `resource/virtual_disk`: Documentation updates. [GH-1569]
 * `resource/virtual_machine`: Documentation updates. [GH-1566]
+* `resource/content_library`: Documentation updates. [GH-1577]
 
 ## 2.0.2 (June 25, 2021)
 
