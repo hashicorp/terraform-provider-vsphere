@@ -4,37 +4,59 @@ layout: "vsphere"
 page_title: "VMware vSphere: vsphere_content_library"
 sidebar_current: "docs-vsphere-resource-content-library"
 description: |-
-  Provides a VMware Content Library. Content libraries allow users to manage and share deployable content such as 
-  virtual machines and vApps.
+  Provides a vSphere content cibrary. Content libraries allow you to manage and share virtual machines, vApp templates, and other types of files. Content libraries enable you to share content across vCenter Server instances in the same or different locations.
 ---
 
 # vsphere\_content\_library
 
-The `vsphere_content_library` resource can be used to manage Content Libraries.
+The `vsphere_content_library` resource can be used to manage content libraries.
 
-~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
-connections.
+> **NOTE:** This resource requires a vCenter Server instance and is not available on direct ESXi host connections.
 
 ## Example Usage
 
-The example below creates a Content Library using `datastore1` as the storage backing.
+The following example creates a publishing content library using the datastore named `publisher-datastore` as the storage backing.
 
 [tf-vsphere-vm-resource]: /docs/providers/vsphere/r/virtual_machine.html
 
 ```hcl
-data "vsphere_datacenter" "dc" {
-  name = "dc1"
+data "vsphere_datacenter" "datacenter_a" {
+  name = "dc-01-a"
 }
 
-data "vsphere_datastore" "datastore" {
-  name          = "datastore1"
-  datacenter_id = data.vsphere_datacenter.dc.id
+data "vsphere_datastore" "publisher_datastore" {
+  name          = "publisher-datastore"
+  datacenter_id = data.vsphere_datacenter.datacenter_a.id
 }
 
-resource "vsphere_content_library" "library" {
-  name            = "Content Library Test"
-  storage_backing = data.vsphere_datastore.datastore.id
-  description     = "A new source of content"
+resource "vsphere_content_library" "publisher_content_library" {
+  name            = "Publisher Content Library"
+  description     = "A publishing content library."
+  storage_backing = [data.vsphere_datastore.publisher_datastore.id]
+}
+```
+
+The next example creates a subscribed content library using the URL of the publisher content library as the source and the datastore named `subscriber-datastore` as the storage backing.
+
+```hcl
+data "vsphere_datacenter" "datacenter_b" {
+  name = "dc-01-b"
+}
+
+data "vsphere_datastore" "subscriber_datastore" {
+  name          = "subscriber-datastore"
+  datacenter_id = data.vsphere_datacenter.datacenter_b.id
+}
+
+resource "vsphere_content_library" "subscriber_content_library" {
+  name            = "Subscriber Content Library"
+  description     = "A subscribing content library."
+  storage_backing = [data.vsphere_datastore.subscriber_datastore.id]
+  subscription {
+    subscription_url = "https://vc-01-a.example.com:443/cls/vcsp/lib/f42a4b25-844a-44ec-9063-a3a5e9cc88c7/lib.json"
+    automatic_sync   = true
+    on_demand        = false
+  }
 }
 ```
 
@@ -42,40 +64,36 @@ resource "vsphere_content_library" "library" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the Content Library.
-* `storage_backing` - (Required) The [managed object reference ID][docs-about-morefs] on which to store Content Library
-  items.
-* `description` - (Optional) A description of the Content Library.
-* `publication` - (Optional) Options to publish a local Content Library.
+* `name` - (Required) The name of the content library.
+* `description` - (Optional) A description for the content library.
+* `storage_backing` - (Required) The [managed object reference ID][docs-about-morefs] of the datastore on which to store the content library items.
+* `publication` - (Optional) Options to publish a local content library.
   * `authentication_method` - (Optional) Method to authenticate users. Must be `NONE` or `BASIC`.
-  * `username` - (Optional) User name subscribers log in with. Currently can only be `vcsp`.
-  * `password` - (Optional) Password subscribers log in with.
-  * `published` - (Optional) Bool determining if Content Library is published.
-* `subscription` - (Optional) Options to publish a local Content Library.
-  * `subscription_url` - (Required) URL of remote Content Library.
-  * `authentication_method` - (Optional) Method to log into remote Content Library. Must be `NONE` or `BASIC`.
-  * `username` - (Optional) User name to log in with.
-  * `password` - (Optional) Password to log in with.
-  * `automatic_sync` - (Optional) Enable automatic synchronization with the external content library.
-  * `on_demand` - (Optional) Boolean determining whether the content is immediately downloaded. When set to `true `, the library content will be downloaded when needed. When set to `false`, the library content will be downloaded immediately.
+  * `username` - (Optional) Username used by subscribers to authenticate. Currently can only be `vcsp`.
+  * `password` - (Optional) Password used by subscribers to authenticate.
+  * `published` - (Optional) Publish the content library. Default `false`.
+* `subscription` - (Optional) Options subscribe to a published content library.
+  * `subscription_url` - (Required) URL of the published content library.
+  * `authentication_method` - (Optional) Authentication method to connect ro a published content library. Must be `NONE` or `BASIC`.
+  * `username` - (Optional) Username used for authentication.
+  * `password` - (Optional) Password used for authentication.
+  * `automatic_sync` - (Optional) Enable automatic synchronization with the published library. Default `false`.
+  * `on_demand` - (Optional) Download the library from a content only when needed. Default `true`.
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
-
 ## Attribute Reference
 
-
-* `id` The [managed object reference ID][docs-about-morefs] of the Content Library, and the name of the virtual machine group.
+* `id` The [managed object reference ID][docs-about-morefs] of the content library.
 * `subscription`
-  * `publish_url` - URL to remotely access the published Content Library.
+  * `publish_url` - The URL of the published content library.
 
 ## Importing
 
-An existing content library can be [imported][docs-import] into this resource by
-supplying the Content Library's ID. An example is below:
+An existing content library can be [imported][docs-import] into this resource by supplying the content library ID. For example:
 
 [docs-import]: https://www.terraform.io/docs/import/index.html
 
 ```
-terraform import vsphere_content_library library f42a4b25-844a-44ec-9063-a3a5e9cc88c7
+terraform import vsphere_content_library publisher_content_library f42a4b25-844a-44ec-9063-a3a5e9cc88c7
 ```
