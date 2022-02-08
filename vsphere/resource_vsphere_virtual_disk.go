@@ -494,7 +494,7 @@ func resourceVSphereVirtualDiskImport(d *schema.ResourceData, meta interface{}) 
 	// the zero-th element will be empty (that is, everything before the / prefix).
 	addrParts := strings.SplitN(p, "/", 3)
 	if len(addrParts) != 3 {
-		return nil, errors.New("ID must be of the form /<datacenter>/[<datastore>] spath/to/vmdk")
+		return nil, errors.New("ID must be of the form /<datacenter>/[<datastore>] path/to/vmdk")
 	}
 
 	dc, err := getDatacenter(client, addrParts[1])

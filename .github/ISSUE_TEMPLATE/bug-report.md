@@ -8,8 +8,15 @@ labels: bug
 
 ### Terraform Version
 
+<!--- Example: 1.0.8 --->
+
 ### vSphere Provider Version
 
+<!--- Example: 2.0.2 --->
+
+### vSphere Version
+
+<!--- Example: vSphere 7.0 Update 2 or 7.0.2 --->
 
 ### Affected Resource(s)
 
@@ -34,13 +41,13 @@ Terraform's core, so please mention this.
 ### Debug Output
 
 <!---
-Please provide a link to a GitHub Gist containing the complete debug output. Please do NOT paste the debug output in the issue; just paste a link to the Gist.
+Please provide a link to a GitHub Gist containing the complete debug output. 
+Please do NOT paste the debug output in the issue; just paste a link to the Gist.
 --->
 
 ### Panic Output
 
-<!--- If Terraform produced a panic, please provide a link to a GitHub Gist containing
-the output of the `crash.log`.--->
+<!--- If Terraform produced a panic, please provide a link to a GitHub Gist containing the output of the `crash.log`.--->
 
 ### Expected Behavior
 
@@ -69,12 +76,12 @@ Are there any other GitHub issues (open or closed) or pull requests that should 
 
 * #0000
 
-<!--- Please keep this note for the community --->
-
 ### Community Note
 
-* Please vote on this issue by adding a 👍 [reaction](https://blog.github.com/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) to the original issue to help the community and maintainers prioritize this request
-* Please do not leave "+1" or other comments that do not add relevant new information or questions, they generate extra noise for issue followers and do not help prioritize the request
-* If you are interested in working on this issue or have submitted a pull request, please leave a comment
+<!--- Please keep this note for the community. --->
+
+* Please vote on this issue by adding a 👍 [reaction](https://blog.github.com/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) to the original issue to help the community and maintainers prioritize this request.
+* Please do not leave "+1" or other comments that do not add relevant new information or questions, they generate extra noise for issue followers and do not help prioritize the request.
+* If you are interested in working on this issue or have submitted a pull request, please leave a comment.
 
 <!--- Thank you for keeping this note for the community --->

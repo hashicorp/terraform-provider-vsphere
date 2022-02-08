@@ -1,4 +1,17 @@
 dependencies:
-  - vendor/**/*
+  - 'vendor/**/*'
 documentation:
-  - website/**/*
+  - '**/*.md'
+  - 'examples/**/*'
+  - 'website/**/*'
+provider:
+  - '.circleci/**/*'
+  - '.github/**/*'
+  - '.gitignore'
+  - '.go-version'
+  - '*.md'
+  - 'docs/**/*'
+  - 'GNUmakefile'
+  - 'main.go'
+  - 'vsphere/**/*'
+  - 'website/docs/index.html.markdown'

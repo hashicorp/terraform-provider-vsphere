@@ -261,7 +261,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		"vmware_tools_status": {
 			Type:        schema.TypeString,
 			Computed:    true,
-			Description: "The state of VMware tools in the guest. This will determine the proper course of action for some device operations.",
+			Description: "The state of VMware Tools in the guest. This will determine the proper course of action for some device operations.",
 		},
 		"vmx_path": {
 			Type:        schema.TypeString,
@@ -276,7 +276,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		"moid": {
 			Type:        schema.TypeString,
 			Computed:    true,
-			Description: "The machine object ID from VMWare",
+			Description: "The machine object ID from VMware vSphere.",
 		},
 		vSphereTagAttributeKey:    tagsSchema(),
 		customattribute.ConfigKey: customattribute.ConfigSchema(),
@@ -429,7 +429,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	// Reset reboot_required. This is an update only variable and should not be
 	// set across TF runs.
 	_ = d.Set("reboot_required", false)
-	// Check to see if VMware tools is running.
+	// Check to see if VMware Tools is running.
 	if vprops.Guest != nil {
 		_ = d.Set("vmware_tools_status", vprops.Guest.ToolsRunningStatus)
 	}
@@ -493,12 +493,15 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("error reading virtual machine configuration: %s", err)
 	}
 
-	// Read the VM Home storage policy if associated.
-	polID, err := spbm.PolicyIDByVirtualMachine(client, moid)
-	if err != nil {
-		return err
+	// Check if running for ESXi or vCenter.
+	if spbm.IsSupported(client) {
+		// Read the VM Home storage policy if associated.
+		polID, err := spbm.PolicyIDByVirtualMachine(client, moid)
+		if err != nil {
+			return err
+		}
+		d.Set("storage_policy_id", polID)
 	}
-	_ = d.Set("storage_policy_id", polID)
 
 	// Read the PCI passthrough devices.
 	var pciDevs []string
@@ -1213,7 +1216,7 @@ func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interf
 	// environment info in the resource pool, which we can then filter through
 	// our device CRUD lifecycles to get a full deviceChange attribute for our
 	// configspec.
-	guestID := "other-64"
+	guestID := "otherGuest64"
 	if guestInterface, ok := d.GetOk("guest_id"); ok {
 		guestID = guestInterface.(string)
 	}
@@ -1577,11 +1580,7 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 	log.Printf("[DEBUG] %s: Final device change cfgSpec: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceChangeString(cfgSpec.DeviceChange))
 
 	// Perform updates
-	if _, ok := d.GetOk("datastore_cluster_id"); ok {
-		err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, cfgSpec)
-	} else {
-		err = virtualmachine.Reconfigure(vm, cfgSpec)
-	}
+	err = virtualmachine.Reconfigure(vm, cfgSpec)
 	if err != nil {
 		return resourceVSphereVirtualMachineRollbackCreate(
 			d,

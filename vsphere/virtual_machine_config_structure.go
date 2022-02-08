@@ -143,41 +143,41 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 		"sync_time_with_host": {
 			Type:        schema.TypeBool,
 			Optional:    true,
-			Description: "Enable guest clock synchronization with the host. On vSphere 7 U1 and above, with only this setting the clock is synchronized on startup and resume so consider also setting `sync_time_with_host_periodically`. Requires VMware tools to be installed.",
+			Description: "Enable guest clock synchronization with the host. On vSphere 7.0 U1 and above, with only this setting the clock is synchronized on startup and resume. Requires VMware Tools to be installed.",
 		},
 		"sync_time_with_host_periodically": {
 			Type:        schema.TypeBool,
 			Optional:    true,
-			Description: "Enable periodic clock synchronization with the host. Supported only on vSphere 7 U1 and above. On older versions setting `sync_time_with_host` is enough for periodic synchronization. Requires VMware tools to be installed.",
+			Description: "Enable periodic clock synchronization with the host. Supported only on vSphere 7.0 U1 and above. On prior versions setting `sync_time_with_host` is enough for periodic synchronization. Requires VMware Tools to be installed.",
 		},
 		"run_tools_scripts_after_power_on": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Default:     true,
-			Description: "Enable the execution of post-power-on scripts when VMware tools is installed.",
+			Description: "Enable the run of scripts after virtual machine power-on when VMware Tools is installed.",
 		},
 		"run_tools_scripts_after_resume": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Default:     true,
-			Description: "Enable the execution of post-resume scripts when VMware tools is installed.",
+			Description: "Enable the run of scripts after virtual machine resume when when VMware Tools is installed.",
 		},
 		"run_tools_scripts_before_guest_reboot": {
 			Type:        schema.TypeBool,
 			Optional:    true,
-			Description: "Enable the execution of pre-reboot scripts when VMware tools is installed.",
+			Description: "Enable the run of scripts before guest operating system reboot when VMware Tools is installed.",
 		},
 		"run_tools_scripts_before_guest_shutdown": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Default:     true,
-			Description: "Enable the execution of pre-shutdown scripts when VMware tools is installed.",
+			Description: "Enable the run of scripts before guest operating system shutdown when VMware Tools is installed.",
 		},
 		"run_tools_scripts_before_guest_standby": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Default:     true,
-			Description: "Enable the execution of pre-standby scripts when VMware tools is installed.",
+			Description: "Enable the run of scripts before guest operating system standby when VMware Tools is installed.",
 		},
 
 		// LatencySensitivity
@@ -272,13 +272,13 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 		"alternate_guest_name": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "The guest name for the operating system when guest_id is other or other-64.",
+			Description: "The guest name for the operating system when guest_id is otherGuest or otherGuest64.",
 		},
 		"firmware": {
 			Type:         schema.TypeString,
 			Optional:     true,
 			Default:      string(types.GuestOsDescriptorFirmwareTypeBios),
-			Description:  "The firmware interface to use on the virtual machine. Can be one of bios or EFI.",
+			Description:  "The firmware interface to use on the virtual machine. Can be one of bios or efi.",
 			ValidateFunc: validation.StringInSlice(virtualMachineFirmwareAllowedValues, false),
 		},
 		"extra_config": {
