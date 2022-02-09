@@ -25,6 +25,7 @@ IMPROVEMENTS:
 * `resource/virtual_disk`: Documentation updates. [GH-1569]
 * `resource/virtual_machine`: Documentation updates. [GH-1566]
 * `resource/content_library`: Documentation updates. [GH-1577]
+* `resource/virtual_machine`: Updated the documentation with the conditions that causes the virtual machine to reboot on update. [GH-1522]
 
 ## 2.0.2 (June 25, 2021)
 
