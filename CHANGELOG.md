@@ -9,6 +9,7 @@ BUG FIXES:
 * `resource/virtual_machine`: Updates `windows_options` to ensure all required options for domain join are provided [GH-1562]
 * `resource/virtual_machine`: Fix migration of all disks and configuration files when the datastore_cluster_id is changed on the resource. [GH-1546]
 * `resource/file`: Fix upload of VMDK to datastore on ESXi host. [GH-1409]
+* `resource/tag`: Fix deletion detection in `tag` and `tag_category`. [GH-1579]
 
 IMPROVEMENTS:
 * `resource/vapp_container`: Documentation updates. [GH-1551]
