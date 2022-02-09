@@ -107,7 +107,7 @@ func resourceVSphereTagCategoryRead(d *schema.ResourceData, meta interface{}) er
 	defer cancel()
 	category, err := tm.GetCategory(ctx, id)
 	if err != nil {
-		if strings.Contains(err.Error(), "com.vmware.vapi.std.errors.not_found") {
+		if strings.Contains(err.Error(), "com.vmware.vapi.std.errors.not_found") || strings.Contains(err.Error(), "404 Not Found") {
 			log.Printf("[DEBUG] Tag category %s: Resource has been deleted", id)
 			d.SetId("")
 			return nil
