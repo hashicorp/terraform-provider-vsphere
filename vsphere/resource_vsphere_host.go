@@ -101,7 +101,7 @@ func resourceVsphereHost() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{"disabled", "normal", "strict"}, true),
 			},
 
-			// Add tags schema
+			// Tagging
 			vSphereTagAttributeKey: tagsSchema(),
 		},
 	}
@@ -177,6 +177,7 @@ func resourceVsphereHostRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	// Read tags if we have the ability to do so
 	if tagsClient, _ := meta.(*Client).TagsManager(); tagsClient != nil {
 		if err := readTagsForResource(tagsClient, host, d); err != nil {
 			return fmt.Errorf("error reading tags: %s", err)
@@ -286,6 +287,7 @@ func resourceVsphereHostCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	// Apply any pending tags now
 	if tagsClient != nil {
 		if err := processTagDiff(tagsClient, d, host); err != nil {
 			return fmt.Errorf("error updating tags: %s", err)
