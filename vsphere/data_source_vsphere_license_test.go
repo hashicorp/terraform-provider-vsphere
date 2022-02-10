@@ -3,9 +3,6 @@ package vsphere
 import (
 	"fmt"
 	"os"
-	"regexp"
-
-	//"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -23,10 +20,10 @@ func TestAccDataSourceVSphereLicense_basic(t *testing.T) {
 			{
 				Config: testAccDataSourceVSphereLicenseConfig(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestMatchResourceAttr(
+					resource.TestCheckResourceAttr(
 						"data.vsphere_license.license",
 						"id",
-						regexp.MustCompile(os.Getenv("TF_VAR_VSPHERE_LICENSE")),
+						os.Getenv("TF_VAR_VSPHERE_LICENSE"),
 					),
 				),
 			},
@@ -42,12 +39,8 @@ func testAccDataSourceVSphereLicensePreCheck(t *testing.T) {
 
 func testAccDataSourceVSphereLicenseConfig() string {
 	return fmt.Sprintf(`
-data "vsphere_datacenter" "dc" {
-  name = "%s"
-}
-
 data "vsphere_license" "license" {
   license_key = "%s"
 }
-`, os.Getenv("TF_VAR_VSPHERE_DATACENTER"), os.Getenv("TF_VAR_VSPHERE_LICENSE"))
+`, os.Getenv("TF_VAR_VSPHERE_LICENSE"))
 }
