@@ -15,18 +15,17 @@ func dataSourceVSphereLicense() *schema.Resource {
 			"license_key": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
-			},
-			"labels": {
-				Type:     schema.TypeMap,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
 			// computed properties returned by the API
 			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"labels": {
+				Type:     schema.TypeMap,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"edition_key": {
 				Type:     schema.TypeString,
@@ -55,16 +54,16 @@ func dataSourceVSphereLicenseRead(d *schema.ResourceData, meta interface{}) erro
 	licenseKey := d.Get("license_key").(string)
 	if info := getLicenseInfoFromKey(d.Get("license_key").(string), manager); info != nil {
 		log.Println("[INFO] Setting the values")
-		_ = d.Set("edition_key", info.EditionKey)
-		_ = d.Set("total", info.Total)
-		_ = d.Set("used", info.Used)
-		_ = d.Set("name", info.Name)
-		_ = d.Set("labels", keyValuesToMap(info.Labels))
+		d.Set("edition_key", info.EditionKey)
+		d.Set("total", info.Total)
+		d.Set("used", info.Used)
+		d.Set("name", info.Name)
+		if err := d.Set("labels", keyValuesToMap(info.Labels)); err != nil {
+			return err
+		}
 		d.SetId(licenseKey)
-
+		return nil
 	} else {
 		return ErrNoSuchKeyFound
 	}
-
-	return nil
 }
