@@ -4,50 +4,51 @@ layout: "vsphere"
 page_title: "VMware vSphere: vsphere_host"
 sidebar_current: "docs-vsphere-resource-compute-host"
 description: |-
-  Provides a VMware vSphere host resource. This represents an ESXi host that can be used either as part of a Compute Cluster or Standalone.
+  Provides a VMware vSphere host resource. This represents an ESXi host that
+  can be used as a member of a cluster or as a standalone host.
 ---
 
 # vsphere\_host
 
 Provides a VMware vSphere host resource. This represents an ESXi host that
-can be used either as part of a Compute Cluster or Standalone.
+can be used either as a member of a cluster or as a standalone host.
 
 ## Example Usages
 
 **Create a standalone host:**
 
 ```hcl
-data "vsphere_datacenter" "dc" {
-  name = "my-datacenter"
+data "vsphere_datacenter" "datacenter" {
+  name = "dc-01"
 }
 
-resource "vsphere_host" "h1" {
-  hostname   = "10.10.10.1"
+resource "vsphere_host" "esx-01" {
+  hostname = "esx-01.example.com"
   username   = "root"
   password   = "password"
   license    = "00000-00000-00000-00000i-00000"
-  datacenter = data.vsphere_datacenter.dc.id
+  datacenter = data.vsphere_datacenter.datacenter.id
 }
 ```
 
 **Create host in a compute cluster:**
 
 ```hcl
-data "vsphere_datacenter" "dc" {
-  name = "TfDatacenter"
+data "vsphere_datacenter" "datacenter" {
+  name = "dc-01"
 }
 
-data "vsphere_compute_cluster" "c1" {
-  name          = "DC0_C0"
-  datacenter_id = data.vsphere_datacenter.dc.id
+data "vsphere_compute_cluster" "cluster" {
+  name          = "cluster-01"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
-resource "vsphere_host" "h1" {
-  hostname = "10.10.10.1"
+resource "vsphere_host" "esx-01" {
+  hostname = "esx-01.example.com"
   username = "root"
   password = "password"
   license  = "00000-00000-00000-00000i-00000"
-  cluster  = data.vsphere_compute_cluster.c1.id
+  cluster  = data.vsphere_compute_cluster.cluster.id
 }
 ```
 
@@ -68,34 +69,37 @@ The following arguments are supported:
 * `cluster_managed` - (Optional) Can be set to `true` if compute cluster
   membership will be managed through the `compute_cluster` resource rather
   than the`host` resource. Conflicts with: `cluster`.
-* `thumbprint` - (Optional) Host's certificate SHA-1 thumbprint. If not set the the
-  CA that signed the host's certificate should be trusted. If the CA is not trusted
-  and no thumbprint is set then the operation will fail.
+* `thumbprint` - (Optional) Host's certificate SHA-1 thumbprint. If not set the
+  CA that signed the host's certificate should be trusted. If the CA is not
+  trusted and no thumbprint is set then the operation will fail.
 * `license` - (Optional) The license key that will be applied to the host.
   The license key is expected to be present in vSphere.
-* `force` - (Optional) If set to true then it will force the host to be added, even
-  if the host is already connected to a different vSphere instance. Default is `false`
+* `force` - (Optional) If set to true then it will force the host to be added,
+  even if the host is already connected to a different vSphere instance.
+  Default is `false`.
 * `connected` - (Optional) If set to false then the host will be disconected.
   Default is `false`.
-* `maintenance` - (Optional) Set the management state of the host. Default is `false`.
+* `maintenance` - (Optional) Set the management state of the host.
+  Default is `false`.
 * `lockdown` - (Optional) Set the lockdown state of the host. Valid options are
   `disabled`, `normal`, and `strict`. Default is `disabled`.
-* `tags` - (Optional) The IDs of any tags to attach to this resource. Please refer to the vsphere_tag resource for more information on applying tags to virtual machine resources.
+* `tags` - (Optional) The IDs of any tags to attach to this resource. Please
+  refer to the `vsphere_tag` resource for more information on applying
+  tags to resources.
 
 ## Attribute Reference
 
 * `id` - The ID of the host.
 
+## Importing
 
-## Importing 
-
-An existing host can be [imported][docs-import] into this resource
-via supplying the host's ID. An example is below:
+An existing host can be [imported][docs-import] into this resource by supplying
+the host's ID. An example is below:
 
 [docs-import]: /docs/import/index.html
 
 ```
-terraform import vsphere_host.vm host-123
+terraform import vsphere_host.esx-01 host-123
 ```
 
 The above would import the host with ID `host-123`.
