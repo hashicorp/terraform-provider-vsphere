@@ -22,12 +22,12 @@ func dataSourceVSphereLicense() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+
+			// computed properties returned by the API
 			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-
-			// computed properties returned by the API
 			"edition_key": {
 				Type:     schema.TypeString,
 				Computed: true,
