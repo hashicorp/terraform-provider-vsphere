@@ -1,1 +1,11 @@
 blank_issues_enabled: false
+contact_links:
+  - name: Community Discussions
+    url: https://discuss.hashicorp.com/tags/c/terraform-providers/31/vsphere
+    about: Need some help? Join the community discussions.
+  - name: Terraform Provider Documentation
+    url: https://registry.terraform.io/providers/hashicorp/vsphere/latest/docs
+    about: Having trouble with this Terraform provider? Check out the provider documentation.
+  - name: Terraform Documentation
+    url: https://terraform.io/docs/
+    about: Having trouble with Terraform? Check out the product documentation.
