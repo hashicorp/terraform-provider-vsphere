@@ -32,6 +32,7 @@ IMPROVEMENTS:
 * `resource/content_library`: Documentation updates. [GH-1577]
 * `resource/virtual_machine`: Updated the documentation with the conditions that causes the virtual machine to reboot on update. [GH-1522]
 * `resource/distributed_virtual_switch`: Devices argument is now optional [GH-1468]
+* `resource/virtual_host`: Added support add tags to hosts. [GH-1499]
 
 ## 2.0.2 (June 25, 2021)
 
