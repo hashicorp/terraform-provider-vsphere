@@ -11,6 +11,9 @@ BUG FIXES:
 * `resource/file`: Fix upload of VMDK to datastore on ESXi host. [GH-1409]
 * `resource/tag`: Fix deletion detection in `tag` and `tag_category`. [GH-1579]
 
+FEATURES:
+* `datasource/license`: New datasource can be used to read general attributes of a license. [GH-1580]
+
 IMPROVEMENTS:
 * `resource/vapp_container`: Documentation updates. [GH-1551]
 * `resource/computer_cluster_vm_affinity_rule`: Documentation updates. [GH-1544]
