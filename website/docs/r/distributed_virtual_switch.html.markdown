@@ -177,7 +177,7 @@ and requires vCenter Server.
   options are:
 - `host_system_id` - (Required) The host system ID of the host to add to the
   VDS.
-- `devices` - (Required) The list of NIC devices to map to uplinks on the VDS,
+- `devices` - (Optional) The list of NIC devices to map to uplinks on the VDS,
   added in order they are specified.
 
 ### Private VLAN mapping arguments
