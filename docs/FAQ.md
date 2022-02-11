@@ -8,6 +8,10 @@ The HashiCorp Terraform vSphere provider team is :
 * Alex Pilon, Engineer - [@appilon](https://github.com/appilon)
 * Brandy Jackson, Engineering Manager - [@ibrandyjackson](https://github.com/ibrandyjackson)
 
+Collaborators from VMware are :
+
+* Ryan Johnson - [@tenthirtyam](https://github.com/tenthirtyam)
+
 ### Why isn’t my PR merged yet?
 
 We do our best to focus on the contributions that provide the greatest value to the most community members. 
