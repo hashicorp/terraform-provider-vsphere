@@ -39,9 +39,8 @@ resource "vsphere_content_library_item" "ubuntu1804" {
   name        = "Ubuntu Bionic 18.04"
   description = "Ubuntu template"
   library_id  = vsphere_content_library.library.id
-  file_url = "https://fileserver/ubuntu/ubuntu-bionic-18.04-cloudimg.ovf"
+  file_url    = "https://fileserver/ubuntu/ubuntu-bionic-18.04-cloudimg.ovf"
 }
-
 ```
 
 ## Argument Reference
