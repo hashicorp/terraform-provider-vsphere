@@ -249,6 +249,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 		"annotation": {
 			Type:        schema.TypeString,
 			Optional:    true,
+			Computed:    true,
 			Description: "User-provided description of the virtual machine.",
 		},
 		"guest_id": {
