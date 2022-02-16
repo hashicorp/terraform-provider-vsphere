@@ -47,7 +47,7 @@ data "vsphere_datacenter" "datacenter" {
   name = "dc-01"
 }
 
-data "vsphere_content_library" "_content_library" {
+data "vsphere_content_library" "content_library" {
   name = "clb-01"
 }
 
