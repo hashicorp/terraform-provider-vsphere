@@ -220,14 +220,9 @@ data "vsphere_network" "network" {
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
-data "vsphere_folder" "folder" {
-  path = "/${data.vsphere_datacenter.datacenter.name}/vm"
-}
-
 ## Deployment of VM from Remote OVF
 resource "vsphere_virtual_machine" "vmFromRemoteOvf" {
   name                 = "remote-foo"
-  folder               = trimprefix(data.vsphere_folder.folder.path, "/${data.vsphere_datacenter.datacenter.name}/vm")
   datacenter_id        = data.vsphere_datacenter.datacenter.id
   datastore_id         = data.vsphere_datastore.datastore.id
   host_system_id       = data.vsphere_host.host.id
@@ -265,7 +260,6 @@ resource "vsphere_virtual_machine" "vmFromRemoteOvf" {
 ## Deployment of VM from Local OVF
 resource "vsphere_virtual_machine" "vmFromLocalOvf" {
   name                 = "local-foo"
-  folder               = trimprefix(data.vsphere_folder.folder.path, "/${data.vsphere_datacenter.datacenter.name}/vm")
   datacenter_id        = data.vsphere_datacenter.datacenter.id
   datastore_id         = data.vsphere_datastore.datastore.id
   host_system_id       = data.vsphere_host.host.id
@@ -337,10 +331,6 @@ data "vsphere_network" "network" {
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
-data "vsphere_folder" "folder" {
-  path = "/${data.vsphere_datacenter.datacenter.name}/vm"
-}
-
 ## Remote OVF/OVA Source
 data "vsphere_ovf_vm_template" "ovfRemote" {
   name              = "foo"
@@ -370,19 +360,18 @@ data "vsphere_ovf_vm_template" "ovfLocal" {
 ## Deployment of VM from Remote OVF
 resource "vsphere_virtual_machine" "vmFromRemoteOvf" {
   name                 = "Nested-ESXi-7.0-Terraform-Deploy-1"
-  folder               = trimprefix(data.vsphere_folder.folder.path, "/${data.vsphere_datacenter.datacenter.name}/vm")
   datacenter_id        = data.vsphere_datacenter.datacenter.id
   datastore_id         = data.vsphere_datastore.datastore.id
   host_system_id       = data.vsphere_host.host.id
   resource_pool_id     = data.vsphere_resource_pool.default.id
-  num_cpus             = data.vsphere_ovf_vm_template.ovfLocal.num_cpus
-  num_cores_per_socket = data.vsphere_ovf_vm_template.ovfLocal.num_cores_per_socket
-  memory               = data.vsphere_ovf_vm_template.ovfLocal.memory
-  guest_id             = data.vsphere_ovf_vm_template.ovfLocal.guest_id
-  scsi_type            = data.vsphere_ovf_vm_template.ovfLocal.scsi_type
-  nested_hv_enabled    = data.vsphere_ovf_vm_template.ovfLocal.nested_hv_enabled
+  num_cpus             = data.vsphere_ovf_vm_template.ovfRemote.num_cpus
+  num_cores_per_socket = data.vsphere_ovf_vm_template.ovfRemote.num_cores_per_socket
+  memory               = data.vsphere_ovf_vm_template.ovfRemote.memory
+  guest_id             = data.vsphere_ovf_vm_template.ovfRemote.guest_id
+  scsi_type            = data.vsphere_ovf_vm_template.ovfRemote.scsi_type
+  nested_hv_enabled    = data.vsphere_ovf_vm_template.ovfRemote.nested_hv_enabled
   dynamic "network_interface" {
-    for_each = data.vsphere_ovf_vm_template.ovfLocal.ovf_network_map
+    for_each = data.vsphere_ovf_vm_template.ovfRemote.ovf_network_map
     content {
       network_id = network_interface.value
     }
@@ -392,9 +381,9 @@ resource "vsphere_virtual_machine" "vmFromRemoteOvf" {
 
   ovf_deploy {
     allow_unverified_ssl_cert = false
-    local_ovf_path            = data.vsphere_ovf_vm_template.ovfLocal.local_ovf_path
-    disk_provisioning         = data.vsphere_ovf_vm_template.ovfLocal.disk_provisioning
-    ovf_network_map           = data.vsphere_ovf_vm_template.ovfLocal.ovf_network_map
+    remote_ovf_url            = data.vsphere_ovf_vm_template.ovfRemote.remote_ovf_url
+    disk_provisioning         = data.vsphere_ovf_vm_template.ovfRemote.disk_provisioning
+    ovf_network_map           = data.vsphere_ovf_vm_template.ovfRemote.ovf_network_map
   }
 
   vapp {
@@ -425,7 +414,6 @@ resource "vsphere_virtual_machine" "vmFromRemoteOvf" {
 ## Deployment of VM from Local OVF
 resource "vsphere_virtual_machine" "vmFromLocalOvf" {
   name                 = "Nested-ESXi-7.0-Terraform-Deploy-2"
-  folder               = trimprefix(data.vsphere_folder.folder.path, "/${data.vsphere_datacenter.datacenter.name}/vm")
   datacenter_id        = data.vsphere_datacenter.datacenter.id
   datastore_id         = data.vsphere_datastore.datastore.id
   host_system_id       = data.vsphere_host.host.id
@@ -518,10 +506,6 @@ data "vsphere_network" "network" {
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
-data "vsphere_folder" "folder" {
-  path = "/${data.vsphere_datacenter.datacenter.name}/vm"
-}
-
 data "vsphere_virtual_machine" "template_from_ovf" {
   name          = "ubuntu-server-template-from-ova"
   datacenter_id = data.vsphere_datacenter.datacenter.id
@@ -529,7 +513,6 @@ data "vsphere_virtual_machine" "template_from_ovf" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "hello-world"
-  folder           = trimprefix(data.vsphere_folder.folder.path, "/${data.vsphere_datacenter.datacenter.name}/vm")
   resource_pool_id = data.vsphere_compute_cluster.cluster.resource_pool_id
   datastore_id     = data.vsphere_datastore.datastore.id
   num_cpus         = 2
