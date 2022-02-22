@@ -70,7 +70,6 @@ func resourceVSphereFile() *schema.Resource {
 			"create_directories": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  true,
 			},
 		},
 	}
