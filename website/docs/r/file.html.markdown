@@ -30,10 +30,11 @@ deleted from the previoud location.
 
 ```hcl
 resource "vsphere_file" "ubuntu_vmdk_upload" {
-  datacenter       = "dc-01"
-  datastore        = "datastore-01"
-  source_file      = "/my/src/path/custom_ubuntu.vmdk"
-  destination_file = "/my/dst/path/custom_ubuntu.vmdk"
+  datacenter         = "dc-01"
+  datastore          = "datastore-01"
+  source_file        = "/my/src/path/custom_ubuntu.vmdk"
+  destination_file   = "/my/dst/path/custom_ubuntu.vmdk"
+  create_directories = true
 }
 ```
 
@@ -41,12 +42,13 @@ resource "vsphere_file" "ubuntu_vmdk_upload" {
 
 ```hcl
 resource "vsphere_file" "ubuntu_copy" {
-  source_datacenter = "dc-01"
-  datacenter        = "dc-01"
-  source_datastore  = "datastore-01"
-  datastore         = "datastore-01"
-  source_file       = "/my/src/path/custom_ubuntu.vmdk"
-  destination_file  = "/my/dst/path/custom_ubuntu.vmdk"
+  source_datacenter  = "dc-01"
+  datacenter         = "dc-01"
+  source_datastore   = "datastore-01"
+  datastore          = "datastore-01"
+  source_file        = "/my/src/path/custom_ubuntu.vmdk"
+  destination_file   = "/my/dst/path/custom_ubuntu.vmdk"
+  create_directories = true
 }
 ```
 
@@ -74,7 +76,6 @@ The following arguments are supported:
   file.
 * `create_directories` - (Optional) Create directories in `destination_file`
   path parameter on first apply if any are missing for copy operation.
-  Default: `true`.
 
 ~> **NOTE:** Any directory created as part of the `create_directories` argument
   will not be deleted when the resource is destroyed. New directoriea are not
