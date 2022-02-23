@@ -65,9 +65,7 @@ them. Attempting to do so will result in an error.
 The following table will help you determine what values you need to enter for
 the associable type you want to associate with a tag category.
 
-Note that if you want a tag to apply to all objects, the `All` alias exists -
-just remember that you will not be able to revert this later, and this category
-will permanently allow all objects.
+Note that if you want a tag to apply to all objects you will need to add all the types listed below.
 
 <table>
 <tr><th>Type</th><th>Value</th></tr>
