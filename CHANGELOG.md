@@ -35,6 +35,7 @@ IMPROVEMENTS:
 * `resource/distributed_virtual_switch`: Devices argument is now optional [GH-1468]
 * `resource/virtual_host`: Added support add tags to hosts. [GH-1499]
 * `resource/content_library_item`: Documentation updates. [GH-1586]
+* `resource/file`: Documentation updates and deletion fix. [GH-1590]
 
 ## 2.0.2 (June 25, 2021)
 
