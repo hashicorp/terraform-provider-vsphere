@@ -78,5 +78,5 @@ The following arguments are supported:
   path parameter on first apply if any are missing for copy operation.
 
 ~> **NOTE:** Any directory created as part of the `create_directories` argument
-  will not be deleted when the resource is destroyed. New directoriea are not
+  will not be deleted when the resource is destroyed. New directories are not
   created if the `destination_file` path is change in subsequent applies.
