@@ -79,4 +79,4 @@ The following arguments are supported:
 
 ~> **NOTE:** Any directory created as part of the `create_directories` argument
   will not be deleted when the resource is destroyed. New directories are not
-  created if the `destination_file` path is change in subsequent applies.
+  created if the `destination_file` path is changed in subsequent applies.
