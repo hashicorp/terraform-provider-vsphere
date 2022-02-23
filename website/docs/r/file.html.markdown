@@ -22,7 +22,7 @@ values of the new settings.  If any source parameter is changed, such as
 `source_datastore`, `source_datacenter`, or `source_file`), the resource will
 be re-created. Depending on if destination parameters are being changed,
 this may result in the destination file either being overwritten or
-deleted from the previoud location.
+deleted from the previous location.
 
 ## Example Usages
 
