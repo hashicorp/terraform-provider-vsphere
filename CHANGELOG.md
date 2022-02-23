@@ -36,6 +36,7 @@ IMPROVEMENTS:
 * `resource/virtual_host`: Added support add tags to hosts. [GH-1499]
 * `resource/content_library_item`: Documentation updates. [GH-1586]
 * `resource/file`: Documentation updates and deletion fix. [GH-1590]
+* `resource/virtual_machine`: Documentation updates. [GH-1595]
 
 ## 2.0.2 (June 25, 2021)
 
