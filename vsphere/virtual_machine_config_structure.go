@@ -154,7 +154,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Type:         schema.TypeString,
 			Optional:     true,
 			Default:      string(types.UpgradePolicyManual),
-			Description:  "Set the upgrade policy for VMware Tools. Can be one of manual or upgradeAtPowerCycle.",
+			Description:  "Set the upgrade policy for VMware Tools. Can be one of `manual` or `upgradeAtPowerCycle`.",
 			ValidateFunc: validation.StringInSlice(virtualMachineUpgradePolicyAllowedValues, false),
 		},
 		"sync_time_with_host_periodically": {
