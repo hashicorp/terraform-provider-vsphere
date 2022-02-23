@@ -417,8 +417,6 @@ func resourceVsphereHostUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	return nil
-
 	return resourceVsphereHostRead(d, meta)
 }
 
