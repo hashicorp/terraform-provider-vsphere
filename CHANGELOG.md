@@ -37,6 +37,7 @@ IMPROVEMENTS:
 * `resource/content_library_item`: Documentation updates. [GH-1586]
 * `resource/file`: Documentation updates and deletion fix. [GH-1590]
 * `resource/virtual_machine`: Documentation updates. [GH-1595]
+* `resource/tag_category`: Perform validation of associable types and update documentation around "All" which never worked. [GH-1602]
 
 ## 2.0.2 (June 25, 2021)
 
