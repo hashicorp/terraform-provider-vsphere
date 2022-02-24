@@ -21,6 +21,26 @@ const (
 	vSphereTagTypeVirtualMachine = "VirtualMachine"
 )
 
+var vSphereTagTypes = []string{
+	"Folder",
+	"ClusterComputeResource",
+	"Datacenter",
+	vSphereTagTypeDatastore,
+	"StoragePod",
+	"DistributedVirtualPortgroup",
+	"DistributedVirtualSwitch",
+	"VmwareDistributedVirtualSwitch",
+	"HostSystem",
+	"com.vmware.content.Library",
+	"com.vmware.content.library.Item",
+	"HostNetwork",
+	"Network",
+	"OpaqueNetwork",
+	"ResourcePool",
+	"VirtualApp",
+	vSphereTagTypeVirtualMachine,
+}
+
 // vSphereTagCategorySearchErrMultiple is an error message format for a tag
 // category search that returned multiple results. This is a bug and needs to
 // be reported so we can adjust the API.

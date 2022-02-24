@@ -63,28 +63,6 @@ func resourceVSphereTagCategory() *schema.Resource {
 				Description: "Object types to which this category's tags can be attached. Valid types include: Folder, ClusterComputeResource, Datacenter, Datastore, StoragePod, DistributedVirtualPortgroup, DistributedVirtualSwitch, VmwareDistributedVirtualSwitch, HostSystem, com.vmware.content.Library, com.vmware.content.library.Item, HostNetwork, Network, OpaqueNetwork, ResourcePool, VirtualApp, VirtualMachine.",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				Required:    true,
-				ValidateFunc: validation.StringInSlice(
-					[]string{
-						"Folder",
-						"ClusterComputeResource",
-						"Datacenter",
-						"Datastore",
-						"StoragePod",
-						"DistributedVirtualPortgroup",
-						"DistributedVirtualSwitch",
-						"VmwareDistributedVirtualSwitch",
-						"HostSystem",
-						"com.vmware.content.Library",
-						"com.vmware.content.library.Item",
-						"HostNetwork",
-						"Network",
-						"OpaqueNetwork",
-						"ResourcePool",
-						"VirtualApp",
-						"VirtualMachine",
-					},
-					false,
-				),
 			},
 		},
 	}
@@ -96,6 +74,9 @@ func resourceVSphereTagCategoryCreate(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 	associableTypesRaw := structure.SliceInterfacesToStrings(d.Get("associable_types").(*schema.Set).List())
+	if err := validateAssociableTypes(associableTypesRaw); err != nil {
+		return err
+	}
 	associableTypes := appendPrefix(associableTypesRaw)
 
 	spec := &tags.Category{
@@ -169,6 +150,9 @@ func resourceVSphereTagCategoryUpdate(d *schema.ResourceData, meta interface{}) 
 
 	id := d.Id()
 	associableTypesRaw := structure.SliceInterfacesToStrings(d.Get("associable_types").(*schema.Set).List())
+	if err := validateAssociableTypes(associableTypesRaw); err != nil {
+		return err
+	}
 	associableTypes := appendPrefix(associableTypesRaw)
 
 	spec := &tags.Category{
@@ -227,4 +211,23 @@ func appendPrefix(associableTypes []string) []string {
 		appendedTypes = append(appendedTypes, vim25Prefix+associableType)
 	}
 	return appendedTypes
+}
+
+func validateAssociableTypes(types []string) error {
+
+	mapOf := func(s []string) map[string]struct{} {
+		m := make(map[string]struct{}, len(s))
+		for _, k := range s {
+			m[k] = struct{}{}
+		}
+		return m
+	}
+
+	validTypesMap := mapOf(vSphereTagTypes)
+	for _, t := range types {
+		if _, exists := validTypesMap[t]; !exists {
+			return fmt.Errorf("%s is not a valid associable_type, valid types include: %v", t, vSphereTagTypes)
+		}
+	}
+	return nil
 }
