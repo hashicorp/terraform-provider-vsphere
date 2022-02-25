@@ -300,6 +300,12 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Description: "Extra configuration data for this virtual machine. Can be used to supply advanced parameters not normally in configuration, such as instance metadata, or configuration data for OVF images.",
 			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
+		"extra_config_reboot_required": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Default:     true,
+			Description: "Configure if a change of extra_config will trigger a reboot",
+		},
 		"replace_trigger": {
 			Type:        schema.TypeString,
 			Optional:    true,
@@ -579,7 +585,13 @@ func expandExtraConfig(d *schema.ResourceData) []types.BaseOptionValue {
 		// While there's a possibility that modification of some settings in
 		// extraConfig may not require a restart, there's no real way for us to
 		// know, hence we just default to requiring a reboot here.
-		_ = d.Set("reboot_required", true)
+		rebootRequired := true
+		// Check if the user has specified that no reboot is required
+		_rebootRequired, ok := d.Get("extra_config_reboot_required").(bool)
+		if ok {
+			rebootRequired = _rebootRequired
+		}
+		_ = d.Set("reboot_required", rebootRequired)
 	} else {
 		// There's no change here, so we might as well just return a nil set, which
 		// is a no-op for modification of extraConfig.
