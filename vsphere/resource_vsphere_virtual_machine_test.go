@@ -1027,6 +1027,14 @@ func TestAccResourceVSphereVirtualMachine_extraConfig(t *testing.T) {
 					testAccResourceVSphereVirtualMachineCheckExtraConfig("foo", "bar"),
 				),
 			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigExtraConfig("foo", "baz"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "reboot_required", "false"),
+					testAccResourceVSphereVirtualMachineCheckExtraConfig("foo", "baz"),
+				),
+			},
 		},
 	})
 }
@@ -4544,6 +4552,7 @@ resource "vsphere_virtual_machine" "vm" {
   extra_config = {
     %s = "%s"
   }
+  extra_config_reboot_required = false
 
   network_interface {
     network_id = "${data.vsphere_network.network1.id}"
