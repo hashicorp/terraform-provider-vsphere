@@ -278,11 +278,11 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Computed:    true,
 			Description: "The machine object ID from VMware vSphere.",
 		},
-                "power_state": {
-                        Type:        schema.TypeString,
-                        Computed:    true,
-                        Description: "Power state for the virtual machine.",
-                },
+       		"power_state": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The power state of the virtual machine.",
+		},
 		vSphereTagAttributeKey:    tagsSchema(),
 		customattribute.ConfigKey: customattribute.ConfigSchema(),
 	}
@@ -560,12 +560,15 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		}
 	}
 
-        // Get the power state for the virtual machine.
-        if vprops.Runtime.PowerState == types.VirtualMachinePowerStatePoweredOn {
-                d.Set("power_state", "running")
-        } else {
-                d.Set("power_state", "shutdown")
-        }
+	// Get the power state for the virtual machine.
+	switch vprops.Runtime.PowerState {
+	case types.VirtualMachinePowerStatePoweredOn:
+		d.Set("power_state", "on")
+	case types.VirtualMachinePowerStatePoweredOff:
+		d.Set("power_state", "off")
+	case types.VirtualMachinePowerStateSuspended:
+		d.Set("power_state", "suspended")
+	}
 
 	log.Printf("[DEBUG] %s: Read complete", resourceVSphereVirtualMachineIDString(d))
 	return nil
@@ -1021,11 +1024,22 @@ func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.Res
 		return err
 	}
 
-        // Check the power state diff for VM
-        power_state := d.Get("power_state").(string)
-        if power_state != "running" {
-                d.SetNew("power_state", "running")
-        }
+        // Check the power state diff for virtual machine
+	power_state := d.Get("power_state").(string)
+	switch power_state {
+	case "poweredOn":
+		if power_state == "on" {
+			d.SetNew("power_state", "on")
+		}
+	case "poweredOff":
+		if power_state == "off" {
+			d.SetNew("power_state", "off")
+		}
+	case "suspended":
+		if power_state == "suspended" {
+			d.SetNew("power_state", "suspended")
+		}
+	}
 
 	log.Printf("[DEBUG] %s: Diff customization and validation complete", resourceVSphereVirtualMachineIDString(d))
 	return nil
