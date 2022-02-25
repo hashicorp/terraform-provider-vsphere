@@ -304,7 +304,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Default:     true,
-			Description: "Configure if a change of extra_config will trigger a reboot",
+			Description: "Allow the virtual machine to be rebooted when a change to `extra_config` occurs.",
 		},
 		"replace_trigger": {
 			Type:        schema.TypeString,
@@ -586,7 +586,7 @@ func expandExtraConfig(d *schema.ResourceData) []types.BaseOptionValue {
 		// extraConfig may not require a restart, there's no real way for us to
 		// know, hence we just default to requiring a reboot here.
 		rebootRequired := true
-		// Check if the user has specified that no reboot is required
+		// Check for an override to the default reboot when changes are made to the extraConfig.
 		_rebootRequired, ok := d.Get("extra_config_reboot_required").(bool)
 		if ok {
 			rebootRequired = _rebootRequired
