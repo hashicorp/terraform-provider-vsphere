@@ -14,7 +14,7 @@ BUG FIXES:
 
 FEATURES:
 * `datasource/license`: New datasource can be used to read general attributes of a license. [GH-1580]
-* `resource/virtual_machine`: Adds the tools_upgrade_policy argument to to set the upgrade policy for VMware Tools. [GH-1506]
+* `resource/virtual_machine`: Adds the `tools_upgrade_policy` argument to set the upgrade policy for VMware Tools. [GH-1506]
 
 IMPROVEMENTS:
 * `resource/vapp_container`: Documentation updates. [GH-1551]
