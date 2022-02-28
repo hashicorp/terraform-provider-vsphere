@@ -1,44 +1,44 @@
-## 2.1.0 (Unreleased)
+## 2.1.0 (February 28, 2022)
 
 BUG FIXES:
-* `resource/compute_cluster`: Updates `ha_datastore_apd_response_delay` to the API default (180) for `vmTerminateDelayForAPDSec`. Previously set to 3 (minutes) however the codebase uses this value as seconds. Users who had the field left blank may see a warning about the state value drifting from 3 to 180, after applying this should go away. [GH-1542]
-* `resource/virtual_machine`: Don't read `storage_policy_id` if vCenter is not configured. This is not a scenario we test or support explicitly [GH-1408]
-* `datasource/virtual_machine`: Fix silent failure and add `default_ip_address` attribute. [GH-1532]
-* `resource/virtual_machine`: Attempt to fix race condition by always forcing a new datastore id. [GH-1486]
-* `resource/virtual_machine`: Fix default guest OS identifier. [GH-1543]
-* `resource/virtual_machine`: Updates `windows_options` to ensure all required options for domain join are provided [GH-1562]
-* `resource/virtual_machine`: Fix migration of all disks and configuration files when the datastore_cluster_id is changed on the resource. [GH-1546]
-* `resource/file`: Fix upload of VMDK to datastore on ESXi host. [GH-1409]
-* `resource/tag`: Fix deletion detection in `tag` and `tag_category`. [GH-1579]
-* `resource/virtual_machine`: Sets `annotation` to optional + computed. [GH-1588]
+* `resource/compute_cluster`: Updates `ha_datastore_apd_response_delay` to the API default (180) for `vmTerminateDelayForAPDSec`. Previously set to 3 (minutes) however the codebase uses this value as seconds. Users who had the field left blank may see a warning about the state value drifting from 3 to 180, after applying this should go away. ([#1542](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1542))
+* `resource/virtual_machine`: Don't read `storage_policy_id` if vCenter is not configured. This is not a scenario we test or support explicitly ([#1408](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1408))
+* `datasource/virtual_machine`: Fix silent failure and add `default_ip_address` attribute. ([#1532](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1532))
+* `resource/virtual_machine`: Attempt to fix race condition by always forcing a new datastore id. ([#1486](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1486))
+* `resource/virtual_machine`: Fix default guest OS identifier. ([#1543](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1543))
+* `resource/virtual_machine`: Updates `windows_options` to ensure all required options for domain join are provided ([#1562](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1562))
+* `resource/virtual_machine`: Fix migration of all disks and configuration files when the datastore_cluster_id is changed on the resource. ([#1546](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1546))
+* `resource/file`: Fix upload of VMDK to datastore on ESXi host. ([#1409](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1409))
+* `resource/tag`: Fix deletion detection in `tag` and `tag_category`. ([#1579](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1579))
+* `resource/virtual_machine`: Sets `annotation` to optional + computed. ([#1588](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1588))
 
 FEATURES:
-* `datasource/license`: New datasource can be used to read general attributes of a license. [GH-1580]
-* `resource/virtual_machine`: Adds the `tools_upgrade_policy` argument to set the upgrade policy for VMware Tools. [GH-1506]
+* `datasource/license`: New datasource can be used to read general attributes of a license. ([#1580](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1580))
+* `resource/virtual_machine`: Adds the `tools_upgrade_policy` argument to set the upgrade policy for VMware Tools. ([#1506](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1506))
 
 IMPROVEMENTS:
-* `resource/vapp_container`: Documentation updates. [GH-1551]
-* `resource/computer_cluster_vm_affinity_rule`: Documentation updates. [GH-1544]
-* `resource/computer_cluster_vm_anti_affinity_rule`: Documentation updates. [GH-1544]
-* `resource/virtual_machine`: Documentation updates. [GH-1513]
-* `resource/custom_attribute`: Documentation updates. [GH-1508]
-* `resource/vm_storage_policy`: Documentation updates. [GH-1541]
-* `datasource/storage_policy`: Documentation updates. [GH-1541]
-* `resource/distributed_virtual_switch`: Documentation updates. [GH-1504]
-* `datasource/distributed_virtual_switch`: Documentation updates. [GH-1504]
-* `resource/distributed_virtual_switch`: Add support for dvs versions `6.6.0` and `7.0.3`. [GH-1501]
-* `datasource/content_library_item`: Documentation updates. [GH-1507]
-* `resource/ha_vm_override`: Adds `disabled` option to `ha_vm_restart_priority`. [GH-1505]
-* `resource/virtual_disk`: Documentation updates. [GH-1569]
-* `resource/virtual_machine`: Documentation updates. [GH-1566]
-* `resource/content_library`: Documentation updates. [GH-1577]
-* `resource/virtual_machine`: Updated the documentation with the conditions that causes the virtual machine to reboot on update. [GH-1522]
-* `resource/distributed_virtual_switch`: Devices argument is now optional [GH-1468]
-* `resource/virtual_host`: Added support add tags to hosts. [GH-1499]
-* `resource/content_library_item`: Documentation updates. [GH-1586]
-* `resource/file`: Documentation updates and deletion fix. [GH-1590]
-* `resource/virtual_machine`: Documentation updates. [GH-1595]
-* `resource/tag_category`: Perform validation of associable types and update documentation around "All" which never worked. [GH-1602]
+* `resource/vapp_container`: Documentation updates. ([#1551](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1551))
+* `resource/computer_cluster_vm_affinity_rule`: Documentation updates. ([#1544](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1544))
+* `resource/computer_cluster_vm_anti_affinity_rule`: Documentation updates. ([#1544](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1544))
+* `resource/virtual_machine`: Documentation updates. ([#1513](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1513))
+* `resource/custom_attribute`: Documentation updates. ([#1508](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1508))
+* `resource/vm_storage_policy`: Documentation updates. ([#1541](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1541))
+* `datasource/storage_policy`: Documentation updates. ([#1541](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1541))
+* `resource/distributed_virtual_switch`: Documentation updates. ([#1504](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1504))
+* `datasource/distributed_virtual_switch`: Documentation updates. ([#1504](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1504))
+* `resource/distributed_virtual_switch`: Add support for dvs versions `6.6.0` and `7.0.3`. ([#1501](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1501))
+* `datasource/content_library_item`: Documentation updates. ([#1507](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1507))
+* `resource/ha_vm_override`: Adds `disabled` option to `ha_vm_restart_priority`. ([#1505](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1505))
+* `resource/virtual_disk`: Documentation updates. ([#1569](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1569))
+* `resource/virtual_machine`: Documentation updates. ([#1566](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1566))
+* `resource/content_library`: Documentation updates. ([#1577](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1577))
+* `resource/virtual_machine`: Updated the documentation with the conditions that causes the virtual machine to reboot on update. ([#1522](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1522))
+* `resource/distributed_virtual_switch`: Devices argument is now optional ([#1468](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1468))
+* `resource/virtual_host`: Added support add tags to hosts. ([#1499](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1499))
+* `resource/content_library_item`: Documentation updates. ([#1586](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1586))
+* `resource/file`: Documentation updates and deletion fix. ([#1590](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1590))
+* `resource/virtual_machine`: Documentation updates. ([#1595](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1595))
+* `resource/tag_category`: Perform validation of associable types and update documentation around "All" which never worked. ([#1602](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1602))
 
 ## 2.0.2 (June 25, 2021)
 
