@@ -51,7 +51,7 @@ release:
   ids:
     - none
 signs:
-  # Default Signature file (i.e. terraform-provider-salesforce_VERSION_SHA256SUMS.sig)
+  # Default Signature file (i.e. terraform-provider-NAME_VERSION_SHA256SUMS.sig)
   - cmd: sh
     args:
     - -c
@@ -62,7 +62,7 @@ signs:
       --file ${artifact}
       --out ${signature}
     artifacts: checksum
-  # Signature file with GPG Public Key ID in filename (i.e. terraform-provider-salesforce_VERSION_SHA256SUMS.7685B676.sig)
+  # Signature file with GPG Public Key ID in filename (i.e. terraform-provider-NAME_VERSION_SHA256SUMS.7685B676.sig)
   - id: sig-with-gpg-public-key-id
     signature: ${artifact}.72D7468F.sig
     cmd: sh
