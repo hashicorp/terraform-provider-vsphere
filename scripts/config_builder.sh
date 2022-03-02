@@ -74,7 +74,7 @@ workflows:
 #          filters: 
 #            branches:
 #              only:
-#                - master
+#                - main
     jobs:
       - linters
 EOF
