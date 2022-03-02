@@ -1489,6 +1489,8 @@ The following attributes are exported on the base level of this resource:
 
 * `vapp_transport` - Computed value which is only valid for cloned virtual machines. A list of vApp transport methods supported by the source virtual machine or template.
 
+* `power_state` - A computed value for the current power state of the virtual machine. One of `on`, `off`, or `suspended`.
+
 [docs-about-morefs]: https://registry.terraform.io/providers/hashicorp/vsphere/latest/docs#use-of-managed-object-references-by-the-vsphere-provider
 
 ## Importing 
