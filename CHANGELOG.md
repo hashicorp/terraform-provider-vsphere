@@ -1,3 +1,8 @@
+## 2.2.0 (Unreleased)
+
+FEATURES:
+* `resource/virtual_machine`: Adds support to check the power state of the resource. ([#1407](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1407))
+
 ## 2.1.0 (February 28, 2022)
 
 BUG FIXES:
