@@ -278,6 +278,11 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Computed:    true,
 			Description: "The machine object ID from VMware vSphere.",
 		},
+		"power_state": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The power state of the virtual machine.",
+		},
 		vSphereTagAttributeKey:    tagsSchema(),
 		customattribute.ConfigKey: customattribute.ConfigSchema(),
 	}
@@ -553,6 +558,16 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		if err := buildAndSelectGuestIPs(d, *vprops.Guest); err != nil {
 			return fmt.Errorf("error reading virtual machine guest data: %s", err)
 		}
+	}
+
+	// Get the power state for the virtual machine.
+	switch vprops.Runtime.PowerState {
+	case types.VirtualMachinePowerStatePoweredOn:
+		d.Set("power_state", "on")
+	case types.VirtualMachinePowerStatePoweredOff:
+		d.Set("power_state", "off")
+	case types.VirtualMachinePowerStateSuspended:
+		d.Set("power_state", "suspended")
 	}
 
 	log.Printf("[DEBUG] %s: Read complete", resourceVSphereVirtualMachineIDString(d))
