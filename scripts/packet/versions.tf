@@ -3,11 +3,12 @@ terraform {
     local = {
       source = "hashicorp/local"
     }
-    packet = {
-      source = "terraform-providers/packet"
+    metal = {
+      source = "equinix/metal"
     }
     vsphere = {
       source = "hashicorp/vsphere"
+      version = "2.0.2"
     }
   }
   required_version = ">= 0.13"
