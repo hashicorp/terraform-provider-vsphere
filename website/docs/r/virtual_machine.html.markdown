@@ -1169,9 +1169,14 @@ The options are:
 
 * `hw_clock_utc` - (Optional) Tells the operating system that the hardware clock is set to UTC. Default: `true`.
 
-* `time_zone` - (Optional) Sets the time zone. For a list of possible combinations, click [here][vmware-docs-valid-linux-tzs]. The default is UTC.
+* `script_text` - (Optional) The customization script for the virtual machine that will be applied before and / or after guest customization. For more information on enabling and using a customization script, please refer to [VMware KB 74880][vmware-kb-74880]. The [Heredoc style][tf-heredoc-strings] of string literal is recommended.
 
-[vmware-docs-valid-linux-tzs]: https://kb.vmware.com/s/article/2145518
+[vmware-kb-74880]: https://kb.vmware.com/s/article/74880
+[tf-heredoc-strings]: https://www.terraform.io/language/expressions/strings#heredoc-strings
+
+* `time_zone` - (Optional) Sets the time zone. For a list of possible combinations, please refer to [VMware KB 2145518][vmware-kb-2145518]. The default is UTC.
+
+[vmware-kb-2145518]: https://kb.vmware.com/s/article/2145518
 
 #### Windows Customization Options
 
