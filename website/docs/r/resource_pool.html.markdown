@@ -4,47 +4,75 @@ layout: "vsphere"
 page_title: "VMware vSphere: vsphere_resource_pool"
 sidebar_current: "docs-vsphere-resource-compute-resource-pool"
 description: |-
-  Provides a vSphere resource pool resource. This can be used to create and manage resource pools.
+  Provides a resource for VMware vSphere resource pools. 
+  This can be used to create and manage resource pools.
 ---
 
 # vsphere\_resource\_pool
 
 The `vsphere_resource_pool` resource can be used to create and manage
-resource pools in standalone hosts or on compute clusters.
+resource pools on DRS-enabled vSphere clusters or standalone ESXi hosts.
 
-For more information on vSphere resource pools, see [this
-page][ref-vsphere-resource_pools].
+For more information on vSphere resource pools, please refer to the
+[product documentation][ref-vsphere-resource_pools].
 
 [ref-vsphere-resource_pools]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.resmgmt.doc/GUID-60077B40-66FF-4625-934A-641703ED7601.html
 
 ## Example Usage
 
-The following example sets up a resource pool in a compute cluster which uses
-the default settings for CPU and memory reservations, shares, and limits. The
-compute cluster needs to already exist in vSphere.  
+The following example sets up a resource pool in an existing compute cluster
+with the default settings for CPU and memory reservations, shares, and limits.
 
 ```hcl
-variable "datacenter" {
-  default = "dc1"
-}
-
-variable "cluster" {
-  default = "cluster1"
-}
-
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
+data "vsphere_datacenter" "datacenter" {
+  name = "dc-01"
 }
 
 data "vsphere_compute_cluster" "compute_cluster" {
-  name          = "${var.cluster}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "cluster-01"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_resource_pool" "resource_pool" {
-  name                    = "terraform-resource-pool-test"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.compute_cluster.resource_pool_id}"
+  name                    = "resource-pool-01"
+  parent_resource_pool_id = data.vsphere_compute_cluster.compute_cluster.resource_pool_id
 }
+```
+
+A virtual machine resource could be targeted to use the default resource pool
+of the cluster using the following:
+
+```hcl
+resource "vsphere_virtual_machine" "vm" {
+  # ... other configuration ...
+  resource_pool_id = data.vsphere_compute_cluster.cluster.resource_pool_id
+  # ... other configuration ...
+}
+```
+
+The following example sets up a parent resource pool in an existing compute cluster
+with a child resource pool nested below. Each resource pool is configured with
+the default settings for CPU and memory reservations, shares, and limits.
+
+```hcl
+data "vsphere_datacenter" "datacenter" {
+  name = "dc-01"
+}
+
+data "vsphere_compute_cluster" "compute_cluster" {
+  name          = "cluster-01"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
+}
+
+resource "vsphere_resource_pool" "resource_pool_parent" {
+  name                    = "parent"
+  parent_resource_pool_id = data.vsphere_compute_cluster.compute_cluster.resource_pool_id
+}
+
+resource "vsphere_resource_pool" "resource_pool_child" {
+  name                    = "child"
+  parent_resource_pool_id = vsphere_resource_pool.resource_pool_parent.id
+} 
 ```
 
 ## Argument Reference
@@ -56,7 +84,7 @@ The following arguments are supported:
   of the parent resource pool. This can be the root resource pool for a cluster
   or standalone host, or a resource pool itself. When moving a resource pool
   from one parent resource pool to another, both must share a common root
-  resource pool or the move will fail.
+  resource pool.
 * `cpu_share_level` - (Optional) The CPU allocation level. The level is a
   simplified view of shares. Levels map to a pre-determined set of numeric
   values for shares. Can be one of `low`, `normal`, `high`, or `custom`. When
@@ -108,8 +136,8 @@ the path to the resource pool, using the following command:
 [docs-import]: https://www.terraform.io/docs/import/index.html
 
 ```
-terraform import vsphere_resource_pool.resource_pool /dc1/host/compute-cluster1/Resources/resource-pool1
+terraform import vsphere_resource_pool.resource_pool /dc-01/host/cluster-01/Resources/resource-pool-01
 ```
 
-The above would import the resource pool named `resource-pool1` that is located
-in the compute cluster `compute-cluster1` in the `dc1` datacenter.
+The above would import the resource pool named `resource-pool-01` that is located
+in the compute cluster `cluster-01` in the `dc-01` datacenter.
