@@ -26,7 +26,7 @@ resource "vsphere_host" "esx-01" {
   hostname = "esx-01.example.com"
   username   = "root"
   password   = "password"
-  license    = "00000-00000-00000-00000i-00000"
+  license    = "00000-00000-00000-00000-00000"
   datacenter = data.vsphere_datacenter.datacenter.id
 }
 ```
@@ -47,7 +47,7 @@ resource "vsphere_host" "esx-01" {
   hostname = "esx-01.example.com"
   username = "root"
   password = "password"
-  license  = "00000-00000-00000-00000i-00000"
+  license  = "00000-00000-00000-00000-00000"
   cluster  = data.vsphere_compute_cluster.cluster.id
 }
 ```
@@ -74,8 +74,8 @@ The following arguments are supported:
   trusted and no thumbprint is set then the operation will fail.
 * `license` - (Optional) The license key that will be applied to the host.
   The license key is expected to be present in vSphere.
-* `force` - (Optional) If set to true then it will force the host to be added,
-  even if the host is already connected to a different vSphere instance.
+* `force` - (Optional) If set to `true` then it will force the host to be added,
+  even if the host is already connected to a different vCenter Server instance.
   Default is `false`.
 * `connected` - (Optional) If set to false then the host will be disconected.
   Default is `false`.
@@ -86,6 +86,17 @@ The following arguments are supported:
 * `tags` - (Optional) The IDs of any tags to attach to this resource. Please
   refer to the `vsphere_tag` resource for more information on applying
   tags to resources.
+
+~> **NOTE:** Tagging support is not supported on direct ESXi host
+connections and require vCenter Server.
+
+* `custom_attributes` - (Optional) A map of custom attribute IDs and string
+  values to apply to the resource. Please refer to the
+  `vsphere_custom_attributes` resource for more information on applying
+  tags to resources.
+
+~> **NOTE:** Custom attributes are not supported on direct ESXi host
+connections and require vCenter Server.
 
 ## Attribute Reference
 
