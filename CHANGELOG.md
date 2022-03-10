@@ -1,3 +1,6 @@
+## 2.2.0 (Unreleased)
+* `resource/vsphere_host`: Added support for custom attributes. ([#1619](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1619))
+
 ## 2.1.1 (March 08, 2022)
 
 **If you are using v2.1.0, please upgrade to this new version as soon as possible.**
