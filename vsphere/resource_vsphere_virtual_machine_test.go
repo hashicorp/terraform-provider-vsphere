@@ -3420,7 +3420,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id = "${data.vsphere_network.network1.id}"
@@ -3507,7 +3507,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus         = 2
   memory           = 2048
-  guest_id         = "other3xLinux64Guest"
+  guest_id         = "other3xLinuxGuest"
   hardware_version = %d
 
   wait_for_guest_net_timeout = -1
@@ -3541,7 +3541,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id = data.vsphere_network.network1.id
@@ -3571,7 +3571,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus                   = 2
   memory                     = 2048
-  guest_id                   = "other3xLinux64Guest"
+  guest_id                   = "other3xLinuxGuest"
   wait_for_guest_net_timeout = -1
 
   scsi_bus_sharing = "physicalSharing"
@@ -3679,7 +3679,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id = "${data.vsphere_network.network1.id}"
@@ -3709,7 +3709,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id            = "${data.vsphere_network.network1.id}"
@@ -3764,7 +3764,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id            = "${data.vsphere_network.network1.id}"
@@ -3819,7 +3819,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id            = "${data.vsphere_network.network1.id}"
@@ -3890,7 +3890,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id            = "${data.vsphere_network.network1.id}"
@@ -3932,7 +3932,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id            = "${data.vsphere_network.network1.id}"
@@ -4144,7 +4144,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   wait_for_guest_net_timeout = -1
 
@@ -4180,7 +4180,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   wait_for_guest_net_timeout = -1
 
@@ -4227,7 +4227,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   wait_for_guest_net_timeout = -1
 
@@ -4279,7 +4279,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   wait_for_guest_net_timeout = -1
 
@@ -4319,7 +4319,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 4
   memory   = 8192
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id = "${data.vsphere_network.network1.id}"
@@ -4349,7 +4349,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id = "${data.vsphere_network.network1.id}"
@@ -4419,7 +4419,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus   = 2
   memory     = 2048
-  guest_id   = "other3xLinux64Guest"
+  guest_id   = "other3xLinuxGuest"
   annotation = "${var.annotation}"
 
   network_interface {
@@ -4451,7 +4451,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id = "${data.vsphere_network.network1.id}"
@@ -4482,7 +4482,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   scsi_type = "lsilogic-sas"
 
@@ -4514,7 +4514,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   extra_config = {
     %s = "%s"
@@ -4562,7 +4562,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id = "${data.vsphere_network.network1.id}"
@@ -4609,7 +4609,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id = "${data.vsphere_network.network1.id}"
@@ -4652,7 +4652,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus                   = 2
   memory                     = 2048
-  guest_id                   = "other3xLinux64Guest"
+  guest_id                   = "other3xLinuxGuest"
   wait_for_guest_net_timeout = -1
 
   network_interface {
@@ -4695,7 +4695,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus                   = 2
   memory                     = 2048
-  guest_id                   = "other3xLinux64Guest"
+  guest_id                   = "other3xLinuxGuest"
   wait_for_guest_net_timeout = -1
 
   network_interface {
@@ -4740,7 +4740,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus                   = 2
   memory                     = 2048
-  guest_id                   = "other3xLinux64Guest"
+  guest_id                   = "other3xLinuxGuest"
   wait_for_guest_net_timeout = -1
 
   network_interface {
@@ -4771,7 +4771,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   vbs_enabled             = true
   firmware                = "efi"
@@ -4822,7 +4822,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus                   = 2
   memory                     = 2048
-  guest_id                   = "other3xLinux64Guest"
+  guest_id                   = "other3xLinuxGuest"
   wait_for_guest_net_timeout = -1
 
   network_interface {
@@ -4853,7 +4853,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id     = "${data.vsphere_network.network1.id}"
@@ -4900,7 +4900,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id = "${data.vsphere_network.network1.id}"
@@ -4961,7 +4961,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id = "${data.vsphere_network.network1.id}"
@@ -4995,7 +4995,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id = "${data.vsphere_network.network1.id}"
@@ -5025,7 +5025,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id = "${data.vsphere_network.network1.id}"
@@ -5061,7 +5061,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id = "${data.vsphere_network.network1.id}"
@@ -5726,7 +5726,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus                   = 2
   memory                     = 2048
-  guest_id                   = "ubuntu64Guest"
+  guest_id                   = "other3xLinuxGuest"
   wait_for_guest_net_timeout = -1
 
   network_interface {
@@ -5780,7 +5780,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "ubuntu64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id   = "${data.vsphere_network.network1.id}"
@@ -5843,7 +5843,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "ubuntu64Guest"
+  guest_id = "other3xLinuxGuest"
 
   wait_for_guest_net_timeout = -1
 
@@ -5906,7 +5906,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "ubuntu64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id   = "${data.vsphere_network.network1.id}"
@@ -5968,7 +5968,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "ubuntu64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id   = "${data.vsphere_network.network1.id}"
@@ -6028,7 +6028,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "ubuntu64Guest"
+  guest_id = "other3xLinuxGuest"
   wait_for_guest_net_timeout = -1
 
   network_interface {
@@ -6097,7 +6097,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "ubuntu64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id   = "${data.vsphere_network.network1.id}"
@@ -6156,7 +6156,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "ubuntu64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id   = "${data.vsphere_network.network1.id}"
@@ -6232,7 +6232,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "ubuntu64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id   = "${data.vsphere_network.network1.id}"
@@ -6485,7 +6485,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id = "${data.vsphere_network.network1.id}"
@@ -6676,7 +6676,7 @@ resource "vsphere_virtual_machine" "vm" {
   memory              = 2048
   memory_reservation  = 2048
   latency_sensitivity = "high"
-  guest_id            = "other3xLinux64Guest"
+  guest_id            = "other3xLinuxGuest"
 
   network_interface {
     network_id = "${data.vsphere_network.network1.id}"
@@ -6712,7 +6712,7 @@ resource "vsphere_virtual_machine" "vm" {
   name                       = "testacc-test"
   resource_pool_id           = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
   datastore_id               = vsphere_nas_datastore.ds1.id
-  guest_id                   = "ubuntu64Guest"
+  guest_id                   = "other3xLinuxGuest"
 	wait_for_guest_net_timeout = -1
 
   network_interface { 
@@ -6766,7 +6766,7 @@ resource "vsphere_virtual_machine" "vm" {
   memory   = 2048
 
   wait_for_guest_net_timeout = -1
-  guest_id                   = "otherLinuxGuest"
+  guest_id                   = "other3xLinuxGuest"
 
   network_interface {
     network_id = data.vsphere_network.network1.id

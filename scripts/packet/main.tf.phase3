@@ -264,14 +264,14 @@ resource "vsphere_virtual_machine" "template" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id = vsphere_distributed_port_group.pg.id
   }
 
   ovf_deploy {
-    remote_ovf_url = "https://acctest-images.storage.googleapis.com/tfvsphere_template.ovf"
+    remote_ovf_url = "https://storage.googleapis.com/vsphere-acctest/tiny/tiny.ovf"
     ovf_network_map = {
       "terraform-test-pg" = vsphere_distributed_port_group.pg.id
     }
@@ -295,7 +295,7 @@ resource "vsphere_virtual_machine" "pxe" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   network_interface {
     network_id = data.vsphere_network.vmnet.id
