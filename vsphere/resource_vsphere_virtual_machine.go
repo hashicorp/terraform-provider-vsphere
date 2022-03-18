@@ -508,12 +508,16 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		d.Set("storage_policy_id", polID)
 	}
 
-	// Read the PCI passthrough devices.
+	// Read the virtual machine PCI passthrough devices
 	var pciDevs []string
 	for _, dev := range vprops.Config.Hardware.Device {
 		if pci, ok := dev.(*types.VirtualPCIPassthrough); ok {
-			devID := pci.Backing.(*types.VirtualPCIPassthroughDeviceBackingInfo).Id
-			pciDevs = append(pciDevs, devID)
+			if pciBacking, ok := pci.Backing.(*types.VirtualPCIPassthroughDeviceBackingInfo); ok {
+				devId := pciBacking.Id
+				pciDevs = append(pciDevs, devId)
+			} else {
+				log.Printf("[DEBUG] %s: PCI passthrough device %q has no backing ID", resourceVSphereVirtualMachineIDString(d), pci.GetVirtualDevice().DeviceInfo.GetDescription())
+			}
 		}
 	}
 	err = d.Set("pci_device_id", pciDevs)
