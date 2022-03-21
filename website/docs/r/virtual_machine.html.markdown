@@ -3,14 +3,14 @@ subcategory: "Virtual Machine"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_virtual_machine"
 sidebar_current: "docs-vsphere-resource-vm-virtual-machine-resource"
-description: |- 
-  Provides a resource for VMware vSphere virtual machines. 
+description: |-
+  Provides a resource for VMware vSphere virtual machines.
   This resource can be used to create, modify, and delete virtual machines.
 ---
 
 # vsphere\_virtual\_machine
 
-The `vsphere_virtual_machine` resource is used to manage the lifecycle of a virtual machine. 
+The `vsphere_virtual_machine` resource is used to manage the lifecycle of a virtual machine.
 
 For details on working with virtual machines in VMware vSphere, please refer to the [product documentation][vmware-docs-vm-management].
 
@@ -18,7 +18,7 @@ For details on working with virtual machines in VMware vSphere, please refer to 
 
 ## About Working with Virtual Machines in Terraform
 
-A high degree of control and flexibility is available to a vSphere administrator to configure, deploy, and manage virtual machines. The Terraform provider enables you to manage the desired state of virtual machine resources. 
+A high degree of control and flexibility is available to a vSphere administrator to configure, deploy, and manage virtual machines. The Terraform provider enables you to manage the desired state of virtual machine resources.
 
 This section provides information on configurations you should consider when setting up virtual machines, creating templates for cloning, and more.
 
@@ -30,7 +30,7 @@ Disks are managed by a label supplied to the [`label`](#label) attribute in a [`
 
 Virtual disks can be SCSI, SATA, or IDE. The storage controllers managed by the Terraform provider can vary, depending on the value supplied to [`scsi_controller_count`](#scsi_controller_count), [`sata_controller_count`](#sata_controller_count), or [`ide_controller_count`](#ide_controller_count). This also dictates the controllers that are checked when looking for disks during a cloning process. SCSI controllers are all configured with the controller type defined by the  [`scsi_type`](#scsi_type) setting. If you are cloning from a template, devices will be added or re-configured as necessary.
 
-When cloning from a template, you must specify disks of either the same or greater size than the disks in the source template or the same size when cloning from a snapshot (also known as a linked clone). 
+When cloning from a template, you must specify disks of either the same or greater size than the disks in the source template or the same size when cloning from a snapshot (also known as a linked clone).
 
 See the section on [Creating a Virtual Machine from a Template](#creating-a-virtual-machine-from-a-template) for more information.
 
@@ -40,11 +40,11 @@ Terraform waits during various parts of a virtual machine deployment to ensure t
 
 The waiters include the following:
 
-* **Customization Waiter**: 
+* **Customization Waiter**:
 
   This waiter watches events in vSphere to monitor when customization on a virtual machine completes during creation. Depending on your vSphere or virtual machine configuration, it may be necessary to change the timeout or turn off the waiter. This can be controlled by using the [`timeout`](#timeout-1) setting in the [customization settings](#virtual-machine-customizations) block.
 
-* **Network Waiter**: 
+* **Network Waiter**:
 
   This waiter waits for interfaces to appear on a virtual machine guest operating system and occurs close to the end of both virtual machine creation and update. This waiter ensures that the IP information gets reported to the guest operating system, mainly to facilitate the availability of a valid, reachable default IP address for any provisioners.
 
@@ -54,11 +54,11 @@ The waiters include the following:
 
 ### Creating a Virtual Machine
 
-The following block contains the option necessary to create a virtual machine, with a single disk and network interface. 
+The following block contains the option necessary to create a virtual machine, with a single disk and network interface.
 
 In this example, the resource makes use of the following data sources:
 
-* [`vsphere_datacenter`][tf-vsphere-datacenter] to locate the datacenter, 
+* [`vsphere_datacenter`][tf-vsphere-datacenter] to locate the datacenter,
 
 * [`vsphere_datastore`][tf-vsphere-datastore] to locate the default datastore to place the virtual machine files,
 
@@ -178,6 +178,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 ```
+
 ### Deploying Virtual Machines from OVF/OVA
 
 Virtual machines can be deployed from OVF/OVA using either the local path and remote URL and the `ovf_deploy` property. When deploying from a local path, the path to the OVF/OVA must be provided. While deploying OVF, all other necessary files (_e.g._ `.vmdk`, `.mf`, etc) must be present in the same directory as the `.ovf` file.
@@ -551,7 +552,7 @@ resource "vsphere_virtual_machine" "vm" {
 
 The `vsphere_virtual_machine` resource also supports vSphere Storage DRS, allowing the assignment of virtual machines to datastore clusters. When assigned to a datastore cluster, changes to a virtual machine's underlying datastores are ignored unless disks drift outside of the datastore cluster. Note that the [`vsphere_datastore_cluster`][tf-vsphere-datastore-cluster-resource] resource also exists to allow for management of datastore clusters using the Terraform provider.
 
-The following example demonstrates the use of the [`vsphere_datastore_cluster`] data source[tf-vsphere-datastore-cluster-data-source], and the [`datastore_cluster_id`](#datastore_cluster_id) configuration setting. 
+The following example demonstrates the use of the [`vsphere_datastore_cluster`] data source[tf-vsphere-datastore-cluster-data-source], and the [`datastore_cluster_id`](#datastore_cluster_id) configuration setting.
 
 [tf-vsphere-datastore-cluster-resource]: /docs/providers/vsphere/r/datastore_cluster.html
 [tf-vsphere-datastore-cluster-data-source]: /docs/providers/vsphere/d/datastore_cluster.html
@@ -607,79 +608,13 @@ The following arguments are supported:
 
 The following options are general virtual machine and provider workflow options:
 
-* `name` - (Required) The name of the virtual machine.
+* `alternate_guest_name` - (Optional) The guest name for the operating system when `guest_id` is `otherGuest` or `otherGuest64`.
 
-* `resource_pool_id` - (Required) The [managed object reference ID][docs-about-morefs] of the resource pool in which to place the virtual machine. See the [Virtual Machine Migration](#virtual-machine-migration) section for more information on modifying this value.
-
-[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
-
-~> **NOTE:** All clusters and standalone hosts have a default root resource pool. This resource argument does not directly accept the cluster or standalone host resource. For more information, see the section on [Specifying the Root Resource Pool ][docs-resource-pool-cluster-default] in the `vsphere_resource_pool` data source documentation on using the root resource pool. 
-
-[docs-resource-pool-cluster-default]: /docs/providers/vsphere/d/resource_pool.html#specifying-the-root-resource-pool-for-a-standalone-host
-
-* `datastore_id` - (Optional) The [managed object reference ID][docs-about-morefs] of the datastore in which to place the virtual machine. The virtual machine configuration files is placed here, along with any virtual disks that are created where a datastore is not explicitly specified. See the section on [virtual machine migration](#virtual-machine-migration) for more information on modifying this value.
-
-* `datastore_cluster_id` - (Optional) The [managed object reference ID][docs-about-morefs] of the datastore cluster in which to place the virtual machine. This setting applies to entire virtual machine and implies that you wish to use vSphere Storage DRS with the virtual machine. See the section on [virtual machine migration](#virtual-machine-migration) for more information on modifying this value.
-
-~> **NOTE:** One of `datastore_id` or `datastore_cluster_id` must be specified.
-
-~> **NOTE:** Use of `datastore_cluster_id` requires vSphere Storage DRS to be enabled on the specified datastore cluster. 
-
-~> **NOTE:** The `datastore_cluster_id` setting applies to the entire virtual machine resource. You cannot assign individual individual disks to datastore clusters. In addition, you cannot use the [`attach`](#attach) setting to attach external disks on virtual machines that are assigned to datastore clusters.
-
-* `datacenter_id` - (Optional) The datacenter ID. Required only when deploying an OVF/OVA template.
-
-* `folder` - (Optional) The path to the virtual machine folder in which to place the virtual machine, relative to the datacenter path (`/<datacenter-name>/vm`).  For example, `/dc-01/vm/foo`
-
-* `host_system_id` - (Optional) The [managed object reference ID][docs-about-morefs] of a host on which to place the virtual machine. See the section on [virtual machine migration](#virtual-machine-migration) for more information on modifying this value. When using a vSphere cluster, if a `host_system_id` is not supplied, vSphere will select a host in the cluster to place the virtual machine, according to any defaults or vSphere DRS placement policies. 
-
-* `disk` - (Required) A specification for a virtual disk device on the virtual machine. See [disk options](#disk-options) for more information.
-
-* `network_interface` - (Required) A specification for a virtual NIC on the virtual machine. See [network interface options](#network-interface-options) for more information.
+* `annotation` - (Optional) A user-provided description of the virtual machine.
 
 * `cdrom` - (Optional) A specification for a CD-ROM device on the virtual machine. See [CD-ROM options](#cd-rom-options) for more information.
 
 * `clone` - (Optional) When specified, the virtual machine will be created as a clone of a specified template. Optional customization options can be submitted for the resource. See [creating a virtual machine from a template](#creating-a-virtual-machine-from-a-template) for more information.
-
- * `hardware_version` - (Optional) The hardware version number. Valid range is from 4 to 19. The hardware version cannot be downgraded. See [virtual machine hardware compatibility][virtual-machine-hardware-compatibility] for more information.
-
- [virtual-machine-hardware-compatibility]: https://kb.vmware.com/s/article/2007240
-
- * `pci_device_id` - (Optional) List of host PCI device IDs in which to create PCI passthroughs.  
-
-~> **NOTE:** Cloning requires vCenter Server and is not supported on direct ESXi host connections.
-
-* `ovf_deploy` - (Optional) When specified, the virtual machine will be deployed from the provided OVF/OVA template. See [creating a virtual machine from an OVF/OVA template](#creating-a-virtual-machine-from-an-ovf-ova-template) for more information.
-
-* `vapp` - (Optional) Used for vApp configurations. The only sub-key available is `properties`, which is a key/value map of properties for virtual machines imported from and OVF/OVA. See [Using vApp Properties for OVF/OVA Configuration](#using-vapp-properties-for-ovf-ova-configuration) for more information.
-
-* `guest_id` - (Optional) The guest ID for the operating system type. For a full list of possible values, see [here][vmware-docs-guest-ids]. Default: `otherGuest64`.
-
-[vmware-docs-guest-ids]: https://vdc-download.vmware.com/vmwb-repository/dcr-public/b50dcbbf-051d-4204-a3e7-e1b618c1e384/538cf2ec-b34f-4bae-a332-3820ef9e7773/vim.vm.GuestOsDescriptor.GuestOsIdentifier.html
-
-* `alternate_guest_name` - (Optional) The guest name for the operating system when `guest_id` is `otherGuest` or `otherGuest64`.
-
-* `annotation` - (Optional) A user-provided description of the virtual machine. The default is no annotation.
- 
-* `firmware` - (Optional) The firmware interface to use on the virtual machine. Can be one of `bios` or `efi`. Default: `bios`.
- 
-* `extra_config` - (Optional) Extra configuration data for the virtual machine. Can be used to supply advanced parameters not normally in configuration, such as instance metadata and userdata. 
-
-~> **NOTE:** Do not use `extra_config` when working with a template imported from OVF/OVA as your settings may be ignored. Use the `vapp` block `properties` section as described in [Using vApp Properties for OVF/OVA Configuration](#using-vapp-properties-for-ovf-ova-configuration).
-
-* `replace_trigger` - (Optional) Triggers replacement of resource whenever it changes. 
-
-For example, `replace_trigger = sha256(format("%s-%s",data.template_file.cloud_init_metadata.rendered,data.template_file.cloud_init_userdata.rendered))` will fingerprint the changes in cloud-init metadata and userdata templates. This will enable a replacement of the resource whenever the dependant template renders a new configuration. (Forces a replacement.)
-
-* `scsi_type` - (Optional) The SCSI controller type for the virtual machine. One of `lsilogic` (LSI Logic Parallel), `lsilogic-sas` (LSI Logic SAS) or `pvscsi` (VMware Paravirtual). Default: `pvscsi`.
-
-* `scsi_bus_sharing` - (Optional) The type of SCSI bus sharing for the virtual machine SCSI controller. One of `physicalSharing`, `virtualSharing`, and `noSharing`. Default: `noSharing`.
-
-* `tags` - (Optional) The IDs of any tags to attach to this resource. Please refer to the [`vsphere_tag`][docs-applying-tags] resource for more information on applying tags to virtual machine resources.
-
-[docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
-
-~> **NOTE:** Tagging support is unsupported on direct ESXi host connections and requires vCenter Server instance.
 
 * `custom_attributes` - (Optional) Map of custom attribute ids to attribute value strings to set for virtual machine. Please refer to the [`vsphere_custom_attributes`][docs-setting-custom-attributes] resource for more information on setting custom attributes.
 
@@ -687,15 +622,77 @@ For example, `replace_trigger = sha256(format("%s-%s",data.template_file.cloud_i
 
 ~> **NOTE:** Custom attributes requires vCenter Server and is not supported on direct ESXi host connections.
 
+* `datastore_id` - (Optional) The [managed object reference ID][docs-about-morefs] of the datastore in which to place the virtual machine. The virtual machine configuration files is placed here, along with any virtual disks that are created where a datastore is not explicitly specified. See the section on [virtual machine migration](#virtual-machine-migration) for more information on modifying this value.
+
+* `datastore_cluster_id` - (Optional) The [managed object reference ID][docs-about-morefs] of the datastore cluster in which to place the virtual machine. This setting applies to entire virtual machine and implies that you wish to use vSphere Storage DRS with the virtual machine. See the section on [virtual machine migration](#virtual-machine-migration) for more information on modifying this value.
+
+~> **NOTE:** One of `datastore_id` or `datastore_cluster_id` must be specified.
+
+~> **NOTE:** Use of `datastore_cluster_id` requires vSphere Storage DRS to be enabled on the specified datastore cluster.
+
+~> **NOTE:** The `datastore_cluster_id` setting applies to the entire virtual machine resource. You cannot assign individual individual disks to datastore clusters. In addition, you cannot use the [`attach`](#attach) setting to attach external disks on virtual machines that are assigned to datastore clusters.
+
+* `datacenter_id` - (Optional) The datacenter ID. Required only when deploying an OVF/OVA template.
+
+* `disk` - (Required) A specification for a virtual disk device on the virtual machine. See [disk options](#disk-options) for more information.
+
+* `extra_config` - (Optional) Extra configuration data for the virtual machine. Can be used to supply advanced parameters not normally in configuration, such as instance metadata and userdata.
+
+~> **NOTE:** Do not use `extra_config` when working with a template imported from OVF/OVA as your settings may be ignored. Use the `vapp` block `properties` section as described in [Using vApp Properties for OVF/OVA Configuration](#using-vapp-properties-for-ovf-ova-configuration).
+
+* `firmware` - (Optional) The firmware for the virtual machine. One of `bios` or `efi`.
+
+* `folder` - (Optional) The path to the virtual machine folder in which to place the virtual machine, relative to the datacenter path (`/<datacenter-name>/vm`).  For example, `/dc-01/vm/foo`
+
+* `guest_id` - (Optional) The guest ID for the operating system type. For a full list of possible values, see [here][vmware-docs-guest-ids]. Default: `otherGuest64`.
+
+[vmware-docs-guest-ids]: https://vdc-download.vmware.com/vmwb-repository/dcr-public/b50dcbbf-051d-4204-a3e7-e1b618c1e384/538cf2ec-b34f-4bae-a332-3820ef9e7773/vim.vm.GuestOsDescriptor.GuestOsIdentifier.html
+
+* `hardware_version` - (Optional) The hardware version number. Valid range is from 4 to 19. The hardware version cannot be downgraded. See [virtual machine hardware compatibility][virtual-machine-hardware-compatibility] for more information.
+
+[virtual-machine-hardware-compatibility]: https://kb.vmware.com/s/article/2007240
+
+* `host_system_id` - (Optional) The [managed object reference ID][docs-about-morefs] of a host on which to place the virtual machine. See the section on [virtual machine migration](#virtual-machine-migration) for more information on modifying this value. When using a vSphere cluster, if a `host_system_id` is not supplied, vSphere will select a host in the cluster to place the virtual machine, according to any defaults or vSphere DRS placement policies.
+
+* `name` - (Required) The name of the virtual machine.
+
+* `network_interface` - (Required) A specification for a virtual NIC on the virtual machine. See [network interface options](#network-interface-options) for more information.
+
+* `pci_device_id` - (Optional) List of host PCI device IDs in which to create PCI passthroughs.
+
+~> **NOTE:** Cloning requires vCenter Server and is not supported on direct ESXi host connections.
+
+* `ovf_deploy` - (Optional) When specified, the virtual machine will be deployed from the provided OVF/OVA template. See [creating a virtual machine from an OVF/OVA template](#creating-a-virtual-machine-from-an-ovf-ova-template) for more information.
+
+* `replace_trigger` - (Optional) Triggers replacement of resource whenever it changes.
+
+For example, `replace_trigger = sha256(format("%s-%s",data.template_file.cloud_init_metadata.rendered,data.template_file.cloud_init_userdata.rendered))` will fingerprint the changes in cloud-init metadata and userdata templates. This will enable a replacement of the resource whenever the dependant template renders a new configuration. (Forces a replacement.)
+
+* `resource_pool_id` - (Required) The [managed object reference ID][docs-about-morefs] of the resource pool in which to place the virtual machine. See the [Virtual Machine Migration](#virtual-machine-migration) section for more information on modifying this value.
+
+[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
+
+~> **NOTE:** All clusters and standalone hosts have a default root resource pool. This resource argument does not directly accept the cluster or standalone host resource. For more information, see the section on [Specifying the Root Resource Pool][docs-resource-pool-cluster-default] in the `vsphere_resource_pool` data source documentation on using the root resource pool.
+
+[docs-resource-pool-cluster-default]: /docs/providers/vsphere/d/resource_pool.html#specifying-the-root-resource-pool-for-a-standalone-host
+
+* `scsi_type` - (Optional) The SCSI controller type for the virtual machine. One of `lsilogic` (LSI Logic Parallel), `lsilogic-sas` (LSI Logic SAS) or `pvscsi` (VMware Paravirtual). Default: `pvscsi`.
+
+* `scsi_bus_sharing` - (Optional) The type of SCSI bus sharing for the virtual machine SCSI controller. One of `physicalSharing`, `virtualSharing`, and `noSharing`. Default: `noSharing`.
+
 * `storage_policy_id` - (Optional) The ID of the storage policy to assign to the home directory of a virtual machine.
+
+* `tags` - (Optional) The IDs of any tags to attach to this resource. Please refer to the [`vsphere_tag`][docs-applying-tags] resource for more information on applying tags to virtual machine resources.
+
+[docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
+
+~> **NOTE:** Tagging support is unsupported on direct ESXi host connections and requires vCenter Server instance.
+
+* `vapp` - (Optional) Used for vApp configurations. The only sub-key available is `properties`, which is a key/value map of properties for virtual machines imported from and OVF/OVA. See [Using vApp Properties for OVF/OVA Configuration](#using-vapp-properties-for-ovf-ova-configuration) for more information.
 
 ### CPU and Memory Options
 
 The following options control CPU and memory settings on a virtual machine:
-
-* `num_cpus` - (Optional) The total number of virtual processor cores to assign to the virtual machine. Default: `1`.
-
-* `num_cores_per_socket` - (Optional) The number of cores per socket in the virtual machine. The number of vCPUs on the virtual machine will be `num_cpus` divided by `num_cores_per_socket`. If specified, the value supplied to `num_cpus` must be evenly divisible by this value. Default: `1`.
 
 * `cpu_hot_add_enabled` - (Optional) Allow CPUs to be added to the virtual machine while it is powered on.
 
@@ -703,7 +700,7 @@ The following options control CPU and memory settings on a virtual machine:
 
 * `memory` - (Optional) The memory size to assign to the virtual machine, in MB. Default: `1024` (1 GB).
 
-* `memory_hot_add_enabled` - (Optional) Allow memory to be added to the virtual machine while it is powered on. 
+* `memory_hot_add_enabled` - (Optional) Allow memory to be added to the virtual machine while it is powered on.
 
 ~> **NOTE:** CPU and memory hot add options are not available on all guest operating systems. Please refer to the [VMware Guest OS Compatibility Guide][vmware-docs-compat-guide] to which settings are allow for your guest operating system. In addition, at least one `terraform apply` must be run before you are able to use CPU and memory hot add.
 
@@ -713,32 +710,27 @@ The following options control CPU and memory settings on a virtual machine:
 
 [vmware-kb-2008405]: https://kb.vmware.com/s/article/2008405
 
-### Boot Options 
+* `num_cores_per_socket` - (Optional) The number of cores per socket in the virtual machine. The number of vCPUs on the virtual machine will be `num_cpus` divided by `num_cores_per_socket`. If specified, the value supplied to `num_cpus` must be evenly divisible by this value. Default: `1`.
+
+* `num_cpus` - (Optional) The total number of virtual processor cores to assign to the virtual machine. Default: `1`.
+
+### Boot Options
 
 The following options control boot settings on a virtual machine:
 
 * `boot_delay` - (Optional) The number of milliseconds to wait before starting the boot sequence. The default is no delay.
 
-* `efi_secure_boot_enabled` - (Optional) Use this option to enable EFI secure boot when the `firmware` type is set to is `efi`. Default: `false`.
-
-~> **NOTE:** EFI secure boot is only available on vSphere 6.5 and later.
-
 * `boot_retry_delay` - (Optional) The number of milliseconds to wait before retrying the boot sequence. This option is only valid if `boot_retry_enabled` is `true`. Default: `10000` (10 seconds).
 
 * `boot_retry_enabled` - (Optional) If set to `true`, a virtual machine that fails to boot will try again after the delay defined in `boot_retry_delay`. Default: `false`.
 
-###  VMware Tools Options
+* `efi_secure_boot_enabled` - (Optional) Use this option to enable EFI secure boot when the `firmware` type is set to is `efi`. Default: `false`.
+
+~> **NOTE:** EFI secure boot is only available on vSphere 6.5 and later.
+
+### VMware Tools Options
 
 The following options control VMware Tools settings on the virtual machine:
-
-* `tools_upgrade_policy` - (Optional) Enable automatic upgrade of the VMware Tools
-version when the virtual machine is rebooted. If necessary, VMware Tools is upgraded
-to the latest version supported by the host on which the virtual machine is running.
-Requires VMware tools to be installed. One of `manual` or `upgradeAtPowerCycle`. Default: `manual`.
-
-* `sync_time_with_host` - (Optional) Enable the guest operating system to synchronization its clock with the host when the virtual machine is powered on or resumed. Requires vSphere 7.0 Update 1 and later. Requires VMware Tools to be installed. Default: `false`.
-
-* `sync_time_with_host_periodically` - (Optional) Enable the guest operating system to periodically synchronize its clock with the host. Requires vSphere 7.0 Update 1 and later. On previous versions, setting `sync_time_with_host` is will enable periodic synchronization. Requires VMware Tools to be installed. Default: `false`.
 
 * `run_tools_scripts_after_power_on` - (Optional) Enable post-power-on scripts to run when VMware Tools is installed. Default: `true`.
 
@@ -749,6 +741,12 @@ Requires VMware tools to be installed. One of `manual` or `upgradeAtPowerCycle`.
 * `run_tools_scripts_before_guest_shutdown` - (Optional) Enable pre-shutdown scripts to run when VMware Tools is installed. Default: `true`.
 
 * `run_tools_scripts_before_guest_standby` - (Optional) Enable pre-standby scripts to run when VMware Tools is installed. Default: `true`.
+
+* `sync_time_with_host` - (Optional) Enable the guest operating system to synchronization its clock with the host when the virtual machine is powered on or resumed. Requires vSphere 7.0 Update 1 and later. Requires VMware Tools to be installed. Default: `false`.
+
+* `sync_time_with_host_periodically` - (Optional) Enable the guest operating system to periodically synchronize its clock with the host. Requires vSphere 7.0 Update 1 and later. On previous versions, setting `sync_time_with_host` is will enable periodic synchronization. Requires VMware Tools to be installed. Default: `false`.
+
+* `tools_upgrade_policy` - (Optional) Enable automatic upgrade of the VMware Tools version when the virtual machine is rebooted. If necessary, VMware Tools is upgraded to the latest version supported by the host on which the virtual machine is running. Requires VMware Tools to be installed. One of `manual` or `upgradeAtPowerCycle`. Default: `manual`.
 
 ### Resource Allocation Options
 
@@ -778,47 +776,43 @@ The following options control advanced operation of the virtual machine, or cont
 
 The options are:
 
+* `cpu_performance_counters_enabled` - (Optional) Enable CPU performance counters on the virtual machine. Default: `false`.
+
 * `enable_disk_uuid` - (Optional) Expose the UUIDs of attached virtual disks to the virtual machine, allowing access to them in the guest. Default: `false`.
-
-* `vbs_enabled` - (Optional) Enable Virtualization Based Security. Requires `firmware` to be `efi`. In addition, `vvtd_enabled`, `nested_hv_enabled`, and `efi_secure_boot_enabled` must all have a value of `true`. Supported on vSphere 6.7 and later. Default: `false`.
-
-* `vvtd_enabled` - (Optional) Enable Intel Virtualization Technology for Directed I/O for the virtual machine (_I/O MMU_ in the vSphere Client). Supported on vSphere 6.7 and later. Default: `false`.
-
-* `hv_mode` - (Optional) The hardware virtualization (non-nested) setting for the virtual machine. One of `hvAuto`, `hvOn`, or `hvOff`. Default: `hvAuto`.
-
-* `nested_hv_enabled` - (Optional) Enable nested hardware virtualization on the virtual machine, facilitating nested virtualization in the guest operating system. Default: `false`.
-
-* `ept_rvi_mode` - (Optional) The EPT/RVI (hardware memory virtualization) setting for the virtual machine. One of `automatic`, `on`, or `off`. Default: `automatic`.
 
 * `enable_logging` - (Optional) Enable logging of virtual machine events to a log file stored in the virtual machine directory. Default: `false`.
 
-* `cpu_performance_counters_enabled` - (Optional) Enable CPU performance counters on the virtual machine. Default: `false`.
+* `ept_rvi_mode` - (Optional) The EPT/RVI (hardware memory virtualization) setting for the virtual machine. One of `automatic`, `on`, or `off`. Default: `automatic`.
 
-* `swap_placement_policy` - (Optional) The swap file placement policy for the virtual machine. One of `inherit`, `hostLocal`, or `vmDirectory`. Default: `inherit`.
+* `force_power_off` - (Optional) If a guest shutdown failed or times out while updating or destroying (see [`shutdown_wait_timeout`](#shutdown_wait_timeout)), force the power-off of the virtual machine. Default: `true`.
+
+* `hv_mode` - (Optional) The hardware virtualization (non-nested) setting for the virtual machine. One of `hvAuto`, `hvOn`, or `hvOff`. Default: `hvAuto`.
+
+* `ide_controller_count` - (Optional) The number of IDE controllers that the virtual machine. This directly affects the number of disks you can add to the virtual machine and the maximum disk unit number. Note that lowering this value does not remove controllers. Default: `2`.
+
+* `ignored_guest_ips` - (Optional) List of IP addresses and CIDR networks to ignore while waiting for an available IP address using either of the waiters. Any IP addresses in this list will be ignored so that the waiter will continue to wait for a valid IP address. Default: `[]`.
 
 * `latency_sensitivity` - (Optional) Controls the scheduling delay of the virtual machine. Use a higher sensitivity for applications that require lower latency, such as VOIP, media player applications, or applications that require frequent access to mouse or keyboard devices. One of `low`, `normal`, `medium`, or `high`.
 
 ~> **NOTE:** On higher sensitivities, you may need to adjust the [`memory_reservation`](#memory_reservation) to the full amount of memory provisioned for the virtual machine.
 
-* `wait_for_guest_net_timeout` - (Optional) The amount of time, in minutes, to wait for an available guest IP address on the virtual machine. Older versions of VMware Tools do not populate this property. In those cases, this waiter can be disabled and the [`wait_for_guest_ip_timeout`](#wait_for_guest_ip_timeout) waiter can be used instead. A value less than `1` disables the waiter. Default: `5` minutes.
+* `migrate_wait_timeout` - (Optional) The amount of time, in minutes, to wait for a virtual machine migration to complete before failing. Default: `10` minutes. See the section on [virtual machine migration](#virtual-machine-migration) for more information.
 
-* `wait_for_guest_net_routable` - (Optional) Controls whether or not the guest network waiter waits for a routable address. When `false`, the waiter does not wait for a default gateway, nor are IP addresses checked against any discovered default gateways as part of its success criteria. This property is ignored if the [`wait_for_guest_ip_timeout`](#wait_for_guest_ip_timeout) waiter is used. Default: `true`.
-
-* `wait_for_guest_ip_timeout` - (Optional) The amount of time, in minutes, to wait for an available guest IP address on the virtual machine. This should only be used if the version VMware Tools does not allow the [`wait_for_guest_net_timeout`](#wait_for_guest_net_timeout) waiter to be used. A value less than `1` disables the waiter. Default: `0`.
-
-* `ignored_guest_ips` - (Optional) List of IP addresses and CIDR networks to ignore while waiting for an available IP address using either of the waiters. Any IP addresses in this list will be ignored so that the waiter will continue to wait for a valid IP address. Default: `[]`.
+* `nested_hv_enabled` - (Optional) Enable nested hardware virtualization on the virtual machine, facilitating nested virtualization in the guest operating system. Default: `false`.
 
 * `shutdown_wait_timeout` - (Optional) The amount of time, in minutes, to wait for a graceful guest shutdown when making necessary updates to the virtual machine. If `force_power_off` is set to `true`, the virtual machine will be forced to power-off after the timeout, otherwise an error is returned. Default: `3` minutes.
 
-* `migrate_wait_timeout` - (Optional) The amount of time, in minutes, to wait for a virtual machine migration to complete before failing. Default: `10` minutes. See the section on [virtual machine migration](#virtual-machine-migration) for more information.
+* `swap_placement_policy` - (Optional) The swap file placement policy for the virtual machine. One of `inherit`, `hostLocal`, or `vmDirectory`. Default: `inherit`.
 
-* `force_power_off` - (Optional) If a guest shutdown failed or times out while updating or destroying (see [`shutdown_wait_timeout`](#shutdown_wait_timeout)), force the power-off of the virtual machine. Default: `true`.
+* `vbs_enabled` - (Optional) Enable Virtualization Based Security. Requires `firmware` to be `efi`. In addition, `vvtd_enabled`, `nested_hv_enabled`, and `efi_secure_boot_enabled` must all have a value of `true`. Supported on vSphere 6.7 and later. Default: `false`.
 
-* `scsi_controller_count` - (Optional) The number of SCSI controllers on the virtual machine. This setting directly affects the number of disks you can add to the virtual machine and the maximum disk unit number. Note that lowering this value does not remove controllers. Default: `1`.
+* `vvtd_enabled` - (Optional) Enable Intel Virtualization Technology for Directed I/O for the virtual machine (_I/O MMU_ in the vSphere Client). Supported on vSphere 6.7 and later. Default: `false`.
 
-* `sata_controller_count` - (Optional) The number of SATA controllers that the virtual machine. This directly affects the number of disks you can add to the virtual machine and the maximum disk unit number. Note that lowering this value does not remove controllers. Default: `0`.
+* `wait_for_guest_ip_timeout` - (Optional) The amount of time, in minutes, to wait for an available guest IP address on the virtual machine. This should only be used if the version VMware Tools does not allow the [`wait_for_guest_net_timeout`](#wait_for_guest_net_timeout) waiter to be used. A value less than `1` disables the waiter. Default: `0`.
 
-* `ide_controller_count` - (Optional) The number of IDE controllers that the virtual machine. This directly affects the number of disks you can add to the virtual machine and the maximum disk unit number. Note that lowering this value does not remove controllers. Default: `2`.
+* `wait_for_guest_net_routable` - (Optional) Controls whether or not the guest network waiter waits for a routable address. When `false`, the waiter does not wait for a default gateway, nor are IP addresses checked against any discovered default gateways as part of its success criteria. This property is ignored if the [`wait_for_guest_ip_timeout`](#wait_for_guest_ip_timeout) waiter is used. Default: `true`.
+
+* `wait_for_guest_net_timeout` - (Optional) The amount of time, in minutes, to wait for an available guest IP address on the virtual machine. Older versions of VMware Tools do not populate this property. In those cases, this waiter can be disabled and the [`wait_for_guest_ip_timeout`](#wait_for_guest_ip_timeout) waiter can be used instead. A value less than `1` disables the waiter. Default: `5` minutes.
 
 ### Disk Options
 
@@ -828,7 +822,7 @@ At a minimum, both the `label` and `size` attributes must be provided.  The `uni
 
 The following example demonstrates and abridged multi-disk configuration:
 
-**Example**: 
+**Example**:
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
@@ -845,6 +839,7 @@ resource "vsphere_virtual_machine" "vm" {
   # ... other configuration ...
 }
 ```
+
 The options are:
 
 * `label` - (Required) A label for the virtual disk. Forces a new disk, if changed.
@@ -856,7 +851,7 @@ an error if you try to label a disk with this prefix.
 
 * `size` - (Required) The size of the disk, in GB. Must be a whole number.
 
-* `unit_number` - (Optional) The disk number on the storage bus. The maximum value for this setting is the value of the controller count times the controller capacity (15 for SCSI, 30 for SATA, and 2 for IDE). Duplicate unit numbers are not allowed. Default `0`, for which one disk must be set to. 
+* `unit_number` - (Optional) The disk number on the storage bus. The maximum value for this setting is the value of the controller count times the controller capacity (15 for SCSI, 30 for SATA, and 2 for IDE). Duplicate unit numbers are not allowed. Default `0`, for which one disk must be set to.
 
 * `datastore_id` - (Optional) The [managed object reference ID][docs-about-morefs] for the datastore on which the virtual disk is placed. The default is to use the datastore of the virtual machine. See the section on [virtual machine migration](#virtual-machine-migration) for information on modifying this value.
 
@@ -876,7 +871,7 @@ an error if you try to label a disk with this prefix.
 
 * `eagerly_scrub` - (Optional) If set to `true`, the disk space is zeroed out when the virtual machine is created. This will delay the creation of the virtual disk. Cannot be set to `true` when `thin_provisioned` is `true`.  See the section on [picking a disk type](#picking-a-disk-type) for more information.  Default: `false`.
 
-* `thin_provisioned` - (Optional) If `true`, the disk is thin provisioned, with space for the file being allocated on an as-needed basis. Cannot be set to `true` when `eagerly_scrub` is `true`. See the section on [selecting a disk type](#selecting-a-disk-type) for more information. Default: `true`. 
+* `thin_provisioned` - (Optional) If `true`, the disk is thin provisioned, with space for the file being allocated on an as-needed basis. Cannot be set to `true` when `eagerly_scrub` is `true`. See the section on [selecting a disk type](#selecting-a-disk-type) for more information. Default: `true`.
 
 * `disk_sharing` - (Optional) The sharing mode of this virtual disk. One of `sharingMultiWriter` or `sharingNone`. Default: `sharingNone`.
 
@@ -906,15 +901,15 @@ The `eagerly_scrub` and `thin_provisioned` options control the virtual disk spac
 
 The options are:
 
-* **Thick Provision Lazy Zeroed**: 
-  
+* **Thick Provision Lazy Zeroed**:
+
   Both `eagerly_scrub` and `thin_provisioned` should be set to `false`.
 
-* **Thick Provision Eager Zeroed**: 
+* **Thick Provision Eager Zeroed**:
 
   `eagerly_scrub` should be set to `true`, and `thin_provisioned` should be set to `false`.
 
-* **Thin Provision**: 
+* **Thin Provision**:
 
   `eagerly_scrub` should be set to `false`, and `thin_provisioned` should be set to `true`.
 
@@ -932,7 +927,7 @@ Network interfaces are managed by adding one or more instance of the `network_in
 
 Interfaces are assigned to devices in the order declared in the configuration and may have implications for different guest operating systems.
 
-**Example**: 
+**Example**:
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
@@ -987,6 +982,7 @@ resource "vsphere_virtual_machine" "vm" {
   # ... other configuration ...
 }
 ```
+
 The options are:
 
 * `client_device` - (Optional) Indicates whether the device should be backed by remote client device. Conflicts with `datastore_id` and `path`.
@@ -1001,7 +997,7 @@ The options are:
 
 ### Virtual Device Computed Options
 
-VVirtual devices (`disk`, `network_interface`, and `cdrom`) all export the following attributes. These options help locate the device on subsequent application of the Terraform configuration. 
+VVirtual devices (`disk`, `network_interface`, and `cdrom`) all export the following attributes. These options help locate the device on subsequent application of the Terraform configuration.
 
 The options are:
 
@@ -1081,7 +1077,7 @@ The first `network_interface` would be assigned to the `public` interface, and t
 
 To use DHCP, declare an empty `network_interface` block for each interface.
 
-**Example**: 
+**Example**:
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
@@ -1135,7 +1131,7 @@ The options are:
 
 The following settings configure DNS globally, generally for Linux distribution guest operating systems. For Windows guest operating systems, this is performer per-interface. See the section on [network interface settings](#network-interface-settings) for more information.
 
-* `dns_server_list` - The list of DNS servers to configure on the virtual machine. 
+* `dns_server_list` - The list of DNS servers to configure on the virtual machine.
 
 * `dns_suffix_list` - A list of DNS search domains to add to the DNS configuration on the virtual machine.
 
@@ -1143,7 +1139,7 @@ The following settings configure DNS globally, generally for Linux distribution 
 
 The settings in the `linux_options` block pertain to Linux distribution guest operating system customization. If you are customizing a Linux guest operating system, this section must be included.
 
-**Example**: 
+**Example**:
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
@@ -1177,7 +1173,7 @@ The options are:
 
 The settings in the `windows_options` block pertain to Windows guest OS customization. If you are customizing a Windows operating system, this section must be included.
 
-**Example**: 
+**Example**:
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
@@ -1273,17 +1269,17 @@ The options available in the `ovf_deploy` block are:
 
 * `disk_provisioning` - (Optional) The disk provisioning policy. If set, all the disks included in the OVF/OVA will have the same specified policy. One of `thin`, `flat`, `thick`, or `sameAsSource`.
 
-* `deployment_option` - (Optional) The key for the deployment option. If empty, the default option is selected.   
+* `deployment_option` - (Optional) The key for the deployment option. If empty, the default option is selected.
 
 * `ovf_network_map` - (Optional) The mapping of network identifiers from the OVF descriptor to a network UUID.
 
-* `allow_unverified_ssl_cert` - (Optional) Allow unverified SSL certificates while deploying OVF/OVA from a URL. Defaults `false`.   
+* `allow_unverified_ssl_cert` - (Optional) Allow unverified SSL certificates while deploying OVF/OVA from a URL. Defaults `false`.
 
 ### Using vApp Properties for OVF/OVA Configuration
 
-You can use the `properties` section of the `vapp` block to supply configuration parameters to a virtual machine cloned from a template that originated from an imported OVF/OVA file. Both GuestInfo and ISO transport methods are supported. 
+You can use the `properties` section of the `vapp` block to supply configuration parameters to a virtual machine cloned from a template that originated from an imported OVF/OVA file. Both GuestInfo and ISO transport methods are supported.
 
-For templates that use ISO transport, a CD-ROM backed by a client device must be included. 
+For templates that use ISO transport, a CD-ROM backed by a client device must be included.
 
 **Example**:
 
@@ -1304,7 +1300,7 @@ resource "vsphere_virtual_machine" "vm" {
 }
 ```
 
-See the section on [CD-ROM options](#cd-rom-options) for more information. 
+See the section on [CD-ROM options](#cd-rom-options) for more information.
 
 ~> **NOTE:** The only supported usage path for vApp properties is for existing user-configurable keys. These generally come from an existing template created by importing an OVF or OVA file. You cannot set values for vApp properties on virtual machines created from scratch, virtual machines lacking a vApp configuration, or on property keys that do not exist.
 
@@ -1323,6 +1319,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 }
 ```
+
 The vApp Properties for some OVF/OVA may require boolean values.
 
 In Terraform a boolean is defined as `bool` with a value of either `true` or `false`.
@@ -1342,7 +1339,7 @@ provider "vsphere" {
 }
 ```
 
-However, for OVF properties, even though the type is boolean, the vApp Options in vSphere only accepts the values of `"True"` or `"False"`. 
+However, for OVF properties, even though the type is boolean, the vApp Options in vSphere only accepts the values of `"True"` or `"False"`.
 
 In these instances, it is recommended to define the variable as a string and pass the value in title case.
 
@@ -1383,7 +1380,7 @@ You can use the [`vsphere_virtual_machine`][tf-vsphere-virtual-machine-ds] data 
 
 The `vsphere_virtual_machine` resource supports live migration both on the host and storage level. You can migrate the virtual machine to another host, cluster, resource pool, or datastore. You can also migrate or pin a virtual disk to a specific datastore.
 
-### Host, Cluster, and Resource Pool Migration 
+### Host, Cluster, and Resource Pool Migration
 
 To migrate the virtual machine to another host or resource pool, change the `host_system_id` or `resource_pool_id` to the managed object IDs of the new host or resource pool. To change the virtual machine's cluster or standalone host, select a resource pool within the specific target.
 
@@ -1399,7 +1396,7 @@ Storage migration can be done on two levels:
 
 An example of datastore pinning is below. As long as the datastore in the `pinned_datastore` data source does not change, any change to the standard `vm_datastore` data source will not affect the data disk - the disk will stay where it is.
 
-**Example**: 
+**Example**:
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
@@ -1477,7 +1474,7 @@ The following attributes are exported on the base level of this resource:
 
 * `imported` - Indicates if the virtual machine resource has been imported, or if the state has been migrated from a previous version of the resource. It influences the behavior of the first post-import apply operation. See the section on [importing](#importing) below.
 
-* `change_version` - A unique identifier for a given version of the last configuration was applied. 
+* `change_version` - A unique identifier for a given version of the last configuration was applied.
 
 * `uuid` - The UUID of the virtual machine. Also exposed as the `id` of the resource.
 
@@ -1493,15 +1490,16 @@ The following attributes are exported on the base level of this resource:
 
 [docs-about-morefs]: https://registry.terraform.io/providers/hashicorp/vsphere/latest/docs#use-of-managed-object-references-by-the-vsphere-provider
 
-## Importing 
+## Importing
 
-An existing virtual machine can be [imported][docs-import] into the Terraform state by providing the full path to the virtual machine. 
+An existing virtual machine can be [imported][docs-import] into the Terraform state by providing the full path to the virtual machine.
 
 [docs-import]: /docs/import/index.html
 
 **Example**:
 
 ```
+
 terraform import vsphere_virtual_machine.vm /dc-01/vm/foo
 ```
 
@@ -1523,7 +1521,7 @@ After importing, you should run `terraform plan`. Unless you have changed anythi
 
 * The [`imported`](#imported) flag will transition from `true` to `false`.
 
-* The [`keep_on_remove`](#keep_on_remove) of known disks will transition from `true` to `false`. 
+* The [`keep_on_remove`](#keep_on_remove) of known disks will transition from `true` to `false`.
 
 * Configuration supplied in the [`clone`](#clone) block, if present, will be persisted to state. This initial persistence operation does not perform any cloning or customization actions, nor does it force a new resource. After the first apply operation, further changes to `clone` will force the creation of a new resource.
 
