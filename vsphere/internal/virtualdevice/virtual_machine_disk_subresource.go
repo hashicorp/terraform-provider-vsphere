@@ -800,7 +800,7 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 			return fmt.Errorf("%s: error parsing device address after reading disk %q: %s", tr.Addr(), targetPath, err)
 		}
 		if ct != SubresourceControllerTypeSCSI && ct != SubresourceControllerTypeSATA && ct != SubresourceControllerTypeIDE {
-			return fmt.Errorf("%s: unsupported controller type %s for disk %q.", tr.Addr(), ct, targetPath)
+			return fmt.Errorf("%s: unsupported controller type %s for disk %q", tr.Addr(), ct, targetPath)
 		}
 	}
 	log.Printf("[DEBUG] DiskCloneValidateOperation: All disks in source validated successfully")
@@ -1092,7 +1092,7 @@ func DiskImportOperation(d *schema.ResourceData, l object.VirtualDeviceList) err
 			return fmt.Errorf("disk.%d: error parsing device address %s: %s", i, addr, err)
 		}
 		if ct != SubresourceControllerTypeSCSI && ct != SubresourceControllerTypeSATA && ct != SubresourceControllerTypeIDE {
-			return fmt.Errorf("disk.%d: unsupported controller type %s for disk %s.", i, ct, addr)
+			return fmt.Errorf("disk.%d: unsupported controller type %s for disk %s", i, ct, addr)
 		}
 		// As one final validation, as we are no longer reading here, validate that
 		// this is a VMDK-backed virtual disk to make sure we aren't importing RDM
