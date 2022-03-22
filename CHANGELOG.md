@@ -5,6 +5,7 @@ FEATURES:
 
 IMPROVEMENTS:
 * `resource/vsphere_resource_pool`: Documentation updates. ([#1620](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1620))
+* `resource/virtual_machine`: Documentation updates. ([#1630](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1630))
 
 ## 2.1.1 (March 08, 2022)
 
