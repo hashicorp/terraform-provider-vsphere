@@ -31,6 +31,11 @@ var resourcePoolMemorySharesLevelAllowedValues = []string{
 	string(types.SharesLevelCustom),
 }
 
+var resourcePoolScaleDescendantsSharesAllowedValues = []string{
+	string(types.ResourceConfigSpecScaleSharesBehaviorDisabled),
+	string(types.ResourceConfigSpecScaleSharesBehaviorScaleCpuAndMemoryShares),
+}
+
 func resourceVSphereResourcePool() *schema.Resource {
 	s := map[string]*schema.Schema{
 		"name": {
@@ -105,6 +110,12 @@ func resourceVSphereResourcePool() *schema.Resource {
 			Optional:    true,
 			Default:     -1,
 		},
+		"scale_descendants_shares": {
+			Type:         schema.TypeString,
+			Description:  "Determines if the shares of all descendants of the resource pool are scaled up or down when the shares of the resource pool are scaled up or down.",
+			Optional:     true,
+			ValidateFunc: validation.StringInSlice(resourcePoolScaleDescendantsSharesAllowedValues, false),
+		},
 		vSphereTagAttributeKey:    tagsSchema(),
 		customattribute.ConfigKey: customattribute.ConfigSchema(),
 	}
@@ -143,7 +154,8 @@ func resourceVSphereResourcePoolCreate(d *schema.ResourceData, meta interface{})
 	if err != nil {
 		return err
 	}
-	rpSpec := expandResourcePoolConfigSpec(d)
+	version := viapi.ParseVersionFromClient(client)
+	rpSpec := expandResourcePoolConfigSpec(d, version)
 	rp, err := resourcepool.Create(prp, d.Get("name").(string), rpSpec)
 	if err != nil {
 		return err
@@ -219,8 +231,8 @@ func resourceVSphereResourcePoolUpdate(d *schema.ResourceData, meta interface{})
 		}
 		log.Printf("[DEBUG] %s: Move finished successfully", resourceVSphereResourcePoolIDString(d))
 	}
-
-	rpSpec := expandResourcePoolConfigSpec(d)
+	version := viapi.ParseVersionFromClient(client)
+	rpSpec := expandResourcePoolConfigSpec(d, version)
 	err = resourcepool.Update(rp, d.Get("name").(string), rpSpec)
 	if err != nil {
 		return err
@@ -285,11 +297,16 @@ func flattenResourcePoolMemoryAllocation(d *schema.ResourceData, obj types.Resou
 	})
 }
 
-func expandResourcePoolConfigSpec(d *schema.ResourceData) *types.ResourceConfigSpec {
-	return &types.ResourceConfigSpec{
+func expandResourcePoolConfigSpec(d *schema.ResourceData, version viapi.VSphereVersion) *types.ResourceConfigSpec {
+	obj := &types.ResourceConfigSpec{
 		CpuAllocation:    expandResourcePoolCPUAllocation(d),
 		MemoryAllocation: expandResourcePoolMemoryAllocation(d),
 	}
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0}) {
+		obj.ScaleDescendantsShares = d.Get("scale_descendants_shares").(string)
+	}
+
+	return obj
 }
 
 func expandResourcePoolCPUAllocation(d *schema.ResourceData) types.ResourceAllocationInfo {

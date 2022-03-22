@@ -45,6 +45,11 @@ var drsBehaviorAllowedValues = []string{
 	string(types.DrsBehaviorFullyAutomated),
 }
 
+var drsScaleDescendantsSharesAllowedValues = []string{
+	string(types.ResourceConfigSpecScaleSharesBehaviorDisabled),
+	string(types.ResourceConfigSpecScaleSharesBehaviorScaleCpuAndMemoryShares),
+}
+
 var dpmBehaviorAllowedValues = []string{
 	string(types.DpmBehaviorManual),
 	string(types.DpmBehaviorAutomated),
@@ -195,6 +200,12 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "When true, enables DRS to use data from vRealize Operations Manager to make proactive DRS recommendations.",
+			},
+			"drs_scale_descendants_shares": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "Enable scalable shares for all descendants of this cluster.",
+				ValidateFunc: validation.StringInSlice(drsScaleDescendantsSharesAllowedValues, false),
 			},
 			// DRS - DPM
 			"dpm_enabled": {
@@ -1235,7 +1246,7 @@ func expandClusterConfigSpecEx(d *schema.ResourceData, version viapi.VSphereVers
 	obj := &types.ClusterConfigSpecEx{
 		DasConfig: expandClusterDasConfigInfo(d, version),
 		DpmConfig: expandClusterDpmConfigInfo(d),
-		DrsConfig: expandClusterDrsConfigInfo(d),
+		DrsConfig: expandClusterDrsConfigInfo(d, version),
 	}
 
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
@@ -1884,13 +1895,17 @@ func flattenClusterDpmConfigInfo(d *schema.ResourceData, obj *types.ClusterDpmCo
 
 // expandClusterDrsConfigInfo reads certain ResourceData keys and returns a
 // ClusterDrsConfigInfo.
-func expandClusterDrsConfigInfo(d *schema.ResourceData) *types.ClusterDrsConfigInfo {
+func expandClusterDrsConfigInfo(d *schema.ResourceData, version viapi.VSphereVersion) *types.ClusterDrsConfigInfo {
 	obj := &types.ClusterDrsConfigInfo{
 		DefaultVmBehavior:         types.DrsBehavior(d.Get("drs_automation_level").(string)),
 		Enabled:                   structure.GetBool(d, "drs_enabled"),
 		EnableVmBehaviorOverrides: structure.GetBool(d, "drs_enable_vm_overrides"),
 		VmotionRate:               int32(d.Get("drs_migration_threshold").(int)),
 		Option:                    expandResourceVSphereComputeClusterDrsAdvancedOptions(d),
+	}
+
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0}) {
+		obj.ScaleDescendantsShares = d.Get("drs_scale_descendants_shares").(string)
 	}
 
 	return obj
