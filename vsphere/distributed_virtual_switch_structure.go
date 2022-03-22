@@ -642,6 +642,11 @@ func expandSliceOfDvsHostInfrastructureTrafficResource(d *schema.ResourceData) [
 // flattenSliceOfDvsHostInfrastructureTrafficResource reads in the supplied network I/O control allocation entries supplied via a respective DVSConfigInfo field and sets the appropriate keys in the supplied ResourceData.
 func flattenSliceOfDvsHostInfrastructureTrafficResource(d *schema.ResourceData, s []types.DvsHostInfrastructureTrafficResource) error {
 	for _, v := range s {
+		if !stringInSlice(v.Key, infrastructureTrafficClassValues) {
+			// this would imply there are new classes introduced by the vCenter
+			// API but not yet supported by govmomi/provider
+			continue
+		}
 		if err := flattenDvsHostInfrastructureTrafficResource(d, v, v.Key); err != nil {
 			return err
 		}

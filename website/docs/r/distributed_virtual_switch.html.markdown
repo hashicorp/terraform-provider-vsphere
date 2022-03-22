@@ -237,7 +237,7 @@ pools, if their use is so desired.
 
 #### Network I/O control traffic classes
 
-There are currently 9 traffic classes that can be used for network I/O
+There are currently 10 traffic classes that can be used for network I/O
 control - they are below.
 
 Each of these classes has 4 options that can be tuned that are discussed in the
@@ -254,6 +254,7 @@ next section.
 <tr><td>Virtual Machine Traffic</td><td>`virtualmachine`</td></tr>
 <tr><td>vMotion Traffic</td><td>`vmotion`</td></tr>
 <tr><td>VSAN Traffic</td><td>`vsan`</td></tr>
+<tr><td>Backup NFC</td><td>`backupnfc`</td></tr>
 </table>
 
 #### Traffic class resource options
