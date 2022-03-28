@@ -271,18 +271,10 @@ resource "vsphere_virtual_machine" "template" {
   }
 
   ovf_deploy {
-    remote_ovf_url = "https://storage.googleapis.com/vsphere-acctest/tiny/tiny.ovf"
+    remote_ovf_url = "https://storage.googleapis.com/vsphere-acctest/TinyVM/TinyVM.ovf"
     ovf_network_map = {
       "terraform-test-pg" = vsphere_distributed_port_group.pg.id
     }
-  }
-  disk {
-    label = "disk0"
-    size  = 20
-  }
-
-  cdrom {
-    client_device = true
   }
 }
 
