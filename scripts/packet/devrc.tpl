@@ -44,12 +44,11 @@ export TF_VAR_VSPHERE_INIT_TYPE=thin
 export TF_VAR_VSPHERE_ADAPTER_TYPE=lsiLogic
 export TF_VAR_VSPHERE_DC_FOLDER=dc-folder
 export TF_VAR_VSPHERE_DS_FOLDER=ds
-export TF_VAR_VSPHERE_USE_LINKED_CLONE=true
 export TF_VAR_VSPHERE_PERSIST_SESSION=true
 export TF_VAR_VSPHERE_CLONED_VM_DISK_SIZE=20
-export TF_VAR_VSPHERE_TEST_OVA="https://storage.googleapis.com/vsphere-acctest/tiny/tiny.ova"
-export TF_VAR_VSPHERE_TEST_OVF="https://storage.googleapis.com/vsphere-acctest/tiny/tiny.ovf"
-export TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES="https://storage.googleapis.com/vsphere-acctest/tiny/tiny.ovf"
+export TF_VAR_VSPHERE_TEST_OVA="https://storage.googleapis.com/vsphere-acctest/TinyVM/TinyVM.ova"
+export TF_VAR_VSPHERE_TEST_OVF="https://storage.googleapis.com/vsphere-acctest/TinyVM/TinyVM.ovf"
+export TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES="https://storage.googleapis.com/vsphere-acctest/TinyVM/TinyVM.ovf"
 
 export TF_VAR_VSPHERE_HOST_NIC0=vmnic0
 export TF_VAR_VSPHERE_HOST_NIC1=vmnic1
