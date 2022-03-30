@@ -30,20 +30,44 @@ jobs:
           name: release-notes
           path: release-notes.txt
           retention-days: 1
-  terraform-provider-release:
-    name: 'Terraform Provider Release'
-    needs: [go-version, release-notes]
-    uses: hashicorp/ghaction-terraform-provider-release/.github/workflows/hashicorp.yml@v1
-    secrets:
-      hc-releases-aws-access-key-id: '${{ secrets.TF_PROVIDER_RELEASE_AWS_ACCESS_KEY_ID }}'
-      hc-releases-aws-secret-access-key: '${{ secrets.TF_PROVIDER_RELEASE_AWS_SECRET_ACCESS_KEY }}'
-      hc-releases-aws-role-arn: '${{ secrets.TF_PROVIDER_RELEASE_AWS_ROLE_ARN }}'
-      hc-releases-fastly-api-token: '${{ secrets.HASHI_FASTLY_PURGE_TOKEN }}'
-      hc-releases-github-token: '${{ secrets.HASHI_RELEASES_GITHUB_TOKEN }}'
-      hc-releases-terraform-registry-sync-token: '${{ secrets.TF_PROVIDER_RELEASE_TERRAFORM_REGISTRY_SYNC_TOKEN }}'
-      setup-signore-github-token: '${{ secrets.HASHI_SIGNORE_GITHUB_TOKEN }}'
-      signore-client-id: '${{ secrets.SIGNORE_CLIENT_ID }}'
-      signore-client-secret: '${{ secrets.SIGNORE_CLIENT_SECRET }}'
-    with:
-      release-notes: true
-      setup-go-version: '${{ needs.go-version.outputs.version }}'
+
+      - name: Setup hc-releases
+        uses: hashicorp/actions-setup-hc-releases@v2
+        with:
+          github-token: ${{ secrets.CODESIGN_GITHUB_TOKEN }}
+        
+        terraform-provider-release:
+          name: 'Terraform Provider Release'
+          needs: [go-version, release-notes]
+          uses: hashicorp/ghaction-terraform-provider-release/.github/workflows/hashicorp.yml@v1
+          secrets:
+            hc-releases-github-token: '${{ secrets.HASHI_RELEASES_GITHUB_TOKEN }}'
+            hc-releases-terraform-registry-sync-token: '${{ secrets.TF_PROVIDER_RELEASE_TERRAFORM_REGISTRY_SYNC_TOKEN }}'
+            setup-signore-github-token: '${{ secrets.HASHI_SIGNORE_GITHUB_TOKEN }}'
+            signore-client-id: '${{ secrets.SIGNORE_CLIENT_ID }}'
+            signore-client-secret: '${{ secrets.SIGNORE_CLIENT_SECRET }}'
+          with:
+            release-notes: true
+            setup-go-version: '${{ needs.go-version.outputs.version }}'
+          env:
+            HC_RELEASES_HOST_STAGING: '${{ secrets.HC_RELEASES_HOST_STAGING }}'
+            HC_RELEASES_KEY_STAGING: '${{ secrets.HC_RELEASES_KEY_STAGING }}'
+
+      - name: Create Release metadata
+        uses: hashicorp/actions-hc-releases-create-metadata@v1
+        with:
+          private-tools-token: ${{ secrets.CODESIGN_GITHUB_TOKEN }}
+          product-name: "terraform-provider-vsphere"
+          version: ${{ github.ref_name }}
+          hc-releases-host: ${{ secrets.HC_RELEASES_HOST_STAGING}}
+          hc-releases-key: ${{ secrets.HC_RELEASES_KEY_STAGING }}
+     
+      - name: Promote
+        uses: hashicorp/actions-hc-releases-promote@v1
+        with:
+          product-name: "terraform-provider-vsphere"
+          version: ${{ github.ref_name }}
+          hc-releases-host: ${{ secrets.HC_RELEASES_HOST_PROD }}
+          hc-releases-key: ${{ secrets.HC_RELEASES_KEY_PROD }}
+          hc-releases-source_env_key: ${{ secrets.HC_RELEASES_KEY_STAGING }}
+      
