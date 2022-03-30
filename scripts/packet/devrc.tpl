@@ -13,9 +13,9 @@ export TF_VAR_VSPHERE_ESXI1=${esxi_host_1}
 export TF_VAR_VSPHERE_ESXI2=${esxi_host_2}
 export VSPHERE_SERVER=${vsphere_host}
 
-export TF_VAR_VSPHERE_VMFS_REGEXP='naa.6000c29[2b]'
-export TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0="naa.6000c29b4b217432a854822b1bc40502"
-export TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK1="naa.6000c29f3dbf773c6c25cb830dfc201b"
+export TF_VAR_VSPHERE_VMFS_REGEXP='naa.'
+export TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0=${vmfs_disk_0}
+export TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK1=${vmfs_disk_1}
 
 export VSPHERE_USER="administrator@vcenter.vspheretest.internal"
 export VSPHERE_PASSWORD="Password123!"
