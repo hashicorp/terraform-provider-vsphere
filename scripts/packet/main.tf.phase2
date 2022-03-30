@@ -246,13 +246,20 @@ resource "vsphere_host" "host2" {
   thumbprint = data.vsphere_host_thumbprint.esxi2.id
 }
 
+data "vsphere_vmfs_disks" "available" {
+  host_system_id = vsphere_host.host1.id
+  rescan         = true
+  filter         = "naa."
+}
+
 resource "local_file" "devrc" {
   sensitive_content = templatefile("${path.cwd}/devrc.tpl", {
     nas_host    = metal_device.storage1.network.0.address
     esxi_host_1 = metal_device.esxi1.network.0.address
     esxi_host_2 = metal_device.esxi2.network.0.address
     vsphere_host = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}",3)
-
+    vmfs_disk_0 = data.vsphere_vmfs_disks.available.disks[0]
+    vmfs_disk_1 = data.vsphere_vmfs_disks.available.disks[1]
   })
   filename = "./devrc"
 }
