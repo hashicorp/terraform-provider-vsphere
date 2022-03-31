@@ -4,6 +4,7 @@ BUG FIXES:
 * `resource/virtual_machine`: Fixes ability to clone and import virtual machine resources with SATA and IDE controllers. ([#1629](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1629))
 * `resource/dvs`: Prevent setting unsupported traffic classes. ([#1633](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1633))
 * `resource/virtual_machine`: Fixes provider panic when a non supported PCI device is added outside Terraform to a virtual machine. ([#1627](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1627))
+* `r/datacenter`: Updates resourceVSphereDatacenterImport to include the datacenter folder in which the datacenter object may exist. ([#1607](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1607))
 
 FEATURES:
 * `resource/vsphere_host`: Added support for custom attributes. ([#1619](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1619))
