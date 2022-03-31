@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -13,23 +14,27 @@ import (
 
 const testAccCheckVSphereDatacenterResourceName = "vsphere_datacenter.testDC"
 
-const testAccCheckVSphereDatacenterConfig = `
+func testAccCheckVSphereDatacenterConfig(name string) string {
+	return fmt.Sprintf(`
 resource "vsphere_datacenter" "testDC" {
-  name = "testDC"
+  name = "%s"
 }
-`
+`, name)
+}
 
-const testAccCheckVSphereDatacenterConfigSubfolder = `
+func testAccCheckVSphereDatacenterConfigSubfolder(name, folder string) string {
+	return fmt.Sprintf(`
 resource "vsphere_folder" "folder" {
   path = "%s"
   type = "datacenter"
 }
 
 resource "vsphere_datacenter" "testDC" {
-  name   = "testDC"
+  name   = "%s"
   folder = vsphere_folder.folder.path
 }
-`
+`, folder, name)
+}
 
 const testAccCheckVSphereDatacenterConfigTags = `
 resource "vsphere_tag_category" "testacc-category" {
@@ -129,14 +134,22 @@ resource "vsphere_datacenter" "testDC" {
 
 // Create a datacenter on the root folder
 func TestAccResourceVSphereDatacenter_createOnRootFolder(t *testing.T) {
+	name := "testDC"
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereDatacenterDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckVSphereDatacenterConfig,
+				Config: testAccCheckVSphereDatacenterConfig(name),
 				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDatacenterExists(testAccCheckVSphereDatacenterResourceName, true)),
+			},
+			{
+				ResourceName:        testAccCheckVSphereDatacenterResourceName,
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: "/",
+				ImportStateId:       name,
 			},
 		},
 	})
@@ -145,6 +158,7 @@ func TestAccResourceVSphereDatacenter_createOnRootFolder(t *testing.T) {
 // Create a datacenter on a subfolder
 func TestAccResourceVSphereDatacenter_createOnSubfolder(t *testing.T) {
 	dcFolder := os.Getenv("TF_VAR_VSPHERE_DC_FOLDER")
+	name := "testDC"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -152,13 +166,20 @@ func TestAccResourceVSphereDatacenter_createOnSubfolder(t *testing.T) {
 		CheckDestroy: testAccCheckVSphereDatacenterDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(testAccCheckVSphereDatacenterConfigSubfolder, dcFolder),
+				Config: testAccCheckVSphereDatacenterConfigSubfolder(name, dcFolder),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVSphereDatacenterExists(
 						testAccCheckVSphereDatacenterResourceName,
 						true,
 					),
 				),
+			},
+			{
+				ResourceName:        testAccCheckVSphereDatacenterResourceName,
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: "/",
+				ImportStateId:       path.Join(dcFolder, name),
 			},
 		},
 	})

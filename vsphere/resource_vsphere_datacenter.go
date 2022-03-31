@@ -287,15 +287,17 @@ func resourceVSphereDatacenterImport(d *schema.ResourceData, meta interface{}) (
 		return nil, err
 	}
 
+	// determine a folder if one is present
 	f, err := folder.ParentFromPath(client, p, folder.VSphereFolderTypeDatacenter, dc)
 	if err != nil {
 		return nil, fmt.Errorf("cannot locate folder: %s", err)
 	}
 
 	path := strings.TrimPrefix(f.InventoryPath, "/")
-
-	if err := d.Set("folder", path); err != nil {
-		return nil, err
+	if path != "" {
+		if err := d.Set("folder", path); err != nil {
+			return nil, err
+		}
 	}
 
 	d.SetId(dc.Name())
