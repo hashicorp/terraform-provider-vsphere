@@ -14,6 +14,7 @@ FEATURES:
 IMPROVEMENTS:
 * `resource/vsphere_resource_pool`: Documentation updates. ([#1620](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1620))
 * `resource/virtual_machine`: Documentation updates. ([#1630](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1630))
+* `resource/virtual_machine`: Add `tools_upgrade_policy` to list of params that trigger a reboot ([#1644](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1644))
 
 ## 2.1.1 (March 08, 2022)
 
