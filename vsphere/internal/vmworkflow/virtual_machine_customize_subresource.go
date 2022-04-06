@@ -95,6 +95,7 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 				"script_text": {
 					Type:        schema.TypeString,
 					Optional:    true,
+					Sensitive:   true,
 					Description: "The customization script to run before and or after guest customization",
 				},
 				"time_zone": {
