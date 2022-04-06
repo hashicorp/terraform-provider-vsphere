@@ -1457,6 +1457,7 @@ The virtual machine will be rebooted if any of the following parameters are chan
 * `run_tools_scripts_before_guest_shutdown`
 * `run_tools_scripts_before_guest_reboot`
 * `swap_placement_policy`
+* `tools_upgrade_policy`
 * `vbs_enabled`
 * `vvtd_enabled`
 
