@@ -8,6 +8,7 @@ BUG FIXES:
 
 FEATURES:
 * `resource/vsphere_host`: Added support for custom attributes. ([#1619](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1619))
+* `resource/virtual_machine`: Added support for guest customization script for Linux guest operating systems. ([#1621](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1621))
 
 IMPROVEMENTS:
 * `resource/vsphere_resource_pool`: Documentation updates. ([#1620](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1620))
