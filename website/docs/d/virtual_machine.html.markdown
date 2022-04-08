@@ -1,4 +1,5 @@
 ---
+subcategory: "Virtual Machine"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_virtual_machine"
 sidebar_current: "docs-vsphere-data-source-virtual-machine"

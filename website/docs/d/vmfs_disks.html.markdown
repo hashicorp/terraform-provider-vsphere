@@ -1,4 +1,5 @@
 ---
+subcategory: "Storage"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_vmfs_disks"
 sidebar_current: "docs-vsphere-data-source-vmfs-disks"

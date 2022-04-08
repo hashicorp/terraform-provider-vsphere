@@ -1,4 +1,5 @@
 ---
+subcategory: "Storage"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_datastore"
 sidebar_current: "docs-vsphere-data-source-datastore"

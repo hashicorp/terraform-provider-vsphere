@@ -1,4 +1,5 @@
 ---
+subcategory: "Inventory"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_datacenter"
 sidebar_current: "docs-vsphere-data-source-datacenter"

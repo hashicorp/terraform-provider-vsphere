@@ -1,4 +1,5 @@
 ---
+subcategory: "Host and Cluster Management"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_host_pci_device"
 sidebar_current: "docs-vsphere-data-source-host_pci_device"
