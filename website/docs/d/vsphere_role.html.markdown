@@ -1,4 +1,5 @@
 ---
+subcategory: "Security"
 layout: "vsphere"
 page_title: "VMware vSphere: Role"
 sidebar_current: "docs-vsphere-data-source-vsphere-role"

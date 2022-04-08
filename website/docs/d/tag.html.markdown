@@ -1,4 +1,5 @@
 ---
+subcategory: "Inventory"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_tag"
 sidebar_current: "docs-vsphere-data-source-tag-data-source"
