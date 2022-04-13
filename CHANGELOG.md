@@ -1,8 +1,19 @@
+## 1.26.0-sriov2 (April 13, 2022)
+
+BUG FIXES:
+* `resource/virtual_machine`: Only set vvtd/vbs if vsphere version is newer than 6.5. ([#1423](https://github.com/hashicorp/terraform-provider-vsphere/pull/1423) - back applied from 2.0.1)
+* `resource/virtual_machine`: Fix logic bug that caused the provider to set unsupported fields when talking to vsphere 6.5. ([#1430](https://github.com/hashicorp/terraform-provider-vsphere/pull/1430) - back applied from 2.0.2)
+
+## 1.26.0-sriov (May 27, 2021)
+
+FEATURES:
+* `resource/virtual_machine`: Add support for SR-IOV NIC adapters.
+
 ## 1.26.0 (April 20, 2021)
 
 BUG FIXES:
 * Minor fixes of issues that came up during testing against vSphere 7.0
-* Change the way we set the timeout for maintenance mode ([#1392](https://github.com/hashicorp/terraform-provider-vsphere/pull/1392)) 
+* Change the way we set the timeout for maintenance mode ([#1392](https://github.com/hashicorp/terraform-provider-vsphere/pull/1392))
 
 IMPROVEMENTS:
 * `provider`: vSphere 7 compatibility validation ([#1381](https://github.com/hashicorp/terraform-provider-vsphere/pull/1381))
@@ -58,10 +69,10 @@ BUG FIXES:
 * `resource/vm`: Set SCSI controller type to unknown when nil. ([#1188](https://github.com/hashicorp/terraform-provider-vsphere/pull/1188))
 
 IMPROVEMENTS:
-* `resource/content_library_item`: Add local upload, OVA, and vm-template 
+* `resource/content_library_item`: Add local upload, OVA, and vm-template
   sources. ([#1196](https://github.com/hashicorp/terraform-provider-vsphere/pull/1196))
 * `resource/content_library`: Subscription and publication support. ([#1197](https://github.com/hashicorp/terraform-provider-vsphere/pull/1197))
-* `resource/vm`: Content library vm-template, disk type, and vApp property 
+* `resource/vm`: Content library vm-template, disk type, and vApp property
   support. ([#1198](https://github.com/hashicorp/terraform-provider-vsphere/pull/1198))
 
 ## 1.23.0 (August 21, 2020)
@@ -114,20 +125,20 @@ FEATURES:
 ## 1.18.3 (June 01, 2020)
 
 IMPROVEMENTS:
-* `resource/custom_attribute`: Fix id in error message when category is 
+* `resource/custom_attribute`: Fix id in error message when category is
   missing. ([#1088](https://github.com/hashicorp/terraform-provider-vsphere/pull/1088))
 * `resource/virtual_machine`: Add vApp properties with OVF deployment. ([#1082](https://github.com/hashicorp/terraform-provider-vsphere/pull/1082))
 
 ## 1.18.2 (May 22, 2020)
 
 IMPROVEMENTS:
-* `resource/host` & `resource/compute_cluster`: Add arguments for specifying 
-  if cluster management should be handled in `host` or `compute_cluster` 
+* `resource/host` & `resource/compute_cluster`: Add arguments for specifying
+  if cluster management should be handled in `host` or `compute_cluster`
   resource. ([#1085](https://github.com/hashicorp/terraform-provider-vsphere/pull/1085))
-* `resource/virtual_machine`: Handle OVF argument validation during VM 
+* `resource/virtual_machine`: Handle OVF argument validation during VM
   creation. ([#1084](https://github.com/hashicorp/terraform-provider-vsphere/pull/1084))
-* `resource/host`: Disconnect rather than entering maintenance mode when 
-  deleting. ([#1083](https://github.com/hashicorp/terraform-provider-vsphere/pull/1083)) 
+* `resource/host`: Disconnect rather than entering maintenance mode when
+  deleting. ([#1083](https://github.com/hashicorp/terraform-provider-vsphere/pull/1083))
 
 
 ## 1.18.1 (May 12, 2020)
@@ -139,7 +150,7 @@ BUG FIXES:
 ## 1.18.0 (May 04, 2020)
 
 FEATURES:
-* `resource/virtual_machine`: Allow users to deploy OVF templates from both 
+* `resource/virtual_machine`: Allow users to deploy OVF templates from both
   from local system and remote URL. ([#1052](https://github.com/hashicorp/terraform-provider-vsphere/pull/1052))
 
 ## 1.17.4 (April 29, 2020)
@@ -187,7 +198,7 @@ FEATURES:
 * **New Resource:** `content_library_item` ([#985](https://github.com/hashicorp/terraform-provider-vsphere/pull/985))
 
 IMPROVEMENTS:
-* `resource/virtual_machine`: Add `poweron_timeout` option for the amount of 
+* `resource/virtual_machine`: Add `poweron_timeout` option for the amount of
   time to give a VM to power on. ([#990](https://github.com/hashicorp/terraform-provider-vsphere/pull/990))
 
 ## 1.16.2 (March 04, 2020)
@@ -209,7 +220,7 @@ FEATURES:
 
 IMPROVEMENTS:
 * Switch to govmomi REST client ([#955](https://github.com/hashicorp/terraform-provider-vsphere/pull/955))
-* Add storage policy to `virtual_machine` resource. ** Requires `profile-driven 
+* Add storage policy to `virtual_machine` resource. ** Requires `profile-driven
   storage` permissions for Terraform user. ([#881](https://github.com/hashicorp/terraform-provider-vsphere/pull/881))
 
 ## 1.15.0 (January 23, 2020)
@@ -282,7 +293,7 @@ IMPROVEMENTS:
 * Switch to Terraform 0.12 SDK which is required for Terraform 0.12 support.
   This is the first release to use the 0.12 SDK required for Terraform 0.12
   support. Some provider behaviour may have changed as a result of changes made
-  by the new SDK version. ([#760](https://github.com/hashicorp/terraform-provider-vsphere/pull/760)) 
+  by the new SDK version. ([#760](https://github.com/hashicorp/terraform-provider-vsphere/pull/760))
 
 ## 1.10.0 (March 15, 2019)
 
@@ -308,7 +319,7 @@ IMPROVEMENTS:
 
 * `resource/virtual_machine`: Increase logging after old config expansion during
   diff checking ([#661](https://github.com/hashicorp/terraform-provider-vsphere/issues/661))
-* `resource/virtual_machine`: Unlock `memory_reservation` from maximum when 
+* `resource/virtual_machine`: Unlock `memory_reservation` from maximum when
   `memory_reservation` is not equal to `memory`. ([#680](https://github.com/hashicorp/terraform-provider-vsphere/issues/680))
 
 BUG FIXES:
@@ -360,7 +371,7 @@ BUG FIXES:
 * `resource/virtual_machine`: Skip reading latency sensitivity parameters when
   LatencySensitivity is `nil`. ([#612](https://github.com/hashicorp/terraform-provider-vsphere/issues/612))
 * `resource/compute_cluster`: Unset ID when the resource is not found. ([#613](https://github.com/hashicorp/terraform-provider-vsphere/issues/613))
-* `resource/virtual_machine`: Skip OS specific customization checks when 
+* `resource/virtual_machine`: Skip OS specific customization checks when
   `resource_pool_id` is not set. ([#614](https://github.com/hashicorp/terraform-provider-vsphere/issues/614))
 
 ## 1.7.0 (August 24, 2018)
