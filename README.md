@@ -16,7 +16,7 @@ Learn more:
 
 ## Requirements
 
-* [Terraform 0.12+][terraform-install]
+* [Terraform 0.13+][terraform-install]
 
     For general information about Terraform, visit [terraform.io][terraform-install] and [the project][terraform-github] on GitHub.
 
