@@ -4,7 +4,8 @@ layout: "vsphere"
 page_title: "VMware vSphere: vsphere_vmfs_disks"
 sidebar_current: "docs-vsphere-data-source-vmfs-disks"
 description: |-
-  A data source that can be used to discover storage devices that can be used for VMFS datastores.
+  A data source that can be used to discover storage devices that can be used
+  for VMFS datastores.
 ---
 
 # vsphere\_vmfs\_disks
@@ -20,16 +21,16 @@ datastores based off a set of discovered disks.
 
 ```hcl
 data "vsphere_datacenter" "datacenter" {
-  name = "dc1"
+  name = "dc-01"
 }
 
 data "vsphere_host" "host" {
-  name          = "esxi1"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+  name          = "esxi-01.example.com"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
-data "vsphere_vmfs_disks" "available" {
-  host_system_id = "${data.vsphere_host.host.id}"
+data "vsphere_vmfs_disks" "vmfs_disks" {
+  host_system_id = data.vsphere_host.host.id
   rescan         = true
   filter         = "mpx.vmhba1:C0:T[12]:L0"
 }
@@ -48,7 +49,7 @@ The following arguments are supported:
   searching for disks. This may lengthen the time it takes to perform the
   search. Default: `false`.
 * `filter` - (Optional) A regular expression to filter the disks against. Only
-  disks with canonical names that match will be included. 
+  disks with canonical names that match will be included.
 
 ~> **NOTE:** Using a `filter` is recommended if there is any chance the host
 will have any specific storage devices added to it that may affect the order of
