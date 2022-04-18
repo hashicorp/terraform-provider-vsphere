@@ -4,21 +4,20 @@ layout: "vsphere"
 page_title: "VMware vSphere: vsphere_content_library"
 sidebar_current: "docs-vsphere-data-source-content-library"
 description: |-
-  Provides a VMware Content Library data source.
+  Provides a VMware vSphere content library data source.
 ---
 
 # vsphere\_content\_library
 
-The `vsphere_content_library` data source can be used to discover the ID of a Content Library.
+The `vsphere_content_library` data source can be used to discover the ID of a content library.
 
-~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
-connections.
+~> **NOTE:** This resource requires vCenter Server and is not available on direct ESXi host connections.
 
 ## Example Usage
 
 ```hcl
 data "vsphere_content_library" "library" {
-  name = "Content Library Test"
+  name = "Content Library"
 }
 ```
 
@@ -26,7 +25,7 @@ data "vsphere_content_library" "library" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the Content Library.
+* `name` - (Required) The name of the content library.
 
 ## Attribute Reference
 

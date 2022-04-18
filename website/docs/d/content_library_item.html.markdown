@@ -9,9 +9,11 @@ description: |-
 
 # vsphere\_content\_library\_item
 
-The `vsphere_content_library_item` data source can be used to discover the ID of a content library item.
+The `vsphere_content_library_item` data source can be used to discover the ID
+of a content library item.
 
-~> **NOTE:** This resource requires vCenter Server and is not available on direct ESXi host connections.
+~> **NOTE:** This resource requires vCenter Server and is not available on
+direct ESXi host connections.
 
 ## Example Usage
 
