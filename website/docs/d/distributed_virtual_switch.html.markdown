@@ -64,7 +64,7 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id`: The UUID of the vSphere distributed switch.
-* `uplinks`: The list of the uplinks on this vSphere distributed switchS, as per the
+* `uplinks`: The list of the uplinks on this vSphere distributed switch, as per the
   [`uplinks`][distributed-virtual-switch-uplinks] argument to the
   [`vsphere_distributed_virtual_switch`][distributed-virtual-switch-resource]
   resource.
