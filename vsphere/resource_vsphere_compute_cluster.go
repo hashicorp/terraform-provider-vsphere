@@ -204,6 +204,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 			"drs_scale_descendants_shares": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Default:      string(types.ResourceConfigSpecScaleSharesBehaviorDisabled),
 				Description:  "Enable scalable shares for all descendants of this cluster.",
 				ValidateFunc: validation.StringInSlice(drsScaleDescendantsSharesAllowedValues, false),
 			},
