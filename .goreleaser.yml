@@ -35,16 +35,15 @@ checksum:
 publishers:
   - name: upload
     checksum: true
-    # Commenting this out since these are not supported for launch
-    # extra_files:
-    #   - glob: 'terraform-registry-manifest.json'
-    #     name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
+    extra_files:
+      - glob: 'terraform-registry-manifest.json'
+        name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
     signature: true
     env:
       - HC_RELEASES_HOST={{ .Env.HC_RELEASES_HOST }}
       - HC_RELEASES_KEY={{ .Env.HC_RELEASES_KEY }}
     cmd: |
-      hc-releases upload -product {{ .ProjectName }} -version {{ .Version }} -file={{ .ArtifactPath }}
+      hc-releases upload -product {{ .ProjectName }} -version {{ .Version }} -file={{ .ArtifactPath }}-={{ .ArtifactName }}
 release:
   extra_files:
     - glob: 'terraform-registry-manifest.json'
