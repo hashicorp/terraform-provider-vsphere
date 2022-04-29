@@ -172,6 +172,7 @@ func resourceVSphereResourcePoolCreate(d *schema.ResourceData, meta interface{})
 func resourceVSphereResourcePoolRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] %s: Beginning read", resourceVSphereResourcePoolIDString(d))
 	client, err := resourceVSphereResourcePoolClient(meta)
+	version := viapi.ParseVersionFromClient(client)
 	if err != nil {
 		return err
 	}
@@ -198,7 +199,7 @@ func resourceVSphereResourcePoolRead(d *schema.ResourceData, meta interface{}) e
 	if err = d.Set("parent_resource_pool_id", rpProps.Parent.Value); err != nil {
 		return err
 	}
-	err = flattenResourcePoolConfigSpec(d, rpProps.Config)
+	err = flattenResourcePoolConfigSpec(d, rpProps.Config, version)
 	if err != nil {
 		return err
 	}
@@ -270,7 +271,12 @@ func resourceVSphereResourcePoolIDString(d structure.ResourceIDStringer) string 
 	return structure.ResourceIDString(d, resourceVSphereResourcePoolName)
 }
 
-func flattenResourcePoolConfigSpec(d *schema.ResourceData, obj types.ResourceConfigSpec) error {
+func flattenResourcePoolConfigSpec(d *schema.ResourceData, obj types.ResourceConfigSpec, version viapi.VSphereVersion) error {
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0}) {
+		d.Set("scale_descendants_shares", obj.ScaleDescendantsShares)
+	} else {
+		d.Set("scale_descendants_shares", string(types.ResourceConfigSpecScaleSharesBehaviorDisabled))
+	}
 	err := flattenResourcePoolMemoryAllocation(d, obj.MemoryAllocation)
 	if err != nil {
 		return err

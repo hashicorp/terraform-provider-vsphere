@@ -31,9 +31,10 @@ func TestAccResourceVSphereResourcePool_basic(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      "vsphere_resource_pool.resource_pool",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "vsphere_resource_pool.resource_pool",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					rp, err := testGetResourcePool(s, "resource_pool")
 					if err != nil {
@@ -58,6 +59,7 @@ func TestAccResourceVSphereResourcePool_basic(t *testing.T) {
 					testAccResourceVSphereResourcePoolCheckCPULimit(20),
 					testAccResourceVSphereResourcePoolCheckMemoryShareLevel("custom"),
 					testAccResourceVSphereResourcePoolCheckMemoryShares(10),
+					resource.TestCheckResourceAttr("vsphere_resource_pool.resource_pool", "scale_descendants_shares", "scaleCpuAndMemoryShares"),
 				),
 			},
 		},
@@ -463,6 +465,7 @@ resource "vsphere_resource_pool" "resource_pool" {
   memory_reservation      = 10
   memory_expandable       = false
   memory_limit            = 20
+  scale_descendants_shares = "scaleCpuAndMemoryShares"
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
