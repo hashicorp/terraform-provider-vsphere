@@ -1451,7 +1451,7 @@ func flattenClusterConfigSpecEx(d *schema.ResourceData, obj *types.ClusterConfig
 	if err := flattenClusterDpmConfigInfo(d, obj.DpmConfigInfo); err != nil {
 		return err
 	}
-	if err := flattenClusterDrsConfigInfo(d, obj.DrsConfig); err != nil {
+	if err := flattenClusterDrsConfigInfo(d, obj.DrsConfig, version); err != nil {
 		return err
 	}
 	_ = d.Set("vsan_enabled", obj.VsanConfigInfo.Enabled)
@@ -1914,7 +1914,7 @@ func expandClusterDrsConfigInfo(d *schema.ResourceData, version viapi.VSphereVer
 
 // flattenClusterDrsConfigInfo saves a ClusterDrsConfigInfo into the supplied
 // ResourceData.
-func flattenClusterDrsConfigInfo(d *schema.ResourceData, obj types.ClusterDrsConfigInfo) error {
+func flattenClusterDrsConfigInfo(d *schema.ResourceData, obj types.ClusterDrsConfigInfo, version viapi.VSphereVersion) error {
 	err := structure.SetBatch(d, map[string]interface{}{
 		"drs_automation_level":    obj.DefaultVmBehavior,
 		"drs_enabled":             obj.Enabled,
@@ -1923,6 +1923,12 @@ func flattenClusterDrsConfigInfo(d *schema.ResourceData, obj types.ClusterDrsCon
 	})
 	if err != nil {
 		return err
+	}
+
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0}) {
+		d.Set("drs_scale_descendants_shares", obj.ScaleDescendantsShares)
+	} else {
+		d.Set("drs_scale_descendants_shares", string(types.ResourceConfigSpecScaleSharesBehaviorDisabled))
 	}
 
 	return flattenResourceVSphereComputeClusterDrsAdvancedOptions(d, obj.Option)
