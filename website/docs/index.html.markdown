@@ -133,7 +133,7 @@ will no longer need them.
 * `persist_session` - (Optional) Persist the SOAP and REST client sessions to
   disk. Default: `false`. Can also be specified by the
   `VSPHERE_PERSIST_SESSION` environment variable.
-* `vim_session_path` - (Optional) The direcotry to save the VIM SOAP API
+* `vim_session_path` - (Optional) The directory to save the VIM SOAP API
   session to. Default: `${HOME}/.govmomi/sessions`. Can also be specified by
   the `VSPHERE_VIM_SESSION_PATH` environment variable.
 * `rest_session_path` - The directory to save the REST API session to. 
