@@ -43,12 +43,15 @@ func dataSourceVSphereComputeClusterHostGroupRead(d *schema.ResourceData, meta i
 		return fmt.Errorf("cannot read cluster properties: %s", err)
 	}
 
-	hostSystemIDs := make([]string, 0)
-	for _, host := range props.Host {
-		hostSystemIDs = append(hostSystemIDs, host.Reference().Value)
+	hostSystemIDs := make([]string, len(props.Host))
+	for i, host := range props.Host {
+		hostSystemIDs[i] = host.Reference().Value
 	}
 
 	d.SetId(name)
-	_ = d.Set("host_system_ids", hostSystemIDs)
+	if err := d.Set("host_system_ids", hostSystemIDs); err != nil {
+		return fmt.Errorf("cannot set host_system_ids: %s", err)
+	}
+
 	return nil
 }
