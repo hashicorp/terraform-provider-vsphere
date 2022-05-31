@@ -135,6 +135,7 @@ func Provider() *schema.Provider {
 			"vsphere_virtual_machine_snapshot":                resourceVSphereVirtualMachineSnapshot(),
 			"vsphere_host":                                    resourceVsphereHost(),
 			"vsphere_vnic":                                    resourceVsphereNic(),
+			"vsphere_migrated_vnic":                           resourceVsphereMigratedNic(),
 			"vsphere_vm_storage_policy":                       resourceVMStoragePolicy(),
 			"vsphere_role":                                    resourceVsphereRole(),
 			"vsphere_entity_permissions":                      resourceVsphereEntityPermissions(),
