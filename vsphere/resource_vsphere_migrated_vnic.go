@@ -26,10 +26,10 @@ func resourceVsphereMigratedNic() *schema.Resource {
 
 func vMigratedNicSchema() map[string]*schema.Schema {
 	base := BaseVMKernelSchema()
-	base["host"] = &schema.Schema{
+	base["vnic_id"] = &schema.Schema{
 		Type:        schema.TypeString,
 		Required:    true,
-		Description: "ESX host the interface belongs to",
+		Description: "Resource ID of vnic o migrate",
 		ForceNew:    true,
 	}
 
@@ -353,6 +353,7 @@ func getMigratedNicSpecFromSchema(d *schema.ResourceData) (*types.HostVirtualNic
 }
 
 func splitHostIDMigratedNicID(d *schema.ResourceData) (string, string) {
-	idParts := strings.Split(d.Id(), "_")
+	id := d.Get("vnic_id").(string)
+	idParts := strings.Split(id, "_")
 	return idParts[0], idParts[1]
 }
