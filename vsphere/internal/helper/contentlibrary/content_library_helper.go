@@ -191,12 +191,17 @@ func CreateLibraryItem(c *rest.Client, l *library.Library, name string, desc str
 
 	isOva := false
 	isLocal := true
+  isIso := false
 
 	if strings.HasPrefix(file, "http") {
 		isLocal = false
 	}
 	if strings.HasSuffix(file, ".ova") {
 		isOva = true
+	}
+  if strings.HasSuffix(file, ".iso") {
+		isIso = true
+    isOva = false
 	}
 
 	ovfDescriptor, err := ovfdeploy.GetOvfDescriptor(file, isOva, isLocal, true)
@@ -207,8 +212,10 @@ func CreateLibraryItem(c *rest.Client, l *library.Library, name string, desc str
 	switch {
 	case isLocal && isOva:
 		return &id, uploadSession.deployLocalOva(file, ovfDescriptor)
-	case isLocal && !isOva:
+	case isLocal && !isOva && !isIso:
 		return &id, uploadSession.deployLocalOvf(file, ovfDescriptor)
+  case isLocal && isIso:
+    return &id, uploadSession.deployLocalIso(file)
 	case !isLocal && isOva:
 		return &id, uploadSession.deployRemoteOva(file, ovfDescriptor)
 	case !isLocal && !isOva:
@@ -272,6 +279,13 @@ func (uploadSession *libraryUploadSession) deployLocalOva(file string, ovfDescri
 		return err
 	}
 	return uploadSession.uploadOvaDisksFromLocal(file, e)
+}
+
+func (uploadSession *libraryUploadSession) deployLocalIso(file string) error {
+	if err := uploadSession.uploadLocalFile(file); err != nil {
+		return err
+	}
+	return nil
 }
 
 type libraryUploadSession struct {
