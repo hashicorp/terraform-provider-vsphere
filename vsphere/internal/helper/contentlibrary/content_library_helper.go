@@ -201,7 +201,6 @@ func CreateLibraryItem(c *rest.Client, l *library.Library, name string, desc str
 	}
 	if strings.HasSuffix(file, ".iso") {
 		isIso = true
-		isOva = false
 	}
 
 	ovfDescriptor, err := ovfdeploy.GetOvfDescriptor(file, isOva, isLocal, true)
