@@ -121,6 +121,7 @@ func Provider() *schema.Provider {
 			"vsphere_ha_vm_override":                          resourceVSphereHAVMOverride(),
 			"vsphere_host_port_group":                         resourceVSphereHostPortGroup(),
 			"vsphere_host_virtual_switch":                     resourceVSphereHostVirtualSwitch(),
+			"vsphere_remove_host_virtual_switch":              resourceVSphereRemoveHostVirtualSwitch(),
 			"vsphere_license":                                 resourceVSphereLicense(),
 			"vsphere_resource_pool":                           resourceVSphereResourcePool(),
 			"vsphere_tag":                                     resourceVSphereTag(),
