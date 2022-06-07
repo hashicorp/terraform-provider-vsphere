@@ -13,6 +13,7 @@ FEATURES:
 * `datasource/virtual_machine`: support lookup by `uuid`. ([#1650](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1650))
 * `resource/compute_cluster`: Adds support for scalable shares. ([#1634](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1634))
 * `resource/resource_pool`: Adds support for scalable shares. ([#1634](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1634))
+* `datasource/compute_cluster_host_group`: New data source can be used to read general attributes of a host group. ([#1636](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1636))
 
 IMPROVEMENTS:
 * `resource/vsphere_resource_pool`: Documentation updates. ([#1620](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1620))
