@@ -77,7 +77,7 @@ The following arguments are supported:
 * `force` - (Optional) If set to `true` then it will force the host to be added,
   even if the host is already connected to a different vCenter Server instance.
   Default is `false`.
-* `connected` - (Optional) If set to false then the host will be disconected.
+* `connected` - (Optional) If set to false then the host will be disconnected.
   Default is `false`.
 * `maintenance` - (Optional) Set the management state of the host.
   Default is `false`.
