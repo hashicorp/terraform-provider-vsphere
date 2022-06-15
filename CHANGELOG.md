@@ -20,7 +20,8 @@ IMPROVEMENTS:
 * `resource/virtual_machine`: Documentation updates. ([#1630](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1630))
 * `resource/virtual_machine`: Add `tools_upgrade_policy` to list of params that trigger a reboot ([#1644](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1644))
 * `resource/datastore_cluster`: Documentation updates. ([#1670](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1670))
-* `provider`: Documentation updates. ([#1672](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1672))
+* `provider`: Index page documentation updates. ([#1672](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1672))
+* `resource/host_port_group`: Documentation updates. [#1671](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1671))
 
 ## 2.1.1 (March 08, 2022)
 
