@@ -38,7 +38,8 @@ func TestAccResourceVSphereHost_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testaccvspherehostconfigImport(),
+				ResourceName: "vsphere_host.h1",
+				Config:       testaccvspherehostconfigImport(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereHostExists("vsphere_host.h1"),
 				),
