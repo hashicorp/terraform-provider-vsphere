@@ -24,6 +24,7 @@ IMPROVEMENTS:
 * `provider`: Index page documentation updates. ([#1672](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1672))
 * `resource/host_port_group`: Documentation updates. ([#1671](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1671))
 * `provider`: Update go to 1.18 and remove vendoring. ([#1676](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1676))
+* `provider`: Update Terraform Plugin SDK to 2.17.0. ([#1677](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1677))
 
 ## 2.1.1 (March 08, 2022)
 
