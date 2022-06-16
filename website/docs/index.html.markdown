@@ -192,7 +192,7 @@ user account used for Terraform has the privledge to be able to read event data.
 The provider implementation requires the ability to read storage profiles
 from vSphere for some resource and data source operations. Ensure that the
 user account used for Terraform is provided the Profile-driven Storage > View
-(`StorageProfile.View`) privledge to be able to read the available storage
+(`StorageProfile.View`) privilege to be able to read the available storage
 policies.
 
 ### Virtual Machine
