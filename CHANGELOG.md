@@ -1,4 +1,4 @@
-## 2.2.0 (Unreleased)
+## 2.2.0 (June 16, 2022)
 
 BUG FIXES:
 * `resource/virtual_machine`: Fixes ability to clone and import virtual machine resources with SATA and IDE controllers. ([#1629](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1629))
