@@ -193,7 +193,8 @@ resource "local_file" "devrc" {
     esxi_host_1 = metal_device.esxi1.network.0.address
     esxi_host_2 = metal_device.esxi2.network.0.address
     vsphere_host = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}",3)
-
+    vmfs_disk_0 = ""
+    vmfs_disk_1 = ""
   })
   filename = "./devrc"
 }
