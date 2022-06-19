@@ -1,4 +1,5 @@
 ---
+subcategory: "Host and Cluster Management"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_compute_cluster_host_group"
 sidebar_current: "docs-vsphere-data-source-compute-cluster-host-group"

@@ -4,7 +4,7 @@ layout: "vsphere"
 page_title: "VMware vSphere: vsphere_ovf_vm_template"
 sidebar_current: "docs-vsphere-data-source-ovf-vm-template"
 description: |-
-A data source that can be used to extract the configuration of an OVF template.
+  A data source that can be used to extract the configuration of an OVF template.
 ---
 
 # vsphere\_ovf\_vm\_template
