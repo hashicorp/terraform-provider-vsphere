@@ -96,6 +96,12 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_API_TIMEOUT", 5),
 				Description: "API timeout in minutes (Default: 5)",
 			},
+			"no_init": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     schema.EnvDefaultFunc("VSPHERE_API_NOINIT", false),
+				Description: "Do not attempt to connect to vsphere (provider will start but actual operations will fail unpredictably)",
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -174,6 +180,11 @@ func Provider() *schema.Provider {
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	timeoutMins := time.Duration(d.Get("api_timeout").(int))
 	defaultAPITimeout = timeoutMins * time.Minute
+
+	noInit := d.Get("no_init").(bool)
+	if noInit {
+		return nil, nil
+	}
 
 	c, err := NewConfig(d)
 	if err != nil {
