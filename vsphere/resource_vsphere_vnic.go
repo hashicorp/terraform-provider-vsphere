@@ -13,6 +13,7 @@ import (
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceVsphereNic() *schema.Resource {
@@ -170,6 +171,7 @@ func resourceVSphereNicImport(d *schema.ResourceData, _ interface{}) ([]*schema.
 // BaseVMKernelSchema returns the schema required to represent a vNIC adapter on an ESX Host.
 // We make this public so we can pull this from the host resource as well.
 func BaseVMKernelSchema() map[string]*schema.Schema {
+	serviceAllowedValues := []string{"defaultTcpipStack", "vmotion", "provisioning", "faultToleranceLogging"}
 	sch := map[string]*schema.Schema{
 		"portgroup": {
 			Type:        schema.TypeString,
@@ -268,6 +270,13 @@ func BaseVMKernelSchema() map[string]*schema.Schema {
 			Default:     "defaultTcpipStack",
 			ForceNew:    true,
 		},
+		"service": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "service setting for this interface. Possible values are 'faultToleranceLogging' (default), 'defaultTcpipStack', 'vmotion', 'provisioning'",
+			Default:     "faultToleranceLogging",
+			ValidateFunc: validation.StringInSlice(serviceAllowedValues, false),
+		},
 	}
 	return sch
 }
@@ -315,6 +324,22 @@ func createVNic(d *schema.ResourceData, meta interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	//service for enabling FT
+	service := d.Get("service").(string)
+	hostNic, err := getVnicFromHost(ctx, client, hostID, nicID)
+	if err != nil {
+		return service, err
+	}
+ 	hvm, err := getHostVirtualNicManager(client, hostID)
+	if err != nil {
+		return "", err
+	}
+	err = hvm.SelectVnic(ctx, service, hostNic.Device)
+	if err != nil {
+		return service, err
+	}
+
 	d.SetId(fmt.Sprintf("%s_%s", hostID, nicID))
 	return nicID, nil
 }
@@ -326,6 +351,23 @@ func removeVnic(client *govmomi.Client, hostID, nicID string) error {
 	}
 
 	return hns.RemoveVirtualNic(context.TODO(), nicID)
+}
+
+func getHostVirtualNicManager(client *govmomi.Client, hostID string) (*object.HostVirtualNicManager, error) {
+	ctx := context.TODO()
+
+	host, err := hostsystem.FromID(client, hostID)
+	if err != nil {
+		return nil, err
+	}
+	cmRef := host.ConfigManager().Reference()
+	cm := object.NewHostConfigManager(client.Client, cmRef)
+	hvm, err := cm.VirtualNicManager(ctx)
+	if err != nil {
+		log.Printf("[DEBUG] Failed to access the host's NetworkSystem service: %s", err)
+		return nil, err
+	}
+	return hvm, nil
 }
 
 func getHostNetworkSystem(client *govmomi.Client, hostID string) (*object.HostNetworkSystem, error) {
