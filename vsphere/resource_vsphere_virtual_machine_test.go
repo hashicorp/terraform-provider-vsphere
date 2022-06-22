@@ -4295,7 +4295,7 @@ resource "vsphere_virtual_machine" "vm" {
     datastore_id  = "${data.vsphere_datastore.iso_datastore.id}"
     path          = "${var.iso_path}"
   }
-	cdrom {
+  cdrom {
     client_device = true
   }
 }
