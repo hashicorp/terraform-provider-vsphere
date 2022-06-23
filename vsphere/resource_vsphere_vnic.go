@@ -171,7 +171,7 @@ func resourceVSphereNicImport(d *schema.ResourceData, _ interface{}) ([]*schema.
 // BaseVMKernelSchema returns the schema required to represent a vNIC adapter on an ESX Host.
 // We make this public so we can pull this from the host resource as well.
 func BaseVMKernelSchema() map[string]*schema.Schema {
-	serviceAllowedValues := []string{"defaultTcpipStack", "vmotion", "provisioning", "faultToleranceLogging"}
+	serviceAllowedValues := []string{"defaultTcpipStack", "vmotion", "provisioning", "faultToleranceLogging", "Management"}
 	sch := map[string]*schema.Schema{
 		"portgroup": {
 			Type:        schema.TypeString,
@@ -273,7 +273,7 @@ func BaseVMKernelSchema() map[string]*schema.Schema {
 		"service": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "service setting for this interface. Possible values are 'faultToleranceLogging' (default), 'defaultTcpipStack', 'vmotion', 'provisioning'",
+			Description: "service setting for this interface. Possible values are 'faultToleranceLogging' (default), 'defaultTcpipStack', 'vmotion', 'provisioning', 'Management'",
 			Default:     "faultToleranceLogging",
 			ValidateFunc: validation.StringInSlice(serviceAllowedValues, false),
 		},
