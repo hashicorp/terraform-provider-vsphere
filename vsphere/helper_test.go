@@ -38,6 +38,10 @@ import (
 	"github.com/vmware/govmomi/vapi/tags"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/govmomi/vsan"
+	vsantypes "github.com/vmware/govmomi/vsan/types"
+
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/vsanclient"
 )
 
 // testAccResourceVSphereEmpty provides an empty provider config to pass some
@@ -54,6 +58,9 @@ type testCheckVariables struct {
 
 	// REST client
 	restClient *rest.Client
+
+	// vsan Client
+	vsanClient *vsan.Client
 
 	// The client for tagging operations.
 	tagsManager *tags.Manager
@@ -87,6 +94,7 @@ func testClientVariablesForResource(s *terraform.State, addr string) (testCheckV
 	return testCheckVariables{
 		client:             testAccProvider.Meta().(*Client).vimClient,
 		restClient:         testAccProvider.Meta().(*Client).restClient,
+		vsanClient:         testAccProvider.Meta().(*Client).vsanClient,
 		tagsManager:        tm,
 		resourceID:         rs.Primary.ID,
 		resourceAttributes: rs.Primary.Attributes,
@@ -839,6 +847,19 @@ func testGetComputeCluster(s *terraform.State, resourceName string, resourceType
 	return clustercomputeresource.FromID(vars.client, vars.resourceID)
 }
 
+//get cluster and vsanclient
+func testGetVsanClientCluster(s *terraform.State, resourceName string, resourceType string) (*object.ClusterComputeResource, *vsan.Client, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceType, resourceName))
+	if err != nil {
+		return nil, nil, err
+	}
+	cluster, err := clustercomputeresource.FromID(vars.client, vars.resourceID)
+	if err != nil {
+		return nil, nil, err
+	}
+	return cluster, vars.vsanClient, err
+}
+
 // testGetComputeClusterFromDataSource is a convenience method to fetch a
 // compute cluster via the data in a vsphere_compute_cluster data source.
 func testGetComputeClusterFromDataSource(s *terraform.State, resourceName string) (*object.ClusterComputeResource, error) {
@@ -858,6 +879,19 @@ func testGetComputeClusterProperties(s *terraform.State, resourceName string) (*
 		return nil, err
 	}
 	return clustercomputeresource.Properties(cluster)
+}
+
+// get vsanconfig from vsanclient
+func testGetComputeClusterVsanProperties(s *terraform.State, resourceName string) (*vsantypes.VsanConfigInfoEx, error) {
+	cluster, client, err := testGetVsanClientCluster(s, resourceName, resourceVSphereComputeClusterName)
+	if err != nil {
+		return nil, err
+	}
+	vsanConfig, err := vsanclient.GetVsanConfig(client, cluster.Reference())
+	if err != nil {
+		return nil, err
+	}
+	return vsanConfig, err
 }
 
 // testGetComputeClusterDRSVMConfig is a convenience method to fetch a VM's DRS

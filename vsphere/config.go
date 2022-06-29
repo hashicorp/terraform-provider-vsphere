@@ -27,6 +27,7 @@ import (
 	"github.com/vmware/govmomi/vim25/debug"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/govmomi/vsan"
 )
 
 // Client is the client connection manager for the vSphere provider. It
@@ -39,6 +40,9 @@ type Client struct {
 
 	// The policy based management client
 	pbmClient *pbm.Client
+
+	// The vSAN client
+	vsanClient *vsan.Client
 
 	// The REST client used for tags and content library.
 	restClient *rest.Client
@@ -195,6 +199,16 @@ func (c *Config) Client() (*Client, error) {
 		client.pbmClient = pc
 	} else {
 		log.Printf("[DEBUG] Connected endpoint does not support policy based management")
+	}
+
+	if isEligibleVSANEndpoint(client.vimClient) {
+		vc, err := vsan.NewClient(ctx, client.vimClient.Client)
+		if err != nil {
+			return nil, err
+		}
+		client.vsanClient = vc
+	} else {
+		log.Printf("[DEBUG] Connected endpoint does not support vSAN service")
 	}
 
 	// Done, save sessions if we need to and return
