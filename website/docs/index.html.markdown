@@ -185,7 +185,7 @@ access to read tags.
 
 The provider will attempt to read event data from vSphere to check for certain
 events, such as, virtual machine customization or power events. Ensure that the
-user account used for Terraform has the privledge to be able to read event data.
+user account used for Terraform has the privilege to be able to read event data.
 
 ### Storage
 
@@ -200,7 +200,7 @@ policies.
 The provider implementation requires the ability to set a default swap
 placement policy on a virtual machine resource. Ensure that the user account
 used for Terraform is provided the Virtual Machine > Change Configuration >
-Change Swapfile Placement (`VirtualMachine.Config.SwapPlacement`) privledge.
+Change Swapfile Placement (`VirtualMachine.Config.SwapPlacement`) privilege.
 
 ## Use of Managed Object References by the Provider
 
