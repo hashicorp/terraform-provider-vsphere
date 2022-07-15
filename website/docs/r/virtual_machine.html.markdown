@@ -616,6 +616,8 @@ The following options are general virtual machine and provider workflow options:
 
 * `clone` - (Optional) When specified, the virtual machine will be created as a clone of a specified template. Optional customization options can be submitted for the resource. See [creating a virtual machine from a template](#creating-a-virtual-machine-from-a-template) for more information.
 
+* `extra_config_reboot_required` - (Optional) Allow the virtual machine to be rebooted when a change to `extra_config` occurs. Default: `true`.
+
 * `custom_attributes` - (Optional) Map of custom attribute ids to attribute value strings to set for virtual machine. Please refer to the [`vsphere_custom_attributes`][docs-setting-custom-attributes] resource for more information on setting custom attributes.
 
 [docs-setting-custom-attributes]: /docs/providers/vsphere/r/custom_attribute.html#using-custom-attributes-in-a-supported-resource
