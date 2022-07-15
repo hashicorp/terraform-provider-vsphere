@@ -1,10 +1,15 @@
+## 2.3.0 (Unreleased)
+
+IMPROVEMENTS:
+* `resource/vsphere_host`: Documentation updates. ([#1675](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1675))
+
 ## 2.2.0 (June 16, 2022)
 
 BUG FIXES:
 * `resource/virtual_machine`: Fixes ability to clone and import virtual machine resources with SATA and IDE controllers. ([#1629](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1629))
 * `resource/dvs`: Prevent setting unsupported traffic classes. ([#1633](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1633))
 * `resource/virtual_machine`: Fixes provider panic when a non supported PCI device is added outside Terraform to a virtual machine. ([#1627](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1627))
-* `resource/datacenter`: Updates resourceVSphereDatacenterImport to include the datacenter folder in which the datacenter object may exist. ([#1607](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1607))
+* `resource/datacenter`: Updates `resourceVSphereDatacenterImport` to include the datacenter folder in which the datacenter object may exist. ([#1607](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1607))
 * `resource/virtual_machine` - Fix issue where PCI passthrough devices not applied during initial cloning. ([#1625](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1625))
 * `helper/content_library`: Fix content library item local iso upload ([#1665](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1665))
 
