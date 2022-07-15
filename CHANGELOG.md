@@ -1,5 +1,8 @@
 ## 2.3.0 (Unreleased)
 
+FEATURES:
+* `resource/virtual_machine`: Added support for an optional `extra_config_reboot_required` argument to `r/virtual_machine`. This argument allows you to configure if a virtual machine reboot is enforced when `extra_config` is changed. ([#1603](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1603))
+
 IMPROVEMENTS:
 * `resource/vsphere_host`: Documentation updates. ([#1675](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1675))
 
