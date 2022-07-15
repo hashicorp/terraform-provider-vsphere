@@ -88,7 +88,7 @@ func NetworkInterfaceSubresourceSchema() map[string]*schema.Schema {
 			Type:         schema.TypeString,
 			Optional:     true,
 			Default:      networkInterfaceSubresourceTypeVmxnet3,
-			Description:  "The controller type. Can be one of e1000, e1000e, vmxnet3 or vrdma.",
+			Description:  "The controller type. Can be one of e1000, e1000e, vmxnet3, or vrdma.",
 			ValidateFunc: validation.StringInSlice(networkInterfaceSubresourceTypeAllowedValues, false),
 		},
 		"use_static_mac": {
