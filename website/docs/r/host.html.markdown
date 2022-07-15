@@ -22,11 +22,17 @@ data "vsphere_datacenter" "datacenter" {
   name = "dc-01"
 }
 
+data "vsphere_host_thumbprint" "thumbprint" {
+  address = "esx-01.example.com"
+  insecure = true
+}
+
 resource "vsphere_host" "esx-01" {
   hostname = "esx-01.example.com"
   username   = "root"
   password   = "password"
   license    = "00000-00000-00000-00000-00000"
+  thumbprint = data.vsphere_host_thumbprint.thumbprint.id
   datacenter = data.vsphere_datacenter.datacenter.id
 }
 ```
@@ -43,11 +49,17 @@ data "vsphere_compute_cluster" "cluster" {
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
+data "vsphere_host_thumbprint" "thumbprint" {
+  address = "esx-01.example.com"
+  insecure = true
+}
+
 resource "vsphere_host" "esx-01" {
   hostname = "esx-01.example.com"
   username = "root"
   password = "password"
   license  = "00000-00000-00000-00000-00000"
+  thumbprint = data.vsphere_host_thumbprint.thumbprint.id
   cluster  = data.vsphere_compute_cluster.cluster.id
 }
 ```
@@ -71,13 +83,14 @@ The following arguments are supported:
   than the`host` resource. Conflicts with: `cluster`.
 * `thumbprint` - (Optional) Host's certificate SHA-1 thumbprint. If not set the
   CA that signed the host's certificate should be trusted. If the CA is not
-  trusted and no thumbprint is set then the operation will fail.
+  trusted and no thumbprint is set then the operation will fail. See data source
+  [`vsphere_host_thumbprint`][docs-host-thumbprint-data-source].
 * `license` - (Optional) The license key that will be applied to the host.
   The license key is expected to be present in vSphere.
 * `force` - (Optional) If set to `true` then it will force the host to be added,
   even if the host is already connected to a different vCenter Server instance.
   Default is `false`.
-* `connected` - (Optional) If set to false then the host will be disconected.
+* `connected` - (Optional) If set to false then the host will be disconnected.
   Default is `false`.
 * `maintenance` - (Optional) Set the management state of the host.
   Default is `false`.
@@ -97,6 +110,8 @@ connections and require vCenter Server.
 
 ~> **NOTE:** Custom attributes are not supported on direct ESXi host
 connections and require vCenter Server.
+
+[docs-host-thumbprint-data-source]: /docs/providers/vsphere/d/host_thumbprint.html
 
 ## Attribute Reference
 
