@@ -462,7 +462,9 @@ details, see the referenced link in the above paragraph.
 ## Cluster vSAN settings
 
 * `vsan_enabled` - (Optional) Enables vSAN on the cluster.
-* `vsan_dedup_enabled` - (Optional) Enables vSAN deduplication on the cluster. Cannot be set as true only. When vSAN deduplication is enabled, vSAN compression will be enabled automatically.
+* `vsan_dedup_enabled` - (Optional) Enables vSAN deduplication on the cluster. 
+  Cannot be independently set to true. When vSAN deduplication is enabled, vSAN
+  compression is automatically enabled.
 * `vsan_compression_enabled` - (Optional) Enables vSAN compression on the cluster.
 * `vsan_disk_group` - (Optional) Represents the configuration of a host disk
   group in the cluster.
