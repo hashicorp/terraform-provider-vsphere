@@ -29,7 +29,7 @@ func resourceVSphereHostVirtualSwitch() *schema.Resource {
 	// Transform any necessary fields in the schema that need to be updated
 	// specifically for this resource.
 	s["active_nics"].Required = true
-	s["standby_nics"].Required = true
+	s["standby_nics"].Optional = true
 
 	s["teaming_policy"].Default = hostNetworkPolicyNicTeamingPolicyModeLoadbalanceSrcID
 	s["check_beacon"].Default = false
