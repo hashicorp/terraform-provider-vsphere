@@ -301,7 +301,7 @@ func resourceVSphereVirtualDiskRead(d *schema.ResourceData, meta interface{}) er
 	}
 	diskType, err := virtualdisk.QueryDiskType(client, dp.String(), dc)
 	if err != nil {
-		log.Printf("[WARN] Failed to query disk type")
+		log.Printf("[WARN] Unable to read diskType, skipping")
 		return nil
 	}
 
