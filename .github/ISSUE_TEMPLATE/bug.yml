@@ -72,8 +72,9 @@ body:
     attributes:
       label: Terraform Configuration
       description: |
-        - Please provide a code repository, [GitHub Gist](https://gist.github.com/), or code snippet.
+        - Please provide a code repository, [GitHub Gist](https://gist.github.com/), or simplified code sample suitable for issue reproduction.
         - Please ensure all secrets and identifiable information is removed.
+        - Please format any code in code blocks using the markdown editor.
 
         Learn more about [Code Formatting](https://help.github.com/articles/basic-writing-and-formatting-syntax/#quoting-code).
       placeholder: |
@@ -87,7 +88,7 @@ body:
       description: |
         Please provide a link to a [GitHub Gist](https://gist.github.com/) containing the complete debug output.
       placeholder: |
-        Please do not paste the debug output in the issue.
+        Link to a GitHub Gist. Please do not paste the debug output in the issue.
     validations:
       required: true
   - type: textarea
@@ -97,7 +98,7 @@ body:
       description: |
         If Terraform produced a panic, please provide a link to a [GitHub Gist](https://gist.github.com/) containing the output of the `crash.log`
       placeholder: |
-        Please do not paste the panic output in the issue.
+        Link to a GitHub Gist. Please do not paste the panic output in the issue.
     validations:
       required: false
   - type: textarea
