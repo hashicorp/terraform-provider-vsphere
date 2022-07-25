@@ -28,7 +28,7 @@ body:
     attributes:
       label: Terraform
       description: Please provide the Terraform version.
-      placeholder: e.g. v1.1.5
+      placeholder: e.g. v1.2.5
     validations:
       required: true
   - type: input
@@ -38,7 +38,7 @@ body:
       description: |
         Please provide the Terraform provider for VMware vSphere version.
         We recommend testing with [the latest version of the provider](https://github.com/hashicorp/terraform-provider-vsphere/releases/latest).
-      placeholder: e.g. v2.0.2
+      placeholder: e.g. v2.2.0
     validations:
        required: true
   - type: input
@@ -59,9 +59,9 @@ body:
     validations:
       required: true
   - type: textarea
-    id: affected-resources
+    id: affected-resources-datasources
     attributes:
-      label: Affected Resources
+      label: Affected Resources or Data Sources
       description: Please provide the affected resources or data sources as a list.
       placeholder: |
         e.g. `resource/vsphere_distributed_virtual_switch`
@@ -72,14 +72,15 @@ body:
     attributes:
       label: Terraform Configuration
       description: |
-        - Please provide a code repository, [GitHub Gist](https://gist.github.com/), or code snippet.
+        - Please provide a code repository, [GitHub Gist](https://gist.github.com/), or simplified code sample suitable for issue reproduction.
         - Please ensure all secrets and identifiable information is removed.
+        - Please format any code in code blocks using the markdown editor.
 
         Learn more about [Code Formatting](https://help.github.com/articles/basic-writing-and-formatting-syntax/#quoting-code).
       placeholder: |
         Please format any code in code blocks using the markdown editor.
     validations:
-      required: false
+      required: true
   - type: textarea
     id: debug
     attributes:
@@ -87,9 +88,9 @@ body:
       description: |
         Please provide a link to a [GitHub Gist](https://gist.github.com/) containing the complete debug output.
       placeholder: |
-        Please do not paste the debug output in the issue.
+        Link to a GitHub Gist. Please do not paste the debug output in the issue.
     validations:
-      required: false
+      required: true
   - type: textarea
     id: panic
     attributes:
@@ -97,7 +98,7 @@ body:
       description: |
         If Terraform produced a panic, please provide a link to a [GitHub Gist](https://gist.github.com/) containing the output of the `crash.log`
       placeholder: |
-        Please do not paste the panic output in the issue.
+        Link to a GitHub Gist. Please do not paste the panic output in the issue.
     validations:
       required: false
   - type: textarea
@@ -122,7 +123,7 @@ body:
       label: Steps to Reproduce
       description: Please provide the steps to reproduce the issue.
     validations:
-      required: false
+      required: true
   - type: textarea
     id: environment
     attributes:
