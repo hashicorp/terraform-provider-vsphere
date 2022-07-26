@@ -826,15 +826,15 @@ func MoveToFolder(client *govmomi.Client, vm *object.VirtualMachine, relative st
 
 // Reconfigure wraps the Reconfigure task and the subsequent waiting for
 // the task to complete.
-func Reconfigure(vm *object.VirtualMachine, spec types.VirtualMachineConfigSpec) error {
+func Reconfigure(vm *object.VirtualMachine, spec types.VirtualMachineConfigSpec, timeout time.Duration) error {
 	log.Printf("[DEBUG] Reconfiguring virtual machine %q", vm.InventoryPath)
-	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	task, err := vm.Reconfigure(ctx, spec)
 	if err != nil {
 		return err
 	}
-	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	tctx, tcancel := context.WithTimeout(context.Background(), timeout)
 	defer tcancel()
 	return task.Wait(tctx)
 }
