@@ -794,14 +794,13 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 			}
 		}
 
-		// Finally, we don't support non-SCSI (ie: SATA, IDE, NVMe) disks, so kick
-		// back an error if we see one of those.
+		// The provider does not support all controllers, return an error if unsupported.
 		ct, _, _, err := splitDevAddr(r.DevAddr())
 		if err != nil {
 			return fmt.Errorf("%s: error parsing device address after reading disk %q: %s", tr.Addr(), targetPath, err)
 		}
-		if ct != SubresourceControllerTypeSCSI {
-			return fmt.Errorf("%s: unsupported controller type %s for disk %q. Please use a template with SCSI disks only", tr.Addr(), ct, targetPath)
+		if ct != SubresourceControllerTypeSCSI && ct != SubresourceControllerTypeSATA && ct != SubresourceControllerTypeIDE {
+			return fmt.Errorf("%s: unsupported controller type %s for disk %q", tr.Addr(), ct, targetPath)
 		}
 	}
 	log.Printf("[DEBUG] DiskCloneValidateOperation: All disks in source validated successfully")
@@ -1060,7 +1059,7 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 // DiskImportOperation validates the disk configuration of the virtual
 // machine's VirtualDeviceList to ensure it will be imported properly, and also
 // saves device addresses into state for disks defined in config. Both the
-// imported device list is sorted by the device's unit number on the SCSI bus.
+// imported device list is sorted by the device's unit number on the controller bus.
 func DiskImportOperation(d *schema.ResourceData, l object.VirtualDeviceList) error {
 	log.Printf("[DEBUG] DiskImportOperation: Performing pre-read import and validation of virtual disks")
 	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
@@ -1074,8 +1073,8 @@ func DiskImportOperation(d *schema.ResourceData, l object.VirtualDeviceList) err
 	devices = devSort.Sort
 	log.Printf("[DEBUG] DiskImportOperation: Disk devices order after sort: %s", DeviceListString(devices))
 
-	// Read in the disks. We don't do anything with the results here other than
-	// validate that the disks are SCSI disks. The read operation validates the rest.
+	// Read in the disks and validate.
+	// The provider does not support all controllers, return an error if unsupported.
 	var curSet []interface{}
 	log.Printf("[DEBUG] DiskImportOperation: Validating disk type and saving ")
 	for i, device := range devices {
@@ -1092,8 +1091,8 @@ func DiskImportOperation(d *schema.ResourceData, l object.VirtualDeviceList) err
 		if err != nil {
 			return fmt.Errorf("disk.%d: error parsing device address %s: %s", i, addr, err)
 		}
-		if ct != SubresourceControllerTypeSCSI {
-			return fmt.Errorf("disk.%d: unsupported controller type %s for disk %s. The VM resource supports SCSI disks only", i, ct, addr)
+		if ct != SubresourceControllerTypeSCSI && ct != SubresourceControllerTypeSATA && ct != SubresourceControllerTypeIDE {
+			return fmt.Errorf("disk.%d: unsupported controller type %s for disk %s", i, ct, addr)
 		}
 		// As one final validation, as we are no longer reading here, validate that
 		// this is a VMDK-backed virtual disk to make sure we aren't importing RDM

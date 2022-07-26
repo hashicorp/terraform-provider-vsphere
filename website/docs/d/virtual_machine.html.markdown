@@ -1,4 +1,5 @@
 ---
+subcategory: "Virtual Machine"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_virtual_machine"
 sidebar_current: "docs-vsphere-data-source-virtual-machine"
@@ -54,8 +55,11 @@ data "vsphere_virtual_machine" "development_template" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the virtual machine. This can be a name or
-  the full path relative to the datacenter.
+* `name` - (Optional) The name of the virtual machine. This can be a name or
+  the full path relative to the datacenter. This is required if a UUID lookup
+  is not performed.
+* `uuid` - (Optional) Specify this field for a UUID lookup, `name` and `datacenter_id`
+  are not required if this is specified.
 * `datacenter_id` - (Optional) The [managed object reference
   ID][docs-about-morefs] of the datacenter the virtual machine is located in.
   This can be omitted if the search path used in `name` is an absolute path.

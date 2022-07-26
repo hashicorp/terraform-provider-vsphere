@@ -98,9 +98,9 @@ The following arguments are supported:
 * `cpu_expandable` - (Optional) Determines if the reservation on a resource
   pool can grow beyond the specified value if the parent resource pool has
   unreserved resources. Default: `true`
-* `cpu_limit` - (Optional) The CPU utilization of a resource pool will not exceed
-  this limit, even if there are available resources. Set to `-1` for unlimited.
-  Default: `-1`
+* `cpu_limit` - (Optional) The CPU utilization of a resource pool will not
+  exceed this limit, even if there are available resources. Set to `-1` for
+  unlimited. Default: `-1`
 * `memory_share_level` - (Optional) The CPU allocation level. The level is a
   simplified view of shares. Levels map to a pre-determined set of numeric
   values for shares. Can be one of `low`, `normal`, `high`, or `custom`. When
@@ -114,9 +114,13 @@ The following arguments are supported:
 * `memory_expandable` - (Optional) Determines if the reservation on a resource
   pool can grow beyond the specified value if the parent resource pool has
   unreserved resources. Default: `true`
-* `memory_limit` - (Optional) The CPU utilization of a resource pool will not exceed
-  this limit, even if there are available resources. Set to `-1` for unlimited.
-  Default: `-1`
+* `memory_limit` - (Optional) The CPU utilization of a resource pool will not
+  exceed this limit, even if there are available resources. Set to `-1` for
+  unlimited. Default: `-1`
+* `scale_descendants_shares` - (Optional) Determines if the shares of all
+  descendants of the resource pool are scaled up or down when the shares
+  of the resource pool are scaled up or down. Can be one of `disabled` or
+  `scaleCpuAndMemoryShares`. Default: `disabled`.
 * `tags` - (Optional) The IDs of any tags to attach to this resource. See
   [here][docs-applying-tags] for a reference on how to apply tags.
 
@@ -141,3 +145,9 @@ terraform import vsphere_resource_pool.resource_pool /dc-01/host/cluster-01/Reso
 
 The above would import the resource pool named `resource-pool-01` that is located
 in the compute cluster `cluster-01` in the `dc-01` datacenter.
+
+### Settings that Require vSphere 7.0 or higher
+
+These settings require vSphere 7.0 or higher:
+
+* [`scale_descendants_shares`](#scale_descendants_shares)

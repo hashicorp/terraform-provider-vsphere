@@ -4,18 +4,20 @@ layout: "vsphere"
 page_title: "VMware vSphere: vsphere_license"
 sidebar_current: "docs-vsphere-data-source-admin-license"
 description: |-
-  Provides a VMware vSphere license data source. This can be used to get the general attributes of license keys.
+  Provides a VMware vSphere license data source. This can be used to get the
+  general attributes of license keys.
 ---
 
 # vsphere\_license
 
-The `vsphere_license` data source can be used to get the general attributes of a license keys from a vCenter Server instance.
+The `vsphere_license` data source can be used to get the general attributes of
+a license keys from a vCenter Server instance.
 
 ## Example Usage
 
 ```hcl
 data "vsphere_license" "license" {
-  license_key = "452CQ-2EK54-K8742-00000-00000"
+  license_key = "00000-00000-00000-00000-00000"
 }
 ```
 

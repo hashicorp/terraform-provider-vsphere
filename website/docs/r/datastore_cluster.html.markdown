@@ -170,6 +170,9 @@ ignored on older versions.
   threshold setting to use, `sdrs_io_reservable_percent_threshold` in the event
   of `automatic`, or `sdrs_io_reservable_iops_threshold` in the event of
   `manual`. Default: `automatic`.
+* `sdrs_space_utilization_threshold` - (Optional) Runtime thresholds govern 
+  when Storage DRS performs or recommends migrations 
+  (based on the selected automation level). Default: `80` percent.
 
 ### Storage DRS disk space load balancing settings
 

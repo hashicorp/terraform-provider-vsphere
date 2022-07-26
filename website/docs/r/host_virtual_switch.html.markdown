@@ -130,7 +130,7 @@ probing (configured with [`check_beacon`](#check_beacon)).
 
 * `active_nics` - (Required) The list of active network adapters used for load
   balancing.
-* `standby_nics` - (Required) The list of standby network adapters used for
+* `standby_nics` - (Optional) The list of standby network adapters used for
   failover.
 * `check_beacon` - (Optional) Enable beacon probing - this requires that the
   [`beacon_interval`](#beacon_interval) option has been set in the bridge

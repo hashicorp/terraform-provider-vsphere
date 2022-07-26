@@ -32,8 +32,8 @@ page][ref-vsphere-ha-clusters].
 [ref-vsphere-drs-clusters]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.resmgmt.doc/GUID-8ACF3502-5314-469F-8CC9-4A9BD5925BC2.html
 [ref-vsphere-ha-clusters]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.avail.doc/GUID-5432CA24-14F1-44E3-87FB-61D937831CF6.html
 
-~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
-connections.
+~> **NOTE:** This resource requires vCenter Server and is not available on
+direct ESXi connections.
 
 ~> **NOTE:** vSphere DRS requires a vSphere Enterprise Plus license.
 
@@ -52,31 +52,31 @@ according to the requirements of vSphere HA. For more information, click
 
 ```hcl
 variable "datacenter" {
-  default = "dc1"
+  default = "dc-01"
 }
 
 variable "hosts" {
   default = [
-    "esxi1",
-    "esxi2",
-    "esxi3",
+    "esxi01.example.com",
+    "esxi2.example.com",
+    "esxi3.example.com",
   ]
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
+data "vsphere_datacenter" "datacenter" {
+  name = var.datacenter
 }
 
-data "vsphere_host" "hosts" {
-  count         = "${length(var.hosts)}"
-  name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+data "vsphere_host" "host" {
+  count         = length(var.hosts)
+  name          = var.hosts[count.index]
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
   name            = "terraform-compute-cluster-test"
-  datacenter_id   = "${data.vsphere_datacenter.dc.id}"
-  host_system_ids = ["${data.vsphere_host.hosts.*.id}"]
+  datacenter_id   = data.vsphere_datacenter.datacenter.id
+  host_system_ids = [data.vsphere_host.host.*.id]
 
   drs_enabled          = true
   drs_automation_level = "fullyAutomated"
@@ -104,8 +104,6 @@ The following arguments are supported:
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 [docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
 
-~> **NOTE:** Tagging support requires vCenter 6.0 or higher.
-
 * `custom_attributes` - (Optional) A map of custom attribute ids to attribute
   value strings to set for the datastore cluster. See
   [here][docs-setting-custom-attributes] for a reference on how to set values
@@ -113,10 +111,10 @@ The following arguments are supported:
 
 [docs-setting-custom-attributes]: /docs/providers/vsphere/r/custom_attribute.html#using-custom-attributes-in-a-supported-resource
 
-~> **NOTE:** Custom attributes are unsupported on direct ESXi connections 
-and require vCenter.
+~> **NOTE:** Custom attributes are not supported on direct ESXi host
+connections and requires vCenter Server.
 
-### Host management options
+### Host Management Options
 
 The following settings control cluster membership or tune how hosts are managed
 within the cluster itself by Terraform.
@@ -141,9 +139,9 @@ your DRS and HA settings, the full host evacuation may fail. Instead,
 incrementally remove hosts from your configuration by adjusting the contents of
 the `host_system_ids` attribute.
 
-#### How Terraform removes hosts from clusters
+#### How Terraform Removes ESXi Hosts from Clusters
 
-One can remove hosts from clusters by adjusting the
+You can remove hosts from clusters by adjusting the
 [`host_system_ids`](#host_system_ids) configuration setting and removing the
 hosts in question. Hosts are removed sequentially, by placing them in
 maintenance mode, _moving them_ to the root host folder in vSphere inventory,
@@ -162,7 +160,7 @@ Note that all virtual machines are migrated as part of the maintenance mode
 operation, including ones that are powered off or suspended. Ensure there is
 enough capacity on your remaining hosts to accommodate the extra load.
 
-### DRS automation options
+### DRS Automation Options
 
 The following options control the settings for DRS on the cluster.
 
@@ -177,15 +175,18 @@ The following options control the settings for DRS on the cluster.
 * `drs_enable_vm_overrides` - (Optional) Allow individual DRS overrides to be
   set for virtual machines in the cluster. Default: `true`.
 * `drs_enable_predictive_drs` - (Optional) When `true`, enables DRS to use data
-  from [vRealize Operations Manager][ref-vsphere-vro] to make proactive DRS
+  from [vRealize Operations Manager][ref-vsphere-vrops] to make proactive DRS
   recommendations. <sup>[\*](#vsphere-version-requirements)</sup>
 
-[ref-vsphere-vro]: https://docs.vmware.com/en/vRealize-Operations-Manager/index.html
+[ref-vsphere-vrops]: https://docs.vmware.com/en/vRealize-Operations-Manager/index.html
 
+* `drs_scale_descendants_shares` - (Optional) Enable scalable shares for all
+  resource pools in the cluster. Can be one of `disabled` or
+  `scaleCpuAndMemoryShares`. Default: `disabled`.
 * `drs_advanced_options` - (Optional) A key/value map that specifies advanced
   options for DRS and [DPM](#dpm-options).
 
-#### DPM options
+#### DPM Options
 
 The following settings control the [Distributed Power
 Management][ref-vsphere-dpm] (DPM) settings for the cluster. DPM allows the
@@ -197,7 +198,7 @@ standby when there is excess capacity in the cluster.
 
 * `dpm_enabled` - (Optional) Enable DPM support for DRS in this cluster.
   Requires [`drs_enabled`](#drs_enabled) to be `true` in order to be effective.
-  Default: `false`. 
+  Default: `false`.
 * `dpm_automation_level` - (Optional) The automation level for host power
   operations in this cluster. Can be one of `manual` or `automated`. Default:
   `manual`.
@@ -244,7 +245,7 @@ ensure that any configured settings work correctly. For a full list, see the
 * `ha_advanced_options` - (Optional) A key/value map that specifies advanced
   options for vSphere HA.
 
-#### HA Virtual Machine Component Protection settings
+#### HA Virtual Machine Component Protection Settings
 
 The following settings control Virtual Machine Component Protection (VMCP) in
 vSphere HA. VMCP gives vSphere HA the ability to monitor a host for datastore
@@ -275,11 +276,11 @@ tuning these options.
   middle of an APD event. Can be one of `none` or `reset`. Default: `none`.
   <sup>[\*](#vsphere-version-requirements)</sup>
 * `ha_datastore_apd_response_delay` - (Optional) The time, in seconds,
-  to wait after an APD timeout event to run the response action defined in 
+  to wait after an APD timeout event to run the response action defined in
   [`ha_datastore_apd_response`](#ha_datastore_apd_response). Default: `180`
   seconds (3 minutes). <sup>[\*](#vsphere-version-requirements)</sup>
 
-#### HA virtual machine and application monitoring settings
+#### HA Virtual Machine and Application Monitoring Settings
 
 The following settings illustrate the options that can be set to work with
 virtual machine and application monitoring on vSphere HA.
@@ -288,7 +289,7 @@ virtual machine and application monitoring on vSphere HA.
   when HA is enabled in the cluster. Can be one of `vmMonitoringDisabled`,
   `vmMonitoringOnly`, or `vmAndAppMonitoring`. Default: `vmMonitoringDisabled`.
 * `ha_vm_failure_interval` - (Optional) The time interval, in seconds, a heartbeat
-  from a virtual machine is not received within this configured interval, 
+  from a virtual machine is not received within this configured interval,
   the virtual machine is marked as failed. Default: `30` seconds.
 * `ha_vm_minimum_uptime` - (Optional) The time, in seconds, that HA waits after
   powering on a virtual machine before monitoring for heartbeats. Default:
@@ -301,7 +302,7 @@ virtual machine and application monitoring on vSphere HA.
   configured in `ha_vm_maximum_resets`. `-1` means no window, meaning an
   unlimited reset time is allotted. Default: `-1` (no window).
 
-#### vSphere HA Admission Control settings
+#### vSphere HA Admission Control Settings
 
 The following settings control vSphere HA Admission Control, which controls
 whether or not specific VM operations are permitted in the cluster in order to
@@ -309,7 +310,7 @@ protect the reliability of the cluster. Based on the constraints defined in
 these settings, operations such as power on or migration operations may be
 blocked to ensure that enough capacity remains to react to host failures.
 
-#### Admission control modes
+#### Admission Control Modes
 
 The [`ha_admission_control_policy`](#ha_admission_control_policy) parameter
 controls the specific mode that Admission Control uses. What settings are
@@ -343,7 +344,7 @@ and instability with vSphere HA.
   policy to use with vSphere HA. Can be one of `resourcePercentage`,
   `slotPolicy`, `failoverHosts`, or `disabled`. Default: `resourcePercentage`.
 
-#### Common Admission Control settings
+#### Common Admission Control Settings
 
 The following settings are available for all Admission Control modes, but will
 infer different meanings in each mode.
@@ -358,7 +359,7 @@ infer different meanings in each mode.
   a failover. A value of 0 produces warnings only, whereas a value of 100
   disables the setting. Default: `100` (disabled).
 
-#### Admission Control settings for resource percentage mode
+#### Admission Control Settings for Resource Percentage Mode
 
 The following settings control specific settings for Admission Control when
 `resourcePercentage` is selected in
@@ -378,7 +379,7 @@ The following settings control specific settings for Admission Control when
   user-defined percentage of memory resources in the cluster to reserve for
   failover. Default: `100`.
 
-#### Admission Control settings for slot policy mode
+#### Admission Control Settings for Slot Policy Mode
 
 The following settings control specific settings for Admission Control when
 `slotPolicy` is selected in
@@ -393,7 +394,7 @@ The following settings control specific settings for Admission Control when
 * `ha_admission_control_slot_policy_explicit_memory` - (Optional) Controls the
   user-defined memory slot size, in MB. Default: `100`.
 
-#### Admission Control settings for dedicated failover host mode
+#### Admission Control Settings for Dedicated Failover Hosts Mode
 
 The following settings control specific settings for Admission Control when
 `failoverHosts` is selected in
@@ -405,7 +406,7 @@ The following settings control specific settings for Admission Control when
   block access to the host, and DRS will ignore the host when making
   recommendations.
 
-#### vSphere HA datastore settings
+#### vSphere HA Datastore Settings
 
 vSphere HA uses datastore heartbeating to determine the health of a particular
 host. Depending on how your datastores are configured, the settings below may
@@ -425,7 +426,7 @@ If you require a user-defined list of datastores, ensure you select either
   when [`ha_heartbeat_datastore_policy`](#ha_heartbeat_datastore_policy) is set
   to either `userSelectedDs` or `allFeasibleDsWithUserPreference`.
 
-#### Proactive HA settings
+#### Proactive HA Settings
 
 The following settings pertain to [Proactive HA][ref-vsphere-proactive-ha], an
 advanced feature of vSphere HA that allows the cluster to get data from
@@ -459,11 +460,13 @@ details, see the referenced link in the above paragraph.
   <sup>[\*](#vsphere-version-requirements)</sup>
 
 ## Cluster vSAN settings
+
 * `vsan_enabled` - (Optional) Enables vSAN on the cluster.
 * `vsan_disk_group` - (Optional) Represents the configuration of a host disk
   group in the cluster.
   * `cache` - The canonical name of the disk to use for vSAN cache.
   * `storage` - An array of disk canonical names for vSAN storage.
+
 ```
 resource compute_cluster "compute_cluster" {
 ...
@@ -474,7 +477,6 @@ resource compute_cluster "compute_cluster" {
 ...
 }
 ```
-
 
 ## Attribute Reference
 
@@ -498,49 +500,19 @@ path to the cluster, via the following command:
 [docs-import]: https://www.terraform.io/docs/import/index.html
 
 ```
-terraform import vsphere_compute_cluster.compute_cluster /dc1/host/compute-cluster
+terraform import vsphere_compute_cluster.compute_cluster /dc-01/host/cluster-01
 ```
 
-The above would import the cluster named `compute-cluster` that is located in
-the `dc1` datacenter.
+The above would import the cluster named `cluster-01` that is located in
+the `dc-01` datacenter.
 
 ## vSphere Version Requirements
 
-A large number of settings in the `vsphere_compute_cluster` resource require a
-specific version of vSphere to function. Rather than include warnings at every
-setting or section, these settings are documented below.  Note that this list
-is for cluster-specific attributes only, and does not include the
-[`tags`](#tags) parameter, which requires vSphere 6.0 or higher across all
-resources that can be tagged.
+Some settings in the `vsphere_compute_cluster` resource may require a
+specific version of vSphere.
 
-All settings are footnoted by an asterisk (`*`) in their specific section in
-the documentation, which takes you here.
+### Settings that Require vSphere 7.0 or higher
 
-### Settings that require vSphere version 6.0 or higher
+These settings require vSphere 7.0 or higher:
 
-These settings require vSphere 6.0 or higher:
-
-* [`ha_datastore_apd_recovery_action`](#ha_datastore_apd_recovery_action)
-* [`ha_datastore_apd_response`](#ha_datastore_apd_response)
-* [`ha_datastore_apd_response_delay`](#ha_datastore_apd_response_delay)
-* [`ha_datastore_pdl_response`](#ha_datastore_pdl_response)
-* [`ha_vm_component_protection`](#ha_vm_component_protection)
-
-### Settings that require vSphere version 6.5 or higher
-
-These settings require vSphere 6.5 or higher:
-
-* [`drs_enable_predictive_drs`](#drs_enable_predictive_drs)
-* [`ha_admission_control_host_failure_tolerance`](#ha_admission_control_host_failure_tolerance)
-  (When [`ha_admission_control_policy`](#ha_admission_control_policy) is set to
-  `resourcePercentage` or `slotPolicy`. Permitted in all versions under
-  `failoverHosts`)
-* [`ha_admission_control_resource_percentage_auto_compute`](#ha_admission_control_resource_percentage_auto_compute)
-* [`ha_vm_restart_timeout`](#ha_vm_restart_timeout)
-* [`ha_vm_dependency_restart_condition`](#ha_vm_dependency_restart_condition)
-* [`ha_vm_restart_additional_delay`](#ha_vm_restart_additional_delay)
-* [`proactive_ha_automation_level`](#proactive_ha_automation_level)
-* [`proactive_ha_enabled`](#proactive_ha_enabled)
-* [`proactive_ha_moderate_remediation`](#proactive_ha_moderate_remediation)
-* [`proactive_ha_provider_ids`](#proactive_ha_provider_ids)
-* [`proactive_ha_severe_remediation`](#proactive_ha_severe_remediation)
+* [`drs_scale_descendants_shares`](#drs_scale_descendants_shares)

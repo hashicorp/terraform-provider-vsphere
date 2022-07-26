@@ -1,4 +1,5 @@
 ---
+subcategory: "Storage"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_storage_policy"
 sidebar_current: "docs-vsphere-data-source-storage-policy"
@@ -8,9 +9,12 @@ description: |-
 
 # vsphere\_storage\_policy
 
-The `vsphere_storage_policy` data source can be used to discover the UUID of a storage policy. This can then be used with other resources or data sources that use a storage policy.
+The `vsphere_storage_policy` data source can be used to discover the UUID of a
+storage policy. This can then be used with other resources or data sources that
+use a storage policy.
 
-~> **NOTE:** Storage policies are not supported on direct ESXi hosts and requires vCenter Server.
+~> **NOTE:** Storage policies are not supported on direct ESXi hosts and
+requires vCenter Server.
 
 ## Example Usage
 

@@ -425,7 +425,7 @@ resource "vsphere_tag_category" "testacc-category" {
   cardinality = "MULTIPLE"
 
   associable_types = [
-    "VmwareDistributedVirtualPortgroup",
+    "DistributedVirtualPortgroup",
   ]
 }
 
@@ -465,7 +465,7 @@ resource "vsphere_tag_category" "testacc-category" {
   cardinality = "MULTIPLE"
 
   associable_types = [
-    "VmwareDistributedVirtualPortgroup",
+    "DistributedVirtualPortgroup",
   ]
 }
 

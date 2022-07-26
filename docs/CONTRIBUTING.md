@@ -43,7 +43,7 @@ make install
 [gh-issues]: https://github.com/hashicorp/terraform-provider-vsphere/issues
 [gh-prs]: https://github.com/hashicorp/terraform-provider-vsphere/pulls
 
-If you wish to work on the provider, you'll first need [Go][go-website] installed on your machine (version 1.16+ is **required**). You'll also need to correctly setup a [GOPATH][gopath], as well as adding `$GOPATH/bin` to your `$PATH`.
+If you wish to work on the provider, you'll first need [Go][go-website] installed on your machine.
 
 [go-website]: https://golang.org/
 [gopath]: http://golang.org/doc/code.html#GOPATH

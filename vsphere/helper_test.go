@@ -430,7 +430,7 @@ func testRenameVMFirstDisk(s *terraform.State, resourceName string, new string) 
 	spec := types.VirtualMachineConfigSpec{
 		DeviceChange: dcSpec,
 	}
-	return virtualmachine.Reconfigure(vm, spec)
+	return virtualmachine.Reconfigure(vm, spec, defaultAPITimeout)
 }
 
 // testDeleteVMDisk deletes a VMDK file from the virtual machine directory. It

@@ -16,17 +16,17 @@ Learn more:
 
 ## Requirements
 
-* [Terraform 0.12+][terraform-install]
+* [Terraform 0.13+][terraform-install]
 
     For general information about Terraform, visit [terraform.io][terraform-install] and [the project][terraform-github] on GitHub.
 
-* [Go 1.16][golang-install]
+* [Go 1.18][golang-install]
 
     Required if building the provider.
 
 * [VMware vSphere][vmware-vsphere-documenation] 6.5 or later.
 
-    The provider supports versions in accordance with the VMware Product Lifecycle Matrixfrom General Availability to End of General Support.
+    The provider supports versions in accordance with the VMware Product Lifecycle Matrix from General Availability to End of General Support.
 
     * Learn more: [VMware Product Lifecycle Matrix][vmware-product-lifecycle-matrix]
     
