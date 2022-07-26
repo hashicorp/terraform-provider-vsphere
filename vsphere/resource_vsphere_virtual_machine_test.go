@@ -2522,7 +2522,7 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	if os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL") == "" {
 		t.Skip("set TF_VAR_VSPHERE_RESOURCE_POOL to run vsphere_virtual_machine acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_PG_NAME") == "" {
+	if os.Getenv("TF_VAR_VSPHERE_NETWORK_LABEL") == "" {
 		t.Skip("set TF_VAR_VSPHERE_NETWORK_LABEL to run vsphere_virtual_machine acceptance tests")
 	}
 	if os.Getenv("TF_VAR_VSPHERE_PG_NAME") == "" {
@@ -4266,6 +4266,60 @@ resource "vsphere_virtual_machine" "vm" {
   cdrom {
     datastore_id  = "${data.vsphere_datastore.iso_datastore.id}"
     path          = "${var.iso_path}"
+  }
+}
+`,
+
+		testAccResourceVSphereVirtualMachineConfigBase(),
+		os.Getenv("TF_VAR_VSPHERE_ISO_DATASTORE"),
+		os.Getenv("TF_VAR_VSPHERE_ISO_FILE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigBasicCdromIsoAndClientCdrom() string {
+	return fmt.Sprintf(`
+
+
+%s  // Mix and match config
+
+variable "iso_datastore" {
+  default = "%s"
+}
+
+variable "iso_path" {
+  default = "%s"
+}
+
+data "vsphere_datastore" "iso_datastore" {
+  name          = "${var.iso_datastore}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "testacc-test"
+  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
+  datastore_id     = vsphere_nas_datastore.ds1.id
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinux64Guest"
+
+  wait_for_guest_net_timeout = -1
+
+  network_interface {
+    network_id = "${data.vsphere_network.network1.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
+  cdrom {
+    datastore_id  = "${data.vsphere_datastore.iso_datastore.id}"
+    path          = "${var.iso_path}"
+  }
+  cdrom {
+    client_device = true
   }
 }
 `,
