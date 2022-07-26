@@ -2,15 +2,15 @@
 
 ### Who are the maintainers?
 
-The HashiCorp Terraform vSphere provider team is :
+The Terraform provider for VMware vSphere team at HashiCorp include:
 
 * Tejitha Raju, Product Manager - [@tejavar](https://github.com/tejavar)
 * Alex Pilon, Engineer - [@appilon](https://github.com/appilon)
 * Brandy Jackson, Engineering Manager - [@ibrandyjackson](https://github.com/ibrandyjackson)
 
-Collaborators from VMware are :
+Collaborators from VMware include:
 
-* Ryan Johnson - [@tenthirtyam](https://github.com/tenthirtyam)
+* Ryan Johnson, Senior Staff Solutions Architect - [@tenthirtyam](https://github.com/tenthirtyam)
 
 ### Why isn’t my PR merged yet?
 
@@ -25,7 +25,3 @@ We also are investing time to improve the contributing experience by improving d
 ### How can I help?
 
 Check out the [Contributing Guide](CONTRIBUTING.md) for additional information.
-
-### How can I become a maintainer?
-
-This is an area under active research. Stay tuned!
