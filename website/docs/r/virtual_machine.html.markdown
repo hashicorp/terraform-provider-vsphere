@@ -973,7 +973,7 @@ The options are:
 
 A CD-ROM device is managed by adding an instance of the `cdrom` block.
 
-A single virtual CD-ROM device can be created and attached to the virtual machine. The resource supports attaching a CD-ROM from either a datastore ISO or using a remote client device.
+Up to two virtual CD-ROM devices can be created and attached to the virtual machine. If adding multiple CD-ROM devices, add each device as a separate `cdrom` block. The resource supports attaching a CD-ROM from either a datastore ISO or using a remote client device.
 
 **Example**:
 
@@ -1001,7 +1001,7 @@ The options are:
 
 ### Virtual Device Computed Options
 
-VVirtual devices (`disk`, `network_interface`, and `cdrom`) all export the following attributes. These options help locate the device on subsequent application of the Terraform configuration. 
+Virtual devices (`disk`, `network_interface`, and `cdrom`) all export the following attributes. These options help locate the device on subsequent application of the Terraform configuration. 
 
 The options are:
 
