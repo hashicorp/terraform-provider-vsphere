@@ -1179,6 +1179,7 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 	_ = d.Set("wait_for_guest_net_timeout", rs["wait_for_guest_net_timeout"].Default)
 	_ = d.Set("wait_for_guest_net_routable", rs["wait_for_guest_net_routable"].Default)
 	_ = d.Set("poweron_timeout", rs["poweron_timeout"].Default)
+	_ = d.Set("extra_config_reboot_required", rs["extra_config_reboot_required"].Default)
 
 	log.Printf("[DEBUG] %s: Import complete, resource is ready for read", resourceVSphereVirtualMachineIDString(d))
 	return []*schema.ResourceData{d}, nil
