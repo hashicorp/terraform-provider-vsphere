@@ -58,8 +58,8 @@ variable "datacenter" {
 variable "hosts" {
   default = [
     "esxi01.example.com",
-    "esxi2.example.com",
-    "esxi3.example.com",
+    "esxi02.example.com",
+    "esxi03.example.com",
   ]
 }
 
@@ -459,10 +459,10 @@ details, see the referenced link in the above paragraph.
   providers configured for this cluster.
   <sup>[\*](#vsphere-version-requirements)</sup>
 
-## Cluster vSAN settings
+### vSAN Settings
 
 * `vsan_enabled` - (Optional) Enables vSAN on the cluster.
-* `vsan_dedup_enabled` - (Optional) Enables vSAN deduplication on the cluster. 
+* `vsan_dedup_enabled` - (Optional) Enables vSAN deduplication on the cluster.
   Cannot be independently set to true. When vSAN deduplication is enabled, vSAN
   compression is automatically enabled.
 * `vsan_compression_enabled` - (Optional) Enables vSAN compression on the cluster.
@@ -471,9 +471,20 @@ details, see the referenced link in the above paragraph.
   * `cache` - The canonical name of the disk to use for vSAN cache.
   * `storage` - An array of disk canonical names for vSAN storage.
 
+~> **NOTE:** You must disable vSphere HA before you enable vSAN on the cluster.
+You can enable or re-enable vSphere HA after vSAN is configured.
+
 ```
-resource compute_cluster "compute_cluster" {
-...
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name            = "terraform-compute-cluster-test"
+  datacenter_id   = data.vsphere_datacenter.datacenter.id
+  host_system_ids = [data.vsphere_host.host.*.id]
+
+  drs_enabled          = true
+  drs_automation_level = "fullyAutomated"
+
+  ha_enabled = false
+
   vsan_enabled = true
   vsan_dedup_enabled = true
   vsan_compression_enabled = true
@@ -481,7 +492,6 @@ resource compute_cluster "compute_cluster" {
     cache = data.vsphere_vmfs_disks.cache_disks[0]
     storage = data.vsphere_vmfs_disks.storage_disks
   }
-...
 }
 ```
 
