@@ -6,8 +6,12 @@ FEATURES:
 
 IMPROVEMENTS:
 * `resource/virtual_machine`: Enables virtual machine reconfiguration tasks to use the provider `api_timeout` setting. ([#1645](https://github.com/hashicorp/terraform-provider-vsphere/pull/1645))
+* `resource/host`: Documentation updates. ([#1675](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1675))
 * `resource/host_virtual_switch`: Allows `standby_nics` on `r/vsphere_host_virtual_switch` to be an optional attribute so `standby_nics = []` does not need to be defined when no standby NICs are required/available. ([#1695](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1695))
-* `resource/vsphere_host`: Documentation updates. ([#1675](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1675))
+* `resource/compute_cluster_vm_anti_affinity_rule`: Documentation updates. ([#1700](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1700))
+
+CHORES:
+* Bumps [`vmware/govmomi`](https://github.com/vmware/govmomi) from `v0.25.0` to `v0.29.0`.
 
 ## 2.2.0 (June 16, 2022)
 
