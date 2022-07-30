@@ -3,6 +3,7 @@
 FEATURES:
 * `resource/virtual_machine`: Adds support for an optional `extra_config_reboot_required` argument to `r/virtual_machine`. This argument allows you to configure if a virtual machine reboot is enforced when `extra_config` is changed. ([#1603](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1603))
 * `resource/virtual_machine`: Adds support for two (2) CD-ROMs attached to a virtual machine. ([#1631](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1631))
+* `resource/compute_cluster`: Add support for vSAN compression and deduplication ([#1702](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1702))
 
 IMPROVEMENTS:
 * `resource/virtual_machine`: Enables virtual machine reconfiguration tasks to use the provider `api_timeout` setting. ([#1645](https://github.com/hashicorp/terraform-provider-vsphere/pull/1645))
