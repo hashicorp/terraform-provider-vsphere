@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/vsanclient"
 
 	"github.com/vmware/govmomi/vim25/mo"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
+	vsantypes "github.com/vmware/govmomi/vsan/types"
 )
 
 const resourceVSphereComputeClusterName = "vsphere_compute_cluster"
@@ -487,7 +489,19 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Computed:    true,
-				Description: "Whether the VSAN service is enabled for the cluster.",
+				Description: "Whether the vSAN service is enabled for the cluster.",
+			},
+			"vsan_dedup_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether the vSAN deduplication service is enabled for the cluster.",
+			},
+			"vsan_compression_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether the vSAN compression service is enabled for the cluster.",
 			},
 			"vsan_disk_group": {
 				Type:        schema.TypeList,
@@ -543,6 +557,10 @@ func resourceVSphereComputeClusterCreate(d *schema.ResourceData, meta interface{
 	// Now that all the hosts that will be in the cluster have been added, apply
 	// the cluster configuration.
 	if err := resourceVSphereComputeClusterApplyClusterConfiguration(d, meta, cluster); err != nil {
+		return err
+	}
+
+	if err := resourceVSphereComputeClusterApplyVsanConfig(d, meta, cluster); err != nil {
 		return err
 	}
 
@@ -618,6 +636,10 @@ func resourceVSphereComputeClusterUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	if err := resourceVSphereComputeClusterApplyCustomAttributes(d, meta, cluster); err != nil {
+		return err
+	}
+
+	if err := resourceVSphereComputeClusterApplyVsanConfig(d, meta, cluster); err != nil {
 		return err
 	}
 
@@ -1268,6 +1290,24 @@ func expandVsanConfig(d *schema.ResourceData) *types.VsanClusterConfigInfo {
 	conf.Enabled = &enabled
 	conf.DefaultConfig = &types.VsanClusterConfigInfoHostDefaultInfo{}
 	return conf
+}
+
+func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta interface{}, cluster *object.ClusterComputeResource) error {
+	conf := &vsantypes.VimVsanReconfigSpec{}
+	dedup_enabled := d.Get("vsan_dedup_enabled").(bool)
+	compression_enabled := d.Get("vsan_compression_enabled").(bool)
+
+	conf.DataEfficiencyConfig = &vsantypes.VsanDataEfficiencyConfig{}
+	conf.DataEfficiencyConfig.DedupEnabled = dedup_enabled
+	conf.DataEfficiencyConfig.CompressionEnabled = &compression_enabled
+
+	client := meta.(*Client).vsanClient
+
+	if err := vsanclient.Reconfigure(client, cluster.Reference(), *conf); err != nil {
+		return fmt.Errorf("cannot apply vsan service on cluster: %s", d.Get("name").(string))
+	}
+
+	return nil
 }
 
 func updateVsanDisks(d *schema.ResourceData, cluster *object.ClusterComputeResource, meta interface{}) error {
