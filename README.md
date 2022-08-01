@@ -58,7 +58,7 @@ The Terraform Provider for vSphere is the work of many contributors and the proj
 
 If you discover a bug or would like to suggest an enhancement, submit [an issue][provider-issues]. Once submitted, your issue will follow the [lifecycle][provider-issue-lifecycke] process.
 
-If you would like to submit a pull request, please read the [contribution guidelines][provider-contributing] to get started. 
+If you would like to submit a pull request, please read the [contribution guidelines][provider-contributing] to get started. In case of enhancement or feature contribution, we kindly ask you to open an issue to discuss it beforehand.
 
 Learn more in the [Frequently Asked Questions][provider-faq].
 
