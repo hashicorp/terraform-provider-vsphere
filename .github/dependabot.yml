@@ -2,6 +2,9 @@ version: 2
 updates:
 - package-ecosystem: gomod
   directory: "/"
+  ignore:
+  - dependency-name: "golang.org/x/tools"
+  - dependency-name: "google.golang.org/grpc"
   schedule:
     interval: daily
   open-pull-requests-limit: 5
