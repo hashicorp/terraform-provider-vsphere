@@ -1,4 +1,4 @@
-Hello, &nbsp; {{ .author }} ! 🖐
+Hello, {{ .author }}! 🖐
 
 Thank you for submitting an issue for this provider. The issue will now enter into the [issue lifecycle](https://github.com/hashicorp/terraform-provider-vsphere/blob/main/docs/ISSUES.md#issue-lifecycle).
 
