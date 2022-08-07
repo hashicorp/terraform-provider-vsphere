@@ -56,7 +56,7 @@ terraform init -upgrade
 
 ## Contributing
 
-The Terraform Provider for vSphere is the work of many contributors and the project team appreciates your help!
+The Terraform Provider for VMware vSphere is the work of many contributors and the project team appreciates your help!
 
 If you discover a bug or would like to suggest an enhancement, submit [an issue][provider-issues]. Once submitted, your issue will follow the [lifecycle][provider-issue-lifecycke] process.
 
@@ -66,7 +66,7 @@ Learn more in the [Frequently Asked Questions][provider-faq].
 
 ## License
 
-The Terraform Provider for vSphere is available under the [Mozilla Public License, version 2.0][provider-license] license.
+The Terraform Provider for VMware vSphere is available under the [Mozilla Public License, version 2.0][provider-license] license.
 
 [golang-install]: https://golang.org/doc/install
 [hashicorp]: https://hashicorp.com
