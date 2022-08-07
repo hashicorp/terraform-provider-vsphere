@@ -2,11 +2,11 @@
     <img src=".github/tf.png" alt="Terraform logo" title="Terraform" align="left" height="50" />
 </a>
 
-# Terraform Provider for vSphere
+# Terraform Provider for VMware vSphere
 
 [![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/hashicorp/terraform-provider-vsphere?label=release&style=for-the-badge)](https://github.com/hashicorp/terraform-provider-vsphere/releases/latest) [![License](https://img.shields.io/github/license/hashicorp/terraform-provider-vsphere.svg?style=for-the-badge)](LICENSE)
 
-The Terraform Provider for vSphere is a plugin for Terraform that allows you to interact with VMware vSphere, notably [vCenter Server][vmware-vcenter] and [ESXi][vmware-esxi]. This provider can be used to manage a VMware vSphere environment, including virtual machines, host and cluster management, inventory, networking, storage, datastores, content libraries, and more.
+The Terraform Provider for VMware vSphere is a plugin for Terraform that allows you to interact with VMware vSphere, notably [vCenter Server][vmware-vcenter] and [ESXi][vmware-esxi]. This provider can be used to manage a VMware vSphere environment, including virtual machines, host and cluster management, inventory, networking, storage, datastores, content libraries, and more.
 
 Learn more:
 
@@ -27,14 +27,16 @@ Learn more:
 * [VMware vSphere][vmware-vsphere-documenation] 6.5 or later.
 
     The provider supports versions in accordance with the VMware Product Lifecycle Matrix from General Availability to End of General Support.
-
-    * Learn more: [VMware Product Lifecycle Matrix][vmware-product-lifecycle-matrix]
     
->**NOTE**: This provider requires API write access and is therefore **not supported** for use with a free VMware vSphere Hypervisor license.
+    Learn more: [VMware Product Lifecycle Matrix][vmware-product-lifecycle-matrix]
+
+    > **NOTE**
+    >
+    > This provider requires API write access and is therefore **not supported** for use with a free VMware vSphere Hypervisor license.
 
 ## Using the Provider
 
-The Terraform Provider for vSphere is an official provider. Official providers are maintained by the Terraform team at [HashiCorp][hashicorp] and are listed on the [Terraform Registry][terraform-registry].  
+The Terraform Provider for VMware vSphere is an official provider. Official providers are maintained by the Terraform team at [HashiCorp][hashicorp] and are listed on the [Terraform Registry][terraform-registry].  
 
 To use a released version of the Terraform provider in your environment, run `terraform init` and Terraform will automatically install the provider from the Terraform Registry.
 
