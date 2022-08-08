@@ -503,6 +503,24 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Computed:    true,
 				Description: "Whether the vSAN compression service is enabled for the cluster.",
 			},
+			"vsan_performance_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether the vSAN performance service is enabled for the cluster.",
+			},
+			"vsan_verbose_mode_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether the vSAN verbose mode is enabled for the cluster.",
+			},
+			"vsan_network_diagnostic_mode_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether the vSAN network diagnostic mode is enabled for the cluster.",
+			},
 			"vsan_disk_group": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -1292,10 +1310,45 @@ func expandVsanConfig(d *schema.ResourceData) *types.VsanClusterConfigInfo {
 	return conf
 }
 
+func expandVsanPerfConfig(d *schema.ResourceData) (*vsantypes.VsanPerfsvcConfig, error) {
+	conf := &vsantypes.VsanPerfsvcConfig{}
+	perf_enabled := d.Get("vsan_performance_enabled").(bool)
+	verbose_enabled := d.Get("vsan_verbose_mode_enabled").(bool)
+	network_diagnostic_enabled := d.Get("vsan_network_diagnostic_mode_enabled").(bool)
+
+	_, perfOK := d.GetOkExists("vsan_performance_enabled")
+	vsan_enabled := d.Get("vsan_enabled").(bool)
+	if vsan_enabled && !perfOK {
+		perf_enabled = true
+		if err := d.Set("vsan_performance_enabled", true); err != nil {
+			return nil, err
+		}
+	}
+
+	if (!vsan_enabled || !perf_enabled) && (verbose_enabled || network_diagnostic_enabled) {
+		return nil, fmt.Errorf("cannot apply verbose mode and network diagnostic mode when performance service or vsan disabled on cluster: %s", d.Get("name").(string))
+	}
+	conf.Enabled = perf_enabled
+	conf.VerboseMode = &verbose_enabled
+	conf.DiagnosticMode = &network_diagnostic_enabled
+
+	return conf, nil
+}
+
 func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta interface{}, cluster *object.ClusterComputeResource) error {
+	vsan_enabled := d.Get("vsan_enabled").(bool)
+	if !vsan_enabled {
+		return nil
+	}
 	conf := &vsantypes.VimVsanReconfigSpec{}
 	dedup_enabled := d.Get("vsan_dedup_enabled").(bool)
 	compression_enabled := d.Get("vsan_compression_enabled").(bool)
+
+	perf_config, err := expandVsanPerfConfig(d)
+	if err != nil {
+		return err
+	}
+	conf.PerfsvcConfig = perf_config
 
 	conf.DataEfficiencyConfig = &vsantypes.VsanDataEfficiencyConfig{}
 	conf.DataEfficiencyConfig.DedupEnabled = dedup_enabled
