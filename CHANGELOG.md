@@ -1,6 +1,7 @@
 ## 2.3.0 (Unreleased)
 
 FEATURES:
+* `resource/virtual_machine` : Add support for the paravirtual RDMA (PVRDMA) `vmxnet3vrdma` network interface adapter type. ([#1598](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1598))
 * `resource/virtual_machine`: Adds support for an optional `extra_config_reboot_required` argument to `r/virtual_machine`. This argument allows you to configure if a virtual machine reboot is enforced when `extra_config` is changed. ([#1603](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1603))
 * `resource/virtual_machine`: Adds support for two (2) CD-ROMs attached to a virtual machine. ([#1631](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1631))
 * `resource/compute_cluster`: Add support for vSAN compression and deduplication ([#1702](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1702))
