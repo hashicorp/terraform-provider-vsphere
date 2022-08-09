@@ -30,6 +30,7 @@ const (
 	networkInterfaceSubresourceTypeE1000e  = "e1000e"
 	networkInterfaceSubresourceTypePCNet32 = "pcnet32"
 	networkInterfaceSubresourceTypeSriov   = "sriov"
+	networkInterfaceSubresourceTypeVRdma   = "vmxnet3vrdma"
 	networkInterfaceSubresourceTypeVmxnet2 = "vmxnet2"
 	networkInterfaceSubresourceTypeVmxnet3 = "vmxnet3"
 	networkInterfaceSubresourceTypeUnknown = "unknown"
@@ -39,6 +40,7 @@ var networkInterfaceSubresourceTypeAllowedValues = []string{
 	networkInterfaceSubresourceTypeE1000,
 	networkInterfaceSubresourceTypeE1000e,
 	networkInterfaceSubresourceTypeVmxnet3,
+	networkInterfaceSubresourceTypeVRdma,
 }
 
 // NetworkInterfaceSubresourceSchema returns the schema for the disk
@@ -86,7 +88,7 @@ func NetworkInterfaceSubresourceSchema() map[string]*schema.Schema {
 			Type:         schema.TypeString,
 			Optional:     true,
 			Default:      networkInterfaceSubresourceTypeVmxnet3,
-			Description:  "The controller type. Can be one of e1000, e1000e, or vmxnet3.",
+			Description:  "The controller type. Can be one of e1000, e1000e, vmxnet3, or vrdma.",
 			ValidateFunc: validation.StringInSlice(networkInterfaceSubresourceTypeAllowedValues, false),
 		},
 		"use_static_mac": {
@@ -605,6 +607,8 @@ func baseVirtualEthernetCardToBaseVirtualDevice(v types.BaseVirtualEthernetCard)
 		return types.BaseVirtualDevice(t)
 	case *types.VirtualVmxnet3:
 		return types.BaseVirtualDevice(t)
+	case *types.VirtualVmxnet3Vrdma:
+		return types.BaseVirtualDevice(t)
 	}
 	panic(fmt.Errorf("unknown ethernet card type %T", v))
 }
@@ -633,6 +637,8 @@ func virtualEthernetCardString(d types.BaseVirtualEthernetCard) string {
 		return networkInterfaceSubresourceTypeVmxnet2
 	case *types.VirtualVmxnet3:
 		return networkInterfaceSubresourceTypeVmxnet3
+	case *types.VirtualVmxnet3Vrdma:
+		return networkInterfaceSubresourceTypeVRdma
 	}
 	return networkInterfaceSubresourceTypeUnknown
 }

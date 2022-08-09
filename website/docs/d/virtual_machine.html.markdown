@@ -118,7 +118,7 @@ The following attributes are exported:
  * `unit_number` - The disk number on the storage bus.
 * `network_interface_types` - The network interface types for each network
   interface found on the virtual machine, in device bus order. Will be one of
-  `e1000`, `e1000e`, `pcnet32`, `sriov`, `vmxnet2`, or `vmxnet3`.
+  `e1000`, `e1000e`, `pcnet32`, `sriov`, `vmxnet2`, `vmxnet3vrdma`, or `vmxnet3`.
 * `network_interfaces` - Information about each of the network interfaces on this 
   virtual machine or template. These are sorted by device bus order so that they 
   can be applied to a `vsphere_virtual_machine` resource in the order the resource 
@@ -127,8 +127,8 @@ The following attributes are exported:
   data source must be the same on the destination virtual machine as the source.
   The sub-attributes are:
  * `adapter_type` -  The network interface types for each network interface found 
-  on the virtual machine, in device bus order. Will be one of `e1000`, `e1000e` or 
-  `vmxnet3`.
+  on the virtual machine, in device bus order. Will be one of `e1000`, `e1000e`, 
+  `vmxnet3vrdma`, or `vmxnet3`.
  * `bandwidth_limit` - The upper bandwidth limit of this network interface, 
   in Mbits/sec.
  * `bandwidth_reservation` - The bandwidth reservation of this network interface, 
