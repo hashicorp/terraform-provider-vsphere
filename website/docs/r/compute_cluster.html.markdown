@@ -465,7 +465,14 @@ details, see the referenced link in the above paragraph.
 * `vsan_dedup_enabled` - (Optional) Enables vSAN deduplication on the cluster.
   Cannot be independently set to true. When vSAN deduplication is enabled, vSAN
   compression is automatically enabled.
-* `vsan_compression_enabled` - (Optional) Enables vSAN compression on the cluster.
+* `vsan_compression_enabled` - (Optional) Enables vSAN compression on the
+  cluster.
+* `vsan_performance_enabled` - (Optional) Enables vSAN performance service on
+  the cluster. Default: `true`.
+* `vsan_verbose_mode_enabled` - (Optional) Enables verbose mode for vSAN
+  performance service on the cluster.
+* `vsan_network_diagnostic_mode_enabled` - (Optional) Enables network
+  diagnostic mode for vSAN performance service on the cluster.
 * `vsan_disk_group` - (Optional) Represents the configuration of a host disk
   group in the cluster.
   * `cache` - The canonical name of the disk to use for vSAN cache.
@@ -488,6 +495,9 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   vsan_enabled = true
   vsan_dedup_enabled = true
   vsan_compression_enabled = true
+  vsan_performance_enabled = true
+  vsan_verbose_mode_enabled = true
+  vsan_network_diagnostic_mode_enabled = true
   vsan_disk_group {
     cache = data.vsphere_vmfs_disks.cache_disks[0]
     storage = data.vsphere_vmfs_disks.storage_disks
