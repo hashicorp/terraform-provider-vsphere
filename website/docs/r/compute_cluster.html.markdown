@@ -473,6 +473,7 @@ details, see the referenced link in the above paragraph.
   performance service on the cluster.
 * `vsan_network_diagnostic_mode_enabled` - (Optional) Enables network
   diagnostic mode for vSAN performance service on the cluster.
+* `vsan_unmap_enabled` - (Optional) Enables vSAN unmap on the cluster.
 * `vsan_disk_group` - (Optional) Represents the configuration of a host disk
   group in the cluster.
   * `cache` - The canonical name of the disk to use for vSAN cache.
@@ -498,6 +499,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   vsan_performance_enabled = true
   vsan_verbose_mode_enabled = true
   vsan_network_diagnostic_mode_enabled = true
+  vsan_unmap_enabled = true
   vsan_disk_group {
     cache = data.vsphere_vmfs_disks.cache_disks[0]
     storage = data.vsphere_vmfs_disks.storage_disks
