@@ -22,7 +22,7 @@ import (
 // When adding custom attributes to a resource schema, the easiest way to do
 // that (for now) will be to use the following line:
 //
-//   customattribute.ConfigKey: customattribute.ConfigSchema(),
+//	customattribute.ConfigKey: customattribute.ConfigSchema(),
 //
 // This will ensure that the correct key and schema is used across all
 // resources.

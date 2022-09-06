@@ -74,7 +74,7 @@ this issue, please use a tag name unique within your vCenter system.
 // When adding tags to a resource schema, the easiest way to do that (for now)
 // will be to use the following line:
 //
-//   vSphereTagAttributeKey: tagsSchema(),
+//	vSphereTagAttributeKey: tagsSchema(),
 //
 // This will ensure that the correct key and schema is used across all resources.
 const vSphereTagAttributeKey = "tags"
