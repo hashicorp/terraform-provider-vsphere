@@ -359,7 +359,7 @@ func (r *Subresource) DevAddr() string {
 	return r.Get("device_address").(string)
 }
 
-// splitDevAddr splits an device addres into its inparticular parts and asserts
+// splitDevAddr splits an device address into its inparticular parts and asserts
 // that we have all the correct data.
 func splitDevAddr(id string) (string, int, int, error) {
 	parts := strings.Split(id, ":")
