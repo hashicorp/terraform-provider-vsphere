@@ -123,7 +123,7 @@ func ItemFromName(c *rest.Client, l *library.Library, name string) (*library.Ite
 	}
 	items, err := clm.FindLibraryItems(ctx, fi)
 	if err != nil {
-		return nil, nil
+		return nil, provider.Error(name, "ItemFromName", err)
 	}
 	if len(items) < 1 {
 		return nil, fmt.Errorf("Unable to find content library item (%s)", name)
