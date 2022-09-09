@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -265,7 +264,7 @@ func GetOvfDescriptor(filePath string, deployOva bool, fromLocal bool, allowUnve
 	ovfDescriptor := ""
 	if !deployOva {
 		if fromLocal {
-			fileBuffer, err := ioutil.ReadFile(filePath)
+			fileBuffer, err := os.ReadFile(filePath)
 			if err != nil {
 				return "", err
 			}
@@ -281,7 +280,7 @@ func GetOvfDescriptor(filePath string, deployOva bool, fromLocal bool, allowUnve
 			}(resp.Body)
 
 			if resp.StatusCode == http.StatusOK {
-				bodyBytes, err := ioutil.ReadAll(resp.Body)
+				bodyBytes, err := io.ReadAll(resp.Body)
 				if err != nil {
 					return "", err
 				}
@@ -335,7 +334,7 @@ func getOvfDescriptorFromOva(ovaFile io.Reader) (string, error) {
 			return "", err
 		}
 		if strings.HasSuffix(fileHdr.Name, ".ovf") {
-			content, _ := ioutil.ReadAll(ovaReader)
+			content, _ := io.ReadAll(ovaReader)
 			ovfDescriptor := string(content)
 			return ovfDescriptor, nil
 		}

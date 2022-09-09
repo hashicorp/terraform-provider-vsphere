@@ -1,7 +1,6 @@
 package vsphere
 
 import (
-	"io/ioutil"
 	"log"
 	"os"
 	"reflect"
@@ -94,7 +93,7 @@ func testAccClientGenerateData(t *testing.T, c *Config) string {
 		t.Fatalf("error computing VIM session file: %s", err)
 	}
 
-	vimData, err := ioutil.ReadFile(vimSessionFile)
+	vimData, err := os.ReadFile(vimSessionFile)
 	if err != nil {
 		t.Fatalf("error reading VIM session file: %s", err)
 	}
@@ -117,11 +116,11 @@ func testAccClientCheckStatNoExist(t *testing.T, p string) {
 func TestAccClient_persistence(t *testing.T) {
 	testAccClientPreCheck(t)
 
-	vimSessionDir, err := ioutil.TempDir("", "tf-vsphere-test-vimsessiondir")
+	vimSessionDir, err := os.MkdirTemp("", "tf-vsphere-test-vimsessiondir")
 	if err != nil {
 		t.Fatalf("error creating VIM session temp directory: %s", err)
 	}
-	restSessionDir, err := ioutil.TempDir("", "tf-vsphere-test-restsessiondir")
+	restSessionDir, err := os.MkdirTemp("", "tf-vsphere-test-restsessiondir")
 	if err != nil {
 		t.Fatalf("error creating REST session temp directory: %s", err)
 	}
@@ -153,11 +152,11 @@ func TestAccClient_persistence(t *testing.T) {
 func TestAccClient_noPersistence(t *testing.T) {
 	testAccClientPreCheck(t)
 
-	vimSessionDir, err := ioutil.TempDir("", "tf-vsphere-test-vimsessiondir")
+	vimSessionDir, err := os.MkdirTemp("", "tf-vsphere-test-vimsessiondir")
 	if err != nil {
 		t.Fatalf("error creating VIM session temp directory: %s", err)
 	}
-	restSessionDir, err := ioutil.TempDir("", "tf-vsphere-test-restsessiondir")
+	restSessionDir, err := os.MkdirTemp("", "tf-vsphere-test-restsessiondir")
 	if err != nil {
 		t.Fatalf("error creating REST session temp directory: %s", err)
 	}

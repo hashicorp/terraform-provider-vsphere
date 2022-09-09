@@ -3,7 +3,6 @@ package vsphere
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -22,7 +21,7 @@ parentCID=ffffffff
 createType="twoGbMaxExtentSparse"
 `)
 	testVmdkFile := "/tmp/tf_test.vmdk"
-	err := ioutil.WriteFile(testVmdkFile, testVmdkFileData, 0600)
+	err := os.WriteFile(testVmdkFile, testVmdkFileData, 0600)
 	if err != nil {
 		t.Errorf("error %s", err)
 		return
@@ -77,7 +76,7 @@ func TestAccResourceVSphereFile_basicUploadAndCopy(t *testing.T) {
 	sourceFileCopy := "${vsphere_file." + uploadResourceName + ".destination_file}"
 	destinationFileCopy := "tf_file_test_copy.vmdk"
 
-	err := ioutil.WriteFile(sourceFile, testVmdkFileData, 0600)
+	err := os.WriteFile(sourceFile, testVmdkFileData, 0600)
 	if err != nil {
 		t.Errorf("error %s", err)
 		return
@@ -124,7 +123,7 @@ func TestAccResourceVSphereFile_basicUploadAndCopy(t *testing.T) {
 func TestAccResourceVSphereFile_renamePostCreation(t *testing.T) {
 	testVmdkFileData := []byte("# Disk DescriptorFile\n")
 	testVmdkFile := "/tmp/tf_test.vmdk"
-	err := ioutil.WriteFile(testVmdkFile, testVmdkFileData, 0600)
+	err := os.WriteFile(testVmdkFile, testVmdkFileData, 0600)
 	if err != nil {
 		t.Errorf("error %s", err)
 		return
@@ -197,7 +196,7 @@ func TestAccResourceVSphereFile_uploadAndCopyAndUpdate(t *testing.T) {
 	destinationFileCopy := "tf_file_test_copy.vmdk"
 	destinationFileMoved := "tf_test_file_moved.vmdk"
 
-	err := ioutil.WriteFile(sourceFile, testVmdkFileData, 0600)
+	err := os.WriteFile(sourceFile, testVmdkFileData, 0600)
 	if err != nil {
 		t.Errorf("error %s", err)
 		return
