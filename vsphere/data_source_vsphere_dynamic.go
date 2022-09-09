@@ -37,7 +37,7 @@ func dataSourceVSphereDynamic() *schema.Resource {
 }
 
 func dataSourceVSphereDynamicRead(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] dataSourceDynamic: Beggining dynamic data source read.")
+	log.Printf("[DEBUG] dataSourceDynamic: Beginning dynamic data source read.")
 	tm, err := meta.(*Client).TagsManager()
 	if err != nil {
 		return err

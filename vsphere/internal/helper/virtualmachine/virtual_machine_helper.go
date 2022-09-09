@@ -172,7 +172,7 @@ func virtualMachineFromSearchIndex(ctx context.Context, client *govmomi.Client, 
 	return result, nil
 }
 
-// virtualMachineFromContainerView is a compatability method that is
+// virtualMachineFromContainerView is a compatibility method that is
 // used when the version of vSphere is too old to support using SearchIndex's
 // FindByUuid method correctly. This is mainly to facilitate the ability to use
 // FromUUID to find both templates in addition to virtual machines, which
