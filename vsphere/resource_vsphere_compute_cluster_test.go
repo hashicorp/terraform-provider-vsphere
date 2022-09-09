@@ -265,7 +265,7 @@ func TestAccResourceVSphereComputeCluster_vsanUnmapDisabledwithVsanDisabled(t *t
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
 					testAccResourceVSphereComputeClusterCheckVsanEnabled(false),
-					testAccResourceVSphereComputeClusterCheckUnmapEnabled(true),
+					testAccResourceVSphereComputeClusterCheckUnmapEnabled(false),
 				),
 			},
 		},
