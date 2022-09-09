@@ -521,6 +521,12 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Computed:    true,
 				Description: "Whether the vSAN network diagnostic mode is enabled for the cluster.",
 			},
+			"vsan_unmap_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether the vSAN unmap service is enabled for the cluster.",
+			},
 			"vsan_disk_group": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -1335,6 +1341,14 @@ func expandVsanPerfConfig(d *schema.ResourceData) (*vsantypes.VsanPerfsvcConfig,
 	return conf, nil
 }
 
+func expandVsanUnmapConfig(d *schema.ResourceData) *vsantypes.VsanUnmapConfig {
+	unmap_enabled := d.Get("vsan_unmap_enabled").(bool)
+
+	conf := &vsantypes.VsanUnmapConfig{}
+	conf.Enable = unmap_enabled
+	return conf
+}
+
 func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta interface{}, cluster *object.ClusterComputeResource) error {
 	vsan_enabled := d.Get("vsan_enabled").(bool)
 	if !vsan_enabled {
@@ -1349,6 +1363,8 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 		return err
 	}
 	conf.PerfsvcConfig = perf_config
+
+	conf.UnmapConfig = expandVsanUnmapConfig(d)
 
 	conf.DataEfficiencyConfig = &vsantypes.VsanDataEfficiencyConfig{}
 	conf.DataEfficiencyConfig.DedupEnabled = dedup_enabled
