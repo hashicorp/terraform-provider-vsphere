@@ -67,11 +67,11 @@ type Client struct {
 // Read call to determine if tags are supported on this connection, and if they
 // are, read them from the object and save them in the resource:
 //
-//   if tm, _ := meta.(*VSphereClient).TagsManager(); tm != nil {
-//     if err := readTagsForResource(restClient, obj, d); err != nil {
-//       return err
-//     }
-//   }
+//	if tm, _ := meta.(*VSphereClient).TagsManager(); tm != nil {
+//	  if err := readTagsForResource(restClient, obj, d); err != nil {
+//	    return err
+//	  }
+//	}
 func (c *Client) TagsManager() (*tags.Manager, error) {
 	if err := viapi.ValidateVirtualCenter(c.vimClient); err != nil {
 		return nil, err

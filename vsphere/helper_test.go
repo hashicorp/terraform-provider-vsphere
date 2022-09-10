@@ -847,7 +847,7 @@ func testGetComputeCluster(s *terraform.State, resourceName string, resourceType
 	return clustercomputeresource.FromID(vars.client, vars.resourceID)
 }
 
-//get cluster and vsanclient
+// get cluster and vsanclient
 func testGetVsanClientCluster(s *terraform.State, resourceName string, resourceType string) (*object.ClusterComputeResource, *vsan.Client, error) {
 	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceType, resourceName))
 	if err != nil {

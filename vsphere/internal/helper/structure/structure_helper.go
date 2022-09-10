@@ -494,13 +494,13 @@ func LogCond(c bool, t, f interface{}) interface{} {
 // attrs is a map[string]interface{} that follows a pattern in the example
 // below:
 //
-//   err := SetBatch(d, map[string]interface{}{
-//  	"foo": obj.Foo,
-//  	"bar": obj.Bar,
-//   })
-//   if err != nil {
-//  	return err
-//   }
+//	 err := SetBatch(d, map[string]interface{}{
+//		"foo": obj.Foo,
+//		"bar": obj.Bar,
+//	 })
+//	 if err != nil {
+//		return err
+//	 }
 //
 // For best results, supplied values should be or have concrete values that map
 // to the correct values for the respective type in helper/schema. This is
