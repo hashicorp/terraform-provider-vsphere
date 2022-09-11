@@ -3,11 +3,12 @@ package vsphere
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 const policyResource = "policy1"
@@ -40,7 +41,7 @@ func TestAccResourceVMStoragePolicy_basic(t *testing.T) {
 
 func testAccResourceVMStoragePolicyCheckExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		_, err := testGetVmStoragePolicy(s, policyResource)
+		_, err := testGetVMStoragePolicy(s, policyResource)
 		if err != nil {
 			if strings.Contains(err.Error(), "Profile not found") && !expected {
 				// Expected missing
@@ -102,5 +103,4 @@ resource "vsphere_vm_storage_policy" "%s" {
 `, policyResource,
 		policyName,
 	)
-
 }

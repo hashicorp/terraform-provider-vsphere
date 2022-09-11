@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceVSphereTag_basic(t *testing.T) {
@@ -211,7 +212,23 @@ resource "vsphere_tag_category" "testacc-category" {
   cardinality = "SINGLE"
 
   associable_types = [
-    "All",
+    "Folder",
+	"ClusterComputeResource",
+	"Datacenter",
+	"Datastore",
+	"StoragePod",
+	"DistributedVirtualPortgroup",
+	"DistributedVirtualSwitch",
+	"VmwareDistributedVirtualSwitch",
+	"HostSystem",
+	"com.vmware.content.Library",
+	"com.vmware.content.library.Item",
+	"HostNetwork",
+	"Network",
+	"OpaqueNetwork",
+	"ResourcePool",
+	"VirtualApp",
+	"VirtualMachine"
   ]
 }
 
@@ -228,7 +245,23 @@ resource "vsphere_tag_category" "testacc-category" {
   cardinality = "SINGLE"
 
   associable_types = [
-    "All",
+    "Folder",
+	"ClusterComputeResource",
+	"Datacenter",
+	"Datastore",
+	"StoragePod",
+	"DistributedVirtualPortgroup",
+	"DistributedVirtualSwitch",
+	"VmwareDistributedVirtualSwitch",
+	"HostSystem",
+	"com.vmware.content.Library",
+	"com.vmware.content.library.Item",
+	"HostNetwork",
+	"Network",
+	"OpaqueNetwork",
+	"ResourcePool",
+	"VirtualApp",
+	"VirtualMachine"
   ]
 }
 
@@ -245,7 +278,23 @@ resource "vsphere_tag_category" "testacc-category" {
   cardinality = "SINGLE"
 
   associable_types = [
-    "All",
+    "Folder",
+	"ClusterComputeResource",
+	"Datacenter",
+	"Datastore",
+	"StoragePod",
+	"DistributedVirtualPortgroup",
+	"DistributedVirtualSwitch",
+	"VmwareDistributedVirtualSwitch",
+	"HostSystem",
+	"com.vmware.content.Library",
+	"com.vmware.content.library.Item",
+	"HostNetwork",
+	"Network",
+	"OpaqueNetwork",
+	"ResourcePool",
+	"VirtualApp",
+	"VirtualMachine"
   ]
 }
 

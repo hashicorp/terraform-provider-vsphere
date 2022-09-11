@@ -4,12 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/network"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/spbm"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
-	"github.com/vmware/govmomi/vapi/library"
-	"github.com/vmware/govmomi/vapi/rest"
 	"os"
 	"path"
 	"reflect"
@@ -18,15 +12,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/clustercomputeresource"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datacenter"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/network"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/spbm"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualdisk"
@@ -34,9 +33,15 @@ import (
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/vapi/library"
+	"github.com/vmware/govmomi/vapi/rest"
 	"github.com/vmware/govmomi/vapi/tags"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/govmomi/vsan"
+	vsantypes "github.com/vmware/govmomi/vsan/types"
+
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/vsanclient"
 )
 
 // testAccResourceVSphereEmpty provides an empty provider config to pass some
@@ -53,6 +58,9 @@ type testCheckVariables struct {
 
 	// REST client
 	restClient *rest.Client
+
+	// vsan Client
+	vsanClient *vsan.Client
 
 	// The client for tagging operations.
 	tagsManager *tags.Manager
@@ -79,13 +87,14 @@ func testClientVariablesForResource(s *terraform.State, addr string) (testCheckV
 		return testCheckVariables{}, fmt.Errorf("%s not found in state", addr)
 	}
 
-	tm, err := testAccProvider.Meta().(*VSphereClient).TagsManager()
+	tm, err := testAccProvider.Meta().(*Client).TagsManager()
 	if err != nil {
 		return testCheckVariables{}, err
 	}
 	return testCheckVariables{
-		client:             testAccProvider.Meta().(*VSphereClient).vimClient,
-		restClient:         testAccProvider.Meta().(*VSphereClient).restClient,
+		client:             testAccProvider.Meta().(*Client).vimClient,
+		restClient:         testAccProvider.Meta().(*Client).restClient,
+		vsanClient:         testAccProvider.Meta().(*Client).vsanClient,
 		tagsManager:        tm,
 		resourceID:         rs.Primary.ID,
 		resourceAttributes: rs.Primary.Attributes,
@@ -429,13 +438,13 @@ func testRenameVMFirstDisk(s *terraform.State, resourceName string, new string) 
 	spec := types.VirtualMachineConfigSpec{
 		DeviceChange: dcSpec,
 	}
-	return virtualmachine.Reconfigure(vm, spec)
+	return virtualmachine.Reconfigure(vm, spec, defaultAPITimeout)
 }
 
 // testDeleteVMDisk deletes a VMDK file from the virtual machine directory. It
 // doesn't check configuration other than to look for the directory the VMX
 // file is in and is mainly meant to serve as a cleanup method.
-func testDeleteVMDisk(s *terraform.State, resourceName string, name string) error {
+func testDeleteVMDisk(s *terraform.State, name string) error {
 	tVars, err := testClientVariablesForResource(s, "vsphere_virtual_machine.vm")
 	if err != nil {
 		return err
@@ -566,7 +575,7 @@ func testObjectHasTags(s *terraform.State, tm *tags.Manager, obj object.Referenc
 // testObjectHasNoTags checks to make sure that an object has no tags attached
 // to it. The parameters are the same as testObjectHasTags, but no tag resource
 // needs to be supplied.
-func testObjectHasNoTags(s *terraform.State, tm *tags.Manager, obj object.Reference) error {
+func testObjectHasNoTags(tm *tags.Manager, obj object.Reference) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
 	actualIDs, err := tm.ListAttachedTags(ctx, obj)
@@ -613,7 +622,7 @@ func testAccResourceVSphereDatastoreCheckTags(dsResAddr, tagResName string) reso
 		if err != nil {
 			return err
 		}
-		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsManager()
+		tagsClient, err := testAccProvider.Meta().(*Client).TagsManager()
 		if err != nil {
 			return err
 		}
@@ -755,9 +764,17 @@ func testDeleteDatastoreFile(client *govmomi.Client, dsID string, path string) e
 	if err != nil {
 		return err
 	}
-	dc, err := getDatacenter(client, ds.DatacenterPath)
-	if err != nil {
-		return err
+	var dc *object.Datacenter
+	if ds.DatacenterPath != "" {
+		dc, err = getDatacenter(client, ds.DatacenterPath)
+		if err != nil {
+			return err
+		}
+	} else {
+		dc, err = datacenter.FromInventoryPath(client, ds.InventoryPath)
+		if err != nil {
+			return err
+		}
 	}
 	fm := object.NewFileManager(client.Client)
 
@@ -822,12 +839,25 @@ func testGetDatastoreClusterSDRSVMConfig(s *terraform.State, resourceName string
 
 // testGetComputeCluster is a convenience method to fetch a compute cluster by
 // resource name.
-func testGetComputeCluster(s *terraform.State, resourceName string) (*object.ClusterComputeResource, error) {
-	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceVSphereComputeClusterName, resourceName))
+func testGetComputeCluster(s *terraform.State, resourceName string, resourceType string) (*object.ClusterComputeResource, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceType, resourceName))
 	if err != nil {
 		return nil, err
 	}
 	return clustercomputeresource.FromID(vars.client, vars.resourceID)
+}
+
+// get cluster and vsanclient
+func testGetVsanClientCluster(s *terraform.State, resourceName string, resourceType string) (*object.ClusterComputeResource, *vsan.Client, error) {
+	vars, err := testClientVariablesForResource(s, fmt.Sprintf("%s.%s", resourceType, resourceName))
+	if err != nil {
+		return nil, nil, err
+	}
+	cluster, err := clustercomputeresource.FromID(vars.client, vars.resourceID)
+	if err != nil {
+		return nil, nil, err
+	}
+	return cluster, vars.vsanClient, err
 }
 
 // testGetComputeClusterFromDataSource is a convenience method to fetch a
@@ -844,11 +874,24 @@ func testGetComputeClusterFromDataSource(s *terraform.State, resourceName string
 // step to testGetComputeCluster to get the properties of a
 // ClusterComputeResource.
 func testGetComputeClusterProperties(s *terraform.State, resourceName string) (*mo.ClusterComputeResource, error) {
-	cluster, err := testGetComputeCluster(s, resourceName)
+	cluster, err := testGetComputeCluster(s, resourceName, resourceVSphereComputeClusterName)
 	if err != nil {
 		return nil, err
 	}
 	return clustercomputeresource.Properties(cluster)
+}
+
+// get vsanconfig from vsanclient
+func testGetComputeClusterVsanProperties(s *terraform.State, resourceName string) (*vsantypes.VsanConfigInfoEx, error) {
+	cluster, client, err := testGetVsanClientCluster(s, resourceName, resourceVSphereComputeClusterName)
+	if err != nil {
+		return nil, err
+	}
+	vsanConfig, err := vsanclient.GetVsanConfig(client, cluster.Reference())
+	if err != nil {
+		return nil, err
+	}
+	return vsanConfig, err
 }
 
 // testGetComputeClusterDRSVMConfig is a convenience method to fetch a VM's DRS
@@ -1132,31 +1175,30 @@ func testGetDatastoreClusterVMAntiAffinityRule(s *terraform.State, resourceName 
 	return resourceVSphereDatastoreClusterVMAntiAffinityRuleFindEntry(pod, key)
 }
 
-func testGetVmStoragePolicy(s *terraform.State, resourceName string) (string, error) {
-
+func testGetVMStoragePolicy(s *terraform.State, resourceName string) (string, error) {
 	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_vm_storage_policy.%s", resourceName))
 	if err != nil {
 		return "", err
 	}
-	policyId, ok := tVars.resourceAttributes["id"]
+	policyID, ok := tVars.resourceAttributes["id"]
 	if !ok {
 		return "", fmt.Errorf("resource %q has no id", resourceName)
 	}
 
-	return spbm.PolicyNameByID(tVars.client, policyId)
+	return spbm.PolicyNameByID(tVars.client, policyID)
 }
 
 func RunSweepers() {
-	tagSweep("")
-	dcSweep("")
-	vmSweep("")
-	rpSweep("")
-	dsSweep("")
-	netSweep("")
-	folderSweep("")
+	_ = tagSweep("")
+	_ = dcSweep("")
+	_ = vmSweep("")
+	_ = rpSweep("")
+	_ = dsSweep("")
+	_ = netSweep("")
+	_ = folderSweep("")
 }
 
-func tagSweep(r string) error {
+func tagSweep(string) error {
 	ctx := context.TODO()
 	client, err := sweepVSphereClient()
 	if err != nil {
@@ -1172,13 +1214,13 @@ func tagSweep(r string) error {
 	}
 	for _, cat := range cats {
 		if regexp.MustCompile("testacc").Match([]byte(cat.Name)) {
-			tm.DeleteCategory(ctx, &cat)
+			_ = tm.DeleteCategory(ctx, &cat)
 		}
 	}
 	return nil
 }
 
-func dcSweep(r string) error {
+func dcSweep(string) error {
 	client, err := sweepVSphereClient()
 	if err != nil {
 		return err
@@ -1198,7 +1240,7 @@ func dcSweep(r string) error {
 	return nil
 }
 
-func vmSweep(r string) error {
+func vmSweep(string) error {
 	client, err := sweepVSphereClient()
 	if err != nil {
 		return err
@@ -1209,14 +1251,14 @@ func vmSweep(r string) error {
 	}
 	for _, vm := range vms {
 		if regexp.MustCompile("testacc").Match([]byte(vm.Name())) {
-			virtualmachine.PowerOff(vm)
-			virtualmachine.Destroy(vm)
+			_ = virtualmachine.PowerOff(vm)
+			_ = virtualmachine.Destroy(vm)
 		}
 	}
 	return nil
 }
 
-func rpSweep(r string) error {
+func rpSweep(string) error {
 	client, err := sweepVSphereClient()
 	if err != nil {
 		return err
@@ -1233,7 +1275,7 @@ func rpSweep(r string) error {
 	return nil
 }
 
-func dsSweep(r string) error {
+func dsSweep(string) error {
 	client, err := sweepVSphereClient()
 	if err != nil {
 		return err
@@ -1250,7 +1292,7 @@ func dsSweep(r string) error {
 	return nil
 }
 
-func dspSweep(r string) error {
+func dspSweep(string) error {
 	client, err := sweepVSphereClient()
 	if err != nil {
 		return err
@@ -1267,7 +1309,7 @@ func dspSweep(r string) error {
 	return nil
 }
 
-func ccSweep(r string) error {
+func ccSweep(string) error {
 	client, err := sweepVSphereClient()
 	if err != nil {
 		return err
@@ -1284,7 +1326,7 @@ func ccSweep(r string) error {
 	return nil
 }
 
-func netSweep(r string) error {
+func netSweep(string) error {
 	client, err := sweepVSphereClient()
 	if err != nil {
 		return err
@@ -1304,25 +1346,7 @@ func netSweep(r string) error {
 	return nil
 }
 
-func folderSweep(r string) error {
-	client, err := sweepVSphereClient()
-	if err != nil {
-		return err
-	}
-	folders, err := folder.List(client.vimClient)
-	if err != nil {
-		return err
-	}
-	for _, f := range folders {
-		if regexp.MustCompile("testacc").Match([]byte(f.Name())) {
-			_, err = f.Destroy(context.TODO())
-			return err
-		}
-	}
-	return nil
-}
-
-func sessionSweep(r string) error {
+func folderSweep(string) error {
 	client, err := sweepVSphereClient()
 	if err != nil {
 		return err
@@ -1369,7 +1393,6 @@ func testGetVsphereEntityPermission(s *terraform.State, resourceName string) (st
 }
 
 func testGetVsphereRole(s *terraform.State, resourceName string) (string, error) {
-
 	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_role.%s", resourceName))
 	if err != nil {
 		return "", err
@@ -1379,18 +1402,18 @@ func testGetVsphereRole(s *terraform.State, resourceName string) (string, error)
 		return "", fmt.Errorf("resource %q has no id", resourceName)
 	}
 
-	roleIdInt, err := strconv.ParseInt(id, 10, 32)
+	roleIDInt, err := strconv.ParseInt(id, 10, 32)
 	if err != nil {
 		return "", fmt.Errorf("error while coverting role id %s from string to int %s", id, err)
 	}
-	roleId := int32(roleIdInt)
+	roleID := int32(roleIDInt)
 	authorizationManager := object.NewAuthorizationManager(tVars.client.Client)
 	roleList, err := authorizationManager.RoleList(context.Background())
 
 	if err != nil {
 		return "", fmt.Errorf("error while reading the role list %s", err)
 	}
-	role := roleList.ById(roleId)
+	role := roleList.ById(roleID)
 	if role == nil {
 		return "", fmt.Errorf("role not found")
 	}

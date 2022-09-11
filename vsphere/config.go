@@ -2,9 +2,10 @@ package vsphere
 
 import (
 	"context"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -14,29 +15,34 @@ import (
 
 	"github.com/vmware/govmomi/vapi/rest"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/pbm"
 	"github.com/vmware/govmomi/session"
 	"github.com/vmware/govmomi/session/cache"
+	"github.com/vmware/govmomi/session/keepalive"
 	"github.com/vmware/govmomi/vapi/tags"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/debug"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/govmomi/vsan"
 )
 
-// VSphereClient is the client connection manager for the vSphere provider. It
+// Client is the client connection manager for the vSphere provider. It
 // holds the connections to the various API endpoints we need to interface
 // with, such as the VMODL API through govmomi, and the REST SDK through
 // alternate libraries.
-type VSphereClient struct {
+type Client struct {
 	// The VIM/govmomi client.
 	vimClient *govmomi.Client
 
 	// The policy based management client
 	pbmClient *pbm.Client
+
+	// The vSAN client
+	vsanClient *vsan.Client
 
 	// The REST client used for tags and content library.
 	restClient *rest.Client
@@ -61,12 +67,12 @@ type VSphereClient struct {
 // Read call to determine if tags are supported on this connection, and if they
 // are, read them from the object and save them in the resource:
 //
-//   if tm, _ := meta.(*VSphereClient).TagsManager(); tm != nil {
-//     if err := readTagsForResource(restClient, obj, d); err != nil {
-//       return err
-//     }
-//   }
-func (c *VSphereClient) TagsManager() (*tags.Manager, error) {
+//	if tm, _ := meta.(*VSphereClient).TagsManager(); tm != nil {
+//	  if err := readTagsForResource(restClient, obj, d); err != nil {
+//	    return err
+//	  }
+//	}
+func (c *Client) TagsManager() (*tags.Manager, error) {
 	if err := viapi.ValidateVirtualCenter(c.vimClient); err != nil {
 		return nil, err
 	}
@@ -90,7 +96,7 @@ type Config struct {
 	VimSessionPath  string
 	RestSessionPath string
 	KeepAlive       int
-	ApiTimeout      time.Duration
+	APITimeout      time.Duration
 }
 
 // NewConfig returns a new Config from a supplied ResourceData.
@@ -109,7 +115,7 @@ func NewConfig(d *schema.ResourceData) (*Config, error) {
 	}
 
 	timeoutCfg := time.Duration(d.Get("api_timeout").(int))
-	timeout := time.Duration(timeoutCfg * time.Minute)
+	timeout := timeoutCfg * time.Minute
 
 	c := &Config{
 		User:            d.Get("user").(string),
@@ -123,7 +129,7 @@ func NewConfig(d *schema.ResourceData) (*Config, error) {
 		VimSessionPath:  d.Get("vim_session_path").(string),
 		RestSessionPath: d.Get("rest_session_path").(string),
 		KeepAlive:       d.Get("vim_keep_alive").(int),
-		ApiTimeout:      timeout,
+		APITimeout:      timeout,
 	}
 
 	return c, nil
@@ -142,8 +148,8 @@ func (c *Config) vimURL() (*url.URL, error) {
 }
 
 // Client returns a new client for accessing VMWare vSphere.
-func (c *Config) Client() (*VSphereClient, error) {
-	client := new(VSphereClient)
+func (c *Config) Client() (*Client, error) {
+	client := new(Client)
 
 	u, err := c.vimURL()
 	if err != nil {
@@ -195,6 +201,16 @@ func (c *Config) Client() (*VSphereClient, error) {
 		log.Printf("[DEBUG] Connected endpoint does not support policy based management")
 	}
 
+	if isEligibleVSANEndpoint(client.vimClient) {
+		vc, err := vsan.NewClient(ctx, client.vimClient.Client)
+		if err != nil {
+			return nil, err
+		}
+		client.vsanClient = vc
+	} else {
+		log.Printf("[DEBUG] Connected endpoint does not support vSAN service")
+	}
+
 	// Done, save sessions if we need to and return
 	if err := c.SaveVimClient(client.vimClient); err != nil {
 		return nil, fmt.Errorf("error persisting SOAP session to disk: %s", err)
@@ -203,16 +219,13 @@ func (c *Config) Client() (*VSphereClient, error) {
 		return nil, fmt.Errorf("error persisting REST session to disk: %s", err)
 	}
 
-	client.timeout = c.ApiTimeout
+	client.timeout = c.APITimeout
 
 	return client, nil
 }
 
 func (c *Config) restURL() (*cache.Session, error) {
 	u, err := url.Parse("https://" + c.VSphereServer)
-	if err != nil {
-		return nil, err
-	}
 	if err != nil {
 		return nil, err
 	}
@@ -236,6 +249,12 @@ func (c *Config) SavedRestSessionOrNew(s *cache.Session) (*rest.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Setup keepalive functionality
+	var f func() error
+	t := keepalive.NewHandlerREST(restClient, time.Duration(c.KeepAlive)*time.Minute, f)
+	t.Start()
+	restClient.Transport = t
+
 	log.Println("[DEBUG] CIS REST client configuration successful")
 	return restClient, nil
 }
@@ -303,7 +322,7 @@ func (c *Config) sessionFile() (string, error) {
 	// Key session file off of full URI and insecure setting.
 	// Hash key to get a predictable, canonical format.
 	key := fmt.Sprintf("%s#insecure=%t", u.String(), c.InsecureFlag)
-	name := fmt.Sprintf("%040x", sha1.Sum([]byte(key)))
+	name := fmt.Sprintf("%040x", sha256.Sum256([]byte(key)))
 	return name, nil
 }
 
@@ -507,11 +526,15 @@ func newClientWithKeepAlive(ctx context.Context, u *url.URL, insecure bool, keep
 }
 
 func restSessionValid(client *rest.Client) bool {
-	url := client.URL().String() + "/com/vmware/cis/session?~action=get"
-	resp, err := client.Post(url, "", nil)
+	sessionURL := client.URL().String() + "/com/vmware/cis/session?~action=get"
+	resp, err := client.Post(sessionURL, "", nil)
 	if err != nil || resp.StatusCode != 200 {
 		return false
 	}
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
+
 	return true
 }
 func readRestSession(path string) (string, error) {
@@ -549,14 +572,14 @@ func (c *Config) LoadAndVerifyRestSession(client *govmomi.Client) (*rest.Client,
 		if err != nil {
 			return nil, false, err
 		}
-		sessionId, err := readRestSession(restSessionFile)
+		sessionID, err := readRestSession(restSessionFile)
 		if err != nil {
 			return nil, false, err
 		}
-		if sessionId != "" {
+		if sessionID != "" {
 			newcookie := http.Cookie{
 				Name:  "vmware-api-session-id",
-				Value: sessionId,
+				Value: sessionID,
 			}
 			restClient = rest.NewClient(client.Client)
 			restClient.Jar.SetCookies(cookiePath, append(cookies, &newcookie))
@@ -565,16 +588,14 @@ func (c *Config) LoadAndVerifyRestSession(client *govmomi.Client) (*rest.Client,
 	if restSessionValid(restClient) {
 		log.Printf("[DEBUG] Existing REST session still active")
 		return restClient, true, nil
-	} else {
-		// Existing REST session is no longer valid. Reset the rest cookie.
-		log.Printf("[DEBUG] Existing REST session has expired")
-		newcookie := http.Cookie{
-			Name:   "vmware-api-session-id",
-			Value:  "",
-			MaxAge: -1,
-		}
-		restClient.Jar.SetCookies(cookiePath, []*http.Cookie{&newcookie})
-		return restClient, false, nil
 	}
-
+	// Existing REST session is no longer valid. Reset the rest cookie.
+	log.Printf("[DEBUG] Existing REST session has expired")
+	newcookie := http.Cookie{
+		Name:   "vmware-api-session-id",
+		Value:  "",
+		MaxAge: -1,
+	}
+	restClient.Jar.SetCookies(cookiePath, []*http.Cookie{&newcookie})
+	return restClient, false, nil
 }

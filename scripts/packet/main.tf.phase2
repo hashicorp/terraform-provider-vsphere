@@ -30,7 +30,26 @@ variable "PACKET_PROJECT" {}
 
 variable "PRIV_KEY" {}
 
-provider "packet" {
+variable "ESXI_VERSION" {
+  default = "vmware_esxi_7_0"
+}
+variable "PACKET_FACILITY" {
+  default = "sv"
+}
+
+variable ESXI_PLAN {
+  default = "c3.medium.x86"
+}
+
+variable STORAGE_PLAN {
+  default = "c3.small.x86"
+}
+
+variable LAB_PREFIX {
+  default = ""
+}
+
+provider "metal" {
   auth_token = var.PACKET_AUTH
 }
 
@@ -41,79 +60,102 @@ locals {
 provider "vsphere" {
   user                 = "administrator@vcenter.vspheretest.internal"
   password             = "Password123!"
-  vsphere_server       = cidrhost("${data.packet_device.esxi1.network.0.address}/${data.packet_device.esxi1.network.0.cidr}",3)
+  vsphere_server       = cidrhost("${data.metal_device.esxi1.network.0.address}/${data.metal_device.esxi1.network.0.cidr}",3)
   allow_unverified_ssl = true
 }
 
-data "packet_device" "esxi1" {
+data "metal_device" "esxi1" {
   project_id = local.project_id
-  hostname       = "esxi1.vspheretest.internal"
+  hostname       = "${var.LAB_PREFIX}esxi1.vspheretest.internal"
 }
 
+output "ip" {
+  value = cidrhost("${data.metal_device.esxi1.network.0.address}/${data.metal_device.esxi1.network.0.cidr}",3)
+}
 
-resource "packet_device" "esxi1" {
-  hostname         = "esxi1.vspheretest.internal"
-  plan             = "c3.medium.x86"
-  facilities         = ["sjc1"]
-  operating_system = "vmware_esxi_6_7"
+resource "metal_device" "esxi1" {
+  hostname         = "${var.LAB_PREFIX}esxi1.vspheretest.internal"
+  plan             = var.ESXI_PLAN
+  metro            = var.PACKET_FACILITY
+  operating_system = var.ESXI_VERSION
   billing_cycle    = "hourly"
   project_id       = local.project_id
 }
 
-resource "packet_device_network_type" "esxi1" {
-  device_id = packet_device.esxi1.id
+resource "metal_device_network_type" "esxi1" {
+  device_id = metal_device.esxi1.id
   type = "hybrid"
 }
 
-resource "packet_device" "esxi2" {
-  hostname         = "esxi2.vspheretest.internal"
-  plan             = "c3.medium.x86"
-  facilities         = ["sjc1"]
-  operating_system = "vmware_esxi_6_7"
+resource "metal_device" "esxi2" {
+  hostname         = "${var.LAB_PREFIX}esxi2.vspheretest.internal"
+  plan             = var.ESXI_PLAN
+  metro            = var.PACKET_FACILITY
+  operating_system = var.ESXI_VERSION
   billing_cycle    = "hourly"
   project_id       = local.project_id
 }
 
-resource "packet_device_network_type" "esxi2" {
-  device_id = packet_device.esxi2.id
+resource "metal_device_network_type" "esxi2" {
+  device_id = metal_device.esxi2.id
   type = "hybrid"
 }
 
-resource "packet_device" "storage1" {
-  hostname         = "storage1.vspheretest.internal"
-  plan             = "c1.small.x86"
-  facilities         = ["sjc1"]
+resource "metal_device" "storage1" {
+  hostname         = "${var.LAB_PREFIX}storage1.vspheretest.internal"
+  plan             = var.STORAGE_PLAN
+  metro            = var.PACKET_FACILITY
   operating_system = "ubuntu_20_04"
   billing_cycle    = "hourly"
   project_id       = local.project_id
   provisioner "remote-exec" {
     inline = [
-      "mkdir /nfs",
+      "mkdir -p /nfs/ds1 /nfs/ds2 /nfs/ds2 /nfs/ds3",
       "apt-get update",
       "apt-get install nfs-common nfs-kernel-server -y",
       "echo \"/nfs *(rw,no_root_squash)\" > /etc/exports",
+      "echo \"/nfs/ds1 *(rw,no_root_squash)\" >> /etc/exports",
+      "echo \"/nfs/ds2 *(rw,no_root_squash)\" >> /etc/exports",
+      "echo \"/nfs/ds3 *(rw,no_root_squash)\" >> /etc/exports",
       "exportfs -a",
     ]
     connection {
-      host = packet_device.storage1.network.0.address
-      private_key = var.PRIV_KEY
+      host = metal_device.storage1.network.0.address
+      private_key = file(var.PRIV_KEY)
     }
   }
 }
 
-data "packet_precreated_ip_block" "private" {
-  facility         = "sjc1"
-  project_id       = local.project_id
-  address_family   = 4
-  public           = false
+resource "metal_vlan" "vmvlan" {
+  metro      = var.PACKET_FACILITY
+  project_id = local.project_id
 }
 
-data "packet_precreated_ip_block" "public" {
-  facility         = "sjc1"
-  project_id       = local.project_id
-  address_family   = 4
-  public           = true
+resource "metal_port_vlan_attachment" "vmvlan_esxi1" {
+  device_id = metal_device.esxi1.id
+  port_name = "eth1"
+  vlan_vnid = metal_vlan.vmvlan.vxlan
 }
+
+resource "metal_port_vlan_attachment" "vmvlan_esxi2" {
+  device_id = metal_device.esxi2.id
+  port_name = "eth1"
+  vlan_vnid = metal_vlan.vmvlan.vxlan
+}
+
+# data "metal_precreated_ip_block" "private" {
+#   metro            = var.PACKET_FACILITY
+#   project_id       = local.project_id
+#   address_family   = 4
+#   public           = false
+# }
+
+# data "metal_precreated_ip_block" "public" {
+#   metro            = var.PACKET_FACILITY
+#   project_id       = local.project_id
+#   address_family   = 4
+#   public           = true
+# }
 
 resource "vsphere_resource_pool" "pool" {
   name                    = var.VSPHERE_RESOURCE_POOL
@@ -124,7 +166,7 @@ resource "vsphere_nas_datastore" "ds" {
   name            = var.VSPHERE_NFS_DS_NAME
   host_system_ids = [vsphere_host.host1.id, vsphere_host.host2.id]
   type            = "NFS"
-  remote_hosts    = [packet_device.storage1.network.0.address]
+  remote_hosts    = [metal_device.storage1.network.0.address]
   remote_path     = "/nfs"
 }
 
@@ -145,6 +187,8 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
     host_system_id = vsphere_host.host2.id
     devices        = [var.VSPHERE_ESXI_TRUNK_NIC]
   }
+
+  version = "7.0.0"
 }
 
 resource "vsphere_distributed_port_group" "pg" {
@@ -163,12 +207,12 @@ resource "vsphere_license" "license" {
 }
 
 data "vsphere_host_thumbprint" "esxi1" {  
-  address  = packet_device.esxi1.network.0.address
+  address  = metal_device.esxi1.network.0.address
   insecure = true
 }  
 
 data "vsphere_host_thumbprint" "esxi2" {  
-  address  = packet_device.esxi2.network.0.address
+  address  = metal_device.esxi2.network.0.address
   insecure = true
 }  
 
@@ -183,9 +227,9 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 }
 
 resource "vsphere_host" "host1" {
-  hostname   = packet_device.esxi1.network.0.address
+  hostname   = metal_device.esxi1.network.0.address
   username   = "root"
-  password   = packet_device.esxi1.root_password
+  password   = metal_device.esxi1.root_password
   license    = vsphere_license.license.license_key
   force      = true
   cluster    = vsphere_compute_cluster.compute_cluster.id
@@ -193,11 +237,42 @@ resource "vsphere_host" "host1" {
 }
 
 resource "vsphere_host" "host2" {
-  hostname   = packet_device.esxi2.network.0.address
+  hostname   = metal_device.esxi2.network.0.address
   username   = "root"
-  password   = packet_device.esxi2.root_password
+  password   = metal_device.esxi2.root_password
   license    = vsphere_license.license.license_key
   force      = true
   cluster    = vsphere_compute_cluster.compute_cluster.id
   thumbprint = data.vsphere_host_thumbprint.esxi2.id
+}
+
+data "vsphere_vmfs_disks" "available" {
+  host_system_id = vsphere_host.host1.id
+  rescan         = true
+  filter         = "naa."
+}
+
+resource "local_file" "devrc" {
+  sensitive_content = templatefile("${path.cwd}/devrc.tpl", {
+    nas_host    = metal_device.storage1.network.0.address
+    esxi_host_1 = metal_device.esxi1.network.0.address
+    esxi_host_2 = metal_device.esxi2.network.0.address
+    vsphere_host = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}",3)
+    vmfs_disk_0 = data.vsphere_vmfs_disks.available.disks[0]
+    vmfs_disk_1 = data.vsphere_vmfs_disks.available.disks[1]
+  })
+  filename = "./devrc"
+}
+
+resource "vsphere_content_library" "nested-library" {
+  name            = "nested esxi content library"
+  storage_backing = [vsphere_nas_datastore.ds.id]
+  description     = "https://www.virtuallyghetto.com/2015/04/subscribe-to-vghetto-nested-esxi-template-content-library-in-vsphere-6-0.html"
+}
+
+resource "vsphere_content_library_item" "n-esxi" {
+  name        = "nested esxi vm"
+  description = "nested esxi template"
+  library_id  = vsphere_content_library.nested-library.id
+  file_url = "https://s3-us-west-1.amazonaws.com/vghetto-content-library/Nested-ESXi-VM-Template/Nested-ESXi-VM-Template.ovf"
 }

@@ -2,7 +2,7 @@ version: 2
 
 references:
   images:
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/circleci/golang:1.16
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/circleci/golang:1.18
 
 jobs:
   build:
@@ -1449,7 +1449,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
     jobs:
       - linters
       - build
@@ -1493,7 +1493,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
     jobs:
       - linters
       - build
@@ -1540,7 +1540,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
     jobs:
       - linters
       - build
@@ -1593,7 +1593,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
     jobs:
       - linters
       - build
@@ -1637,7 +1637,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
     jobs:
       - linters
       - build

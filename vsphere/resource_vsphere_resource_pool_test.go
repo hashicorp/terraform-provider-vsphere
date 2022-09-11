@@ -3,12 +3,13 @@ package vsphere
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
@@ -30,9 +31,10 @@ func TestAccResourceVSphereResourcePool_basic(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      "vsphere_resource_pool.resource_pool",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "vsphere_resource_pool.resource_pool",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					rp, err := testGetResourcePool(s, "resource_pool")
 					if err != nil {
@@ -57,6 +59,7 @@ func TestAccResourceVSphereResourcePool_basic(t *testing.T) {
 					testAccResourceVSphereResourcePoolCheckCPULimit(20),
 					testAccResourceVSphereResourcePoolCheckMemoryShareLevel("custom"),
 					testAccResourceVSphereResourcePoolCheckMemoryShares(10),
+					resource.TestCheckResourceAttr("vsphere_resource_pool.resource_pool", "scale_descendants_shares", "scaleCpuAndMemoryShares"),
 				),
 			},
 		},
@@ -305,7 +308,7 @@ func testAccResourceVSphereResourcePoolCheckTags(tagResName string) resource.Tes
 		if err != nil {
 			return err
 		}
-		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsManager()
+		tagsClient, err := testAccProvider.Meta().(*Client).TagsManager()
 		if err != nil {
 			return err
 		}
@@ -378,45 +381,6 @@ func testAccResourceVSphereResourcePoolCheckCPUShares(value int) resource.TestCh
 	}
 }
 
-func testAccResourceVSphereResourcePoolCheckMemoryReservation(value int) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		props, err := testGetResourcePoolProperties(s, "resource_pool")
-		if err != nil {
-			return err
-		}
-		if *props.Config.MemoryAllocation.Reservation != *structure.Int64Ptr(int64(value)) {
-			return fmt.Errorf("MemoryAllocation.Reservation check failed. Expected: %d, got: %d", *props.Config.MemoryAllocation.Reservation, value)
-		}
-		return nil
-	}
-}
-
-func testAccResourceVSphereResourcePoolCheckMemoryExpandable(value bool) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		props, err := testGetResourcePoolProperties(s, "resource_pool")
-		if err != nil {
-			return err
-		}
-		if *props.Config.MemoryAllocation.ExpandableReservation != *structure.BoolPtr(value) {
-			return fmt.Errorf("MemoryAllocation.Expandable check failed. Expected: %t, got: %t", *props.Config.MemoryAllocation.ExpandableReservation, value)
-		}
-		return nil
-	}
-}
-
-func testAccResourceVSphereResourcePoolCheckMemoryLimit(value int) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		props, err := testGetResourcePoolProperties(s, "resource_pool")
-		if err != nil {
-			return err
-		}
-		if *props.Config.MemoryAllocation.Limit != *structure.Int64Ptr(int64(value)) {
-			return fmt.Errorf("MemoryAllocation.Limit check failed. Expected: %d, got: %d", *props.Config.MemoryAllocation.Limit, value)
-		}
-		return nil
-	}
-}
-
 func testAccResourceVSphereResourcePoolCheckMemoryShareLevel(value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		props, err := testGetResourcePoolProperties(s, "resource_pool")
@@ -475,7 +439,7 @@ resource "vsphere_resource_pool" "resource_pool" {
   parent_resource_pool_id = "${vsphere_resource_pool.alt_parent_resource_pool.id}"
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
 	)
 }
 
@@ -501,9 +465,10 @@ resource "vsphere_resource_pool" "resource_pool" {
   memory_reservation      = 10
   memory_expandable       = false
   memory_limit            = 20
+  scale_descendants_shares = "scaleCpuAndMemoryShares"
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
 	)
 }
 
@@ -525,7 +490,7 @@ resource "vsphere_resource_pool" "resource_pool" {
   parent_resource_pool_id = "${data.vsphere_host.host.resource_pool_id}"
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI2"),
 	)
 }
@@ -554,7 +519,7 @@ resource "vsphere_resource_pool" "resource_pool" {
   tags                    = ["${vsphere_tag.testacc-tag.id}"]
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
 	)
 }
 
@@ -572,7 +537,7 @@ resource "vsphere_resource_pool" "resource_pool" {
   parent_resource_pool_id = "${vsphere_resource_pool.parent_resource_pool.id}"
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
 	)
 }
 
@@ -590,6 +555,6 @@ resource "vsphere_resource_pool" "resource_pool" {
   parent_resource_pool_id = "${vsphere_resource_pool.parent_resource_pool.id}"
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
 	)
 }

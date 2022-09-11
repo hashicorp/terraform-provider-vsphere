@@ -3,8 +3,8 @@ terraform {
     local = {
       source = "hashicorp/local"
     }
-    packet = {
-      source = "terraform-providers/packet"
+    metal = {
+      source = "equinix/metal"
     }
     vsphere = {
       source = "hashicorp/vsphere"

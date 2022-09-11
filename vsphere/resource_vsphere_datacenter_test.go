@@ -4,32 +4,37 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/vmware/govmomi/find"
 )
 
 const testAccCheckVSphereDatacenterResourceName = "vsphere_datacenter.testDC"
 
-const testAccCheckVSphereDatacenterConfig = `
+func testAccCheckVSphereDatacenterConfig(name string) string {
+	return fmt.Sprintf(`
 resource "vsphere_datacenter" "testDC" {
-  name = "testDC"
-}
-`
-
-const testAccCheckVSphereDatacenterConfigSubfolder = `
-resource "vsphere_folder" "folder" {
   name = "%s"
+}
+`, name)
+}
+
+func testAccCheckVSphereDatacenterConfigSubfolder(name, folder string) string {
+	return fmt.Sprintf(`
+resource "vsphere_folder" "folder" {
+  path = "%s"
   type = "datacenter"
 }
 
 resource "vsphere_datacenter" "testDC" {
-  name   = "testDC"
-  folder = vsphere_folder.folder.name
+  name   = "%s"
+  folder = vsphere_folder.folder.path
 }
-`
+`, folder, name)
+}
 
 const testAccCheckVSphereDatacenterConfigTags = `
 resource "vsphere_tag_category" "testacc-category" {
@@ -129,15 +134,22 @@ resource "vsphere_datacenter" "testDC" {
 
 // Create a datacenter on the root folder
 func TestAccResourceVSphereDatacenter_createOnRootFolder(t *testing.T) {
-
+	name := "testDC"
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereDatacenterDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckVSphereDatacenterConfig,
+				Config: testAccCheckVSphereDatacenterConfig(name),
 				Check:  resource.ComposeTestCheckFunc(testAccCheckVSphereDatacenterExists(testAccCheckVSphereDatacenterResourceName, true)),
+			},
+			{
+				ResourceName:        testAccCheckVSphereDatacenterResourceName,
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: "/",
+				ImportStateId:       name,
 			},
 		},
 	})
@@ -146,6 +158,7 @@ func TestAccResourceVSphereDatacenter_createOnRootFolder(t *testing.T) {
 // Create a datacenter on a subfolder
 func TestAccResourceVSphereDatacenter_createOnSubfolder(t *testing.T) {
 	dcFolder := os.Getenv("TF_VAR_VSPHERE_DC_FOLDER")
+	name := "testDC"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -153,13 +166,20 @@ func TestAccResourceVSphereDatacenter_createOnSubfolder(t *testing.T) {
 		CheckDestroy: testAccCheckVSphereDatacenterDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(testAccCheckVSphereDatacenterConfigSubfolder, dcFolder),
+				Config: testAccCheckVSphereDatacenterConfigSubfolder(name, dcFolder),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVSphereDatacenterExists(
 						testAccCheckVSphereDatacenterResourceName,
 						true,
 					),
 				),
+			},
+			{
+				ResourceName:        testAccCheckVSphereDatacenterResourceName,
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: "/",
+				ImportStateId:       path.Join(dcFolder, name),
 			},
 		},
 	})
@@ -278,7 +298,7 @@ func TestAccResourceVSphereDatacenter_modifyCustomAttribute(t *testing.T) {
 }
 
 func testAccCheckVSphereDatacenterDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*VSphereClient).vimClient
+	client := testAccProvider.Meta().(*Client).vimClient
 	finder := find.NewFinder(client.Client, true)
 
 	for _, rs := range s.RootModule().Resources {
@@ -317,7 +337,7 @@ func testAccCheckVSphereDatacenterExists(n string, exists bool) resource.TestChe
 			return fmt.Errorf("no ID is set")
 		}
 
-		client := testAccProvider.Meta().(*VSphereClient).vimClient
+		client := testAccProvider.Meta().(*Client).vimClient
 		finder := find.NewFinder(client.Client, true)
 
 		path := rs.Primary.Attributes["name"]
@@ -349,7 +369,7 @@ func testAccResourceVSphereDatacenterCheckTags(tagResName string) resource.TestC
 		if err != nil {
 			return err
 		}
-		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsManager()
+		tagsClient, err := testAccProvider.Meta().(*Client).TagsManager()
 		if err != nil {
 			return err
 		}

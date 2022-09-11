@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
@@ -29,6 +29,11 @@ var resourcePoolMemorySharesLevelAllowedValues = []string{
 	string(types.SharesLevelNormal),
 	string(types.SharesLevelHigh),
 	string(types.SharesLevelCustom),
+}
+
+var resourcePoolScaleDescendantsSharesAllowedValues = []string{
+	string(types.ResourceConfigSpecScaleSharesBehaviorDisabled),
+	string(types.ResourceConfigSpecScaleSharesBehaviorScaleCpuAndMemoryShares),
 }
 
 func resourceVSphereResourcePool() *schema.Resource {
@@ -105,6 +110,13 @@ func resourceVSphereResourcePool() *schema.Resource {
 			Optional:    true,
 			Default:     -1,
 		},
+		"scale_descendants_shares": {
+			Type:         schema.TypeString,
+			Description:  "Determines if the shares of all descendants of the resource pool are scaled up or down when the shares of the resource pool are scaled up or down.",
+			Optional:     true,
+			Default:      string(types.ResourceConfigSpecScaleSharesBehaviorDisabled),
+			ValidateFunc: validation.StringInSlice(resourcePoolScaleDescendantsSharesAllowedValues, false),
+		},
 		vSphereTagAttributeKey:    tagsSchema(),
 		customattribute.ConfigKey: customattribute.ConfigSchema(),
 	}
@@ -143,7 +155,8 @@ func resourceVSphereResourcePoolCreate(d *schema.ResourceData, meta interface{})
 	if err != nil {
 		return err
 	}
-	rpSpec := expandResourcePoolConfigSpec(d)
+	version := viapi.ParseVersionFromClient(client)
+	rpSpec := expandResourcePoolConfigSpec(d, version)
 	rp, err := resourcepool.Create(prp, d.Get("name").(string), rpSpec)
 	if err != nil {
 		return err
@@ -159,6 +172,7 @@ func resourceVSphereResourcePoolCreate(d *schema.ResourceData, meta interface{})
 func resourceVSphereResourcePoolRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] %s: Beginning read", resourceVSphereResourcePoolIDString(d))
 	client, err := resourceVSphereResourcePoolClient(meta)
+	version := viapi.ParseVersionFromClient(client)
 	if err != nil {
 		return err
 	}
@@ -185,7 +199,7 @@ func resourceVSphereResourcePoolRead(d *schema.ResourceData, meta interface{}) e
 	if err = d.Set("parent_resource_pool_id", rpProps.Parent.Value); err != nil {
 		return err
 	}
-	err = flattenResourcePoolConfigSpec(d, rpProps.Config)
+	err = flattenResourcePoolConfigSpec(d, rpProps.Config, version)
 	if err != nil {
 		return err
 	}
@@ -219,8 +233,8 @@ func resourceVSphereResourcePoolUpdate(d *schema.ResourceData, meta interface{})
 		}
 		log.Printf("[DEBUG] %s: Move finished successfully", resourceVSphereResourcePoolIDString(d))
 	}
-
-	rpSpec := expandResourcePoolConfigSpec(d)
+	version := viapi.ParseVersionFromClient(client)
+	rpSpec := expandResourcePoolConfigSpec(d, version)
 	err = resourcepool.Update(rp, d.Get("name").(string), rpSpec)
 	if err != nil {
 		return err
@@ -257,7 +271,12 @@ func resourceVSphereResourcePoolIDString(d structure.ResourceIDStringer) string 
 	return structure.ResourceIDString(d, resourceVSphereResourcePoolName)
 }
 
-func flattenResourcePoolConfigSpec(d *schema.ResourceData, obj types.ResourceConfigSpec) error {
+func flattenResourcePoolConfigSpec(d *schema.ResourceData, obj types.ResourceConfigSpec, version viapi.VSphereVersion) error {
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0}) {
+		d.Set("scale_descendants_shares", obj.ScaleDescendantsShares)
+	} else {
+		d.Set("scale_descendants_shares", string(types.ResourceConfigSpecScaleSharesBehaviorDisabled))
+	}
 	err := flattenResourcePoolMemoryAllocation(d, obj.MemoryAllocation)
 	if err != nil {
 		return err
@@ -285,11 +304,16 @@ func flattenResourcePoolMemoryAllocation(d *schema.ResourceData, obj types.Resou
 	})
 }
 
-func expandResourcePoolConfigSpec(d *schema.ResourceData) *types.ResourceConfigSpec {
-	return &types.ResourceConfigSpec{
+func expandResourcePoolConfigSpec(d *schema.ResourceData, version viapi.VSphereVersion) *types.ResourceConfigSpec {
+	obj := &types.ResourceConfigSpec{
 		CpuAllocation:    expandResourcePoolCPUAllocation(d),
 		MemoryAllocation: expandResourcePoolMemoryAllocation(d),
 	}
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0}) {
+		obj.ScaleDescendantsShares = d.Get("scale_descendants_shares").(string)
+	}
+
+	return obj
 }
 
 func expandResourcePoolCPUAllocation(d *schema.ResourceData) types.ResourceAllocationInfo {
@@ -317,7 +341,7 @@ func expandResourcePoolMemoryAllocation(d *schema.ResourceData) types.ResourceAl
 }
 
 func resourceVSphereResourcePoolClient(meta interface{}) (*govmomi.Client, error) {
-	client := meta.(*VSphereClient).vimClient
+	client := meta.(*Client).vimClient
 	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return nil, err
 	}
@@ -356,7 +380,7 @@ func resourceVSphereResourcePoolApplyTags(d *schema.ResourceData, meta interface
 // resourceVSphereResourcePoolReadTags reads the tags for
 // vsphere_resource_pool.
 func resourceVSphereResourcePoolReadTags(d *schema.ResourceData, meta interface{}, rp *object.ResourcePool) error {
-	if tagsClient, _ := meta.(*VSphereClient).TagsManager(); tagsClient != nil {
+	if tagsClient, _ := meta.(*Client).TagsManager(); tagsClient != nil {
 		log.Printf("[DEBUG] %s: Reading tags", resourceVSphereResourcePoolIDString(d))
 		if err := readTagsForResource(tagsClient, rp, d); err != nil {
 			return err

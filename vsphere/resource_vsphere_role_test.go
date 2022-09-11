@@ -3,18 +3,19 @@ package vsphere
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-const ROLE_RESOURCE = "role1"
-const PRIVILEGE_1 = "Alarm.Acknowledge"
-const PRIVILEGE_2 = "Alarm.Create"
-const PRIVILEGE_3 = "Datacenter.Create"
-const PRIVILEGE_4 = "Datacenter.Move"
+const RoleResource = "role1"
+const Privilege1 = "Alarm.Acknowledge"
+const Privilege2 = "Alarm.Create"
+const Privilege3 = "Datacenter.Create"
+const Privilege4 = "Datacenter.Move"
 
 func TestAccResourceVsphereRole_basic(t *testing.T) {
 	roleName := "terraform_role" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
@@ -29,11 +30,11 @@ func TestAccResourceVsphereRole_basic(t *testing.T) {
 				Config: testAccResourceVsphereRoleConfigBasic(roleName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVsphereRoleCheckExists(true),
-					resource.TestCheckResourceAttr("vsphere_role."+ROLE_RESOURCE, "name", roleName),
-					resource.TestCheckResourceAttr("vsphere_role."+ROLE_RESOURCE, "role_privileges.0", PRIVILEGE_1),
-					resource.TestCheckResourceAttr("vsphere_role."+ROLE_RESOURCE, "role_privileges.1", PRIVILEGE_2),
-					resource.TestCheckResourceAttr("vsphere_role."+ROLE_RESOURCE, "role_privileges.2", PRIVILEGE_3),
-					resource.TestCheckResourceAttr("vsphere_role."+ROLE_RESOURCE, "role_privileges.3", PRIVILEGE_4),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "name", roleName),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.0", Privilege1),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.1", Privilege2),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.2", Privilege3),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.3", Privilege4),
 				),
 			},
 		},
@@ -42,7 +43,7 @@ func TestAccResourceVsphereRole_basic(t *testing.T) {
 
 func testAccResourceVsphereRoleCheckExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		_, err := testGetVsphereRole(s, ROLE_RESOURCE)
+		_, err := testGetVsphereRole(s, RoleResource)
 		if err != nil {
 			if strings.Contains(err.Error(), "role not found") && !expected {
 				// Expected missing
@@ -63,11 +64,11 @@ func testAccResourceVsphereRoleConfigBasic(roleName string) string {
   name = "%s"
   role_privileges = ["%s", "%s","%s","%s"]
 }
-`, ROLE_RESOURCE,
+`, RoleResource,
 		roleName,
-		PRIVILEGE_1,
-		PRIVILEGE_2,
-		PRIVILEGE_3,
-		PRIVILEGE_4,
+		Privilege1,
+		Privilege2,
+		Privilege3,
+		Privilege4,
 	)
 }

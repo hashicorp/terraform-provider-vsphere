@@ -3,12 +3,12 @@ package vsphere
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 )
 
@@ -50,9 +50,6 @@ func testAccResourceVSphereVirtualMachineSnapshotPreCheck(t *testing.T) {
 	if os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL") == "" {
 		t.Skip("set TF_VAR_VSPHERE_RESOURCE_POOL to run vsphere_virtual_machine_snapshot acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_NETWORK_LABEL") == "" {
-		t.Skip("set TF_VAR_VSPHERE_NETWORK_LABEL to run vsphere_virtual_machine_snapshot acceptance tests")
-	}
 	if os.Getenv("TF_VAR_VSPHERE_IPV4_ADDRESS") == "" {
 		t.Skip("set TF_VAR_VSPHERE_IPV4_ADDRESS to run vsphere_virtual_machine_snapshot acceptance tests")
 	}
@@ -80,7 +77,7 @@ func snapshotExists(n string, s *terraform.State) (bool, error) {
 	if rs.Primary.ID == "" {
 		return false, fmt.Errorf("No Vm Snapshot ID is set")
 	}
-	client := testAccProvider.Meta().(*VSphereClient).vimClient
+	client := testAccProvider.Meta().(*Client).vimClient
 
 	vm, err := virtualmachine.FromUUID(client, rs.Primary.Attributes["virtual_machine_uuid"])
 	if err != nil {
@@ -94,7 +91,6 @@ func snapshotExists(n string, s *terraform.State) (bool, error) {
 	}
 
 	return true, nil
-
 }
 
 func testAccCheckVirtualMachineSnapshotExists(n string, exists bool) resource.TestCheckFunc {
@@ -122,7 +118,7 @@ func testAccCheckVirtualMachineHasNoSnapshots(n string) resource.TestCheckFunc {
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("No VM ID is set")
 		}
-		client := testAccProvider.Meta().(*VSphereClient).vimClient
+		client := testAccProvider.Meta().(*Client).vimClient
 
 		vm, err := virtualmachine.FromUUID(client, rs.Primary.Attributes["uuid"])
 		if err != nil {

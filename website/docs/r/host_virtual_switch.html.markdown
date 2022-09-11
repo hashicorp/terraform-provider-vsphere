@@ -18,7 +18,7 @@ For an overview on vSphere networking concepts, see [this
 page][ref-vsphere-net-concepts].
 
 [host-port-group]: /docs/providers/vsphere/r/host_port_group.html
-[ref-vsphere-net-concepts]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.networking.doc/GUID-2B11DBB8-CB3C-4AFF-8885-EFEA0FC562F4.html
+[ref-vsphere-net-concepts]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.networking.doc/GUID-2B11DBB8-CB3C-4AFF-8885-EFEA0FC562F4.html
 
 ## Example Usages
 
@@ -130,7 +130,7 @@ probing (configured with [`check_beacon`](#check_beacon)).
 
 * `active_nics` - (Required) The list of active network adapters used for load
   balancing.
-* `standby_nics` - (Required) The list of standby network adapters used for
+* `standby_nics` - (Optional) The list of standby network adapters used for
   failover.
 * `check_beacon` - (Optional) Enable beacon probing - this requires that the
   [`beacon_interval`](#beacon_interval) option has been set in the bridge

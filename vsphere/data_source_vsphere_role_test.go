@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccDataSourceVSphereRole_basic(t *testing.T) {
@@ -58,9 +58,9 @@ data "vsphere_role" "role1" {
   label = vsphere_role.test-role.label
 }
 `,
-		PRIVILEGE_1,
-		PRIVILEGE_2,
-		PRIVILEGE_3,
-		PRIVILEGE_4,
+		Privilege1,
+		Privilege2,
+		Privilege3,
+		Privilege4,
 	)
 }

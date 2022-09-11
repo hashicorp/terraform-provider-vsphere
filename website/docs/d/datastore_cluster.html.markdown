@@ -1,20 +1,21 @@
 ---
+subcategory: "Storage"
 layout: "vsphere"
 page_title: "VMware vSphere: vsphere_datastore_cluster"
 sidebar_current: "docs-vsphere-data-source-cluster-datastore"
 description: |-
-  Provides a vSphere datastore cluster data source. This can be used to get the general attributes of a vSphere datastore cluster.
+  Provides a data source to return the ID of a vSphere datastore cluster object.
 ---
 
 # vsphere\_datastore\_cluster
 
 The `vsphere_datastore_cluster` data source can be used to discover the ID of a
-datastore cluster in vSphere. This is useful to fetch the ID of a datastore
-cluster that you want to use to assign datastores to using the
+vSphere datastore cluster object. This can then be used with resources or data sources
+that require a datastore. For example, to assign datastores using the
 [`vsphere_nas_datastore`][docs-nas-datastore-resource] or
-[`vsphere_vmfs_datastore`][docs-vmfs-datastore-resource] resources, or create
+[`vsphere_vmfs_datastore`][docs-vmfs-datastore-resource] resources, or to create
 virtual machines in using the
-[`vsphere_virtual_machine`][docs-virtual-machine-resource] resource. 
+[`vsphere_virtual_machine`][docs-virtual-machine-resource] resource.
 
 [docs-nas-datastore-resource]: /docs/providers/vsphere/r/nas_datastore.html
 [docs-vmfs-datastore-resource]: /docs/providers/vsphere/r/vmfs_datastore.html
@@ -24,12 +25,12 @@ virtual machines in using the
 
 ```hcl
 data "vsphere_datacenter" "datacenter" {
-  name = "dc1"
+  name = "dc-01"
 }
 
 data "vsphere_datastore_cluster" "datastore_cluster" {
-  name          = "datastore-cluster1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "datastore-cluster-01"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 ```
 
@@ -48,5 +49,5 @@ The following arguments are supported:
 
 ## Attribute Reference
 
-Currently, the only exported attribute from this data source is `id`, which
-represents the ID of the datastore cluster that was looked up.
+The only exported attribute from this data source is `id`, which represents the
+ID of the datastore cluster.

@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 var testAccDataSourceVSphereFolderExpectedRegexp = regexp.MustCompile("^group-v")
@@ -57,7 +57,3 @@ data "vsphere_folder" "folder" {
 }
 `, os.Getenv("TF_VAR_VSPHERE_DATACENTER"))
 }
-
-const testAccDataSourceVSphereFolderConfigDefault = `
-data "vsphere_datacenter" "dc" {}
-`

@@ -7,11 +7,10 @@ import (
 	"path"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/vim25/types"
@@ -45,7 +44,7 @@ func TestAccResourceVSphereComputeCluster_basic(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					cluster, err := testGetComputeCluster(s, "compute_cluster")
+					cluster, err := testGetComputeCluster(s, "compute_cluster", resourceVSphereComputeClusterName)
 					if err != nil {
 						return "", err
 					}
@@ -104,6 +103,175 @@ func TestAccResourceVSphereComputeCluster_drsHAEnabled(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereComputeCluster_vsanDedupEnabled(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterConfigVSANDedupEnabledCompressEnabled(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					testAccResourceVSphereComputeClusterCheckDedupEnabled(true),
+					testAccResourceVSphereComputeClusterCheckCompressionEnabled(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereComputeCluster_vsanCompressionEnabled(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterConfigVSANCompressionEnabledOnly(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					testAccResourceVSphereComputeClusterCheckDedupEnabled(false),
+					testAccResourceVSphereComputeClusterCheckCompressionEnabled(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereComputeCluster_vsanPerfEnabled(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterConfigVSANPerfEnabled(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					testAccResourceVSphereComputeClusterCheckPerfEnabled(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereComputeCluster_vsanPerfVerboseEnabled(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterConfigVSANPerfVerboseEnabled(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					testAccResourceVSphereComputeClusterCheckPerfEnabled(true),
+					testAccResourceVSphereComputeClusterCheckVerboseEnabled(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereComputeCluster_vsanPerfVerboseDiagnosticEnabled(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterConfigVSANPerfVerboseDiagnosticEnabled(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					testAccResourceVSphereComputeClusterCheckPerfEnabled(true),
+					testAccResourceVSphereComputeClusterCheckVerboseEnabled(true),
+					testAccResourceVSphereComputeClusterCheckDiagnoseEnabled(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereComputeCluster_vsanUnmapEnabledwithVsanEnabled(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterConfigVSANUnmapEnabledwithVsanEnabled(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					testAccResourceVSphereComputeClusterCheckUnmapEnabled(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereComputeCluster_vsanUnmapDisabledwithVsanDisabled(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterConfigVSANUnmapEnabledwithVsanEnabled(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					testAccResourceVSphereComputeClusterCheckVsanEnabled(true),
+					testAccResourceVSphereComputeClusterCheckUnmapEnabled(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereComputeClusterConfigVSANUnmapEnabledwithVsanDisabled(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					testAccResourceVSphereComputeClusterCheckVsanEnabled(false),
+					testAccResourceVSphereComputeClusterCheckUnmapEnabled(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereComputeClusterConfigVSANUnmapDisabledwithVsanDisabled(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					testAccResourceVSphereComputeClusterCheckVsanEnabled(false),
+					testAccResourceVSphereComputeClusterCheckUnmapEnabled(false),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereComputeCluster_explicitFailoverHost(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -121,7 +289,7 @@ func TestAccResourceVSphereComputeCluster_explicitFailoverHost(t *testing.T) {
 					testAccResourceVSphereComputeClusterCheckDRSEnabled(true),
 					testAccResourceVSphereComputeClusterCheckHAEnabled(true),
 					testAccResourceVSphereComputeClusterCheckAdmissionControlMode(clusterAdmissionControlTypeFailoverHosts),
-					testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(os.Getenv("TF_VAR_VSPHERE_ESXI_HOST1")),
+					testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(os.Getenv("TF_VAR_VSPHERE_ESXI3")),
 				),
 			},
 		},
@@ -349,11 +517,11 @@ func testAccResourceVSphereComputeClusterPreCheck(t *testing.T) {
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_compute_cluster acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_ESXI1") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI1 to run vsphere_compute_cluster acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_ESXI3") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI3 to run vsphere_compute_cluster acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_ESXI2") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI2 to run vsphere_compute_cluster acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_ESXI4") == "" {
+		t.Skip("set TF_VAR_VSPHERE_ESXI4 to run vsphere_compute_cluster acceptance tests")
 	}
 	if os.Getenv("TF_VAR_VSPHERE_PG_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_PG_NAME to run vsphere_virtual_machine acceptance tests")
@@ -365,7 +533,7 @@ func testAccResourceVSphereComputeClusterPreCheck(t *testing.T) {
 
 func testAccResourceVSphereComputeClusterCheckExists(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		_, err := testGetComputeCluster(s, "compute_cluster")
+		_, err := testGetComputeCluster(s, "compute_cluster", resourceVSphereComputeClusterName)
 		if err != nil {
 			if viapi.IsManagedObjectNotFoundError(err) && expected == false {
 				// Expected missing
@@ -403,6 +571,102 @@ func testAccResourceVSphereComputeClusterCheckHAEnabled(expected bool) resource.
 		actual := *props.ConfigurationEx.(*types.ClusterConfigInfoEx).DasConfig.Enabled
 		if expected != actual {
 			return fmt.Errorf("expected enabled to be %t, got %t", expected, actual)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereComputeClusterCheckVsanEnabled(expected bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetComputeClusterProperties(s, "compute_cluster")
+		if err != nil {
+			return err
+		}
+		actual := *props.ConfigurationEx.(*types.ClusterConfigInfoEx).VsanConfigInfo.Enabled
+		if expected != actual {
+			return fmt.Errorf("expected enabled to be %t, got %t", expected, actual)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereComputeClusterCheckDedupEnabled(expected bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
+		if err != nil {
+			return err
+		}
+		actual := props.DataEfficiencyConfig.DedupEnabled
+		if expected != actual {
+			return fmt.Errorf("expected enabled to be %t, got %t", expected, actual)
+		}
+		return nil
+	}
+}
+func testAccResourceVSphereComputeClusterCheckPerfEnabled(expected bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
+		if err != nil {
+			return err
+		}
+		actual := props.PerfsvcConfig.Enabled
+		if expected != actual {
+			return fmt.Errorf("expected enabled to be %t, got %t", expected, actual)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereComputeClusterCheckVerboseEnabled(expected bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
+		if err != nil {
+			return err
+		}
+		actual := props.PerfsvcConfig.VerboseMode
+		if expected != *actual {
+			return fmt.Errorf("expected enabled to be %t, got %t", expected, *actual)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereComputeClusterCheckUnmapEnabled(expected bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
+		if err != nil {
+			return err
+		}
+		actual := props.UnmapConfig.Enable
+		if expected != actual {
+			return fmt.Errorf("expected enabled to be %t, got %t", expected, actual)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereComputeClusterCheckDiagnoseEnabled(expected bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
+		if err != nil {
+			return err
+		}
+		actual := props.PerfsvcConfig.DiagnosticMode
+		if expected != *actual {
+			return fmt.Errorf("expected enabled to be %t, got %t", expected, *actual)
+		}
+		return nil
+	}
+}
+func testAccResourceVSphereComputeClusterCheckCompressionEnabled(expected bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
+		if err != nil {
+			return err
+		}
+		actual := props.DataEfficiencyConfig.CompressionEnabled
+		if expected != *actual {
+			return fmt.Errorf("expected enabled to be %t, got %t", expected, *actual)
 		}
 		return nil
 	}
@@ -454,7 +718,7 @@ func testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(expec
 			return errors.New("no failover hosts")
 		}
 
-		client := testAccProvider.Meta().(*VSphereClient).vimClient
+		client := testAccProvider.Meta().(*Client).vimClient
 		hs, err := hostsystem.FromID(client, failoverHostsPolicy.FailoverHosts[0].Value)
 		if err != nil {
 			return err
@@ -465,7 +729,7 @@ func testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(expec
 			return fmt.Errorf("expected failover host name to be %s, got %s", expected, actual)
 		}
 
-		if failoverHostsPolicy.ResourceReductionToToleratePercent != structure.Int32Ptr(0) {
+		if *failoverHostsPolicy.ResourceReductionToToleratePercent != 0 {
 			return fmt.Errorf("expected ha_admission_control_performance_tolerance be 0, got %d", failoverHostsPolicy.ResourceReductionToToleratePercent)
 		}
 
@@ -475,7 +739,7 @@ func testAccResourceVSphereComputeClusterCheckAdmissionControlFailoverHost(expec
 
 func testAccResourceVSphereComputeClusterCheckName(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		cluster, err := testGetComputeCluster(s, "compute_cluster")
+		cluster, err := testGetComputeCluster(s, "compute_cluster", resourceVSphereComputeClusterName)
 		if err != nil {
 			return err
 		}
@@ -489,7 +753,7 @@ func testAccResourceVSphereComputeClusterCheckName(expected string) resource.Tes
 
 func testAccResourceVSphereComputeClusterMatchInventoryPath(expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		cluster, err := testGetComputeCluster(s, "compute_cluster")
+		cluster, err := testGetComputeCluster(s, "compute_cluster", resourceVSphereComputeClusterName)
 		if err != nil {
 			return err
 		}
@@ -506,27 +770,13 @@ func testAccResourceVSphereComputeClusterMatchInventoryPath(expected string) res
 	}
 }
 
-func testAccResourceVSphereComputeClusterCheckDRSDefaultAutomationLevel(expected types.DrsBehavior) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		props, err := testGetComputeClusterProperties(s, "compute_cluster")
-		if err != nil {
-			return err
-		}
-		actual := props.ConfigurationEx.(*types.ClusterConfigInfoEx).DrsConfig.DefaultVmBehavior
-		if expected != actual {
-			return fmt.Errorf("expected default automation level to be %q got %q", expected, actual)
-		}
-		return nil
-	}
-}
-
 func testAccResourceVSphereComputeClusterCheckTags(tagResName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		cluster, err := testGetComputeCluster(s, "compute_cluster")
+		cluster, err := testGetComputeCluster(s, "compute_cluster", resourceVSphereComputeClusterName)
 		if err != nil {
 			return err
 		}
-		tagsClient, err := testAccProvider.Meta().(*VSphereClient).TagsManager()
+		tagsClient, err := testAccProvider.Meta().(*Client).TagsManager()
 		if err != nil {
 			return err
 		}
@@ -561,30 +811,246 @@ func testAccResourceVSphereComputeClusterConfigHAAdmissionControlPolicyDisabled(
 	return fmt.Sprintf(`
 %s
 
-variable "hosts" {
-  default = [
-    "%s",
-  ]
-}
-
-data "vsphere_host" "hosts" {
-  count         = "${length(var.hosts)}"
-  name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-}
-
 resource "vsphere_compute_cluster" "compute_cluster" {
   name                        = "testacc-compute-cluster"
   datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids             = "${data.vsphere_host.hosts.*.id}"
+  host_system_ids             = [data.vsphere_host.roothost3.id]
   ha_enabled                  = true
   ha_admission_control_policy = "disabled"
 
   force_evacuate_on_destroy = true
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigResNestedEsxi()),
-		os.Getenv("TF_VAR_VSPHERE_ESXI_NESTED1"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootHost2(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootVMNet(),
+		),
+	)
+}
+
+func testAccResourceVSphereComputeClusterConfigVSANDedupEnabledCompressEnabled() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                        = "testacc-compute-cluster"
+  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
+  host_system_ids             = [data.vsphere_host.roothost3.id]
+  
+  vsan_enabled = true
+  vsan_dedup_enabled = true
+  vsan_compression_enabled = true
+  force_evacuate_on_destroy = true
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootHost4(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootVMNet(),
+		),
+	)
+}
+
+func testAccResourceVSphereComputeClusterConfigVSANCompressionEnabledOnly() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                        = "testacc-compute-cluster"
+  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
+  host_system_ids             = [data.vsphere_host.roothost3.id]
+
+  vsan_enabled = true
+  vsan_dedup_enabled = false
+  vsan_compression_enabled = true
+  force_evacuate_on_destroy = true
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootHost4(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootVMNet(),
+		),
+	)
+}
+
+func testAccResourceVSphereComputeClusterConfigVSANPerfEnabled() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                        = "testacc-compute-cluster"
+  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
+  host_system_ids             = [data.vsphere_host.roothost3.id]
+
+  vsan_enabled = true
+  vsan_performance_enabled = true
+  force_evacuate_on_destroy = true
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootHost4(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootVMNet(),
+		),
+	)
+}
+
+func testAccResourceVSphereComputeClusterConfigVSANPerfVerboseEnabled() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                        = "testacc-compute-cluster"
+  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
+  host_system_ids             = [data.vsphere_host.roothost3.id]
+
+  vsan_enabled = true
+  vsan_performance_enabled = true
+  vsan_verbose_mode_enabled = true
+  force_evacuate_on_destroy = true
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootHost4(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootVMNet(),
+		),
+	)
+}
+
+func testAccResourceVSphereComputeClusterConfigVSANPerfVerboseDiagnosticEnabled() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                        = "testacc-compute-cluster"
+  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
+  host_system_ids             = [data.vsphere_host.roothost3.id]
+
+  vsan_enabled = true
+  vsan_performance_enabled = true
+  vsan_verbose_mode_enabled = true
+  vsan_network_diagnostic_mode_enabled = true
+  force_evacuate_on_destroy = true
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootHost4(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootVMNet(),
+		),
+	)
+}
+
+func testAccResourceVSphereComputeClusterConfigVSANUnmapEnabledwithVsanEnabled() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                        = "testacc-compute-cluster"
+  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
+  host_system_ids             = [data.vsphere_host.roothost3.id]
+
+  vsan_enabled = true
+  vsan_unmap_enabled = true
+  force_evacuate_on_destroy = true
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootHost4(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootVMNet(),
+		),
+	)
+}
+
+func testAccResourceVSphereComputeClusterConfigVSANUnmapEnabledwithVsanDisabled() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                        = "testacc-compute-cluster"
+  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
+  host_system_ids             = [data.vsphere_host.roothost3.id]
+
+  vsan_enabled = false
+  vsan_unmap_enabled = true
+  force_evacuate_on_destroy = true
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootHost4(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootVMNet(),
+		),
+	)
+}
+
+func testAccResourceVSphereComputeClusterConfigVSANUnmapDisabledwithVsanDisabled() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                        = "testacc-compute-cluster"
+  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
+  host_system_ids             = [data.vsphere_host.roothost3.id]
+
+  vsan_enabled = false
+  vsan_unmap_enabled = false
+  force_evacuate_on_destroy = true
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootHost4(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootVMNet(),
+		),
 	)
 }
 
@@ -592,44 +1058,26 @@ func testAccResourceVSphereComputeClusterConfigBasic() string {
 	return fmt.Sprintf(`
 %s
 
-data "vsphere_host" "hosts" {
-  count         = 1
-  name          = vsphere_host.nested-esxi1.hostname
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
-}
-
 resource "vsphere_compute_cluster" "compute_cluster" {
   name            = "testacc-compute-cluster"
   datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids = [ vsphere_host.nested-esxi1.name ]
+  host_system_ids = [ data.vsphere_host.roothost3.id ]
 
   force_evacuate_on_destroy = true
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigResNestedEsxi(), testhelper.ConfigDataRootDS1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigDataRootVMNet()),
-	)
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost3()))
 }
 
 func testAccResourceVSphereComputeClusterConfigDRSHABasic() string {
 	return fmt.Sprintf(`
 %s
 
-variable "hosts" {
-  default = [
-    "%s",
-  ]
-}
-
-data "vsphere_host" "hosts" {
-  count         = "${length(var.hosts)}"
-  name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-}
-
 resource "vsphere_compute_cluster" "compute_cluster" {
   name            = "testacc-compute-cluster"
   datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids = "${data.vsphere_host.hosts.*.id}"
+  host_system_ids = [data.vsphere_host.roothost3.id]
 
   drs_enabled          = true
   drs_automation_level = "fullyAutomated"
@@ -639,8 +1087,15 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 	force_evacuate_on_destroy = true
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigResNestedEsxi()),
-		os.Getenv("TF_VAR_VSPHERE_ESXI_NESTED1"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootHost2(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootVMNet(),
+		),
 	)
 }
 
@@ -648,36 +1103,31 @@ func testAccResourceVSphereComputeClusterConfigDRSHABasicExplicitFailoverHost() 
 	return fmt.Sprintf(`
 %s
 
-variable "hosts" {
-  default = [
-    "%s",
-  ]
-}
-
-data "vsphere_host" "hosts" {
-  count         = "${length(var.hosts)}"
-  name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-}
-
 resource "vsphere_compute_cluster" "compute_cluster" {
   name            = "testacc-compute-cluster"
   datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids = "${data.vsphere_host.hosts.*.id}"
+  host_system_ids = [data.vsphere_host.roothost3.id, data.vsphere_host.roothost4.id]
 
   drs_enabled          = true
   drs_automation_level = "fullyAutomated"
 
   ha_enabled                                    = true
   ha_admission_control_policy                   = "failoverHosts"
-  ha_admission_control_failover_host_system_ids = "${data.vsphere_host.hosts.*.id}"
+  ha_admission_control_failover_host_system_ids = [data.vsphere_host.roothost3.id]
   ha_admission_control_performance_tolerance    = 0
 
   force_evacuate_on_destroy = true
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigResNestedEsxi()),
-		os.Getenv("TF_VAR_VSPHERE_ESXI_NESTED1"),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootHost4(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootVMNet(),
+		),
 	)
 }
 
