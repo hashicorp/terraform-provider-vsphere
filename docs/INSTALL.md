@@ -137,7 +137,7 @@ The following example uses Bash (default) on macOS (Intel).
 
     > **Note**
     >
-    > The directory hierarchy that Terraform use to precisely determine the source of each provider it finds locally.
+    > The directory hierarchy that Terraform uses to precisely determine the source of each provider it finds locally.
     >
     > `$PLUGIN_DIRECTORY/$SOURCEHOSTNAME/$SOURCENAMESPACE/$NAME/$VERSION/$OS_$ARCH/`
 
@@ -181,7 +181,7 @@ The following examples use PowerShell on Windows (x64).
 
     > **Note**
     >
-    > The directory directory hierarchy that Terraform use to precisely determine the source of each provider it finds locally.
+    > The directory directory hierarchy that Terraform uses to precisely determine the source of each provider it finds locally.
     >
     > `$PLUGIN_DIRECTORY/$SOURCEHOSTNAME/$SOURCENAMESPACE/$NAME/$VERSION/$OS_$ARCH/`
 
