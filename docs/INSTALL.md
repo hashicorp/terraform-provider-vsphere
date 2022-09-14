@@ -4,7 +4,7 @@ This document assumes the use of Terraform 0.13 or later.
 
 ## Automated Installation (Recommended)
 
-The Terraform Provider for vSphere is an official provider. Official providers are maintained by the Terraform team at [HashiCorp][hashicorp] and are listed on the [Terraform Registry][terraform-registry]. 
+The Terraform Provider for vSphere is an official provider. Official providers are maintained by the Terraform team at [HashiCorp][hashicorp] and are listed on the [Terraform Registry][terraform-registry].
 
 ### Configure the Terraform Configuration Files
 
@@ -23,7 +23,7 @@ terraform {
 }
 ```
 
-You can use `version` locking and operators to require specific versions of the provider. 
+You can use `version` locking and operators to require specific versions of the provider.
 
 **Example**: A Terraform configuration block with the provider versions.
 
@@ -64,7 +64,7 @@ Terraform has been successfully initialized!
 
 ## Manual Installation
 
-The [latest release][latest-release] of the provider can be found on the GitHub repository [releases][releases]. You can download the appropriate version of the provider for your operating system using a command line shell or a browser. 
+The latest release of the provider can be found on [`releases.hashicorp.com`][releases]. You can download the appropriate version of the provider for your operating system using a command line shell or a browser.
 
 This can be useful in environments that do not allow direct access to the Internet.
 
@@ -72,11 +72,11 @@ This can be useful in environments that do not allow direct access to the Intern
 
 The following examples use Bash on Linux (x64).
 
-1. On an a Linux operating system with Internet access, download the plugin from GitHub using the shell. 
+1. On an a Linux operating system with Internet access, download the plugin from GitHub using the shell.
 
     ```console
     RELEASE=x.y.z
-    wget -q https://github.com/hashicorp/terraform-provider-vsphere/releases/download/v${RELEASE}/terraform-provider-vsphere_${RELEASE}_linux_amd64.zip
+    wget -q https://releases.hashicorp.com/terraform-provider-vsphere/${RELEASE}/terraform-provider-vsphere_${RELEASE}_linux_amd64.zip
     ```
 
 2. Extract the plugin.
@@ -84,9 +84,13 @@ The following examples use Bash on Linux (x64).
     ```console
     tar xvf terraform-provider-vsphere_${RELEASE}_linux_amd64.zip
     ```
+
 3. Create a directory for the provider.
 
-    >**Note**: The directory hierarchy that Terraform use to precisely determine the source of each provider it finds locally.<br/>
+    > **Note**
+    >
+    > The directory hierarchy that Terraform uses to precisely determine the source of each provider it finds locally.
+    >
     > `$PLUGIN_DIRECTORY/$SOURCEHOSTNAME/$SOURCENAMESPACE/$NAME/$VERSION/$OS_$ARCH/`
 
     ```console
@@ -116,11 +120,11 @@ The following example uses Bash (default) on macOS (Intel).
     brew install wget
     ```
 
-2. Download the plugin from GitHub using the shell. 
+2. Download the plugin from GitHub using the shell.
 
     ```console
-    RELEASE=x.y.x
-    wget -q https://github.com/hashicorp/terraform-provider-vsphere/releases/download/v${RELEASE}/terraform-provider-vsphere_${RELEASE}_darwin_amd64.zip
+    RELEASE=2.2.0
+    wget -q https://releases.hashicorp.com/terraform-provider-vsphere/${RELEASE}/terraform-provider-vsphere_${RELEASE}_darwin_amd64.zip
     ```
 
 3. Extract the plugin.
@@ -128,9 +132,13 @@ The following example uses Bash (default) on macOS (Intel).
     ```console
     tar xvf terraform-provider-vsphere_${RELEASE}_darwin_amd64.zip
     ```
+
 4. Create a directory for the provider.
 
-    >**Note**: The directory hierarchy that Terraform use to precisely determine the source of each provider it finds locally.<br/>
+    > **Note**
+    >
+    > The directory hierarchy that Terraform uses to precisely determine the source of each provider it finds locally.
+    >
     > `$PLUGIN_DIRECTORY/$SOURCEHOSTNAME/$SOURCENAMESPACE/$NAME/$VERSION/$OS_$ARCH/`
 
     ```console
@@ -154,11 +162,11 @@ The following example uses Bash (default) on macOS (Intel).
 
 The following examples use PowerShell on Windows (x64).
 
-1. On a Windows operating system with Internet access, download the plugin using the PowerShell. 
+1. On a Windows operating system with Internet access, download the plugin using the PowerShell.
 
     ```powershell
     $RELEASE="x.y.z"
-    Invoke-WebRequest https://github.com/hashicorp/terraform-provider-vsphere/releases/download/v${RELEASE}/terraform-provider-vsphere_${RELEASE}_windows_amd64.zip -outfile terraform-provider-vsphere_${RELEASE}_windows_amd64.zip
+    Invoke-WebRequest https://releases.hashicorp.com/terraform-provider-vsphere/${RELEASE}/terraform-provider-vsphere_${RELEASE}_windows_amd64.zip -outfile terraform-provider-vsphere_${RELEASE}_windows_amd64.zip
     ```
 
 2. Extract the plugin.
@@ -169,9 +177,12 @@ The following examples use PowerShell on Windows (x64).
     cd terraform-provider-vsphere_${RELEASE}_windows_amd64
     ```
 
-4. Copy the extracted plugin to a target system and move to the Terraform plugins directory.
+3. Copy the extracted plugin to a target system and move to the Terraform plugins directory.
 
-    >**Note**: The directory directory hierarchy that Terraform use to precisely determine the source of each provider it finds locally.<br/>
+    > **Note**
+    >
+    > The directory directory hierarchy that Terraform uses to precisely determine the source of each provider it finds locally.
+    >
     > `$PLUGIN_DIRECTORY/$SOURCEHOSTNAME/$SOURCENAMESPACE/$NAME/$VERSION/$OS_$ARCH/`
 
     ```powershell
@@ -180,7 +191,7 @@ The following examples use PowerShell on Windows (x64).
     Move-Item terraform-provider-vsphere_v${RELEASE}.exe $ENV:APPDATA\terraform.d\plugins\local\hashicorp\vsphere\${RELEASE}\windows_amd64\terraform-provider-vsphere_v${RELEASE}.exe
     ```
 
-5. Verify the presence of the plugin in the Terraform plugins directory.
+4. Verify the presence of the plugin in the Terraform plugins directory.
 
     ```powershell
     cd $ENV:APPDATA\terraform.d\plugins\local\hashicorp\vsphere\${RELEASE}\windows_amd64
@@ -229,7 +240,7 @@ Terraform has been successfully initialized!
 
 To find the provider version, navigate to the working directory of your Terraform configuration and run `terraform version`. You should see a message indicating the provider version.
 
-**Example**: Terraform Provider Version from the Terraform Registry 
+**Example**: Terraform Provider Version from the Terraform Registry
 
 ```console
 $ terraform version
@@ -237,6 +248,7 @@ Terraform x.y.z
 on linux_amd64
 + provider registry.terraform.io/hashicorp/vsphere x.y.z
 ```
+
 **Example**: Terraform Provider Version for a Manually Installed Provider
 
 ```console
@@ -245,8 +257,8 @@ Terraform x.y.z
 on linux_amd64
 + provider local/hashicorp/vsphere x.y.z
 ```
+
 [hashicorp]: https://www.hashicorp.com/
-[latest-release]: https://github.com/hashicorp/terraform-provider-vsphere/releases/latest
-[releases]: https://github.com/hashicorp/terraform-provider-vsphere/releases
+[releases]: https://releases.hashicorp.com/terraform-provider-vsphere/
 [terraform-provider-versioning]: https://www.terraform.io/docs/configuration/providers.html#version-provider-versions
 [terraform-registry]: https://registry.terraform.io
