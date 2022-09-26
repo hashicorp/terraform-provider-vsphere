@@ -11,7 +11,7 @@ categories=$(sed -e s/^TestAcc//g <<< "$tests" | sed -e s/_.*//g | sort -u)
 cat << EOF >> /tmp/config.yml
   linters:
     docker: 
-    - image: circleci/golang:1.16
+    - image: circleci/golang:1.18
     working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
@@ -35,7 +35,7 @@ for category in $categories; do
 	cat << EOF >> /tmp/config.yml
   test_acc_$category:
     docker: 
-    - image: circleci/golang:1.16
+    - image: circleci/golang:1.18
     working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
@@ -74,7 +74,7 @@ workflows:
 #          filters: 
 #            branches:
 #              only:
-#                - master
+#                - main
     jobs:
       - linters
 EOF

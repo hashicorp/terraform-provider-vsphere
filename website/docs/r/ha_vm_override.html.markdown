@@ -17,7 +17,7 @@ while not affecting the rest of the cluster.
 
 For more information on vSphere HA, see [this page][ref-vsphere-ha-clusters].
 
-[ref-vsphere-ha-clusters]: https://docs.vmware.com/en/VMware-vSphere/6.5/com.vmware.vsphere.avail.doc/GUID-5432CA24-14F1-44E3-87FB-61D937831CF6.html
+[ref-vsphere-ha-clusters]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.avail.doc/GUID-5432CA24-14F1-44E3-87FB-61D937831CF6.html
 
 ~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
 connections.
@@ -32,8 +32,8 @@ virtual machine in the cluster looked up by the
 Considering a scenario where this virtual machine is of high value to the
 application or organization for which it does its work, it's been determined in
 the event of a host failure, that this should be one of the first virtual
-machines to be started by vSphere HA during recovery. Hence, its
-[`ha_vm_restart_priority`](#ha_vm_restart_priority) as been set to `highest`,
+machines to be started by vSphere HA during recovery. Hence, it
+[`ha_vm_restart_priority`](#ha_vm_restart_priority) has been set to `highest`,
 which, assuming that the default restart priority is `medium` and no other
 virtual machine has been assigned the `highest` priority, will mean that this
 VM will be started before any other virtual machine in the event of host
@@ -126,7 +126,7 @@ for an entire list of version restrictions.
 
 * `ha_vm_restart_priority` - (Optional) The restart priority for the virtual
   machine when vSphere detects a host failure. Can be one of
-  `clusterRestartPriority`, `lowest`, `low`, `medium`, `high`, or `highest`.
+  `clusterRestartPriority`, `lowest`, `low`, `medium`, `high`, `highest`, or `disabled`.
   Default: `clusterRestartPriority`.
 * `ha_vm_restart_timeout` - (Optional) The maximum time, in seconds, that
   vSphere HA will wait for this virtual machine to be ready. Use `-1` to
@@ -157,7 +157,7 @@ overrides.
   the middle of an APD event. Can be one of `useClusterDefault`, `none` or
   `reset`.  Default: `useClusterDefault`.
   <sup>[\*][tf-vsphere-cluster-resource-version-restrictions]</sup>
-* `ha_datastore_apd_response_delay` - (Optional) Controls the delay in minutes
+* `ha_datastore_apd_response_delay` - (Optional) Controls the delay in seconds
   to wait after an APD timeout event to execute the response action defined in
   [`ha_datastore_apd_response`](#ha_datastore_apd_response). Use `-1` to use
   the cluster default. Default: `-1`.

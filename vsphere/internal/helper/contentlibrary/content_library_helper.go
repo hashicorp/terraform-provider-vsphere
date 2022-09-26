@@ -33,10 +33,10 @@ func FromName(c *rest.Client, name string) (*library.Library, error) {
 	ctx := context.TODO()
 	lib, err := clm.GetLibraryByName(ctx, name)
 	if err != nil {
-		return nil, provider.ProviderError(name, "FromName", err)
+		return nil, provider.Error(name, "FromName", err)
 	}
 	if lib == nil {
-		return nil, provider.ProviderError(name, "FromName", fmt.Errorf("Unable to find content library (%s)", name))
+		return nil, provider.Error(name, "FromName", fmt.Errorf("Unable to find content library (%s)", name))
 	}
 	log.Printf("[DEBUG] contentlibrary.FromName: Successfully retrieved content library %s", name)
 	return lib, nil
@@ -49,7 +49,7 @@ func FromID(c *rest.Client, id string) (*library.Library, error) {
 	ctx := context.TODO()
 	lib, err := clm.GetLibraryByID(ctx, id)
 	if err != nil {
-		return nil, provider.ProviderError(id, "FromID", err)
+		return nil, provider.Error(id, "FromID", err)
 	}
 	if lib == nil {
 		return nil, fmt.Errorf("Unable to find content library (%s)", id)
@@ -93,17 +93,10 @@ func CreateLibrary(d *schema.ResourceData, restclient *rest.Client, backings []l
 	}
 	id, err := clm.CreateLibrary(ctx, lib)
 	if err != nil {
-		return "", provider.ProviderError(name, "CreateLibrary", err)
+		return "", provider.Error(name, "CreateLibrary", err)
 	}
 	log.Printf("[DEBUG] contentlibrary.CreateLibrary: Content library %s successfully created", name)
 	return id, nil
-}
-
-// UpdateLibrary is where Content Library updates will be applied when the
-// function is supported in govmomi.
-func UpdateLibrary(c *rest.Client, ol *library.Library, name string, description string, backings []library.StorageBackings) error {
-	// Not currently supported in govmomi
-	return nil
 }
 
 // DeleteLibrary deletes a Content Library.
@@ -113,7 +106,7 @@ func DeleteLibrary(c *rest.Client, lib *library.Library) error {
 	ctx := context.TODO()
 	err := clm.DeleteLibrary(ctx, lib)
 	if err != nil {
-		return provider.ProviderError(lib.ID, "DeleteLibrary", err)
+		return provider.Error(lib.ID, "DeleteLibrary", err)
 	}
 	log.Printf("[DEBUG] contentlibrary.DeleteLibrary: Deleting library %s", lib.Name)
 	return nil
@@ -130,7 +123,7 @@ func ItemFromName(c *rest.Client, l *library.Library, name string) (*library.Ite
 	}
 	items, err := clm.FindLibraryItems(ctx, fi)
 	if err != nil {
-		return nil, nil
+		return nil, provider.Error(name, "ItemFromName", err)
 	}
 	if len(items) < 1 {
 		return nil, fmt.Errorf("Unable to find content library item (%s)", name)
@@ -150,7 +143,7 @@ func ItemFromID(c *rest.Client, id string) (*library.Item, error) {
 	ctx := context.TODO()
 	item, err := clm.GetLibraryItem(ctx, id)
 	if err != nil {
-		return nil, provider.ProviderError(id, "ItemFromID", err)
+		return nil, provider.Error(id, "ItemFromID", err)
 	}
 	log.Printf("[DEBUG] contentlibrary.ItemFromID: Library item %s retrieved successfully", id)
 	return item, nil
@@ -185,11 +178,11 @@ func CreateLibraryItem(c *rest.Client, l *library.Library, name string, desc str
 
 	id, err := clm.CreateLibraryItem(ctx, item)
 	if err != nil {
-		return nil, provider.ProviderError(name, "CreateLibraryItem", err)
+		return nil, provider.Error(name, "CreateLibraryItem", err)
 	}
 	session, err := clm.CreateLibraryItemUpdateSession(ctx, library.Session{LibraryItemID: id})
 	if err != nil {
-		return nil, provider.ProviderError(name, "CreateLibraryItem", err)
+		return nil, provider.Error(name, "CreateLibraryItem", err)
 	}
 	uploadSession.UploadSession = session
 	defer func() {
@@ -198,6 +191,7 @@ func CreateLibraryItem(c *rest.Client, l *library.Library, name string, desc str
 
 	isOva := false
 	isLocal := true
+	isIso := false
 
 	if strings.HasPrefix(file, "http") {
 		isLocal = false
@@ -205,17 +199,22 @@ func CreateLibraryItem(c *rest.Client, l *library.Library, name string, desc str
 	if strings.HasSuffix(file, ".ova") {
 		isOva = true
 	}
+	if strings.HasSuffix(file, ".iso") {
+		isIso = true
+	}
 
 	ovfDescriptor, err := ovfdeploy.GetOvfDescriptor(file, isOva, isLocal, true)
 	if err != nil {
-		return nil, provider.ProviderError(name, "CreateLibraryItem", err)
+		return nil, provider.Error(name, "CreateLibraryItem", err)
 	}
 
 	switch {
 	case isLocal && isOva:
 		return &id, uploadSession.deployLocalOva(file, ovfDescriptor)
-	case isLocal && !isOva:
+	case isLocal && !isOva && !isIso:
 		return &id, uploadSession.deployLocalOvf(file, ovfDescriptor)
+	case isLocal && isIso:
+		return &id, uploadSession.deployLocalIso(file)
 	case !isLocal && isOva:
 		return &id, uploadSession.deployRemoteOva(file, ovfDescriptor)
 	case !isLocal && !isOva:
@@ -278,7 +277,11 @@ func (uploadSession *libraryUploadSession) deployLocalOva(file string, ovfDescri
 	if err := uploadSession.uploadString(ovfDescriptor, name+"ovf"); err != nil {
 		return err
 	}
-	if err := uploadSession.uploadOvaDisksFromLocal(file, e); err != nil {
+	return uploadSession.uploadOvaDisksFromLocal(file, e)
+}
+
+func (uploadSession *libraryUploadSession) deployLocalIso(file string) error {
+	if err := uploadSession.uploadLocalFile(file); err != nil {
 		return err
 	}
 	return nil
@@ -294,7 +297,7 @@ type libraryUploadSession struct {
 func (uploadSession libraryUploadSession) cloneTemplate(moid string, name string, templateType string) (*string, error) {
 	ctx := context.TODO()
 	if templateType == "ovf" {
-		ovf := vcenter.OVF{
+		ovfItem := vcenter.OVF{
 			Spec: vcenter.CreateSpec{
 				Name: name,
 			},
@@ -305,7 +308,7 @@ func (uploadSession libraryUploadSession) cloneTemplate(moid string, name string
 				LibraryID: uploadSession.LibraryID,
 			},
 		}
-		id, err := vcenter.NewManager(uploadSession.RestClient).CreateOVF(ctx, ovf)
+		id, err := vcenter.NewManager(uploadSession.RestClient).CreateOVF(ctx, ovfItem)
 		if err != nil {
 			return nil, err
 		}
@@ -318,10 +321,7 @@ func (uploadSession libraryUploadSession) uploadString(data string, name string)
 	stringReader := strings.NewReader(data)
 	openFile := io.Reader(stringReader)
 	size := int64(len([]byte(data)))
-	if err := uploadSession.upload(name, &openFile, size); err != nil {
-		return err
-	}
-	return nil
+	return uploadSession.upload(name, &openFile, size)
 }
 
 func (uploadSession libraryUploadSession) uploadLocalFile(file string) error {
@@ -329,10 +329,8 @@ func (uploadSession libraryUploadSession) uploadLocalFile(file string) error {
 	if err != nil {
 		return err
 	}
-	if err = uploadSession.upload(filepath.Base(file), openFile, *size); err != nil {
-		return err
-	}
-	return nil
+
+	return uploadSession.upload(filepath.Base(file), openFile, *size)
 }
 
 func openLocalFile(file string) (*io.Reader, *int64, error) {
@@ -437,25 +435,6 @@ func (uploadSession libraryUploadSession) upload(name string, file *io.Reader, s
 	return uploadSession.RestClient.Upload(ctx, *file, u, &p)
 }
 
-// UpdateLibraryItem updates an item in a Content Library.
-func UpdateLibraryItem(c *rest.Client, l *library.Library, oi *library.Item, name string, desc string) (string, error) {
-	log.Printf("[DEBUG] contentlibrary.UpdateLibraryItem: Updating content library item %s.", name)
-	clm := library.NewManager(c)
-	ctx := context.TODO()
-	item := library.Item{
-		Description: desc,
-		LibraryID:   l.ID,
-		ID:          oi.ID,
-		Name:        name,
-	}
-	id, err := clm.CreateLibraryItem(ctx, item)
-	if err != nil {
-		return "", err
-	}
-	log.Printf("[DEBUG] contentlibrary.UpdateLibraryItem: Updating content library item %s.", name)
-	return id, nil
-}
-
 // DeleteLibraryItem deletes an item from a Content Library.
 func DeleteLibraryItem(c *rest.Client, item *library.Item) error {
 	log.Printf("[DEBUG] contentlibrary.DeleteLibraryItem: Deleting content library item %s.", item.Name)
@@ -476,7 +455,7 @@ func ExpandStorageBackings(c *govmomi.Client, d *schema.ResourceData) ([]library
 	for _, dsID := range d.Get("storage_backing").(*schema.Set).List() {
 		ds, err := datastore.FromID(c, dsID.(string))
 		if err != nil {
-			return nil, provider.ProviderError(d.Id(), "ExpandStorageBackings", err)
+			return nil, provider.Error(d.Id(), "ExpandStorageBackings", err)
 		}
 		sb = append(sb, library.StorageBackings{
 			DatastoreID: ds.Reference().Value,
@@ -529,25 +508,6 @@ func FlattenStorageBackings(d *schema.ResourceData, sb []library.StorageBackings
 	}
 	log.Printf("[DEBUG] contentlibrary.FlattenStorageBackings: Successfully flattened OVF storage backing.")
 	return d.Set("storage_backing", sbl)
-}
-
-// MapStorageDevices maps disks defined in the OVF to datastores.
-func MapStorageDevices(d *schema.ResourceData) []vcenter.StorageMapping {
-	sm := []vcenter.StorageMapping{}
-	disks := d.Get("disk").([]interface{})
-	for _, di := range disks {
-		dm := di.(map[string]interface{})["ovf_mapping"].(string)
-		dd := di.(map[string]interface{})["datastore_id"].(string)
-		if dd == "<computed>" || dd == "" {
-			dd = d.Get("datastore_id").(string)
-		}
-		dp := di.(map[string]interface{})["storage_policy_id"].(string)
-		if dp == "" {
-			dp = d.Get("storage_policy_id").(string)
-		}
-		sm = append(sm, vcenter.StorageMapping{Key: dm, Value: vcenter.StorageGroupMapping{Type: "DATASTORE", DatastoreID: dd, StorageProfileID: dp}})
-	}
-	return sm
 }
 
 // MapNetworkDevices maps NICs defined in the OVF to networks..

@@ -302,7 +302,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   wait_for_guest_net_timeout = -1
 
@@ -357,7 +357,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   wait_for_guest_net_timeout = -1
 
@@ -412,7 +412,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   wait_for_guest_net_timeout = -1
 

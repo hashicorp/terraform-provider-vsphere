@@ -284,7 +284,7 @@ func testAccResourceVSphereComputeClusterVMAntiAffinityRuleMatchMembershipVMIDs(
 		ids = testAccResourceVSphereComputeClusterVMAntiAffinityRuleGetMultiple(s)
 	}
 
-	results, err := virtualmachine.MOIDsForUUIDs(testAccProvider.Meta().(*VSphereClient).vimClient, ids)
+	results, err := virtualmachine.MOIDsForUUIDs(testAccProvider.Meta().(*Client).vimClient, ids)
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +321,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "other3xLinuxGuest"
 
   wait_for_guest_net_timeout = -1
 

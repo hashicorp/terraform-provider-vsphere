@@ -79,18 +79,24 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 				"domain": {
 					Type:        schema.TypeString,
 					Required:    true,
-					Description: "The FQDN for this virtual machine.",
+					Description: "The domain name for this virtual machine.",
 				},
 				"host_name": {
 					Type:        schema.TypeString,
 					Required:    true,
-					Description: "The host name for this virtual machine.",
+					Description: "The hostname for this virtual machine.",
 				},
 				"hw_clock_utc": {
 					Type:        schema.TypeBool,
 					Optional:    true,
 					Default:     true,
 					Description: "Specifies whether or not the hardware clock should be in UTC or not.",
+				},
+				"script_text": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Sensitive:   true,
+					Description: "The customization script to run before and or after guest customization",
 				},
 				"time_zone": {
 					Type:        schema.TypeString,
@@ -150,6 +156,7 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 					Optional:      true,
 					ConflictsWith: []string{cWindowsKeyPrefix + "." + "workgroup"},
 					Description:   "The user account of the domain administrator used to join this virtual machine to the domain.",
+					RequiredWith:  []string{cWindowsKeyPrefix + "." + "join_domain"},
 				},
 				"domain_admin_password": {
 					Type:          schema.TypeString,
@@ -157,12 +164,14 @@ func VirtualMachineCustomizeSchema() map[string]*schema.Schema {
 					Sensitive:     true,
 					ConflictsWith: []string{cWindowsKeyPrefix + "." + "workgroup"},
 					Description:   "The password of the domain administrator used to join this virtual machine to the domain.",
+					RequiredWith:  []string{cWindowsKeyPrefix + "." + "join_domain"},
 				},
 				"join_domain": {
 					Type:          schema.TypeString,
 					Optional:      true,
 					ConflictsWith: []string{cWindowsKeyPrefix + "." + "workgroup"},
 					Description:   "The domain that the virtual machine should join.",
+					RequiredWith:  []string{cWindowsKeyPrefix + "." + "domain_admin_user", cWindowsKeyPrefix + "." + "domain_admin_password"},
 				},
 				"workgroup": {
 					Type:          schema.TypeString,
@@ -288,6 +297,7 @@ func expandCustomizationLinuxPrep(d *schema.ResourceData) *types.CustomizationLi
 		},
 		Domain:     d.Get(cLinuxKeyPrefix + "." + "domain").(string),
 		TimeZone:   d.Get(cLinuxKeyPrefix + "." + "time_zone").(string),
+		ScriptText: d.Get(cLinuxKeyPrefix + "." + "script_text").(string),
 		HwClockUTC: structure.GetBoolPtr(d, cLinuxKeyPrefix+"."+"hw_clock_utc"),
 	}
 	return obj

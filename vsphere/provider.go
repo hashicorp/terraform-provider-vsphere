@@ -10,7 +10,7 @@ import (
 
 // defaultAPITimeout is a default timeout value that is passed to functions
 // requiring contexts, and other various waiters.
-var defaultAPITimeout time.Duration = time.Minute * 5
+var defaultAPITimeout = time.Minute * 5
 
 // Provider returns a terraform.ResourceProvider.
 func Provider() *schema.Provider {
@@ -135,13 +135,14 @@ func Provider() *schema.Provider {
 			"vsphere_virtual_machine_snapshot":                resourceVSphereVirtualMachineSnapshot(),
 			"vsphere_host":                                    resourceVsphereHost(),
 			"vsphere_vnic":                                    resourceVsphereNic(),
-			"vsphere_vm_storage_policy":                       resourceVmStoragePolicy(),
+			"vsphere_vm_storage_policy":                       resourceVMStoragePolicy(),
 			"vsphere_role":                                    resourceVsphereRole(),
 			"vsphere_entity_permissions":                      resourceVsphereEntityPermissions(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
 			"vsphere_compute_cluster":            dataSourceVSphereComputeCluster(),
+			"vsphere_compute_cluster_host_group": dataSourceVSphereComputeClusterHostGroup(),
 			"vsphere_content_library":            dataSourceVSphereContentLibrary(),
 			"vsphere_content_library_item":       dataSourceVSphereContentLibraryItem(),
 			"vsphere_custom_attribute":           dataSourceVSphereCustomAttribute(),
@@ -154,6 +155,7 @@ func Provider() *schema.Provider {
 			"vsphere_host":                       dataSourceVSphereHost(),
 			"vsphere_host_pci_device":            dataSourceVSphereHostPciDevice(),
 			"vsphere_host_thumbprint":            dataSourceVSphereHostThumbprint(),
+			"vsphere_license":                    dataSourceVSphereLicense(),
 			"vsphere_network":                    dataSourceVSphereNetwork(),
 			"vsphere_ovf_vm_template":            dataSourceVSphereOvfVMTemplate(),
 			"vsphere_resource_pool":              dataSourceVSphereResourcePool(),
@@ -172,7 +174,7 @@ func Provider() *schema.Provider {
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	timeoutMins := time.Duration(d.Get("api_timeout").(int))
-	defaultAPITimeout = time.Duration(timeoutMins * time.Minute)
+	defaultAPITimeout = timeoutMins * time.Minute
 
 	c, err := NewConfig(d)
 	if err != nil {

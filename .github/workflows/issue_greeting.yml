@@ -1,0 +1,28 @@
+---
+name: Issue Greeting
+'on':
+  issues:
+    types:
+      - opened
+jobs:
+  greeting:
+    name: Send Greeting
+    runs-on: ubuntu-latest
+    if: github.event.issue.author_association == 'NONE'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+      - name: Render Template
+        id: template
+        uses: chuhlomin/render-template@v1.5
+        with:
+          template: .github/issue_greeting_template.md
+          vars: |
+            author: ${{ github.actor }}
+      - name: Create Comment
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          issue-number: '${{ github.event.issue.number }}'
+          body: '${{ steps.template.outputs.result }}'

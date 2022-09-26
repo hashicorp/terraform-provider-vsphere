@@ -33,7 +33,7 @@ func resourceVSphereComputeClusterHostGroup() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The unique name of the virtual machine group in the cluster.",
+				Description: "The unique name of the host group in the cluster.",
 			},
 			"compute_cluster_id": {
 				Type:        schema.TypeString,
@@ -367,7 +367,7 @@ func resourceVSphereComputeClusterHostGroupFetchObjects(
 }
 
 func resourceVSphereComputeClusterHostGroupClient(meta interface{}) (*govmomi.Client, error) {
-	client := meta.(*VSphereClient).vimClient
+	client := meta.(*Client).vimClient
 	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return nil, err
 	}

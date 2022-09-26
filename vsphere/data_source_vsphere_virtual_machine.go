@@ -132,6 +132,11 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 				},
 			},
 		},
+		"default_ip_address": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The default IP address.",
+		},
 		"guest_ip_addresses": {
 			Type:        schema.TypeList,
 			Description: "The current list of IP addresses on this virtual machine.",
@@ -144,6 +149,14 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 	// include the number of cpus, memory, firmware, disks, etc.
 	structure.MergeSchema(s, schemaVirtualMachineConfigSpec())
 
+	// make name/uuid Optional/AtLeastOneOf since UUID lookup is now supported
+	s["name"].Required = false
+	s["name"].Optional = true
+	s["name"].AtLeastOneOf = []string{"name", "uuid"}
+	s["uuid"].Required = false
+	s["uuid"].Optional = true
+	s["uuid"].AtLeastOneOf = []string{"name", "uuid"}
+
 	// Now that the schema has been composed and merged, we can attach our reader and
 	// return the resource back to our host process.
 	return &schema.Resource{
@@ -153,23 +166,32 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 }
 
 func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*VSphereClient).vimClient
-
+	client := meta.(*Client).vimClient
+	uuid := d.Get("uuid").(string)
 	name := d.Get("name").(string)
-	log.Printf("[DEBUG] Looking for VM or template by name/path %q", name)
-	var dc *object.Datacenter
-	if dcID, ok := d.GetOk("datacenter_id"); ok {
-		var err error
-		dc, err = datacenterFromID(client, dcID.(string))
-		if err != nil {
-			return fmt.Errorf("cannot locate datacenter: %s", err)
+	var vm *object.VirtualMachine
+	var err error
+
+	if uuid != "" {
+		log.Printf("[DEBUG] Looking for VM or template by UUID %q", uuid)
+		vm, err = virtualmachine.FromUUID(client, uuid)
+	} else {
+		log.Printf("[DEBUG] Looking for VM or template by name/path %q", name)
+		var dc *object.Datacenter
+		if dcID, ok := d.GetOk("datacenter_id"); ok {
+			dc, err = datacenterFromID(client, dcID.(string))
+			if err != nil {
+				return fmt.Errorf("cannot locate datacenter: %s", err)
+			}
+			log.Printf("[DEBUG] Datacenter for VM/template search: %s", dc.InventoryPath)
 		}
-		log.Printf("[DEBUG] Datacenter for VM/template search: %s", dc.InventoryPath)
+		vm, err = virtualmachine.FromPath(client, name, dc)
 	}
-	vm, err := virtualmachine.FromPath(client, name, dc)
+
 	if err != nil {
 		return fmt.Errorf("error fetching virtual machine: %s", err)
 	}
+
 	props, err := virtualmachine.Properties(vm)
 	if err != nil {
 		return fmt.Errorf("error fetching virtual machine properties: %s", err)
@@ -184,16 +206,16 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 	}
 
 	// Read general VM config info
-	if err := flattenVirtualMachineConfigInfo(d, props.Config); err != nil {
+	if err := flattenVirtualMachineConfigInfo(d, props.Config, client); err != nil {
 		return fmt.Errorf("error reading virtual machine configuration: %s", err)
 	}
 
 	d.SetId(props.Config.Uuid)
-	d.Set("guest_id", props.Config.GuestId)
-	d.Set("alternate_guest_name", props.Config.AlternateGuestName)
-	d.Set("scsi_type", virtualdevice.ReadSCSIBusType(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int)))
-	d.Set("scsi_bus_sharing", virtualdevice.ReadSCSIBusSharing(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int)))
-	d.Set("firmware", props.Config.Firmware)
+	_ = d.Set("guest_id", props.Config.GuestId)
+	_ = d.Set("alternate_guest_name", props.Config.AlternateGuestName)
+	_ = d.Set("scsi_type", virtualdevice.ReadSCSIBusType(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int)))
+	_ = d.Set("scsi_bus_sharing", virtualdevice.ReadSCSIBusSharing(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int)))
+	_ = d.Set("firmware", props.Config.Firmware)
 	disks, err := virtualdevice.ReadDiskAttrsForDataSource(object.VirtualDeviceList(props.Config.Hardware.Device), d)
 	if err != nil {
 		return fmt.Errorf("error reading disk sizes: %s", err)
