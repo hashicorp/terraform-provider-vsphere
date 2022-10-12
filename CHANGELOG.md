@@ -12,6 +12,7 @@ BUG FIXES:
 * `resource/datastore_cluster`: Fixes error parsing string as enum type for `sdrs_advanced_options`. [(1749](https://github.com/hashicorp/terraform-provider-vsphere/pull/1749))
 
 IMPROVEMENTS:
+* `resource/distributed_virtual_switch`: Adds support for vSphere distributed switch version `8.0.0` in vSphere 8.0. [(1767](https://github.com/hashicorp/terraform-provider-vsphere/pull/1767))
 * `resource/virtual_machine`: Enables virtual machine reconfiguration tasks to use the provider `api_timeout` setting. ([#1645](https://github.com/hashicorp/terraform-provider-vsphere/pull/1645))
 * `resource/host`: Documentation updates. ([#1675](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1675))
 * `resource/host_virtual_switch`: Allows `standby_nics` on `r/vsphere_host_virtual_switch` to be an optional attribute so `standby_nics = []` does not need to be defined when no standby NICs are required/available. ([#1695](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1695))
