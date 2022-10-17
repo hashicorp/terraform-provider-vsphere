@@ -84,7 +84,7 @@ resource "vsphere_virtual_machine" "vm" {
 }
 ```
 
-Refere to the provider documenation for information on all of the resources
+Refer to the provider documentation for information on all of the resources
 and data sources supported by this provider. Each includes a detailed
 description of the purpose and how to use it.
 
