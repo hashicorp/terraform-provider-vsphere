@@ -1,5 +1,6 @@
+<!-- markdownlint-disable first-line-h1 no-inline-html -->
 <a href="https://terraform.io">
-    <img src=".github/tf.png" alt="Terraform logo" title="Terraform" align="left" height="50" />
+    <img src=".github/tf.png" alt="Terraform" title="Terraform" align="left" height="50" />
 </a>
 
 # Terraform Provider for VMware vSphere
@@ -24,10 +25,10 @@ Learn more:
 
     Required if building the provider.
 
-* [VMware vSphere][vmware-vsphere-documenation] 6.5 or later.
+* [VMware vSphere][vmware-vsphere-documenation]
 
-    The provider supports versions in accordance with the VMware Product Lifecycle Matrix from General Availability to End of General Support.
-    
+    The provider supports VMware vSphere versions in accordance with the VMware Product Lifecycle Matrix from General Availability to End of General Support.
+
     Learn more: [VMware Product Lifecycle Matrix][vmware-product-lifecycle-matrix]
 
     > **NOTE**
@@ -77,7 +78,6 @@ The Terraform Provider for VMware vSphere is available under the [Mozilla Public
 [provider-install]: docs/INSTALL.md
 [provider-issues]: https://github.com/hashicorp/terraform-provider-vsphere/issues/new/choose
 [provider-issue-lifecycke]: docs/ISSUES.md
-[provider-latest]: https://github.com/hashicorp/terraform-provider-vsphere/releases/latest
 [provider-license]: LICENSE
 [terraform-install]: https://www.terraform.io/downloads.html
 [terraform-github]: https://github.com/hashicorp/terraform
