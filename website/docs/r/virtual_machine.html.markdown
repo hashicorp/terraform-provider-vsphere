@@ -1264,6 +1264,10 @@ See the [Deploying from OVF example](#deploying-vm-from-an-ovf-ova-template) for
 
 The options available in the `ovf_deploy` block are:
 
+* `allow_unverified_ssl_cert` - (Optional) Allow unverified SSL certificates while deploying OVF/OVA from a URL. Defaults `false`.
+
+* `enable_hidden_properties` - (Optional) Allow properties with `ovf:userConfigurable=false` to be set. Defaults `false`.
+
 * `local_ovf_path` - (Optional) The absolute path to the OVF/OVA file on the local system. When deploying from an OVF, ensure the necessary files, such as `.vmdk` and `.mf` files are also in the same directory as the `.ovf` file.
 
 * `remote_ovf_url` - (Optional) URL to the OVF/OVA file.
@@ -1279,8 +1283,6 @@ The options available in the `ovf_deploy` block are:
 * `deployment_option` - (Optional) The key for the deployment option. If empty, the default option is selected.
 
 * `ovf_network_map` - (Optional) The mapping of network identifiers from the OVF descriptor to a network UUID.
-
-* `allow_unverified_ssl_cert` - (Optional) Allow unverified SSL certificates while deploying OVF/OVA from a URL. Defaults `false`.
 
 ### Using vApp Properties for OVF/OVA Configuration
 
