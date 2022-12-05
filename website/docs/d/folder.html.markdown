@@ -11,8 +11,7 @@ description: |-
 # vsphere\_folder
 
 The `vsphere_folder` data source can be used to get the general attributes of a
-vSphere inventory folder. Paths are absolute and include must include the
-datacenter.  
+vSphere inventory folder. Paths are absolute and must include the datacenter.
 
 ## Example Usage
 

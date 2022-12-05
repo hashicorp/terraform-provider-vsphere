@@ -39,7 +39,7 @@ terraform {
 }
 ```
 
-To specify a particular provider version when installing released providers, see the Terrraform documentation [on provider versioning][terraform-provider-versioning]
+To specify a particular provider version when installing released providers, see the Terraform documentation [on provider versioning][terraform-provider-versioning]
 
 ### Verify Terraform Initialization Using the Terraform Registry
 
@@ -72,7 +72,7 @@ This can be useful in environments that do not allow direct access to the Intern
 
 The following examples use Bash on Linux (x64).
 
-1. On an a Linux operating system with Internet access, download the plugin from GitHub using the shell.
+1. On a Linux operating system with Internet access, download the plugin from GitHub using the shell.
 
     ```console
     RELEASE=x.y.z
@@ -181,7 +181,7 @@ The following examples use PowerShell on Windows (x64).
 
     > **Note**
     >
-    > The directory directory hierarchy that Terraform uses to precisely determine the source of each provider it finds locally.
+    > The directory hierarchy that Terraform uses to precisely determine the source of each provider it finds locally.
     >
     > `$PLUGIN_DIRECTORY/$SOURCEHOSTNAME/$SOURCENAMESPACE/$NAME/$VERSION/$OS_$ARCH/`
 
