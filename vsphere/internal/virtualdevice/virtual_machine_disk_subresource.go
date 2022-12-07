@@ -4,6 +4,7 @@
 package virtualdevice
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -243,9 +244,10 @@ func NewDiskSubresource(client *govmomi.Client, resourceDataDiff resourceDataDif
 // operation. All disk operations are carried out, with both the complete,
 // updated, VirtualDeviceList, and the complete list of changes returned as a
 // slice of BaseVirtualDeviceConfigSpec.
-func DiskApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+func DiskApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, belle bool) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] DiskApplyOperation: Beginning apply operation")
 	o, n := d.GetChange(subresourceTypeDisk)
+	log.Printf("coo-eey!!")
 	oldDisks := o.([]interface{})
 	newDisks := n.([]interface{})
 
@@ -269,8 +271,15 @@ func DiskApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Virt
 	log.Printf("[DEBUG] DiskApplyOperation: Resources not being changed: %s", subresourceListString(updates))
 	for ni, ne := range newDisks {
 		nm := ne.(map[string]interface{})
-		if err := diskApplyOperationCreateUpdate(ni, nm, oldDisks, c, d, &l, &spec, &updates); err != nil {
-			return nil, nil, err
+		if belle == true {
+			if err := diskApplyOperationCreateUpdateBelle(ni, nm, oldDisks, c, d, &l, &spec, &updates); err != nil {
+				return nil, nil, err
+			}
+		}
+		if belle == false {
+			if err := diskApplyOperationCreateUpdate(ni, nm, oldDisks, c, d, &l, &spec, &updates); err != nil {
+				return nil, nil, err
+			}
 		}
 	}
 
@@ -335,6 +344,7 @@ func diskApplyOperationCreateUpdate(
 	spec *[]types.BaseVirtualDeviceConfigSpec,
 	updates *[]interface{},
 ) error {
+	log.Printf("coo-eey!! We're inside diskApplyOperationCreateUpdate")
 	var name string
 	var err error
 	if name, err = getDiskLabel(newData); err != nil {
@@ -345,9 +355,11 @@ func diskApplyOperationCreateUpdate(
 		return nil
 	}
 	for _, oe := range oldDataSet {
+		log.Printf("coo-eey!! we inside the for loop, here's our new data uuid: %s", newData["uuid"])
 		oldData := oe.(map[string]interface{})
 		if newData["uuid"] == oldData["uuid"] {
 			// This is an update
+			log.Printf("coo-eey!! time for a wee update")
 			r := NewDiskSubresource(c, d, newData, oldData, index)
 			// If the only thing changing here is the datastore, or keep_on_remove,
 			// this is a no-op as far as a device change is concerned. Datastore
@@ -375,6 +387,88 @@ func diskApplyOperationCreateUpdate(
 			return nil
 		}
 	}
+	log.Printf("coo-eey!! no newdata, create time")
+	// New data was not found - this is a create operation
+	r := NewDiskSubresource(c, d, newData, nil, index)
+	cspec, err := r.Create(*l)
+	if err != nil {
+		return fmt.Errorf("%s: %s", r.Addr(), err)
+	}
+	*l = applyDeviceChange(*l, cspec)
+	*spec = append(*spec, cspec...)
+	*updates = append(*updates, r.Data())
+	return nil
+}
+
+// diskApplyOperationCreateUpdate is an inner-loop helper for disk creation and
+// update operations.
+func diskApplyOperationCreateUpdateBelle(
+	index int,
+	newData map[string]interface{},
+	oldDataSet []interface{},
+	c *govmomi.Client,
+	d *schema.ResourceData,
+	l *object.VirtualDeviceList,
+	spec *[]types.BaseVirtualDeviceConfigSpec,
+	updates *[]interface{},
+) error {
+	log.Printf("coo-eey!! We're inside diskApplyOperationCreateUpdate")
+	var name string
+	var err error
+	if name, err = diskLabelOrName(newData); err != nil {
+		return err
+	}
+	if name == diskDeletedName || name == diskDetachedName {
+		// This is a "dummy" deleted resource and should be skipped over
+		return nil
+	}
+	var d_changed = d
+	o_changed, n_changed := d_changed.GetChange("disk")
+	o_changed = n_changed
+	old_disks_changed := o_changed.([]interface{})
+	for _, oldDisk := range old_disks_changed {
+		log.Printf("coo-eey!! We're changing our old disks to our new disks")
+		oldDisk.(map[string]interface{})["storage_policy_id"] = ""
+		log.Printf("coo-eey!! in theory we did it?")
+	}
+	for _, oe := range old_disks_changed {
+		log.Printf("coo-eey!! we inside the for loop, here's our new data uuid: %s", newData["uuid"])
+		oldData := oe.(map[string]interface{})
+		if newData["uuid"] == oldData["uuid"] {
+			// This is an update
+			log.Printf("coo-eey!! time for a wee update")
+			r := NewDiskSubresource(c, d, newData, oldData, index)
+			// If the only thing changing here is the datastore, or keep_on_remove,
+			// this is a no-op as far as a device change is concerned. Datastore
+			// changes are handled during storage vMotion later on during the
+			// update phase. keep_on_remove is a Terraform-only attribute and only
+			// needs to be committed to state.
+			omc, err := copystructure.Copy(oldData)
+			if err != nil {
+				return fmt.Errorf("%s: error generating copy of old disk data: %s", r.Addr(), err)
+			}
+			oldCopy := omc.(map[string]interface{})
+			oldCopy["datastore_id"] = newData["datastore_id"]
+			oldCopy["keep_on_remove"] = newData["keep_on_remove"]
+			// TODO: Remove these in 2.0, when all attributes should bear a label and
+			// name is gone, and we won't need to exempt transitions.
+			oldCopy["label"] = newData["label"]
+			oldCopy["name"] = newData["name"]
+			if reflect.DeepEqual(oldCopy, newData) {
+				*updates = append(*updates, r.Data())
+				return nil
+			}
+			uspec, err := r.Update(*l)
+			if err != nil {
+				return fmt.Errorf("%s: %s", r.Addr(), err)
+			}
+			*l = applyDeviceChange(*l, uspec)
+			*spec = append(*spec, uspec...)
+			*updates = append(*updates, r.Data())
+			return nil
+		}
+	}
+	log.Printf("coo-eey!! no newdata, create time")
 	// New data was not found - this is a create operation
 	r := NewDiskSubresource(c, d, newData, nil, index)
 	cspec, err := r.Create(*l)
@@ -1164,6 +1258,7 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 			l = applyDeviceChange(l, cspec)
 			spec = append(spec, cspec...)
 			updates = append(updates, r.Data())
+			log.Printf("coo-eey!! over here, we've done updates append")
 		}
 	}
 
@@ -1174,6 +1269,115 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 	log.Printf("[DEBUG] DiskPostCloneOperation: Device list at end of operation: %s", DeviceListString(l))
 	log.Printf("[DEBUG] DiskPostCloneOperation: Device config operations from post-clone: %s", DeviceChangeString(spec))
 	log.Printf("[DEBUG] DiskPostCloneOperation: Operation complete, returning updated spec")
+	return l, spec, nil
+}
+
+func DiskPostPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, postOvf bool) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("[DEBUG] DiskPostPostCloneOperation: Looking for disk device changes post-clone")
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
+	log.Printf("[DEBUG] DiskPostPostCloneOperation: Disk devices located: %s", DeviceListString(devices))
+	// Sort the device list, in case it's not sorted already.
+	devSort := virtualDeviceListSorter{
+		Sort:       devices,
+		DeviceList: l,
+	}
+	sort.Sort(devSort)
+	devices = devSort.Sort
+	log.Printf("[DEBUG] DiskPostPostCloneOperation: Disk devices order after sort: %s", DeviceListString(devices))
+	// Do the same for our listed disks.
+	curSet := d.Get(subresourceTypeDisk).([]interface{})
+	log.Printf("[DEBUG] DiskPostPostCloneOperation: Current resource set: %s", subresourceListString(curSet))
+	sort.Sort(virtualDiskSubresourceSorter(curSet))
+	log.Printf("[DEBUG] DiskPostPostCloneOperation: Resource set order after sort: %s", subresourceListString(curSet))
+
+	var spec []types.BaseVirtualDeviceConfigSpec
+	var updates []interface{}
+
+	log.Printf("[DEBUG] DiskPostPostCloneOperation: Looking for and applying device changes in all disks")
+	for i, device := range devices {
+		log.Printf("coo-eey, we best be in this or I'll be fuming")
+		src := map[string]interface{}{}
+		if i < len(curSet) {
+			src = curSet[i].(map[string]interface{})
+		}
+		vd := device.GetVirtualDevice()
+		ctlr := l.FindByKey(vd.ControllerKey)
+		if ctlr == nil {
+			return nil, nil, fmt.Errorf("could not find controller with key %d", vd.Key)
+		}
+		src["key"] = int(vd.Key)
+		var err error
+		src["device_address"], err = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		if err != nil {
+			return nil, nil, fmt.Errorf("error computing device address: %s", err)
+		}
+
+		if _, ok := src["label"]; !ok && postOvf {
+			src["label"] = fmt.Sprintf("disk%d", i)
+		}
+		// Copy the source set into old. This allows us to patch a copy of the
+		// product of this set with the source, creating a diff.
+		old, err := copystructure.Copy(src)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error copying source set for disk at unit_number %d: %s", src["unit_number"].(int), err)
+		}
+		rOld := NewDiskSubresource(c, d, old.(map[string]interface{}), nil, i)
+		if err := rOld.Read(l); err != nil {
+			return nil, nil, fmt.Errorf("%s: %s", rOld.Addr(), err)
+		}
+		new, err := copystructure.Copy(rOld.Data())
+		if err != nil {
+			return nil, nil, fmt.Errorf("error copying current device state for disk at unit_number %d: %s", src["unit_number"].(int), err)
+		}
+		for k, v := range src {
+			// Skip label, path (path will always be computed here as cloned disks
+			// are not being attached externally), name, datastore_id, and uuid. Also
+			// skip share_count if we the share level isn't custom.
+			//
+			// TODO: Remove "name" after 2.0.
+			switch k {
+			case "path", "name", "datastore_id", "uuid", "thin_provisioned", "eagerly_scrub":
+				continue
+			case "io_share_count":
+				if src["io_share_level"] != string(types.SharesLevelCustom) {
+					continue
+				}
+			case "label":
+				if !postOvf {
+					continue
+				}
+			}
+			new.(map[string]interface{})[k] = v
+		}
+		rNew := NewDiskSubresource(c, d, new.(map[string]interface{}), rOld.Data(), i)
+		rNew.Set("storage_policy_id", "4d5f673c-536f-11e6-beb8-9e71128cae77")
+		log.Printf("rNew storage policy: %s", rNew.Get("storage_policy_id").(string))
+		log.Printf("here's the rnew uuid %s", new.(map[string]interface{})["uuid"])
+		log.Printf("here's the rnew storage_policy_id %s", new.(map[string]interface{})["storage_policy_id"])
+		log.Printf("here's the rold storage_policy_id %s", old.(map[string]interface{})["storage_policy_id"])
+
+		log.Printf("coo-eey!! we just before deepequal. lets call update")
+		if !reflect.DeepEqual(rNew.Data(), rOld.Data()) {
+			log.Printf("coo-eey!! we in deepequal. lets call update")
+			uspec, err := rNew.Update(l)
+			if err != nil {
+				return nil, nil, fmt.Errorf("%s: %s", rNew.Addr(), err)
+			}
+			u, _ := json.MarshalIndent(uspec, "", "\t")
+			log.Printf("coo-eey!! here's uspec: %s", u)
+			l = applyDeviceChange(l, uspec)
+			spec = append(spec, uspec...)
+		}
+		updates = append(updates, rNew.Data())
+	}
+
+	log.Printf("[DEBUG] DiskPostPostCloneOperation: Post-clone final resource list: %s", subresourceListString(updates))
+	if err := d.Set(subresourceTypeDisk, updates); err != nil {
+		return nil, nil, err
+	}
+	log.Printf("[DEBUG] DiskPostPostCloneOperation: Device list at end of operation: %s", DeviceListString(l))
+	log.Printf("[DEBUG] DiskPostPostCloneOperation: Device config operations from post-clone: %s", DeviceChangeString(spec))
+	log.Printf("[DEBUG] DiskPostPostCloneOperation: Operation complete, returning updated spec")
 	return l, spec, nil
 }
 
@@ -1314,6 +1518,7 @@ func ReadDiskAttrsForDataSource(l object.VirtualDeviceList, d *schema.ResourceDa
 
 // Create creates a vsphere_virtual_machine disk sub-resource.
 func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("coo-eey!! we're generating some create instructions")
 	log.Printf("[DEBUG] %s: Creating disk", r)
 	var spec []types.BaseVirtualDeviceConfigSpec
 
@@ -1350,7 +1555,9 @@ func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtua
 
 	// Attach the SPBM storage policy if specified
 	if policyID := r.Get("storage_policy_id").(string); policyID != "" {
-		dspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(policyID)
+		log.Printf("[DEBUG] %s: Storage policy specified, shall be attached at the end of the process of the VM being created", r)
+		log.Printf("coo-eey!! and here is the storage policy: %s, ", policyID)
+		// dspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(policyID)
 	}
 
 	spec = append(spec, dspec...)
@@ -1455,12 +1662,14 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 
 // Update updates a vsphere_virtual_machine disk sub-resource.
 func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("coo-eey!! we in Update hehe")
 	log.Printf("[DEBUG] %s: Beginning update", r)
 	disk, err := r.findVirtualDisk(l, false)
 	if err != nil {
+		log.Printf("coo-eey!! we hit an error trying to find the virtual disk")
 		return nil, fmt.Errorf("cannot find disk device: %s", err)
 	}
-
+	log.Printf("coo-eey!! i'm lost")
 	// Has the unit number changed?
 	if r.HasChange("unit_number") || r.HasChange("controller_type") {
 		ctlr, err := r.assignDisk(l, disk)
@@ -1478,11 +1687,11 @@ func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtua
 		// devices.
 		r.Set("key", 0)
 	}
-
+	log.Printf("coo-eey!! over it's nice in here")
 	// We can now expand the rest of the settings.
-	if err := r.expandDiskSettings(disk); err != nil {
-		return nil, err
-	}
+	// if err := r.expandDiskSettings(disk); err != nil {
+	// 	return nil, err
+	// }
 
 	dspec, err := object.VirtualDeviceList{disk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationEdit)
 	if err != nil {
@@ -1493,12 +1702,13 @@ func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtua
 	}
 	// Clear file operation - VirtualDeviceList currently sets this to replace, which is invalid
 	dspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
-
+	log.Printf("coo-eey!! we're about to look at the storage policy, eek!")
 	// Attach the SPBM storage policy if specified
 	if policyID := r.Get("storage_policy_id").(string); policyID != "" {
+		log.Printf("coo-eey!! hope we got inside the Get, we should have, here's storage policy: %s", policyID)
 		dspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(policyID)
 	}
-
+	log.Printf("coo-eey!! we changed it :o")
 	log.Printf("[DEBUG] %s: Device config operations from update: %s", r, DeviceChangeString(dspec))
 	log.Printf("[DEBUG] %s: Update complete", r)
 	return dspec, nil
@@ -2234,6 +2444,7 @@ func getDiskPath(data map[string]interface{}) string {
 // versus situations where it should never be used, such as an update or
 // delete.
 func (r *DiskSubresource) findVirtualDisk(l object.VirtualDeviceList, fallback bool) (*types.VirtualDisk, error) {
+	log.Printf("coo-eey!! we're in findVirtualDisk")
 	device, err := r.findVirtualDiskByUUIDOrAddress(l, fallback)
 	if err != nil {
 		return nil, err
@@ -2242,6 +2453,7 @@ func (r *DiskSubresource) findVirtualDisk(l object.VirtualDeviceList, fallback b
 }
 
 func (r *DiskSubresource) findVirtualDiskByUUIDOrAddress(l object.VirtualDeviceList, fallback bool) (types.BaseVirtualDevice, error) {
+	log.Printf("coo-eey!! we;re in findVirtualDiskbyUUIDOrAddress")
 	var uuid string
 	if v := r.Get("uuid"); v != nil {
 		uuid = v.(string)
@@ -2250,22 +2462,27 @@ func (r *DiskSubresource) findVirtualDiskByUUIDOrAddress(l object.VirtualDeviceL
 	case uuid == "" && fallback:
 		return r.FindVirtualDevice(l)
 	case uuid == "" && !fallback:
+		log.Printf("coo-eey!! no disk UUID")
 		return nil, errors.New("disk UUID is missing")
 	}
+	log.Printf("coo-eey!! lets get them devices")
 	devices := l.Select(func(device types.BaseVirtualDevice) bool {
 		return diskUUIDMatch(device, uuid)
 	})
 	switch {
 	case len(devices) < 1:
+		log.Printf("coo-eey!! no disk with THAT UUID")
 		return nil, fmt.Errorf("virtual disk with UUID %s not found", uuid)
 	case len(devices) > 1:
 		// This is an edge/should never happen case
+		log.Printf("coo-eey!! multiple disks with THAT UUID")
 		return nil, fmt.Errorf("multiple virtual disks with UUID %s found", uuid)
 	}
 	return devices[0], nil
 }
 
 func diskUUIDMatch(device types.BaseVirtualDevice, uuid string) bool {
+	log.Printf("coo-eey!! we're in diskUUIDMatch")
 	disk, ok := device.(*types.VirtualDisk)
 	if !ok {
 		return false
