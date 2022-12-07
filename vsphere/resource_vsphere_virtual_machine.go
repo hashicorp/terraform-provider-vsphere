@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -662,7 +663,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
-	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
+	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices, false); err != nil {
 		return err
 	}
 	// Only carry out the reconfigure if we actually have a change to process.
@@ -726,6 +727,8 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		}()
 
 		// Perform updates.
+		s, _ := json.MarshalIndent(spec, "", "\t")
+		log.Printf("coo-eey!! we in VMUpdate, here's the spec: %s, ", s)
 		if _, ok := d.GetOk("datastore_cluster_id"); ok {
 			err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, spec)
 		} else {
@@ -1229,7 +1232,7 @@ func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interf
 	}
 	log.Printf("[DEBUG] Default devices: %s", virtualdevice.DeviceListString(devices))
 
-	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
+	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices, false); err != nil {
 		return nil, err
 	}
 
@@ -1392,6 +1395,7 @@ func createVCenterDeploy(d *schema.ResourceData, meta interface{}) (*virtualmach
 	restClient := meta.(*VSphereClient).restClient
 	vimClient := meta.(*VSphereClient).vimClient
 	vCenterManager := vcenter.NewManager(restClient)
+	log.Printf("belle is here, hello")
 
 	item, err := contentlibrary.ItemFromID(restClient, d.Get("clone.0.template_uuid").(string))
 	if err != nil {
@@ -1430,7 +1434,7 @@ func createVCenterDeploy(d *schema.ResourceData, meta interface{}) (*virtualmach
 func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta interface{}) (*object.VirtualMachine, error) {
 	log.Printf("[DEBUG] %s: VM being created from clone", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*VSphereClient).vimClient
-
+	log.Printf("belle is here, hello , we in CreateClone")
 	// Find the folder based off the path to the resource pool. Basically what we
 	// are saying here is that the VM folder that we are placing this VM in needs
 	// to be in the same hierarchy as the resource pool - so in other words, the
@@ -1574,6 +1578,9 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 	log.Printf("[DEBUG] %s: Final device change cfgSpec: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceChangeString(cfgSpec.DeviceChange))
 
 	// Perform updates
+	// if cfgSpec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
+	// 	return err
+	// }
 	if _, ok := d.GetOk("datastore_cluster_id"); ok {
 		err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, cfgSpec)
 	} else {
@@ -1587,14 +1594,77 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			fmt.Errorf("error reconfiguring virtual machine: %s", err),
 		)
 	}
+	//CHCHCH
+	log.Printf("coo-eey!! WE ABOUT TO CALL THE ID")
+	id := d.Id()
+	changed_vm, err := virtualmachine.FromUUID(client, id)
 
-	vmprops, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return fmt.Errorf("cannot locate virtual machine with UUID %q: %s", id, err)
+	}
+	err = resourceVSphereVirtualMachineRead(d, meta)
+	if err != nil {
+		return err
+	}
+
+	vmprops, err := virtualmachine.Properties(changed_vm)
 	if err != nil {
 		return err
 	}
 
 	// This should only change if deploying from a Content Library item.
-	d.Set("guest_id", vmprops.Config.GuestId)
+	s, _ := json.MarshalIndent(d, "", "\t")
+	log.Printf("here's a dump: %s", s)
+
+	var d_changed = d
+	o_changed, n_changed := d_changed.GetChange("disk")
+	o_changed = n_changed
+	old_disks_changed := o_changed.([]interface{})
+	for _, oldDisk := range old_disks_changed {
+		log.Printf("coo-eey!! We're changing our old disks to our new disks")
+		oldDisk.(map[string]interface{})["storage_policy_id"] = ""
+		log.Printf("coo-eey!! in theory we did it?")
+	}
+
+	spec, _, err := expandVirtualMachineConfigSpecChanged(d_changed, client, vprops.Config)
+	if err != nil {
+		return fmt.Errorf("error in virtual machine configuration: %s", err)
+	}
+	cfgSpec_pls, err := expandVirtualMachineConfigSpec(d_changed, client)
+	if err != nil {
+		return resourceVSphereVirtualMachineRollbackCreate(
+			d,
+			meta,
+			vm,
+			fmt.Errorf("error in virtual machine configuration: %s", err),
+		)
+	}
+	c, _ := json.MarshalIndent(cfgSpec_pls, "", "\t")
+	log.Printf("coo-eey!! here's cfgSpec_pls: %s,", c)
+	devices_post_reconfigure := object.VirtualDeviceList(vmprops.Config.Hardware.Device)
+	log.Printf("coo-eey!! WE ABOUT TO CALL applyVirtualDevices")
+	// if spec.DeviceChange, err = applyVirtualDevices(d_changed, client, devices_post_reconfigure, true); err != nil {
+	// 	return err
+	// }
+	devices, delta, err = virtualdevice.DiskPostPostCloneOperation(d, client, devices_post_reconfigure, postOvf)
+	if err != nil {
+		return resourceVSphereVirtualMachineRollbackCreate(
+			d,
+			meta,
+			vm,
+			fmt.Errorf("error processing disk changes post-clone: %s", err),
+		)
+	}
+	spec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec_pls.DeviceChange, delta...)
+	// Perform updates.
+	if _, ok := d.GetOk("datastore_cluster_id"); ok {
+		log.Printf("time to reconfigurewithsdrs")
+		err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, spec)
+	} else {
+		u, _ := json.MarshalIndent(spec, "", "\t")
+		log.Printf("time to reconfigure, here's spec: %s", u)
+		err = virtualmachine.Reconfigure(vm, spec)
+	}
 
 	// Upgrade the VM's hardware version if needed.
 	err = virtualmachine.SetHardwareVersion(vm, d.Get("hardware_version").(int))
@@ -1810,10 +1880,11 @@ func resourceVSphereVirtualMachineUpdateLocationRelocateWithSDRS(
 
 // applyVirtualDevices is used by Create and Update to build a list of virtual
 // device changes.
-func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
+func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, belle bool) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	// We filter this device list through each major device class' apply
 	// operation. This will give us a final set of changes that will be our
 	// deviceChange attribute.
+	log.Printf("coo-eey!! We in applyVirtualDevices")
 	var spec, delta []types.BaseVirtualDeviceConfigSpec
 	var err error
 	// First check the state of our SCSI bus. Normalize it if we need to.
@@ -1827,7 +1898,8 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 	}
 	spec = virtualdevice.AppendDeviceChangeSpec(spec, delta...)
 	// Disks
-	l, delta, err = virtualdevice.DiskApplyOperation(d, c, l)
+	log.Printf("coo-eey!! oh my goodness, do diskapplyoperation")
+	l, delta, err = virtualdevice.DiskApplyOperation(d, c, l, belle)
 	if err != nil {
 		return nil, err
 	}
