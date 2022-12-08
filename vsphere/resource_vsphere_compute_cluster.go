@@ -580,11 +580,7 @@ func resourceVSphereComputeClusterCreate(d *schema.ResourceData, meta interface{
 
 	// Now that all the hosts that will be in the cluster have been added, apply
 	// the cluster configuration.
-	if err := resourceVSphereComputeClusterApplyClusterConfiguration(d, meta, cluster); err != nil {
-		return err
-	}
-
-	if err := resourceVSphereComputeClusterApplyVsanConfig(d, meta, cluster); err != nil {
+	if err := resourceVSphereComputeClusterApplyClusterAndVsanConfig(d, meta, cluster); err != nil {
 		return err
 	}
 
@@ -651,7 +647,7 @@ func resourceVSphereComputeClusterUpdate(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	if err := resourceVSphereComputeClusterApplyClusterConfiguration(d, meta, cluster); err != nil {
+	if err := resourceVSphereComputeClusterApplyClusterAndVsanConfig(d, meta, cluster); err != nil {
 		return err
 	}
 
@@ -660,10 +656,6 @@ func resourceVSphereComputeClusterUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	if err := resourceVSphereComputeClusterApplyCustomAttributes(d, meta, cluster); err != nil {
-		return err
-	}
-
-	if err := resourceVSphereComputeClusterApplyVsanConfig(d, meta, cluster); err != nil {
 		return err
 	}
 
@@ -892,6 +884,31 @@ func resourceVSphereComputeClusterGetHostSystemObjects(client *govmomi.Client, h
 	}
 
 	return hosts, nil
+}
+
+// resourceVSphereComputeClusterApplyClusterAndVsanConfig() is used to apply vSphere and vSAN configuration
+// and controls the sequence for toggling vSAN/HA sequence such that the properties can be properly
+// reflected in the configuration and avoid the race condition.
+func resourceVSphereComputeClusterApplyClusterAndVsanConfig(d *schema.ResourceData, meta interface{}, cluster *object.ClusterComputeResource) error {
+	if _, new := d.GetChange("vsan_enabled"); d.HasChange("vsan_enabled") && new.(bool) {
+		if err := resourceVSphereComputeClusterApplyVsanConfig(d, meta, cluster); err != nil {
+			return err
+		}
+
+		if err := resourceVSphereComputeClusterApplyClusterConfiguration(d, meta, cluster); err != nil {
+			return err
+		}
+
+	} else {
+		if err := resourceVSphereComputeClusterApplyClusterConfiguration(d, meta, cluster); err != nil {
+			return err
+		}
+
+		if err := resourceVSphereComputeClusterApplyVsanConfig(d, meta, cluster); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func resourceVSphereComputeClusterApplyClusterConfiguration(
@@ -1302,8 +1319,6 @@ func expandClusterConfigSpecEx(d *schema.ResourceData, version viapi.VSphereVers
 		obj.ProactiveDrsConfig = expandClusterProactiveDrsConfigInfo(d)
 	}
 
-	obj.VsanConfig = expandVsanConfig(d)
-
 	return obj
 }
 
@@ -1350,13 +1365,11 @@ func expandVsanUnmapConfig(d *schema.ResourceData) *vsantypes.VsanUnmapConfig {
 }
 
 func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta interface{}, cluster *object.ClusterComputeResource) error {
-	vsan_enabled := d.Get("vsan_enabled").(bool)
-	if !vsan_enabled {
-		return nil
-	}
 	conf := &vsantypes.VimVsanReconfigSpec{}
+	conf.VsanClusterConfig = (*vsantypes.VsanClusterConfigInfo)(expandVsanConfig(d))
 	dedup_enabled := d.Get("vsan_dedup_enabled").(bool)
 	compression_enabled := d.Get("vsan_compression_enabled").(bool)
+	conf.Modify = true
 
 	perf_config, err := expandVsanPerfConfig(d)
 	if err != nil {
