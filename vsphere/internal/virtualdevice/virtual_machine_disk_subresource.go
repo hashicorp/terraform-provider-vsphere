@@ -270,7 +270,7 @@ func NewDiskSubresource(client *govmomi.Client, rdd resourceDataDiff, d, old map
 // operation. All disk operations are carried out, with both the complete,
 // updated, VirtualDeviceList, and the complete list of changes returned as a
 // slice of BaseVirtualDeviceConfigSpec.
-func DiskApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, belle bool) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+func DiskApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] DiskApplyOperation: Beginning apply operation")
 	o, n := d.GetChange(subresourceTypeDisk)
 	log.Printf("coo-eey!!")
@@ -297,15 +297,8 @@ func DiskApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.Virt
 	log.Printf("[DEBUG] DiskApplyOperation: Resources not being changed: %s", subresourceListString(updates))
 	for ni, ne := range newDisks {
 		nm := ne.(map[string]interface{})
-		if belle == true {
-			if err := diskApplyOperationCreateUpdateBelle(ni, nm, oldDisks, c, d, &l, &spec, &updates); err != nil {
-				return nil, nil, err
-			}
-		}
-		if belle == false {
-			if err := diskApplyOperationCreateUpdate(ni, nm, oldDisks, c, d, &l, &spec, &updates); err != nil {
-				return nil, nil, err
-			}
+		if err := diskApplyOperationCreateUpdate(ni, nm, oldDisks, c, d, &l, &spec, &updates); err != nil {
+			return nil, nil, err
 		}
 	}
 
@@ -381,87 +374,6 @@ func diskApplyOperationCreateUpdate(
 		return nil
 	}
 	for _, oe := range oldDataSet {
-		log.Printf("coo-eey!! we inside the for loop, here's our new data uuid: %s", newData["uuid"])
-		oldData := oe.(map[string]interface{})
-		if newData["uuid"] == oldData["uuid"] {
-			// This is an update
-			log.Printf("coo-eey!! time for a wee update")
-			r := NewDiskSubresource(c, d, newData, oldData, index)
-			// If the only thing changing here is the datastore, or keep_on_remove,
-			// this is a no-op as far as a device change is concerned. Datastore
-			// changes are handled during storage vMotion later on during the
-			// update phase. keep_on_remove is a Terraform-only attribute and only
-			// needs to be committed to state.
-			omc, err := copystructure.Copy(oldData)
-			if err != nil {
-				return fmt.Errorf("%s: error generating copy of old disk data: %s", r.Addr(), err)
-			}
-			oldCopy := omc.(map[string]interface{})
-			oldCopy["datastore_id"] = newData["datastore_id"]
-			oldCopy["keep_on_remove"] = newData["keep_on_remove"]
-			// TODO: Remove these in 2.0, when all attributes should bear a label and
-			// name is gone, and we won't need to exempt transitions.
-			oldCopy["label"] = newData["label"]
-			oldCopy["name"] = newData["name"]
-			if reflect.DeepEqual(oldCopy, newData) {
-				*updates = append(*updates, r.Data())
-				return nil
-			}
-			uspec, err := r.Update(*l)
-			if err != nil {
-				return fmt.Errorf("%s: %s", r.Addr(), err)
-			}
-			*l = applyDeviceChange(*l, uspec)
-			*spec = append(*spec, uspec...)
-			*updates = append(*updates, r.Data())
-			return nil
-		}
-	}
-	log.Printf("coo-eey!! no newdata, create time")
-	// New data was not found - this is a create operation
-	r := NewDiskSubresource(c, d, newData, nil, index)
-	cspec, err := r.Create(*l)
-	if err != nil {
-		return fmt.Errorf("%s: %s", r.Addr(), err)
-	}
-	*l = applyDeviceChange(*l, cspec)
-	*spec = append(*spec, cspec...)
-	*updates = append(*updates, r.Data())
-	return nil
-}
-
-// diskApplyOperationCreateUpdate is an inner-loop helper for disk creation and
-// update operations.
-func diskApplyOperationCreateUpdateBelle(
-	index int,
-	newData map[string]interface{},
-	oldDataSet []interface{},
-	c *govmomi.Client,
-	d *schema.ResourceData,
-	l *object.VirtualDeviceList,
-	spec *[]types.BaseVirtualDeviceConfigSpec,
-	updates *[]interface{},
-) error {
-	log.Printf("coo-eey!! We're inside diskApplyOperationCreateUpdate")
-	var name string
-	var err error
-	if name, err = diskLabelOrName(newData); err != nil {
-		return err
-	}
-	if name == diskDeletedName || name == diskDetachedName {
-		// This is a "dummy" deleted resource and should be skipped over
-		return nil
-	}
-	var d_changed = d
-	o_changed, n_changed := d_changed.GetChange("disk")
-	o_changed = n_changed
-	old_disks_changed := o_changed.([]interface{})
-	for _, oldDisk := range old_disks_changed {
-		log.Printf("coo-eey!! We're changing our old disks to our new disks")
-		oldDisk.(map[string]interface{})["storage_policy_id"] = ""
-		log.Printf("coo-eey!! in theory we did it?")
-	}
-	for _, oe := range old_disks_changed {
 		log.Printf("coo-eey!! we inside the for loop, here's our new data uuid: %s", newData["uuid"])
 		oldData := oe.(map[string]interface{})
 		if newData["uuid"] == oldData["uuid"] {

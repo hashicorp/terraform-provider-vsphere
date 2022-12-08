@@ -663,7 +663,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
-	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices, false); err != nil {
+	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
 		return err
 	}
 	// Only carry out the reconfigure if we actually have a change to process.
@@ -1232,7 +1232,7 @@ func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interf
 	}
 	log.Printf("[DEBUG] Default devices: %s", virtualdevice.DeviceListString(devices))
 
-	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices, false); err != nil {
+	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
 		return nil, err
 	}
 
@@ -1880,7 +1880,7 @@ func resourceVSphereVirtualMachineUpdateLocationRelocateWithSDRS(
 
 // applyVirtualDevices is used by Create and Update to build a list of virtual
 // device changes.
-func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, belle bool) ([]types.BaseVirtualDeviceConfigSpec, error) {
+func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	// We filter this device list through each major device class' apply
 	// operation. This will give us a final set of changes that will be our
 	// deviceChange attribute.
@@ -1899,7 +1899,7 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 	spec = virtualdevice.AppendDeviceChangeSpec(spec, delta...)
 	// Disks
 	log.Printf("coo-eey!! oh my goodness, do diskapplyoperation")
-	l, delta, err = virtualdevice.DiskApplyOperation(d, c, l, belle)
+	l, delta, err = virtualdevice.DiskApplyOperation(d, c, l)
 	if err != nil {
 		return nil, err
 	}
