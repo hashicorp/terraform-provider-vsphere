@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/vsanclient"
 
@@ -527,6 +528,30 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Computed:    true,
 				Description: "Whether the vSAN unmap service is enabled for the cluster.",
 			},
+			"vsan_remote_datastore_ids": {
+				Type:          schema.TypeSet,
+				Optional:      true,
+				MaxItems:      5,
+				Computed:      true,
+				Description:   "The managed object IDs of the vSAN datastore to be mounted on the cluster.",
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				ConflictsWith: []string{"vsan_dit_encryption_enabled", "vsan_dit_rekey_interval"},
+			},
+			"vsan_dit_encryption_enabled": {
+				Type:          schema.TypeBool,
+				Optional:      true,
+				Computed:      true,
+				Description:   "Whether the vSAN data-in-transit encryption is enabled for the cluster.",
+				ConflictsWith: []string{"vsan_remote_datastore_ids"},
+			},
+			"vsan_dit_rekey_interval": {
+				Type:          schema.TypeInt,
+				Optional:      true,
+				Default:       1440,
+				Description:   "When vsan_dit_encryption_enabled is enabled, sets the rekey interval of data-in-transit encryption (in minutes).",
+				ValidateFunc:  validation.IntBetween(30, 10080),
+				ConflictsWith: []string{"vsan_remote_datastore_ids"},
+			},
 			"vsan_disk_group": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -694,6 +719,10 @@ func resourceVSphereComputeClusterDelete(d *schema.ResourceData, meta interface{
 	}
 
 	if err := resourceVSphereComputeClusterDeleteProcessForceRemoveHosts(d, meta, cluster); err != nil {
+		return err
+	}
+
+	if err := resourceVSphereComputeClusterDeleteProcessForceRemoveVsanRemoteDatastore(d, meta, cluster); err != nil {
 		return err
 	}
 
@@ -1249,6 +1278,39 @@ func resourceVSphereComputeClusterDeleteProcessForceRemoveHosts(
 	return nil
 }
 
+// resourceVSphereComputeClusterDeleteProcessForceRemoveVsanRemoteDatastore process
+// force-evacuation if the resource has been configured to do so.
+//
+// NOTE: As documented, this should only be used in testing. Improper use
+// of this option can lead to service disruptions and/or may fail to
+// actually succeed depending on the resources actually in use in the
+// cluster, and specific constraints that exist in the cluster.
+func resourceVSphereComputeClusterDeleteProcessForceRemoveVsanRemoteDatastore(
+	d *schema.ResourceData,
+	meta interface{},
+	cluster *object.ClusterComputeResource,
+) error {
+	if !d.Get("force_evacuate_on_destroy").(bool) {
+		return nil
+	}
+
+	log.Printf("[DEBUG] %s: Force-evacuating vsan remote datastores in cluster before removal", resourceVSphereComputeClusterIDString(d))
+	dsIDs := structure.SliceInterfacesToStrings(d.Get("vsan_remote_datastore_ids").(*schema.Set).List())
+
+	if len(dsIDs) == 0 {
+		return nil
+	}
+
+	client := meta.(*Client).vsanClient
+	conf := &vsantypes.VimVsanReconfigSpec{}
+	conf.DatastoreConfig = &vsantypes.VsanAdvancedDatastoreConfig{}
+	if err := vsanclient.Reconfigure(client, cluster.Reference(), *conf); err != nil {
+		return fmt.Errorf("cannot apply vsan service on cluster: %s, err: %s", d.Get("name").(string), err)
+	}
+
+	return nil
+}
+
 // resourceVSphereComputeClusterApplyDelete process the removal of a
 // cluster.
 func resourceVSphereComputeClusterApplyDelete(d structure.ResourceIDStringer, cluster *object.ClusterComputeResource) error {
@@ -1364,6 +1426,41 @@ func expandVsanUnmapConfig(d *schema.ResourceData) *vsantypes.VsanUnmapConfig {
 	return conf
 }
 
+func expandVsanDatastoreConfig(d *schema.ResourceData, meta interface{}) (*vsantypes.VsanAdvancedDatastoreConfig, error) {
+	vimClient := meta.(*Client).vimClient
+	conf := &vsantypes.VsanAdvancedDatastoreConfig{}
+
+	conf.RemoteDatastores = []types.ManagedObjectReference{}
+
+	dsIDs := structure.SliceInterfacesToStrings(d.Get("vsan_remote_datastore_ids").(*schema.Set).List())
+
+	for _, dsID := range dsIDs {
+		ds, err := datastore.FromID(vimClient, dsID)
+		if err != nil {
+			return nil, fmt.Errorf("error locating datastore ID %q: %s", dsID, err)
+		}
+
+		//ds.Reference: description of datastore resource
+		//Type ManagedObjectReference struct {
+		//	Type  string `xml:"type,attr"`
+		//	Value string `xml:",chardata"`
+		//}
+		conf.RemoteDatastores = append(conf.RemoteDatastores, ds.Reference())
+	}
+
+	return conf, nil
+}
+
+func expandVsanDataInTransitEncryptionConfig(d *schema.ResourceData) *vsantypes.VsanDataInTransitEncryptionConfig {
+	dit_encryption_enabled := d.Get("vsan_dit_encryption_enabled").(bool)
+	dit_rekey_interval := d.Get("vsan_dit_rekey_interval").(int)
+
+	conf := &vsantypes.VsanDataInTransitEncryptionConfig{}
+	conf.Enabled = &dit_encryption_enabled
+	conf.RekeyInterval = int32(dit_rekey_interval)
+	return conf
+}
+
 func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta interface{}, cluster *object.ClusterComputeResource) error {
 	conf := &vsantypes.VimVsanReconfigSpec{}
 	conf.VsanClusterConfig = (*vsantypes.VsanClusterConfigInfo)(expandVsanConfig(d))
@@ -1379,9 +1476,17 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 
 	conf.UnmapConfig = expandVsanUnmapConfig(d)
 
+	conf.DataInTransitEncryptionConfig = expandVsanDataInTransitEncryptionConfig(d)
 	conf.DataEfficiencyConfig = &vsantypes.VsanDataEfficiencyConfig{}
 	conf.DataEfficiencyConfig.DedupEnabled = dedup_enabled
 	conf.DataEfficiencyConfig.CompressionEnabled = &compression_enabled
+
+	datastoreConfig, err := expandVsanDatastoreConfig(d, meta)
+	if err != nil {
+		return err
+	}
+
+	conf.DatastoreConfig = datastoreConfig
 
 	client := meta.(*Client).vsanClient
 
