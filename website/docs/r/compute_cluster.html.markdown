@@ -474,6 +474,17 @@ details, see the referenced link in the above paragraph.
 * `vsan_network_diagnostic_mode_enabled` - (Optional) Enables network
   diagnostic mode for vSAN performance service on the cluster.
 * `vsan_unmap_enabled` - (Optional) Enables vSAN unmap on the cluster.
+* `vsan_remote_datastore_ids` - (Optional) The remote vSAN datastore IDs to be
+  mounted to this cluster. Conflicts with `vsan_dit_encryption_enabled` and
+  `vsan_dit_rekey_interval`, i.e., vSAN HCI mesh feature cannot be enabled with
+  data-in-transit encryption feature at the same time.
+* `vsan_dit_encryption_enabled` - (Optional) Enables vSAN data-in-transit
+  encryption on the cluster. Conflicts with `vsan_remote_datastore_ids`, i.e.,
+  vSAN data-in-transit feature cannot be enabled with the HCI mesh feature
+  at the same time.
+* `vsan_dit_rekey_interval` - (Optional) Indicates the rekey interval in
+  minutes for data-in-transit encryption. The valid rekey interval is 30 to
+  10800 (defaults to 1400). Conflicts with `vsan_remote_datastore_ids`.
 * `vsan_disk_group` - (Optional) Represents the configuration of a host disk
   group in the cluster.
   * `cache` - The canonical name of the disk to use for vSAN cache.
@@ -500,6 +511,8 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   vsan_verbose_mode_enabled = true
   vsan_network_diagnostic_mode_enabled = true
   vsan_unmap_enabled = true
+  vsan_dit_encryption_enabled = true
+  vsan_dit_rekey_interval = 1800
   vsan_disk_group {
     cache = data.vsphere_vmfs_disks.cache_disks[0]
     storage = data.vsphere_vmfs_disks.storage_disks
