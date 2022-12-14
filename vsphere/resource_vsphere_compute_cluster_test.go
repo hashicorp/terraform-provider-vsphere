@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/vim25/types"
+	vsantypes "github.com/vmware/govmomi/vsan/types"
 )
 
 const (
@@ -266,6 +267,50 @@ func TestAccResourceVSphereComputeCluster_vsanUnmapDisabledwithVsanDisabled(t *t
 					testAccResourceVSphereComputeClusterCheckExists(true),
 					testAccResourceVSphereComputeClusterCheckVsanEnabled(false),
 					testAccResourceVSphereComputeClusterCheckUnmapEnabled(false),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereComputeCluster_vsanRemoteDatastoreMount(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterConfigVSANRemoteDatastoreMount(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					testAccResourceVSphereComputeClusterCheckRemoteDatastoreMount("data.vsphere_datastore.rootds1"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereComputeCluster_vsanDITEncryption(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+
+				Config: testAccResourceVSphereComputeClusterConfigVSANDITEncryptionEnabled(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					testAccResourceVSphereComputeClusterCheckDITEncryptionEnabled(true),
+					testAccResourceVSphereComputeClusterCheckDITEncryptionRekeyInterval(1800),
 				),
 			},
 		},
@@ -631,6 +676,34 @@ func testAccResourceVSphereComputeClusterCheckVerboseEnabled(expected bool) reso
 	}
 }
 
+func testAccResourceVSphereComputeClusterCheckDITEncryptionRekeyInterval(expected int32) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
+		if err != nil {
+			return err
+		}
+		actual := *&props.DataInTransitEncryptionConfig.RekeyInterval
+		if expected != actual {
+			return fmt.Errorf("expected rekey interval to be %d, got %d", expected, actual)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereComputeClusterCheckDITEncryptionEnabled(expected bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
+		if err != nil {
+			return err
+		}
+		actual := *props.DataInTransitEncryptionConfig.Enabled
+		if expected != actual {
+			return fmt.Errorf("expected DIT encryption enabled to be %t, got %t", expected, actual)
+		}
+		return nil
+	}
+}
+
 func testAccResourceVSphereComputeClusterCheckUnmapEnabled(expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
@@ -667,6 +740,26 @@ func testAccResourceVSphereComputeClusterCheckCompressionEnabled(expected bool) 
 		actual := props.DataEfficiencyConfig.CompressionEnabled
 		if expected != *actual {
 			return fmt.Errorf("expected enabled to be %t, got %t", expected, *actual)
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereComputeClusterCheckRemoteDatastoreMount(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
+		if err != nil {
+			return err
+		}
+		expected, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("%s key not found on the server", name)
+		}
+
+		actual := props.DatastoreConfig.(*vsantypes.VsanAdvancedDatastoreConfig).RemoteDatastores
+
+		if actual[0].Value != expected.Primary.ID {
+			return fmt.Errorf("expected enabled to be %s, got %s", expected.Primary.ID, actual[0].Value)
 		}
 		return nil
 	}
@@ -841,7 +934,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   name                        = "testacc-compute-cluster"
   datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
   host_system_ids             = [data.vsphere_host.roothost3.id]
-  
+
   vsan_enabled = true
   vsan_dedup_enabled = true
   vsan_compression_enabled = true
@@ -973,6 +1066,34 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 	)
 }
 
+func testAccResourceVSphereComputeClusterConfigVSANDITEncryptionEnabled() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                        = "testacc-compute-cluster"
+  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
+  host_system_ids             = [data.vsphere_host.roothost3.id]
+
+  vsan_enabled                = true
+  vsan_dit_encryption_enabled = true
+  vsan_dit_rekey_interval     = 1800
+  force_evacuate_on_destroy   = true
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootHost4(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootVMNet(),
+		),
+	)
+}
+
 func testAccResourceVSphereComputeClusterConfigVSANUnmapEnabledwithVsanEnabled() string {
 	return fmt.Sprintf(`
 %s
@@ -1048,6 +1169,32 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 			testhelper.ConfigDataRootHost3(),
 			testhelper.ConfigDataRootComputeCluster1(),
 			testhelper.ConfigDataRootHost4(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootVMNet(),
+		),
+	)
+}
+
+func testAccResourceVSphereComputeClusterConfigVSANRemoteDatastoreMount() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                      = "testacc-compute-cluster"
+  datacenter_id             = "${data.vsphere_datacenter.rootdc1.id}"
+  host_system_ids           = [data.vsphere_host.roothost3.id]
+
+  vsan_enabled              = true
+  vsan_remote_datastore_ids = [data.vsphere_datastore.rootds1.id]
+  force_evacuate_on_destroy = true
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootComputeCluster1(),
 			testhelper.ConfigDataRootDS1(),
 			testhelper.ConfigDataRootVMNet(),
 		),
