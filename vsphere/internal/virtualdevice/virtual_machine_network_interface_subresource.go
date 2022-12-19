@@ -493,7 +493,7 @@ loopInterfaces:
 		// First check that the host system is known
 		host, err := hostsystem.FromID(c, d.Get("host_system_id").(string))
 		if err != nil {
-			return fmt.Errorf("Trying to use an SR-IOV network interface but target host is not known")
+			return fmt.Errorf("trying to use an SR-IOV network interface but target host is not known")
 		}
 		hprops, err := hostsystem.Properties(host)
 		if err != nil {
@@ -513,7 +513,7 @@ loopInterfaces:
 				}
 			}
 			if !foundPhysicalNic {
-				return fmt.Errorf("Unable to find SR-IOV physical adapter %s on host %s", sriovPhysicalAdapter, host.Name())
+				return fmt.Errorf("unable to find SR-IOV physical adapter %s on host %s", sriovPhysicalAdapter, host.Name())
 			}
 		}
 		// Check the physical adapters have SRIOV enabled
@@ -531,7 +531,7 @@ loopInterfaces:
 			foundSriovEnabled := false
 
 			if pciIdx >= len(pciPassthru) {
-				return fmt.Errorf("Unable to find SR-IOV physical adapter PCI passthrough Id %s on host %s", sriovPhysicalAdapters[adapterIdx], host.Name())
+				return fmt.Errorf("unable to find SR-IOV physical adapter PCI passthrough Id %s on host %s", sriovPhysicalAdapters[adapterIdx], host.Name())
 			}
 			switch nicType := pciPassthru[pciIdx].(type) {
 			case *types.HostSriovInfo:
@@ -565,7 +565,7 @@ loopInterfaces:
 
 		// Next check Memory reservations have been locked to max
 		if d.Get("memory_reservation").(int) != d.Get("memory").(int) {
-			return fmt.Errorf("Trying to use SR-IOV NIC but memory reservation is not equal to memory, set memory_reservation equal to memory on VM")
+			return fmt.Errorf("trying to use SR-IOV NIC but memory reservation is not equal to memory, set memory_reservation equal to memory on VM")
 		}
 	}
 
@@ -1319,7 +1319,7 @@ func (r *NetworkInterfaceSubresource) blockAdapterTypeChangeSriov() error {
 			(oldAdapterType == networkInterfaceSubresourceTypeSriov && newAdapterType != networkInterfaceSubresourceTypeSriov) {
 			log.Printf("[DEBUG] blockAdapterTypeChangeSriov: Network interface %s index %d changing type from %s to %s. "+
 				"Block this", r, r.Index, oldAdapterType, newAdapterType)
-			return fmt.Errorf("Changing the network_interface list such that there is a change in adapter_type to"+
+			return fmt.Errorf("changing the network_interface list such that there is a change in adapter_type to"+
 				" or from sriov for a particular index of network_interface is not supported.\n"+
 				"Index %d, old adapter_type %s, new adapter_type %s\n"+
 				"Delete all the sriov network interfaces, apply, and then re-add network interfaces and reapply instead.", r.Index, oldAdapterType, newAdapterType)
@@ -1338,7 +1338,7 @@ func (r *NetworkInterfaceSubresource) blockBandwidthSettingsSriov() error {
 			r.Get("bandwidth_reservation") != defaultBandwidthReservation ||
 			r.Get("bandwidth_share_level") != defaultBandwidthShareLevel {
 			log.Printf("SUNNY Bandwidths %d %d %s", r.Get("bandwidth_limit"), r.Get("bandwidth_reservation"), r.Get("bandwidth_share_level"))
-			return fmt.Errorf("Invalid bandwidth properties on sriov network interface. " +
+			return fmt.Errorf("invalid bandwidth properties on sriov network interface. " +
 				"Bandwidth settings do not apply to SRIOV interfaces. Please remove them.")
 		}
 
@@ -1354,7 +1354,7 @@ func (r *NetworkInterfaceSubresource) ValidateDiff() error {
 	log.Printf("[DEBUG] %s: Beginning diff validation", r)
 
 	// Ensure that network resource allocation options are only set on vSphere
-	// 6.0 and higher. They are not relevant for SRIOV networks in either case.
+	// 6.0 and higher. They are not relevant for SR-IOV networks in either case.
 	version := viapi.ParseVersionFromClient(r.client)
 	if (version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6}) &&
 		r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov) {
@@ -1463,7 +1463,7 @@ func (r *NetworkInterfaceSubresource) assignEthernetCard(l object.VirtualDeviceL
 
 		// Now that we know which units are used, we can pick one
 		if len(sriovAvailableUnits) == 0 {
-			return fmt.Errorf("All ten SRIOV device units are currently in use on the PCI bus. Cannot assign SRIOV network.")
+			return fmt.Errorf("all ten SR-IOV device units are currently in use on the PCI bus. cannot assign SR-IOV network.")
 		}
 		newUnit = sriovAvailableUnits[0]
 	} else {

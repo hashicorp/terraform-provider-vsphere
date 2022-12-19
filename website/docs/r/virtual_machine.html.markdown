@@ -966,7 +966,7 @@ The options are:
 
 * `ovf_mapping` - (Optional) Specifies which NIC in an OVF/OVA the `network_interface` should be associated. Only applies at creation when deploying from an OVF/OVA.
 
-#### Using SR-IOV network interfaces
+#### Using SR-IOV Network Interfaces
 
 In order to attach your virtual machine to an SR-IOV network interface, 
 there are a few requirements
@@ -989,10 +989,10 @@ there are a few requirements
 
 * The `bandwidth_*` options on the network interface are not permitted.
 
-* Adding, modifying and deleting SR-IOV NICs is supported, though will require a VM restart.
+* Adding, modifying, and deleting SR-IOV NICs is supported but requires a VM restart.
 
-* Modifying the number of non-SR-IOV (e.g. VMXNET3) interfaces when there are SR-IOV interfaces existing is
-  explicitly blocked (as terraform_vsphere_plugin doesn't support modifying an interface at the same index from 
+* Modifying the number of non-SR-IOV (_e.g._, VMXNET3) interfaces when there are SR-IOV interfaces existing is
+  explicitly blocked (as the provider does not support modifying an interface at the same index from 
   non-SR-IOV to SR-IOV or vice-versa). To work around this delete all SRIOV NICs for one terraform apply, and re-add 
   them with any change to the number of non-SRIOV NICs on a second terraform apply.
 
