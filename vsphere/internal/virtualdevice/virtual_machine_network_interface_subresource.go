@@ -1336,10 +1336,9 @@ func (r *NetworkInterfaceSubresource) blockBandwidthSettingsSriov() error {
 	if r.Get("adapter_type") == networkInterfaceSubresourceTypeSriov {
 		if r.Get("bandwidth_limit") != defaultBandwidthLimit ||
 			r.Get("bandwidth_reservation") != defaultBandwidthReservation ||
-			r.Get("bandwidth_share_level") != defaultBandwidthShareLevel {
-			log.Printf("SUNNY Bandwidths %d %d %s", r.Get("bandwidth_limit"), r.Get("bandwidth_reservation"), r.Get("bandwidth_share_level"))
+			r.Get("bandwidth_share_level") != defaultBandwidthShareLevel {			
 			return fmt.Errorf("invalid bandwidth properties on sriov network interface. " +
-				"Bandwidth settings do not apply to SRIOV interfaces. Please remove them.")
+				"bandwidth settings do not apply to SRIOV interfaces. please remove them")
 		}
 
 		return nil
