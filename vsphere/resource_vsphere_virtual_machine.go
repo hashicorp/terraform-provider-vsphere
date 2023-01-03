@@ -1562,13 +1562,12 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 		)
 	}
 	cfgSpec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec.DeviceChange, delta...)
+	tehe, _ := json.MarshalIndent(cfgSpec.DeviceChange, "", "\t")
+	log.Printf("coo-eey!! here's our cfgSpec in postdeploychanges: %s", tehe)
 	log.Printf("[DEBUG] %s: Final device list: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceListString(devices))
 	log.Printf("[DEBUG] %s: Final device change cfgSpec: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceChangeString(cfgSpec.DeviceChange))
 
 	// Perform updates
-	// if cfgSpec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
-	// 	return err
-	// }
 	if _, ok := d.GetOk("datastore_cluster_id"); ok {
 		err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, cfgSpec)
 	} else {
@@ -1582,20 +1581,8 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			fmt.Errorf("error reconfiguring virtual machine: %s", err),
 		)
 	}
-	//CHCHCH
-	log.Printf("coo-eey!! WE ABOUT TO CALL THE ID")
-	id := d.Id()
-	changed_vm, err := virtualmachine.FromUUID(client, id)
 
-	if err != nil {
-		return fmt.Errorf("cannot locate virtual machine with UUID %q: %s", id, err)
-	}
-	err = resourceVSphereVirtualMachineRead(d, meta)
-	if err != nil {
-		return err
-	}
-
-	vmprops, err := virtualmachine.Properties(changed_vm)
+	vmprops, err := virtualmachine.Properties(vm)
 	if err != nil {
 		return err
 	}
