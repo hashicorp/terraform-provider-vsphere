@@ -94,6 +94,59 @@ func Move(client *govmomi.Client, srcPath string, srcDC *object.Datacenter, dstP
 	return dstPath, nil
 }
 
+//MoveFileofDisk is similar to Move except it generates a Vsphere MoveFile task instead of a MoveDisk task.
+
+// srcPath needs to be a datastore path (ie: "[datastore1] vm/vm.vmdk"),
+// however the destination path (dstPath) can be a simple path - if it is, the
+// source datastore is used and dstDC is ignored. Further, if dstPath has no
+// directory, the directory of srcPath is used. dstDC can be nil if the
+// destination datastore is in the same datacenter.
+//
+// The new datastore path is returned along with any error, to avoid the need
+// to re-calculate the path separately.
+func MoveFileofDisk(client *govmomi.Client, srcPath string, srcDC *object.Datacenter, dstPath string, dstDC *object.Datacenter) (string, error) {
+	filemanager := object.NewFileManager(client.Client)
+	if srcDC == nil {
+		return "", fmt.Errorf("source datacenter cannot be nil")
+	}
+	if !IsVmdkDatastorePath(srcPath) {
+		return "", fmt.Errorf("path %q is not a datastore path", srcPath)
+	}
+	if !IsVmdkDatastorePath(dstPath) {
+		ddp := dstDataStorePathFromLocalSrc(srcPath, dstPath)
+		// One more validation
+		if !IsVmdkDatastorePath(ddp) {
+			return "", fmt.Errorf("path %q is not a valid destination path", dstPath)
+		}
+		dstPath = ddp
+		dstDC = nil
+	}
+	log.Printf("[DEBUG] Moving virtual disk's corresponding file from %q in datacenter %s to destination %s%s",
+		srcPath,
+		srcDC,
+		dstPath,
+		structure.LogCond(dstDC != nil, fmt.Sprintf("in datacenter %s", dstDC), ""),
+	)
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer cancel()
+	task, err := filemanager.MoveDatastoreFile(ctx, srcPath, srcDC, dstPath, dstDC, false)
+	if err != nil {
+		return "", err
+	}
+	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	defer tcancel()
+	if err := task.Wait(tctx); err != nil {
+		return "", err
+	}
+	log.Printf("[DEBUG] Virtual disk %q in datacenter %s successfully moved to destination %s%s",
+		srcPath,
+		srcDC,
+		dstPath,
+		structure.LogCond(dstDC != nil, fmt.Sprintf("in datacenter %s", dstDC), ""),
+	)
+	return dstPath, nil
+}
+
 // QueryDiskType queries the disk type of the specified virtual disk.
 func QueryDiskType(client *govmomi.Client, name string, dc *object.Datacenter) (types.VirtualDiskType, error) {
 	di, err := FromPath(client, name, dc)
