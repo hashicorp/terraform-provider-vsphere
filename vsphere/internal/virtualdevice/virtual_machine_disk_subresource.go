@@ -1662,9 +1662,6 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 		}
 		r.Set("storage_policy_id", polID)
 	}
-	if vmUUID == "" {
-		log.Printf("coo-eey!!  there wasn't any fucking vm. so no fucking storage policy set")
-	}
 	rend, _ := json.MarshalIndent(r.data, "", "\t")
 	log.Printf("here's r at the end: %s", rend)
 	log.Printf("[DEBUG] %s: Read finished (key and device address may have changed)", r)
