@@ -1649,11 +1649,8 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 		return fmt.Errorf("error in virtual machine configuration: %s", err)
 	}
 
-	jesus, _ := json.MarshalIndent(spec_2, "", "\t")
-	log.Printf("please for the love of god %s, ", jesus)
 	cfgSpec_pls_2, err := expandVirtualMachineConfigSpec(d, client)
-	jesus_3, _ := json.MarshalIndent(cfgSpec_pls_2, "", "\t")
-	log.Printf("please for the love of god here's cfgspecpls2 %s, ", jesus_3)
+
 	if err != nil {
 		return resourceVSphereVirtualMachineRollbackCreate(
 			d,
@@ -1668,8 +1665,6 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 	if err != nil {
 		return err
 	}
-	jesus_2, _ := json.MarshalIndent(vmprops_2, "", "\t")
-	log.Printf("here's vmprops_2 %s, ", jesus_2)
 
 	devices_post_post_reconfigure := object.VirtualDeviceList(vmprops_2.Config.Hardware.Device)
 	u, _ := json.MarshalIndent(devices_post_post_reconfigure, "", "\t")
@@ -1704,8 +1699,6 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			fmt.Errorf("error reconfiguring virtual machine after postpostrename: %s", err),
 		)
 	}
-	d_bitch, _ := json.MarshalIndent(d, "", "\t")
-	log.Printf("here's d bitch change : %s", d_bitch)
 	// Upgrade the VM's hardware version if needed.
 	err = virtualmachine.SetHardwareVersion(vm, d.Get("hardware_version").(int))
 	if err != nil {
