@@ -924,12 +924,12 @@ func (l VirtualDeviceList) ConfigSpec(op types.VirtualDeviceConfigSpecOperation)
 	for _, device := range l {
 		config := &types.VirtualDeviceConfigSpec{
 			Device:    device,
-			Operation: op,
+			Operation: op, 
 		}
 
 		if disk, ok := device.(*types.VirtualDisk); ok {
 			config.FileOperation = fop
-
+			
 			// Special case to attach an existing disk
 			if op == types.VirtualDeviceConfigSpecOperationAdd && disk.CapacityInKB == 0 {
 				childDisk := false

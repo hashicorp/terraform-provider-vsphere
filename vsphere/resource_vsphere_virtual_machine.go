@@ -1631,6 +1631,8 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			fmt.Errorf("error processing disk changes post-post-clone: %s", err),
 		)
 	}
+	delta_queen, _ := json.MarshalIndent(delta, "", "\t")
+	log.Printf("here's delta_queen: %s", delta_queen)
 	spec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec_pls.DeviceChange, delta...)
 	// Perform updates.
 	if _, ok := d.GetOk("datastore_cluster_id"); ok {
@@ -1650,11 +1652,20 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 		)
 	}
 	//TESTING - this is post post rename
-	spec_2, _, err := expandVirtualMachineConfigSpecChanged(d, client, vprops.Config)
+	vprops_3, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return err
+	}
+	spec_2, _, err := expandVirtualMachineConfigSpecChanged(d, client, vprops_3.Config)
 	if err != nil {
 		return fmt.Errorf("error in virtual machine configuration: %s", err)
 	}
+
+	jesus, _ := json.MarshalIndent(spec_2, "", "\t")
+	log.Printf("please for the love of god %s, ", jesus)
 	cfgSpec_pls_2, err := expandVirtualMachineConfigSpec(d, client)
+	jesus_3, _ := json.MarshalIndent(cfgSpec_pls_2, "", "\t")
+	log.Printf("please for the love of god here's cfgspecpls2 %s, ", jesus_3)
 	if err != nil {
 		return resourceVSphereVirtualMachineRollbackCreate(
 			d,
@@ -1664,12 +1675,18 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 		)
 	}
 
+	//Go read the vm!!!!
 	vmprops_2, err := virtualmachine.Properties(vm)
 	if err != nil {
 		return err
 	}
+	jesus_2, _ := json.MarshalIndent(vmprops_2, "", "\t")
+	log.Printf("here's vmprops_2 %s, ", jesus_2)
+
 	devices_post_post_reconfigure := object.VirtualDeviceList(vmprops_2.Config.Hardware.Device)
-	devices, delta, err = virtualdevice.RevertDiskNameChangeOperation(d, client, devices_post_post_reconfigure, postOvf, device_key_name_pairs, datacenterObj)
+	u, _ := json.MarshalIndent(devices_post_post_reconfigure, "", "\t")
+	log.Printf("ffs, here's the devices %s", u)
+	devices, delta, err = virtualdevice.DiskPostPostRenameCloneOperation(d, client, devices_post_post_reconfigure, postOvf, device_key_name_pairs, datacenterObj)
 	if err != nil {
 		return resourceVSphereVirtualMachineRollbackCreate(
 			d,
@@ -1678,7 +1695,13 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			fmt.Errorf("error processing disk changes post-post-rename-clone: %s", err),
 		)
 	}
+	cfgSpec_pls_2_change, _ := json.MarshalIndent(cfgSpec_pls_2, "", "\t")
+	log.Printf("here's cfgspec_pls_2 change : %s", cfgSpec_pls_2_change)
+	delta_change, _ := json.MarshalIndent(delta, "", "\t")
+	log.Printf("here's delta 2 change : %s", delta_change)
 	spec_2.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec_pls_2.DeviceChange, delta...)
+	spec_2_change, _ := json.MarshalIndent(spec_2, "", "\t")
+	log.Printf("here's spec 2 change : %s", spec_2_change)
 	// Perform updates.
 	if _, ok := d.GetOk("datastore_cluster_id"); ok {
 		err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, spec_2)
@@ -1693,6 +1716,8 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			fmt.Errorf("error reconfiguring virtual machine after postpostrename: %s", err),
 		)
 	}
+	d_bitch, _ := json.MarshalIndent(d, "", "\t")
+	log.Printf("here's d bitch change : %s", d_bitch)
 	// Upgrade the VM's hardware version if needed.
 	err = virtualmachine.SetHardwareVersion(vm, d.Get("hardware_version").(int))
 	if err != nil {
@@ -1716,6 +1741,64 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			d.SetId("")
 			return fmt.Errorf("error sending customization spec: %s", err)
 		}
+	}
+
+	//LOL WE NEED TO SET THE STORAGE POLICY ID YET AGAIN, MIGHT BE NICER TO JUST DO A CHECK IN THE CREATE TO SEE IF STORAGE POLICY MEANS CHANGE IN ENCRYPTION?
+	vmprops4, err := virtualmachine.Properties(vm)
+	if err != nil {
+		return err
+	}
+
+	// This should only change if deploying from a Content Library item.
+	s4, _ := json.MarshalIndent(d, "", "\t")
+	log.Printf("here's a dump: %s", s4)
+
+	spec4, _, err := expandVirtualMachineConfigSpecChanged(d, client, vmprops4.Config)
+	if err != nil {
+		return fmt.Errorf("error in virtual machine configuration: %s", err)
+	}
+	cfgSpec_pls4, err := expandVirtualMachineConfigSpec(d, client)
+	if err != nil {
+		return resourceVSphereVirtualMachineRollbackCreate(
+			d,
+			meta,
+			vm,
+			fmt.Errorf("error in virtual machine configuration: %s", err),
+		)
+	}
+	devices_post_reconfigure4 := object.VirtualDeviceList(vmprops4.Config.Hardware.Device)
+	// if spec.DeviceChange, err = applyVirtualDevices(d_changed, client, devices_post_reconfigure, true); err != nil {
+	// 	return err
+	// }
+
+	_, delta4, _, err := virtualdevice.DiskPostPostCloneOperation(d, client, devices_post_reconfigure4, postOvf)
+	if err != nil {
+		return resourceVSphereVirtualMachineRollbackCreate(
+			d,
+			meta,
+			vm,
+			fmt.Errorf("error processing disk changes post-post-clone: %s", err),
+		)
+	}
+	delta_queen4, _ := json.MarshalIndent(delta4, "", "\t")
+	log.Printf("here's delta_queen: %s", delta_queen4)
+	spec4.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec_pls4.DeviceChange, delta4...)
+	// Perform updates.
+	if _, ok := d.GetOk("datastore_cluster_id"); ok {
+		log.Printf("time to reconfigurewithsdrs")
+		err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, spec4)
+	} else {
+		u, _ := json.MarshalIndent(spec4, "", "\t")
+		log.Printf("time to reconfigure FOR THE LAST TIME, here's spec: %s", u)
+		err = virtualmachine.Reconfigure(vm, spec4)
+	}
+	if err != nil {
+		return resourceVSphereVirtualMachineRollbackCreate(
+			d,
+			meta,
+			vm,
+			fmt.Errorf("error reconfiguring virtual machine: %s", err),
+		)
 	}
 	// Finally time to power on the virtual machine!
 	pTimeout := time.Duration(d.Get("poweron_timeout").(int)) * time.Second

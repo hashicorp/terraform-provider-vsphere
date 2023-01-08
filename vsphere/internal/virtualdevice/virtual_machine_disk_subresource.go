@@ -274,6 +274,7 @@ func NewDiskSubresource(client *govmomi.Client, rdd resourceDataDiff, d, old map
 func DiskApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] DiskApplyOperation: Beginning apply operation")
 	o, n := d.GetChange(subresourceTypeDisk)
+
 	oldDisks := o.([]interface{})
 	newDisks := n.([]interface{})
 
@@ -363,6 +364,7 @@ func diskApplyOperationCreateUpdate(
 	spec *[]types.BaseVirtualDeviceConfigSpec,
 	updates *[]interface{},
 ) error {
+	log.Printf("coo-eey!! We're inside diskApplyOperationCreateUpdate")
 	var name string
 	var err error
 	if name, err = diskLabelOrName(newData); err != nil {
@@ -373,9 +375,11 @@ func diskApplyOperationCreateUpdate(
 		return nil
 	}
 	for _, oe := range oldDataSet {
+		log.Printf("coo-eey!! we inside the for loop, here's our new data uuid: %s", newData["uuid"])
 		oldData := oe.(map[string]interface{})
 		if newData["uuid"] == oldData["uuid"] {
 			// This is an update
+			log.Printf("coo-eey!! time for a wee update")
 			r := NewDiskSubresource(c, d, newData, oldData, index)
 			// If the only thing changing here is the datastore, or keep_on_remove,
 			// this is a no-op as far as a device change is concerned. Datastore
@@ -407,6 +411,7 @@ func diskApplyOperationCreateUpdate(
 			return nil
 		}
 	}
+	log.Printf("coo-eey!! no newdata, create time")
 	// New data was not found - this is a create operation
 	r := NewDiskSubresource(c, d, newData, nil, index)
 	cspec, err := r.Create(*l)
@@ -1068,6 +1073,10 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 			}
 			l = applyDeviceChange(l, uspec)
 			spec = append(spec, uspec...)
+			compare_l, _ := json.MarshalIndent(l, "here's compare_l", "\t")
+			log.Printf("coo-eey!! here's our cfgSpec in postdeploychanges: %s", compare_l)
+			compare_spec, _ := json.MarshalIndent(l, "here's compare_spec", "\t")
+			log.Printf("coo-eey!! here's our cfgSpec in postdeploychanges: %s", compare_spec)
 		}
 		updates = append(updates, rNew.Data())
 	}
@@ -1082,7 +1091,12 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 			}
 			l = applyDeviceChange(l, cspec)
 			spec = append(spec, cspec...)
+			compare_l, _ := json.MarshalIndent(l, "", "\t")
+			log.Printf("coo-eey!! just after cloning vm, here's the created compare_l: %s", compare_l)
+			compare_spec, _ := json.MarshalIndent(l, "", "\t")
+			log.Printf("coo-eey!! just after cloning vm, here's the created compare_spec: %s", compare_spec)
 			updates = append(updates, r.Data())
+			log.Printf("coo-eey!! over here, we've done updates append")
 		}
 	}
 
@@ -1180,16 +1194,26 @@ func DiskPostPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 		log.Printf("here's the rnew storage_policy_id %s", new.(map[string]interface{})["storage_policy_id"])
 		log.Printf("here's the rold storage_policy_id %s", old.(map[string]interface{})["storage_policy_id"])
 
+		log.Printf("coo-eey!! we just before deepequal. lets call update")
 		if !reflect.DeepEqual(rNew.Data(), rOld.Data()) {
+			log.Printf("coo-eey!! we in deepequal. lets call update")
 			uspec, err := rNew.Update(l)
 			if err != nil {
 				return nil, nil, nil, fmt.Errorf("%s: %s", rNew.Addr(), err)
 			}
+			u, _ := json.MarshalIndent(uspec, "", "\t")
+			log.Printf("coo-eey!! here's uspec: %s", u)
 			l = applyDeviceChange(l, uspec)
 			spec = append(spec, uspec...)
+			compare_l, _ := json.MarshalIndent(l, "", "\t")
+			log.Printf("coo-eey!! here's postpostcompare_l: %s", compare_l)
+			compare_spec, _ := json.MarshalIndent(l, "", "\t")
+			log.Printf("coo-eey!! here's postpostcompare_spec: %s", compare_spec)
 		}
 		updates = append(updates, rNew.Data())
 		device_name_key_pairs[rNew.Get("key").(int)] = rNew.Get("path").(string)
+		treacle, _ := json.MarshalIndent(device_name_key_pairs, "", "\t")
+		log.Printf("coo-eey!! have written device key name pairs, here it is: %s", treacle)
 	}
 
 	log.Printf("[DEBUG] DiskPostPostCloneOperation: Post-clone final resource list: %s", subresourceListString(updates))
@@ -1202,8 +1226,10 @@ func DiskPostPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 	return l, spec, device_name_key_pairs, nil
 }
 
-func RevertDiskNameChangeOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, postOvf bool, device_key_name_pairs map[int]string, datacenterObj *object.Datacenter) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+func DiskPostPostRenameCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, postOvf bool, device_key_name_pairs map[int]string, datacenterObj *object.Datacenter) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] DiskPostPostRenameOperation: Looking for disk device changes post-clone")
+	stop, _ := json.MarshalIndent(l, "", "\t")
+	log.Printf("here's the devices being thrown in %s", stop)
 	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
 	log.Printf("[DEBUG] DiskPostPostRenameOperation: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
@@ -1213,6 +1239,8 @@ func RevertDiskNameChangeOperation(d *schema.ResourceData, c *govmomi.Client, l 
 	}
 	sort.Sort(devSort)
 	devices = devSort.Sort
+	bloo, _ := json.MarshalIndent(devices, "", "\t")
+	log.Printf("here's the devices in postpostrename: %s", bloo)
 	log.Printf("[DEBUG] DiskPostPostRenameOperation: Disk devices order after sort: %s", DeviceListString(devices))
 	// Do the same for our listed disks.
 	curSet := d.Get(subresourceTypeDisk).([]interface{})
@@ -1229,6 +1257,8 @@ func RevertDiskNameChangeOperation(d *schema.ResourceData, c *govmomi.Client, l 
 		if i < len(curSet) {
 			src = curSet[i].(map[string]interface{})
 		}
+		choochoo, _ := json.MarshalIndent(device, "", "\t")
+		log.Printf("here's the device config: %s", choochoo)
 		vd := device.GetVirtualDevice()
 		ctlr := l.FindByKey(vd.ControllerKey)
 		if ctlr == nil {
@@ -1256,6 +1286,9 @@ func RevertDiskNameChangeOperation(d *schema.ResourceData, c *govmomi.Client, l 
 		if err := rOld.Read(l); err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", rOld.Addr(), err)
 		}
+		rOld.Set("storage_policy_id", "")
+		treacley, _ := json.MarshalIndent(rOld.Data(), "", "\t")
+		log.Printf("coo-eey!! here's rold %s", treacley)
 		new, err := copystructure.Copy(rOld.Data())
 		if err != nil {
 			return nil, nil, fmt.Errorf("error copying current device state for disk at unit_number %d: %s", src["unit_number"].(int), err)
@@ -1281,7 +1314,7 @@ func RevertDiskNameChangeOperation(d *schema.ResourceData, c *govmomi.Client, l 
 			new.(map[string]interface{})[k] = v
 		}
 		rNew := NewDiskSubresource(c, d, new.(map[string]interface{}), rOld.Data(), i)
-
+		//oldDisk is WRONG. It's Filename should be the _i iterated one
 		if oldDisk, ok := device.(*types.VirtualDisk); ok {
 			key := oldDisk.Key
 			original_name := device_key_name_pairs[int(key)]
@@ -1295,7 +1328,10 @@ func RevertDiskNameChangeOperation(d *schema.ResourceData, c *govmomi.Client, l 
 			if err != nil {
 				log.Printf("this is where I think we're hitting an error!! basically at Move")
 			}
+			log.Printf("coo-eey, why is old disk not yet encrypted and name changed?? ahh, because devices isn't updated.")
 			rNew.Set("path", original_name)
+			treacle, _ := json.MarshalIndent(rNew.Data(), "", "\t")
+			log.Printf("coo-eey!! here is rNew, did we change just path and not name? %s", treacle)
 			updates = append(updates, rNew.Data())
 			newDisk := &types.VirtualDisk{
 				VirtualDevice: types.VirtualDevice{
@@ -1312,16 +1348,30 @@ func RevertDiskNameChangeOperation(d *schema.ResourceData, c *govmomi.Client, l 
 			newDisk.ControllerKey = oldDisk.ControllerKey
 			newDisk.UnitNumber = oldDisk.UnitNumber
 			newDisk.Key = oldDisk.Key
+			//dspec is wrong, name is old
 			dspec, err := object.VirtualDeviceList{oldDisk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationRemove)
 			if err != nil {
+				log.Printf("coo-eey!! maybe not - is it here?!")
 				return nil, nil, err
 			}
+			storage_policy_id := rNew.Get("storage_policy_id").(string)
 			dspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
+			dspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(storage_policy_id)
+			treacless, _ := json.MarshalIndent(dspec, "", "\t")
+			log.Printf("coo-eey!! here is dspec, did we change just path and not name? %s", treacless)
 			aspec, err := object.VirtualDeviceList{newDisk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
 			if err != nil {
 				return nil, nil, err
 			}
+
 			aspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
+			log.Printf("coo-eey!! here is storage_policy_id: %s", storage_policy_id)
+			aspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(storage_policy_id)
+			uspec, err := object.VirtualDeviceList{newDisk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationEdit)
+			uspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
+			uspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(storage_policy_id)
+			treacles, _ := json.MarshalIndent(aspec, "", "\t")
+			log.Printf("coo-eey!! here is aspec, did we change just path and not name? %s", treacles)
 			l = applyDeviceChange(l, dspec)
 			l = applyDeviceChange(l, aspec)
 			spec = append(spec, dspec...)
@@ -1336,6 +1386,8 @@ func RevertDiskNameChangeOperation(d *schema.ResourceData, c *govmomi.Client, l 
 	if err := d.Set(subresourceTypeDisk, updates); err != nil {
 		return nil, nil, err
 	}
+	updatey, _ := json.MarshalIndent(updates, "", "\t")
+	log.Printf("coo-eey!! here's updates %s", updatey)
 	log.Printf("[DEBUG] DiskPostPostRenameCloneOperation: Device list at end of operation: %s", DeviceListString(l))
 	log.Printf("[DEBUG] DiskPostPostRenameCloneOperation: Device config operations from post-clone: %s", DeviceChangeString(spec))
 	log.Printf("[DEBUG] DiskPostPostRenameCloneOperation: Operation complete, returning updated spec")
@@ -1468,6 +1520,7 @@ func ReadDiskAttrsForDataSource(l object.VirtualDeviceList, d *schema.ResourceDa
 
 // Create creates a vsphere_virtual_machine disk sub-resource.
 func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("coo-eey!! we're generating some create instructions")
 	log.Printf("[DEBUG] %s: Creating disk", r)
 	var spec []types.BaseVirtualDeviceConfigSpec
 
@@ -1510,6 +1563,8 @@ func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtua
 	}
 
 	spec = append(spec, dspec...)
+	u, _ := json.MarshalIndent(spec, "", "\t")
+	log.Printf("coo-eey!! here's the create spec, does it have the filename and all that already? Is this where we find it out? Or is it returned only after the create actually happens?: %s", u)
 	log.Printf("[DEBUG] %s: Device config operations from create: %s", r, DeviceChangeString(spec))
 	log.Printf("[DEBUG] %s: Create finished", r)
 	return spec, nil
@@ -1519,6 +1574,8 @@ func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtua
 // to the newData layer.
 func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	log.Printf("[DEBUG] %s: Reading state", r)
+	u_0, _ := json.MarshalIndent(r.data, "", "\t")
+	log.Printf("coo-eey!! here's the whole of r at the start: %s", u_0)
 	disk, err := r.findVirtualDisk(l, true)
 	if err != nil {
 		return fmt.Errorf("cannot find disk device: %s", err)
@@ -1575,6 +1632,7 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	if ok := dp.FromString(b.FileName); !ok {
 		return fmt.Errorf("could not parse path from filename: %s", b.FileName)
 	}
+	log.Printf("coo-eey!! this is where we should have set the filename %s", dp.Path)
 	r.Set("path", dp.Path)
 	if !attach {
 		r.Set("size", diskCapacityInGiB(disk))
@@ -1592,27 +1650,37 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	// Set storage policy if the VM exists.
 	vmUUID := r.rdd.Id()
 	if vmUUID != "" {
+		log.Printf("coo-eey!! we should be in setting storage policy to Disk Subresource town")
 		result, err := virtualmachine.MOIDForUUID(r.client, vmUUID)
 		if err != nil {
 			return err
 		}
 		polID, err := spbm.PolicyIDByVirtualDisk(r.client, result.MOID, r.Get("key").(int))
+		log.Printf("coo-eey!! here's polID: %s", polID)
 		if err != nil {
 			return err
 		}
 		r.Set("storage_policy_id", polID)
 	}
+	if vmUUID == "" {
+		log.Printf("coo-eey!!  there wasn't any fucking vm. so no fucking storage policy set")
+	}
+	rend, _ := json.MarshalIndent(r.data, "", "\t")
+	log.Printf("here's r at the end: %s", rend)
 	log.Printf("[DEBUG] %s: Read finished (key and device address may have changed)", r)
 	return nil
 }
 
 // Update updates a vsphere_virtual_machine disk sub-resource.
 func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("coo-eey!! we in Update hehe")
 	log.Printf("[DEBUG] %s: Beginning update", r)
 	disk, err := r.findVirtualDisk(l, false)
 	if err != nil {
+		log.Printf("coo-eey!! we hit an error trying to find the virtual disk")
 		return nil, fmt.Errorf("cannot find disk device: %s", err)
 	}
+	log.Printf("coo-eey!! i'm lost")
 	// Has the unit number changed?
 	if r.HasChange("unit_number") || r.HasChange("controller_type") {
 		ctlr, err := r.assignDisk(l, disk)
@@ -1630,6 +1698,11 @@ func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtua
 		// devices.
 		r.Set("key", 0)
 	}
+	log.Printf("coo-eey!! over it's nice in here")
+	// We can now expand the rest of the settings.
+	// if err := r.expandDiskSettings(disk); err != nil {
+	// 	return nil, err
+	// }
 
 	dspec, err := object.VirtualDeviceList{disk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationEdit)
 	if err != nil {
@@ -1640,10 +1713,13 @@ func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtua
 	}
 	// Clear file operation - VirtualDeviceList currently sets this to replace, which is invalid
 	dspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
+	log.Printf("coo-eey!! we're about to look at the storage policy, eek!")
 	// Attach the SPBM storage policy if specified
 	if policyID := r.Get("storage_policy_id").(string); policyID != "" {
+		log.Printf("coo-eey!! hope we got inside the Get, we should have, here's storage policy: %s", policyID)
 		dspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(policyID)
 	}
+	log.Printf("coo-eey!! we changed it :o")
 	log.Printf("[DEBUG] %s: Device config operations from update: %s", r, DeviceChangeString(dspec))
 	log.Printf("[DEBUG] %s: Update complete", r)
 	return dspec, nil
@@ -2439,6 +2515,7 @@ func diskPathOrName(data map[string]interface{}) string {
 // versus situations where it should never be used, such as an update or
 // delete.
 func (r *DiskSubresource) findVirtualDisk(l object.VirtualDeviceList, fallback bool) (*types.VirtualDisk, error) {
+	log.Printf("coo-eey!! we're in findVirtualDisk")
 	device, err := r.findVirtualDiskByUUIDOrAddress(l, fallback)
 	if err != nil {
 		return nil, err
@@ -2447,6 +2524,7 @@ func (r *DiskSubresource) findVirtualDisk(l object.VirtualDeviceList, fallback b
 }
 
 func (r *DiskSubresource) findVirtualDiskByUUIDOrAddress(l object.VirtualDeviceList, fallback bool) (types.BaseVirtualDevice, error) {
+	log.Printf("coo-eey!! we;re in findVirtualDiskbyUUIDOrAddress")
 	var uuid string
 	if v := r.Get("uuid"); v != nil {
 		uuid = v.(string)
@@ -2455,22 +2533,27 @@ func (r *DiskSubresource) findVirtualDiskByUUIDOrAddress(l object.VirtualDeviceL
 	case uuid == "" && fallback:
 		return r.FindVirtualDevice(l)
 	case uuid == "" && !fallback:
+		log.Printf("coo-eey!! no disk UUID")
 		return nil, errors.New("disk UUID is missing")
 	}
+	log.Printf("coo-eey!! lets get them devices")
 	devices := l.Select(func(device types.BaseVirtualDevice) bool {
 		return diskUUIDMatch(device, uuid)
 	})
 	switch {
 	case len(devices) < 1:
+		log.Printf("coo-eey!! no disk with THAT UUID")
 		return nil, fmt.Errorf("virtual disk with UUID %s not found", uuid)
 	case len(devices) > 1:
 		// This is an edge/should never happen case
+		log.Printf("coo-eey!! multiple disks with THAT UUID")
 		return nil, fmt.Errorf("multiple virtual disks with UUID %s found", uuid)
 	}
 	return devices[0], nil
 }
 
 func diskUUIDMatch(device types.BaseVirtualDevice, uuid string) bool {
+	log.Printf("coo-eey!! we're in diskUUIDMatch")
 	disk, ok := device.(*types.VirtualDisk)
 	if !ok {
 		return false
