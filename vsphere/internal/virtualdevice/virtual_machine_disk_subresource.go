@@ -1,7 +1,6 @@
 package virtualdevice
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -1073,10 +1072,6 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 			}
 			l = applyDeviceChange(l, uspec)
 			spec = append(spec, uspec...)
-			compare_l, _ := json.MarshalIndent(l, "here's compare_l", "\t")
-			log.Printf("coo-eey!! here's our cfgSpec in postdeploychanges: %s", compare_l)
-			compare_spec, _ := json.MarshalIndent(l, "here's compare_spec", "\t")
-			log.Printf("coo-eey!! here's our cfgSpec in postdeploychanges: %s", compare_spec)
 		}
 		updates = append(updates, rNew.Data())
 	}
@@ -1091,12 +1086,7 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 			}
 			l = applyDeviceChange(l, cspec)
 			spec = append(spec, cspec...)
-			compare_l, _ := json.MarshalIndent(l, "", "\t")
-			log.Printf("coo-eey!! just after cloning vm, here's the created compare_l: %s", compare_l)
-			compare_spec, _ := json.MarshalIndent(l, "", "\t")
-			log.Printf("coo-eey!! just after cloning vm, here's the created compare_spec: %s", compare_spec)
 			updates = append(updates, r.Data())
-			log.Printf("coo-eey!! over here, we've done updates append")
 		}
 	}
 
@@ -1110,10 +1100,11 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 	return l, spec, nil
 }
 
-func DiskPostPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, postOvf bool) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, map[int]string, error) {
-	log.Printf("[DEBUG] DiskPostPostCloneOperation: Looking for disk device changes post-clone")
+//ADD COMMENT
+func DiskSetStoragePolicyPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, postOvf bool) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, map[int]string, error) {
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Looking for disk device changes post-clone")
 	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
-	log.Printf("[DEBUG] DiskPostPostCloneOperation: Disk devices located: %s", DeviceListString(devices))
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
 		Sort:       devices,
@@ -1121,17 +1112,17 @@ func DiskPostPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 	}
 	sort.Sort(devSort)
 	devices = devSort.Sort
-	log.Printf("[DEBUG] DiskPostPostCloneOperation: Disk devices order after sort: %s", DeviceListString(devices))
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Disk devices order after sort: %s", DeviceListString(devices))
 	// Do the same for our listed disks.
 	curSet := d.Get(subresourceTypeDisk).([]interface{})
-	log.Printf("[DEBUG] DiskPostPostCloneOperation: Current resource set: %s", subresourceListString(curSet))
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Current resource set: %s", subresourceListString(curSet))
 	sort.Sort(virtualDiskSubresourceSorter(curSet))
-	log.Printf("[DEBUG] DiskPostPostCloneOperation: Resource set order after sort: %s", subresourceListString(curSet))
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Resource set order after sort: %s", subresourceListString(curSet))
 
 	var spec []types.BaseVirtualDeviceConfigSpec
 	var updates []interface{}
 
-	log.Printf("[DEBUG] DiskPostPostCloneOperation: Looking for and applying device changes in all disks")
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Looking for and applying device changes in all disks")
 	device_name_key_pairs := make(map[int]string)
 	for i, device := range devices {
 		src := map[string]interface{}{}
@@ -1201,37 +1192,27 @@ func DiskPostPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 			if err != nil {
 				return nil, nil, nil, fmt.Errorf("%s: %s", rNew.Addr(), err)
 			}
-			u, _ := json.MarshalIndent(uspec, "", "\t")
-			log.Printf("coo-eey!! here's uspec: %s", u)
 			l = applyDeviceChange(l, uspec)
 			spec = append(spec, uspec...)
-			compare_l, _ := json.MarshalIndent(l, "", "\t")
-			log.Printf("coo-eey!! here's postpostcompare_l: %s", compare_l)
-			compare_spec, _ := json.MarshalIndent(l, "", "\t")
-			log.Printf("coo-eey!! here's postpostcompare_spec: %s", compare_spec)
 		}
 		updates = append(updates, rNew.Data())
 		device_name_key_pairs[rNew.Get("key").(int)] = rNew.Get("path").(string)
-		treacle, _ := json.MarshalIndent(device_name_key_pairs, "", "\t")
-		log.Printf("coo-eey!! have written device key name pairs, here it is: %s", treacle)
 	}
 
-	log.Printf("[DEBUG] DiskPostPostCloneOperation: Post-clone final resource list: %s", subresourceListString(updates))
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Post-clone final resource list: %s", subresourceListString(updates))
 	if err := d.Set(subresourceTypeDisk, updates); err != nil {
 		return nil, nil, nil, err
 	}
-	log.Printf("[DEBUG] DiskPostPostCloneOperation: Device list at end of operation: %s", DeviceListString(l))
-	log.Printf("[DEBUG] DiskPostPostCloneOperation: Device config operations from post-clone: %s", DeviceChangeString(spec))
-	log.Printf("[DEBUG] DiskPostPostCloneOperation: Operation complete, returning updated spec")
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Device list at end of operation: %s", DeviceListString(l))
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Device config operations from post-clone: %s", DeviceChangeString(spec))
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Operation complete, returning updated spec")
 	return l, spec, device_name_key_pairs, nil
 }
 
-func DiskPostPostRenameCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, postOvf bool, device_key_name_pairs map[int]string, datacenterObj *object.Datacenter) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
-	log.Printf("[DEBUG] DiskPostPostRenameOperation: Looking for disk device changes post-clone")
-	stop, _ := json.MarshalIndent(l, "", "\t")
-	log.Printf("here's the devices being thrown in %s", stop)
+func DiskRenameOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, postOvf bool, device_key_name_pairs map[int]string, datacenterObj *object.Datacenter) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("[DEBUG] DiskRenameOperation: Looking for disk device changes post-clone")
 	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
-	log.Printf("[DEBUG] DiskPostPostRenameOperation: Disk devices located: %s", DeviceListString(devices))
+	log.Printf("[DEBUG] DiskRenameOperation: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
 		Sort:       devices,
@@ -1239,26 +1220,22 @@ func DiskPostPostRenameCloneOperation(d *schema.ResourceData, c *govmomi.Client,
 	}
 	sort.Sort(devSort)
 	devices = devSort.Sort
-	bloo, _ := json.MarshalIndent(devices, "", "\t")
-	log.Printf("here's the devices in postpostrename: %s", bloo)
-	log.Printf("[DEBUG] DiskPostPostRenameOperation: Disk devices order after sort: %s", DeviceListString(devices))
+	log.Printf("[DEBUG] DiskRenameOperation: Disk devices order after sort: %s", DeviceListString(devices))
 	// Do the same for our listed disks.
 	curSet := d.Get(subresourceTypeDisk).([]interface{})
-	log.Printf("[DEBUG] DiskPostPostRenameOperation: Current resource set: %s", subresourceListString(curSet))
+	log.Printf("[DEBUG] DiskRenameOperation: Current resource set: %s", subresourceListString(curSet))
 	sort.Sort(virtualDiskSubresourceSorter(curSet))
-	log.Printf("[DEBUG] DiskPostPostRenameOperation: Resource set order after sort: %s", subresourceListString(curSet))
+	log.Printf("[DEBUG] DiskRenameOperation: Resource set order after sort: %s", subresourceListString(curSet))
 
 	var spec []types.BaseVirtualDeviceConfigSpec
 	var updates []interface{}
 
-	log.Printf("[DEBUG] DiskPostPostRenameCloneOperation: Looking for and applying device changes in all disks")
+	log.Printf("[DEBUG] DiskRenameCloneOperation: Looking for and applying device changes in all disks")
 	for i, device := range devices {
 		src := map[string]interface{}{}
 		if i < len(curSet) {
 			src = curSet[i].(map[string]interface{})
 		}
-		choochoo, _ := json.MarshalIndent(device, "", "\t")
-		log.Printf("here's the device config: %s", choochoo)
 		vd := device.GetVirtualDevice()
 		ctlr := l.FindByKey(vd.ControllerKey)
 		if ctlr == nil {
@@ -1276,8 +1253,6 @@ func DiskPostPostRenameCloneOperation(d *schema.ResourceData, c *govmomi.Client,
 		}
 		// Copy the source set into old. This allows us to patch a copy of the
 		// product of this set with the source, creating a diff.
-		srcey, _ := json.MarshalIndent(src, "", "\t")
-		log.Printf("here's src!!! Maybe its wrong: %s", srcey)
 		old, err := copystructure.Copy(src)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error copying source set for disk at unit_number %d: %s", src["unit_number"].(int), err)
@@ -1287,8 +1262,6 @@ func DiskPostPostRenameCloneOperation(d *schema.ResourceData, c *govmomi.Client,
 			return nil, nil, fmt.Errorf("%s: %s", rOld.Addr(), err)
 		}
 		rOld.Set("storage_policy_id", "")
-		treacley, _ := json.MarshalIndent(rOld.Data(), "", "\t")
-		log.Printf("coo-eey!! here's rold %s", treacley)
 		new, err := copystructure.Copy(rOld.Data())
 		if err != nil {
 			return nil, nil, fmt.Errorf("error copying current device state for disk at unit_number %d: %s", src["unit_number"].(int), err)
@@ -1330,8 +1303,6 @@ func DiskPostPostRenameCloneOperation(d *schema.ResourceData, c *govmomi.Client,
 			}
 			log.Printf("coo-eey, why is old disk not yet encrypted and name changed?? ahh, because devices isn't updated.")
 			rNew.Set("path", original_name)
-			treacle, _ := json.MarshalIndent(rNew.Data(), "", "\t")
-			log.Printf("coo-eey!! here is rNew, did we change just path and not name? %s", treacle)
 			updates = append(updates, rNew.Data())
 			newDisk := &types.VirtualDisk{
 				VirtualDevice: types.VirtualDevice{
@@ -1357,8 +1328,6 @@ func DiskPostPostRenameCloneOperation(d *schema.ResourceData, c *govmomi.Client,
 			storage_policy_id := rNew.Get("storage_policy_id").(string)
 			dspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
 			dspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(storage_policy_id)
-			treacless, _ := json.MarshalIndent(dspec, "", "\t")
-			log.Printf("coo-eey!! here is dspec, did we change just path and not name? %s", treacless)
 			aspec, err := object.VirtualDeviceList{newDisk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
 			if err != nil {
 				return nil, nil, err
@@ -1370,8 +1339,6 @@ func DiskPostPostRenameCloneOperation(d *schema.ResourceData, c *govmomi.Client,
 			uspec, err := object.VirtualDeviceList{newDisk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationEdit)
 			uspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
 			uspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(storage_policy_id)
-			treacles, _ := json.MarshalIndent(aspec, "", "\t")
-			log.Printf("coo-eey!! here is aspec, did we change just path and not name? %s", treacles)
 			l = applyDeviceChange(l, dspec)
 			l = applyDeviceChange(l, aspec)
 			spec = append(spec, dspec...)
@@ -1382,15 +1349,13 @@ func DiskPostPostRenameCloneOperation(d *schema.ResourceData, c *govmomi.Client,
 		return nil, nil, fmt.Errorf("could not find a virtual disk on virtual machine")
 	}
 
-	log.Printf("[DEBUG] DiskPostPostRenameCloneOperation: Post-clone final resource list: %s", subresourceListString(updates))
+	log.Printf("[DEBUG] DiskRenameOperation: Post-clone final resource list: %s", subresourceListString(updates))
 	if err := d.Set(subresourceTypeDisk, updates); err != nil {
 		return nil, nil, err
 	}
-	updatey, _ := json.MarshalIndent(updates, "", "\t")
-	log.Printf("coo-eey!! here's updates %s", updatey)
-	log.Printf("[DEBUG] DiskPostPostRenameCloneOperation: Device list at end of operation: %s", DeviceListString(l))
-	log.Printf("[DEBUG] DiskPostPostRenameCloneOperation: Device config operations from post-clone: %s", DeviceChangeString(spec))
-	log.Printf("[DEBUG] DiskPostPostRenameCloneOperation: Operation complete, returning updated spec")
+	log.Printf("[DEBUG] DiskRenameOperation: Device list at end of operation: %s", DeviceListString(l))
+	log.Printf("[DEBUG] DiskRenameOperation: Device config operations from post-clone: %s", DeviceChangeString(spec))
+	log.Printf("[DEBUG] DiskRenameOperation: Operation complete, returning updated spec")
 	return l, spec, nil
 }
 
@@ -1563,8 +1528,6 @@ func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtua
 	}
 
 	spec = append(spec, dspec...)
-	u, _ := json.MarshalIndent(spec, "", "\t")
-	log.Printf("coo-eey!! here's the create spec, does it have the filename and all that already? Is this where we find it out? Or is it returned only after the create actually happens?: %s", u)
 	log.Printf("[DEBUG] %s: Device config operations from create: %s", r, DeviceChangeString(spec))
 	log.Printf("[DEBUG] %s: Create finished", r)
 	return spec, nil
@@ -1574,8 +1537,6 @@ func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtua
 // to the newData layer.
 func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	log.Printf("[DEBUG] %s: Reading state", r)
-	u_0, _ := json.MarshalIndent(r.data, "", "\t")
-	log.Printf("coo-eey!! here's the whole of r at the start: %s", u_0)
 	disk, err := r.findVirtualDisk(l, true)
 	if err != nil {
 		return fmt.Errorf("cannot find disk device: %s", err)
@@ -1662,8 +1623,6 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 		}
 		r.Set("storage_policy_id", polID)
 	}
-	rend, _ := json.MarshalIndent(r.data, "", "\t")
-	log.Printf("here's r at the end: %s", rend)
 	log.Printf("[DEBUG] %s: Read finished (key and device address may have changed)", r)
 	return nil
 }
