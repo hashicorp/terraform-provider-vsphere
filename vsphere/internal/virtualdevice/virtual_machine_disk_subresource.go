@@ -1326,20 +1326,19 @@ func DiskRenameOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 				log.Printf("coo-eey!! maybe not - is it here?!")
 				return nil, nil, err
 			}
-			storage_policy_id := rNew.Get("storage_policy_id").(string)
+
 			dspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
-			dspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(storage_policy_id)
 			aspec, err := object.VirtualDeviceList{newDisk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
 			if err != nil {
 				return nil, nil, err
 			}
-
 			aspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
-			log.Printf("coo-eey!! here is storage_policy_id: %s", storage_policy_id)
-			aspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(storage_policy_id)
-			uspec, err := object.VirtualDeviceList{newDisk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationEdit)
-			uspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
-			uspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(storage_policy_id)
+			if storage_policy_id := rNew.Get("storage_policy_id").(string); storage_policy_id != "" {
+				dspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(storage_policy_id)
+				log.Printf("coo-eey!! here is storage_policy_id: %s", storage_policy_id)
+				aspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(storage_policy_id)
+			}
+
 			l = applyDeviceChange(l, dspec)
 			l = applyDeviceChange(l, aspec)
 			spec = append(spec, dspec...)
