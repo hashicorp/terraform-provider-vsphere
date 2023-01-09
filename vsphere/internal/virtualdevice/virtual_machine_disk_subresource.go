@@ -410,7 +410,6 @@ func diskApplyOperationCreateUpdate(
 			return nil
 		}
 	}
-	log.Printf("coo-eey!! no newdata, create time")
 	// New data was not found - this is a create operation
 	r := NewDiskSubresource(c, d, newData, nil, index)
 	cspec, err := r.Create(*l)
@@ -973,6 +972,7 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", r.Addr(), err)
 		}
+		relocator.Profile = nil
 		relocators = append(relocators, relocator)
 	}
 
@@ -1084,8 +1084,11 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 			if err != nil {
 				return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
 			}
+			//We remove the storage policy id from cspec so that we append instrucitons that call for a disk to be created without a storage policy id.
+			cspec[0].GetVirtualDeviceConfigSpec().Profile = nil
 			l = applyDeviceChange(l, cspec)
 			spec = append(spec, cspec...)
+			//Note updates will still include the storage policy id, so that d still contains knowledge of the storage policy id
 			updates = append(updates, r.Data())
 		}
 	}
@@ -1179,11 +1182,6 @@ func DiskSetStoragePolicyPostCloneOperation(d *schema.ResourceData, c *govmomi.C
 			new.(map[string]interface{})[k] = v
 		}
 		rNew := NewDiskSubresource(c, d, new.(map[string]interface{}), rOld.Data(), i)
-		log.Printf("here's the actual storage policy id %s", rNew.Get("storage_policy_id").(string))
-		log.Printf("rNew storage policy: %s", rNew.Get("storage_policy_id").(string))
-		log.Printf("here's the rnew uuid %s", new.(map[string]interface{})["uuid"])
-		log.Printf("here's the rnew storage_policy_id %s", new.(map[string]interface{})["storage_policy_id"])
-		log.Printf("here's the rold storage_policy_id %s", old.(map[string]interface{})["storage_policy_id"])
 
 		log.Printf("coo-eey!! we just before deepequal. lets call update")
 		if !reflect.DeepEqual(rNew.Data(), rOld.Data()) {
@@ -1209,6 +1207,9 @@ func DiskSetStoragePolicyPostCloneOperation(d *schema.ResourceData, c *govmomi.C
 	return l, spec, device_name_key_pairs, nil
 }
 
+//If a disk is updated to have a storage policy which has encryption enabled, the disk will change from being unencrypted to being encrypted.
+//On encrypting a disk, VSphere renames the file behind the disk and the name no longer matches the disk name in terraform state.
+//DiskRenameOperation changes the list of the disks, and is used to change the names back to the original disk names prior to encryption.
 func DiskRenameOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, postOvf bool, device_key_name_pairs map[int]string, datacenterObj *object.Datacenter) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] DiskRenameOperation: Looking for disk device changes post-clone")
 	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
@@ -1523,8 +1524,7 @@ func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtua
 	// Attach the SPBM storage policy if specified
 	if policyID := r.Get("storage_policy_id").(string); policyID != "" {
 		log.Printf("[DEBUG] %s: Storage policy specified, shall be attached at the end of the process of the VM being created", r)
-		log.Printf("coo-eey!! and here is the storage policy: %s, ", policyID)
-		// dspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(policyID)
+		dspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(policyID)
 	}
 
 	spec = append(spec, dspec...)
@@ -2004,8 +2004,7 @@ func (r *DiskSubresource) Relocate(l object.VirtualDeviceList, clone bool) (type
 
 	// Attach the SPBM storage policy if specified
 	if policyID := r.Get("storage_policy_id").(string); policyID != "" {
-		log.Printf("cheating!")
-		// relocate.Profile = spbm.PolicySpecByID(policyID)
+		relocate.Profile = spbm.PolicySpecByID(policyID)
 	}
 
 	// Done!
