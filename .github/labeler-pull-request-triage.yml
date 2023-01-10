@@ -5,7 +5,6 @@ documentation:
   - 'examples/**/*'
   - 'website/**/*'
 provider:
-  - '.circleci/**/*'
   - '.github/**/*'
   - '.gitignore'
   - '.go-version'
