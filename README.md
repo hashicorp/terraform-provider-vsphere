@@ -21,7 +21,7 @@ Learn more:
 
     For general information about Terraform, visit [terraform.io][terraform-install] and [the project][terraform-github] on GitHub.
 
-* [Go 1.18][golang-install]
+* [Go 1.19][golang-install]
 
     Required if building the provider.
 
