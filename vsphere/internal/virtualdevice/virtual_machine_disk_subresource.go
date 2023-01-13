@@ -1100,7 +1100,13 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 	return l, spec, nil
 }
 
-//ADD COMMENT
+// DiskSetStoragePostCloneOperation normalizes the virtual disks on a freshly-cloned
+// virtual machine and outputs operations to set the storage policy of the disks. It also
+// sets the state in advance of the post-create read.
+//
+// As with DiskPostCloneOperation, this differs from a regular apply operation in that a configuration is
+// already present, but we don't have any existing state, which the standard
+// virtual device operations rely pretty heavily on.
 func DiskSetStoragePolicyPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, postOvf bool) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, map[int]string, error) {
 	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Looking for disk device changes post-clone")
 	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
@@ -1123,7 +1129,7 @@ func DiskSetStoragePolicyPostCloneOperation(d *schema.ResourceData, c *govmomi.C
 	var updates []interface{}
 
 	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Looking for and applying device changes in all disks")
-	device_name_key_pairs := make(map[int]string)
+	deviceKeyNamePairs := make(map[int]string)
 	for i, device := range devices {
 		src := map[string]interface{}{}
 		if i < len(curSet) {
@@ -1163,7 +1169,6 @@ func DiskSetStoragePolicyPostCloneOperation(d *schema.ResourceData, c *govmomi.C
 			// are not being attached externally), name, datastore_id, and uuid. Also
 			// skip share_count if we the share level isn't custom.
 			//
-			// TODO: Remove "name" after 2.0.
 			switch k {
 			case "path", "name", "datastore_id", "uuid", "thin_provisioned", "eagerly_scrub":
 				continue
@@ -1188,8 +1193,9 @@ func DiskSetStoragePolicyPostCloneOperation(d *schema.ResourceData, c *govmomi.C
 			l = applyDeviceChange(l, uspec)
 			spec = append(spec, uspec...)
 		}
+		deviceKeyNamePairs[rNew.Get("key").(int)] = rNew.Get("path").(string)
 		updates = append(updates, rNew.Data())
-		device_name_key_pairs[rNew.Get("key").(int)] = rNew.Get("path").(string)
+
 	}
 
 	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Post-clone final resource list: %s", subresourceListString(updates))
@@ -1199,13 +1205,14 @@ func DiskSetStoragePolicyPostCloneOperation(d *schema.ResourceData, c *govmomi.C
 	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Device list at end of operation: %s", DeviceListString(l))
 	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Device config operations from post-clone: %s", DeviceChangeString(spec))
 	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Operation complete, returning updated spec")
-	return l, spec, device_name_key_pairs, nil
+	return l, spec, deviceKeyNamePairs, nil
 }
 
+//DiskRenameOperation renames the set of keys based on their keys. It is ran after disks have their storage policy set.
 //If a disk is updated to have a storage policy which has encryption enabled, the disk will change from being unencrypted to being encrypted.
 //On encrypting a disk, VSphere renames the file behind the disk and the name no longer matches the disk name in terraform state.
 //DiskRenameOperation changes the list of the disks, and is used to change the names back to the original disk names prior to encryption.
-func DiskRenameOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, postOvf bool, device_key_name_pairs map[int]string, datacenterObj *object.Datacenter) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+func DiskRenameOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, postOvf bool, deviceKeyNamePairs map[int]string, datacenterObj *object.Datacenter) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] DiskRenameOperation: Looking for disk device changes post-clone")
 	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
 	log.Printf("[DEBUG] DiskRenameOperation: Disk devices located: %s", DeviceListString(devices))
@@ -1266,8 +1273,7 @@ func DiskRenameOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 			// Skip label, path (path will always be computed here as cloned disks
 			// are not being attached externally), name, datastore_id, and uuid. Also
 			// skip share_count if we the share level isn't custom.
-			//
-			// TODO: Remove "name" after 2.0.
+
 			switch k {
 			case "path", "name", "datastore_id", "uuid", "thin_provisioned", "eagerly_scrub":
 				continue
@@ -1283,10 +1289,19 @@ func DiskRenameOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 			new.(map[string]interface{})[k] = v
 		}
 		rNew := NewDiskSubresource(c, d, new.(map[string]interface{}), rOld.Data(), i)
-		//oldDisk is WRONG. It's Filename should be the _i iterated one
 		if oldDisk, ok := device.(*types.VirtualDisk); ok {
 			key := oldDisk.Key
-			original_name := device_key_name_pairs[int(key)]
+			original_name, ok := deviceKeyNamePairs[int(key)]
+			if !ok {
+				continue
+			}
+			log.Printf("names are the names!! original: %s, new %s", original_name, rNew.Get("path"))
+
+			if original_name == rNew.Get("path") {
+
+				//If the deviceKeyNamePairs map does not have the disk's key, no name change occurred so no reconfiguration needed.
+				continue
+			}
 			newFileName, err := virtualdisk.MoveFileofDisk(
 				c,
 				oldDisk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).FileName,
@@ -1298,6 +1313,7 @@ func DiskRenameOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 				return nil, nil, err
 			}
 
+			log.Printf("names not the same, keep going")
 			rNew.Set("path", original_name)
 			updates = append(updates, rNew.Data())
 			newDisk := &types.VirtualDisk{
@@ -1315,13 +1331,14 @@ func DiskRenameOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 			newDisk.ControllerKey = oldDisk.ControllerKey
 			newDisk.UnitNumber = oldDisk.UnitNumber
 			newDisk.Key = oldDisk.Key
-			//dspec is wrong, name is old
+			log.Printf("[DEBUG] DiskRenameOperation: Creating operation to delete the wrongly named sub disk")
 			dspec, err := object.VirtualDeviceList{oldDisk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationRemove)
 			if err != nil {
 				return nil, nil, err
 			}
 
 			dspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
+			log.Printf("[DEBUG] DiskRenameOperation: Creating operation to create the correctly named sub disk")
 			aspec, err := object.VirtualDeviceList{newDisk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
 			if err != nil {
 				return nil, nil, err
@@ -1337,9 +1354,6 @@ func DiskRenameOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 			spec = append(spec, dspec...)
 			spec = append(spec, aspec...)
 		}
-	}
-	if len(spec) < 1 {
-		return nil, nil, fmt.Errorf("could not find a virtual disk on virtual machine")
 	}
 
 	log.Printf("[DEBUG] DiskRenameOperation: Post-clone final resource list: %s", subresourceListString(updates))
@@ -1514,7 +1528,6 @@ func (r *DiskSubresource) Create(l object.VirtualDeviceList) ([]types.BaseVirtua
 
 	// Attach the SPBM storage policy if specified
 	if policyID := r.Get("storage_policy_id").(string); policyID != "" {
-		log.Printf("[DEBUG] %s: Storage policy specified, shall be attached at the end of the process of the VM being created", r)
 		dspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(policyID)
 	}
 
@@ -1639,10 +1652,7 @@ func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtua
 		// devices.
 		r.Set("key", 0)
 	}
-	// We can now expand the rest of the settings.
-	// if err := r.expandDiskSettings(disk); err != nil {
-	// 	return nil, err
-	// }
+
 
 	dspec, err := object.VirtualDeviceList{disk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationEdit)
 	if err != nil {

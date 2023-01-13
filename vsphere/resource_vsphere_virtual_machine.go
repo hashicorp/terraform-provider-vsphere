@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -1392,7 +1393,6 @@ func createVCenterDeploy(d *schema.ResourceData, meta interface{}) (*virtualmach
 	restClient := meta.(*VSphereClient).restClient
 	vimClient := meta.(*VSphereClient).vimClient
 	vCenterManager := vcenter.NewManager(restClient)
-	log.Printf("belle is here, hello")
 
 	item, err := contentlibrary.ItemFromID(restClient, d.Get("clone.0.template_uuid").(string))
 	if err != nil {
@@ -1431,7 +1431,6 @@ func createVCenterDeploy(d *schema.ResourceData, meta interface{}) (*virtualmach
 func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta interface{}) (*object.VirtualMachine, error) {
 	log.Printf("[DEBUG] %s: VM being created from clone", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*VSphereClient).vimClient
-	log.Printf("belle is here, hello , we in CreateClone")
 	// Find the folder based off the path to the resource pool. Basically what we
 	// are saying here is that the VM folder that we are placing this VM in needs
 	// to be in the same hierarchy as the resource pool - so in other words, the
@@ -1579,7 +1578,7 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 	log.Printf("[DEBUG] %s: Final device list: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceListString(devices))
 	log.Printf("[DEBUG] %s: Final device change cfgSpec: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceChangeString(cfgSpec.DeviceChange))
 
-	// Perform updates
+	// Perform updates. These updates include adding the disks, but not setting the storage policy. The steps after that shall handle setting the storage policy of the disks.
 	if _, ok := d.GetOk("datastore_cluster_id"); ok {
 		err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, cfgSpec)
 	} else {
@@ -1600,11 +1599,11 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 	}
 
 	// This should only change if deploying from a Content Library item.
-	spec, _, err := expandVirtualMachineConfigSpecChanged(d, client, vprops.Config)
+	specSetStoragePolicy, _, err := expandVirtualMachineConfigSpecChanged(d, client, vprops.Config)
 	if err != nil {
 		return fmt.Errorf("error in virtual machine configuration: %s", err)
 	}
-	cfgSpec_pls, err := expandVirtualMachineConfigSpec(d, client)
+	cfgSpecSetStoragePolicy, err := expandVirtualMachineConfigSpec(d, client)
 	if err != nil {
 		return resourceVSphereVirtualMachineRollbackCreate(
 			d,
@@ -1613,12 +1612,12 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			fmt.Errorf("error in virtual machine configuration: %s", err),
 		)
 	}
-	devices_post_reconfigure := object.VirtualDeviceList(vmprops.Config.Hardware.Device)
-	// if spec.DeviceChange, err = applyVirtualDevices(d_changed, client, devices_post_reconfigure, true); err != nil {
+	devicesSetStoragePolicy := object.VirtualDeviceList(vmprops.Config.Hardware.Device)
+	// if spec.DeviceChange, err = applyVirtualDevices(d_changed, client, devicesPostSetStoragePolicy, true); err != nil {
 	// 	return err
 	// }
-	var device_key_name_pairs map[int]string
-	devices, delta, device_key_name_pairs, err = virtualdevice.DiskSetStoragePolicyPostCloneOperation(d, client, devices_post_reconfigure, postOvf)
+	var deviceKeyNamePairs map[int]string
+	devices, delta, deviceKeyNamePairs, err = virtualdevice.DiskSetStoragePolicyPostCloneOperation(d, client, devicesSetStoragePolicy, postOvf)
 	if err != nil {
 		return resourceVSphereVirtualMachineRollbackCreate(
 			d,
@@ -1627,13 +1626,14 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			fmt.Errorf("error processing disk changes post-post-clone: %s", err),
 		)
 	}
-	spec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec_pls.DeviceChange, delta...)
-	// Perform updates.
+	specSetStoragePolicy.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpecSetStoragePolicy.DeviceChange, delta...)
+	// Perform updates. This will update the VM's subdisks to have the correct storage policy ID. If the storage policy has encryption enabled,
+	// VSphere will rename the disks automatically. The steps after this reconfigure shall revert this rename, so that any independent disks
 	if _, ok := d.GetOk("datastore_cluster_id"); ok {
 		log.Printf("time to reconfigurewithsdrs")
-		err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, spec)
+		err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, specSetStoragePolicy)
 	} else {
-		err = virtualmachine.Reconfigure(vm, spec)
+		err = virtualmachine.Reconfigure(vm, specSetStoragePolicy)
 	}
 	if err != nil {
 		return resourceVSphereVirtualMachineRollbackCreate(
@@ -1643,17 +1643,20 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			fmt.Errorf("error reconfiguring virtual machine: %s", err),
 		)
 	}
-	//TESTING - this is post post rename
-	vprops_3, err := virtualmachine.Properties(vm)
+	joe, _ := json.MarshalIndent(len(deviceKeyNamePairs), "", "\t")
+	log.Printf("here's length of devicekeynamepairs %s", joe)
+	log.Printf("coo-eey!! looks like we didn't get inside here")
+	//Prepare the spec to rename the subdisks so that any change of name due to encryption by VSphere is reverted.
+	vpropsPreRename, err := virtualmachine.Properties(vm)
 	if err != nil {
 		return err
 	}
-	spec_2, _, err := expandVirtualMachineConfigSpecChanged(d, client, vprops_3.Config)
+	specForRename, _, err := expandVirtualMachineConfigSpecChanged(d, client, vpropsPreRename.Config)
 	if err != nil {
 		return fmt.Errorf("error in virtual machine configuration: %s", err)
 	}
 
-	cfgSpec_pls_2, err := expandVirtualMachineConfigSpec(d, client)
+	cfgSpecPreRename, err := expandVirtualMachineConfigSpec(d, client)
 
 	if err != nil {
 		return resourceVSphereVirtualMachineRollbackCreate(
@@ -1664,14 +1667,13 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 		)
 	}
 
-	//Go read the vm!!!!
-	vmprops_2, err := virtualmachine.Properties(vm)
+	vmpropsPreRename, err := virtualmachine.Properties(vm)
 	if err != nil {
 		return err
 	}
 
-	devices_post_post_reconfigure := object.VirtualDeviceList(vmprops_2.Config.Hardware.Device)
-	devices, delta, err = virtualdevice.DiskRenameOperation(d, client, devices_post_post_reconfigure, postOvf, device_key_name_pairs, datacenterObj)
+	devicesPostEncryption := object.VirtualDeviceList(vmpropsPreRename.Config.Hardware.Device)
+	devices, delta, err = virtualdevice.DiskRenameOperation(d, client, devicesPostEncryption, postOvf, deviceKeyNamePairs, datacenterObj)
 	if err != nil {
 		return resourceVSphereVirtualMachineRollbackCreate(
 			d,
@@ -1680,21 +1682,80 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			fmt.Errorf("error processing disk renaming: %s", err),
 		)
 	}
-	spec_2.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec_pls_2.DeviceChange, delta...)
-	// Perform updates.
-	if _, ok := d.GetOk("datastore_cluster_id"); ok {
-		err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, spec_2)
-	} else {
-		err = virtualmachine.Reconfigure(vm, spec_2)
+	if len(delta) >= 1 {
+		log.Printf("Some disks were renamed due to encryption, reverting name change")
+		specForRename.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpecPreRename.DeviceChange, delta...)
+
+		// Perform updates. Revert any name changes that occured due to encryption induced by disk storage policy. This step
+		// will delete and recreate the virtual machine subdisks which will mean that the storage policy will need to be set again.
+		if _, ok := d.GetOk("datastore_cluster_id"); ok {
+			err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, specForRename)
+		} else {
+			err = virtualmachine.Reconfigure(vm, specForRename)
+		}
+		if err != nil {
+			return resourceVSphereVirtualMachineRollbackCreate(
+				d,
+				meta,
+				vm,
+				fmt.Errorf("error reconfiguring virtual machine after DiskPostRename: %s", err),
+			)
+		}
+
+		//Prepare the spec to set the storage policy for the second time, now that any disks are encrypted and correctly named.
+		vpropsPostRename, err := virtualmachine.Properties(vm)
+		if err != nil {
+			return err
+		}
+
+		// This should only change if deploying from a Content Library item.
+
+		specStoragePolicyPostRename, _, err := expandVirtualMachineConfigSpecChanged(d, client, vpropsPostRename.Config)
+		if err != nil {
+			return fmt.Errorf("error in virtual machine configuration: %s", err)
+		}
+		cfgSpecStoragePolicyPostRename, err := expandVirtualMachineConfigSpec(d, client)
+		if err != nil {
+			return resourceVSphereVirtualMachineRollbackCreate(
+				d,
+				meta,
+				vm,
+				fmt.Errorf("error in virtual machine configuration: %s", err),
+			)
+		}
+		devicesPostRename := object.VirtualDeviceList(vpropsPostRename.Config.Hardware.Device)
+		// if spec.DeviceChange, err = applyVirtualDevices(d_changed, client, devices_post_reconfigure, true); err != nil {
+		// 	return err
+		// }
+
+		_, delta4, _, err := virtualdevice.DiskSetStoragePolicyPostCloneOperation(d, client, devicesPostRename, postOvf)
+		if err != nil {
+			return resourceVSphereVirtualMachineRollbackCreate(
+				d,
+				meta,
+				vm,
+				fmt.Errorf("error processing disk changes post-post-clone: %s", err),
+			)
+		}
+		specStoragePolicyPostRename.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpecStoragePolicyPostRename.DeviceChange, delta4...)
+
+		// Perform updates. Sets the storage policy, since we had to create a new subdisk upon the rename. We know that all disks which needed to be encrypted
+		// are already encrypted, so no name change will occur.
+		if _, ok := d.GetOk("datastore_cluster_id"); ok {
+			err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, specStoragePolicyPostRename)
+		} else {
+			err = virtualmachine.Reconfigure(vm, specStoragePolicyPostRename)
+		}
+		if err != nil {
+			return resourceVSphereVirtualMachineRollbackCreate(
+				d,
+				meta,
+				vm,
+				fmt.Errorf("error reconfiguring virtual machine: %s", err),
+			)
+		}
 	}
-	if err != nil {
-		return resourceVSphereVirtualMachineRollbackCreate(
-			d,
-			meta,
-			vm,
-			fmt.Errorf("error reconfiguring virtual machine after DiskPostRename: %s", err),
-		)
-	}
+
 	// Upgrade the VM's hardware version if needed.
 	err = virtualmachine.SetHardwareVersion(vm, d.Get("hardware_version").(int))
 	if err != nil {
@@ -1720,56 +1781,6 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 		}
 	}
 
-	//LOL WE NEED TO SET THE STORAGE POLICY ID YET AGAIN, MIGHT BE NICER TO JUST DO A CHECK IN THE CREATE TO SEE IF STORAGE POLICY MEANS CHANGE IN ENCRYPTION?
-	vmprops4, err := virtualmachine.Properties(vm)
-	if err != nil {
-		return err
-	}
-
-	// This should only change if deploying from a Content Library item.
-
-	spec4, _, err := expandVirtualMachineConfigSpecChanged(d, client, vmprops4.Config)
-	if err != nil {
-		return fmt.Errorf("error in virtual machine configuration: %s", err)
-	}
-	cfgSpec_pls4, err := expandVirtualMachineConfigSpec(d, client)
-	if err != nil {
-		return resourceVSphereVirtualMachineRollbackCreate(
-			d,
-			meta,
-			vm,
-			fmt.Errorf("error in virtual machine configuration: %s", err),
-		)
-	}
-	devices_post_reconfigure4 := object.VirtualDeviceList(vmprops4.Config.Hardware.Device)
-	// if spec.DeviceChange, err = applyVirtualDevices(d_changed, client, devices_post_reconfigure, true); err != nil {
-	// 	return err
-	// }
-
-	_, delta4, _, err := virtualdevice.DiskSetStoragePolicyPostCloneOperation(d, client, devices_post_reconfigure4, postOvf)
-	if err != nil {
-		return resourceVSphereVirtualMachineRollbackCreate(
-			d,
-			meta,
-			vm,
-			fmt.Errorf("error processing disk changes post-post-clone: %s", err),
-		)
-	}
-	spec4.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec_pls4.DeviceChange, delta4...)
-	// Perform updates.
-	if _, ok := d.GetOk("datastore_cluster_id"); ok {
-		err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, spec4)
-	} else {
-		err = virtualmachine.Reconfigure(vm, spec4)
-	}
-	if err != nil {
-		return resourceVSphereVirtualMachineRollbackCreate(
-			d,
-			meta,
-			vm,
-			fmt.Errorf("error reconfiguring virtual machine: %s", err),
-		)
-	}
 	// Finally time to power on the virtual machine!
 	pTimeout := time.Duration(d.Get("poweron_timeout").(int)) * time.Second
 	if err := virtualmachine.PowerOn(vm, pTimeout); err != nil {
