@@ -17,7 +17,7 @@ const Privilege2 = "Alarm.Create"
 const Privilege3 = "Datacenter.Create"
 const Privilege4 = "Datacenter.Move"
 
-func TestAccResourceVsphereRole_basic(t *testing.T) {
+func TestAccResourceVsphereRole_createRole(t *testing.T) {
 	roleName := "terraform_role" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -33,8 +33,77 @@ func TestAccResourceVsphereRole_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "name", roleName),
 					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.0", Privilege1),
 					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.1", Privilege2),
+				),
+			},
+			{
+				ResourceName:      "vsphere_role." + RoleResource,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccResourceVsphereRole_addPrivilege(t *testing.T) {
+	roleName := "terraform_role" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVsphereRoleCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVsphereRoleConfigBasic(roleName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVsphereRoleCheckExists(true),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "name", roleName),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.0", Privilege1),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.1", Privilege2),
+				),
+			},
+			{
+				Config: testAccResourceVsphereRoleConfigAdditionalPrivileges(roleName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVsphereRoleCheckExists(true),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "name", roleName),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.0", Privilege1),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.1", Privilege2),
 					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.2", Privilege3),
 					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.3", Privilege4),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVsphereRole_removePrivilege(t *testing.T) {
+	roleName := "terraform_role" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVsphereRoleCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVsphereRoleConfigAdditionalPrivileges(roleName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVsphereRoleCheckExists(true),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "name", roleName),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.0", Privilege1),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.1", Privilege2),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.2", Privilege3),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.3", Privilege4),
+				),
+			},
+			{
+				Config: testAccResourceVsphereRoleConfigAdditionalPrivileges(roleName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVsphereRoleCheckExists(true),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "name", roleName),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.0", Privilege1),
+					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.1", Privilege2),
 				),
 			},
 		},
@@ -59,6 +128,19 @@ func testAccResourceVsphereRoleCheckExists(expected bool) resource.TestCheckFunc
 }
 
 func testAccResourceVsphereRoleConfigBasic(roleName string) string {
+	return fmt.Sprintf(`
+  resource "vsphere_role" "%s" {
+  name = "%s"
+  role_privileges = ["%s", "%s"]
+}
+`, RoleResource,
+		roleName,
+		Privilege1,
+		Privilege2,
+	)
+}
+
+func testAccResourceVsphereRoleConfigAdditionalPrivileges(roleName string) string {
 	return fmt.Sprintf(`
   resource "vsphere_role" "%s" {
   name = "%s"

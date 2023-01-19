@@ -42,6 +42,9 @@ func resourceVsphereRole() *schema.Resource {
 		Update: resourceRoleUpdate,
 		Delete: resourceRoleDelete,
 		Schema: sch,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 	}
 }
 
