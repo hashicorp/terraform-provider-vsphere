@@ -85,6 +85,14 @@ func MergeSchema(dst, src map[string]*schema.Schema) {
 	}
 }
 
+// BoolNilFalse returns false for a nil bool pointer
+func BoolNilFalse(v *bool) bool {
+	if v == nil {
+		return false
+	}
+	return *v
+}
+
 // BoolPtr makes a *bool out of the value passed in through v.
 //
 // vSphere uses nil values in bools to omit values in the SOAP XML request, and
