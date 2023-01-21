@@ -999,7 +999,7 @@ The options are:
 
 ### Virtual Device Computed Options
 
-Virtual devices (`disk`, `network_interface`, and `cdrom`) all export the following attributes. These options help locate the device on subsequent application of the Terraform configuration. 
+Virtual devices (`disk`, `network_interface`, and `cdrom`) all export the following attributes. These options help locate the device on subsequent application of the Terraform configuration.
 
 The options are:
 
@@ -1011,7 +1011,7 @@ The options are:
 
 The `clone` block can be used to create a new virtual machine from an existing virtual machine or template. The resource supports both making a complete copy of a virtual machine, or cloning from a snapshot (also known as a linked clone).
 
-See the section on [cloning and customization example](#cloning-and-customization-example) for more information.
+See the section on [cloning and customization](#cloning-and-customization) for more information.
 
 ~> **NOTE:** Changing any option in `clone` after creation forces a new resource.
 
@@ -1034,7 +1034,7 @@ As part of the `clone` operation, a virtual machine can be [customized][vmware-d
 [vmware-docs-customize]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-58E346FF-83AE-42B8-BE58-253641D257BC.html
 
 To perform virtual machine customization as a part of the clone process,
-specify the `customize` block with the respective customization options, nested within the `clone` block. Windows guests are customized using Sysprep, which will result in the machine SID being reset. Before using customization, check is that your source virtual machine meets the [requirements](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-58E346FF-83AE-42B8-BE58-253641D257BC.html) for guest OS customization on vSphere. See the [cloning and customization example](#cloning-and-customization-example) for a usage synopsis.
+specify the `customize` block with the respective customization options, nested within the `clone` block. Windows guests are customized using Sysprep, which will result in the machine SID being reset. Before using customization, check is that your source virtual machine meets the [requirements](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-58E346FF-83AE-42B8-BE58-253641D257BC.html) for guest OS customization on vSphere. See the section on [cloning and customization](#cloning-and-customization) for a usage synopsis.
 
 The settings for `customize` are as follows:
 
@@ -1383,7 +1383,7 @@ When cloning from a template, there are additional requirements in both the reso
 * The storage controller count settings should be configured as necessary to cover all of the disks on the template. For best results, only configure this setting for the number of controllers you will need to cover your disk quantity and bandwidth needs, and configure your template accordingly. For most workloads, this setting should be kept at the default of `1` SCSI controller, and all disks in the template should reside on the single, primary controller.
 * Some operating systems do not respond well to a change in disk controller type. Ensure that `scsi_type` is set to an exact match of the template's controller set. For maximum compatibility, make sure the SCSI controllers on the source template are all the same type.
 
-You can use the [`vsphere_virtual_machine`][tf-vsphere-virtual-machine-ds] data source, which provides disk attributes, network interface types, SCSI bus types, and the guest ID of the source template, to return this information. See the section on [cloning and customization example](#cloning-and-customization-example) for more information.
+You can use the [`vsphere_virtual_machine`][tf-vsphere-virtual-machine-ds] data source, which provides disk attributes, network interface types, SCSI bus types, and the guest ID of the source template, to return this information. See the section on [cloning and customization](#cloning-and-customization) for more information.
 
 ## Virtual Machine Migration
 
