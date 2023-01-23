@@ -552,6 +552,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 			"vsan_disk_group": {
 				Type:        schema.TypeList,
 				Optional:    true,
+				Computed:    true,
 				Description: "A list of disk UUIDs to add to the vSAN cluster.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
