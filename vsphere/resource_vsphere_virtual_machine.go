@@ -2,7 +2,6 @@ package vsphere
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -1630,7 +1629,6 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 	// Perform updates. This will update the VM's subdisks to have the correct storage policy ID. If the storage policy has encryption enabled,
 	// VSphere will rename the disks automatically. The steps after this reconfigure shall revert this rename, so that any independent disks
 	if _, ok := d.GetOk("datastore_cluster_id"); ok {
-		log.Printf("time to reconfigurewithsdrs")
 		err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, specSetStoragePolicy)
 	} else {
 		err = virtualmachine.Reconfigure(vm, specSetStoragePolicy)
@@ -1643,9 +1641,6 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			fmt.Errorf("error reconfiguring virtual machine: %s", err),
 		)
 	}
-	joe, _ := json.MarshalIndent(len(deviceKeyNamePairs), "", "\t")
-	log.Printf("here's length of devicekeynamepairs %s", joe)
-	log.Printf("coo-eey!! looks like we didn't get inside here")
 	//Prepare the spec to rename the subdisks so that any change of name due to encryption by VSphere is reverted.
 	vpropsPreRename, err := virtualmachine.Properties(vm)
 	if err != nil {
