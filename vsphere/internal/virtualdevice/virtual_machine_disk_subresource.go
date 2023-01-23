@@ -1295,7 +1295,7 @@ func DiskRenameOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 			if !ok {
 				continue
 			}
-			log.Printf("names are the names!! original: %s, new %s", original_name, rNew.Get("path"))
+			log.Printf("[DEBUG] DiskRenameOperation: the original disk name: %s, the new disk name %s", original_name, rNew.Get("path"))
 
 			if original_name == rNew.Get("path") {
 
@@ -1312,8 +1312,6 @@ func DiskRenameOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 			if err != nil {
 				return nil, nil, err
 			}
-
-			log.Printf("names not the same, keep going")
 			rNew.Set("path", original_name)
 			updates = append(updates, rNew.Data())
 			newDisk := &types.VirtualDisk{
@@ -2117,9 +2115,7 @@ func (r *DiskSubresource) assignBackingInfo(disk *types.VirtualDisk) error {
 	dsref := ds.Reference()
 
 	var diskName string
-	// No path interpolation is performed any more for attached disks - the
-	// provided path must be the full path to the virtual disk you want to
-	// attach.
+
 	diskName = diskPathOrName(r.data)
 
 	backing := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
