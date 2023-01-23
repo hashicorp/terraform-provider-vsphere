@@ -43,7 +43,7 @@ func resourceVsphereRole() *schema.Resource {
 		Delete: resourceRoleDelete,
 		Schema: sch,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			State: resourceRoleImport,
 		},
 	}
 }
@@ -67,6 +67,19 @@ func resourceRoleCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceRoleRead(d *schema.ResourceData, meta interface{}) error {
+	return roleById(d, false, meta)
+}
+
+func resourceRoleImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	err := roleById(d, true, meta)
+	if err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
+}
+
+func roleById(d *schema.ResourceData, excludeSystem bool, meta interface{}) error {
 	log.Printf("[DEBUG] Reading vm role with id %s", d.Id())
 	client := meta.(*Client).vimClient
 	authorizationManager := object.NewAuthorizationManager(client.Client)
@@ -81,6 +94,10 @@ func resourceRoleRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("error while reading the role list %s", err)
 	}
 	role := roleList.ById(roleID)
+	if role != nil && excludeSystem && role.System {
+		return fmt.Errorf("error specified role with id %s is a system role. System roles are not supported for this operation", d.Id())
+	}
+
 	if role == nil {
 		log.Printf(" [DEBUG] Role %s doesn't exist", d.Get("name"))
 		d.SetId("")

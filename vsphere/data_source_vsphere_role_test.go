@@ -7,6 +7,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+const NoAccessRoleDescription = "No access"
+const NoAccessRoleName = "NoAccess"
+const NoAccessRoleId = "-5"
+
 func TestAccDataSourceVSphereRole_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -47,6 +51,24 @@ func TestAccDataSourceVSphereRole_basic(t *testing.T) {
 	})
 }
 
+func TestAccDataSourceVSphereRole_systemRoleData(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereRoleSystemRoleConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.vsphere_role.role1", "name", NoAccessRoleName),
+					resource.TestCheckResourceAttr("data.vsphere_role.role1", "id", NoAccessRoleId),
+					resource.TestCheckResourceAttr("data.vsphere_role.role1", "role_privileges.#", "0")),
+			},
+		},
+	})
+}
+
 func testAccDataSourceVSphereRoleConfig() string {
 	return fmt.Sprintf(`
 resource "vsphere_role" test-role {
@@ -62,5 +84,15 @@ data "vsphere_role" "role1" {
 		Privilege2,
 		Privilege3,
 		Privilege4,
+	)
+}
+
+func testAccDataSourceVSphereRoleSystemRoleConfig() string {
+	return fmt.Sprintf(`
+data "vsphere_role" "role1" {
+  label = "%s"
+}
+`,
+		NoAccessRoleDescription,
 	)
 }

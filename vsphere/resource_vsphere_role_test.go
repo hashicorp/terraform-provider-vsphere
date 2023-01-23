@@ -3,6 +3,7 @@ package vsphere
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -44,7 +45,7 @@ func TestAccResourceVsphereRole_createRole(t *testing.T) {
 	})
 }
 
-func TestAccResourceVsphereRole_addPrivilege(t *testing.T) {
+func TestAccResourceVsphereRole_addPrivileges(t *testing.T) {
 	roleName := "terraform_role" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -77,7 +78,7 @@ func TestAccResourceVsphereRole_addPrivilege(t *testing.T) {
 	})
 }
 
-func TestAccResourceVsphereRole_removePrivilege(t *testing.T) {
+func TestAccResourceVsphereRole_removePrivileges(t *testing.T) {
 	roleName := "terraform_role" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -105,6 +106,25 @@ func TestAccResourceVsphereRole_removePrivilege(t *testing.T) {
 					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.0", Privilege1),
 					resource.TestCheckResourceAttr("vsphere_role."+RoleResource, "role_privileges.1", Privilege2),
 				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVsphereRole_importSystemRoleShouldError(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:            testAccResourceVsphereRoleConfigSystemRole(),
+				ResourceName:      "vsphere_role." + RoleResource,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     NoAccessRoleId,
+				ExpectError:       regexp.MustCompile(fmt.Sprintf("error system role id %s specified. System roles are not supported", NoAccessRoleId)),
 			},
 		},
 	})
@@ -153,4 +173,13 @@ func testAccResourceVsphereRoleConfigAdditionalPrivileges(roleName string) strin
 		Privilege3,
 		Privilege4,
 	)
+}
+
+func testAccResourceVsphereRoleConfigSystemRole() string {
+	return fmt.Sprintf(`
+  resource "vsphere_role" "%s" {
+  name = "NoAccess"
+  role_privileges = []
+}
+`, RoleResource)
 }
