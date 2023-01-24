@@ -1585,7 +1585,6 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 		return err
 	}
 
-	// This should only change if deploying from a Content Library item.
 	specSetStoragePolicy, _, err := expandVirtualMachineConfigSpecChanged(d, client, vprops.Config)
 	if err != nil {
 		return fmt.Errorf("error in virtual machine configuration: %s", err)
@@ -1688,8 +1687,6 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 		if err != nil {
 			return err
 		}
-
-		// This should only change if deploying from a Content Library item.
 
 		specStoragePolicyPostRename, _, err := expandVirtualMachineConfigSpecChanged(d, client, vpropsPostRename.Config)
 		if err != nil {
