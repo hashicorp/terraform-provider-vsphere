@@ -273,7 +273,6 @@ func NewDiskSubresource(client *govmomi.Client, rdd resourceDataDiff, d, old map
 func DiskApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] DiskApplyOperation: Beginning apply operation")
 	o, n := d.GetChange(subresourceTypeDisk)
-
 	oldDisks := o.([]interface{})
 	newDisks := n.([]interface{})
 
@@ -1300,6 +1299,7 @@ func DiskRenameOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 			if original_name == rNew.Get("path") {
 
 				//If the deviceKeyNamePairs map does not have the disk's key, no name change occurred so no reconfiguration needed.
+				updates = append(updates, rNew.Data())
 				continue
 			}
 			newFileName, err := virtualdisk.MoveFileofDisk(
@@ -1313,7 +1313,7 @@ func DiskRenameOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 				return nil, nil, err
 			}
 			rNew.Set("path", original_name)
-			updates = append(updates, rNew.Data())
+
 			newDisk := &types.VirtualDisk{
 				VirtualDevice: types.VirtualDevice{
 					Backing: &types.VirtualDiskFlatVer2BackingInfo{
@@ -1347,6 +1347,7 @@ func DiskRenameOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 				aspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(storage_policy_id)
 			}
 
+			updates = append(updates, rNew.Data())
 			l = applyDeviceChange(l, dspec)
 			l = applyDeviceChange(l, aspec)
 			spec = append(spec, dspec...)
@@ -1649,12 +1650,11 @@ func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtua
 		// though the new device loop, but will distinguish it from newly-created
 		// devices.
 		r.Set("key", 0)
-		// We can now expand the rest of the settings.
-		if err := r.expandDiskSettings(disk); err != nil {
-			return nil, err
-		}
 	}
-
+	// We can now expand the rest of the settings.
+	if err := r.expandDiskSettings(disk); err != nil {
+		return nil, err
+	}
 	dspec, err := object.VirtualDeviceList{disk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationEdit)
 	if err != nil {
 		return nil, err

@@ -1612,9 +1612,6 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 		)
 	}
 	devicesSetStoragePolicy := object.VirtualDeviceList(vmprops.Config.Hardware.Device)
-	// if spec.DeviceChange, err = applyVirtualDevices(d_changed, client, devicesPostSetStoragePolicy, true); err != nil {
-	// 	return err
-	// }
 	var deviceKeyNamePairs map[int]string
 	devices, delta, deviceKeyNamePairs, err = virtualdevice.DiskSetStoragePolicyPostCloneOperation(d, client, devicesSetStoragePolicy, postOvf)
 	if err != nil {
@@ -1622,12 +1619,13 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			d,
 			meta,
 			vm,
-			fmt.Errorf("error processing disk changes post-post-clone: %s", err),
+			fmt.Errorf("error processing disk changes disk-set-storage-post-clone: %s", err),
 		)
 	}
 	specSetStoragePolicy.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpecSetStoragePolicy.DeviceChange, delta...)
 	// Perform updates. This will update the VM's subdisks to have the correct storage policy ID. If the storage policy has encryption enabled,
-	// VSphere will rename the disks automatically. The steps after this reconfigure shall revert this rename, so that any independent disks
+	// VSphere will rename the disks automatically. The steps after this reconfigure shall revert this rename, so that any independent disks are
+	// still discoverable by the name they were deployed with.
 	if _, ok := d.GetOk("datastore_cluster_id"); ok {
 		err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, specSetStoragePolicy)
 	} else {
@@ -1719,17 +1717,13 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			)
 		}
 		devicesPostRename := object.VirtualDeviceList(vpropsPostRename.Config.Hardware.Device)
-		// if spec.DeviceChange, err = applyVirtualDevices(d_changed, client, devices_post_reconfigure, true); err != nil {
-		// 	return err
-		// }
-
 		_, delta4, _, err := virtualdevice.DiskSetStoragePolicyPostCloneOperation(d, client, devicesPostRename, postOvf)
 		if err != nil {
 			return resourceVSphereVirtualMachineRollbackCreate(
 				d,
 				meta,
 				vm,
-				fmt.Errorf("error processing disk changes post-post-clone: %s", err),
+				fmt.Errorf("error processing disk changes disk-set-storage-post-clone: %s", err),
 			)
 		}
 		specStoragePolicyPostRename.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpecStoragePolicyPostRename.DeviceChange, delta4...)
