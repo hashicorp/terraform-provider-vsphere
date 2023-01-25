@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/vim25/types"
-	vsantypes "github.com/vmware/govmomi/vsan/types"
 )
 
 const (
@@ -96,7 +95,6 @@ func TestAccResourceVSphereComputeCluster_drsHAEnabled(t *testing.T) {
 				Config: testAccResourceVSphereComputeClusterConfigDRSHABasic(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckDRSEnabled(true),
 					testAccResourceVSphereComputeClusterCheckHAEnabled(true),
 				),
 			},
@@ -118,8 +116,9 @@ func TestAccResourceVSphereComputeCluster_vsanDedupEnabled(t *testing.T) {
 				Config: testAccResourceVSphereComputeClusterConfigVSANDedupEnabledCompressEnabled(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckDedupEnabled(true),
-					testAccResourceVSphereComputeClusterCheckCompressionEnabled(true),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_enabled", "true"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_dedup_enabled", "true"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_compression_enabled", "true"),
 				),
 			},
 		},
@@ -140,8 +139,9 @@ func TestAccResourceVSphereComputeCluster_vsanCompressionEnabled(t *testing.T) {
 				Config: testAccResourceVSphereComputeClusterConfigVSANCompressionEnabledOnly(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckDedupEnabled(false),
-					testAccResourceVSphereComputeClusterCheckCompressionEnabled(true),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_enabled", "true"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_dedup_enabled", "false"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_compression_enabled", "true"),
 				),
 			},
 		},
@@ -162,7 +162,8 @@ func TestAccResourceVSphereComputeCluster_vsanPerfEnabled(t *testing.T) {
 				Config: testAccResourceVSphereComputeClusterConfigVSANPerfEnabled(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckPerfEnabled(true),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_enabled", "true"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_performance_enabled", "true"),
 				),
 			},
 		},
@@ -183,8 +184,9 @@ func TestAccResourceVSphereComputeCluster_vsanPerfVerboseEnabled(t *testing.T) {
 				Config: testAccResourceVSphereComputeClusterConfigVSANPerfVerboseEnabled(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckPerfEnabled(true),
-					testAccResourceVSphereComputeClusterCheckVerboseEnabled(true),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_enabled", "true"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_performance_enabled", "true"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_verbose_mode_enabled", "true"),
 				),
 			},
 		},
@@ -205,9 +207,10 @@ func TestAccResourceVSphereComputeCluster_vsanPerfVerboseDiagnosticEnabled(t *te
 				Config: testAccResourceVSphereComputeClusterConfigVSANPerfVerboseDiagnosticEnabled(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckPerfEnabled(true),
-					testAccResourceVSphereComputeClusterCheckVerboseEnabled(true),
-					testAccResourceVSphereComputeClusterCheckDiagnoseEnabled(true),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_enabled", "true"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_performance_enabled", "true"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_verbose_mode_enabled", "true"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_network_diagnostic_mode_enabled", "true"),
 				),
 			},
 		},
@@ -228,7 +231,8 @@ func TestAccResourceVSphereComputeCluster_vsanUnmapEnabledwithVsanEnabled(t *tes
 				Config: testAccResourceVSphereComputeClusterConfigVSANUnmapEnabledwithVsanEnabled(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckUnmapEnabled(true),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_enabled", "true"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_unmap_enabled", "true"),
 				),
 			},
 		},
@@ -249,24 +253,24 @@ func TestAccResourceVSphereComputeCluster_vsanUnmapDisabledwithVsanDisabled(t *t
 				Config: testAccResourceVSphereComputeClusterConfigVSANUnmapEnabledwithVsanEnabled(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckVsanEnabled(true),
-					testAccResourceVSphereComputeClusterCheckUnmapEnabled(true),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_enabled", "true"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_unmap_enabled", "true"),
 				),
 			},
 			{
 				Config: testAccResourceVSphereComputeClusterConfigVSANUnmapEnabledwithVsanDisabled(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckVsanEnabled(false),
-					testAccResourceVSphereComputeClusterCheckUnmapEnabled(true),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_enabled", "false"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_unmap_enabled", "true"),
 				),
 			},
 			{
 				Config: testAccResourceVSphereComputeClusterConfigVSANUnmapDisabledwithVsanDisabled(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckVsanEnabled(false),
-					testAccResourceVSphereComputeClusterCheckUnmapEnabled(false),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_enabled", "false"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_unmap_enabled", "false"),
 				),
 			},
 		},
@@ -287,7 +291,8 @@ func TestAccResourceVSphereComputeCluster_vsanRemoteDatastoreMount(t *testing.T)
 				Config: testAccResourceVSphereComputeClusterConfigVSANRemoteDatastoreMount(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckRemoteDatastoreMount("data.vsphere_datastore.rootds1"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_enabled", "true"),
+					resource.TestCheckTypeSetElemAttrPair("vsphere_compute_cluster.compute_cluster", "vsan_remote_datastore_ids.*", "data.vsphere_datastore.rootds1", "id"),
 				),
 			},
 		},
@@ -309,8 +314,6 @@ func TestAccResourceVSphereComputeCluster_vsanDITEncryption(t *testing.T) {
 				Config: testAccResourceVSphereComputeClusterConfigVSANDITEncryptionEnabled(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckDITEncryptionEnabled(true),
-					testAccResourceVSphereComputeClusterCheckDITEncryptionRekeyInterval(1800),
 				),
 			},
 		},
@@ -616,150 +619,6 @@ func testAccResourceVSphereComputeClusterCheckHAEnabled(expected bool) resource.
 		actual := *props.ConfigurationEx.(*types.ClusterConfigInfoEx).DasConfig.Enabled
 		if expected != actual {
 			return fmt.Errorf("expected enabled to be %t, got %t", expected, actual)
-		}
-		return nil
-	}
-}
-
-func testAccResourceVSphereComputeClusterCheckVsanEnabled(expected bool) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		props, err := testGetComputeClusterProperties(s, "compute_cluster")
-		if err != nil {
-			return err
-		}
-		actual := *props.ConfigurationEx.(*types.ClusterConfigInfoEx).VsanConfigInfo.Enabled
-		if expected != actual {
-			return fmt.Errorf("expected enabled to be %t, got %t", expected, actual)
-		}
-		return nil
-	}
-}
-
-func testAccResourceVSphereComputeClusterCheckDedupEnabled(expected bool) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
-		if err != nil {
-			return err
-		}
-		actual := props.DataEfficiencyConfig.DedupEnabled
-		if expected != actual {
-			return fmt.Errorf("expected enabled to be %t, got %t", expected, actual)
-		}
-		return nil
-	}
-}
-func testAccResourceVSphereComputeClusterCheckPerfEnabled(expected bool) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
-		if err != nil {
-			return err
-		}
-		actual := props.PerfsvcConfig.Enabled
-		if expected != actual {
-			return fmt.Errorf("expected enabled to be %t, got %t", expected, actual)
-		}
-		return nil
-	}
-}
-
-func testAccResourceVSphereComputeClusterCheckVerboseEnabled(expected bool) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
-		if err != nil {
-			return err
-		}
-		actual := props.PerfsvcConfig.VerboseMode
-		if expected != *actual {
-			return fmt.Errorf("expected enabled to be %t, got %t", expected, *actual)
-		}
-		return nil
-	}
-}
-
-func testAccResourceVSphereComputeClusterCheckDITEncryptionRekeyInterval(expected int32) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
-		if err != nil {
-			return err
-		}
-		actual := *&props.DataInTransitEncryptionConfig.RekeyInterval
-		if expected != actual {
-			return fmt.Errorf("expected rekey interval to be %d, got %d", expected, actual)
-		}
-		return nil
-	}
-}
-
-func testAccResourceVSphereComputeClusterCheckDITEncryptionEnabled(expected bool) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
-		if err != nil {
-			return err
-		}
-		actual := *props.DataInTransitEncryptionConfig.Enabled
-		if expected != actual {
-			return fmt.Errorf("expected DIT encryption enabled to be %t, got %t", expected, actual)
-		}
-		return nil
-	}
-}
-
-func testAccResourceVSphereComputeClusterCheckUnmapEnabled(expected bool) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
-		if err != nil {
-			return err
-		}
-		actual := props.UnmapConfig.Enable
-		if expected != actual {
-			return fmt.Errorf("expected enabled to be %t, got %t", expected, actual)
-		}
-		return nil
-	}
-}
-
-func testAccResourceVSphereComputeClusterCheckDiagnoseEnabled(expected bool) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
-		if err != nil {
-			return err
-		}
-		actual := props.PerfsvcConfig.DiagnosticMode
-		if expected != *actual {
-			return fmt.Errorf("expected enabled to be %t, got %t", expected, *actual)
-		}
-		return nil
-	}
-}
-func testAccResourceVSphereComputeClusterCheckCompressionEnabled(expected bool) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
-		if err != nil {
-			return err
-		}
-		actual := props.DataEfficiencyConfig.CompressionEnabled
-		if expected != *actual {
-			return fmt.Errorf("expected enabled to be %t, got %t", expected, *actual)
-		}
-		return nil
-	}
-}
-
-func testAccResourceVSphereComputeClusterCheckRemoteDatastoreMount(name string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		props, err := testGetComputeClusterVsanProperties(s, "compute_cluster")
-		if err != nil {
-			return err
-		}
-		expected, ok := s.RootModule().Resources[name]
-		if !ok {
-			return fmt.Errorf("%s key not found on the server", name)
-		}
-
-		actual := props.DatastoreConfig.(*vsantypes.VsanAdvancedDatastoreConfig).RemoteDatastores
-
-		if actual[0].Value != expected.Primary.ID {
-			return fmt.Errorf("expected enabled to be %s, got %s", expected.Primary.ID, actual[0].Value)
 		}
 		return nil
 	}

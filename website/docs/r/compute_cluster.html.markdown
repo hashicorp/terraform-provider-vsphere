@@ -464,7 +464,7 @@ details, see the referenced link in the above paragraph.
 * `vsan_enabled` - (Optional) Enables vSAN on the cluster.
 * `vsan_dedup_enabled` - (Optional) Enables vSAN deduplication on the cluster.
   Cannot be independently set to true. When vSAN deduplication is enabled, vSAN
-  compression is automatically enabled.
+  compression must also be enabled.
 * `vsan_compression_enabled` - (Optional) Enables vSAN compression on the
   cluster.
 * `vsan_performance_enabled` - (Optional) Enables vSAN performance service on

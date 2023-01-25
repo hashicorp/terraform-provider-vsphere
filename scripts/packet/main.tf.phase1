@@ -95,6 +95,34 @@ resource "metal_device_network_type" "esxi2" {
   type = "hybrid"
 }
 
+resource "metal_device" "esxi3" {
+  hostname         = "${var.LAB_PREFIX}esxi3.vspheretest.internal"
+  plan             = var.ESXI_PLAN
+  metro            = var.PACKET_FACILITY
+  operating_system = var.ESXI_VERSION
+  billing_cycle    = "hourly"
+  project_id       = local.project_id
+}
+
+resource "metal_device_network_type" "esxi3" {
+  device_id = metal_device.esxi3.id
+  type = "hybrid"
+}
+
+resource "metal_device" "esxi4" {
+  hostname         = "${var.LAB_PREFIX}esxi4.vspheretest.internal"
+  plan             = var.ESXI_PLAN
+  metro            = var.PACKET_FACILITY
+  operating_system = var.ESXI_VERSION
+  billing_cycle    = "hourly"
+  project_id       = local.project_id
+}
+
+resource "metal_device_network_type" "esxi4" {
+  device_id = metal_device.esxi4.id
+  type = "hybrid"
+}
+
 resource "metal_device" "storage1" {
   hostname         = "${var.LAB_PREFIX}storage1.vspheretest.internal"
   plan             = var.STORAGE_PLAN
@@ -133,6 +161,18 @@ resource "metal_port_vlan_attachment" "vmvlan_esxi1" {
 
 resource "metal_port_vlan_attachment" "vmvlan_esxi2" {
   device_id = metal_device.esxi2.id
+  port_name = "eth1"
+  vlan_vnid = metal_vlan.vmvlan.vxlan
+}
+
+resource "metal_port_vlan_attachment" "vmvlan_esxi3" {
+  device_id = metal_device.esxi3.id
+  port_name = "eth1"
+  vlan_vnid = metal_vlan.vmvlan.vxlan
+}
+
+resource "metal_port_vlan_attachment" "vmvlan_esxi4" {
+  device_id = metal_device.esxi4.id
   port_name = "eth1"
   vlan_vnid = metal_vlan.vmvlan.vxlan
 }
@@ -192,6 +232,8 @@ resource "local_file" "devrc" {
     nas_host    = metal_device.storage1.network.0.address
     esxi_host_1 = metal_device.esxi1.network.0.address
     esxi_host_2 = metal_device.esxi2.network.0.address
+    esxi_host_3 = metal_device.esxi3.network.0.address
+    esxi_host_4 = metal_device.esxi4.network.0.address
     vsphere_host = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}",3)
     vmfs_disk_0 = ""
     vmfs_disk_1 = ""

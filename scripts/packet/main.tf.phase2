@@ -33,6 +33,7 @@ variable "PRIV_KEY" {}
 variable "ESXI_VERSION" {
   default = "vmware_esxi_7_0"
 }
+
 variable "PACKET_FACILITY" {
   default = "sv"
 }
@@ -53,10 +54,6 @@ provider "metal" {
   auth_token = var.PACKET_AUTH
 }
 
-locals {
-  project_id = var.PACKET_PROJECT
-}
-
 provider "vsphere" {
   user                 = "administrator@vcenter.vspheretest.internal"
   password             = "Password123!"
@@ -64,14 +61,19 @@ provider "vsphere" {
   allow_unverified_ssl = true
 }
 
+output "ip" {
+  value = cidrhost("${data.metal_device.esxi1.network.0.address}/${data.metal_device.esxi1.network.0.cidr}",3)
+}
+
+locals {
+  project_id = var.PACKET_PROJECT
+}
+
 data "metal_device" "esxi1" {
   project_id = local.project_id
   hostname       = "${var.LAB_PREFIX}esxi1.vspheretest.internal"
 }
 
-output "ip" {
-  value = cidrhost("${data.metal_device.esxi1.network.0.address}/${data.metal_device.esxi1.network.0.cidr}",3)
-}
 
 resource "metal_device" "esxi1" {
   hostname         = "${var.LAB_PREFIX}esxi1.vspheretest.internal"
@@ -98,6 +100,34 @@ resource "metal_device" "esxi2" {
 
 resource "metal_device_network_type" "esxi2" {
   device_id = metal_device.esxi2.id
+  type = "hybrid"
+}
+
+resource "metal_device" "esxi3" {
+  hostname         = "${var.LAB_PREFIX}esxi3.vspheretest.internal"
+  plan             = var.ESXI_PLAN
+  metro            = var.PACKET_FACILITY
+  operating_system = var.ESXI_VERSION
+  billing_cycle    = "hourly"
+  project_id       = local.project_id
+}
+
+resource "metal_device_network_type" "esxi3" {
+  device_id = metal_device.esxi3.id
+  type = "hybrid"
+}
+
+resource "metal_device" "esxi4" {
+  hostname         = "${var.LAB_PREFIX}esxi4.vspheretest.internal"
+  plan             = var.ESXI_PLAN
+  metro            = var.PACKET_FACILITY
+  operating_system = var.ESXI_VERSION
+  billing_cycle    = "hourly"
+  project_id       = local.project_id
+}
+
+resource "metal_device_network_type" "esxi4" {
+  device_id = metal_device.esxi4.id
   type = "hybrid"
 }
 
@@ -143,6 +173,18 @@ resource "metal_port_vlan_attachment" "vmvlan_esxi2" {
   vlan_vnid = metal_vlan.vmvlan.vxlan
 }
 
+resource "metal_port_vlan_attachment" "vmvlan_esxi3" {
+  device_id = metal_device.esxi3.id
+  port_name = "eth1"
+  vlan_vnid = metal_vlan.vmvlan.vxlan
+}
+
+resource "metal_port_vlan_attachment" "vmvlan_esxi4" {
+  device_id = metal_device.esxi4.id
+  port_name = "eth1"
+  vlan_vnid = metal_vlan.vmvlan.vxlan
+}
+
 # data "metal_precreated_ip_block" "private" {
 #   metro            = var.PACKET_FACILITY
 #   project_id       = local.project_id
@@ -157,6 +199,11 @@ resource "metal_port_vlan_attachment" "vmvlan_esxi2" {
 #   public           = true
 # }
 
+data "vsphere_network" "vmnet" {
+  datacenter_id = vsphere_datacenter.dc.moid
+  name          = "VM Network"
+}
+
 resource "vsphere_resource_pool" "pool" {
   name                    = var.VSPHERE_RESOURCE_POOL
   parent_resource_pool_id = vsphere_compute_cluster.compute_cluster.resource_pool_id
@@ -164,7 +211,7 @@ resource "vsphere_resource_pool" "pool" {
 
 resource "vsphere_nas_datastore" "ds" {
   name            = var.VSPHERE_NFS_DS_NAME
-  host_system_ids = [vsphere_host.host1.id, vsphere_host.host2.id]
+  host_system_ids = [vsphere_host.host1.id, vsphere_host.host2.id, vsphere_host.host3.id, vsphere_host.host4.id]
   type            = "NFS"
   remote_hosts    = [metal_device.storage1.network.0.address]
   remote_path     = "/nfs"
@@ -185,6 +232,16 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 
   host {
     host_system_id = vsphere_host.host2.id
+    devices        = [var.VSPHERE_ESXI_TRUNK_NIC]
+  }
+
+  host {
+    host_system_id = vsphere_host.host3.id
+    devices        = [var.VSPHERE_ESXI_TRUNK_NIC]
+  }
+
+  host {
+    host_system_id = vsphere_host.host4.id
     devices        = [var.VSPHERE_ESXI_TRUNK_NIC]
   }
 
@@ -214,7 +271,17 @@ data "vsphere_host_thumbprint" "esxi1" {
 data "vsphere_host_thumbprint" "esxi2" {  
   address  = metal_device.esxi2.network.0.address
   insecure = true
-}  
+}
+
+data "vsphere_host_thumbprint" "esxi3" {  
+  address  = metal_device.esxi3.network.0.address
+  insecure = true
+}
+
+data "vsphere_host_thumbprint" "esxi4" {  
+  address  = metal_device.esxi4.network.0.address
+  insecure = true
+}
 
 resource "vsphere_compute_cluster" "compute_cluster" {
   name          = var.VSPHERE_CLUSTER
@@ -246,6 +313,82 @@ resource "vsphere_host" "host2" {
   thumbprint = data.vsphere_host_thumbprint.esxi2.id
 }
 
+resource "vsphere_host" "host3" {
+  hostname   = metal_device.esxi3.network.0.address
+  username   = "root"
+  password   = metal_device.esxi3.root_password
+  license    = vsphere_license.license.license_key
+  force      = true
+  datacenter = vsphere_datacenter.dc.moid
+  thumbprint = data.vsphere_host_thumbprint.esxi3.id
+}
+
+resource "vsphere_host" "host4" {
+  hostname   = metal_device.esxi4.network.0.address
+  username   = "root"
+  password   = metal_device.esxi4.root_password
+  license    = vsphere_license.license.license_key
+  force      = true
+  datacenter = vsphere_datacenter.dc.moid
+  thumbprint = data.vsphere_host_thumbprint.esxi4.id
+}
+
+resource "vsphere_virtual_machine" "template" {
+  name             = var.VSPHERE_TEMPLATE
+  resource_pool_id = vsphere_compute_cluster.compute_cluster.resource_pool_id
+  datastore_id     = vsphere_nas_datastore.ds.id
+  datacenter_id    = vsphere_datacenter.dc.moid
+  host_system_id   = vsphere_host.host2.id
+
+  wait_for_guest_net_timeout = -1
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinuxGuest"
+
+  network_interface {
+    network_id = vsphere_distributed_port_group.pg.id
+  }
+
+  ovf_deploy {
+    remote_ovf_url = "https://storage.googleapis.com/vsphere-acctest/TinyVM/TinyVM.ovf"
+    ovf_network_map = {
+      "terraform-test-pg" = vsphere_distributed_port_group.pg.id
+    }
+  }
+}
+
+resource "vsphere_virtual_machine" "pxe" {
+  name             = "pxe-server"
+  resource_pool_id = vsphere_compute_cluster.compute_cluster.resource_pool_id
+  datastore_id     = vsphere_nas_datastore.ds.id
+
+  wait_for_guest_net_timeout = -1
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinuxGuest"
+
+  network_interface {
+    network_id = data.vsphere_network.vmnet.id
+  }
+  network_interface {
+    network_id = vsphere_distributed_port_group.pg.id
+  }
+  clone {
+    template_uuid = vsphere_virtual_machine.template.id
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
+
+  cdrom {
+    client_device = true
+  }
+}
+
 data "vsphere_vmfs_disks" "available" {
   host_system_id = vsphere_host.host1.id
   rescan         = true
@@ -257,6 +400,8 @@ resource "local_file" "devrc" {
     nas_host    = metal_device.storage1.network.0.address
     esxi_host_1 = metal_device.esxi1.network.0.address
     esxi_host_2 = metal_device.esxi2.network.0.address
+    esxi_host_3 = metal_device.esxi3.network.0.address
+    esxi_host_4 = metal_device.esxi4.network.0.address
     vsphere_host = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}",3)
     vmfs_disk_0 = data.vsphere_vmfs_disks.available.disks[0]
     vmfs_disk_1 = data.vsphere_vmfs_disks.available.disks[1]
