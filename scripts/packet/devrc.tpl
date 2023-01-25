@@ -11,6 +11,8 @@ export TF_VAR_ESXI_VERSION="vmware_esxi_7_0"
 export TF_VAR_VSPHERE_NAS_HOST=${nas_host}
 export TF_VAR_VSPHERE_ESXI1=${esxi_host_1}
 export TF_VAR_VSPHERE_ESXI2=${esxi_host_2}
+export TF_VAR_VSPHERE_ESXI3=${esxi_host_3}
+export TF_VAR_VSPHERE_ESXI4=${esxi_host_4}
 export VSPHERE_SERVER=${vsphere_host}
 
 export TF_VAR_VSPHERE_VMFS_REGEXP='naa.'

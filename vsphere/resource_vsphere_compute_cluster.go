@@ -545,7 +545,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 			"vsan_dit_rekey_interval": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				Default:      1440,
+				Computed:     true,
 				Description:  "When vsan_dit_encryption_enabled is enabled, sets the rekey interval of data-in-transit encryption (in minutes).",
 				ValidateFunc: validation.IntBetween(30, 10080),
 			},
@@ -1357,9 +1357,11 @@ func resourceVSphereComputeClusterFlattenData(
 	d.Set("vsan_dit_rekey_interval", int(vsanConfig.DataInTransitEncryptionConfig.RekeyInterval))
 
 	var dsIDs []string
-	datastoreConfig := vsanConfig.DatastoreConfig.(*vsantypes.VsanAdvancedDatastoreConfig)
-	for _, ds := range datastoreConfig.RemoteDatastores {
-		dsIDs = append(dsIDs, ds.Value)
+	dsConfig := vsanConfig.DatastoreConfig
+	if dsConfig != nil {
+		for _, ds := range dsConfig.(*vsantypes.VsanAdvancedDatastoreConfig).RemoteDatastores {
+			dsIDs = append(dsIDs, ds.Value)
+		}
 	}
 	if err := d.Set("vsan_remote_datastore_ids", schema.NewSet(schema.HashString, structure.SliceStringsToInterfaces(dsIDs))); err != nil {
 		return err
@@ -1465,7 +1467,7 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 	conf.DatastoreConfig = datastoreConfig
 
 	if err := vsanclient.Reconfigure(meta.(*Client).vsanClient, cluster.Reference(), conf); err != nil {
-		return fmt.Errorf("cannot apply vsan service on cluster: %s", d.Get("name").(string))
+		return fmt.Errorf("cannot apply vsan service on cluster '%s': %s", d.Get("name").(string), err)
 	}
 
 	return nil
