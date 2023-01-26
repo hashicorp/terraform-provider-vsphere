@@ -1578,7 +1578,7 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 	log.Printf("[DEBUG] %s: Final device list: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceListString(devices))
 	log.Printf("[DEBUG] %s: Final device change cfgSpec: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceChangeString(cfgSpec.DeviceChange))
 
-	// Perform updates. These updates include adding the disks, but not setting the storage policy. The steps after that shall handle setting the storage policy of the disks.
+	// Perform updates. These updates include adding the disks, but not setting the storage policy. This is because VSphere does not support setting the storage policy of a disk on attachment to a virtual machine. The steps after that shall handle setting the storage policy of the disks, once they have already been attached.
 	if _, ok := d.GetOk("datastore_cluster_id"); ok {
 		err = resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(d, meta, vm, cfgSpec)
 	} else {
@@ -1744,6 +1744,9 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 	} else {
 		log.Printf("no disks need renaming due to encryption, proceeding")
 	}
+
+	// This should only change if deploying from a Content Library item.
+	d.Set("guest_id", vmprops.Config.GuestId)
 
 	// Upgrade the VM's hardware version if needed.
 	err = virtualmachine.SetHardwareVersion(vm, d.Get("hardware_version").(int))
