@@ -95,7 +95,7 @@ func Move(client *govmomi.Client, srcPath string, srcDC *object.Datacenter, dstP
 }
 
 // MoveFileofDisk is similar to Move except it generates a Vsphere MoveDatastoreFile task instead of a MoveVirtualDisk task.
-// Vsphere does not allow a MoveDisk function
+// VSphere does not allow a MoveVirtualDisk task to be run on a disk when attached to a VM.
 //
 // srcPath needs to be a datastore path (ie: "[datastore1] vm/vm.vmdk"),
 // however the destination path (dstPath) can be a simple path - if it is, the
