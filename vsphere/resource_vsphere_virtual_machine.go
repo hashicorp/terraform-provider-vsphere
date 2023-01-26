@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datacenter"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/ovfdeploy"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -1480,12 +1481,12 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 			return nil, fmt.Errorf("error cloning virtual machine: %s", err)
 		}
 	}
-	dataCenterId := "datacenter-8"
-	datacenterObj, err := datacenterFromID(client, dataCenterId)
+	inventoryPath := vm.InventoryPath
+	dc, err := datacenter.DatacenterFromVMInventoryPath(client, inventoryPath)
 	if err != nil {
-		return nil, fmt.Errorf("error while getting datacenter with id %s %s", dataCenterId, err)
+		return nil, err
 	}
-	return vm, resourceVSphereVirtualMachinePostDeployChanges(d, meta, vm, false, datacenterObj)
+	return vm, resourceVSphereVirtualMachinePostDeployChanges(d, meta, vm, false, dc)
 }
 
 // resourceVSphereVirtualMachinePostDeployChanges will do post-clone
@@ -1740,6 +1741,8 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 				fmt.Errorf("error reconfiguring virtual machine: %s", err),
 			)
 		}
+	} else {
+		log.Printf("no disks need renaming due to encryption, proceeding")
 	}
 
 	// Upgrade the VM's hardware version if needed.

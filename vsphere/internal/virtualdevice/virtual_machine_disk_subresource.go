@@ -1307,7 +1307,7 @@ func DiskRenameOperation(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 				oldDisk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).FileName,
 				datacenterObj,
 				original_name,
-				nil,
+				datacenterObj,
 			)
 			if err != nil {
 				return nil, nil, err

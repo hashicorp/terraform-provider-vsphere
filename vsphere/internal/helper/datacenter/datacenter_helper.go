@@ -32,3 +32,17 @@ func DatacenterFromInventoryPath(client *govmomi.Client, inventoryPath string) (
 
 	return dc, nil
 }
+
+// DatacenterFromVMInventoryPath returns the Datacenter object which is part of a given VM InventoryPath
+func DatacenterFromVMInventoryPath(client *govmomi.Client, inventoryPath string) (*object.Datacenter, error) {
+	dcPath, err := folder.RootPathParticleDatastore.SplitDatacenterFromVMInventoryPath(inventoryPath)
+	if err != nil {
+		return nil, err
+	}
+	dc, err := FromPath(client, dcPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return dc, nil
+}
