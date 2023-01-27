@@ -1100,7 +1100,8 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 }
 
 // DiskSetStoragePostCloneOperation normalizes the virtual disks on a freshly-cloned
-// virtual machine and outputs operations to set the storage policy of the disks. It also
+// virtual machine and outputs operations to update the disks to match the desired terraform state.
+// Currently, this only sets the storage policy of the disks. It also
 // sets the state in advance of the post-create read.
 //
 // As with DiskPostCloneOperation, this differs from a regular apply operation in that a configuration is
