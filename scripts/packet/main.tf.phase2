@@ -313,6 +313,8 @@ resource "vsphere_host" "host2" {
   thumbprint = data.vsphere_host_thumbprint.esxi2.id
 }
 
+# Manually enable vsan on this host in the vsphere UI
+# Enable vsan in VMKernal Adapters on the management network
 resource "vsphere_host" "host3" {
   hostname   = metal_device.esxi3.network.0.address
   username   = "root"
@@ -323,6 +325,8 @@ resource "vsphere_host" "host3" {
   thumbprint = data.vsphere_host_thumbprint.esxi3.id
 }
 
+# Manually enable vsan on this host in the vsphere UI
+# Enable vsan in VMKernal Adapters on the management network
 resource "vsphere_host" "host4" {
   hostname   = metal_device.esxi4.network.0.address
   username   = "root"
