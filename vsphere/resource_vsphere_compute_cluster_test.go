@@ -277,28 +277,6 @@ func TestAccResourceVSphereComputeCluster_vsanUnmapDisabledwithVsanDisabled(t *t
 	})
 }
 
-func TestAccResourceVSphereComputeCluster_vsanRemoteDatastoreMount(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			RunSweepers()
-			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterPreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccResourceVSphereComputeClusterConfigVSANRemoteDatastoreMount(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccResourceVSphereComputeClusterCheckExists(true),
-					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_enabled", "true"),
-					resource.TestCheckTypeSetElemAttrPair("vsphere_compute_cluster.compute_cluster", "vsan_remote_datastore_ids.*", "data.vsphere_datastore.rootds1", "id"),
-				),
-			},
-		},
-	})
-}
-
 func TestAccResourceVSphereComputeCluster_vsanDITEncryption(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -314,6 +292,9 @@ func TestAccResourceVSphereComputeCluster_vsanDITEncryption(t *testing.T) {
 				Config: testAccResourceVSphereComputeClusterConfigVSANDITEncryptionEnabled(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_enabled", "true"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_dit_encryption_enabled", "true"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_dit_rekey_interval", "1800"),
 				),
 			},
 		},
@@ -791,8 +772,8 @@ func testAccResourceVSphereComputeClusterConfigVSANDedupEnabledCompressEnabled()
 
 resource "vsphere_compute_cluster" "compute_cluster" {
   name                        = "testacc-compute-cluster"
-  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids             = [data.vsphere_host.roothost3.id]
+  datacenter_id               = data.vsphere_datacenter.rootdc1.id
+  host_system_ids             = [data.vsphere_host.roothost3.id, data.vsphere_host.roothost4.id]
 
   vsan_enabled = true
   vsan_dedup_enabled = true
@@ -803,12 +784,8 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 `,
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost3(),
-			testhelper.ConfigDataRootComputeCluster1(),
 			testhelper.ConfigDataRootHost4(),
-			testhelper.ConfigDataRootDS1(),
-			testhelper.ConfigDataRootVMNet(),
 		),
 	)
 }
@@ -819,8 +796,8 @@ func testAccResourceVSphereComputeClusterConfigVSANCompressionEnabledOnly() stri
 
 resource "vsphere_compute_cluster" "compute_cluster" {
   name                        = "testacc-compute-cluster"
-  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids             = [data.vsphere_host.roothost3.id]
+  datacenter_id               = data.vsphere_datacenter.rootdc1.id
+  host_system_ids             = [data.vsphere_host.roothost3.id, data.vsphere_host.roothost4.id]
 
   vsan_enabled = true
   vsan_dedup_enabled = false
@@ -831,12 +808,8 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 `,
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost3(),
-			testhelper.ConfigDataRootComputeCluster1(),
 			testhelper.ConfigDataRootHost4(),
-			testhelper.ConfigDataRootDS1(),
-			testhelper.ConfigDataRootVMNet(),
 		),
 	)
 }
@@ -847,8 +820,8 @@ func testAccResourceVSphereComputeClusterConfigVSANPerfEnabled() string {
 
 resource "vsphere_compute_cluster" "compute_cluster" {
   name                        = "testacc-compute-cluster"
-  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids             = [data.vsphere_host.roothost3.id]
+  datacenter_id               = data.vsphere_datacenter.rootdc1.id
+  host_system_ids             = [data.vsphere_host.roothost3.id, data.vsphere_host.roothost4.id]
 
   vsan_enabled = true
   vsan_performance_enabled = true
@@ -858,12 +831,8 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 `,
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost3(),
-			testhelper.ConfigDataRootComputeCluster1(),
 			testhelper.ConfigDataRootHost4(),
-			testhelper.ConfigDataRootDS1(),
-			testhelper.ConfigDataRootVMNet(),
 		),
 	)
 }
@@ -874,8 +843,8 @@ func testAccResourceVSphereComputeClusterConfigVSANPerfVerboseEnabled() string {
 
 resource "vsphere_compute_cluster" "compute_cluster" {
   name                        = "testacc-compute-cluster"
-  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids             = [data.vsphere_host.roothost3.id]
+  datacenter_id               = data.vsphere_datacenter.rootdc1.id
+  host_system_ids             = [data.vsphere_host.roothost3.id, data.vsphere_host.roothost4.id]
 
   vsan_enabled = true
   vsan_performance_enabled = true
@@ -886,12 +855,8 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 `,
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost3(),
-			testhelper.ConfigDataRootComputeCluster1(),
 			testhelper.ConfigDataRootHost4(),
-			testhelper.ConfigDataRootDS1(),
-			testhelper.ConfigDataRootVMNet(),
 		),
 	)
 }
@@ -902,8 +867,8 @@ func testAccResourceVSphereComputeClusterConfigVSANPerfVerboseDiagnosticEnabled(
 
 resource "vsphere_compute_cluster" "compute_cluster" {
   name                        = "testacc-compute-cluster"
-  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids             = [data.vsphere_host.roothost3.id]
+  datacenter_id               = data.vsphere_datacenter.rootdc1.id
+  host_system_ids             = [data.vsphere_host.roothost3.id, data.vsphere_host.roothost4.id]
 
   vsan_enabled = true
   vsan_performance_enabled = true
@@ -915,12 +880,8 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 `,
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost3(),
-			testhelper.ConfigDataRootComputeCluster1(),
 			testhelper.ConfigDataRootHost4(),
-			testhelper.ConfigDataRootDS1(),
-			testhelper.ConfigDataRootVMNet(),
 		),
 	)
 }
@@ -931,8 +892,8 @@ func testAccResourceVSphereComputeClusterConfigVSANDITEncryptionEnabled() string
 
 resource "vsphere_compute_cluster" "compute_cluster" {
   name                        = "testacc-compute-cluster"
-  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids             = [data.vsphere_host.roothost3.id]
+  datacenter_id               = data.vsphere_datacenter.rootdc1.id
+  host_system_ids             = [data.vsphere_host.roothost3.id, data.vsphere_host.roothost4.id]
 
   vsan_enabled                = true
   vsan_dit_encryption_enabled = true
@@ -943,12 +904,8 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 `,
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost3(),
-			testhelper.ConfigDataRootComputeCluster1(),
 			testhelper.ConfigDataRootHost4(),
-			testhelper.ConfigDataRootDS1(),
-			testhelper.ConfigDataRootVMNet(),
 		),
 	)
 }
@@ -959,8 +916,8 @@ func testAccResourceVSphereComputeClusterConfigVSANUnmapEnabledwithVsanEnabled()
 
 resource "vsphere_compute_cluster" "compute_cluster" {
   name                        = "testacc-compute-cluster"
-  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids             = [data.vsphere_host.roothost3.id]
+  datacenter_id               = data.vsphere_datacenter.rootdc1.id
+  host_system_ids             = [data.vsphere_host.roothost3.id, data.vsphere_host.roothost4.id]
 
   vsan_enabled = true
   vsan_unmap_enabled = true
@@ -970,12 +927,8 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 `,
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost3(),
-			testhelper.ConfigDataRootComputeCluster1(),
 			testhelper.ConfigDataRootHost4(),
-			testhelper.ConfigDataRootDS1(),
-			testhelper.ConfigDataRootVMNet(),
 		),
 	)
 }
@@ -986,8 +939,8 @@ func testAccResourceVSphereComputeClusterConfigVSANUnmapEnabledwithVsanDisabled(
 
 resource "vsphere_compute_cluster" "compute_cluster" {
   name                        = "testacc-compute-cluster"
-  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids             = [data.vsphere_host.roothost3.id]
+  datacenter_id               = data.vsphere_datacenter.rootdc1.id
+  host_system_ids             = [data.vsphere_host.roothost3.id, data.vsphere_host.roothost4.id]
 
   vsan_enabled = false
   vsan_unmap_enabled = true
@@ -997,12 +950,8 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 `,
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost3(),
-			testhelper.ConfigDataRootComputeCluster1(),
 			testhelper.ConfigDataRootHost4(),
-			testhelper.ConfigDataRootDS1(),
-			testhelper.ConfigDataRootVMNet(),
 		),
 	)
 }
@@ -1013,8 +962,8 @@ func testAccResourceVSphereComputeClusterConfigVSANUnmapDisabledwithVsanDisabled
 
 resource "vsphere_compute_cluster" "compute_cluster" {
   name                        = "testacc-compute-cluster"
-  datacenter_id               = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids             = [data.vsphere_host.roothost3.id]
+  datacenter_id               = data.vsphere_datacenter.rootdc1.id
+  host_system_ids             = [data.vsphere_host.roothost3.id, data.vsphere_host.roothost4.id]
 
   vsan_enabled = false
   vsan_unmap_enabled = false
@@ -1024,38 +973,8 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 `,
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost3(),
-			testhelper.ConfigDataRootComputeCluster1(),
 			testhelper.ConfigDataRootHost4(),
-			testhelper.ConfigDataRootDS1(),
-			testhelper.ConfigDataRootVMNet(),
-		),
-	)
-}
-
-func testAccResourceVSphereComputeClusterConfigVSANRemoteDatastoreMount() string {
-	return fmt.Sprintf(`
-%s
-
-resource "vsphere_compute_cluster" "compute_cluster" {
-  name                      = "testacc-compute-cluster"
-  datacenter_id             = "${data.vsphere_datacenter.rootdc1.id}"
-  host_system_ids           = [data.vsphere_host.roothost3.id]
-
-  vsan_enabled              = true
-  vsan_remote_datastore_ids = [data.vsphere_datastore.rootds1.id]
-  force_evacuate_on_destroy = true
-}
-
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootPortGroup1(),
-			testhelper.ConfigDataRootHost3(),
-			testhelper.ConfigDataRootComputeCluster1(),
-			testhelper.ConfigDataRootDS1(),
-			testhelper.ConfigDataRootVMNet(),
 		),
 	)
 }

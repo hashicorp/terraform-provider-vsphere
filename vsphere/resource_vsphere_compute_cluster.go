@@ -681,10 +681,6 @@ func resourceVSphereComputeClusterUpdate(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	if err = updateVsanDisks(d, cluster, meta); err != nil {
-		return err
-	}
-
 	log.Printf("[DEBUG] %s: Update finished successfully", resourceVSphereComputeClusterIDString(d))
 	return resourceVSphereComputeClusterRead(d, meta)
 }
@@ -799,9 +795,7 @@ func resourceVSphereComputeClusterApplyCreate(d *schema.ResourceData, meta inter
 	if err != nil {
 		return nil, fmt.Errorf("error creating cluster: %s", err)
 	}
-	if err = updateVsanDisks(d, cluster, meta); err != nil {
-		return nil, err
-	}
+
 	// Set the ID now before proceeding any further. Any other operation past
 	// this point is recoverable.
 	d.SetId(cluster.Reference().Value)
@@ -1460,14 +1454,25 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 	}
 	conf.PerfsvcConfig = perfConfig
 
+	if err := vsanclient.Reconfigure(meta.(*Client).vsanClient, cluster.Reference(), conf); err != nil {
+		return fmt.Errorf("cannot apply vsan service on cluster '%s': %s", d.Get("name").(string), err)
+	}
+
+	// handle disk groups
+	if err = updateVsanDisks(d, cluster, meta); err != nil {
+		return err
+	}
+
+	// handle remote datastore/HCI Mesh in a separate call
 	datastoreConfig, err := expandVsanDatastoreConfig(d, meta)
 	if err != nil {
 		return err
 	}
-	conf.DatastoreConfig = datastoreConfig
-
-	if err := vsanclient.Reconfigure(meta.(*Client).vsanClient, cluster.Reference(), conf); err != nil {
-		return fmt.Errorf("cannot apply vsan service on cluster '%s': %s", d.Get("name").(string), err)
+	if err := vsanclient.Reconfigure(meta.(*Client).vsanClient, cluster.Reference(), vsantypes.VimVsanReconfigSpec{
+		Modify:          true,
+		DatastoreConfig: datastoreConfig,
+	}); err != nil {
+		return fmt.Errorf("cannot apply vsan remote datastores on cluster '%s': %s", d.Get("name").(string), err)
 	}
 
 	return nil
