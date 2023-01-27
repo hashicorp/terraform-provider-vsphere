@@ -1482,6 +1482,16 @@ func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta inter
 // done, we need it to go through post-clone rollback workflows. All
 // rollback functions will remove the ID after it has done its rollback.
 //
+// This function includes attaching disks and setting their storage policy.
+// Due to VSphere's capabilities, attaching the disks and setting the storage policy
+// are separate steps.
+//
+// There is an additional step to rename any disks whose name was changed
+// by VSphere unbeknownst to terraform, which would mean a mismatch between
+// terraform state and true state if not corrected. Renaming the disks involves
+// detatching the disks, changing their name, reattaching the disks and then setting
+// the storage policy again.
+//
 // It's generally safe to not rollback after the initial re-configuration is
 // fully complete and we move on to sending the customization spec.
 func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta interface{}, vm *object.VirtualMachine, postOvf bool, datacenterObj *object.Datacenter) error {
