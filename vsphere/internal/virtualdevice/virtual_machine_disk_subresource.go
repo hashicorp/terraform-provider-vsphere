@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualdisk"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/mitchellh/copystructure"
 	"github.com/vmware/govmomi"
@@ -967,6 +968,7 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", r.Addr(), err)
 		}
+		relocator.Profile = nil
 		relocators = append(relocators, relocator)
 	}
 
@@ -1078,8 +1080,11 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 			if err != nil {
 				return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
 			}
+			//We remove the storage policy id from cspec so that we append instrucitons that call for a disk to be created without a storage policy id.
+			cspec[0].GetVirtualDeviceConfigSpec().Profile = nil
 			l = applyDeviceChange(l, cspec)
 			spec = append(spec, cspec...)
+			//Note updates will still include the storage policy id, so that d still contains knowledge of the storage policy id
 			updates = append(updates, r.Data())
 		}
 	}
@@ -1091,6 +1096,273 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 	log.Printf("[DEBUG] DiskPostCloneOperation: Device list at end of operation: %s", DeviceListString(l))
 	log.Printf("[DEBUG] DiskPostCloneOperation: Device config operations from post-clone: %s", DeviceChangeString(spec))
 	log.Printf("[DEBUG] DiskPostCloneOperation: Operation complete, returning updated spec")
+	return l, spec, nil
+}
+
+// DiskSetStoragePostCloneOperation normalizes the virtual disks on a freshly-cloned
+// virtual machine and outputs operations to update the disks to match the desired terraform state.
+// Currently, this only sets the storage policy of the disks. It also
+// sets the state in advance of the post-create read.
+//
+// As with DiskPostCloneOperation, this differs from a regular apply operation in that a configuration is
+// already present, but we don't have any existing state, which the standard
+// virtual device operations rely pretty heavily on.
+func DiskSetStoragePolicyPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, postOvf bool) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, map[int]string, error) {
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Looking for disk device changes post-clone")
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Disk devices located: %s", DeviceListString(devices))
+	// Sort the device list, in case it's not sorted already.
+	devSort := virtualDeviceListSorter{
+		Sort:       devices,
+		DeviceList: l,
+	}
+	sort.Sort(devSort)
+	devices = devSort.Sort
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Disk devices order after sort: %s", DeviceListString(devices))
+	// Do the same for our listed disks.
+	curSet := d.Get(subresourceTypeDisk).([]interface{})
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Current resource set: %s", subresourceListString(curSet))
+	sort.Sort(virtualDiskSubresourceSorter(curSet))
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Resource set order after sort: %s", subresourceListString(curSet))
+
+	var spec []types.BaseVirtualDeviceConfigSpec
+	var updates []interface{}
+
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Looking for and applying device changes in all disks")
+	deviceKeyNamePairs := make(map[int]string)
+	for i, device := range devices {
+		src := map[string]interface{}{}
+		if i < len(curSet) {
+			src = curSet[i].(map[string]interface{})
+		}
+		vd := device.GetVirtualDevice()
+		ctlr := l.FindByKey(vd.ControllerKey)
+		if ctlr == nil {
+			return nil, nil, nil, fmt.Errorf("could not find controller with key %d", vd.Key)
+		}
+		src["key"] = int(vd.Key)
+		var err error
+		src["device_address"], err = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("error computing device address: %s", err)
+		}
+
+		if _, ok := src["label"]; !ok && postOvf {
+			src["label"] = fmt.Sprintf("disk%d", i)
+		}
+		// Copy the source set into old. This allows us to patch a copy of the
+		// product of this set with the source, creating a diff.
+		old, err := copystructure.Copy(src)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("error copying source set for disk at unit_number %d: %s", src["unit_number"].(int), err)
+		}
+		rOld := NewDiskSubresource(c, d, old.(map[string]interface{}), nil, i)
+		if err := rOld.Read(l); err != nil {
+			return nil, nil, nil, fmt.Errorf("%s: %s", rOld.Addr(), err)
+		}
+		new, err := copystructure.Copy(rOld.Data())
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("error copying current device state for disk at unit_number %d: %s", src["unit_number"].(int), err)
+		}
+		for k, v := range src {
+			// Skip label, path (path will always be computed here as cloned disks
+			// are not being attached externally), name, datastore_id, and uuid. Also
+			// skip share_count if we the share level isn't custom.
+			//
+			switch k {
+			case "path", "name", "datastore_id", "uuid", "thin_provisioned", "eagerly_scrub":
+				continue
+			case "io_share_count":
+				if src["io_share_level"] != string(types.SharesLevelCustom) {
+					continue
+				}
+			case "label":
+				if !postOvf {
+					continue
+				}
+			}
+			new.(map[string]interface{})[k] = v
+		}
+		rNew := NewDiskSubresource(c, d, new.(map[string]interface{}), rOld.Data(), i)
+
+		if !reflect.DeepEqual(rNew.Data(), rOld.Data()) {
+			uspec, err := rNew.Update(l)
+			if err != nil {
+				return nil, nil, nil, fmt.Errorf("%s: %s", rNew.Addr(), err)
+			}
+			l = applyDeviceChange(l, uspec)
+			spec = append(spec, uspec...)
+		}
+		deviceKeyNamePairs[rNew.Get("key").(int)] = rNew.Get("path").(string)
+		updates = append(updates, rNew.Data())
+
+	}
+
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Post-clone final resource list: %s", subresourceListString(updates))
+	if err := d.Set(subresourceTypeDisk, updates); err != nil {
+		return nil, nil, nil, err
+	}
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Device list at end of operation: %s", DeviceListString(l))
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Device config operations from post-clone: %s", DeviceChangeString(spec))
+	log.Printf("[DEBUG] DiskSetStoragePolicyPostCloneOperation: Operation complete, returning updated spec")
+	return l, spec, deviceKeyNamePairs, nil
+}
+
+//DiskRenameOperation renames the set of disks based on their keys. It is ran after disks have their storage policy set.
+//If a disk is updated to have a storage policy which has encryption enabled, the disk will change from being unencrypted to being encrypted.
+//On encrypting a disk, VSphere renames the file behind the disk and the name no longer matches the disk name in terraform state.
+//DiskRenameOperation changes the list of the disks, and is used to change the names back to the original disk names prior to encryption.
+func DiskRenameOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, postOvf bool, deviceKeyNamePairs map[int]string, datacenterObj *object.Datacenter) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("[DEBUG] DiskRenameOperation: Looking for disk device changes post-clone")
+	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
+	log.Printf("[DEBUG] DiskRenameOperation: Disk devices located: %s", DeviceListString(devices))
+	// Sort the device list, in case it's not sorted already.
+	devSort := virtualDeviceListSorter{
+		Sort:       devices,
+		DeviceList: l,
+	}
+	sort.Sort(devSort)
+	devices = devSort.Sort
+	log.Printf("[DEBUG] DiskRenameOperation: Disk devices order after sort: %s", DeviceListString(devices))
+	// Do the same for our listed disks.
+	curSet := d.Get(subresourceTypeDisk).([]interface{})
+	log.Printf("[DEBUG] DiskRenameOperation: Current resource set: %s", subresourceListString(curSet))
+	sort.Sort(virtualDiskSubresourceSorter(curSet))
+	log.Printf("[DEBUG] DiskRenameOperation: Resource set order after sort: %s", subresourceListString(curSet))
+
+	var spec []types.BaseVirtualDeviceConfigSpec
+	var updates []interface{}
+
+	log.Printf("[DEBUG] DiskRenameCloneOperation: Looking for and applying device changes in all disks")
+	for i, device := range devices {
+		src := map[string]interface{}{}
+		if i < len(curSet) {
+			src = curSet[i].(map[string]interface{})
+		}
+		vd := device.GetVirtualDevice()
+		ctlr := l.FindByKey(vd.ControllerKey)
+		if ctlr == nil {
+			return nil, nil, fmt.Errorf("could not find controller with key %d", vd.Key)
+		}
+		src["key"] = int(vd.Key)
+		var err error
+		src["device_address"], err = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		if err != nil {
+			return nil, nil, fmt.Errorf("error computing device address: %s", err)
+		}
+
+		if _, ok := src["label"]; !ok && postOvf {
+			src["label"] = fmt.Sprintf("disk%d", i)
+		}
+		// Copy the source set into old. This allows us to patch a copy of the
+		// product of this set with the source, creating a diff.
+		old, err := copystructure.Copy(src)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error copying source set for disk at unit_number %d: %s", src["unit_number"].(int), err)
+		}
+		rOld := NewDiskSubresource(c, d, old.(map[string]interface{}), nil, i)
+		if err := rOld.Read(l); err != nil {
+			return nil, nil, fmt.Errorf("%s: %s", rOld.Addr(), err)
+		}
+		rOld.Set("storage_policy_id", "")
+		new, err := copystructure.Copy(rOld.Data())
+		if err != nil {
+			return nil, nil, fmt.Errorf("error copying current device state for disk at unit_number %d: %s", src["unit_number"].(int), err)
+		}
+		for k, v := range src {
+			// Skip label, path (path will always be computed here as cloned disks
+			// are not being attached externally), name, datastore_id, and uuid. Also
+			// skip share_count if we the share level isn't custom.
+
+			switch k {
+			case "path", "name", "datastore_id", "uuid", "thin_provisioned", "eagerly_scrub":
+				continue
+			case "io_share_count":
+				if src["io_share_level"] != string(types.SharesLevelCustom) {
+					continue
+				}
+			case "label":
+				if !postOvf {
+					continue
+				}
+			}
+			new.(map[string]interface{})[k] = v
+		}
+		rNew := NewDiskSubresource(c, d, new.(map[string]interface{}), rOld.Data(), i)
+		if oldDisk, ok := device.(*types.VirtualDisk); ok {
+			key := oldDisk.Key
+			original_name, ok := deviceKeyNamePairs[int(key)]
+			if !ok {
+				continue
+			}
+			log.Printf("[DEBUG] DiskRenameOperation: the original disk name: %s, the new disk name %s", original_name, rNew.Get("path"))
+
+			if original_name == rNew.Get("path") {
+
+				//If the deviceKeyNamePairs map does not have the disk's key, no name change occurred so no reconfiguration needed.
+				updates = append(updates, rNew.Data())
+				continue
+			}
+			newFileName, err := virtualdisk.MoveFileofDisk(
+				c,
+				oldDisk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).FileName,
+				datacenterObj,
+				original_name,
+				datacenterObj,
+			)
+			if err != nil {
+				return nil, nil, err
+			}
+			rNew.Set("path", original_name)
+
+			newDisk := &types.VirtualDisk{
+				VirtualDevice: types.VirtualDevice{
+					Backing: &types.VirtualDiskFlatVer2BackingInfo{
+						VirtualDeviceFileBackingInfo: types.VirtualDeviceFileBackingInfo{
+							FileName: newFileName,
+						},
+						ThinProvisioned: oldDisk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).ThinProvisioned,
+						EagerlyScrub:    oldDisk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).EagerlyScrub,
+						DiskMode:        oldDisk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).DiskMode,
+					},
+				},
+			}
+			newDisk.ControllerKey = oldDisk.ControllerKey
+			newDisk.UnitNumber = oldDisk.UnitNumber
+			newDisk.Key = oldDisk.Key
+			log.Printf("[DEBUG] DiskRenameOperation: Creating operation to delete the wrongly named sub disk")
+			dspec, err := object.VirtualDeviceList{oldDisk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationRemove)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			dspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
+			log.Printf("[DEBUG] DiskRenameOperation: Creating operation to create the correctly named sub disk")
+			aspec, err := object.VirtualDeviceList{newDisk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
+			if err != nil {
+				return nil, nil, err
+			}
+			aspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
+			if storage_policy_id := rNew.Get("storage_policy_id").(string); storage_policy_id != "" {
+				dspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(storage_policy_id)
+				aspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(storage_policy_id)
+			}
+
+			updates = append(updates, rNew.Data())
+			l = applyDeviceChange(l, dspec)
+			l = applyDeviceChange(l, aspec)
+			spec = append(spec, dspec...)
+			spec = append(spec, aspec...)
+		}
+	}
+
+	log.Printf("[DEBUG] DiskRenameOperation: Post-clone final resource list: %s", subresourceListString(updates))
+	if err := d.Set(subresourceTypeDisk, updates); err != nil {
+		return nil, nil, err
+	}
+	log.Printf("[DEBUG] DiskRenameOperation: Device list at end of operation: %s", DeviceListString(l))
+	log.Printf("[DEBUG] DiskRenameOperation: Device config operations from post-clone: %s", DeviceChangeString(spec))
+	log.Printf("[DEBUG] DiskRenameOperation: Operation complete, returning updated spec")
 	return l, spec, nil
 }
 
@@ -1321,12 +1593,12 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	r.Set("datastore_id", b.Datastore.Value)
 
 	// Disk settings
+	dp := &object.DatastorePath{}
+	if ok := dp.FromString(b.FileName); !ok {
+		return fmt.Errorf("could not parse path from filename: %s", b.FileName)
+	}
+	r.Set("path", dp.Path)
 	if !attach {
-		dp := &object.DatastorePath{}
-		if ok := dp.FromString(b.FileName); !ok {
-			return fmt.Errorf("could not parse path from filename: %s", b.FileName)
-		}
-		r.Set("path", dp.Path)
 		r.Set("size", diskCapacityInGiB(disk))
 	}
 
@@ -1352,7 +1624,6 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 		}
 		r.Set("storage_policy_id", polID)
 	}
-
 	log.Printf("[DEBUG] %s: Read finished (key and device address may have changed)", r)
 	return nil
 }
@@ -1364,7 +1635,6 @@ func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtua
 	if err != nil {
 		return nil, fmt.Errorf("cannot find disk device: %s", err)
 	}
-
 	// Has the unit number changed?
 	if r.HasChange("unit_number") || r.HasChange("controller_type") {
 		ctlr, err := r.assignDisk(l, disk)
@@ -1382,12 +1652,10 @@ func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtua
 		// devices.
 		r.Set("key", 0)
 	}
-
 	// We can now expand the rest of the settings.
 	if err := r.expandDiskSettings(disk); err != nil {
 		return nil, err
 	}
-
 	dspec, err := object.VirtualDeviceList{disk}.ConfigSpec(types.VirtualDeviceConfigSpecOperationEdit)
 	if err != nil {
 		return nil, err
@@ -1397,12 +1665,10 @@ func (r *DiskSubresource) Update(l object.VirtualDeviceList) ([]types.BaseVirtua
 	}
 	// Clear file operation - VirtualDeviceList currently sets this to replace, which is invalid
 	dspec[0].GetVirtualDeviceConfigSpec().FileOperation = ""
-
 	// Attach the SPBM storage policy if specified
 	if policyID := r.Get("storage_policy_id").(string); policyID != "" {
 		dspec[0].GetVirtualDeviceConfigSpec().Profile = spbm.PolicySpecByID(policyID)
 	}
-
 	log.Printf("[DEBUG] %s: Device config operations from update: %s", r, DeviceChangeString(dspec))
 	log.Printf("[DEBUG] %s: Update complete", r)
 	return dspec, nil
@@ -1850,12 +2116,8 @@ func (r *DiskSubresource) assignBackingInfo(disk *types.VirtualDisk) error {
 	dsref := ds.Reference()
 
 	var diskName string
-	if r.Get("attach").(bool) {
-		// No path interpolation is performed any more for attached disks - the
-		// provided path must be the full path to the virtual disk you want to
-		// attach.
-		diskName = diskPathOrName(r.data)
-	}
+
+	diskName = diskPathOrName(r.data)
 
 	backing := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
 	backing.FileName = ds.Path(diskName)
