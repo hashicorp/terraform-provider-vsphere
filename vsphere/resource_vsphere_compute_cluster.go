@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
+	"strings"
 
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/vsanclient"
-	"github.com/mitchellh/copystructure"
 
 	"github.com/vmware/govmomi/vim25/mo"
 
@@ -1479,48 +1480,44 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 	return nil
 }
 
+func vsanDiskMapKey(d interface{}) string {
+	disk := d.(map[string]interface{})
+	cache := disk["cache"].(string)
+	storage := structure.SliceInterfacesToStrings(disk["storage"].(*schema.Set).List())
+	sort.Strings(storage)
+
+	return strings.Join(append(storage, cache), " ")
+}
+
 func updateVsanDisks(d *schema.ResourceData, cluster *object.ClusterComputeResource, meta interface{}) error {
 	client := meta.(*Client).vimClient
-	od, nd := d.GetChange("vsan_disk_group")
-	delSet := structure.DiffSlice(od.([]interface{}), nd.([]interface{}))
-	addSet := structure.DiffSlice(nd.([]interface{}), od.([]interface{}))
-	delSetI, err := copystructure.Copy(delSet)
-	if err != nil {
-		return err
+	o, n := d.GetChange("vsan_disk_group")
+	old := o.([]interface{})
+	new := n.([]interface{})
+
+	oldMap := make(map[string]bool)
+	newMap := make(map[string]bool)
+
+	for _, d := range old {
+		oldMap[vsanDiskMapKey(d)] = true
 	}
-	addSetI, err := copystructure.Copy(addSet)
-	if err != nil {
-		return err
+	for _, d := range new {
+		newMap[vsanDiskMapKey(d)] = true
 	}
 
-	for i, del := range delSetI.([]interface{}) {
-		r := del.(map[string]interface{})
-		for n, add := range addSetI.([]interface{}) {
-			a := add.(map[string]interface{})
-			if r["cache"].(string) != a["cache"].(string) {
-				continue
-			}
+	// build list to add
+	var addSet []interface{}
+	for _, d := range new {
+		if !oldMap[vsanDiskMapKey(d)] {
+			addSet = append(addSet, d)
+		}
+	}
 
-			ds := r["storage"].(*schema.Set)
-			as := a["storage"].(*schema.Set)
-			switch {
-			case ds.Len() > as.Len():
-				addSet = structure.DropSliceItem(addSet, n)
-				delSet = structure.DropSliceItem(delSet, i)
-				r["storage"] = ds.Difference(as)
-				if r["storage"].(*schema.Set).Len() >= 1 {
-					r["cache"] = ""
-				}
-				delSet = append(delSet, r)
-			case ds.Len() < as.Len():
-				addSet = structure.DropSliceItem(addSet, n)
-				delSet = structure.DropSliceItem(delSet, i)
-				a["storage"] = as.Difference(ds)
-				addSet = append(addSet, a)
-			default:
-				addSet = structure.DropSliceItem(addSet, n)
-				delSet = structure.DropSliceItem(delSet, i)
-			}
+	// build list to delete
+	var delSet []interface{}
+	for _, d := range old {
+		if !newMap[vsanDiskMapKey(d)] {
+			delSet = append(delSet, d)
 		}
 	}
 
@@ -1581,6 +1578,9 @@ func generateDiskMap(client *govmomi.Client, host *object.HostSystem, list []int
 }
 
 func deleteVsanDisks(host *object.HostSystem, list []interface{}, client *govmomi.Client) error {
+	if len(list) == 0 {
+		return nil
+	}
 	log.Printf("deleteVsanDisks: Starting removal of vSAN disks on %s.", host.Name())
 	hvs, err := vsansystem.FromHost(host, defaultAPITimeout)
 	if err != nil {
@@ -1603,6 +1603,9 @@ func deleteVsanDisks(host *object.HostSystem, list []interface{}, client *govmom
 }
 
 func addVsanDisks(host *object.HostSystem, list []interface{}, client *govmomi.Client) error {
+	if len(list) == 0 {
+		return nil
+	}
 	log.Printf("addVsanDisks: Starting initialization of vSAN disks on %s.", host.Name())
 	hvs, err := vsansystem.FromHost(host, defaultAPITimeout)
 	if err != nil {
