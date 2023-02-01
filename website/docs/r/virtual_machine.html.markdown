@@ -271,7 +271,7 @@ resource "vsphere_virtual_machine" "vmFromLocalOvf" {
 
   ovf_deploy {
     allow_unverified_ssl_cert = false
-    remote_ovf_url            = "/Volume/Storage/OVAs/foo.ova"
+    local_ovf_path            = "/Volume/Storage/OVAs/foo.ova"
     disk_provisioning         = "thin"
     ip_protocol               = "IPV4"
     ip_allocation_policy      = "STATIC_MANUAL"
