@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/vsanclient"
+	"github.com/mitchellh/copystructure"
 
 	"github.com/vmware/govmomi/vim25/mo"
 
@@ -1483,12 +1484,18 @@ func updateVsanDisks(d *schema.ResourceData, cluster *object.ClusterComputeResou
 	od, nd := d.GetChange("vsan_disk_group")
 	delSet := structure.DiffSlice(od.([]interface{}), nd.([]interface{}))
 	addSet := structure.DiffSlice(nd.([]interface{}), od.([]interface{}))
-	delSetI := delSet
-	addSetI := addSet
+	delSetI, err := copystructure.Copy(delSet)
+	if err != nil {
+		return err
+	}
+	addSetI, err := copystructure.Copy(addSet)
+	if err != nil {
+		return err
+	}
 
-	for i, del := range delSetI {
+	for i, del := range delSetI.([]interface{}) {
 		r := del.(map[string]interface{})
-		for n, add := range addSetI {
+		for n, add := range addSetI.([]interface{}) {
 			a := add.(map[string]interface{})
 			if r["cache"].(string) != a["cache"].(string) {
 				continue
