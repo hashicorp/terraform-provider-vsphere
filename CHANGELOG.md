@@ -7,10 +7,13 @@ FEATURES:
 * `resource/compute_cluster`: Add support for vSAN compression and deduplication. ([#1702](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1702))
 * `resource/compute_cluster`: Add support for vSAN performance services. ([#1727](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1727))
 * `resource/compute_cluster`: Add support for vSAN unmap. ([#1745](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1745))
+* `resource/compute_cluster`: Add support for vSAN HCI Mesh. ([#1820](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1820))
+* `resource/compute_cluster`: Add support for vSAN Data-in-Transit Encryption. ([#1820](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1820))
 
 BUG FIXES:
 * `resource/datastore_cluster`: Fixes error parsing string as enum type for `sdrs_advanced_options`. [(1749](https://github.com/hashicorp/terraform-provider-vsphere/pull/1749))
 * `provider`: Reverts a linting update from #1416 back to SHA1. SHA1 is used by vmware/govmomi for the session file. This will allow session reuse from govc. [(1808](https://github.com/hashicorp/terraform-provider-vsphere/pull/1808))
+* `resource/compute_cluster`: Fix panic in vsan disk group ([#1820](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1820))
 
 IMPROVEMENTS:
 * `resource/distributed_virtual_switch`: Adds support for vSphere distributed switch version `8.0.0` in vSphere 8.0. [(1767](https://github.com/hashicorp/terraform-provider-vsphere/pull/1767))
