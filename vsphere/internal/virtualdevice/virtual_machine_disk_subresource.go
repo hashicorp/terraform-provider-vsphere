@@ -215,20 +215,20 @@ type DiskSubresource struct {
 	ID int
 }
 
-// NewDiskSubresource returns a subresource populated with all of the necessary
+// NewDiskSubresource returns a subresource populated with all the necessary
 // fields.
-func NewDiskSubresource(client *govmomi.Client, rdd resourceDataDiff, d, old map[string]interface{}, idx int) *DiskSubresource {
+func NewDiskSubresource(client *govmomi.Client, resourceDataDiff resourceDataDiff, data, oldData map[string]interface{}, index int) *DiskSubresource {
 	sr := &DiskSubresource{
 		Subresource: &Subresource{
 			schema:  DiskSubresourceSchema(),
 			client:  client,
 			srtype:  subresourceTypeDisk,
-			data:    d,
-			olddata: old,
-			rdd:     rdd,
+			data:    data,
+			olddata: oldData,
+			rdd:     resourceDataDiff,
 		},
 	}
-	sr.Index = idx
+	sr.Index = index
 	return sr
 }
 
@@ -384,7 +384,7 @@ func diskApplyOperationCreateUpdate(
 	return nil
 }
 
-// DiskRefreshOperation processes a refresh operation for all of the disks in
+// DiskRefreshOperation processes a refresh operation for all the disks in
 // the resource.
 //
 // This functions similar to DiskApplyOperation, but nothing to change is
@@ -810,33 +810,33 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 // DiskMigrateRelocateOperation assembles the
 // VirtualMachineRelocateSpecDiskLocator slice for a virtual machine migration
 // operation, otherwise known as storage vMotion.
-func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) ([]types.VirtualMachineRelocateSpecDiskLocator, bool, error) {
+func DiskMigrateRelocateOperation(data *schema.ResourceData, client *govmomi.Client, deviceList object.VirtualDeviceList) ([]types.VirtualMachineRelocateSpecDiskLocator, bool, error) {
 	log.Printf("[DEBUG] DiskMigrateRelocateOperation: Generating any necessary disk relocate specs")
-	ods, nds := d.GetChange(subresourceTypeDisk)
+	oldDisks, newDisks := data.GetChange(subresourceTypeDisk)
 
 	var relocators []types.VirtualMachineRelocateSpecDiskLocator
 
 	// We definitely need to relocate if the datastore cluster changed
-	relocateOK := d.HasChange("datastore_cluster_id")
+	relocateOK := data.HasChange("datastore_cluster_id")
 
 	// We are only concerned with resources that would normally be updated, as
 	// incoming or outgoing disks obviously won't need migrating. Hence, this is
 	// a simplified subset of the normal apply logic.
-	for ni, ne := range nds.([]interface{}) {
-		nm := ne.(map[string]interface{})
+	for newDiskIndex, newDiskEntity := range newDisks.([]interface{}) {
+		newDisk := newDiskEntity.(map[string]interface{})
 		var name string
 		var err error
-		if name, err = getDiskLabel(nm); err != nil {
-			return nil, false, fmt.Errorf("disk.%d: %s", ni, err)
+		if name, err = getDiskLabel(newDisk); err != nil {
+			return nil, false, fmt.Errorf("disk.%d: %s", newDiskIndex, err)
 		}
 		if name == diskDeletedName || name == diskDetachedName {
 			continue
 		}
-		for _, oe := range ods.([]interface{}) {
-			om := oe.(map[string]interface{})
-			if nm["uuid"] == om["uuid"] {
+		for _, oldDiskEntity := range oldDisks.([]interface{}) {
+			oldDisk := oldDiskEntity.(map[string]interface{})
+			if newDisk["uuid"] == oldDisk["uuid"] {
 				// No change in datastore is a no-op, unless we are changing default datastores
-				if nm["datastore_id"] == om["datastore_id"] && !d.HasChange("datastore_id") {
+				if newDisk["datastore_id"] == oldDisk["datastore_id"] && !data.HasChange("datastore_id") {
 					break
 				}
 				// If we got this far, some sort of datastore migration will be
@@ -847,16 +847,20 @@ func DiskMigrateRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l o
 				// don't have a datastore specified (ie: when Storage DRS is in use), then
 				// we just need to skip this disk. The disk will be migrated properly
 				// through the SDRS API.
-				if nm["datastore_id"] == "" || nm["datastore_id"] == diskDatastoreComputedName {
+				if newDisk["datastore_id"] == "" || newDisk["datastore_id"] == diskDatastoreComputedName {
 					break
 				}
-				r := NewDiskSubresource(c, d, nm, om, ni)
-				relocator, err := r.Relocate(l, false)
-				if err != nil {
-					return nil, false, fmt.Errorf("%s: %s", r.Addr(), err)
+				// when using default datastore and there is a change in it, adjust the new disk data to reflect the change
+				if newDisk["datastore_id"] == oldDisk["datastore_id"] && data.HasChange("datastore_id") {
+					newDisk["datastore_id"] = data.Get("datastore_id")
 				}
-				if d.Get("datastore_id").(string) == relocator.Datastore.Value {
-					log.Printf("[DEBUG] %s: Datastore in spec is same as default, dropping in favor of implicit relocation", r.Addr())
+				diskSubresource := NewDiskSubresource(client, data, newDisk, oldDisk, newDiskIndex)
+				relocator, err := diskSubresource.Relocate(deviceList, false)
+				if err != nil {
+					return nil, false, fmt.Errorf("%s: %s", diskSubresource.Addr(), err)
+				}
+				if data.Get("datastore_id").(string) == relocator.Datastore.Value {
+					log.Printf("[DEBUG] %s: Datastore in spec is same as default, dropping in favor of implicit relocation", diskSubresource.Addr())
 					break
 				}
 				relocators = append(relocators, relocator)
@@ -1647,8 +1651,8 @@ func (r *DiskSubresource) Relocate(l object.VirtualDeviceList, clone bool) (type
 		return relocate, fmt.Errorf("cannot find disk device: %s", err)
 	}
 
-	// Expand all of the necessary disk settings first. This ensures all backing
-	// data is properly populate and updated.
+	// Expand all the necessary disk settings first. This ensures all backing
+	// data is properly populated and updated.
 	if err := r.expandDiskSettings(disk); err != nil {
 		return relocate, err
 	}
