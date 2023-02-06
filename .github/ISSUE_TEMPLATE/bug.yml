@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 name: "Bug Report"
 description: Is something not working as expected? Submit a bug.
 title: "REPLACE WITH A SHORT DESCRIPTION"

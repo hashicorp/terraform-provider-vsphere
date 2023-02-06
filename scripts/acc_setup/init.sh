@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 set -e -u -o pipefail
 
 if ! ping -c1 -W1 $TF_VAR_VSPHERE_SERVER; then

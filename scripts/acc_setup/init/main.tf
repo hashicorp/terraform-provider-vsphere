@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 resource "local_file" "vcsa_template" {
   content = templatefile("${path.cwd}/vcsa_deploy.json", {
     hostname       = var.host1
