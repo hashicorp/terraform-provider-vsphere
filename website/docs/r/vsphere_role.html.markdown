@@ -38,3 +38,15 @@ The following arguments are supported:
 * `name` - (Required) The name of the role.
 * `role_privileges` - (Optional) The privileges to be associated with this role.
 
+## Importing
+
+An existing role can be imported into this resource by supplying the role id. An example is below:
+
+```hcl
+terraform import vsphere_role.role1 -709298051
+```
+~> **NOTE:** System roles can't be imported because they can't be modified or deleted.
+Use [`vsphere_role` data source][ref-vsphere-role-data-source]
+to read information about system roles.
+
+[ref-vsphere-role-data-source]: /docs/providers/vsphere/d/vsphere_role.html
