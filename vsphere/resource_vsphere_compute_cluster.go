@@ -1345,20 +1345,47 @@ func resourceVSphereComputeClusterFlattenData(
 		return err
 	}
 
+	if vsanConfig == nil {
+		return fmt.Errorf("error getting vsan information for cluster %s, response object was unexpectedly nil", d.Get("name").(string))
+	}
+
 	d.Set("vsan_enabled", structure.BoolNilFalse(vsanConfig.Enabled))
-	d.Set("vsan_dedup_enabled", vsanConfig.DataEfficiencyConfig.DedupEnabled)
-	d.Set("vsan_compression_enabled", structure.BoolNilFalse(vsanConfig.DataEfficiencyConfig.CompressionEnabled))
-	d.Set("vsan_performance_enabled", vsanConfig.PerfsvcConfig.Enabled)
-	d.Set("vsan_verbose_mode_enabled", structure.BoolNilFalse(vsanConfig.PerfsvcConfig.VerboseMode))
-	d.Set("vsan_network_diagnostic_mode_enabled", structure.BoolNilFalse(vsanConfig.PerfsvcConfig.DiagnosticMode))
-	d.Set("vsan_unmap_enabled", vsanConfig.UnmapConfig.Enable)
-	d.Set("vsan_dit_encryption_enabled", structure.BoolNilFalse(vsanConfig.DataInTransitEncryptionConfig.Enabled))
-	d.Set("vsan_dit_rekey_interval", int(vsanConfig.DataInTransitEncryptionConfig.RekeyInterval))
+
+	if vsanConfig.DataEfficiencyConfig != nil {
+		d.Set("vsan_dedup_enabled", vsanConfig.DataEfficiencyConfig.DedupEnabled)
+		d.Set("vsan_compression_enabled", structure.BoolNilFalse(vsanConfig.DataEfficiencyConfig.CompressionEnabled))
+	} else {
+		d.Set("vsan_dedup_enabled", false)
+		d.Set("vsan_compression_enabled", false)
+	}
+
+	if vsanConfig.PerfsvcConfig != nil {
+		d.Set("vsan_performance_enabled", vsanConfig.PerfsvcConfig.Enabled)
+		d.Set("vsan_verbose_mode_enabled", structure.BoolNilFalse(vsanConfig.PerfsvcConfig.VerboseMode))
+		d.Set("vsan_network_diagnostic_mode_enabled", structure.BoolNilFalse(vsanConfig.PerfsvcConfig.DiagnosticMode))
+	} else {
+		d.Set("vsan_performance_enabled", false)
+		d.Set("vsan_verbose_mode_enabled", false)
+		d.Set("vsan_network_diagnostic_mode_enabled", false)
+	}
+
+	if vsanConfig.UnmapConfig != nil {
+		d.Set("vsan_unmap_enabled", vsanConfig.UnmapConfig.Enable)
+	} else {
+		d.Set("vsan_unmap_enabled", false)
+	}
+
+	if vsanConfig.DataInTransitEncryptionConfig != nil {
+		d.Set("vsan_dit_encryption_enabled", structure.BoolNilFalse(vsanConfig.DataInTransitEncryptionConfig.Enabled))
+		d.Set("vsan_dit_rekey_interval", int(vsanConfig.DataInTransitEncryptionConfig.RekeyInterval))
+	} else {
+		d.Set("vsan_dit_encryption_enabled", false)
+		d.Set("vsan_dit_rekey_interval", 0)
+	}
 
 	var dsIDs []string
-	dsConfig := vsanConfig.DatastoreConfig
-	if dsConfig != nil {
-		for _, ds := range dsConfig.(*vsantypes.VsanAdvancedDatastoreConfig).RemoteDatastores {
+	if vsanConfig.DatastoreConfig != nil {
+		for _, ds := range vsanConfig.DatastoreConfig.(*vsantypes.VsanAdvancedDatastoreConfig).RemoteDatastores {
 			dsIDs = append(dsIDs, ds.Value)
 		}
 	}
