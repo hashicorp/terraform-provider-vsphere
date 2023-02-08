@@ -1,4 +1,4 @@
-## 2.3.0 (Unreleased)
+## 2.3.0 (February 8, 2023)
 
 FEATURES:
 * `resource/virtual_machine` : Add support for the paravirtual RDMA (PVRDMA) `vmxnet3vrdma` network interface adapter type. ([#1598](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1598))
