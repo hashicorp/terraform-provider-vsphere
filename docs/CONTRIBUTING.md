@@ -56,11 +56,7 @@ See [Building the Provider](#building-the-provider) for details on building the 
 
 ## Configuring Environment Variables
 
-Most of the tests in this provider require a comprehensive list of environment variables to run. See the individual `*_test.go` files in the [`vsphere/`](vsphere/) directory for more details. The next section also describes how you can manage a configuration file of the test environment variables.
-
-### Using the `.tf-vsphere-devrc.mk` File
-
-The [`tf-vsphere-devrc.mk.example`](../tf-vsphere-devrc.mk.example) file contains an up-to-date list of environment variables required to run the acceptance tests. Copy this to `$HOME/.tf-vsphere-devrc.mk`, change the permissions to something more secure (_e.g._ `chmod 600 $HOME/.tf-vsphere-devrc.mk`), and configure the variables accordingly.
+Most of the tests in this provider require a comprehensive list of environment variables to run. See the individual `*_test.go` files in the [`vsphere/`](vsphere/) directory for more details.
 
 ## Running the Acceptance Tests
 
