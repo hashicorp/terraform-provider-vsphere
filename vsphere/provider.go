@@ -21,14 +21,14 @@ func Provider() *schema.Provider {
 		Schema: map[string]*schema.Schema{
 			"user": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_USER", nil),
 				Description: "The user name for vSphere API operations.",
 			},
 
 			"password": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_PASSWORD", nil),
 				Description: "The user password for vSphere API operations.",
 			},
