@@ -1,7 +1,9 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-variable "VSPHERE_LICENSE" {}
+variable "VSPHERE_LICENSE" {
+  sensitive = true
+}
 
 variable "VSPHERE_DATACENTER" {}
 
@@ -23,19 +25,27 @@ variable "VSPHERE_NAS_HOST" {}
 
 variable "VSPHERE_ESXI1" {}
 
-variable "VSPHERE_ESXI1_PW" {}
+variable "VSPHERE_ESXI1_PW" {
+  sensitive = true
+}
 
 variable "VSPHERE_ESXI2" {}
 
-variable "VSPHERE_ESXI2_PW" {}
+variable "VSPHERE_ESXI2_PW" {
+  sensitive = true
+}
 
 variable "VSPHERE_ESXI3" {}
 
-variable "VSPHERE_ESXI3_PW" {}
+variable "VSPHERE_ESXI3_PW" {
+  sensitive = true
+}
 
 variable "VSPHERE_ESXI4" {}
 
-variable "VSPHERE_ESXI4_PW" {}
+variable "VSPHERE_ESXI4_PW" {
+  sensitive = true
+}
 
 data "vsphere_network" "vmnet" {
   datacenter_id = vsphere_datacenter.dc.moid

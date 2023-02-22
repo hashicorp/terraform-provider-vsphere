@@ -1,9 +1,7 @@
 # Acceptance Tests
-
 Here is the current process for deploying infrastructure that can be used for running acceptance tests. Currently only supported on Equinix Metal, the metal provider is currently set for EOL in July 2023, a new official process for running tests will need to be developed.
 
 ## Download
-
 1. Log in to VMware Customer Connect.
 2. Navigate to Products and Accounts > All Products.
 3. Find VMware vSphere and click View Download Components.
@@ -12,11 +10,10 @@ Here is the current process for deploying infrastructure that can be used for ru
 6. Download the vCenter Server appliance ISO image.
 
 ## Extract
-
 Next you need to mount and extract the contents of the iso to a location on your disk.
 
 ### macOS Users
-During phase 1 of the setup, macOS users may get security issues when ovftool is attempting to run, to prevent this issue please run:
+During the Equinix provisioning, macOS users may get security issues when ovftool is attempting to run, to prevent this issue please run:
 
 ```
 $ sudo xattr -r -d com.apple.quarantine {extract_location}/vcsa/ovftool/mac/ovftool
@@ -37,28 +34,13 @@ export TF_VAR_PACKET_AUTH="auth token"
 export TF_VAR_VSPHERE_LICENSE="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"
 # set this to the location of the extracted vsca installer for your OS
 export TF_VAR_VCSA_DEPLOY_PATH="{extract_location}/vcsa-cli-installer/mac/vcsa-deploy"
-# make sure the following variables are set, you can rename them but it's possible these values are hardcoded somewhere
-# it is safest to leave them to these values
-export TF_VAR_VSPHERE_ESXI_TRUNK_NIC=vmnic1
-export TF_VAR_VSPHERE_DATACENTER=hashidc
-export TF_VAR_VSPHERE_CLUSTER=c2
-export TF_VAR_VSPHERE_NFS_DS_NAME=nfs
-export TF_VAR_VSPHERE_DVS_NAME=terraform-test-dvs
-export TF_VAR_VSPHERE_PG_NAME=vmnet
-export TF_VAR_VSPHERE_RESOURCE_POOL=hashi-resource-pool
-export TF_VAR_VSPHERE_TEMPLATE=tfvsphere_template
 ```
 
-## Run Terraform Phase 1
-Terraform must be ran in 2 applies, first for Equinix, and a second apply sets up the expected vSphere environment. The config has specific Equinix regions and server sizes set, it's best to leave these to their default values seen in `main.tf.phase1`
-
-### Please Note
-Due to a problem in the provider block configuration, the latest version of Terraform that can be used is v1.2 for now.
-
-Also be aware that this config deploys 5 servers, 4 ESXI hosts and 1 NFS (which will be expensive). 2 of them are ESXI hosts used exclusively for some cluster tests, if you don't plan on running those, you could cut the related config from `phase1` and `phase2` to save some cost.
+## Provision Equinix Infrastructure
+Terraform needs to be ran in 2 stages, once to provision Equinix infrastructure, and a second time to create some shared resources most acceptances tests rely on within vSphere.
 
 ```
-$ cp main.tf.phase1 main.tf
+$ cd acctests/equinix
 $ terraform init
 $ terraform apply
 ```
@@ -72,19 +54,14 @@ $ terraform apply
 ```
 
 ## Run Terraform Phase 2
-Phase 1 should have created a file with more environment variables called `devrc`. You should source that file, and then re-source wherever you saved your previous environment variables (so the required secrets get picked up).
+A file with several environment variables called `devrc` should have been created within `acctests/equinix`. You should source that file and then switch to `acctests/vsphere`.
 ```
 $ source devrc
-$ source ~/.zshenv # or wherever you set them
-$ cp main.tf.phase2 main.tf
+$ cd ../vsphere
+$ terraform init
 $ terraform apply
 ```
-There is an issue where a network is unavailable right away and some test VMs will fail to create, running a second apply should fix this.
-```
-$ terraform apply
-```
-Now all the infrastructure should be created, if you planned on running the cluster tests with vSAN, make sure to enable vSAN in VMKernal Adapters on the management network for ESXI hosts 3 and 4. This is must be done through the web console. You should have most of the necessary environment variables for acceptances tests by sourcing
+Now all the infrastructure should be created, if you planned on running the cluster tests with vSAN, make sure to enable vSAN in VMKernal Adapters on the management network for ESXI hosts 3 and 4. This is must be done through the web console. Another `devrc` file should have been created within the `acctests/vsphere` folder, source that now and you should have all the necessary environment variables for running tests.
 ```
 $ source devrc
-$ source ~/.zshenv
 ```
