@@ -13,7 +13,7 @@ Here is the current process for deploying infrastructure that can be used for ru
 Next you need to mount and extract the contents of the iso to a location on your disk.
 
 ### macOS Users
-During the Equinix provisioning, macOS users may get security issues when ovftool is attempting to run, to prevent this issue please run:
+During the Equinix provisioning, macOS users may get security issues when ovftool is attempting to run, to prevent this issue run the following command:
 
 ```
 $ sudo xattr -r -d com.apple.quarantine {extract_location}/vcsa/ovftool/mac/ovftool
@@ -37,7 +37,7 @@ export TF_VAR_VCSA_DEPLOY_PATH="{extract_location}/vcsa-cli-installer/mac/vcsa-d
 ```
 
 ## Provision Equinix Infrastructure
-Terraform needs to be ran in 2 stages, once to provision Equinix infrastructure, and a second time to create some shared resources most acceptances tests rely on within vSphere.
+Terraform needs to be run in two stages. First, to provision the Equinix infrastructure and second to create the shared resources upon which most acceptance tests rely.
 
 ```
 $ cd acctests/equinix
@@ -54,14 +54,14 @@ $ terraform apply
 ```
 
 ## Run Terraform Phase 2
-A file with several environment variables called `devrc` should have been created within `acctests/equinix`. You should source that file and then switch to `acctests/vsphere`.
+A file with several environment variables called `devrc` must be created within `acctests/equinix` path. You must source that file and then switch to the `acctests/vsphere` path.
 ```
 $ source devrc
 $ cd ../vsphere
 $ terraform init
 $ terraform apply
 ```
-Now all the infrastructure should be created, if you planned on running the cluster tests with vSAN, make sure to enable vSAN in VMKernal Adapters on the management network for ESXI hosts 3 and 4. This is must be done through the web console. Another `devrc` file should have been created within the `acctests/vsphere` folder, source that now and you should have all the necessary environment variables for running tests.
+Now all the infrastructure should be created, if you planned on running the cluster tests with vSAN, make sure to enable vSAN on the VMkernal adapters on the management network for ESXI hosts 3 and 4. This can be done through the vSphere client or PowerCLI.  An additional `devrc` file should have been created in the `acctests/vsphere` path. Source this file and you should have all the necessary environment variables for running tests.
 ```
 $ source devrc
 ```
