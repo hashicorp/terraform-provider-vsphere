@@ -271,7 +271,7 @@ resource "vsphere_virtual_machine" "vmFromLocalOvf" {
 
   ovf_deploy {
     allow_unverified_ssl_cert = false
-    remote_ovf_url            = "/Volume/Storage/OVAs/foo.ova"
+    local_ovf_path            = "/Volume/Storage/OVAs/foo.ova"
     disk_provisioning         = "thin"
     ip_protocol               = "IPV4"
     ip_allocation_policy      = "STATIC_MANUAL"
@@ -1046,7 +1046,7 @@ The options are:
 
 ### Virtual Device Computed Options
 
-Virtual devices (`disk`, `network_interface`, and `cdrom`) all export the following attributes. These options help locate the device on subsequent application of the Terraform configuration. 
+Virtual devices (`disk`, `network_interface`, and `cdrom`) all export the following attributes. These options help locate the device on subsequent application of the Terraform configuration.
 
 The options are:
 
@@ -1058,7 +1058,7 @@ The options are:
 
 The `clone` block can be used to create a new virtual machine from an existing virtual machine or template. The resource supports both making a complete copy of a virtual machine, or cloning from a snapshot (also known as a linked clone).
 
-See the section on [cloning and customization example](#cloning-and-customization-example) for more information.
+See the section on [cloning and customization](#cloning-and-customization) for more information.
 
 ~> **NOTE:** Changing any option in `clone` after creation forces a new resource.
 
@@ -1081,7 +1081,7 @@ As part of the `clone` operation, a virtual machine can be [customized][vmware-d
 [vmware-docs-customize]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-58E346FF-83AE-42B8-BE58-253641D257BC.html
 
 To perform virtual machine customization as a part of the clone process,
-specify the `customize` block with the respective customization options, nested within the `clone` block. Windows guests are customized using Sysprep, which will result in the machine SID being reset. Before using customization, check is that your source virtual machine meets the [requirements](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-58E346FF-83AE-42B8-BE58-253641D257BC.html) for guest OS customization on vSphere. See the [cloning and customization example](#cloning-and-customization-example) for a usage synopsis.
+specify the `customize` block with the respective customization options, nested within the `clone` block. Windows guests are customized using Sysprep, which will result in the machine SID being reset. Before using customization, check is that your source virtual machine meets the [requirements](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-58E346FF-83AE-42B8-BE58-253641D257BC.html) for guest OS customization on vSphere. See the section on [cloning and customization](#cloning-and-customization) for a usage synopsis.
 
 The settings for `customize` are as follows:
 
@@ -1311,6 +1311,10 @@ See the [Deploying from OVF example](#deploying-vm-from-an-ovf-ova-template) for
 
 The options available in the `ovf_deploy` block are:
 
+* `allow_unverified_ssl_cert` - (Optional) Allow unverified SSL certificates while deploying OVF/OVA from a URL. Defaults `false`.
+
+* `enable_hidden_properties` - (Optional) Allow properties with `ovf:userConfigurable=false` to be set. Defaults `false`.
+
 * `local_ovf_path` - (Optional) The absolute path to the OVF/OVA file on the local system. When deploying from an OVF, ensure the necessary files, such as `.vmdk` and `.mf` files are also in the same directory as the `.ovf` file.
 
 * `remote_ovf_url` - (Optional) URL to the OVF/OVA file.
@@ -1326,8 +1330,6 @@ The options available in the `ovf_deploy` block are:
 * `deployment_option` - (Optional) The key for the deployment option. If empty, the default option is selected.
 
 * `ovf_network_map` - (Optional) The mapping of network identifiers from the OVF descriptor to a network UUID.
-
-* `allow_unverified_ssl_cert` - (Optional) Allow unverified SSL certificates while deploying OVF/OVA from a URL. Defaults `false`.
 
 ### Using vApp Properties for OVF/OVA Configuration
 
@@ -1428,7 +1430,7 @@ When cloning from a template, there are additional requirements in both the reso
 * The storage controller count settings should be configured as necessary to cover all of the disks on the template. For best results, only configure this setting for the number of controllers you will need to cover your disk quantity and bandwidth needs, and configure your template accordingly. For most workloads, this setting should be kept at the default of `1` SCSI controller, and all disks in the template should reside on the single, primary controller.
 * Some operating systems do not respond well to a change in disk controller type. Ensure that `scsi_type` is set to an exact match of the template's controller set. For maximum compatibility, make sure the SCSI controllers on the source template are all the same type.
 
-You can use the [`vsphere_virtual_machine`][tf-vsphere-virtual-machine-ds] data source, which provides disk attributes, network interface types, SCSI bus types, and the guest ID of the source template, to return this information. See the section on [cloning and customization example](#cloning-and-customization-example) for more information.
+You can use the [`vsphere_virtual_machine`][tf-vsphere-virtual-machine-ds] data source, which provides disk attributes, network interface types, SCSI bus types, and the guest ID of the source template, to return this information. See the section on [cloning and customization](#cloning-and-customization) for more information.
 
 ## Virtual Machine Migration
 

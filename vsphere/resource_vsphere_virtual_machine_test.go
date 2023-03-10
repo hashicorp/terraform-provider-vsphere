@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package vsphere
 
 import (
@@ -2522,9 +2525,6 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	if os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL") == "" {
 		t.Skip("set TF_VAR_VSPHERE_RESOURCE_POOL to run vsphere_virtual_machine acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_NETWORK_LABEL") == "" {
-		t.Skip("set TF_VAR_VSPHERE_NETWORK_LABEL to run vsphere_virtual_machine acceptance tests")
-	}
 	if os.Getenv("TF_VAR_VSPHERE_PG_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_PG_NAME to run vsphere_virtual_machine acceptance tests")
 	}
@@ -3255,25 +3255,26 @@ func testAccResourceVSphereVirtualMachineCheckVmdkDatastore(diskIndex int, expec
 		if err != nil {
 			return err
 		}
-		name := tVars.resourceAttributes[fmt.Sprintf("disk.%d.path", diskIndex)]
+		uuidToLookFor := tVars.resourceAttributes[fmt.Sprintf("disk.%d.uuid", diskIndex)]
 		for _, dev := range props.Config.Hardware.Device {
 			if disk, ok := dev.(*types.VirtualDisk); ok {
 				if info, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo); ok {
-					var dsPath object.DatastorePath
-					if ok := dsPath.FromString(info.FileName); !ok {
-						return fmt.Errorf("could not parse datastore path %q", info.FileName)
-					}
-					if dsPath.Path == name {
+					currentDiskUuid := info.Uuid
+					if currentDiskUuid == uuidToLookFor {
+						var dsPath object.DatastorePath
+						if ok := dsPath.FromString(info.FileName); !ok {
+							return fmt.Errorf("could not parse datastore path %q", info.FileName)
+						}
 						actual := dsPath.Datastore
 						if expected == actual {
 							return nil
 						}
-						return fmt.Errorf("expected disk name %q to be on datastore %q, got %q", name, expected, actual)
+						return fmt.Errorf("expected disk uuid %q to be on datastore %q [index %d], got %q", uuidToLookFor, expected, diskIndex, actual)
 					}
 				}
 			}
 		}
-		return fmt.Errorf("could not find disk %q", name)
+		return fmt.Errorf("could not find disk %q", uuidToLookFor)
 	}
 }
 

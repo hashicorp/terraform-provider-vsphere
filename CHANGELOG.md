@@ -1,21 +1,42 @@
-## 2.3.0 (Unreleased)
+## 2.4.0 (Unreleased)
+
+CHORES:
+* Refactor acctests setup ([#1847](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1847))
+* Update to terraform-plugin-sdk v2.25.0 ([#1847](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1847))
+
+## 2.3.1 (February 8, 2023)
+
+**If you are using v2.3.0, please upgrade to this new version as soon as possible.**
+
+BUG FIXES:
+* `resource/compute_cluster`: Fix panic when reading vSAN. ([#1835](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1835))
+
+## 2.3.0 (February 8, 2023)
 
 FEATURES:
-* `resource/virtual_machine` : Add support for the paravirtual RDMA (PVRDMA) `vmxnet3vrdma` network interface adapter type. ([#1598](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1598))
+* `resource/virtual_machine`: Add support for the paravirtual RDMA (PVRDMA) `vmxnet3vrdma` network interface adapter type. ([#1598](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1598))
 * `resource/virtual_machine`: Adds support for an optional `extra_config_reboot_required` argument to `r/virtual_machine`. This argument allows you to configure if a virtual machine reboot is enforced when `extra_config` is changed. ([#1603](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1603))
 * `resource/virtual_machine`: Adds support for two (2) CD-ROMs attached to a virtual machine. ([#1631](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1631))
 * `resource/compute_cluster`: Add support for vSAN compression and deduplication. ([#1702](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1702))
 * `resource/compute_cluster`: Add support for vSAN performance services. ([#1727](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1727))
 * `resource/compute_cluster`: Add support for vSAN unmap. ([#1745](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1745))
+* `resource/compute_cluster`: Add support for vSAN HCI Mesh. ([#1820](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1820))
+* `resource/compute_cluster`: Add support for vSAN Data-in-Transit Encryption. ([#1820](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1820))
+* `resource/role`: Adds support for import. ([#1822](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1822))
 
 BUG FIXES:
 * `resource/datastore_cluster`: Fixes error parsing string as enum type for `sdrs_advanced_options`. [(1749](https://github.com/hashicorp/terraform-provider-vsphere/pull/1749))
+* `provider`: Reverts a linting update from #1416 back to SHA1. SHA1 is used by vmware/govmomi for the session file. This will allow session reuse from govc. [(1808](https://github.com/hashicorp/terraform-provider-vsphere/pull/1808))
+* `resource/compute_cluster`: Fix panic in vsan disk group ([#1820](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1820))
+* `resource/virtual_machine`: Updating the datastore_id on r/virtual_machine will apply to disk sub-resources resolving issue GH-1268. ([#1817](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1817))
 
 IMPROVEMENTS:
+* `resource/distributed_virtual_switch`: Adds support for vSphere distributed switch version `8.0.0` in vSphere 8.0. [(1767](https://github.com/hashicorp/terraform-provider-vsphere/pull/1767))
 * `resource/virtual_machine`: Enables virtual machine reconfiguration tasks to use the provider `api_timeout` setting. ([#1645](https://github.com/hashicorp/terraform-provider-vsphere/pull/1645))
 * `resource/host`: Documentation updates. ([#1675](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1675))
 * `resource/host_virtual_switch`: Allows `standby_nics` on `r/vsphere_host_virtual_switch` to be an optional attribute so `standby_nics = []` does not need to be defined when no standby NICs are required/available. ([#1695](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1695))
 * `resource/compute_cluster_vm_anti_affinity_rule`: Documentation updates. ([#1700](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1700))
+* `vsphere_ovf_vm_template`: Documentation updates to resource and datasource. ([#1792](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1792))
 
 CHORES:
 * Bumps [`vmware/govmomi`](https://github.com/vmware/govmomi) from `v0.25.0` to `v0.29.0`. ([#1701](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1701))

@@ -18,7 +18,7 @@ We appreciate direct contributions to the provider codebase. Here's what to expe
 
 3. One of Terraform provider team members will look over your contribution and either approve it or provide comments letting you know if there is anything left to do. We do our best to keep up with the volume of PRs waiting for review, but it will take some time for us to reach your PR based on the tasks we have in our backlog.
 
-4. Once all outstanding comments and checklist items have been addressed, your contribution will be merged! Merged PRs will be included in the next release fof the Terraform providee. The provider team takes care of updating the CHANGELOG as they merge.
+4. Once all outstanding comments and checklist items have been addressed, your contribution will be merged! Merged PRs will be included in the next release of the Terraform provider. The provider team takes care of updating the CHANGELOG as they merge.
 
 5. In some cases, we might decide that a PR should be closed without merging. We'll make sure to provide clear reasoning when this happens.
 

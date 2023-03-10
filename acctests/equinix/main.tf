@@ -1,30 +1,9 @@
-variable "VSPHERE_LICENSE" {
-}
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
 
-variable "VSPHERE_DATACENTER" {
+variable "PACKET_AUTH" {
+  sensitive = true
 }
-  
-variable "VSPHERE_CLUSTER" {                    
-}
-
-variable "VSPHERE_ESXI_TRUNK_NIC" {
-}
-
-variable "VSPHERE_RESOURCE_POOL" {
-}
-
-variable "VSPHERE_DVS_NAME" {
-}
-    
-variable "VSPHERE_NFS_DS_NAME" {
-}
-  
-variable "VSPHERE_PG_NAME" {
-}
-   
-variable "VSPHERE_TEMPLATE" {}
-
-variable "PACKET_AUTH" {}
 
 variable "PACKET_PROJECT" {}
 
@@ -40,31 +19,20 @@ variable "PACKET_FACILITY" {
   default = "sv"
 }
 
-variable ESXI_PLAN {
+variable "ESXI_PLAN" {
   default = "c3.medium.x86"
 }
 
-variable STORAGE_PLAN {
+variable "STORAGE_PLAN" {
   default = "c3.small.x86"
 }
 
-variable LAB_PREFIX {
+variable "LAB_PREFIX" {
   default = ""
 }
 
 provider "metal" {
   auth_token = var.PACKET_AUTH
-}
-
-locals {
-  project_id = var.PACKET_PROJECT
-}
-
-provider "vsphere" {
-  user                 = "administrator@vcenter.vspheretest.internal"
-  password             = "Password123!"
-  vsphere_server       = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}",3)
-  allow_unverified_ssl = true
 }
 
 resource "metal_device" "esxi1" {
@@ -73,12 +41,12 @@ resource "metal_device" "esxi1" {
   metro            = var.PACKET_FACILITY
   operating_system = var.ESXI_VERSION
   billing_cycle    = "hourly"
-  project_id       = local.project_id
+  project_id       = var.PACKET_PROJECT
 }
 
 resource "metal_device_network_type" "esxi1" {
   device_id = metal_device.esxi1.id
-  type = "hybrid"
+  type      = "hybrid"
 }
 
 resource "metal_device" "esxi2" {
@@ -87,12 +55,40 @@ resource "metal_device" "esxi2" {
   metro            = var.PACKET_FACILITY
   operating_system = var.ESXI_VERSION
   billing_cycle    = "hourly"
-  project_id       = local.project_id
+  project_id       = var.PACKET_PROJECT
 }
 
 resource "metal_device_network_type" "esxi2" {
   device_id = metal_device.esxi2.id
-  type = "hybrid"
+  type      = "hybrid"
+}
+
+resource "metal_device" "esxi3" {
+  hostname         = "${var.LAB_PREFIX}esxi3.vspheretest.internal"
+  plan             = var.ESXI_PLAN
+  metro            = var.PACKET_FACILITY
+  operating_system = var.ESXI_VERSION
+  billing_cycle    = "hourly"
+  project_id       = var.PACKET_PROJECT
+}
+
+resource "metal_device_network_type" "esxi3" {
+  device_id = metal_device.esxi3.id
+  type      = "hybrid"
+}
+
+resource "metal_device" "esxi4" {
+  hostname         = "${var.LAB_PREFIX}esxi4.vspheretest.internal"
+  plan             = var.ESXI_PLAN
+  metro            = var.PACKET_FACILITY
+  operating_system = var.ESXI_VERSION
+  billing_cycle    = "hourly"
+  project_id       = var.PACKET_PROJECT
+}
+
+resource "metal_device_network_type" "esxi4" {
+  device_id = metal_device.esxi4.id
+  type      = "hybrid"
 }
 
 resource "metal_device" "storage1" {
@@ -101,7 +97,7 @@ resource "metal_device" "storage1" {
   metro            = var.PACKET_FACILITY
   operating_system = "ubuntu_20_04"
   billing_cycle    = "hourly"
-  project_id       = local.project_id
+  project_id       = var.PACKET_PROJECT
   provisioner "remote-exec" {
     inline = [
       "mkdir -p /nfs/ds1 /nfs/ds2 /nfs/ds2 /nfs/ds3",
@@ -114,7 +110,7 @@ resource "metal_device" "storage1" {
       "exportfs -a",
     ]
     connection {
-      host = metal_device.storage1.network.0.address
+      host        = metal_device.storage1.network.0.address
       private_key = file(var.PRIV_KEY)
     }
   }
@@ -122,7 +118,7 @@ resource "metal_device" "storage1" {
 
 resource "metal_vlan" "vmvlan" {
   metro      = var.PACKET_FACILITY
-  project_id = local.project_id
+  project_id = var.PACKET_PROJECT
 }
 
 resource "metal_port_vlan_attachment" "vmvlan_esxi1" {
@@ -137,43 +133,25 @@ resource "metal_port_vlan_attachment" "vmvlan_esxi2" {
   vlan_vnid = metal_vlan.vmvlan.vxlan
 }
 
-# data "metal_precreated_ip_block" "private" {
-#   metro            = var.PACKET_FACILITY
-#   project_id       = local.project_id
-#   address_family   = 4
-#   public           = false
-# }
+resource "metal_port_vlan_attachment" "vmvlan_esxi3" {
+  device_id = metal_device.esxi3.id
+  port_name = "eth1"
+  vlan_vnid = metal_vlan.vmvlan.vxlan
+}
 
-# data "metal_precreated_ip_block" "public" {
-#   metro            = var.PACKET_FACILITY
-#   project_id       = local.project_id
-#   address_family   = 4
-#   public           = true
-# }
-
-resource "local_file" "vcsa_template1" {
-  content = templatefile("${path.cwd}/vcsa_deploy.json", {
-    hostname       = metal_device.esxi1.network.0.address
-    password       = metal_device.esxi1.root_password
-    ip_address     = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}",3)
-    ip_prefix      = metal_device.esxi1.network.0.cidr
-    gateway        = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}",1)
-    vcenter_fqdn   = "vcenter.vspheretest.internal"
-    admin_password = "Password123!"
-  })
-  filename = "./tmp/vcsa1.json"
-  provisioner "local-exec" {
-    command = "cat ./tmp/vcsa1.json"
-  }
+resource "metal_port_vlan_attachment" "vmvlan_esxi4" {
+  device_id = metal_device.esxi4.id
+  port_name = "eth1"
+  vlan_vnid = metal_vlan.vmvlan.vxlan
 }
 
 resource "local_file" "vcsa_template" {
   content = templatefile("${path.cwd}/vcsa_deploy.json", {
     hostname       = metal_device.esxi1.network.0.address
     password       = metal_device.esxi1.root_password
-    ip_address     = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}",3)
+    ip_address     = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}", 3)
     ip_prefix      = metal_device.esxi1.network.0.cidr
-    gateway        = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}",1)
+    gateway        = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}", 1)
     vcenter_fqdn   = "vcenter.vspheretest.internal"
     admin_password = "Password123!"
   })
@@ -184,17 +162,21 @@ resource "local_file" "vcsa_template" {
 }
 
 output "ip" {
-  value = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}",3)
+  value = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}", 3)
 }
 
 resource "local_file" "devrc" {
-  sensitive_content = templatefile("${path.cwd}/devrc.tpl", {
-    nas_host    = metal_device.storage1.network.0.address
-    esxi_host_1 = metal_device.esxi1.network.0.address
-    esxi_host_2 = metal_device.esxi2.network.0.address
-    vsphere_host = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}",3)
-    vmfs_disk_0 = ""
-    vmfs_disk_1 = ""
+  sensitive_content = templatefile("./devrc.tpl", {
+    nas_host       = metal_device.storage1.network.0.address
+    esxi_host_1    = metal_device.esxi1.network.0.address
+    esxi_host_1_pw = metal_device.esxi1.root_password
+    esxi_host_2    = metal_device.esxi2.network.0.address
+    esxi_host_2_pw = metal_device.esxi2.root_password
+    esxi_host_3    = metal_device.esxi3.network.0.address
+    esxi_host_3_pw = metal_device.esxi3.root_password
+    esxi_host_4    = metal_device.esxi4.network.0.address
+    esxi_host_4_pw = metal_device.esxi4.root_password
+    vsphere_host   = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}", 3)
   })
   filename = "./devrc"
 }

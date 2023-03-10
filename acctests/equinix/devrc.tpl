@@ -1,21 +1,18 @@
-export TF_VAR_VCSA_DEPLOY_PATH="/tmp/vcsa/vcsa-cli-installer/mac/vcsa-deploy"
-export TF_VAR_PRIV_KEY='<your ssh key>'
 export TF_VAR_VSPHERE_REST_SESSION_PATH=$HOME/.govmomi/rest_sessions
 export TF_VAR_VSPHERE_VIM_SESSION_PATH=$HOME/.govmomi/sessions
-export TF_VAR_VSPHERE_LICENSE=00000-00000-00000-00000-00000 
-export TF_VAR_PACKET_PROJECT=00000000-0000-0000-0000-000000000000
-export TF_VAR_PACKET_AUTH=00000000000000000000000000000000
-export TF_VAR_ESXI_VERSION="vmware_esxi_7_0"
-#export TF_VAR_ESXI_VERSION="vmware_esxi_6_7"
 
 export TF_VAR_VSPHERE_NAS_HOST=${nas_host}
 export TF_VAR_VSPHERE_ESXI1=${esxi_host_1}
+export TF_VAR_VSPHERE_ESXI1_PW='${esxi_host_1_pw}'
 export TF_VAR_VSPHERE_ESXI2=${esxi_host_2}
+export TF_VAR_VSPHERE_ESXI2_PW='${esxi_host_2_pw}'
+export TF_VAR_VSPHERE_ESXI3=${esxi_host_3}
+export TF_VAR_VSPHERE_ESXI3_PW='${esxi_host_3_pw}'
+export TF_VAR_VSPHERE_ESXI4=${esxi_host_4}
+export TF_VAR_VSPHERE_ESXI4_PW='${esxi_host_4_pw}'
 export VSPHERE_SERVER=${vsphere_host}
 
 export TF_VAR_VSPHERE_VMFS_REGEXP='naa.'
-export TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0=${vmfs_disk_0}
-export TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK1=${vmfs_disk_1}
 
 export VSPHERE_USER="administrator@vcenter.vspheretest.internal"
 export VSPHERE_PASSWORD="Password123!"

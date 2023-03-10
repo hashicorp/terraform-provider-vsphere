@@ -214,6 +214,8 @@ The following arguments are supported:
   from the OVF descriptor to network UUID in the environment.
 * `allow_unverified_ssl_cert` - (Optional) Allow unverified SSL certificates
   when deploying OVF/OVA from a URL.
+* `enable_hidden_properties` - (Optional) Allow properties with
+  `ovf:userConfigurable=false` to be set.
 
 ## Attribute Reference
 * `num_cpus` - The number of virtual CPUs to assign to the virtual machine.

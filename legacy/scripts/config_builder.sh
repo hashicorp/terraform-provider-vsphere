@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 set -e -u -o pipefail
 
 cat << EOF > /tmp/config.yml
@@ -11,7 +14,7 @@ categories=$(sed -e s/^TestAcc//g <<< "$tests" | sed -e s/_.*//g | sort -u)
 cat << EOF >> /tmp/config.yml
   linters:
     docker: 
-    - image: circleci/golang:1.18
+    - image: circleci/golang:1.19
     working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout
@@ -35,7 +38,7 @@ for category in $categories; do
 	cat << EOF >> /tmp/config.yml
   test_acc_$category:
     docker: 
-    - image: circleci/golang:1.18
+    - image: circleci/golang:1.19
     working_directory: /home/circleci/src/github.com/hashicorp/terraform-provider-vsphere
     steps:
     - checkout

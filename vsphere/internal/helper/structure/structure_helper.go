@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structure
 
 import (
@@ -83,6 +86,14 @@ func MergeSchema(dst, src map[string]*schema.Schema) {
 		}
 		dst[k] = v
 	}
+}
+
+// BoolNilFalse returns false for a nil bool pointer
+func BoolNilFalse(v *bool) bool {
+	if v == nil {
+		return false
+	}
+	return *v
 }
 
 // BoolPtr makes a *bool out of the value passed in through v.
@@ -545,31 +556,4 @@ func ValuesAvailable(base string, keys []string, d *schema.ResourceDiff) bool {
 		}
 	}
 	return true
-}
-
-func DiffSlice(a, b []interface{}) []interface{} {
-	var c []interface{}
-	for _, aa := range a {
-		found := false
-		for _, bb := range b {
-			if reflect.DeepEqual(aa, bb) {
-				found = true
-			}
-		}
-		if !found {
-			c = append(c, aa)
-		}
-	}
-	return c
-}
-
-func DropSliceItem(a []interface{}, n int) []interface{} {
-	var b []interface{}
-	if n > 0 {
-		b = a[:n-1]
-	}
-	if n < len(a)-1 {
-		b = append(b, a[n+1:]...)
-	}
-	return b
 }

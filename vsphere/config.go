@@ -1,8 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package vsphere
 
 import (
 	"context"
-	"crypto/sha256"
+	"crypto/sha1"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -322,7 +325,7 @@ func (c *Config) sessionFile() (string, error) {
 	// Key session file off of full URI and insecure setting.
 	// Hash key to get a predictable, canonical format.
 	key := fmt.Sprintf("%s#insecure=%t", u.String(), c.InsecureFlag)
-	name := fmt.Sprintf("%040x", sha256.Sum256([]byte(key)))
+	name := fmt.Sprintf("%040x", sha1.Sum([]byte(key)))
 	return name, nil
 }
 

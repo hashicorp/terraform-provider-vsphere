@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package vsanclient
 
 import (
@@ -19,6 +22,7 @@ func Reconfigure(vsanClient *vsan.Client, cluster vimtypes.ManagedObjectReferenc
 	}
 	return task.Wait(ctx)
 }
+
 func GetVsanConfig(vsanClient *vsan.Client, cluster vimtypes.ManagedObjectReference) (*vsantypes.VsanConfigInfoEx, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
