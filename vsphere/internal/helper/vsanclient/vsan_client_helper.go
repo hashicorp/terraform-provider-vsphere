@@ -13,8 +13,7 @@ import (
 )
 
 func Reconfigure(vsanClient *vsan.Client, cluster vimtypes.ManagedObjectReference, spec vsantypes.VimVsanReconfigSpec) error {
-	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
-	defer cancel()
+	ctx := context.TODO()
 
 	task, err := vsanClient.VsanClusterReconfig(ctx, cluster.Reference(), spec)
 	if err != nil {
