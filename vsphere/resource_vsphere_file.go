@@ -133,6 +133,11 @@ func resourceVSphereFileCreate(d *schema.ResourceData, meta interface{}) error {
 
 func createDirectory(datastoreFileManager *object.DatastoreFileManager, f *file) error {
 	directoryPathIndex := strings.LastIndex(f.destinationFile, "/")
+	if directoryPathIndex < 0 {
+		// there are no parent directories in the file's name - nothing to create
+		return nil
+	}
+
 	targetPath := f.destinationFile[0:directoryPathIndex]
 	err := datastoreFileManager.FileManager.MakeDirectory(context.TODO(),
 		datastoreFileManager.Datastore.Path(targetPath), datastoreFileManager.Datacenter, true)
