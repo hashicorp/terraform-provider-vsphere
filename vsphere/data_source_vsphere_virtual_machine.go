@@ -152,13 +152,16 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 	// include the number of cpus, memory, firmware, disks, etc.
 	structure.MergeSchema(s, schemaVirtualMachineConfigSpec())
 
-	// make name/uuid Optional/AtLeastOneOf since UUID lookup is now supported
+	// make name/uuid/moid Optional/AtLeastOneOf since UUID lookup is now supported
 	s["name"].Required = false
 	s["name"].Optional = true
-	s["name"].AtLeastOneOf = []string{"name", "uuid"}
+	s["name"].AtLeastOneOf = []string{"name", "uuid", "moid"}
 	s["uuid"].Required = false
 	s["uuid"].Optional = true
-	s["uuid"].AtLeastOneOf = []string{"name", "uuid"}
+	s["uuid"].AtLeastOneOf = []string{"name", "uuid", "moid"}
+	s["moid"].Required = false
+	s["moid"].Optional = true
+	s["moid"].AtLeastOneOf = []string{"name", "uuid", "moid"}
 
 	// Now that the schema has been composed and merged, we can attach our reader and
 	// return the resource back to our host process.
@@ -171,6 +174,7 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client).vimClient
 	uuid := d.Get("uuid").(string)
+	moid := d.Get("moid").(string)
 	name := d.Get("name").(string)
 	var vm *object.VirtualMachine
 	var err error
@@ -178,6 +182,9 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 	if uuid != "" {
 		log.Printf("[DEBUG] Looking for VM or template by UUID %q", uuid)
 		vm, err = virtualmachine.FromUUID(client, uuid)
+	} else if moid != "" {
+		log.Printf("[DEBUG] Looking for VM or template by MOID %q", moid)
+		vm, err = virtualmachine.FromMOID(client, moid)
 	} else {
 		log.Printf("[DEBUG] Looking for VM or template by name/path %q", name)
 		var dc *object.Datacenter
