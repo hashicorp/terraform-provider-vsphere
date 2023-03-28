@@ -1,5 +1,8 @@
 ## 2.4.0 (Unreleased)
 
+BUG FIXES:
+* `r/vsphere_nas_datastore`: Fix issue mounting and/or unmounting NFS datastores when updating `host_system_ids` as a day-two operation. ([#1860](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1860))  
+
 CHORES:
 * Refactor acctests setup ([#1847](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1847))
 * Update to terraform-plugin-sdk v2.25.0 ([#1847](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1847))
