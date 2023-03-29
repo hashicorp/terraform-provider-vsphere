@@ -304,6 +304,28 @@ func TestAccResourceVSphereComputeCluster_vsanDITEncryption(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereComputeCluster_vsanEsaEnabled(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterConfigVSANEsaEnabled(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_enabled", "true"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_esa_enabled", "true"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereComputeCluster_explicitFailoverHost(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -970,6 +992,30 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 
   vsan_enabled = false
   vsan_unmap_enabled = false
+  force_evacuate_on_destroy = true
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootHost4(),
+		),
+	)
+}
+
+func testAccResourceVSphereComputeClusterConfigVSANEsaEnabled() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                        = "testacc-compute-cluster"
+  datacenter_id               = data.vsphere_datacenter.rootdc1.id
+  host_system_ids             = [data.vsphere_host.roothost3.id, data.vsphere_host.roothost4.id]
+
+  vsan_enabled = true
+  vsan_esa_enabled = true
+  vsan_unmap_enabled = true
   force_evacuate_on_destroy = true
 }
 
