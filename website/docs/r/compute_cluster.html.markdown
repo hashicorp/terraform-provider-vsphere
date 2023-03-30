@@ -463,10 +463,10 @@ details, see the referenced link in the above paragraph.
 
 * `vsan_enabled` - (Optional) Enables vSAN on the cluster.
 * `vsan_esa_enabled` - (Optional) Enables vSAN ESA on the cluster.
-  `vsan_unmap_enabled` will be set as `true` automatically when `vsan_esa_enabled` is `true`.
+  `vsan_unmap_enabled` - will be set as `true` automatically when `vsan_esa_enabled` is `true`.
   Disabling unmap is not allowed in vSAN ESA cluster.
 * `vsan_dedup_enabled` - (Optional) Enables vSAN deduplication on the cluster.
-  Cannot be independently set to true. When vSAN deduplication is enabled, vSAN
+  Cannot be independently set to `true`. When vSAN deduplication is enabled, vSAN
   compression must also be enabled.
 * `vsan_compression_enabled` - (Optional) Enables vSAN compression on the
   cluster.
