@@ -161,7 +161,7 @@ func ConfigResDS1() string {
 	return fmt.Sprintf(`
 resource "vsphere_nas_datastore" "ds1" {
   name            = "%s"
-  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
+  host_system_ids = [data.vsphere_host.roothost1.id]
   type            = "NFS"
   remote_hosts    = ["%s"]
   remote_path     = "%s"

@@ -561,11 +561,13 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Description: "A list of disk UUIDs to add to the vSAN cluster.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						// use 4gb disk from ova in the future for acctests
 						"cache": {
 							Type:        schema.TypeString,
 							Description: "Cache disk.",
 							Optional:    true,
 						},
+						// use 8gb disk from ova in the future for acctests
 						"storage": {
 							Type:        schema.TypeSet,
 							Description: "List of storage disks.",

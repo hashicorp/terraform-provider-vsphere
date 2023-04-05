@@ -444,7 +444,7 @@ variable "nfs_path" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name            = "%s"
-  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
+  host_system_ids = [data.vsphere_host.roothost1.id]
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
@@ -455,7 +455,6 @@ resource "vsphere_nas_datastore" "datastore" {
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2(),
 		),
 		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"))
 }
@@ -507,7 +506,7 @@ variable "nfs_path" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name            = "%s-renamed"
-  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
+  host_system_ids = [data.vsphere_host.roothost1.id]
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
@@ -516,8 +515,7 @@ resource "vsphere_nas_datastore" "datastore" {
 `, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2()),
+			testhelper.ConfigDataRootHost1()),
 		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"))
 }
 
@@ -548,7 +546,7 @@ resource "vsphere_folder" "folder" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name            = "%s"
-  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
+  host_system_ids = [data.vsphere_host.roothost1.id]
   folder          = vsphere_folder.folder.path
 
   type         = "NFS"
@@ -560,8 +558,7 @@ resource "vsphere_nas_datastore" "datastore" {
 		os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"),
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2()),
+			testhelper.ConfigDataRootHost1()),
 		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"))
 }
 
@@ -595,7 +592,7 @@ resource "vsphere_tag" "testacc-tag" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name            = "%s"
-  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
+  host_system_ids = [data.vsphere_host.roothost1.id]
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
@@ -607,8 +604,7 @@ resource "vsphere_nas_datastore" "datastore" {
 		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2()),
+			testhelper.ConfigDataRootHost1()),
 		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"))
 }
 
@@ -655,7 +651,7 @@ resource "vsphere_tag" "testacc-tags-alt" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name            = "%s"
-  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
+  host_system_ids = [data.vsphere_host.roothost1.id]
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
@@ -667,8 +663,7 @@ resource "vsphere_nas_datastore" "datastore" {
 		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2()),
+			testhelper.ConfigDataRootHost1()),
 		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"))
 }
 
@@ -699,7 +694,7 @@ locals {
 
 resource "vsphere_nas_datastore" "datastore" {
   name            = "%s"
-  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
+  host_system_ids = [data.vsphere_host.roothost1.id]
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
@@ -709,8 +704,7 @@ resource "vsphere_nas_datastore" "datastore" {
 }
 `, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2()),
+			testhelper.ConfigDataRootHost1()),
 		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"))
 }
 
@@ -747,7 +741,7 @@ locals {
 
 resource "vsphere_nas_datastore" "datastore" {
   name            = "%s"
-  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
+  host_system_ids = [data.vsphere_host.roothost1.id]
 
   type         = "NFS"
   remote_hosts = ["${var.nfs_host}"]
@@ -758,8 +752,7 @@ resource "vsphere_nas_datastore" "datastore" {
 `, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2()),
+			testhelper.ConfigDataRootHost1()),
 		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"),
 	)
 }
@@ -790,7 +783,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name            = "%s"
-  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
+  host_system_ids = [data.vsphere_host.roothost1.id]
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -802,7 +795,6 @@ resource "vsphere_nas_datastore" "datastore" {
 		os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"),
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2()),
+			testhelper.ConfigDataRootHost1()),
 		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"))
 }
