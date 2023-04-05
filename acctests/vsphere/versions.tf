@@ -9,6 +9,15 @@ terraform {
     vsphere = {
       source = "hashicorp/vsphere"
     }
+    time = {
+      source = "hashicorp/time"
+    }
+    null = {
+      source = "hashicorp/null"
+    }
+    external = {
+      source = "hashicorp/external"
+    }
   }
   required_version = ">= 0.13"
 }

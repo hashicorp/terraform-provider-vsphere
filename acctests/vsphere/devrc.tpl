@@ -1,2 +1,37 @@
+export VSPHERE_REST_SESSION_PATH=$HOME/.govmomi/rest_sessions
+export VSPHERE_VIM_SESSION_PATH=$HOME/.govmomi/sessions
+export VSPHERE_PERSIST_SESSION=true
+
+export TF_VAR_VSPHERE_ESXI2=${esxi_host_2}
+export TF_VAR_VSPHERE_ESXI3=${esxi_host_3}
+export TF_VAR_VSPHERE_ESXI4=${esxi_host_4}
+export TF_VAR_VSPHERE_DATACENTER=${datacenter}
+export TF_VAR_VSPHERE_CLUSTER=${cluster}
+export TF_VAR_VSPHERE_PG_NAME=${port_group}
 export TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0=${vmfs_disk_0}
 export TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK1=${vmfs_disk_1}
+export TF_VAR_VSPHERE_VMFS_REGEXP=${vmfs_regexp}
+export TF_VAR_VSPHERE_RESOURCE_POOL=${resource_pool}
+export TF_VAR_VSPHERE_NFS_DS_NAME=${nfs_ds_name}
+export TF_VAR_VSPHERE_TEMPLATE=${template}
+export TF_VAR_VSPHERE_TEST_OVF=${test_ovf}
+export TF_VAR_VSPHERE_VM_V1_PATH=${vm_name}
+export TF_VAR_VSPHERE_ESXI_TRUNK_NIC=${trunk_nic}
+
+export TF_VAR_VSPHERE_NFS_DS_NAME2=nfs-vol2
+export TF_VAR_VSPHERE_NFS_PATH=/nfs
+export TF_VAR_VSPHERE_NFS_PATH2=/nfs/ds2
+export TF_VAR_VSPHERE_ISO_DATASTORE=nfs
+export TF_VAR_VSPHERE_ISO_FILE=fake.iso
+export TF_VAR_VSPHERE_DC_FOLDER=dc-folder
+export TF_VAR_VSPHERE_DS_FOLDER=ds
+export TF_VAR_VSPHERE_CLONED_VM_DISK_SIZE=20
+export TF_VAR_VSPHERE_TEST_OVA="https://storage.googleapis.com/vsphere-acctest/TinyVM/TinyVM.ova"
+export TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES="http://storage.googleapis.com/vsphere-acctest/TinyVM/TinyVM.ovf"
+export TF_VAR_VSPHERE_HOST_NIC0=vmnic0
+export TF_VAR_VSPHERE_HOST_NIC1=vmnic1
+export TF_VAR_VSPHERE_VSWITCH_UPPER_VERSION="7.0.0"
+export TF_VAR_VSPHERE_VSWITCH_LOWER_VERSION="6.5.0"
+export TF_VAR_VSPHERE_DS_VMFS_NAME='ds-001'
+export TF_VAR_VSPHERE_FOLDER_V0_PATH='Discovered virtual machine'
+export TF_VAR_VSPHERE_ENTITY_PERMISSION_USER_GROUP="root"

@@ -114,10 +114,6 @@ func TestAccResourceVSphereHostVirtualSwitch_badActiveNICList(t *testing.T) {
 				ExpectError: regexp.MustCompile(fmt.Sprintf("active NIC entry %q not present in network_adapters list", os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"))),
 				PlanOnly:    true,
 			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
-			},
 		},
 	})
 }
@@ -136,10 +132,6 @@ func TestAccResourceVSphereHostVirtualSwitch_badStandbyNICList(t *testing.T) {
 				Config:      testAccResourceVSphereHostVirtualSwitchConfigBadStandby(),
 				ExpectError: regexp.MustCompile(fmt.Sprintf("standby NIC entry %q not present in network_adapters list", os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"))),
 				PlanOnly:    true,
-			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
 			},
 		},
 	})
@@ -263,7 +255,7 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
-  name           = "vSwitchTerraformTest"
+  name           = "vSwitchTerraformTest2"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
   network_adapters = [var.host_nic0, var.host_nic1]
@@ -291,7 +283,7 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
-  name           = "vSwitchTerraformTest"
+  name           = "vSwitchTerraformTest2"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
   network_adapters = ["${var.host_nic0}"]
@@ -317,7 +309,7 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
-  name           = "vSwitchTerraformTest"
+  name           = "vSwitchTerraformTest2"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
   network_adapters = []
@@ -344,7 +336,7 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
-  name           = "vSwitchTerraformTest"
+  name           = "vSwitchTerraformTest2"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
   network_adapters = []
@@ -371,7 +363,7 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
-  name           = "vSwitchTerraformTest"
+  name           = "vSwitchTerraformTest2"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
   network_adapters = []

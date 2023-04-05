@@ -504,10 +504,6 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitInsufficientBus(t *testing
 				Config:      testAccResourceVSphereVirtualMachineConfigMultiHighBusInsufficientBus(),
 				ExpectError: regexp.MustCompile("unit_number on disk \"disk1\" too high \\(15\\) - maximum value is 14 with 1 SCSI controller\\(s\\)"),
 			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
-			},
 		},
 	})
 }
@@ -850,9 +846,6 @@ func TestAccResourceVSphereVirtualMachine_cdromIsoBacking(t *testing.T) {
 					testAccResourceVSphereVirtualMachineCheckIsoCdrom(),
 				),
 			},
-			{
-				Config: testAccResourceVSphereEmpty,
-			},
 		},
 	})
 }
@@ -869,9 +862,6 @@ func TestAccResourceVSphereVirtualMachine_cdromConflictingParameters(t *testing.
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigConflictingCdromParameters(),
 				ExpectError: regexp.MustCompile("Cannot have both client_device parameter and ISO file parameters"),
-			},
-			{
-				Config: testAccResourceVSphereEmpty,
 			},
 		},
 	})
@@ -1163,9 +1153,6 @@ func TestAccResourceVSphereVirtualMachine_vAppContainerAndFolder(t *testing.T) {
 				Config:      testAccResourceVSphereVirtualMachineConfigVAppAndFolder(),
 				ExpectError: regexp.MustCompile("cannot set folder while VM is in a vApp container"),
 			},
-			{
-				Config: testAccResourceVSphereEmpty,
-			},
 		},
 	})
 }
@@ -1403,17 +1390,18 @@ func TestAccResourceVSphereVirtualMachine_blockComputedDiskName(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers:    testAccProviders,
+		Providers: testAccProviders,
+		ExternalProviders: map[string]resource.ExternalProvider{
+			"random": {
+				Source: "hashicorp/random",
+			},
+		},
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigComputedDisk(),
 				ExpectError: regexp.MustCompile("disk label or name must be defined and cannot be computed"),
 				PlanOnly:    true,
-			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
 			},
 		},
 	})
@@ -1432,10 +1420,6 @@ func TestAccResourceVSphereVirtualMachine_blockVAppSettingsOnNonClones(t *testin
 			{
 				Config:      testAccResourceVSphereVirtualMachineVAppPropertiesNonClone(),
 				ExpectError: regexp.MustCompile("vApp properties can only be set on cloned virtual machines"),
-			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
 			},
 		},
 	})
@@ -1485,10 +1469,6 @@ func TestAccResourceVSphereVirtualMachine_blockDiskLabelStartingWithOrphanedPref
 				Config:      testAccResourceVSphereVirtualMachineConfigBadOrphanedLabel(),
 				ExpectError: regexp.MustCompile(regexp.QuoteMeta(`disk label "orphaned_disk_0" cannot start with "orphaned_disk_"`)),
 				PlanOnly:    true,
-			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
 			},
 		},
 	})
@@ -1740,10 +1720,6 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadTimezone(t *testing.T) {
 				ExpectError: regexp.MustCompile("must be similar to America/Los_Angeles or other Linux/Unix TZ format"),
 				PlanOnly:    true,
 			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
-			},
 		},
 	})
 }
@@ -1786,10 +1762,6 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithLinkedClone(t *tes
 				ExpectError: regexp.MustCompile("must be the exact size of source when using linked_clone"),
 				PlanOnly:    true,
 			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
-			},
 		},
 	})
 }
@@ -1808,10 +1780,6 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithoutLinkedClone(t *
 				Config:      testAccResourceVSphereVirtualMachineConfigBadSizeUnlinked(),
 				ExpectError: regexp.MustCompile("must be at least the same size of source when cloning"),
 				PlanOnly:    true,
-			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
 			},
 		},
 	})
@@ -1834,10 +1802,7 @@ func TestAccResourceVSphereVirtualMachine_cloneIntoEmptyCluster(t *testing.T) {
 				ExpectError: regexp.MustCompile("compute resource .* is missing an Environment Browser\\. Check host, cluster, and vSphere license health of all associated resources and try again"),
 				//PlanOnly:    true,
 			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
-			}},
+		},
 	})
 }
 
@@ -1961,9 +1926,6 @@ func TestAccResourceVSphereVirtualMachine_hostCheck(t *testing.T) {
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckHost(os.Getenv("TF_VAR_VSPHERE_ESXI1")),
 				),
-			},
-			{
-				Config: testAccResourceVSphereEmpty,
 			},
 			{
 				Config: testAccResourceVSphereVirtualMachineConfigHostCheck(os.Getenv("TF_VAR_VSPHERE_ESXI2")),

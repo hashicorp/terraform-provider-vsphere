@@ -6,8 +6,11 @@ terraform {
     local = {
       source = "hashicorp/local"
     }
-    metal = {
-      source = "equinix/metal"
+    equinix = {
+      source = "equinix/equinix"
+    }
+    time = {
+      source = "hashicorp/time"
     }
   }
   required_version = ">= 0.13"

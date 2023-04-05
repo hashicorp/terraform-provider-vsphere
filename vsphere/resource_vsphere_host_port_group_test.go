@@ -194,7 +194,7 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
-  name           = "vSwitchTerraformTest"
+  name           = "vSwitchTerraformTest2"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
   network_adapters = ["${var.host_nic0}"]
@@ -230,7 +230,7 @@ data "vsphere_host" "esxi_host" {
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
-  name           = "vSwitchTerraformTest"
+  name           = "vSwitchTerraformTest2"
   host_system_id = "${data.vsphere_host.esxi_host.id}"
 
   network_adapters  = ["${var.host_nic0}", "${var.host_nic1}"]

@@ -1,6 +1,6 @@
 {
     "__version": "2.13.0",
-    "__comments": "Sample template to deploy a vCenter Server Appliance with an embedded Platform Services Controller on an ESXi host.",
+    "__comments": "Sample template to deploy a vCenter Server Appliance with an embedded Platform Services Controller on an ESXi host. TODO: add a private IP/network to VCSA on deploy.",
     "new_vcsa": {
         "esxi": {
             "hostname": "${hostname}",
