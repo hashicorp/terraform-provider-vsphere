@@ -933,11 +933,6 @@ func resourceVSphereComputeClusterApplyClusterConfiguration(
 
 	log.Printf("[DEBUG] %s: Applying cluster configuration", resourceVSphereComputeClusterIDString(d))
 
-	// handle VSAN first to avoid race condition
-	if err := resourceVSphereComputeClusterApplyVsanConfig(d, meta, cluster); err != nil {
-		return err
-	}
-
 	client, err := resourceVSphereComputeClusterClient(meta)
 	if err != nil {
 		return err
@@ -946,6 +941,11 @@ func resourceVSphereComputeClusterApplyClusterConfiguration(
 	// Get the version of the vSphere connection to help determine what
 	// attributes we need to set
 	version := viapi.ParseVersionFromClient(client)
+
+	// handle VSAN first to avoid race condition
+	if err := resourceVSphereComputeClusterApplyVsanConfig(d, meta, cluster, version); err != nil {
+		return err
+	}
 
 	// Expand the cluster configuration.
 	spec := expandClusterConfigSpecEx(d, version)
@@ -1463,7 +1463,13 @@ func expandVsanDatastoreConfig(d *schema.ResourceData, meta interface{}) (*vsant
 	return conf, nil
 }
 
-func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta interface{}, cluster *object.ClusterComputeResource) error {
+func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta interface{}, cluster *object.ClusterComputeResource, version viapi.VSphereVersion) error {
+	if d.Get("vsan_esa_enabled").(bool) {
+		if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 8, Minor: 0}) {
+			return fmt.Errorf("vsan_esa_enabled is only supported on vSphere 8.0 and higher")
+		}
+	}
+
 	if !d.Get("vsan_enabled").(bool) && d.Get("vsan_esa_enabled").(bool) {
 		return fmt.Errorf("vSAN ESA service cannot be enabled on cluster due to vSAN is disabled: %s", d.Get("name").(string))
 	}
