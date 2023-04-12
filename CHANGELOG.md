@@ -6,7 +6,8 @@ BUG FIXES:
 
 CHORES:
 * Refactor acctests setup ([#1847](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1847))
-* Update to terraform-plugin-sdk v2.25.0 ([#1847](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1847))
+* Update to terraform-plugin-sdk v2.26.1 ([#1862](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1862))
+* Update govmomi v0.30.4 ([#1858](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1858))
 
 ## 2.3.1 (February 8, 2023)
 
