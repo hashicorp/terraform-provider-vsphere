@@ -152,13 +152,15 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 	// include the number of cpus, memory, firmware, disks, etc.
 	structure.MergeSchema(s, schemaVirtualMachineConfigSpec())
 
-	// make name/uuid/moid Optional/AtLeastOneOf since UUID lookup is now supported
+	// make name/uuid/moid Optional/AtLeastOneOf
 	s["name"].Required = false
 	s["name"].Optional = true
 	s["name"].AtLeastOneOf = []string{"name", "uuid", "moid"}
+
 	s["uuid"].Required = false
 	s["uuid"].Optional = true
 	s["uuid"].AtLeastOneOf = []string{"name", "uuid", "moid"}
+
 	s["moid"].Required = false
 	s["moid"].Optional = true
 	s["moid"].AtLeastOneOf = []string{"name", "uuid", "moid"}
@@ -201,6 +203,9 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return fmt.Errorf("error fetching virtual machine: %s", err)
 	}
+
+	// Set the managed object id.
+	d.Set("moid", vm.Reference().Value)
 
 	props, err := virtualmachine.Properties(vm)
 	if err != nil {
