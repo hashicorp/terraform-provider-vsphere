@@ -77,7 +77,7 @@ The following arguments are supported:
   be added to. This should not be set if `cluster` is set.
 * `cluster` - (Optional) The ID of the Compute Cluster this host should
   be added to. This should not be set if `datacenter` is set. Conflicts with:
-  `cluster`.
+  `cluster_managed`.
 * `cluster_managed` - (Optional) Can be set to `true` if compute cluster
   membership will be managed through the `compute_cluster` resource rather
   than the`host` resource. Conflicts with: `cluster`.
