@@ -29,11 +29,11 @@ resource "vsphere_resource_pool" "pool" {
 }
 
 resource "vsphere_nas_datastore" "ds" {
-  name = var.VSPHERE_NFS_DS_NAME
+  name            = var.VSPHERE_NFS_DS_NAME
   host_system_ids = [vsphere_host.host1.id] // TODO: needs to be networked privately for nested ESXIs to connect to it
-  type         = "NFS"
-  remote_hosts = [var.VSPHERE_NAS_HOST]
-  remote_path  = "/nfs"
+  type            = "NFS"
+  remote_hosts    = [var.VSPHERE_NAS_HOST]
+  remote_path     = "/nfs"
 }
 
 resource "vsphere_virtual_machine" "template" {
