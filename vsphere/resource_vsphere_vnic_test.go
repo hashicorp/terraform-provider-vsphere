@@ -43,7 +43,7 @@ func generateSteps(cfgFunc genTfConfig, netstack string) []resource.TestStep {
 	return out
 }
 
-func TestAccResourceVSphereVNic_dvs(t *testing.T) {
+func TestAccResourceVSphereVNic_dvs_default(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -67,7 +67,7 @@ func TestAccResourceVSphereVNic_dvs_vmotion(t *testing.T) {
 	})
 }
 
-func TestAccResourceVSphereVNic_hvs(t *testing.T) {
+func TestAccResourceVSphereVNic_hvs_default(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -201,7 +201,7 @@ func testAccVsphereVNicNetworkSettings(name, ipv4State, ipv6State, netstack stri
 			for _, ipv6addr := range vnic.Spec.Ip.IpV6Config.IpV6Address {
 				if strings.EqualFold(ipv6addr.IpAddress, ip) {
 					if ipv6addr.PrefixLength != int32(prefix) ||
-						strings.EqualFold(routeConfig.IpV6DefaultGateway, gw) {
+						!strings.EqualFold(routeConfig.IpV6DefaultGateway, gw) {
 						return fmt.Errorf(
 							"ipv6 network error, static config mismatch. prefix length %d vs %d, gw %s vs %s",
 							prefix, ipv6addr.PrefixLength,
@@ -272,18 +272,9 @@ func testaccvspherevnicconfigHvs(netConfig string) string {
 	  datacenter_id = data.vsphere_datacenter.rootdc1.id
 	}
 	
-	
-	resource "vsphere_host_virtual_switch" "hvs1" {
-	  name             = "hashi-dc_HPG0"
-	  host_system_id   = data.vsphere_host.h1.id
-	  network_adapters = ["%s", "%s"]
-	  active_nics      = ["%s"]
-	  standby_nics     = ["%s"]
-	}
-	
 	resource "vsphere_host_port_group" "p1" {
 	  name                     = "ko-pg"
-	  virtual_switch_name = vsphere_host_virtual_switch.hvs1.name
+	  virtual_switch_name = "vSwitch0"
 	  host_system_id   = data.vsphere_host.h1.id
 	}
 	
@@ -294,10 +285,6 @@ func testaccvspherevnicconfigHvs(netConfig string) string {
 	}
 	`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI3"),
-		os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"),
-		os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"),
-		os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"),
-		os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"),
 		netConfig)
 }
 
@@ -309,7 +296,7 @@ func testaccvspherevnicconfigDvs(netConfig string) string {
 	  name          = "hashi-dc_DVPG0"
 	  datacenter_id = data.vsphere_datacenter.rootdc1.id
 	  host {
-		host_system_id = data.vsphere_host.roothost1.id
+		host_system_id = data.vsphere_host.roothost2.id
 		devices        = ["%s"]
 	  }
 	}
@@ -321,14 +308,14 @@ func testaccvspherevnicconfigDvs(netConfig string) string {
 	}
 	
 	resource "vsphere_vnic" "v1" {
-	  host                    = data.vsphere_host.roothost1.id
+	  host                    = data.vsphere_host.roothost2.id
 	  distributed_switch_port = vsphere_distributed_virtual_switch.d1.id
 	  distributed_port_group  = vsphere_distributed_port_group.p1.id
 	  %s
 	}
 	`, testhelper.CombineConfigs(
 		testhelper.ConfigDataRootDC1(),
-		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootHost2(),
 	),
 		os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"),
 		netConfig)
