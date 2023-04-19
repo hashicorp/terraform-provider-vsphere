@@ -10,6 +10,7 @@ BUG FIXES:
 
 IMPROVEMENTS:
 * `r/vsphere_host`: Update docs ([#1884](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1884))
+* `r/vsphere_vnic`: Fix vnic tests ([#1887](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1887))
 
 CHORES:
 * Update to terraform-plugin-sdk v2.26.1 ([#1862](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1862))
