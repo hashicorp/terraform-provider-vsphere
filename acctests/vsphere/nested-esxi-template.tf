@@ -27,7 +27,7 @@ resource "vsphere_vmfs_datastore" "nested-esxi" {
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
-  name           = "terraform-test" #
+  name           = "terraform-test"
   host_system_id = vsphere_host.host1.id
 
   network_adapters = [var.VSPHERE_ESXI_TRUNK_NIC]
@@ -62,5 +62,6 @@ data "vsphere_ovf_vm_template" "nested-esxi" {
   remote_ovf_url    = "https://download3.vmware.com/software/vmw-tools/nested-esxi/Nested_ESXi7.0u3_Appliance_Template_v1.ova"
   ovf_network_map = {
     "${vsphere_host_port_group.pg.name}" = data.vsphere_network.pg.id
+    "VM Network" = data.vsphere_network.pg.id # second NIC for testing
   }
 }
