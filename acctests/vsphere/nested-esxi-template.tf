@@ -62,6 +62,6 @@ data "vsphere_ovf_vm_template" "nested-esxi" {
   remote_ovf_url    = "https://download3.vmware.com/software/vmw-tools/nested-esxi/Nested_ESXi7.0u3_Appliance_Template_v1.ova"
   ovf_network_map = {
     "${vsphere_host_port_group.pg.name}" = data.vsphere_network.pg.id
-    "VM Network" = data.vsphere_network.pg.id # second NIC for testing
+    "VM Network"                         = data.vsphere_network.pg.id # second NIC for testing
   }
 }

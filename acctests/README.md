@@ -63,9 +63,9 @@ $ source devrc
 This set of environment variables and setup should allow you to run most of the acceptance tests, current failing ones or ones skipped due to missing or misconfigured environment variables will be addressed ASAP (unfortunately there had been a large amount of technical debt built up around testing).
 
 ### Please Note
-As for writing a few manual steps had to be taken to privately network the nested ESXis and add them to vSphere.
+As for writing a few manual steps had to be taken to privately network the nested ESXis and add them to vSphere. You will need to let the first apply fail, then perform the steps and re-apply.
 
-1. Delete vmk1 and manually recreate it attached to the new vSwitch (which runs on vmnic1)
+1. Delete vmk1 and manually recreate it attached to the new vSwitch (which runs on vmnic1), give it an IP on the private subnet
 2. Visit the physical ESXi web UI (likely the vCenter IP - 1) and power off the vcsa VM
 3. Attach vmnet to the vcsa VM
 4. Power on the vcsa VM
