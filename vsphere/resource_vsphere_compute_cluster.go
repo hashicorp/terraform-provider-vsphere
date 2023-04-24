@@ -1476,8 +1476,16 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 	if !d.HasChange("vsan_enabled") && d.HasChange("vsan_esa_enabled") {
 		return fmt.Errorf("vSAN ESA service must be configured along with vSAN service: %s", d.Get("name").(string))
 	}
-	if !d.Get("vsan_unmap_enabled").(bool) && d.Get("vsan_esa_enabled").(bool) {
-		return fmt.Errorf("Cannot disable vSAN unmap service when vSAN ESA is enabled: %s", d.Get("name").(string))
+	if d.Get("vsan_esa_enabled").(bool) {
+		// need to be revised if GetOkExists() is deprecated in the future
+		unmapEnabled, unmapOK := d.GetOkExists("vsan_unmap_enabled")
+		if !unmapOK {
+			if err := d.Set("vsan_unmap_enabled", true); err != nil {
+				return fmt.Errorf("Cannot enable vSAN unmap service by default during enabling vSAN ESA: %s", d.Get("name").(string))
+			}
+		} else if !unmapEnabled.(bool) {
+			return fmt.Errorf("vSAN unmap service is by default enabled when vSAN ESA is enabled: %s", d.Get("name").(string))
+		}
 	}
 	conf := vsantypes.VimVsanReconfigSpec{
 		Modify: true,
