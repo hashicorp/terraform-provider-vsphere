@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi"
@@ -133,12 +134,12 @@ func resourceVsphereNicRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// get enabled services
-	host_system, err := hostsystem.FromID(client, hostID)
+	hostSystem, err := hostsystem.FromID(client, hostID)
 	if err != nil {
 		return err
 	}
 
-	hostVnicMgr, err := host_system.ConfigManager().VirtualNicManager(ctx)
+	hostVnicMgr, err := hostSystem.ConfigManager().VirtualNicManager(ctx)
 	if err != nil {
 		return nil
 	}
@@ -317,7 +318,10 @@ func BaseVMKernelSchema() map[string]*schema.Schema {
 			Type:        schema.TypeSet,
 			Optional:    true,
 			Description: "Enabled services setting for this interface. Current possible values are 'vmotion', 'management' and 'vsan'",
-			Elem:        &schema.Schema{Type: schema.TypeString},
+			Elem: &schema.Schema{
+				Type:         schema.TypeString,
+				ValidateFunc: validation.StringInSlice(vnicServiceTypeAllowedValues, false),
+			},
 		},
 	}
 	return sch
@@ -357,17 +361,17 @@ func updateVNic(d *schema.ResourceData, meta interface{}) (string, error) {
 }
 
 func updateVnicService(d *schema.ResourceData, hostID string, nicID string, meta interface{}) error {
-	service_old, service_new := d.GetChange("services")
-	deleteList := service_old.(*schema.Set).List()
-	addList := service_new.(*schema.Set).List()
+	serviceOld, serviceNew := d.GetChange("services")
+	deleteList := serviceOld.(*schema.Set).List()
+	addList := serviceNew.(*schema.Set).List()
 
 	client := meta.(*Client).vimClient
 	ctx := context.TODO()
-	host_system, err := hostsystem.FromID(client, hostID)
+	hostSystem, err := hostsystem.FromID(client, hostID)
 	if err != nil {
 		return err
 	}
-	method, err := host_system.ConfigManager().VirtualNicManager(ctx)
+	method, err := hostSystem.ConfigManager().VirtualNicManager(ctx)
 	if err != nil {
 		return nil
 	}
@@ -391,21 +395,7 @@ func updateVnicService(d *schema.ResourceData, hostID string, nicID string, meta
 
 func precheckEnableServices(d *schema.ResourceData) error {
 	if d.Get("netstack").(string) != "defaultTcpipStack" && len(d.Get("services").(*schema.Set).List()) != 0 {
-		return fmt.Errorf("Services could be configured only when the netstack is set to defaultTcpipStack.")
-	}
-	// will expand scope later, current possible values are vmotion, management and vsan.
-	data := d.Get("services").(*schema.Set).List()
-	for _, value := range data {
-		isValueAllowed := false
-		for _, allowedValue := range vnicServiceTypeAllowedValues {
-			if value == allowedValue {
-				isValueAllowed = true
-				break
-			}
-		}
-		if !isValueAllowed {
-			return fmt.Errorf("%s is not an allowed service type.", value)
-		}
+		return fmt.Errorf("services can only be configured when netstack is set to defaultTcpipStack")
 	}
 	return nil
 }

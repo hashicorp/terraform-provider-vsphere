@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -17,6 +18,8 @@ import (
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"github.com/vmware/govmomi"
 )
+
+// TODO: move away from tests being composed in this manner
 
 type genTfConfig func(string) string
 
@@ -111,6 +114,117 @@ func TestAccResourceVSphereVNic_hvs_vmotion(t *testing.T) {
 						"192.0.2.10|255.255.255.0|192.0.2.1",
 						"",
 						"vmotion"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVNic_services_nonDefaultNetstack(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccVSphereVNicDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testaccvspherevnicconfigHvs(
+					combineSnippets(
+						ipv4Snippet("192.0.2.10|255.255.255.0|192.0.2.1"),
+						"",
+						netstackSnippet("vmotion"),
+						"",
+						`services = ["vsan"]`,
+					),
+				),
+				ExpectError: regexp.MustCompile("services can only be configured when netstack is set to defaultTcpipStack"),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVNic_services_invalid(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccVSphereVNicDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testaccvspherevnicconfigHvs(
+					combineSnippets(
+						ipv4Snippet("192.0.2.10|255.255.255.0|192.0.2.1"),
+						"",
+						netstackSnippet("defaultTcpipStack"),
+						"",
+						`services = ["invalid"]`,
+					),
+				),
+				ExpectError: regexp.MustCompile("Error"),
+				PlanOnly:    true,
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVNic_services_valid(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccVSphereVNicDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testaccvspherevnicconfigHvs(
+					combineSnippets(
+						ipv4Snippet("192.0.2.10|255.255.255.0|192.0.2.1"),
+						"",
+						netstackSnippet("defaultTcpipStack"),
+						"",
+						`services = ["vsan"]`,
+					),
+				),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("vsphere_vnic.v1", "services.#", "1"),
+					resource.TestCheckTypeSetElemAttr("vsphere_vnic.v1", "services.*", "vsan"),
+				),
+			},
+			{
+				Config: testaccvspherevnicconfigHvs(
+					combineSnippets(
+						ipv4Snippet("192.0.2.10|255.255.255.0|192.0.2.1"),
+						"",
+						netstackSnippet("defaultTcpipStack"),
+						"",
+						`services = ["vmotion"]`,
+					),
+				),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("vsphere_vnic.v1", "services.#", "1"),
+					resource.TestCheckTypeSetElemAttr("vsphere_vnic.v1", "services.*", "vmotion"),
+				),
+			},
+			{
+				Config: testaccvspherevnicconfigHvs(
+					combineSnippets(
+						ipv4Snippet("192.0.2.10|255.255.255.0|192.0.2.1"),
+						"",
+						netstackSnippet("defaultTcpipStack"),
+						"",
+						`services = ["vmotion", "management", "vsan"]`,
+					),
+				),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("vsphere_vnic.v1", "services.#", "3"),
+					resource.TestCheckTypeSetElemAttr("vsphere_vnic.v1", "services.*", "vmotion"),
+					resource.TestCheckTypeSetElemAttr("vsphere_vnic.v1", "services.*", "management"),
+					resource.TestCheckTypeSetElemAttr("vsphere_vnic.v1", "services.*", "vsan"),
 				),
 			},
 		},
