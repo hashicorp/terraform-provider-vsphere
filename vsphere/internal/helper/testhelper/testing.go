@@ -166,7 +166,7 @@ resource "vsphere_nas_datastore" "ds1" {
   remote_hosts    = ["%s"]
   remote_path     = "%s"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"), os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"))
+`, NfsDsName2, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), NfsPath2)
 }
 
 func ConfigDataRootComputeCluster1() string {

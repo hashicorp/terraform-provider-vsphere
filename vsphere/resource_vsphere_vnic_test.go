@@ -431,7 +431,7 @@ func testaccvspherevnicconfigDvs(netConfig string) string {
 		testhelper.ConfigDataRootDC1(),
 		testhelper.ConfigDataRootHost2(),
 	),
-		os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"),
+		testhelper.HostNic1,
 		netConfig)
 }
 

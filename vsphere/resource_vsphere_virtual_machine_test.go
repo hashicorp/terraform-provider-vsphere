@@ -35,6 +35,8 @@ const (
 	testAccResourceVSphereVirtualMachineDiskNameExtraVmdk = "terraform-test-vm-extra-disk.vmdk"
 	testAccResourceVSphereVirtualMachineStaticMacAddr     = "06:5c:89:2b:a0:64"
 	testAccResourceVSphereVirtualMachineAnnotation        = "Managed by Terraform"
+	testAccResourceVSphereVirtualMachineIsoDatastore      = "nfs"
+	testAccResourceVSphereVirtualMachineIsoFile           = "fake.iso"
 )
 
 func TestAccResourceVSphereVirtualMachine_basic(t *testing.T) {
@@ -1582,14 +1584,14 @@ func TestAccResourceVSphereVirtualMachine_cloneCustomizeForceNewWithDatastore(t 
 			},
 			{
 				Config: testAccResourceVSphereVirtualMachineConfigCloneParameterized(
-					os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"),
+					testhelper.NfsDsName2,
 					"terraform-test-renamed",
 				),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckHostname("terraform-test-renamed"),
-					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(testhelper.NfsDsName2),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, testhelper.NfsDsName2),
 					func(s *terraform.State) error {
 						oldID := state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.ID
 						return testCheckResourceNotAttr("vsphere_virtual_machine.vm", "id", oldID)(s)
@@ -2008,11 +2010,11 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionGlobalSetting(t *testing
 				Config: testAccResourceVSphereVirtualMachineConfigBase(),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionGlobal(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionGlobal(testhelper.NfsDsName2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(testhelper.NfsDsName2),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, testhelper.NfsDsName2),
 				),
 			},
 			{
@@ -2044,12 +2046,12 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionSingleDisk(t *testing.T)
 				Config: testAccResourceVSphereVirtualMachineConfigBase(),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionSingleDisk(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionSingleDisk(testhelper.NfsDsName2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")),
 					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(1, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(1, testhelper.NfsDsName2),
 				),
 			},
 			{
@@ -2082,9 +2084,9 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionPinDatastore(t *testing.
 				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionPinDatastore("vsphere_nas_datastore.ds1.id"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(1, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(testhelper.NfsDsName2),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, testhelper.NfsDsName2),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(1, testhelper.NfsDsName2),
 				),
 			},
 			{
@@ -2114,11 +2116,11 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionRenamedVirtualMachine(t 
 				Config: testAccResourceVSphereVirtualMachineConfigBase(),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("testacc-test", os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("testacc-test", testhelper.NfsDsName2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(testhelper.NfsDsName2),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, testhelper.NfsDsName2),
 				),
 			},
 			{
@@ -2130,11 +2132,11 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionRenamedVirtualMachine(t 
 				),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("foobar-test", os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("foobar-test", testhelper.NfsDsName2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, testhelper.NfsDsName2),
 				),
 			},
 		},
@@ -2169,9 +2171,9 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionLinkedClones(t *testing.
 				Check: resource.ComposeTestCheckFunc(
 					copyStatePtr(&state),
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(testhelper.NfsDsName2),
 					func(s *terraform.State) error {
-						return testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"))(s)
+						return testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, testhelper.NfsDsName2)(s)
 					},
 				),
 			},
@@ -2201,7 +2203,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionBlockExternallyAttachedD
 				),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionAttachedDisk(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionAttachedDisk(testhelper.NfsDsName2),
 				ExpectError: regexp.MustCompile(regexp.QuoteMeta(
 					fmt.Sprintf("externally attached disk %q cannot be migrated", testAccResourceVSphereVirtualMachineDiskNameExtraVmdk),
 				)),
@@ -2516,12 +2518,6 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	}
 	if os.Getenv("TF_VAR_VSPHERE_NAS_HOST") == "" {
 		t.Skip("set TF_VAR_VSPHERE_NAS_HOST to run vsphere_virtual_machine acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_NFS_PATH") == "" {
-		t.Skip("set TF_VAR_VSPHERE_NFS_PATH to run vsphere_virtual_machine acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES") == "" {
-		t.Skip("set TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES to run vsphere_virtual_machine acceptance tests")
 	}
 }
 
@@ -2906,8 +2902,8 @@ func testAccResourceVSphereVirtualMachineCheckIsoCdrom() resource.TestCheckFunc 
 				}
 				if backing, ok := cdrom.Backing.(*types.VirtualCdromIsoBackingInfo); ok {
 					expected := &object.DatastorePath{
-						Datastore: os.Getenv("TF_VAR_VSPHERE_ISO_DATASTORE"),
-						Path:      os.Getenv("TF_VAR_VSPHERE_ISO_FILE"),
+						Datastore: testAccResourceVSphereVirtualMachineIsoDatastore,
+						Path:      testAccResourceVSphereVirtualMachineIsoFile,
 					}
 					actual := new(object.DatastorePath)
 					actual.FromString(backing.FileName)
@@ -4234,8 +4230,8 @@ resource "vsphere_virtual_machine" "vm" {
 `,
 
 		testAccResourceVSphereVirtualMachineConfigBase(),
-		os.Getenv("TF_VAR_VSPHERE_ISO_DATASTORE"),
-		os.Getenv("TF_VAR_VSPHERE_ISO_FILE"),
+		testAccResourceVSphereVirtualMachineIsoDatastore,
+		testAccResourceVSphereVirtualMachineIsoFile,
 	)
 }
 
@@ -4288,8 +4284,8 @@ resource "vsphere_virtual_machine" "vm" {
 `,
 
 		testAccResourceVSphereVirtualMachineConfigBase(),
-		os.Getenv("TF_VAR_VSPHERE_ISO_DATASTORE"),
-		os.Getenv("TF_VAR_VSPHERE_ISO_FILE"),
+		testAccResourceVSphereVirtualMachineIsoDatastore,
+		testAccResourceVSphereVirtualMachineIsoFile,
 	)
 }
 
@@ -4341,8 +4337,8 @@ resource "vsphere_virtual_machine" "vm" {
 `,
 
 		testAccResourceVSphereVirtualMachineConfigBase(),
-		os.Getenv("TF_VAR_VSPHERE_ISO_DATASTORE"),
-		os.Getenv("TF_VAR_VSPHERE_ISO_FILE"),
+		testAccResourceVSphereVirtualMachineIsoDatastore,
+		testAccResourceVSphereVirtualMachineIsoFile,
 	)
 }
 
@@ -6882,7 +6878,7 @@ resource "vsphere_virtual_machine" "vm" {
 
 `,
 		testAccResourceVSphereVirtualMachineConfigBase(),
-		os.Getenv("TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES"),
+		testhelper.ContentLibraryFiles,
 	)
 }
 
@@ -6990,7 +6986,7 @@ resource "vsphere_virtual_machine" "vm" {
 }
 `,
 		testAccResourceVSphereVirtualMachineConfigBase(),
-		os.Getenv("TF_VAR_VSPHERE_TEST_OVA"),
+		testhelper.TestOva,
 		vmName,
 	)
 }

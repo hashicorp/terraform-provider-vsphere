@@ -18,6 +18,10 @@ import (
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
 
+const (
+	testAccResourceVSphereVmfsDatastoreName = "ds-001"
+)
+
 func TestAccResourceVSphereVmfsDatastore_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -139,7 +143,7 @@ func TestAccResourceVSphereVmfsDatastore_renameDatastore(t *testing.T) {
 				Config: testAccResourceVSphereVmfsDatastoreConfigStaticSingleAltName(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVmfsDatastoreExists(true),
-					testAccResourceVSphereVmfsDatastoreHasName(fmt.Sprintf("%s-renamed", os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))),
+					testAccResourceVSphereVmfsDatastoreHasName(fmt.Sprintf("%s-renamed", testAccResourceVSphereVmfsDatastoreName)),
 				),
 			},
 		},
@@ -166,7 +170,7 @@ func TestAccResourceVSphereVmfsDatastore_withFolder(t *testing.T) {
 				Config: testAccResourceVSphereVmfsDatastoreConfigStaticSingleFolder(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVmfsDatastoreExists(true),
-					testAccResourceVSphereVmfsDatastoreMatchInventoryPath(os.Getenv("TF_VAR_VSPHERE_DS_FOLDER")),
+					testAccResourceVSphereVmfsDatastoreMatchInventoryPath(testhelper.DsFolder),
 				),
 			},
 		},
@@ -194,7 +198,7 @@ func TestAccResourceVSphereVmfsDatastore_moveToFolderAfter(t *testing.T) {
 				ExpectError: expectErrorIfNotVirtualCenter(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVmfsDatastoreExists(true),
-					testAccResourceVSphereVmfsDatastoreMatchInventoryPath(os.Getenv("TF_VAR_VSPHERE_DS_FOLDER")),
+					testAccResourceVSphereVmfsDatastoreMatchInventoryPath(testhelper.DsFolder),
 				),
 			},
 		},
@@ -395,14 +399,8 @@ func TestAccResourceVSphereVmfsDatastore_multiCustomAttribute(t *testing.T) {
 }
 
 func testAccResourceVSphereVmfsDatastorePreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_vmfs_disks acceptance tests")
-	}
 	if os.Getenv("TF_VAR_VSPHERE_VMFS_REGEXP") == "" {
 		t.Skip("set TF_VAR_VSPHERE_VMFS_REGEXP to run vsphere_vmfs_datastore acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_DS_FOLDER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DS_FOLDER to run vsphere_vmfs_datastore acceptance tests")
 	}
 }
 
@@ -495,7 +493,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootPortGroup1(),
-			testhelper.ConfigDataRootHost1()), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
+			testhelper.ConfigDataRootHost1()), testAccResourceVSphereVmfsDatastoreName)
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigStaticSingleAltName() string {
@@ -520,7 +518,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost1()),
-		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
+		testAccResourceVSphereVmfsDatastoreName)
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigStaticMulti() string {
@@ -552,7 +550,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost1()),
-		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
+		testAccResourceVSphereVmfsDatastoreName)
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigDiscoverDatasource() string {
@@ -581,7 +579,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost1()),
-		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
+		testAccResourceVSphereVmfsDatastoreName)
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigStaticSingleFolder() string {
@@ -614,12 +612,12 @@ resource "vsphere_vmfs_datastore" "datastore" {
   ]
 }
 `, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"),
-		os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"),
+		testhelper.DsFolder,
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost1()),
-		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
+		testAccResourceVSphereVmfsDatastoreName)
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigTags() string {
@@ -660,7 +658,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost1()),
-		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
+		testAccResourceVSphereVmfsDatastoreName)
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigMultiTags() string {
@@ -714,7 +712,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost1()),
-		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
+		testAccResourceVSphereVmfsDatastoreName)
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigBadDisk() string {
@@ -746,7 +744,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost1()),
-		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
+		testAccResourceVSphereVmfsDatastoreName)
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigDuplicateDisk() string {
@@ -778,7 +776,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost1()),
-		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
+		testAccResourceVSphereVmfsDatastoreName)
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigCustomAttributes() string {
@@ -816,7 +814,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost1()),
-		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
+		testAccResourceVSphereVmfsDatastoreName)
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigMultiCustomAttributes() string {
@@ -860,7 +858,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost1()),
-		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
+		testAccResourceVSphereVmfsDatastoreName)
 }
 
 func testAccResourceVSphereVmfsDatastoreConfigDatastoreCluster() string {
@@ -890,10 +888,10 @@ resource "vsphere_vmfs_datastore" "datastore" {
     "${var.disk0}",
   ]
 }
-`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_FOLDER"),
+`, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"), testhelper.DsFolder,
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost1()),
-		os.Getenv("TF_VAR_VSPHERE_DS_VMFS_NAME"))
+		testAccResourceVSphereVmfsDatastoreName)
 }
