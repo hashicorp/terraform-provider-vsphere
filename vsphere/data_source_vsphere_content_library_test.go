@@ -5,7 +5,6 @@ package vsphere
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"testing"
 
@@ -19,7 +18,6 @@ func TestAccDataSourceVSphereContentLibrary_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereContentLibraryPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -33,12 +31,6 @@ func TestAccDataSourceVSphereContentLibrary_basic(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccDataSourceVSphereContentLibraryPreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES") == "" {
-		t.Skip("set TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES to run vsphere_content_library acceptance tests")
-	}
 }
 
 func testAccDataSourceVSphereContentLibraryConfig() string {

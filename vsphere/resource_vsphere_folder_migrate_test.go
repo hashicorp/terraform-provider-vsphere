@@ -14,12 +14,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+const (
+	testAccResourceVSphereFolderMigrateStateFolderV0Path = "Discovered virtual machine"
+)
+
 func testAccResourceVSphereFolderMigrateStatePreCheck(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {
 		t.Skip("set TF_ACC to run vsphere_folder state migration tests (provider connection is required)")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_FOLDER_V0_PATH") == "" {
-		t.Skip("set TF_VAR_VSPHERE_FOLDER_V0_PATH to run vsphere_folder state migration tests")
 	}
 }
 
@@ -28,9 +29,9 @@ func TestAccResourceVSphereFolderMigrateState_basic(t *testing.T) {
 	testAccPreCheck(t)
 
 	is := &terraform.InstanceState{
-		ID: fmt.Sprintf("%v/%v", testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_FOLDER_V0_PATH")),
+		ID: fmt.Sprintf("%v/%v", testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), testAccResourceVSphereFolderMigrateStateFolderV0Path),
 		Attributes: map[string]string{
-			"path": os.Getenv("TF_VAR_VSPHERE_FOLDER_V0_PATH"),
+			"path": testAccResourceVSphereFolderMigrateStateFolderV0Path,
 		},
 	}
 	if dc := os.Getenv("TF_VAR_VSPHERE_DATACENTER"); dc != "" {

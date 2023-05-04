@@ -22,7 +22,6 @@ func TestAccResourcevsphereEntityPermissions_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccResourceVSphereEntityPermissionsPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceEntityPermissionsCheckExists(false),
@@ -38,12 +37,6 @@ func TestAccResourcevsphereEntityPermissions_basic(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccResourceVSphereEntityPermissionsPreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_ENTITY_PERMISSION_USER_GROUP") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ENTITY_PERMISSION_USER_GROUP to run vsphere_entity_permission acceptance tests")
-	}
 }
 
 func testAccResourceEntityPermissionsCheckExists(expected bool) resource.TestCheckFunc {
@@ -90,6 +83,6 @@ func testAccResourceVsphereEntityPermissionsConfigBasic() string {
 		testhelper.ConfigDataRootDC1(),
 		os.Getenv("TF_VAR_VSPHERE_VM_V1_PATH"),
 		EntityPermissionResource,
-		os.Getenv("TF_VAR_VSPHERE_ENTITY_PERMISSION_USER_GROUP"),
+		"root",
 	)
 }
