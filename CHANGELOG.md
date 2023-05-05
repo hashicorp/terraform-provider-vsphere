@@ -1,4 +1,4 @@
-## 2.4.0 (Unreleased)
+## 2.4.0 (May 5, 2023)
 
 FEATURES:
 * `d/virtual_machine`: Support lookup by moid. ([#1868](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1868))
