@@ -152,6 +152,7 @@ func Provider() *schema.Provider {
 			"vsphere_datacenter":                 dataSourceVSphereDatacenter(),
 			"vsphere_datastore":                  dataSourceVSphereDatastore(),
 			"vsphere_datastore_cluster":          dataSourceVSphereDatastoreCluster(),
+			"vsphere_datastore_stats":            dataSourceVSphereDatastoreStats(),
 			"vsphere_distributed_virtual_switch": dataSourceVSphereDistributedVirtualSwitch(),
 			"vsphere_dynamic":                    dataSourceVSphereDynamic(),
 			"vsphere_folder":                     dataSourceVSphereFolder(),

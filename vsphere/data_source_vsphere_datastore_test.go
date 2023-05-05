@@ -57,6 +57,28 @@ func TestAccDataSourceVSphereDatastore_noDatacenterAndAbsolutePath(t *testing.T)
 	})
 }
 
+func TestAccDataSourceVSphereDatastore_getStats(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereDatastoreConfigGetStats(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"data.vsphere_datastore.datastore_data", "name", os.Getenv("VSPHERE_DATASTORE_NAME"),
+					),
+
+					testCheckOutputBool("found_stats", "true"),
+				),
+			},
+		},
+	})
+}
+
 func testAccDataSourceVSphereDatastorePreCheck(t *testing.T) {
 	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_nas_datastore acceptance tests")
@@ -88,5 +110,25 @@ data "vsphere_datastore" "datastore_data" {
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
+	)
+}
+
+func testAccDataSourceVSphereDatastoreConfigGetStats() string {
+	return fmt.Sprintf(`
+variable "datastore_name" {
+	default = "%s"
+}
+variable "datacenter_id" {
+	default = "%s"
+}
+data "vsphere_datastore" "datastore_data" {
+  name = "${var.datastore_name}"
+  datacenter_id = "${var.datacenter_id}"
+}
+
+output "found_stats" {
+	value = "${length(data.vsphere_datastore.datastore_data.stats) >= 1 ? "true" : "false" }"
+}
+`, os.Getenv("VSPHERE_DATASTORE_NAME"), os.Getenv("VSPHERE_DATACENTER"),
 	)
 }
