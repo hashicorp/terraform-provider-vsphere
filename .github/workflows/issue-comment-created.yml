@@ -5,14 +5,11 @@ on:
     types: [created]
 
 jobs:
-  issue_comment_triage:
-    runs-on: ubuntu-latest
-    steps:
-      - id: remove-stale
-        uses: ./.github/workflows/remove-issue-label.yml
-        with:
-          label-name: "stale"
-      - id: remove-waiting-response
-        uses: ./.github/workflows/remove-issue-label.yml
-        with:
-          label-name: "waiting-response"
+  remove-foobar:
+    uses: ./.github/workflows/reusable.yml
+    with:
+      label-name: "waiting-response"
+  remove-stale:
+    uses: ./.github/workflows/reusable.yml
+    with:
+      label-name: "stale"
