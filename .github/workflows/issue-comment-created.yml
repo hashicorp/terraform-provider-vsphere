@@ -6,10 +6,10 @@ on:
 
 jobs:
   remove-foobar:
-    uses: ./.github/workflows/reusable.yml
+    uses: ./.github/workflows/remove-issue-label.yml
     with:
       label-name: "waiting-response"
   remove-stale:
-    uses: ./.github/workflows/reusable.yml
+    uses: ./.github/workflows/remove-issue-label.yml
     with:
       label-name: "stale"
