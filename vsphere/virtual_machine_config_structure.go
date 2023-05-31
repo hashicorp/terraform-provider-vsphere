@@ -338,6 +338,11 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Computed:    true,
 			Description: "The UUID of the virtual machine. Also exposed as the ID of the resource.",
 		},
+		"moid": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The machine object ID from VMware vSphere.",
+		},
 		"storage_policy_id": {
 			Type:        schema.TypeString,
 			Optional:    true,

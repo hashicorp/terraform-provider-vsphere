@@ -17,6 +17,10 @@ import (
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
 
+const (
+	testAccResourceVSphereVappContainerClonedVmDiskSize = "20"
+)
+
 func TestAccResourceVSphereVAppContainer_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -261,9 +265,6 @@ func testAccResourceVSphereVAppContainerPreCheck(t *testing.T) {
 	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_vapp_container acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_NFS_PATH") == "" {
-		t.Skip("set TF_VAR_VSPHERE_NFS_PATH to run vsphere_vapp_container acceptance tests")
-	}
 	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE") == "" {
 		t.Skip("set TF_VAR_VSPHERE_TEMPLATE to run vsphere_vapp_container acceptance tests")
 	}
@@ -474,7 +475,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore1" {
   name                 = "terraform-datastore-test1"
-  host_system_ids      = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
+  host_system_ids      = [data.vsphere_host.roothost1.id]
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -525,10 +526,9 @@ resource "vsphere_virtual_machine" "vm" {
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootComputeCluster1(),
 			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2(),
 			testhelper.ConfigDataRootDS1()),
 
-		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
+		testhelper.NfsPath2,
 		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 	)
 }
@@ -553,7 +553,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore1" {
   name                 = "terraform-datastore-test1"
-  host_system_ids      = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
+  host_system_ids      = [data.vsphere_host.roothost1.id]
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -602,10 +602,9 @@ resource "vsphere_virtual_machine" "vm" {
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootComputeCluster1(),
 			testhelper.ConfigDataRootPortGroup1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2()),
+			testhelper.ConfigDataRootHost1()),
 
-		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
+		testhelper.NfsPath2,
 		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 	)
 }
@@ -639,7 +638,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore1" {
   name                 = "terraform-datastore-test1"
-  host_system_ids      = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
+  host_system_ids      = [data.vsphere_host.roothost1.id]
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -694,11 +693,10 @@ resource "vsphere_virtual_machine" "vm" {
 			testhelper.ConfigResDS1(),
 			testhelper.ConfigDataRootDS1(),
 			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2(),
 			testhelper.ConfigDataRootVMNet(),
 			testhelper.ConfigDataRootPortGroup1()),
 
-		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
+		testhelper.NfsPath2,
 		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 	)
@@ -768,13 +766,12 @@ resource "vsphere_virtual_machine" "vm" {
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2(),
 			testhelper.ConfigResDS1(),
 			testhelper.ConfigDataRootComputeCluster1(),
 			testhelper.ConfigResResourcePool1(),
 			testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
-		os.Getenv("TF_VAR_VSPHERE_CLONED_VM_DISK_SIZE"),
+		testAccResourceVSphereVappContainerClonedVmDiskSize,
 	)
 }
 

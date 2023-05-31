@@ -89,10 +89,6 @@ func TestAccDataSourceVSphereResourcePool_emptyNameOnVCenterShouldError(t *testi
 				ExpectError: regexp.MustCompile("name cannot be empty when using vCenter"),
 				PlanOnly:    true,
 			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
-			},
 		},
 	})
 }

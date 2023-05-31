@@ -1,8 +1,21 @@
-## 2.4.0 (Unreleased)
+## 2.4.0 (May 5, 2023)
+
+FEATURES:
+* `d/virtual_machine`: Support lookup by moid. ([#1868](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1868))
+* `r/vnic`: Support services for vmkernel adapter/vnic. ([#1855](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1855))
+
+BUG FIXES:
+* `r/nas_datastore`: Fix issue mounting and/or unmounting NFS datastores when updating `host_system_ids` as a day-two operation. ([#1860](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1860))
+* `r/vm_storage_policy`: Updates the `resourceVMStoragePolicyDelete` method to check the response of `pbmClient.DeleteProfile()` API for errors. If a storage policy is in use and cannot be deleted, the destroy operation will fail and the storage policy will remain in the state. ([#1863](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1863))
+* `r/virtual_machine`: Fix vSAN timeout ([#1864](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1864))
+
+IMPROVEMENTS:
+* `r/host`: Update docs ([#1884](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1884))
+* `r/vnic`: Fix vnic tests ([#1887](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1887))
 
 CHORES:
-* Refactor acctests setup ([#1847](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1847))
-* Update to terraform-plugin-sdk v2.25.0 ([#1847](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1847))
+* Update to terraform-plugin-sdk v2.26.1 ([#1862](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1862))
+* Update govmomi v0.30.4 ([#1858](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1858))
 
 ## 2.3.1 (February 8, 2023)
 
@@ -10,6 +23,7 @@ CHORES:
 
 BUG FIXES:
 * `resource/compute_cluster`: Fix panic when reading vSAN. ([#1835](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1835))
+* `r/vsphere_file`: Fixes a provider crash by updating the createDirectory method to check if the provided file path has any parent folder(s). If no folders need to be created FileManager.MakeDirectory is not invoked. ([#1866](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1866))
 
 ## 2.3.0 (February 8, 2023)
 

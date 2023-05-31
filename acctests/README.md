@@ -1,5 +1,5 @@
 # Acceptance Tests
-Here is the current process for deploying infrastructure that can be used for running acceptance tests. Currently only supported on Equinix Metal, the metal provider is currently set for EOL in July 2023, a new official process for running tests will need to be developed.
+Acceptance testing is undergoing technical debt and streamlining. The current process recommends hosting on Equinix Metal, but the foundation of testing will hopefully evolve around nested ESXi VMs, ideally could be used to scale and parallelize tests.
 
 ## Download
 1. Log in to VMware Customer Connect.
@@ -37,31 +37,49 @@ export TF_VAR_VCSA_DEPLOY_PATH="{extract_location}/vcsa-cli-installer/mac/vcsa-d
 ```
 
 ## Provision Equinix Infrastructure
-Terraform needs to be run in two stages. First, to provision the Equinix infrastructure and second to create the shared resources upon which most acceptance tests rely.
+Terraform needs to be run in two stages. First, to provision the Equinix infrastructure and second to create the shared vSphere resources upon which most acceptance tests rely.
 
 ```
 $ cd acctests/equinix
 $ terraform init
 $ terraform apply
 ```
-This process will take a significant amount of time, as a lot of data is being uploaded to servers. The process likely completed successfully but errored with something like
-```
-Error 422: still bonded 
-```
-You should be able to just reapply
-```
-$ terraform apply
-```
+This process will take a significant amount of time, as a lot of data is being uploaded to servers.
 
-## Run Terraform Phase 2
+## Provision vSphere
 A file with several environment variables called `devrc` must be created within `acctests/equinix` path. You must source that file and then switch to the `acctests/vsphere` path.
+
 ```
 $ source devrc
 $ cd ../vsphere
 $ terraform init
 $ terraform apply
 ```
-Now all the infrastructure should be created, if you planned on running the cluster tests with vSAN, make sure to enable vSAN on the VMkernal adapters on the management network for ESXI hosts 3 and 4. This can be done through the vSphere client or PowerCLI.  An additional `devrc` file should have been created in the `acctests/vsphere` path. Source this file and you should have all the necessary environment variables for running tests.
+This will create a few resources expected in testing, as well as set a few default values for testing hardcoded in devrc.tpl. The set of variables were exported to another devrc, source that now.
 ```
 $ source devrc
 ```
+
+This set of environment variables and setup should allow you to run most of the acceptance tests, current failing ones or ones skipped due to missing or misconfigured environment variables will be addressed ASAP (unfortunately there had been a large amount of technical debt built up around testing).
+
+### Please Note
+As for writing a few manual steps had to be taken to privately network the nested ESXis and add them to vSphere. You will need to let the first apply fail, then perform the steps and re-apply.
+
+1. Delete vmk1 and manually recreate it attached to the new vSwitch (which runs on vmnic1), give it an IP on the private subnet
+2. Visit the physical ESXi web UI (likely the vCenter IP - 1) and power off the vcsa VM
+3. Attach vmnet to the vcsa VM
+4. Power on the vcsa VM
+5. Visit the vCenter IP again, but this time port :5480
+6. In the networking tab give it a valid IP on the private subnet the ESXi VMs run on
+7. In vCenter manually create a snapshot of the template VM (this should be easy to capture in config going forward)
+
+## Running tests
+Tests can be ran via regexp pattern, generally advisable to run them individually or by resource type. It's common practice to have resource tests contain an underscore in their name to make the whole suite of tests for the resource run.
+
+```
+$ make testacc TESTARGS="-run=TestAccResourceVSphereVirtualMachine_ -count=1"
+```
+
+`count=1` is just a Golang trick to bust the testcache.
+
+Some tests may leave a few resources behind causing a subsequent test in the suite to complain about a name already existing, generally you can just manually delete it from the vSphere UI to get the next test to run.

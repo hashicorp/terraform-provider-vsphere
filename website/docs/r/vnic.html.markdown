@@ -85,6 +85,7 @@ resource "vsphere_vnic" "v1" {
   ipv4 {
     dhcp = true
   }
+  enabled_services = ["vsan", "management"]
 }
 ```
 
@@ -98,6 +99,7 @@ resource "vsphere_vnic" "v1" {
 * `mac` - (Optional) MAC address of the interface.
 * `mtu` - (Optional) MTU of the interface.
 * `netstack` - (Optional)  TCP/IP stack setting for this interface. Possible values are 'defaultTcpipStack', 'vmotion', 'vSphereProvisioning'. Changing this will force the creation of a new interface since it's not possible to change the stack once it gets created. (Default: `defaultTcpipStack`)
+* `services` - (Optional)  Enabled services setting for this interface. Current possible values are 'vmotion', 'management', and 'vsan'.
 
 
 ### ipv4 options

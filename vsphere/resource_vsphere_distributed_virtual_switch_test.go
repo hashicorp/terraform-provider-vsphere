@@ -19,6 +19,11 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+const (
+	testAccResourceVSphereDistributedVirtualSwitchUpperVersion = "7.0.0"
+	testAccResourceVSphereDistributedVirtualSwitchLowerVersion = "6.5.0"
+)
+
 func TestAccResourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -116,9 +121,9 @@ func TestAccResourceVSphereDistributedVirtualSwitch_standbyWithExplicitFailoverO
 				Config: testAccResourceVSphereDistributedVirtualSwitchConfigStandbyLink(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereDistributedVirtualSwitchExists(true),
-					testAccResourceVSphereDistributedVirtualSwitchHasUplinks([]string{os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"), os.Getenv("TF_VAR_VSPHERE_HOST_NIC1")}),
-					testAccResourceVSphereDistributedVirtualSwitchHasActiveUplinks([]string{os.Getenv("TF_VAR_VSPHERE_HOST_NIC0")}),
-					testAccResourceVSphereDistributedVirtualSwitchHasStandbyUplinks([]string{os.Getenv("TF_VAR_VSPHERE_HOST_NIC1")}),
+					testAccResourceVSphereDistributedVirtualSwitchHasUplinks([]string{testhelper.HostNic0, testhelper.HostNic1}),
+					testAccResourceVSphereDistributedVirtualSwitchHasActiveUplinks([]string{testhelper.HostNic0}),
+					testAccResourceVSphereDistributedVirtualSwitchHasStandbyUplinks([]string{testhelper.HostNic1}),
 				),
 			},
 		},
@@ -145,9 +150,9 @@ func TestAccResourceVSphereDistributedVirtualSwitch_basicToStandbyWithFailover(t
 				Config: testAccResourceVSphereDistributedVirtualSwitchConfigStandbyLink(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereDistributedVirtualSwitchExists(true),
-					testAccResourceVSphereDistributedVirtualSwitchHasUplinks([]string{os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"), os.Getenv("TF_VAR_VSPHERE_HOST_NIC1")}),
-					testAccResourceVSphereDistributedVirtualSwitchHasActiveUplinks([]string{os.Getenv("TF_VAR_VSPHERE_HOST_NIC0")}),
-					testAccResourceVSphereDistributedVirtualSwitchHasStandbyUplinks([]string{os.Getenv("TF_VAR_VSPHERE_HOST_NIC1")}),
+					testAccResourceVSphereDistributedVirtualSwitchHasUplinks([]string{testhelper.HostNic0, testhelper.HostNic1}),
+					testAccResourceVSphereDistributedVirtualSwitchHasActiveUplinks([]string{testhelper.HostNic0}),
+					testAccResourceVSphereDistributedVirtualSwitchHasStandbyUplinks([]string{testhelper.HostNic1}),
 				),
 			},
 		},
@@ -165,17 +170,17 @@ func TestAccResourceVSphereDistributedVirtualSwitch_upgradeVersion(t *testing.T)
 		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereDistributedVirtualSwitchConfigStaticVersion(os.Getenv("TF_VAR_VSPHERE_VSWITCH_LOWER_VERSION")),
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigStaticVersion(testAccResourceVSphereDistributedVirtualSwitchLowerVersion),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereDistributedVirtualSwitchExists(true),
-					testAccResourceVSphereDistributedVirtualSwitchHasVersion(os.Getenv("TF_VAR_VSPHERE_VSWITCH_LOWER_VERSION")),
+					testAccResourceVSphereDistributedVirtualSwitchHasVersion(testAccResourceVSphereDistributedVirtualSwitchLowerVersion),
 				),
 			},
 			{
-				Config: testAccResourceVSphereDistributedVirtualSwitchConfigStaticVersion(os.Getenv("TF_VAR_VSPHERE_VSWITCH_UPPER_VERSION")),
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigStaticVersion(testAccResourceVSphereDistributedVirtualSwitchUpperVersion),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereDistributedVirtualSwitchExists(true),
-					testAccResourceVSphereDistributedVirtualSwitchHasVersion(os.Getenv("TF_VAR_VSPHERE_VSWITCH_UPPER_VERSION")),
+					testAccResourceVSphereDistributedVirtualSwitchHasVersion(testAccResourceVSphereDistributedVirtualSwitchUpperVersion),
 				),
 			},
 		},
@@ -220,7 +225,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_explicitUplinks(t *testing.T
 				Config: testAccResourceVSphereDistributedVirtualSwitchConfigUplinks(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereDistributedVirtualSwitchExists(true),
-					testAccResourceVSphereDistributedVirtualSwitchHasUplinks([]string{os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"), os.Getenv("TF_VAR_VSPHERE_HOST_NIC1")}),
+					testAccResourceVSphereDistributedVirtualSwitchHasUplinks([]string{testhelper.HostNic0, testhelper.HostNic1}),
 				),
 			},
 		},
@@ -257,8 +262,8 @@ func TestAccResourceVSphereDistributedVirtualSwitch_modifyUplinks(t *testing.T) 
 					testAccResourceVSphereDistributedVirtualSwitchExists(true),
 					testAccResourceVSphereDistributedVirtualSwitchHasUplinks(
 						[]string{
-							os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"),
-							os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"),
+							testhelper.HostNic0,
+							testhelper.HostNic1,
 						},
 					),
 				),
@@ -430,12 +435,6 @@ func TestAccResourceVSphereDistributedVirtualSwitch_multiCustomAttribute(t *test
 }
 
 func testAccResourceVSphereDistributedVirtualSwitchPreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_HOST_NIC0") == "" {
-		t.Skip("set TF_VAR_VSPHERE_HOST_NIC0 to run vsphere_host_virtual_switch acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_HOST_NIC1") == "" {
-		t.Skip("set TF_VAR_VSPHERE_HOST_NIC1 to run vsphere_host_virtual_switch acceptance tests")
-	}
 	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_host_virtual_switch acceptance tests")
 	}
@@ -657,7 +656,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost2()),
-		os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"),
+		testhelper.HostNic0,
 	)
 }
 
@@ -690,7 +689,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost1()),
-		os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"),
+		testhelper.HostNic0,
 		version,
 	)
 }
@@ -726,7 +725,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 			testhelper.ConfigDataRootHost1(),
 			testhelper.ConfigDataRootHost2(),
 		),
-		os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"),
+		testhelper.HostNic0,
 	)
 }
 
@@ -764,7 +763,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost1(),
 			testhelper.ConfigDataRootHost2()),
-		os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"),
+		testhelper.HostNic0,
 	)
 }
 
@@ -801,8 +800,8 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost1(),
 			testhelper.ConfigDataRootHost2()),
-		os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"),
-		os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"),
+		testhelper.HostNic0,
+		testhelper.HostNic1,
 	)
 }
 
@@ -840,8 +839,8 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootHost1(),
 			testhelper.ConfigDataRootHost2()),
-		os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"),
-		os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"),
+		testhelper.HostNic0,
+		testhelper.HostNic1,
 	)
 }
 
