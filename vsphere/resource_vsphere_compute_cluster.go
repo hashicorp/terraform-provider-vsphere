@@ -1441,8 +1441,7 @@ func resourceVSphereComputeClusterFlattenData(
 		return err
 	}
 
-	err = flattenVsanStretchedCluster(meta.(*Client).vsanClient, d, cluster)
-	if err != nil {
+	if err := flattenVsanStretchedCluster(meta.(*Client).vsanClient, d, cluster, props.ConfigurationEx.(*types.ClusterConfigInfoEx)); err != nil {
 		return err
 	}
 
@@ -1824,7 +1823,7 @@ func flattenVsanDisks(d *schema.ResourceData, cluster *object.ClusterComputeReso
 	return d.Set("vsan_disk_group", diskMap)
 }
 
-func flattenVsanStretchedCluster(client *vsan.Client, d *schema.ResourceData, cluster *object.ClusterComputeResource) error {
+func flattenVsanStretchedCluster(client *vsan.Client, d *schema.ResourceData, cluster *object.ClusterComputeResource, obj *types.ClusterConfigInfoEx) error {
 	res, err := vsanclient.GetWitnessHosts(client, cluster.Reference())
 	if err != nil {
 		return err
@@ -1835,7 +1834,35 @@ func flattenVsanStretchedCluster(client *vsan.Client, d *schema.ResourceData, cl
 	}
 
 	if res.Returnval[0].UnicastAgentAddr != "" {
-		//TODO: set stretched cluster config info
+		conf := []interface{}{}
+
+		for _, witnessHost := range res.Returnval {
+			preferredFaultDomainName := witnessHost.PreferredFdName
+			var secondaryFaultDomainName string
+			preferredFaultDomainHostIds := []string{}
+			secondaryFaultDomainHostIds := []string{}
+			for _, hostConf := range obj.VsanHostConfig {
+				name := hostConf.FaultDomainInfo.Name
+				if name == preferredFaultDomainName {
+					preferredFaultDomainHostIds = append(preferredFaultDomainHostIds, hostConf.HostSystem.Value)
+				} else {
+					if len(secondaryFaultDomainName) == 0 {
+						secondaryFaultDomainName = name
+					}
+					secondaryFaultDomainHostIds = append(secondaryFaultDomainHostIds, hostConf.HostSystem.Value)
+				}
+			}
+			conf = append(conf, map[string]interface{}{
+				"preferred_fault_domain_host_ids": preferredFaultDomainHostIds,
+				"secondary_fault_domain_host_ids": secondaryFaultDomainHostIds,
+				"witness_node":                    witnessHost.Host.Value,
+				"preferred_fault_domain_name":     preferredFaultDomainName,
+				"secondary_fault_domain_name":     secondaryFaultDomainName,
+			})
+		}
+		if err = d.Set("vsan_stretched_cluster_conf", conf); err != nil {
+			return err
+		}
 		return d.Set("vsan_stretched_cluster_enabled", true)
 	} else {
 		return fmt.Errorf("error getting witness node for cluster %s, agent address was unexpectedly empty", d.Get("name").(string))
