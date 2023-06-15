@@ -9,23 +9,6 @@ variable "VSPHERE_PG_NAME" {
   default = "vmnet"
 }
 
-variable "VSPHERE_VMFS_REGEXP" {
-  default = "naa."
-}
-
-data "vsphere_vmfs_disks" "available" {
-  host_system_id = vsphere_host.host1.id
-  rescan         = true
-  filter         = var.VSPHERE_VMFS_REGEXP
-}
-
-# TODO: use datastore1 instead for nested esxi VMs
-resource "vsphere_vmfs_datastore" "nested-esxi" {
-  name           = "nested-esxi"
-  host_system_id = vsphere_host.host1.id
-  disks          = data.vsphere_vmfs_disks.available.disks
-}
-
 resource "vsphere_host_virtual_switch" "switch" {
   name           = "terraform-test"
   host_system_id = vsphere_host.host1.id
@@ -57,7 +40,7 @@ data "vsphere_ovf_vm_template" "nested-esxi" {
   name              = "Nested-ESXi-7.0"
   disk_provisioning = "thin"
   resource_pool_id  = vsphere_compute_cluster.compute_cluster.resource_pool_id
-  datastore_id      = vsphere_vmfs_datastore.nested-esxi.id
+  datastore_id      = data.vsphere_datastore.datastore1.id
   host_system_id    = vsphere_host.host1.id
   remote_ovf_url    = "https://download3.vmware.com/software/vmw-tools/nested-esxi/Nested_ESXi7.0u3_Appliance_Template_v1.ova"
   ovf_network_map = {

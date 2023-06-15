@@ -5,6 +5,10 @@ variable "NESTED_COUNT" {
   default = 3
 }
 
+variable "DOMAIN" {
+  default = "test.local"
+}
+
 variable "VSPHERE_PRIVATE_NETWORK" {}
 
 variable "PRIV_KEY" {}
@@ -44,12 +48,12 @@ resource "vsphere_virtual_machine" "nested-esxi" {
 
   vapp {
     properties = {
-      "guestinfo.hostname"   = "nested-${count.index + 1}.test.local",
-      "guestinfo.ipaddress"  = cidrhost(var.VSPHERE_PRIVATE_NETWORK, count.index + 3),
+      "guestinfo.hostname"   = "nested-${count.index + 1}.${var.DOMAIN}",
+      "guestinfo.ipaddress"  = cidrhost(var.VSPHERE_PRIVATE_NETWORK, count.index + 2),
       "guestinfo.netmask"    = "255.255.255.248",
       "guestinfo.gateway"    = cidrhost(var.VSPHERE_PRIVATE_NETWORK, 1),
       "guestinfo.dns"        = cidrhost(var.VSPHERE_PRIVATE_NETWORK, 1),
-      "guestinfo.domain"     = "test.local",
+      "guestinfo.domain"     = var.DOMAIN,
       "guestinfo.ntp"        = cidrhost(var.VSPHERE_PRIVATE_NETWORK, 1),
       "guestinfo.ssh"        = "True",
       "guestinfo.password"   = "VMware1!",

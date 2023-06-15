@@ -51,3 +51,13 @@ resource "vsphere_host" "host1" {
   cluster    = vsphere_compute_cluster.compute_cluster.id
   thumbprint = data.vsphere_host_thumbprint.esxi1.id
 }
+
+data "vsphere_network" "public" {
+  name          = "VM Network"
+  datacenter_id = vsphere_datacenter.dc.moid
+}
+
+data "vsphere_datastore" "datastore1" {
+  name          = "datastore1"
+  datacenter_id = vsphere_datacenter.dc.moid
+}
