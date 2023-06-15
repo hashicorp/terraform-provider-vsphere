@@ -5,12 +5,6 @@ variable "VSPHERE_RESOURCE_POOL" {
   default = "hashi-resource-pool"
 }
 
-variable "VSPHERE_NFS_DS_NAME" {
-  default = "nfs"
-}
-
-variable "VSPHERE_NAS_HOST" {}
-
 variable "VSPHERE_TEMPLATE" {
   default = "tfvsphere_template"
 }
@@ -23,17 +17,19 @@ variable "VSPHERE_VM_V1_PATH" {
   default = "pxe-server"
 }
 
+variable "VSPHERE_VMFS_REGEXP" {
+  default = "naa."
+}
+
+data "vsphere_vmfs_disks" "available" {
+  host_system_id = vsphere_host.host1.id
+  rescan         = true
+  filter         = var.VSPHERE_VMFS_REGEXP
+}
+
 resource "vsphere_resource_pool" "pool" {
   name                    = var.VSPHERE_RESOURCE_POOL
   parent_resource_pool_id = vsphere_compute_cluster.compute_cluster.resource_pool_id
-}
-
-resource "vsphere_nas_datastore" "ds" {
-  name            = var.VSPHERE_NFS_DS_NAME
-  host_system_ids = [vsphere_host.host1.id] // TODO: needs to be networked privately for nested ESXIs to connect to it
-  type            = "NFS"
-  remote_hosts    = [var.VSPHERE_NAS_HOST]
-  remote_path     = "/nfs"
 }
 
 resource "vsphere_virtual_machine" "template" {

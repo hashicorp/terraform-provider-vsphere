@@ -7,8 +7,6 @@ variable "PACKET_AUTH" {
 
 variable "PACKET_PROJECT" {}
 
-variable "PRIV_KEY" {}
-
 variable "VCSA_DEPLOY_PATH" {}
 
 variable "ESXI_VERSION" {
@@ -23,12 +21,12 @@ variable "ESXI_PLAN" {
   default = "c3.medium.x86"
 }
 
-variable "STORAGE_PLAN" {
-  default = "c3.small.x86"
-}
-
 variable "LAB_PREFIX" {
   default = ""
+}
+
+variable "DOMAIN" {
+  default = "test.local"
 }
 
 provider "equinix" {
@@ -36,7 +34,7 @@ provider "equinix" {
 }
 
 resource "equinix_metal_device" "esxi1" {
-  hostname         = "${var.LAB_PREFIX}e.test.local"
+  hostname         = "${var.LAB_PREFIX}e.${var.DOMAIN}"
   plan             = var.ESXI_PLAN
   metro            = var.PACKET_FACILITY
   operating_system = var.ESXI_VERSION
@@ -68,40 +66,25 @@ resource "equinix_metal_port_vlan_attachment" "esxi1" {
   vlan_vnid = equinix_metal_vlan.vmvlan.vxlan
 }
 
-resource "equinix_metal_device" "storage1" {
-  hostname         = "${var.LAB_PREFIX}storage1.test.local"
-  plan             = var.STORAGE_PLAN
-  metro            = var.PACKET_FACILITY
-  operating_system = "ubuntu_20_04"
-  billing_cycle    = "hourly"
-  project_id       = var.PACKET_PROJECT
-  provisioner "remote-exec" {
-    inline = [
-      "mkdir -p /nfs/ds1 /nfs/ds2 /nfs/ds3",
-      "apt-get update",
-      "apt-get install nfs-common nfs-kernel-server -y",
-      "echo \"/nfs *(rw,no_root_squash)\" > /etc/exports",
-      "echo \"/nfs/ds1 *(rw,no_root_squash)\" >> /etc/exports",
-      "echo \"/nfs/ds2 *(rw,no_root_squash)\" >> /etc/exports",
-      "echo \"/nfs/ds3 *(rw,no_root_squash)\" >> /etc/exports",
-      "exportfs -a",
-    ]
-    connection {
-      host        = equinix_metal_device.storage1.network.0.address
-      private_key = file(var.PRIV_KEY)
-    }
-  }
+resource "random_password" "admin" {
+  length = 12
 }
 
-resource "local_file" "vcsa_template" {
+locals {
+  vcenter_fqdn = "vcenter.${var.DOMAIN}"
+}
+
+resource "local_sensitive_file" "vcsa_template" {
+  depends_on = [equinix_metal_port_vlan_attachment.esxi1]
+
   content = templatefile("${path.cwd}/vcsa_deploy.json", {
     hostname       = equinix_metal_device.esxi1.network.0.address
     password       = equinix_metal_device.esxi1.root_password
     ip_address     = cidrhost("${equinix_metal_device.esxi1.network.0.address}/${equinix_metal_device.esxi1.network.0.cidr}", 3)
     ip_prefix      = equinix_metal_device.esxi1.network.0.cidr
     gateway        = cidrhost("${equinix_metal_device.esxi1.network.0.address}/${equinix_metal_device.esxi1.network.0.cidr}", 1)
-    vcenter_fqdn   = "vcenter.test.local"
-    admin_password = "Password123!"
+    vcenter_fqdn   = local.vcenter_fqdn
+    admin_password = random_password.admin.result
   })
   filename = "./tmp/vcsa.json"
   provisioner "local-exec" {
@@ -111,11 +94,13 @@ resource "local_file" "vcsa_template" {
 
 resource "local_sensitive_file" "devrc" {
   content = templatefile("./devrc.tpl", {
-    nas_host        = equinix_metal_device.storage1.network.0.address
     esxi_host_1     = equinix_metal_device.esxi1.network.0.address
     esxi_host_1_pw  = equinix_metal_device.esxi1.root_password
     vsphere_host    = cidrhost("${equinix_metal_device.esxi1.network.0.address}/${equinix_metal_device.esxi1.network.0.cidr}", 3)
-    private_network = "${equinix_metal_device.esxi1.network.2.address}/${equinix_metal_device.esxi1.network.2.cidr}"
+    public_network  = "${cidrhost("${equinix_metal_device.esxi1.network.0.address}/${equinix_metal_device.esxi1.network.0.cidr}", 0)}/${equinix_metal_device.esxi1.network.0.cidr}"
+    private_network = "${cidrhost("${equinix_metal_device.esxi1.network.2.address}/${equinix_metal_device.esxi1.network.2.cidr}", 0)}/${equinix_metal_device.esxi1.network.2.cidr}"
+    admin_user      = "administrator@${local.vcenter_fqdn}"
+    admin_password  = random_password.admin.result
   })
   filename = "./devrc"
 }

@@ -63,15 +63,14 @@ $ source devrc
 This set of environment variables and setup should allow you to run most of the acceptance tests, current failing ones or ones skipped due to missing or misconfigured environment variables will be addressed ASAP (unfortunately there had been a large amount of technical debt built up around testing).
 
 ### Please Note
-As for writing a few manual steps had to be taken to privately network the nested ESXis and add them to vSphere. You will need to let the first apply fail, then perform the steps and re-apply.
+A few manual steps had to be taken to privately network the nested ESXis and add them to vSphere. You will need to cancel the null_resource provisioner that SSH's into the primary host to retrieve the thumbprints of the nested VMs with `CTRL + C` (it will hang or timeout as the vCenter VM cannot communicate on that network yet).
 
-1. Delete vmk1 and manually recreate it attached to the new vSwitch (which runs on vmnic1), give it an IP on the private subnet
+1. Delete vmk1 and manually recreate it attached to the new vSwitch created by terraform (which runs on vmnic1), give it an IP on the private network (assuming 3 nested ESXIs were created, use the 5th address).
 2. Visit the physical ESXi web UI (likely the vCenter IP - 1) and power off the vcsa VM
 3. Attach vmnet to the vcsa VM
 4. Power on the vcsa VM
 5. Visit the vCenter IP again, but this time port :5480
-6. In the networking tab give it a valid IP on the private subnet the ESXi VMs run on
-7. In vCenter manually create a snapshot of the template VM (this should be easy to capture in config going forward)
+6. In the networking tab give it a valid IP on the private network (assuming 3 nested ESXIs were created, use the 6th address).
 
 ## Running tests
 Tests can be ran via regexp pattern, generally advisable to run them individually or by resource type. It's common practice to have resource tests contain an underscore in their name to make the whole suite of tests for the resource run.

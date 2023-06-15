@@ -18,6 +18,7 @@ resource "local_sensitive_file" "devrc" {
     test_ovf      = vsphere_virtual_machine.template.ovf_deploy[0].remote_ovf_url
     vm_name       = vsphere_virtual_machine.pxe.name
     trunk_nic     = vsphere_host_virtual_switch.switch.network_adapters[0]
+    nas_host      = local.vsphere_nas_host
   })
   filename = "./devrc"
 }
