@@ -1385,14 +1385,16 @@ func resourceVSphereComputeClusterFlattenData(
 		d.Set("vsan_dit_rekey_interval", 0)
 	}
 
-	var dsIDs []string
-	if vsanConfig.DatastoreConfig != nil {
-		for _, ds := range vsanConfig.DatastoreConfig.(*vsantypes.VsanAdvancedDatastoreConfig).RemoteDatastores {
-			dsIDs = append(dsIDs, ds.Value)
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 1}) {
+		var dsIDs []string
+		if vsanConfig.DatastoreConfig != nil {
+			for _, ds := range vsanConfig.DatastoreConfig.(*vsantypes.VsanAdvancedDatastoreConfig).RemoteDatastores {
+				dsIDs = append(dsIDs, ds.Value)
+			}
 		}
-	}
-	if err := d.Set("vsan_remote_datastore_ids", schema.NewSet(schema.HashString, structure.SliceStringsToInterfaces(dsIDs))); err != nil {
-		return err
+		if err := d.Set("vsan_remote_datastore_ids", schema.NewSet(schema.HashString, structure.SliceStringsToInterfaces(dsIDs))); err != nil {
+			return err
+		}
 	}
 
 	return flattenClusterConfigSpecEx(d, props.ConfigurationEx.(*types.ClusterConfigInfoEx), version)
@@ -1456,6 +1458,11 @@ func expandVsanDatastoreConfig(d *schema.ResourceData, meta interface{}) (*vsant
 }
 
 func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta interface{}, cluster *object.ClusterComputeResource) error {
+	client, err := resourceVSphereComputeClusterClient(meta)
+	if err != nil {
+		return err
+	}
+	version := viapi.ParseVersionFromClient(client)
 	conf := vsantypes.VimVsanReconfigSpec{
 		Modify: true,
 		VsanClusterConfig: &vsantypes.VsanClusterConfigInfo{
@@ -1498,15 +1505,17 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 	}
 
 	// handle remote datastore/HCI Mesh in a separate call
-	datastoreConfig, err := expandVsanDatastoreConfig(d, meta)
-	if err != nil {
-		return err
-	}
-	if err := vsanclient.Reconfigure(meta.(*Client).vsanClient, cluster.Reference(), vsantypes.VimVsanReconfigSpec{
-		Modify:          true,
-		DatastoreConfig: datastoreConfig,
-	}); err != nil {
-		return fmt.Errorf("cannot apply vsan remote datastores on cluster '%s': %s", d.Get("name").(string), err)
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 1}) {
+		datastoreConfig, err := expandVsanDatastoreConfig(d, meta)
+		if err != nil {
+			return err
+		}
+		if err := vsanclient.Reconfigure(meta.(*Client).vsanClient, cluster.Reference(), vsantypes.VimVsanReconfigSpec{
+			Modify:          true,
+			DatastoreConfig: datastoreConfig,
+		}); err != nil {
+			return fmt.Errorf("cannot apply vsan remote datastores on cluster '%s': %s", d.Get("name").(string), err)
+		}
 	}
 
 	return nil
