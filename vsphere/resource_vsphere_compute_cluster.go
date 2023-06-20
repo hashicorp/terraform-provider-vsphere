@@ -1494,12 +1494,12 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 			Enabled:       structure.GetBool(d, "vsan_enabled"),
 			DefaultConfig: &types.VsanClusterConfigInfoHostDefaultInfo{},
 		},
+		UnmapConfig: &vsantypes.VsanUnmapConfig{
+			Enable: d.Get("vsan_unmap_enabled").(bool),
+		},
 		DataInTransitEncryptionConfig: &vsantypes.VsanDataInTransitEncryptionConfig{
 			Enabled:       structure.GetBool(d, "vsan_dit_encryption_enabled"),
 			RekeyInterval: int32(d.Get("vsan_dit_rekey_interval").(int)),
-		},
-		UnmapConfig: &vsantypes.VsanUnmapConfig{
-			Enable: d.Get("vsan_unmap_enabled").(bool),
 		},
 	}
 
