@@ -933,6 +933,11 @@ func resourceVSphereComputeClusterApplyClusterConfiguration(
 
 	log.Printf("[DEBUG] %s: Applying cluster configuration", resourceVSphereComputeClusterIDString(d))
 
+	// handle VSAN first to avoid race condition
+	if err := resourceVSphereComputeClusterApplyVsanConfig(d, meta, cluster); err != nil {
+		return err
+	}
+
 	client, err := resourceVSphereComputeClusterClient(meta)
 	if err != nil {
 		return err
@@ -941,11 +946,6 @@ func resourceVSphereComputeClusterApplyClusterConfiguration(
 	// Get the version of the vSphere connection to help determine what
 	// attributes we need to set
 	version := viapi.ParseVersionFromClient(client)
-
-	// handle VSAN first to avoid race condition
-	if err := resourceVSphereComputeClusterApplyVsanConfig(d, meta, cluster, version); err != nil {
-		return err
-	}
 
 	// Expand the cluster configuration.
 	spec := expandClusterConfigSpecEx(d, version)
@@ -1463,36 +1463,36 @@ func expandVsanDatastoreConfig(d *schema.ResourceData, meta interface{}) (*vsant
 	return conf, nil
 }
 
-func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta interface{}, cluster *object.ClusterComputeResource, version viapi.VSphereVersion) error {
-	if d.Get("vsan_esa_enabled").(bool) {
-		if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 8, Minor: 0}) {
-			return fmt.Errorf("vsan_esa_enabled is only supported on vSphere 8.0 and higher")
+func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta interface{}, cluster *object.ClusterComputeResource) error {
+	client, err := resourceVSphereComputeClusterClient(meta)
+	if err != nil {
+		return err
+	}
+	version := viapi.ParseVersionFromClient(client)
+
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 8, Minor: 0}) {
+		if !d.Get("vsan_enabled").(bool) && d.Get("vsan_esa_enabled").(bool) {
+			return fmt.Errorf("vSAN ESA service cannot be enabled on cluster due to vSAN is disabled: %s", d.Get("name").(string))
+		}
+		if !d.HasChange("vsan_enabled") && d.HasChange("vsan_esa_enabled") {
+			return fmt.Errorf("vSAN ESA service must be configured along with vSAN service: %s", d.Get("name").(string))
+		}
+		if d.Get("vsan_esa_enabled").(bool) {
+			// need to be revised if GetOkExists() is deprecated in the future
+			unmapEnabled, unmapOK := d.GetOkExists("vsan_unmap_enabled")
+			if !unmapOK {
+				d.Set("vsan_unmap_enabled", true)
+			} else if !unmapEnabled.(bool) {
+				return fmt.Errorf("vSAN unmap service should be by default enabled when vSAN ESA is enabled: %s", d.Get("name").(string))
+			}
 		}
 	}
 
-	if !d.Get("vsan_enabled").(bool) && d.Get("vsan_esa_enabled").(bool) {
-		return fmt.Errorf("vSAN ESA service cannot be enabled on cluster due to vSAN is disabled: %s", d.Get("name").(string))
-	}
-	if !d.HasChange("vsan_enabled") && d.HasChange("vsan_esa_enabled") {
-		return fmt.Errorf("vSAN ESA service must be configured along with vSAN service: %s", d.Get("name").(string))
-	}
-	if d.Get("vsan_esa_enabled").(bool) {
-		// need to be revised if GetOkExists() is deprecated in the future
-		unmapEnabled, unmapOK := d.GetOkExists("vsan_unmap_enabled")
-		if !unmapOK {
-			if err := d.Set("vsan_unmap_enabled", true); err != nil {
-				return fmt.Errorf("Cannot enable vSAN unmap service by default during enabling vSAN ESA: %s", d.Get("name").(string))
-			}
-		} else if !unmapEnabled.(bool) {
-			return fmt.Errorf("vSAN unmap service is by default enabled when vSAN ESA is enabled: %s", d.Get("name").(string))
-		}
-	}
 	conf := vsantypes.VimVsanReconfigSpec{
 		Modify: true,
 		VsanClusterConfig: &vsantypes.VsanClusterConfigInfo{
-			Enabled:        structure.GetBool(d, "vsan_enabled"),
-			VsanEsaEnabled: structure.GetBool(d, "vsan_esa_enabled"),
-			DefaultConfig:  &types.VsanClusterConfigInfoHostDefaultInfo{},
+			Enabled:       structure.GetBool(d, "vsan_enabled"),
+			DefaultConfig: &types.VsanClusterConfigInfoHostDefaultInfo{},
 		},
 		DataInTransitEncryptionConfig: &vsantypes.VsanDataInTransitEncryptionConfig{
 			Enabled:       structure.GetBool(d, "vsan_dit_encryption_enabled"),
@@ -1501,6 +1501,10 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 		UnmapConfig: &vsantypes.VsanUnmapConfig{
 			Enable: d.Get("vsan_unmap_enabled").(bool),
 		},
+	}
+
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 8, Minor: 0}) {
+		conf.VsanClusterConfig.(*vsantypes.VsanClusterConfigInfo).VsanEsaEnabled = structure.GetBool(d, "vsan_esa_enabled")
 	}
 
 	perfConfig, err := expandVsanPerfConfig(d)
