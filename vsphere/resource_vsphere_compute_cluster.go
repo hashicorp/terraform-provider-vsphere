@@ -1505,7 +1505,7 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 	}
 
 	// handle remote datastore/HCI Mesh in a separate call
-	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 1}) {
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0, Patch: 1}) {
 		datastoreConfig, err := expandVsanDatastoreConfig(d, meta)
 		if err != nil {
 			return err
