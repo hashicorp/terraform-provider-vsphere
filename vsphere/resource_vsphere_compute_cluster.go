@@ -1385,7 +1385,7 @@ func resourceVSphereComputeClusterFlattenData(
 		d.Set("vsan_dit_rekey_interval", 0)
 	}
 
-	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 1}) {
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0, Patch: 1}) {
 		var dsIDs []string
 		if vsanConfig.DatastoreConfig != nil {
 			for _, ds := range vsanConfig.DatastoreConfig.(*vsantypes.VsanAdvancedDatastoreConfig).RemoteDatastores {
