@@ -1,3 +1,8 @@
+## 2.4.1 (Unreleased)
+
+BUG FIXES:
+* `r/vsphere_compute_cluster`:  Added version check for [vSphere 7.0.1 or later](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vsan.doc/GUID-9113BBD6-5428-4287-9F61-C8C3EE51E07E.html) when enabling vSAN HCI Mesh. ([#1931](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1931))
+
 ## 2.4.0 (May 5, 2023)
 
 FEATURES:
@@ -8,7 +13,6 @@ BUG FIXES:
 * `r/nas_datastore`: Fix issue mounting and/or unmounting NFS datastores when updating `host_system_ids` as a day-two operation. ([#1860](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1860))
 * `r/vm_storage_policy`: Updates the `resourceVMStoragePolicyDelete` method to check the response of `pbmClient.DeleteProfile()` API for errors. If a storage policy is in use and cannot be deleted, the destroy operation will fail and the storage policy will remain in the state. ([#1863](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1863))
 * `r/virtual_machine`: Fix vSAN timeout ([#1864](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1864))
-* `r/vsphere_compute_cluster`:  Added version check for [vSphere 7.0.1 or later](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vsan.doc/GUID-9113BBD6-5428-4287-9F61-C8C3EE51E07E.html) when enabling vSAN HCI Mesh. ([#1931](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1931))
 
 IMPROVEMENTS:
 * `r/host`: Update docs ([#1884](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1884))
