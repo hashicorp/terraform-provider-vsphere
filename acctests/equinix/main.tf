@@ -67,7 +67,11 @@ resource "equinix_metal_port_vlan_attachment" "esxi1" {
 }
 
 resource "random_password" "admin" {
-  length = 12
+  length      = 12
+  min_upper   = 1
+  min_lower   = 1
+  min_numeric = 1
+  min_special = 1
 }
 
 locals {

@@ -1259,8 +1259,15 @@ func dsSweep(string) error {
 		return err
 	}
 	for _, ds := range dss {
+		if regexp.MustCompile(testhelper.NfsDsName2).Match([]byte(ds.Name())) {
+			if err := datastore.Unmount(client.vimClient, ds); err != nil {
+				return err
+			}
+		}
 		if regexp.MustCompile("testacc").Match([]byte(ds.Name())) {
-			return datastore.Unmount(client.vimClient, ds)
+			if err := datastore.Unmount(client.vimClient, ds); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
