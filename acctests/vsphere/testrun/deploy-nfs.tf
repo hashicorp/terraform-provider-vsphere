@@ -1,6 +1,10 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+variable "VSPHERE_ESXI1_BOOT_DISK1_SIZE" {
+  default = 100
+}
+
 variable "VSPHERE_NFS_DS_NAME" {
   default = "nfs"
 }
@@ -13,7 +17,7 @@ locals {
 
 resource "vsphere_virtual_machine" "nfs" {
   name                 = var.VSPHERE_NFS_DS_NAME
-  datacenter_id        = vsphere_datacenter.dc.moid
+  datacenter_id        = data.vsphere_datacenter.dc.id
   datastore_id         = data.vsphere_ovf_vm_template.ubuntu.datastore_id
   host_system_id       = data.vsphere_ovf_vm_template.ubuntu.host_system_id
   resource_pool_id     = data.vsphere_ovf_vm_template.ubuntu.resource_pool_id
@@ -24,6 +28,11 @@ resource "vsphere_virtual_machine" "nfs" {
   firmware             = data.vsphere_ovf_vm_template.ubuntu.firmware
   scsi_type            = data.vsphere_ovf_vm_template.ubuntu.scsi_type
   nested_hv_enabled    = data.vsphere_ovf_vm_template.ubuntu.nested_hv_enabled
+
+  disk {
+    label = "disk0"
+    size  = var.VSPHERE_ESXI1_BOOT_DISK1_SIZE
+  }
 
   dynamic "network_interface" {
     for_each = data.vsphere_ovf_vm_template.ubuntu.ovf_network_map
@@ -73,7 +82,7 @@ resource "vsphere_nas_datastore" "ds" {
   depends_on = [time_sleep.wait_180_seconds_nfs]
 
   name            = var.VSPHERE_NFS_DS_NAME
-  host_system_ids = [vsphere_host.host1.id] // TODO: needs to be networked privately for nested ESXIs to connect to it
+  host_system_ids = [data.vsphere_host.host1.id] // TODO: needs to be networked privately for nested ESXIs to connect to it
   type            = "NFS"
   remote_hosts    = [local.vsphere_nas_host]
   remote_path     = "/nfs"

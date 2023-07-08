@@ -1,5 +1,5 @@
 # Acceptance Tests
-Acceptance testing is undergoing technical debt and streamlining. The current process recommends hosting on Equinix Metal, but the foundation of testing will hopefully evolve around nested ESXi VMs, ideally could be used to scale and parallelize tests.
+Acceptance testing is undergoing revamping and streamlining. The current process recommends hosting on Equinix Metal.
 
 ## Download
 1. Log in to VMware Customer Connect.
@@ -37,48 +37,66 @@ export TF_VAR_VCSA_DEPLOY_PATH="{extract_location}/vcsa-cli-installer/mac/vcsa-d
 ```
 
 ## Provision Equinix Infrastructure
-Terraform needs to be run in two stages. First, to provision the Equinix infrastructure and second to create the shared vSphere resources upon which most acceptance tests rely.
+Terraform needs to be run in a few stages. The first, to provision the Equinix infrastructure and deploy the main ESXi host.
 
 ```
 $ cd acctests/equinix
 $ terraform init
 $ terraform apply
 ```
-This process will take a significant amount of time, as a lot of data is being uploaded to servers.
-
-## Provision vSphere
-A file with several environment variables called `devrc` must be created within `acctests/equinix` path. You must source that file and then switch to the `acctests/vsphere` path.
+This process will take approximately 1.5h depending on network speeds. Once complete please source the `devrc` containing several key environment variables.
 
 ```
 $ source devrc
-$ cd ../vsphere
+```
+
+## Provision vSphere
+The vSphere infrastructure is provisioned in 2 steps, base and testrun. The base resources provision some basic cluster, networking and datastores, and adds the physical ESXi host into inventory.
+
+### Base Step
+Prior to applying, visit the physical ESXi web UI and find the unused boot disk, it will have a very long name like t10.ATA___XXX (assuming the use of Equinix c3.medium), and set `TF_VAR_VSPHERE_ESXI1_BOOT_DISK1` to this name and `TF_VAR_VSPHERE_ESXI1_BOOT_DISK1_SIZE` in GB (about half the overall disk size should be plenty, the nested ESXis will also need to use this datastore).
+
+```
+$ cd ../vsphere/base
 $ terraform init
 $ terraform apply
 ```
-This will create a few resources expected in testing, as well as set a few default values for testing hardcoded in devrc.tpl. The set of variables were exported to another devrc, source that now.
+
+This will create another `devrc` file to source.
+
 ```
 $ source devrc
 ```
 
-This set of environment variables and setup should allow you to run most of the acceptance tests, current failing ones or ones skipped due to missing or misconfigured environment variables will be addressed ASAP (unfortunately there had been a large amount of technical debt built up around testing).
+A few manual steps need to be taken to privately network the nested ESXis setup in the testrun phase.
 
-### Please Note
-A few manual steps had to be taken to privately network the nested ESXis and add them to vSphere. You will need to cancel the null_resource provisioner that SSH's into the primary host to retrieve the thumbprints of the nested VMs with `CTRL + C` (it will hang or timeout as the vCenter VM cannot communicate on that network yet).
-
-1. Delete vmk1 and manually recreate it attached to the new vSwitch created by terraform (which runs on vmnic1), give it an IP on the private network (assuming 3 nested ESXIs were created, use the 5th address).
-2. Visit the physical ESXi web UI (likely the vCenter IP - 1) and power off the vcsa VM
-3. Attach vmnet to the vcsa VM
+1. In vCenter, delete `vmk1` kernel adapter and manually recreate it attached to the new vSwitch created by Terraform  (`terraform-test` which runs on `vmnic1`), give it an IP on the private network (use the 2nd address, the nested ESXis will be setup to use address 3,4,5).
+2. Visit the physical ESXi web UI and power off the vcsa VM
+3. Attach `vmnet` to the vcsa VM
 4. Power on the vcsa VM
-5. Visit the vCenter IP again, but this time port :5480
-6. In the networking tab give it a valid IP on the private network (assuming 3 nested ESXIs were created, use the 6th address).
+5. Visit the vCenter IP again, but this time port `:5480`, signing in may fail the first time, but it is the vsphere username/password found in `acctests/equinix/devrc`
+6. In the networking tab give it a valid IP on the private network (assuming 3 nested ESXIs will be created, use the 6th address).
+
+### TestRun Step
+This config can be destroyed between full test runs of the provider. It should cover cleaning up of things like the nested ESXis running in the wrong cluster, and cleaning up any leftover files in the NFS. Any lingering resources outside of those may need manual cleanup.
+
+```
+$ cd ../vsphere/testrun
+$ terraform init
+$ terraform apply
+```
+
+This will create a final `devrc` file to source.
+
+```
+$ source devrc
+```
 
 ## Running tests
-Tests can be ran via regexp pattern, generally advisable to run them individually or by resource type. It's common practice to have resource tests contain an underscore in their name to make the whole suite of tests for the resource run.
+Now that you have all the required environment variables set, tests can be ran via regexp pattern. It is generally advisable to run them individually or by resource type. It's common practice to have resource tests contain an underscore in their name to make the whole suite of tests for the resource run.
 
 ```
 $ make testacc TESTARGS="-run=TestAccResourceVSphereVirtualMachine_ -count=1"
 ```
 
 `count=1` is just a Golang trick to bust the testcache.
-
-Some tests may leave a few resources behind causing a subsequent test in the suite to complain about a name already existing, generally you can just manually delete it from the vSphere UI to get the next test to run.
