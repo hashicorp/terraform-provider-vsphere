@@ -1,0 +1,75 @@
+name: Nightly Acceptance tests
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs at 12:00 AM UTC
+
+jobs:
+  acceptance_tests:
+    runs-on: ubuntu-latest
+    environment: acctests
+    env:
+      TF_VAR_VSPHERE_ESXI1: ${{ secrets.TF_VAR_VSPHERE_ESXI1 }}
+      TF_VAR_VSPHERE_ESXI1_PW: ${{ secrets.TF_VAR_VSPHERE_ESXI1_PW }}
+      TF_VAR_VSPHERE_LICENSE: ${{ secrets.TF_VAR_VSPHERE_LICENSE }}
+      TF_VAR_VSPHERE_PRIVATE_NETWORK: ${{ secrets.TF_VAR_VSPHERE_PRIVATE_NETWORK }}
+      TF_VAR_VSPHERE_PUBLIC_NETWORK: ${{ secrets.TF_VAR_VSPHERE_PUBLIC_NETWORK }}
+      VSPHERE_PASSWORD: ${{ secrets.VSPHERE_PASSWORD }}
+      VSPHERE_SERVER: ${{ secrets.VSPHERE_SERVER }}
+      VSPHERE_USER: ${{ secrets.VSPHERE_USER }}
+      TF_VAR_VSPHERE_CLUSTER: ${{ vars.TF_VAR_VSPHERE_CLUSTER }}
+      TF_VAR_VSPHERE_DATACENTER: ${{ vars.TF_VAR_VSPHERE_DATACENTER }}
+      TF_VAR_VSPHERE_ESXI1_BOOT_DISK1: ${{ vars.TF_VAR_VSPHERE_ESXI1_BOOT_DISK1 }}
+      TF_VAR_VSPHERE_ESXI1_BOOT_DISK1_SIZE: ${{ vars.TF_VAR_VSPHERE_ESXI1_BOOT_DISK1_SIZE }}
+      TF_VAR_VSPHERE_ESXI_TRUNK_NIC: ${{ vars.TF_VAR_VSPHERE_ESXI_TRUNK_NIC }}
+      TF_VAR_VSPHERE_PG_NAME: ${{ vars.TF_VAR_VSPHERE_PG_NAME }}
+      VSPHERE_ALLOW_UNVERIFIED_SSL: ${{ vars.VSPHERE_ALLOW_UNVERIFIED_SSL }}
+      VSPHERE_PERSIST_SESSION: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          ref: 'main'
+  
+      - name: Write the SSH key and create session folders
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ./ssh_private_key
+          chmod 600 ./ssh_private_key
+          echo "TF_VAR_PRIV_KEY=$(pwd)/ssh_private_key" >> $GITHUB_ENV
+          mkdir -p sessions
+          echo "VSPHERE_VIM_SESSION_PATH=$(pwd)/sessions" >> $GITHUB_ENV
+          mkdir -p rest_sessions
+          echo "VSPHERE_REST_SESSION_PATH=$(pwd)/rest_sessions" >> $GITHUB_ENV
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@633666f66e0061ca3b725c73b2ec20cd13a8fdd1 # v2.0.3
+        with:
+          terraform_wrapper: false
+
+      - name: Create testrun resources
+        run: |
+          cd acctests/vsphere/testrun
+          terraform init
+          terraform apply -auto-approve
+          while read -r line; do
+            if [[ $line == export* ]]; then
+              echo "${line#export }" >> $GITHUB_ENV
+            fi
+          done < devrc
+
+      - name: Set up Go
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        with:
+          go-version-file: '.go-version'
+
+      - name: Go mod verify
+        run: go mod verify
+      
+      - name: Run acceptance tests
+        run: make testacc | go run ./scripts/testresults.go
+
+      - name: Cleanup testrun resources
+        if: always()
+        run: |
+          cd acctests/vsphere/testrun
+          terraform destroy -auto-approve

@@ -13,7 +13,7 @@ resource "local_file" "devrc" {
     nfs_ds_name   = vsphere_nas_datastore.ds.name
     template      = vsphere_virtual_machine.template.name
     test_ovf      = vsphere_virtual_machine.template.ovf_deploy[0].remote_ovf_url
-    vm_name       = vsphere_virtual_machine.pxe.name
+    vm_name       = vsphere_virtual_machine.test-vm.name
     nas_host      = local.vsphere_nas_host
   })
   filename = "./devrc"

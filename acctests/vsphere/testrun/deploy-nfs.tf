@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 variable "VSPHERE_ESXI1_BOOT_DISK1_SIZE" {
-  default = 100
+  type = number
 }
 
 variable "VSPHERE_NFS_DS_NAME" {

@@ -24,8 +24,6 @@ Set the following environment variables
 ```
 # the prefix is only required to prevent collisions with other users in your equinix project
 export TF_VAR_LAB_PREFIX="your prefix"
-# make sure to add a ssh pubkey to your equinix account, set this variable to the privkey
-export TF_VAR_PRIV_KEY="/Users/you/.ssh/id_rsa"
 # ID of the equinix project
 export TF_VAR_PACKET_PROJECT="project id"
 # create an auth token in equinix and set it here
@@ -100,3 +98,6 @@ $ make testacc TESTARGS="-run=TestAccResourceVSphereVirtualMachine_ -count=1"
 ```
 
 `count=1` is just a Golang trick to bust the testcache.
+
+# Nightly Tests
+The full suite of acceptance tests run rightly on GH Actions against ESXi/vSphere stood up on Equinix Metal. The `acctests/equinix` and `acctests/vsphere/base` should be long-lived, while `acctests/vsphere/testrun` is brought up and torn down between CI runs. As of writing the output simply pipes to a simple test summary script.
