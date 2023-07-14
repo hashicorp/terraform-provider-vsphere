@@ -33,13 +33,31 @@ provider "equinix" {
   auth_token = var.PACKET_AUTH
 }
 
+resource "tls_private_key" "gh-actions-ssh" {
+  algorithm = "RSA" # for some reason ED25519 does not work
+  rsa_bits  = 4096
+}
+
+resource "local_sensitive_file" "gh-actions-ssh" {
+  content         = tls_private_key.gh-actions-ssh.private_key_openssh
+  filename        = "./gh-actions-ssh"
+  file_permission = "0600"
+}
+
+resource "equinix_metal_project_ssh_key" "gh-actions-ssh" {
+  name       = "gh-actions-ssh"
+  public_key = tls_private_key.gh-actions-ssh.public_key_openssh
+  project_id = var.PACKET_PROJECT
+}
+
 resource "equinix_metal_device" "esxi1" {
-  hostname         = "${var.LAB_PREFIX}e.${var.DOMAIN}"
-  plan             = var.ESXI_PLAN
-  metro            = var.PACKET_FACILITY
-  operating_system = var.ESXI_VERSION
-  billing_cycle    = "hourly"
-  project_id       = var.PACKET_PROJECT
+  hostname            = "${var.LAB_PREFIX}e.${var.DOMAIN}"
+  plan                = var.ESXI_PLAN
+  metro               = var.PACKET_FACILITY
+  operating_system    = var.ESXI_VERSION
+  billing_cycle       = "hourly"
+  project_ssh_key_ids = [equinix_metal_project_ssh_key.gh-actions-ssh.id]
+  project_id          = var.PACKET_PROJECT
 }
 
 resource "equinix_metal_device_network_type" "esxi1" {
@@ -105,6 +123,7 @@ resource "local_sensitive_file" "devrc" {
     private_network = "${cidrhost("${equinix_metal_device.esxi1.network.2.address}/${equinix_metal_device.esxi1.network.2.cidr}", 0)}/${equinix_metal_device.esxi1.network.2.cidr}"
     admin_user      = "administrator@${local.vcenter_fqdn}"
     admin_password  = random_password.admin.result
+    priv_key        = "${path.cwd}/gh-actions-ssh"
   })
   filename = "./devrc"
 }

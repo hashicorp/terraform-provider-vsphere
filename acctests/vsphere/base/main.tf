@@ -27,9 +27,7 @@ variable "VSPHERE_PG_NAME" {
   default = "vmnet"
 }
 
-variable "VSPHERE_ESXI1_BOOT_DISK1" {
-  default = "t10.ATA_____SSDSCKKB240G8R__________________________PHYH11940029240J____"
-}
+variable "VSPHERE_ESXI1_BOOT_DISK1" {}
 
 resource "vsphere_datacenter" "dc" {
   name = var.VSPHERE_DATACENTER

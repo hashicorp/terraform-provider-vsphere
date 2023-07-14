@@ -14,7 +14,7 @@ variable "VSPHERE_TEST_OVF" {
 }
 
 variable "VSPHERE_VM_V1_PATH" {
-  default = "pxe-server"
+  default = "test-vm"
 }
 
 variable "VSPHERE_VMFS_REGEXP" {
@@ -57,7 +57,7 @@ resource "vsphere_virtual_machine" "template" {
   }
 }
 
-resource "vsphere_virtual_machine" "pxe" {
+resource "vsphere_virtual_machine" "test-vm" {
   name             = var.VSPHERE_VM_V1_PATH
   resource_pool_id = data.vsphere_compute_cluster.compute_cluster.resource_pool_id
   datastore_id     = vsphere_nas_datastore.ds.id
