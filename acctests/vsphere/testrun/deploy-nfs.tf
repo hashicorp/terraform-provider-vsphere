@@ -13,6 +13,8 @@ variable "VSPHERE_PUBLIC_NETWORK" {}
 
 locals {
   vsphere_nas_host = cidrhost(var.VSPHERE_PUBLIC_NETWORK, 4)
+  netmask_list     = split("/", var.VSPHERE_PUBLIC_NETWORK)
+  prefix           = element(local.netmask_list, 1)
 }
 
 resource "vsphere_virtual_machine" "nfs" {
@@ -63,8 +65,9 @@ resource "vsphere_virtual_machine" "nfs" {
       "user-data" = base64encode(
         templatefile("${path.module}/nfs-cloud-config.yaml.tpl",
           {
-            ip      = local.vsphere_nas_host
-            gateway = cidrhost(var.VSPHERE_PUBLIC_NETWORK, 1)
+            address        = "${local.vsphere_nas_host}/${local.prefix}"
+            gateway        = cidrhost(var.VSPHERE_PUBLIC_NETWORK, 1)
+            public_network = var.VSPHERE_PUBLIC_NETWORK
           }
         )
       )

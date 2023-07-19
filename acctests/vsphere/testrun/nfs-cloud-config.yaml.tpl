@@ -9,12 +9,15 @@ write_files:
         ethernets:
           ens192:
             dhcp4: no
-            addresses: [${ip}/29]
+            addresses: [${address}]
             gateway4: ${gateway}
             nameservers:
               addresses: [8.8.8.8, 8.8.4.4]
 
 runcmd:
+  - ufw default deny incoming
+  - ufw allow from ${public_network}
+  - ufw enable
   - netplan apply
   # internet should now be available
   - mkdir -p /nfs/ds1 /nfs/ds2 /nfs/ds3
