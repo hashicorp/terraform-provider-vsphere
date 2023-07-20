@@ -1,7 +1,12 @@
+## 2.5.0 (Unreleased)
+
+BUG FIXES:
+* `r/vsphere_compute_cluster`: Fix vSAN client version ([#1955](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1955))
+
 ## 2.4.1 (June 26, 2023)
 
 BUG FIXES:
-* `r/vsphere_compute_cluster`:  Added version check for [vSphere 7.0.1 or later](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vsan.doc/GUID-9113BBD6-5428-4287-9F61-C8C3EE51E07E.html) when enabling vSAN HCI Mesh. ([#1931](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1931))
+* `r/vsphere_compute_cluster`: Added version check for [vSphere 7.0.1 or later](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vsan.doc/GUID-9113BBD6-5428-4287-9F61-C8C3EE51E07E.html) when enabling vSAN HCI Mesh. ([#1931](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1931))
 
 ## 2.4.0 (May 5, 2023)
 
