@@ -205,9 +205,7 @@ func (c *Config) Client() (*Client, error) {
 	}
 
 	if isEligibleVSANEndpoint(client.vimClient) {
-		if err := client.vimClient.UseServiceVersion("vsan"); err != nil {
-			return nil, err
-		}
+		client.vimClient.UseServiceVersion("vsan")
 		vc, err := vsan.NewClient(ctx, client.vimClient.Client)
 		if err != nil {
 			return nil, err
