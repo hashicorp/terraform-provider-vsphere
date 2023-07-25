@@ -144,14 +144,14 @@ The tests and required infrastructure have been heavily streamlined (believe it 
 * Probably 4 hard drives. The first hosts the vSphere and primary ESXi install (~70GB), a second one will serve as the datastore the NAS and 3 nested ESXi VMs run from (~100GB should be fine). The other 2 are needed as apart of the vmfs datastore tests, the size for these should not matter, make sure the override the regexp pattern for finding them `TF_VAR_VSPHERE_VMFS_REGEXP`.
 * 2 NICs and 2 Networks. The topology of the test cluster is 1 IPv4 network on NIC0 (needs to be reachable by wherever Terraform runs from) and another IPv4 network on NIC1 (this network can be private to the caller/Terraform, but needs to be reachable by ESXi.. obviously). Two /29 subnets may look like this:
   * "Public" Network:
-    1. Gateway
-    2. Main ESXi host
-    3. vCenter
-    4. Ubuntu NAS created by `acctest/vsphere/testrun`
+    * (1) Gateway
+    * (2) Main ESXi host
+    * (3) vCenter
+    * (4) Ubuntu NAS created by `acctest/vsphere/testrun`
   * "Private" Network:
-    1. Gateway
-    2. Main ESXi host
-    3. Nested ESXi host created by `acctest/vsphere/testrun`
-    4. Nested ESXi host created by `acctest/vsphere/testrun`
-    5. Nested ESXi host created by `acctest/vsphere/testrun`
-    6. vCenter
+    * (1) Gateway
+    * (2) Main ESXi host
+    * (3) Nested ESXi host created by `acctest/vsphere/testrun`
+    * (4) Nested ESXi host created by `acctest/vsphere/testrun`
+    * (5) Nested ESXi host created by `acctest/vsphere/testrun`
+    * (6) vCenter
