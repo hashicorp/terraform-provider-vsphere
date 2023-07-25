@@ -99,5 +99,59 @@ $ make testacc TESTARGS="-run=TestAccResourceVSphereVirtualMachine_ -count=1"
 
 `count=1` is just a Golang trick to bust the testcache.
 
-# Nightly Tests
+# Nightly GitHub Action
 The full suite of acceptance tests run rightly on GH Actions against ESXi/vSphere stood up on Equinix Metal. The `acctests/equinix` and `acctests/vsphere/base` should be long-lived, while `acctests/vsphere/testrun` is brought up and torn down between CI runs. As of writing the output simply pipes to a simple test summary script.
+
+## Setup
+From a local machine, please follow the instructions seen above up until `acctests/vsphere/base` is successfully applied. Through the GitHub UI, visit the repo settings and visit the "Environments" tab on the left. There should be an existing environment called `acctests` which is restricted to the `main` branch.
+
+Configure the following as Environment variables:
+```
+TF_VAR_VSPHERE_CLUSTER
+TF_VAR_VSPHERE_DATACENTER
+TF_VAR_VSPHERE_ESXI1_BOOT_DISK1
+TF_VAR_VSPHERE_ESXI1_BOOT_DISK1_SIZE
+TF_VAR_VSPHERE_ESXI_TRUNK_NIC
+TF_VAR_VSPHERE_PG_NAME
+VSPHERE_ALLOW_UNVERIFIED_SSL
+```
+
+Configure the following as Environment **secrets**:
+```
+TF_VAR_VSPHERE_ESXI1
+TF_VAR_VSPHERE_ESXI1_PW
+TF_VAR_VSPHERE_LICENSE
+TF_VAR_VSPHERE_PRIVATE_NETWORK
+TF_VAR_VSPHERE_PUBLIC_NETWORK
+VSPHERE_PASSWORD
+VSPHERE_SERVER
+VSPHERE_USER
+SSH_PRIVATE_KEY
+```
+
+All of these variables and secrets should be exported to `acctests/equinix/devrc` and `acctests/vsphere/base/devrc`, or have been previously known to any applies (`TF_VAR_VSPHERE_LICENSE`). The `SSH_PRIVATE_KEY` secret should be the content of `acctests/equinix/gh-actions-ssh` (newline at the end included).
+
+With these set, the nightly acceptances tests should run, normally the results of the test run should match what you can achieve locally (as in ran from your machine, but still pointed to vSphere hosted in Equinix), however there is some known flakiness that can derail a nightly:
+
+* The remote nested ESXi OVA from `https://download3.vmware.com/software/vmw-tools/nested-esxi/` can fail to download during the setup steps of the GH action. Please simply re-run the action.
+* Despite sweepers looking for it specifically, a common datastore called `nfs-vol2` can fail to unmount, causing widespread test failure. From the vSphere UI you will have to right-click and remove the datastore (it takes a few moments).
+* Sometimes the API seems to lockup/crash or lockout the CI client resulting in widespread error 503s.
+
+# Local Testing
+The tests and required infrastructure have been heavily streamlined (believe it or not...) however its still expected they run Equinix for now, but it should be theoretically possible to run tests against local hardware (or perhaps totally virtualized). The main requirement is ESXi 7 with the following:
+
+* A lot of memory (20GB or more), ESXi/vCenter will need a lot, and then there will be a few VMs at play for now that probably all need 0.5 to 1GB each.
+* Probably 4 hard drives. The first hosts the vSphere and primary ESXi install (~70GB), a second one will serve as the datastore the NAS and 3 nested ESXi VMs run from (~100GB should be fine). The other 2 are needed as apart of the vmfs datastore tests, the size for these should not matter, make sure the override the regexp pattern for finding them `TF_VAR_VSPHERE_VMFS_REGEXP`.
+* 2 NICs and 2 Networks. The topology of the test cluster is 1 IPv4 network on NIC0 (needs to be reachable by wherever Terraform runs from) and another IPv4 network on NIC1 (this network can be private to the caller/Terraform, but needs to be reachable by ESXi.. obviously). Two /29 subnets may look like this:
+  * "Public" Network:
+    1. Gateway
+    2. Main ESXi host
+    3. vCenter
+    4. Ubuntu NAS created by `acctest/vsphere/testrun`
+  * "Private" Network:
+    1. Gateway
+    2. Main ESXi host
+    3. Nested ESXi host created by `acctest/vsphere/testrun`
+    4. Nested ESXi host created by `acctest/vsphere/testrun`
+    5. Nested ESXi host created by `acctest/vsphere/testrun`
+    6. vCenter
