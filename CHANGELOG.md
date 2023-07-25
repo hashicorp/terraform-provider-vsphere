@@ -1,8 +1,5 @@
 ## 2.5.0 (Unreleased)
 
-BUG FIXES:
-* `r/vsphere_compute_cluster`: Fix vSAN client version ([#1955](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1955))
-
 ## 2.4.1 (June 26, 2023)
 
 BUG FIXES:
