@@ -100,7 +100,7 @@ $ make testacc TESTARGS="-run=TestAccResourceVSphereVirtualMachine_ -count=1"
 `count=1` is just a Golang trick to bust the testcache.
 
 # Nightly GitHub Action
-The full suite of acceptance tests run rightly on GH Actions against ESXi/vSphere stood up on Equinix Metal. The `acctests/equinix` and `acctests/vsphere/base` should be long-lived, while `acctests/vsphere/testrun` is brought up and torn down between CI runs. As of writing the output simply pipes to a simple test summary script.
+The full suite of acceptance tests run rightly on GH Actions against ESXi/vSphere stood up on Equinix Metal. The `acctests/equinix` and `acctests/vsphere/base` should be long-lived, while `acctests/vsphere/testrun` is brought up and torn down between CI runs.
 
 ## Setup
 From a local machine, please follow the instructions seen above up until `acctests/vsphere/base` is successfully applied. Through the GitHub UI, visit the repo settings and visit the "Environments" tab on the left. There should be an existing environment called `acctests` which is restricted to the `main` branch.
