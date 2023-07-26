@@ -62,11 +62,19 @@ jobs:
         with:
           go-version-file: '.go-version'
 
+      - name: Set up gotestfmt
+        uses: gotesttools/gotestfmt-action@65f1d2228f06cc5e828b84597440fbd063d12ea2 # v2.1.0
+        with:
+          # Optional: pass GITHUB_TOKEN to avoid rate limiting.
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Go mod verify
         run: go mod verify
       
       - name: Run acceptance tests
-        run: make testacc | go run ./scripts/testresults.go
+        run: |
+          set -euo pipefail
+          TF_ACC=1 go test -json -v ./... -timeout 360m 2>&1 | tee /tmp/gotest.log | gotestfmt
 
       - name: Cleanup testrun resources
         if: always()
