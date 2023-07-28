@@ -62,11 +62,9 @@ jobs:
         with:
           go-version-file: '.go-version'
 
+      # Due to third party action restrictions, install and use the tool directly
       - name: Set up gotestfmt
-        uses: gotesttools/gotestfmt-action@65f1d2228f06cc5e828b84597440fbd063d12ea2 # v2.1.0
-        with:
-          # Optional: pass GITHUB_TOKEN to avoid rate limiting.
-          token: ${{ secrets.GITHUB_TOKEN }}
+        run: go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
 
       - name: Go mod verify
         run: go mod verify
@@ -77,7 +75,7 @@ jobs:
           TF_ACC=1 go test -json -v ./... -timeout 360m 2>&1 | tee /tmp/gotest.log | gotestfmt
 
       - name: Upload test log
-        uses: actions/upload-artifact@v0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         if: always()
         with:
           name: test-log
