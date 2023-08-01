@@ -169,14 +169,14 @@ func DefaultDevicesFromReference(client *govmomi.Client, ref types.ManagedObject
 
 // OSFamily uses the compute resource's environment browser to get the OS family
 // for a specific guest ID.
-func OSFamily(client *govmomi.Client, ref types.ManagedObjectReference, guest string) (string, error) {
+func OSFamily(client *govmomi.Client, ref types.ManagedObjectReference, guest string, hardwareVersion string) (string, error) {
 	b, err := EnvironmentBrowserFromReference(client, ref)
 	if err != nil {
 		return "", err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
-	return b.OSFamily(ctx, guest)
+	return b.OSFamily(ctx, guest, hardwareVersion)
 }
 
 // EnvironmentBrowserFromReference loads an environment browser for the
