@@ -128,7 +128,7 @@ func ValidateVirtualMachineClone(d *schema.ResourceDiff, c *govmomi.Client) erro
 			if err != nil {
 				return fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
 			}
-			family, err := resourcepool.OSFamily(c, pool, d.Get("guest_id").(string))
+			family, err := resourcepool.OSFamily(c, pool, d.Get("guest_id").(string), d.Get("hardware_version").(string))
 			if err != nil {
 				return fmt.Errorf("cannot find OS family for guest ID %q: %s", d.Get("guest_id").(string), err)
 			}
