@@ -304,6 +304,27 @@ func TestAccResourceVSphereComputeCluster_vsanDITEncryption(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereComputeCluster_faultDomain(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterConfigFaultDomains(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					testAccResourceVSphereComputeClusterCheckFaultDomain("fd1", 1, "fd2", 1),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereComputeCluster_explicitFailoverHost(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -730,6 +751,35 @@ func testAccResourceVSphereComputeClusterCheckCustomAttributes() resource.TestCh
 	}
 }
 
+func testAccResourceVSphereComputeClusterCheckFaultDomain(fd1Name string, fd1Len int, fd2Name string, fd2Len int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetComputeClusterProperties(s, "compute_cluster")
+		if err != nil {
+			return err
+		}
+
+		obj := props.ConfigurationEx.(*types.ClusterConfigInfoEx).VsanHostConfig
+		faultDomains := make(map[string]interface{})
+		for _, hostConfig := range obj {
+			if hostConfig.FaultDomainInfo != nil {
+				fdName := hostConfig.FaultDomainInfo.Name
+				if hostIds, ok := faultDomains[fdName]; ok {
+					hostIds = append(hostIds.([]string), hostConfig.HostSystem.Value)
+				} else {
+					faultDomains[fdName] = []string{hostConfig.HostSystem.Value}
+				}
+			}
+		}
+
+		if len(faultDomains[fd1Name].([]string)) != fd1Len || len(faultDomains[fd2Name].([]string)) != fd2Len {
+			return fmt.Errorf("got length of fd1 %s: %d, fd2 %s: %d", fd1Name, len(faultDomains[fd1Name].([]string)),
+				fd2Name, len(faultDomains[fd2Name].([]string)))
+		}
+
+		return nil
+	}
+}
+
 func testAccResourceVSphereComputeClusterConfigEmpty() string {
 	return fmt.Sprintf(`
 %s
@@ -970,6 +1020,36 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 
   vsan_enabled = false
   vsan_unmap_enabled = false
+  force_evacuate_on_destroy = true
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootHost4(),
+		),
+	)
+}
+
+func testAccResourceVSphereComputeClusterConfigFaultDomains() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                        = "testacc-compute-cluster"
+  datacenter_id               = data.vsphere_datacenter.rootdc1.id
+  host_system_ids             = [data.vsphere_host.roothost3.id, data.vsphere_host.roothost4.id]
+
+  vsan_enabled = true
+  fault_domains {
+    name = "fd1"
+    host_ids = [data.vsphere_host.roothost3.id]
+  }
+  fault_domains {
+    name = "fd2"
+    host_ids = [data.vsphere_host.roothost4.id]
+  }
   force_evacuate_on_destroy = true
 }
 

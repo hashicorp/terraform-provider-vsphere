@@ -577,6 +577,26 @@ func resourceVSphereComputeCluster() *schema.Resource {
 					},
 				},
 			},
+			"fault_domains": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Description: "The configuration for fault domain.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:        schema.TypeString,
+							Description: "The name of fault domain.",
+							Optional:    true,
+						},
+						"host_ids": {
+							Type:        schema.TypeSet,
+							Description: "The managed object IDs of the hosts to put in the fault domain.",
+							Optional:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
 			vSphereTagAttributeKey:    tagsSchema(),
 			customattribute.ConfigKey: customattribute.ConfigSchema(),
 		},
@@ -705,7 +725,11 @@ func resourceVSphereComputeClusterDelete(d *schema.ResourceData, meta interface{
 	}
 
 	version := viapi.ParseVersionFromClient(client)
-	spec := expandClusterConfigSpecEx(d, version)
+
+	spec, err := expandClusterConfigSpecEx(d, version, cluster)
+	if err != nil {
+		return err
+	}
 
 	if *spec.DasConfig.Enabled && *spec.DasConfig.AdmissionControlEnabled {
 		if v, ok := spec.DasConfig.AdmissionControlPolicy.(*types.ClusterFailoverHostAdmissionControlPolicy); ok {
@@ -941,7 +965,10 @@ func resourceVSphereComputeClusterApplyClusterConfiguration(
 	version := viapi.ParseVersionFromClient(client)
 
 	// Expand the cluster configuration.
-	spec := expandClusterConfigSpecEx(d, version)
+	spec, err := expandClusterConfigSpecEx(d, version, cluster)
+	if err != nil {
+		return err
+	}
 
 	// Note that the reconfigure for a cluster is the same as a standalone host,
 	// hence we send this to the computeresource helper's Reconfigure function.
@@ -1402,11 +1429,17 @@ func resourceVSphereComputeClusterFlattenData(
 
 // expandClusterConfigSpecEx reads certain ResourceData keys and returns a
 // ClusterConfigSpecEx.
-func expandClusterConfigSpecEx(d *schema.ResourceData, version viapi.VSphereVersion) *types.ClusterConfigSpecEx {
+func expandClusterConfigSpecEx(d *schema.ResourceData, version viapi.VSphereVersion, cluster *object.ClusterComputeResource) (*types.ClusterConfigSpecEx, error) {
+	props, err := clustercomputeresource.Properties(cluster)
+	if err != nil {
+		return nil, err
+	}
+
 	obj := &types.ClusterConfigSpecEx{
-		DasConfig: expandClusterDasConfigInfo(d, version),
-		DpmConfig: expandClusterDpmConfigInfo(d),
-		DrsConfig: expandClusterDrsConfigInfo(d, version),
+		DasConfig:          expandClusterDasConfigInfo(d, version),
+		DpmConfig:          expandClusterDpmConfigInfo(d),
+		DrsConfig:          expandClusterDrsConfigInfo(d, version),
+		VsanHostConfigSpec: expandVsanHostConfig(d, props.ConfigurationEx.(*types.ClusterConfigInfoEx).VsanHostConfig),
 	}
 
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
@@ -1415,7 +1448,59 @@ func expandClusterConfigSpecEx(d *schema.ResourceData, version viapi.VSphereVers
 		obj.ProactiveDrsConfig = expandClusterProactiveDrsConfigInfo(d)
 	}
 
-	return obj
+	return obj, nil
+}
+
+func expandVsanHostConfig(d *schema.ResourceData, obj []types.VsanHostConfigInfo) []types.VsanHostConfigInfo {
+	faultDomains := d.Get("fault_domains").(*schema.Set).List()
+	fdMap := make(map[string]string)
+	for _, faultDomain := range faultDomains {
+		fd := faultDomain.(map[string]interface{})
+		fdName := fd["name"].(string)
+		hosts := fd["host_ids"].(*schema.Set).List()
+		for _, host := range hosts {
+			fdMap[host.(string)] = fdName
+		}
+	}
+
+	result := make([]types.VsanHostConfigInfo, 0)
+	for _, hostConfig := range obj {
+		if fdName, ok := fdMap[hostConfig.HostSystem.Value]; ok {
+			hostConfig.FaultDomainInfo = &types.VsanHostFaultDomainInfo{
+				Name: fdName,
+			}
+		} else {
+			hostConfig.FaultDomainInfo = &types.VsanHostFaultDomainInfo{
+				Name: "",
+			}
+		}
+		result = append(result, hostConfig)
+	}
+
+	return result
+}
+
+func flattenClusterVsanHostConfigInfo(d *schema.ResourceData, obj []types.VsanHostConfigInfo) error {
+	faultDomains := make([]map[string]interface{}, 0)
+	fdMap := make(map[string]interface{})
+	for _, vsanHost := range obj {
+		if vsanHost.FaultDomainInfo != nil {
+			name := vsanHost.FaultDomainInfo.Name
+			if hostIds, ok := fdMap[name]; ok {
+				hostIds = append(hostIds.([]string), vsanHost.HostSystem.Value)
+			} else {
+				fdMap[name] = []string{vsanHost.HostSystem.Value}
+			}
+		}
+	}
+	for fdName, hostIds := range fdMap {
+		faultDomains = append(faultDomains, map[string]interface{}{
+			"name":     fdName,
+			"host_ids": hostIds,
+		})
+	}
+
+	return d.Set("fault_domains", faultDomains)
 }
 
 func expandVsanPerfConfig(d *schema.ResourceData) (*vsantypes.VsanPerfsvcConfig, error) {
@@ -1711,6 +1796,10 @@ func flattenClusterConfigSpecEx(d *schema.ResourceData, obj *types.ClusterConfig
 		return err
 	}
 	if err := flattenClusterDrsConfigInfo(d, obj.DrsConfig, version); err != nil {
+		return err
+	}
+
+	if err := flattenClusterVsanHostConfigInfo(d, obj.VsanHostConfig); err != nil {
 		return err
 	}
 
