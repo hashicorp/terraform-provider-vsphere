@@ -6,7 +6,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.27.0
 	github.com/mitchellh/copystructure v1.2.0
-	github.com/vmware/govmomi v0.30.4
+	github.com/vmware/govmomi v0.30.6
 )
 
 require (
