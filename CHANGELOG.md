@@ -1,5 +1,8 @@
 ## 2.5.0 (Unreleased)
 
+CHORES:
+* Update to terraform-plugin-sdk v2.27.0 ([#1937](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1937))
+
 ## 2.4.1 (June 26, 2023)
 
 BUG FIXES:
