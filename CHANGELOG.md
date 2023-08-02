@@ -2,6 +2,7 @@
 
 CHORES:
 * Update to terraform-plugin-sdk v2.27.0 ([#1937](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1937))
+* Update govmomi v0.30.6 ([#1952](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1952))
 
 ## 2.4.1 (June 26, 2023)
 
