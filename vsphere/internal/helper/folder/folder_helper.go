@@ -76,16 +76,6 @@ func (p RootPathParticle) SplitDatacenter(inventoryPath string) (string, error) 
 	return s[0], nil
 }
 
-// SplitDatacenterFromVMInventoryPath is a convenience method that splits out the datacenter path
-// from the supplied VM inventory path for the particle.
-func (p RootPathParticle) SplitDatacenterFromVMInventoryPath(inventoryPath string) (string, error) {
-	s := strings.SplitN(inventoryPath, "/", 3)
-	if len(s) != 3 {
-		return inventoryPath, fmt.Errorf("could not split path %q on %q", inventoryPath, p.Delimiter())
-	}
-	return s[1], nil
-}
-
 // SplitRelative is a convenience method that splits out the relative path from
 // the supplied path for the particle.
 func (p RootPathParticle) SplitRelative(inventoryPath string) (string, error) {
