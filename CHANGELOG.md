@@ -1,5 +1,8 @@
 ## 2.5.0 (Unreleased)
 
+BUG FIXES:
+* `r/virtual_machine`: Fix for guest os support ([#1966](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1966))
+
 CHORES:
 * Update to terraform-plugin-sdk v2.27.0 ([#1937](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1937))
 * Update govmomi v0.30.6 ([#1952](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1952))
@@ -7,7 +10,7 @@ CHORES:
 ## 2.4.1 (June 26, 2023)
 
 BUG FIXES:
-* `r/vsphere_compute_cluster`: Added version check for [vSphere 7.0.1 or later](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vsan.doc/GUID-9113BBD6-5428-4287-9F61-C8C3EE51E07E.html) when enabling vSAN HCI Mesh. ([#1931](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1931))
+* `r/compute_cluster`: Added version check for [vSphere 7.0.1 or later](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vsan.doc/GUID-9113BBD6-5428-4287-9F61-C8C3EE51E07E.html) when enabling vSAN HCI Mesh. ([#1931](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1931))
 
 ## 2.4.0 (May 5, 2023)
 
