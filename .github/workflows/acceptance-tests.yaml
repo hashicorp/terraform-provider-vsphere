@@ -70,16 +70,36 @@ jobs:
         run: go mod verify
       
       - name: Run acceptance tests
+        continue-on-error: true
         run: |
           set -euo pipefail
           TF_ACC=1 go test -json -v ./... -timeout 360m 2>&1 | tee /tmp/gotest.log | gotestfmt
+      
+      - name: Get today's date
+        run: echo "TODAY_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
       - name: Upload test log
         uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
-        if: always()
         with:
-          name: test-log
+          name: test-log-${{ env.TODAY_DATE }}
           path: /tmp/gotest.log
+
+      - name: Get yesterday's date
+        run: echo "YESTERDAY_DATE=$(date -d 'yesterday' +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - name: Download previous day's log file
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          name: test-log-${{ env.YESTERDAY_DATE }}
+          path: /tmp/yesterday
+
+      - name: Set up Node
+        uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # 3.7.0
+        with:
+          node-version: 18
+
+      - name: Run comparison script
+        run: node ./scripts/compare-testlogs.js /tmp/gotest.log /tmp/yesterday/gotest.log
 
       - name: Cleanup testrun resources
         if: always()
