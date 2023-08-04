@@ -72,7 +72,7 @@ func (b *EnvironmentBrowser) DefaultDevices(ctx context.Context, key string, hos
 }
 
 // OSFamily fetches the operating system family for the supplied guest ID.
-func (b *EnvironmentBrowser) OSFamily(ctx context.Context, guest string, hardwareVersion string) (string, error) {
+func (b *EnvironmentBrowser) OSFamily(ctx context.Context, guest string) (string, error) {
 	var eb mo.EnvironmentBrowser
 
 	err := b.Properties(ctx, b.Reference(), nil, &eb)
@@ -84,7 +84,6 @@ func (b *EnvironmentBrowser) OSFamily(ctx context.Context, guest string, hardwar
 		This: b.Reference(),
 		Spec: &types.EnvironmentBrowserConfigOptionQuerySpec{
 			GuestId: []string{guest},
-			Key:     hardwareVersion,
 		},
 	}
 	res, err := methods.QueryConfigOptionEx(ctx, b.Client(), &req)
