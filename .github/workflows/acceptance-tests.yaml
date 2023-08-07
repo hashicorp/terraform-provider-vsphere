@@ -84,6 +84,9 @@ jobs:
           name: test-log-${{ env.TODAY_DATE }}
           path: /tmp/gotest.log
 
+      - name: Check for panic in log file
+        run: ! grep -q "panic:" /tmp/gotest.log
+
       - name: Get yesterday's date
         run: echo "YESTERDAY_DATE=$(date -d 'yesterday' +'%Y-%m-%d')" >> $GITHUB_ENV
 
