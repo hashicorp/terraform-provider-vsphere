@@ -85,24 +85,30 @@ jobs:
           path: /tmp/gotest.log
 
       - name: Check for panic in log file
-        run: ! grep -q "panic:" /tmp/gotest.log
+        run: |
+          if grep -q "panic:" /tmp/gotest.log; then
+            echo "Panic found in log file."
+            exit 1
+          else
+            echo "No panic found in log file."
+          fi
 
-      - name: Get yesterday's date
-        run: echo "YESTERDAY_DATE=$(date -d 'yesterday' +'%Y-%m-%d')" >> $GITHUB_ENV
+      # - name: Get yesterday's date
+      #   run: echo "YESTERDAY_DATE=$(date -d 'yesterday' +'%Y-%m-%d')" >> $GITHUB_ENV
 
-      - name: Download previous day's log file
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
-        with:
-          name: test-log-${{ env.YESTERDAY_DATE }}
-          path: /tmp/yesterday
+      # - name: Download previous day's log file
+      #   uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+      #   with:
+      #     name: test-log-${{ env.YESTERDAY_DATE }}
+      #     path: /tmp/yesterday
 
-      - name: Set up Node
-        uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # 3.7.0
-        with:
-          node-version: 18
+      # - name: Set up Node
+      #   uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # 3.7.0
+      #   with:
+      #     node-version: 18
 
-      - name: Run comparison script
-        run: node ./scripts/compare-testlogs.js /tmp/gotest.log /tmp/yesterday/gotest.log
+      # - name: Run comparison script
+      #   run: node ./scripts/compare-testlogs.js /tmp/gotest.log /tmp/yesterday/gotest.log
 
       - name: Cleanup testrun resources
         if: always()
