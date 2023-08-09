@@ -61,6 +61,11 @@ jobs:
         uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
         with:
           go-version-file: '.go-version'
+      
+      - name: Set up Node
+        uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # 3.7.0
+        with:
+          node-version: 18
 
       # Due to third party action restrictions, install and use the tool directly
       - name: Set up gotestfmt
@@ -84,7 +89,7 @@ jobs:
           name: test-log-${{ env.TODAY_DATE }}
           path: /tmp/gotest.log
 
-      - name: Check for panic in log file
+      - name: Panic check
         run: |
           if grep -q "panic:" /tmp/gotest.log; then
             echo "Panic found in log file."
@@ -92,6 +97,9 @@ jobs:
           else
             echo "No panic found in log file."
           fi
+
+      - name: Summary
+        run: node ./scripts/summarize-testlog.js /tmp/gotest.log
 
       - name: Get yesterday's date
         run: echo "YESTERDAY_DATE=$(date -d 'yesterday' +'%Y-%m-%d')" >> $GITHUB_ENV
@@ -102,12 +110,7 @@ jobs:
           name: test-log-${{ env.YESTERDAY_DATE }}
           path: /tmp/yesterday
 
-      - name: Set up Node
-        uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # 3.7.0
-        with:
-          node-version: 18
-
-      - name: Run comparison script
+      - name: Regression check
         run: node ./scripts/compare-testlogs.js /tmp/gotest.log /tmp/yesterday/gotest.log
 
       - name: Cleanup testrun resources

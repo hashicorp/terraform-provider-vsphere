@@ -30,7 +30,7 @@ function compareTestResults(outputA, outputB) {
         .reduce((obj, test) => ({ ...obj, [test.Test]: test.Action }), {});
 
     // Finding tests that failed in A but not in B
-    const failedInANotInB = Object.keys(testsA).filter(test => testsA[test] === "fail" && testsB[test] !== "fail");
+    const failedInANotInB = Object.keys(testsA).filter(test => testsA[test] === "fail" && testsB[test] === "pass");
 
     return failedInANotInB;
 }
@@ -49,7 +49,7 @@ const outputB = fs.readFileSync(filenameB, 'utf8');
 const failedTests = compareTestResults(outputA, outputB);
 
 if (failedTests.length > 0) {
-    console.log(`Tests failed in ${filenameA} that didn't fail in ${filenameB}:`, failedTests);
+    console.log(`Tests failed in ${filenameA} that passed in ${filenameB}:`, failedTests);
     process.exit(1)
 } else {
     console.log("No new failures")
