@@ -47,4 +47,10 @@ const outputA = fs.readFileSync(filenameA, 'utf8');
 const outputB = fs.readFileSync(filenameB, 'utf8');
 
 const failedTests = compareTestResults(outputA, outputB);
-console.log(`Tests failed in ${filenameA} that didn't fail in ${filenameB}:`, failedTests);
+
+if (failedTests.length > 0) {
+    console.log(`Tests failed in ${filenameA} that didn't fail in ${filenameB}:`, failedTests);
+    process.exit(1)
+} else {
+    console.log("No new failures")
+}
