@@ -109,6 +109,7 @@ jobs:
         with:
           name: test-log-${{ env.YESTERDAY_DATE }}
           workflow_conclusion: "" # ignore status
+          search_artifacts: true
           path: /tmp/yesterday
 
       - name: Regression check
