@@ -19,6 +19,7 @@ let pass = 0, skip = 0, fail = 0;
 lines.forEach((line) => {
   try {
     const test = JSON.parse(line);
+    if (!test.Test) return;
     if (test.Action === 'pass') pass++;
     else if (test.Action === 'skip') skip++;
     else if (test.Action === 'fail') fail++;
