@@ -1,5 +1,8 @@
 ## 2.5.0 (Unreleased)
 
+BUG FIXES:
+* `r/virtual_machine`: Fix hardware version error when cloning and/or configuring a VM/Template ([#1995](https://github.com/hashicorp/terraform-provider-vsphere/pull/1995))
+
 CHORES:
 * Update to terraform-plugin-sdk v2.27.0 ([#1937](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1937))
 * Update govmomi v0.30.7 ([#1972](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1972))
