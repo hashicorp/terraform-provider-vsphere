@@ -152,8 +152,9 @@ func DefaultDevices(client *govmomi.Client, pool *object.ResourcePool, guest str
 }
 
 // OSFamily uses the resource pool's environment browser to get the OS family
-// for a specific guest ID.
-func OSFamily(client *govmomi.Client, pool *object.ResourcePool, guest string, hardwareVersion string) (string, error) {
+// for a specific guest ID. The list of supported OS is dependent on the hardware version of the vm/template
+// so that is also passed to the environment browser.
+func OSFamily(client *govmomi.Client, pool *object.ResourcePool, guest string, hardwareVersion int) (string, error) {
 	log.Printf("[DEBUG] Looking for OS family for guest ID %q", guest)
 	pprops, err := Properties(pool)
 	if err != nil {

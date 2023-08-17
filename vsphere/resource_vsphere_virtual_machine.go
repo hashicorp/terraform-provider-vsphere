@@ -1641,7 +1641,13 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 	var cw *virtualMachineCustomizationWaiter
 	// Send customization spec if any has been defined.
 	if len(d.Get("clone.0.customize").([]interface{})) > 0 {
-		family, err := resourcepool.OSFamily(client, pool, d.Get("guest_id").(string), d.Get("hardware_version").(string))
+		vmHardwareVersion := virtualmachine.GetHardwareVersionNumber(vprops.Config.Version)
+		vmSpecHardwareVersion := d.Get("hardware_version").(int)
+		if vmSpecHardwareVersion > vmHardwareVersion {
+			vmHardwareVersion = vmSpecHardwareVersion
+		}
+		fmt.Errorf(virtualmachine.GetHardwareVersionID(vmHardwareVersion))
+		family, err := resourcepool.OSFamily(client, pool, d.Get("guest_id").(string), vmHardwareVersion)
 		if err != nil {
 			return fmt.Errorf("cannot find OS family for guest ID %q: %s", d.Get("guest_id").(string), err)
 		}
