@@ -1646,7 +1646,7 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 		if vmSpecHardwareVersion > vmHardwareVersion {
 			vmHardwareVersion = vmSpecHardwareVersion
 		}
-		fmt.Errorf(virtualmachine.GetHardwareVersionID(vmHardwareVersion))
+
 		family, err := resourcepool.OSFamily(client, pool, d.Get("guest_id").(string), vmHardwareVersion)
 		if err != nil {
 			return fmt.Errorf("cannot find OS family for guest ID %q: %s", d.Get("guest_id").(string), err)
