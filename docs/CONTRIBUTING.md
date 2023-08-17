@@ -52,24 +52,38 @@ See [Building the Provider](#building-the-provider) for details on building the 
 
 # Testing the Provider
 
-**NOTE:** Testing the vSphere provider is currently a complex operation as it requires having a vCenter Server endpoint to test against, which should be hosting a standard configuration for a vSphere cluster. Some of the tests will work against ESXi, but YMMV.
+Terraform providers tend to create, update, and destroy real resources to assert the provider is working as expected. This is called [Acceptance Testing](https://developer.hashicorp.com/terraform/plugin/sdkv2/testing/acceptance-tests). The vSphere provider's implementation is a bit more complex than the average provider, and creating a test environment that covers all possible hardware and settings combinations is a challenge. Effort has been put into streamlining the acceptance testing lab and instructions can be found in the acctests [README](/acctests/README.md).
 
-## Configuring Environment Variables
+# Maintaining the Changelog
 
-Most of the tests in this provider require a comprehensive list of environment variables to run. See the individual `*_test.go` files in the [`vsphere/`](vsphere/) directory for more details.
+In the future this should be automated, but between releases it's expected to add a SemVer entry at the top of the file with the following format.
 
-## Running the Acceptance Tests
+```
+## 2.4.0 (Unreleased)
 
-After this is done, you can run the acceptance tests by running:
+FEATURES:
+* `d/datasource_name`: Summary of the pull request. ([#1234](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1234))
+* `r/resource_name`: ...
 
-```shell
-$ make testacc
+BUG FIXES:
+...
+
+IMPROVEMENTS:
+...
+
+CHORES:
+...
+```
+Generally the changes should fall into the categories listed above, when a resource or datasource is affected please follow the format seen above and link to the pull request (mind the brackets).
+
+# Release the Provider
+
+Releases will be performed by authorized HashiCorp, VMware, or community contributors. The release process is automated via GitHub Actions and is triggered by pushing a tag. To perform a release, please visit the Changelog and replace `(Unreleased)` with the current date (see the Changelog for the format).
+
+Make sure to have pulled all the latest code changes to the main branch on your local machine (especially if the Changelog was edited via GitHub.com). When ready, create and push an annotated tag with the correct version number.
+```
+$ git tag -a v1.2.3 -m "v1.2.3"
+$ git push --tag
 ```
 
-If you want to run against a specific set of tests, run `make testacc` with the `TESTARGS` parameter containing the run mask as per below:
-
-```shell
-make testacc TESTARGS="-run=TestAccVSphereVirtualMachine"
-```
-
-This following example would run all of the acceptance tests matching `TestAccVSphereVirtualMachine`. Change this for the specific tests you want to run.
+The process should not require any additional actions. See the release workflow for details. Generally speaking the binaries should be built, signed, and uploaded in a matter of minutes. After which it can take up to an hour for the new release to be picked up by the Terraform Registry. If anything appears to have gone wrong, contact HashiCorp.
