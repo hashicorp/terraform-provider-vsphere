@@ -168,8 +168,9 @@ func DefaultDevicesFromReference(client *govmomi.Client, ref types.ManagedObject
 }
 
 // OSFamily uses the compute resource's environment browser to get the OS family
-// for a specific guest ID.
-func OSFamily(client *govmomi.Client, ref types.ManagedObjectReference, guest string, hardwareVersion string) (string, error) {
+// for a specific guest ID. The list of supported OS is dependent on the hardware version of the vm/template
+// so that is also passed to the environment browser.
+func OSFamily(client *govmomi.Client, ref types.ManagedObjectReference, guest string, hardwareVersion int) (string, error) {
 	b, err := EnvironmentBrowserFromReference(client, ref)
 	if err != nil {
 		return "", err
