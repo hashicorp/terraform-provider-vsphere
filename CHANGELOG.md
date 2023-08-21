@@ -1,4 +1,4 @@
-## 2.5.0 (Unreleased)
+## 2.4.2 (August 21, 2023)
 
 BUG FIXES:
 * `r/virtual_machine`: Fix hardware version error when cloning and/or configuring a VM/Template ([#1995](https://github.com/hashicorp/terraform-provider-vsphere/pull/1995))
