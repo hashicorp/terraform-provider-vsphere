@@ -74,6 +74,7 @@ A few manual steps need to be taken to privately network the nested ESXis setup 
 4. Power on the vcsa VM
 5. Visit the vCenter IP again, but this time port `:5480`, signing in may fail the first time, but it is the vsphere username/password found in `acctests/equinix/devrc`
 6. In the networking tab give it a valid IP on the private network (assuming 3 nested ESXIs will be created, use the 6th address).
+7. OPTIONAL: vCenter ships with a 60 day evaluation license. You could take this opportunity to add a permanent license into inventory, and right click the top-level vCenter instance and assign the license.
 
 ### TestRun Step
 This config can be destroyed between full test runs of the provider. It should cover cleaning up of things like the nested ESXis running in the wrong cluster, and cleaning up any leftover files in the NFS. Any lingering resources outside of those may need manual cleanup.
@@ -138,9 +139,9 @@ With these set, the nightly acceptances tests should run, normally the results o
 * Sometimes the API seems to lockup/crash or lockout the CI client resulting in widespread error 503s.
 
 ### PLEASE NOTE
-The current VCSA deployment seen in `acctests/equinix/vcsa_deploy.json` is set to thin provision the primary datastore `datastore1`. It seems that over time the VCSA VM will continue to expand until the datastore is full. There is probably a way to prevent this. Without this being corrected, or a bare metal server with more primary disk space being chosen, the CI probably needs to be rebuilt from scratch about once a month.
+The current VCSA deployment seen in `acctests/equinix/vcsa_deploy.json` is set to thin provision the primary datastore `datastore1`. It seems that over time the VCSA VM will continue to expand until the datastore is full. There is probably a way to properly configure this in `acctests/equinix/vcsa_deploy.json`. Without this being corrected, or a bare metal server with more primary disk space being chosen, the CI probably needs to be rebuilt from scratch every 45 days.
 
-The main ESXi also only comes with an evaluation license good for 60 days (not an issue if we are forced to rebuild every 30 due to space issue). We do have an ESXi 7 license, but it has to be manually assigned to the host and generally it's been easier to just rebuild from scratch every 60 days (although this could easily be added as a manual step alongside the networking manual steps). The short term time limits this poses may not be a problem if CI can be improved to the point where the entire system is brought up and torn down daily.
+vSphere vCenter comes with a 60 day evaluation license. Until the space issue is resolved it is not essential that a permanent vCenter license be added. Longterm it would be nice if the entire infrastructure could be brought up and torn down daily, meaning neither issue would need to be addressed.
 
 # Local Testing
 The tests and required infrastructure have been heavily streamlined (believe it or not...) however its still expected they run Equinix for now, but it should be theoretically possible to run tests against local hardware (or perhaps totally virtualized). The main requirement is ESXi 7 with the following:
