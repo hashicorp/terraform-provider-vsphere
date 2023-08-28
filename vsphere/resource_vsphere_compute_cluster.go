@@ -1379,6 +1379,12 @@ func resourceVSphereComputeClusterFlattenData(
 		d.Set("vsan_network_diagnostic_mode_enabled", false)
 	}
 
+	if vsanConfig.UnmapConfig != nil {
+		d.Set("vsan_unmap_enabled", vsanConfig.UnmapConfig.Enable)
+	} else {
+		d.Set("vsan_unmap_enabled", false)
+	}
+
 	if vsanConfig.DataInTransitEncryptionConfig != nil {
 		d.Set("vsan_dit_encryption_enabled", structure.BoolNilFalse(vsanConfig.DataInTransitEncryptionConfig.Enabled))
 		d.Set("vsan_dit_rekey_interval", int(vsanConfig.DataInTransitEncryptionConfig.RekeyInterval))
@@ -1492,7 +1498,8 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 	}
 
 	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 8, Minor: 0}) {
-		conf.VsanClusterConfig.(*vsantypes.VsanClusterConfigInfo).VsanEsaEnabled = structure.GetBool(d, "vsan_esa_enabled")
+		vsanEsaEnabled := d.Get("vsan_esa_enabled").(bool)
+		conf.VsanClusterConfig.(*vsantypes.VsanClusterConfigInfo).VsanEsaEnabled = &vsanEsaEnabled
 	}
 
 	if d.Get("vsan_enabled").(bool) && !d.Get("vsan_esa_enabled").(bool) {
