@@ -540,7 +540,7 @@ func resourceVSphereComputeCluster() *schema.Resource {
 			"vsan_unmap_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Computed:    true,
+				Default:     false,
 				Description: "Whether the vSAN unmap service is enabled for the cluster.",
 			},
 			"vsan_remote_datastore_ids": {
@@ -1379,12 +1379,6 @@ func resourceVSphereComputeClusterFlattenData(
 		d.Set("vsan_network_diagnostic_mode_enabled", false)
 	}
 
-	if vsanConfig.UnmapConfig != nil {
-		d.Set("vsan_unmap_enabled", vsanConfig.UnmapConfig.Enable)
-	} else {
-		d.Set("vsan_unmap_enabled", false)
-	}
-
 	if vsanConfig.DataInTransitEncryptionConfig != nil {
 		d.Set("vsan_dit_encryption_enabled", structure.BoolNilFalse(vsanConfig.DataInTransitEncryptionConfig.Enabled))
 		d.Set("vsan_dit_rekey_interval", int(vsanConfig.DataInTransitEncryptionConfig.RekeyInterval))
@@ -1477,14 +1471,8 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 		if !d.HasChange("vsan_enabled") && d.HasChange("vsan_esa_enabled") {
 			return fmt.Errorf("vSAN ESA service must be configured along with vSAN service: %s", d.Get("name").(string))
 		}
-		if d.Get("vsan_esa_enabled").(bool) {
-			// need to be revised if GetOkExists() is deprecated in the future
-			unmapEnabled, unmapOK := d.GetOkExists("vsan_unmap_enabled")
-			if !unmapOK {
-				d.Set("vsan_unmap_enabled", true)
-			} else if !unmapEnabled.(bool) {
-				return fmt.Errorf("vSAN unmap service should be by default enabled when vSAN ESA is enabled: %s", d.Get("name").(string))
-			}
+		if d.Get("vsan_esa_enabled").(bool) && !d.Get("vsan_unmap_enabled").(bool) {
+			return fmt.Errorf("vSAN unmap service should be explicitly enabled when vSAN ESA is enabled: %s", d.Get("name").(string))
 		}
 	}
 
@@ -1507,6 +1495,19 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 		conf.VsanClusterConfig.(*vsantypes.VsanClusterConfigInfo).VsanEsaEnabled = structure.GetBool(d, "vsan_esa_enabled")
 	}
 
+	if d.Get("vsan_enabled").(bool) && !d.Get("vsan_esa_enabled").(bool) {
+		dedupEnabled := d.Get("vsan_dedup_enabled").(bool)
+		compressionEnabled := d.Get("vsan_compression_enabled").(bool)
+		if dedupEnabled && !compressionEnabled {
+			return fmt.Errorf("vsan compression must be enabled if vsan dedup is enabled")
+		}
+
+		conf.DataEfficiencyConfig = &vsantypes.VsanDataEfficiencyConfig{
+			DedupEnabled:       dedupEnabled,
+			CompressionEnabled: &compressionEnabled,
+		}
+	}
+
 	perfConfig, err := expandVsanPerfConfig(d)
 	if err != nil {
 		return err
@@ -1515,26 +1516,6 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 
 	if err := vsanclient.Reconfigure(meta.(*Client).vsanClient, cluster.Reference(), conf); err != nil {
 		return fmt.Errorf("cannot apply vsan service on cluster '%s': %s", d.Get("name").(string), err)
-	}
-
-	if !d.Get("vsan_esa_enabled").(bool) {
-		dedupEnabled := d.Get("vsan_dedup_enabled").(bool)
-		compressionEnabled := d.Get("vsan_compression_enabled").(bool)
-		if dedupEnabled && !compressionEnabled {
-			return fmt.Errorf("vsan compression must be enabled if vsan dedup is enabled")
-		}
-
-		conf := vsantypes.VimVsanReconfigSpec{
-			Modify: true,
-			DataEfficiencyConfig: &vsantypes.VsanDataEfficiencyConfig{
-				DedupEnabled:       dedupEnabled,
-				CompressionEnabled: &compressionEnabled,
-			},
-		}
-
-		if err := vsanclient.Reconfigure(meta.(*Client).vsanClient, cluster.Reference(), conf); err != nil {
-			return fmt.Errorf("cannot apply vsan data efficiency service on cluster '%s': %s", d.Get("name").(string), err)
-		}
 	}
 
 	// handle disk groups
