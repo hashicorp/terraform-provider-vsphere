@@ -1,5 +1,8 @@
 ## 2.5.0 (Unreleased)
 
+BUG FIXES:
+* `r/virtual_machine`: Fix hardware version conversion ([#2011](https://github.com/hashicorp/terraform-provider-vsphere/pull/2011))
+
 CHORES:
 * Update terraform-plugin-sdk v2.28.0 ([#2002](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2002))
 
