@@ -1002,7 +1002,7 @@ func GetHardwareVersionID(vint int) string {
 	if vint == 0 {
 		return ""
 	}
-	return fmt.Sprintf("vmx-%d", vint)
+	return fmt.Sprintf("vmx-%02d", vint)
 }
 
 // GetHardwareVersionNumber gets the hardware version number from string.
