@@ -1,4 +1,4 @@
-## 2.5.0 (Unreleased)
+## 2.4.3 (September 08, 2023)
 
 BUG FIXES:
 * `r/virtual_machine`: Fix hardware version conversion ([#2011](https://github.com/hashicorp/terraform-provider-vsphere/pull/2011))
