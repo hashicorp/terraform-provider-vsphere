@@ -25,7 +25,6 @@ data "vsphere_host" "h1" {
   datacenter_id = data.vsphere_datacenter.dc.id
 }
 
-
 resource "vsphere_distributed_virtual_switch" "d1" {
   name          = "dc_DVPG0"
   datacenter_id = data.vsphere_datacenter.dc.id
@@ -64,7 +63,6 @@ data "vsphere_host" "h1" {
   datacenter_id = data.vsphere_datacenter.dc.id
 }
 
-
 resource "vsphere_host_virtual_switch" "hvs1" {
   name             = "dc_HPG0"
   host_system_id   = data.vsphere_host.h1.id
@@ -85,7 +83,7 @@ resource "vsphere_vnic" "v1" {
   ipv4 {
     dhcp = true
   }
-  enabled_services = ["vsan", "management"]
+  services = ["vsan", "management"]
 }
 ```
 
@@ -93,16 +91,16 @@ resource "vsphere_vnic" "v1" {
 
 * `portgroup` - (Optional) Portgroup to attach the nic to. Do not set if you set distributed_switch_port.
 * `distributed_switch_port` - (Optional) UUID of the DVSwitch the nic will be attached to. Do not set if you set portgroup.
-* `distributed_port_group` - (Optional) Key of the distributed portgroup the nic will connect to. 
-* `ipv4` - (Optional) IPv4 settings. Either this or `ipv6` needs to be set. See  [ipv4 options](#ipv4-options) below.
-* `ipv6` - (Optional) IPv6 settings. Either this or `ipv6` needs to be set. See  [ipv6 options](#ipv6-options) below.
+* `distributed_port_group` - (Optional) Key of the distributed portgroup the nic will connect to.
+* `ipv4` - (Optional) IPv4 settings. Either this or `ipv6` needs to be set. See [IPv4 options](#ipv4-options) below.
+* `ipv6` - (Optional) IPv6 settings. Either this or `ipv6` needs to be set. See [IPv6 options](#ipv6-options) below.
 * `mac` - (Optional) MAC address of the interface.
 * `mtu` - (Optional) MTU of the interface.
-* `netstack` - (Optional)  TCP/IP stack setting for this interface. Possible values are 'defaultTcpipStack', 'vmotion', 'vSphereProvisioning'. Changing this will force the creation of a new interface since it's not possible to change the stack once it gets created. (Default: `defaultTcpipStack`)
-* `services` - (Optional)  Enabled services setting for this interface. Current possible values are 'vmotion', 'management', and 'vsan'.
+* `netstack` - (Optional) TCP/IP stack setting for this interface. Possible values are `defaultTcpipStack``, 'vmotion', 'vSphereProvisioning'. Changing this will force the creation of a new interface since it's not possible to change the stack once it gets created. (Default:`defaultTcpipStack`)
+* `services` - (Optional) Enabled services setting for this interface. Currently support values are `vmotion`, `management`, and `vsan`.
 
+### IPv4 Options
 
-### ipv4 options
 Configures the IPv4 settings of the network interface. Either DHCP or Static IP has to be set.
 
 * `dhcp` - Use DHCP to configure the interface's IPv4 stack.
@@ -110,22 +108,20 @@ Configures the IPv4 settings of the network interface. Either DHCP or Static IP 
 * `netmask` - Netmask of the interface, if DHCP is not set.
 * `gw` - IP address of the default gateway, if DHCP is not set.
 
+### IPv6 Options
 
-### ipv6 options
 Configures the IPv6 settings of the network interface. Either DHCP or Autoconfig or Static IP has to be set.
 
-* `dhcp` - Use DHCP to configure the interface's IPv4 stack.
+* `dhcp` - Use DHCP to configure the interface's IPv6 stack.
 * `autoconfig` - Use IPv6 Autoconfiguration (RFC2462).
 * `addresses` -  List of IPv6 addresses
 * `gw` - IP address of the default gateway, if DHCP or autoconfig is not set.
-
 
 ## Attribute Reference
 
 * `id` - The ID of the vNic.
 
-
-## Importing 
+## Importing
 
 An existing vNic can be [imported][docs-import] into this resource
 via supplying the vNic's ID. An example is below:
