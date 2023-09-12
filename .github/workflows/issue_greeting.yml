@@ -16,7 +16,7 @@ jobs:
           fetch-depth: 1
       - name: Render Template
         id: template
-        uses: chuhlomin/render-template@204ce622bc2fd5c787ff5ca885ff19fb577e7a41 # v1.6
+        uses: chuhlomin/render-template@b5c1c085165d9eb712cf4f2b56f89f11146ad017 # v1.7
         with:
           template: .github/issue_greeting_template.md
           vars: |
