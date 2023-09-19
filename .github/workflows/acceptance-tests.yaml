@@ -105,7 +105,7 @@ jobs:
         run: echo "YESTERDAY_DATE=$(date -d 'yesterday' +'%Y-%m-%d')" >> $GITHUB_ENV
 
       - name: Download previous day's log file
-        uses: dawidd6/action-download-artifact@246dbf436b23d7c49e21a7ab8204ca9ecd1fe615 # v2.27.0
+        uses: dawidd6/action-download-artifact@268677152d06ba59fcec7a7f0b5d961b6ccd7e1e # v2.28.0
         with:
           name: test-log-${{ env.YESTERDAY_DATE }}
           workflow_conclusion: "" # ignore status
