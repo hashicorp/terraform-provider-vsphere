@@ -1828,6 +1828,26 @@ func TestAccResourceVSphereVirtualMachine_cloneWithDifferentHostname(t *testing.
 		},
 	})
 }
+func TestAccResourceVSphereVirtualMachine_cloneWithDiskTypeChange(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneChangedDiskType(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckEagerlyScrub(0, true),
+				),
+			},
+		},
+	})
+}
 
 func TestAccResourceVSphereVirtualMachine_cpuHotAdd(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -2536,6 +2556,39 @@ func testAccResourceVSphereVirtualMachineCheckExists(expected bool) resource.Tes
 		if !expected {
 			return errors.New("expected VM to be missing")
 		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereVirtualMachineCheckEagerlyScrub(diskIndex int, eagerlyScrubedValue bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVirtualMachineProperties(s, "vm")
+		if err != nil {
+			return err
+		}
+
+		currentDiskIndex := -1
+		for _, device := range props.Config.Hardware.Device {
+			disk, ok := device.(*types.VirtualDisk)
+			if !ok {
+				continue
+			}
+			currentDiskIndex++
+			if currentDiskIndex != diskIndex {
+				continue
+			}
+			backing, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+			if !ok {
+				continue
+			}
+
+			if *backing.EagerlyScrub != eagerlyScrubedValue {
+				return fmt.Errorf("expected %t as eagerlyScrubbed for disk %d but received %t",
+					eagerlyScrubedValue, diskIndex, *backing.EagerlyScrub)
+			}
+
+		}
+
 		return nil
 	}
 }
@@ -5636,6 +5689,82 @@ resource "vsphere_virtual_machine" "vm" {
 		testAccResourceVSphereVirtualMachineConfigBase(),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 		os.Getenv("TF_VAR_VSPHERE_USE_LINKED_CLONE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigCloneChangedDiskType() string {
+	return fmt.Sprintf(`
+	%s
+
+data "vsphere_network" "network" {
+  name          = "VM Network"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+resource "vsphere_virtual_machine" "template" {
+  name          = "vm-1-template"
+  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinuxGuest"
+
+  network_interface {
+    network_id   = data.vsphere_network.network.id
+  }
+
+
+  wait_for_guest_ip_timeout = 0
+  wait_for_guest_net_timeout = 0
+
+  disk {
+    label            = "disk0"
+    size             = 4
+    eagerly_scrub    = false
+    thin_provisioned = false
+    }
+ lifecycle {
+	ignore_changes = [disk]
+	}
+}
+
+
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "vm-1-template-clone"
+  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+  guest_id         = vsphere_virtual_machine.template.guest_id
+  network_interface {
+    network_id   = data.vsphere_network.network.id
+  }
+  datastore_id     = data.vsphere_datastore.rootds1.id
+
+  num_cpus = 2
+  memory   = 2048
+
+  scsi_type =vsphere_virtual_machine.template.scsi_type
+  wait_for_guest_ip_timeout = 0
+  wait_for_guest_net_timeout = 0
+
+  disk {
+    label            = "disk0"
+    size             = vsphere_virtual_machine.template.disk.0.size
+    eagerly_scrub    = true
+    thin_provisioned = false
+    }
+
+  clone {
+    template_uuid = vsphere_virtual_machine.template.id
+  }
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootDS1(),
+		),
 	)
 }
 
