@@ -303,6 +303,16 @@ func resourceVSphereVirtualDiskRead(d *schema.ResourceData, meta interface{}) er
 		Path:      vDisk.vmdkPath,
 	}
 	diskType, err := virtualdisk.QueryDiskType(client, dp.String(), dc)
+	/**
+	Thick Provisioned Lazy Zeroed disk type a.k.a "lazy" in the provider context is actually
+	"preallocated" for the VC. Due to historical reasons i.e. the disk type is documented as "lazy".
+	In order to fix https://github.com/hashicorp/terraform-provider-vsphere/issues/1824 the value must be converted,
+	otherwise the disk is recreated
+	*/
+	if diskType == "preallocated" {
+		diskType = "lazy"
+	}
+
 	if err != nil {
 		return errors.New("Failed to query disk type")
 	}
