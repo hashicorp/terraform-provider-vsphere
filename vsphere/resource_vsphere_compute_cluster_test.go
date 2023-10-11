@@ -310,6 +310,7 @@ func TestAccResourceVSphereComputeCluster_vsanEsaEnabled(t *testing.T) {
 			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterPreCheck(t)
+			testAccResourceVSphereComputeClusterVSANEsaPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
@@ -582,6 +583,20 @@ func testAccResourceVSphereComputeClusterPreCheck(t *testing.T) {
 	}
 	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_virtual_machine acceptance tests")
+	}
+}
+
+func testAccResourceVSphereComputeClusterVSANEsaPreCheck(t *testing.T) {
+	meta, err := testAccProviderMeta(t)
+	if err != nil {
+		t.Skip("can not get meta")
+	}
+	client, err := resourceVSphereComputeClusterClient(meta)
+	if err != nil {
+		t.Skip("can not get client")
+	}
+	if version := viapi.ParseVersionFromClient(client); !version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 8, Minor: 0}) {
+		t.Skip("vSAN ESA acceptance test should be run on vSphere 8.0 or higher")
 	}
 }
 
