@@ -1849,6 +1849,27 @@ func TestAccResourceVSphereVirtualMachine_cloneWithDiskTypeChange(t *testing.T) 
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_cloneOnDsCuster(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+			testAccDsClusterRequiredPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneChangedDiskTypeDsCluster(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVirtualMachine_cpuHotAdd(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -2538,6 +2559,12 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	}
 	if os.Getenv("TF_VAR_VSPHERE_NAS_HOST") == "" {
 		t.Skip("set TF_VAR_VSPHERE_NAS_HOST to run vsphere_virtual_machine acceptance tests")
+	}
+}
+
+func testAccDsClusterRequiredPreCheck(t *testing.T) {
+	if os.Getenv("TF_VAR_VSPHERE_DS_CLUSTER1") == "" {
+		t.Skip("TF_VAR_VSPHERE_DS_CLUSTER1 must be set with a name of a DS cluster in order to run tests which require DS cluster ")
 	}
 }
 
@@ -5764,6 +5791,76 @@ resource "vsphere_virtual_machine" "vm" {
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootComputeCluster1(),
 			testhelper.ConfigDataRootDS1(),
+		),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigCloneChangedDiskTypeDsCluster() string {
+	return fmt.Sprintf(`
+	%s
+
+data "vsphere_network" "network" {
+  name          = "VM Network"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+resource "vsphere_virtual_machine" "template" {
+  name          = "vm-1-template"
+  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinuxGuest"
+
+  network_interface {
+    network_id   = data.vsphere_network.network.id
+  }
+
+
+  wait_for_guest_ip_timeout = 0
+  wait_for_guest_net_timeout = 0
+
+  disk {
+    label            = "disk0"
+    size             = 4
+    }
+}
+
+
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "vm-1-template-clone"
+  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+  guest_id         = vsphere_virtual_machine.template.guest_id
+  network_interface {
+    network_id   = data.vsphere_network.network.id
+  }
+  datastore_cluster_id     = data.vsphere_datastore_cluster.ds_cluster1.id
+
+  num_cpus = 2
+  memory   = 2048
+
+  scsi_type =vsphere_virtual_machine.template.scsi_type
+  wait_for_guest_ip_timeout = 0
+  wait_for_guest_net_timeout = 0
+
+  disk {
+    label            = "disk0"
+    size             = vsphere_virtual_machine.template.disk.0.size
+    }
+
+  clone {
+    template_uuid = vsphere_virtual_machine.template.id
+  }
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDSClusterData(),
 		),
 	)
 }

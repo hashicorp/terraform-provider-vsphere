@@ -972,6 +972,14 @@ func shouldAddRelocateSpec(d *schema.ResourceData, disk *types.VirtualDisk, sche
 	diskProps := virtualDiskToSchemaPropsMap(disk)
 	dataProps := diskDataToSchemaProps(d, schemaDiskIndex)
 
+	// If the VM is cloned to a datastore cluster and no datastore is specified for the disk
+	// it should not be added to the relocate spec
+	diskDataStoreId, _ := dataProps["datastore_id"].(string)
+	diskDsIsEmpty := diskDataStoreId == "" || diskDataStoreId == diskDatastoreComputedName
+	if d.Get("datastore_id") == "" && d.Get("datastore_cluster_id") != "" && diskDsIsEmpty {
+		return false
+	}
+
 	for _, key := range relocateProperties {
 		dataProp, dataPropOk := dataProps[key]
 		diskProp, diskPropOk := diskProps[key]
@@ -1024,21 +1032,29 @@ func virtualDiskToSchemaPropsMap(disk *types.VirtualDisk) map[string]interface{}
 
 func diskDataToSchemaProps(d *schema.ResourceData, deviceIndex int) map[string]interface{} {
 	m := make(map[string]interface{})
-	diskKey := fmt.Sprintf("disk.%d.datastore_id", deviceIndex)
-	if datastoreId, ok := d.GetOk(diskKey); ok {
+	datastoreKey := fmt.Sprintf("disk.%d.datastore_id", deviceIndex)
+	if datastoreId, ok := d.GetOk(datastoreKey); ok {
 		m["datastore_id"] = datastoreId
 	}
 
-	if diskMode, ok := d.GetOk(diskKey); ok {
+	diskModeKey := fmt.Sprintf("disk.%d.disk_mode", deviceIndex)
+	if diskMode, ok := d.GetOk(diskModeKey); ok {
 		m["disk_mode"] = diskMode
 	}
 
-	if eagerlyScrub, ok := d.GetOk(diskKey); ok {
+	eagerlyScrubKey := fmt.Sprintf("disk.%d.eagerly_scrub", deviceIndex)
+	if eagerlyScrub, ok := d.GetOk(eagerlyScrubKey); ok {
 		m["eagerly_scrub"] = eagerlyScrub
 	}
 
-	if thinProvisioned, ok := d.GetOk(diskKey); ok {
+	thinProvisionedKey := fmt.Sprintf("disk.%d.thin_provisioned", deviceIndex)
+	if thinProvisioned, ok := d.GetOk(thinProvisionedKey); ok {
 		m["thin_provisioned"] = thinProvisioned
+	}
+
+	writeThroughKey := fmt.Sprintf("disk.%d.write_through", deviceIndex)
+	if writeThrough, ok := d.GetOk(writeThroughKey); ok {
+		m["write_through"] = writeThrough
 	}
 
 	return m
