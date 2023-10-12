@@ -1,11 +1,26 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
+## 2.5.1 (October 12, 2023)
+
+BUG FIXES:
+
+* `resource/virtual_machine`: Fixed cloning regression on datastore cluster. Restored behavior not to send relocate specs for the virtual disks when it is cloned on datastore cluster with exception when `datastore_id`` is explicitly specified for the virtual disk. ([#2037](https://github.com/hashicorp/terraform-provider-vsphere/pull/2037))
+* `resource/vsphere_virtual_disk`: Fixed improper disk type handling forcing disks to be recreated. ([#2033](https://github.com/hashicorp/terraform-provider-vsphere/pull/2033))
+
+IMPROVEMENTS:
+
+* `resource/virtual_machine`: Allow hardware version up to 21. ([#2038](https://github.com/hashicorp/terraform-provider-vsphere/pull/2038))
+
+CHORES:
+
+* `provider`: Bumps `golang.org/x/net` from 0.13.0 to 0.17.0. ([#2035](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2035))
+
 ## 2.5.0 (October 09, 2023)
 
 BUG FIXES:
 
-* `resource/virtual_machine`: Removes the validation for `eagerly_scrubbed` and `thin_provision` fields for a disk subresource so that `ignore_changes` resolves a deployment. ([#2028](https://github.com/hashicorp/terraform-provider-vsphere/pull/2028)
-* `resource/virtual_machine`: Adds a differential between the disk properties specified and those existing on the source virtual machine disk, allowing changes to be sent to the API for disk subresource. ([#2028](https://github.com/hashicorp/terraform-provider-vsphere/pull/2028)
+* `resource/virtual_machine`: Removes the validation for `eagerly_scrubbed` and `thin_provision` fields for a disk subresource so that `ignore_changes` resolves a deployment. ([#2028](https://github.com/hashicorp/terraform-provider-vsphere/pull/2028))
+* `resource/virtual_machine`: Adds a differential between the disk properties specified and those existing on the source virtual machine disk, allowing changes to be sent to the API for disk subresource. ([#2028](https://github.com/hashicorp/terraform-provider-vsphere/pull/2028))
 
 IMPROVEMENTS:
 
