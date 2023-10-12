@@ -648,10 +648,11 @@ The following options are general virtual machine and provider workflow options:
 
 * `guest_id` - (Optional) The guest ID for the operating system type. For a full list of possible values, see [here][vmware-docs-guest-ids]. Default: `otherGuest64`.
 
-[vmware-docs-guest-ids]: https://vdc-download.vmware.com/vmwb-repository/dcr-public/b50dcbbf-051d-4204-a3e7-e1b618c1e384/538cf2ec-b34f-4bae-a332-3820ef9e7773/vim.vm.GuestOsDescriptor.GuestOsIdentifier.html
+[vmware-docs-guest-ids]: https://vdc-repo.vmware.com/vmwb-repository/dcr-public/184bb3ba-6fa8-4574-a767-d0c96e2a38f4/ba9422ef-405c-47dd-8553-e11b619185b2/SDK/vsphere-ws/docs/ReferenceGuide/vim.vm.GuestOsDescriptor.GuestOsIdentifier.html
 
-* `hardware_version` - (Optional) The hardware version number. Valid range is from 4 to 21. The hardware version cannot be downgraded. See [virtual machine hardware compatibility][virtual-machine-hardware-compatibility] for more information.
+* `hardware_version` - (Optional) The hardware version number. Valid range is from 4 to 21. The hardware version cannot be downgraded. See virtual machine hardware [versions][virtual-machine-hardware-versions] and [compatibility][virtual-machine-hardware-compatibility] for more information on supported settings.
 
+[virtual-machine-hardware-versions]: https://kb.vmware.com/s/article/1003746
 [virtual-machine-hardware-compatibility]: https://kb.vmware.com/s/article/2007240
 
 * `host_system_id` - (Optional) The [managed object reference ID][docs-about-morefs] of a host on which to place the virtual machine. See the section on [virtual machine migration](#virtual-machine-migration) for more information on modifying this value. When using a vSphere cluster, if a `host_system_id` is not supplied, vSphere will select a host in the cluster to place the virtual machine, according to any defaults or vSphere DRS placement policies.
