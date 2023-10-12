@@ -318,7 +318,32 @@ func TestAccResourceVSphereComputeCluster_faultDomain(t *testing.T) {
 				Config: testAccResourceVSphereComputeClusterConfigFaultDomains(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					testAccResourceVSphereComputeClusterCheckFaultDomain("fd1", 1, "fd2", 1),
+					resource.TestCheckTypeSetElemAttrPair(
+						"vsphere_compute_cluster.compute_cluster",
+						"fault_domains.*.host_ids.*",
+						"data.vsphere_host.roothost3",
+						"id",
+					),
+					resource.TestCheckTypeSetElemAttrPair(
+						"vsphere_compute_cluster.compute_cluster",
+						"fault_domains.*.host_ids.*",
+						"data.vsphere_host.roothost4",
+						"id",
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(
+						"vsphere_compute_cluster.compute_cluster",
+						"fault_domains.*",
+						map[string]string{
+							"name": "fd1",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(
+						"vsphere_compute_cluster.compute_cluster",
+						"fault_domains.*",
+						map[string]string{
+							"name": "fd2",
+						},
+					),
 				),
 			},
 		},
@@ -748,35 +773,6 @@ func testAccResourceVSphereComputeClusterCheckCustomAttributes() resource.TestCh
 			return err
 		}
 		return testResourceHasCustomAttributeValues(s, "vsphere_compute_cluster", "compute_cluster", props.Entity())
-	}
-}
-
-func testAccResourceVSphereComputeClusterCheckFaultDomain(fd1Name string, fd1Len int, fd2Name string, fd2Len int) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		props, err := testGetComputeClusterProperties(s, "compute_cluster")
-		if err != nil {
-			return err
-		}
-
-		obj := props.ConfigurationEx.(*types.ClusterConfigInfoEx).VsanHostConfig
-		faultDomains := make(map[string]interface{})
-		for _, hostConfig := range obj {
-			if hostConfig.FaultDomainInfo != nil {
-				fdName := hostConfig.FaultDomainInfo.Name
-				if hostIds, ok := faultDomains[fdName]; ok {
-					hostIds = append(hostIds.([]string), hostConfig.HostSystem.Value)
-				} else {
-					faultDomains[fdName] = []string{hostConfig.HostSystem.Value}
-				}
-			}
-		}
-
-		if len(faultDomains[fd1Name].([]string)) != fd1Len || len(faultDomains[fd2Name].([]string)) != fd2Len {
-			return fmt.Errorf("got length of fd1 %s: %d, fd2 %s: %d", fd1Name, len(faultDomains[fd1Name].([]string)),
-				fd2Name, len(faultDomains[fd2Name].([]string)))
-		}
-
-		return nil
 	}
 }
 

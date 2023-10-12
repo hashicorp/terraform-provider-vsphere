@@ -1451,6 +1451,8 @@ func expandClusterConfigSpecEx(d *schema.ResourceData, version viapi.VSphereVers
 	return obj, nil
 }
 
+// expandVsanHostConfig reads current VsanHostConfigInfo and only update
+// fault domain info so returns VsanHostConfigInfo as well.
 func expandVsanHostConfig(d *schema.ResourceData, obj []types.VsanHostConfigInfo) []types.VsanHostConfigInfo {
 	faultDomains := d.Get("fault_domains").(*schema.Set).List()
 	fdMap := make(map[string]string)
