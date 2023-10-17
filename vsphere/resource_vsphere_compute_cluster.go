@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/network"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/vsanclient"
 
@@ -573,6 +574,89 @@ func resourceVSphereComputeCluster() *schema.Resource {
 							Description: "List of storage disks.",
 							Optional:    true,
 							Elem:        &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
+			"vsan_file_service_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Whether the vSAN file service is enabled for the cluster.",
+			},
+			"vsan_file_service_conf": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Computed:    true,
+				Description: "The configuration for vsan file service.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"network": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "The network selected for vsan file service.",
+						},
+						"vsan_file_service_domain_conf": {
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Computed:    true,
+							Description: "The domain configuration for vsan file service.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"name": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "The name of vsan file service domain.",
+									},
+									"dns_server_addresses": {
+										Type:        schema.TypeSet,
+										Optional:    true,
+										Description: "The dns server addresses of vsan file service domain.",
+										Elem:        &schema.Schema{Type: schema.TypeString},
+									},
+									"dns_suffixes": {
+										Type:        schema.TypeSet,
+										Optional:    true,
+										Description: "The dns suffixes of vsan file service domain.",
+										Elem:        &schema.Schema{Type: schema.TypeString},
+									},
+									"gateway": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "The gateway of vsan file server ip config.",
+									},
+									"subnet_mask": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "The subnet mask of vsan file server ip config.",
+									},
+									"file_server_ip_config": {
+										Type:        schema.TypeSet,
+										Optional:    true,
+										Computed:    true,
+										Description: "The ip config for vsan file server.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"ip_address": {
+													Type:        schema.TypeString,
+													Optional:    true,
+													Description: "The ip address of vsan file server ip config.",
+												},
+												"fqdn": {
+													Type:        schema.TypeString,
+													Optional:    true,
+													Description: "The fqdn of vsan file server ip config.",
+												},
+												"is_primary": {
+													Type:        schema.TypeBool,
+													Optional:    true,
+													Description: "If it is primary file server ip.",
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -1397,6 +1481,10 @@ func resourceVSphereComputeClusterFlattenData(
 		}
 	}
 
+	if err := flattenVsanFileServiceConfig(d, cluster, vsanConfig); err != nil {
+		return err
+	}
+
 	return flattenClusterConfigSpecEx(d, props.ConfigurationEx.(*types.ClusterConfigInfoEx), version)
 }
 
@@ -1455,6 +1543,49 @@ func expandVsanDatastoreConfig(d *schema.ResourceData, meta interface{}) (*vsant
 	}
 
 	return conf, nil
+}
+
+func expandVsanFileServiceConfig(d *schema.ResourceData, meta interface{}, fileServiceConf map[string]interface{}) (*vsantypes.VsanFileServiceConfig, error) {
+	vimClient := meta.(*Client).vimClient
+	networkID := fileServiceConf["network"].(string)
+	network, err := network.FromID(vimClient, networkID)
+	if err != nil {
+		return nil, fmt.Errorf("error locating network ID %q: %s", networkID, err)
+	}
+
+	return &vsantypes.VsanFileServiceConfig{
+		Enabled: d.Get("vsan_file_service_enabled").(bool),
+		Network: types.NewReference(network.Reference()),
+	}, nil
+}
+
+func expandVsanFileServiceDomainConfig(d *schema.ResourceData, fileServiceConf map[string]interface{}) (vsantypes.VsanFileServiceDomainConfig, error) {
+	// TODO: add FS active directory support once govmomi is updated.
+	domainConf := fileServiceConf["vsan_file_service_domain_conf"].(*schema.Set).List()[0].(map[string]interface{})
+
+	var serverIpConf []vsantypes.VsanFileServiceIpConfig
+	for _, ip := range domainConf["file_server_ip_config"].(*schema.Set).List() {
+		ipConf := ip.(map[string]interface{})
+		fqdn, _ := ipConf["fqdn"].(string)
+		ipAddress, _ := ipConf["ip_address"].(string)
+		isPrimary, _ := ipConf["is_primary"].(bool)
+		serverIpConf = append(serverIpConf, vsantypes.VsanFileServiceIpConfig{
+			HostIpConfig: types.HostIpConfig{
+				IpAddress:  ipAddress,
+				SubnetMask: domainConf["subnet_mask"].(string),
+			},
+			Fqdn:      fqdn,
+			IsPrimary: &isPrimary,
+			Gateway:   domainConf["gateway"].(string),
+		})
+	}
+
+	return vsantypes.VsanFileServiceDomainConfig{
+		Name:               domainConf["name"].(string),
+		DnsServerAddresses: structure.SliceInterfacesToStrings(domainConf["dns_server_addresses"].(*schema.Set).List()),
+		DnsSuffixes:        structure.SliceInterfacesToStrings(domainConf["dns_suffixes"].(*schema.Set).List()),
+		FileServerIpConfig: serverIpConf,
+	}, nil
 }
 
 func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta interface{}, cluster *object.ClusterComputeResource) error {
@@ -1517,6 +1648,57 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 			return fmt.Errorf("cannot apply vsan remote datastores on cluster '%s': %s", d.Get("name").(string), err)
 		}
 	}
+
+	// handle file service
+	if d.Get("vsan_file_service_enabled").(bool) && d.HasChange("vsan_file_service_enabled") {
+		fileServiceOvfUrl, err := vsanclient.FindOvfDownloadUrl(meta.(*Client).vsanClient, cluster.Reference())
+		if err != nil {
+			return fmt.Errorf("cannot find vsan file service OVF url, err: %s", err)
+		}
+
+		if err := vsanclient.DownloadFileServiceOvf(meta.(*Client).vsanClient, meta.(*Client).vimClient, fileServiceOvfUrl); err != nil {
+			return fmt.Errorf("cannot download vsan file service OVF with url: %s", fileServiceOvfUrl)
+		} else {
+			log.Printf("[DEBUG] downloaded vsan file service OVF with url: %s", fileServiceOvfUrl)
+		}
+
+		fileServiceConf := d.Get("vsan_file_service_conf").(*schema.Set).List()[0].(map[string]interface{})
+
+		fileServiceConfig, err := expandVsanFileServiceConfig(d, meta, fileServiceConf)
+		if err != nil {
+			return err
+		}
+		if err := vsanclient.Reconfigure(meta.(*Client).vsanClient, cluster.Reference(), vsantypes.VimVsanReconfigSpec{
+			Modify:            true,
+			FileServiceConfig: fileServiceConfig,
+		}); err != nil {
+			return fmt.Errorf("cannot apply vsan file service on cluster '%s': %s", d.Get("name").(string), err)
+		}
+
+		if len(fileServiceConf["vsan_file_service_domain_conf"].(*schema.Set).List()) != 0 {
+			domainConfig, err := expandVsanFileServiceDomainConfig(d, fileServiceConf)
+			if err != nil {
+				return err
+			}
+			if err := vsanclient.CreateFileServiceDomain(meta.(*Client).vsanClient, meta.(*Client).vimClient, domainConfig, cluster.Reference()); err != nil {
+				return fmt.Errorf("cannot configure vsan file service domain, err: %s", err)
+			} else {
+				log.Printf("[DEBUG] configure vsan file service domain")
+			}
+		}
+	}
+
+	if !d.Get("vsan_file_service_enabled").(bool) && d.HasChange("vsan_file_service_enabled") {
+		if err := vsanclient.Reconfigure(meta.(*Client).vsanClient, cluster.Reference(), vsantypes.VimVsanReconfigSpec{
+			Modify: true,
+			FileServiceConfig: &vsantypes.VsanFileServiceConfig{
+				Enabled: d.Get("vsan_file_service_enabled").(bool),
+			},
+		}); err != nil {
+			return fmt.Errorf("cannot disable vsan file service on cluster '%s': %s", d.Get("name").(string), err)
+		}
+	}
+	// TODO: reconfigure FS domain
 
 	return nil
 }
@@ -1699,6 +1881,47 @@ func flattenVsanDisks(d *schema.ResourceData, cluster *object.ClusterComputeReso
 		}
 	}
 	return d.Set("vsan_disk_group", diskMap)
+}
+
+func flattenVsanFileServiceConfig(d *schema.ResourceData, cluster *object.ClusterComputeResource, vsanConfig *vsantypes.VsanConfigInfoEx) error {
+	if !vsanConfig.FileServiceConfig.Enabled {
+		return d.Set("vsan_file_service_enabled", vsanConfig.FileServiceConfig.Enabled)
+	}
+
+	fsDomainConf := []interface{}{}
+	for _, domainConf := range vsanConfig.FileServiceConfig.Domains {
+		// handle file server ip config.
+		fsServerIpConf := []interface{}{}
+		for _, serverIpConf := range domainConf.FileServerIpConfig {
+			fsServerIpConf = append(fsServerIpConf, map[string]interface{}{
+				"ip_address": serverIpConf.HostIpConfig.IpAddress,
+				"fqdn":       serverIpConf.Fqdn,
+				"is_primary": serverIpConf.IsPrimary,
+			})
+		}
+		// TODO: handle active directory server config.
+		fsDomainConf = append(fsDomainConf, map[string]interface{}{
+			"name":                  domainConf.Name,
+			"dns_server_addresses":  domainConf.DnsServerAddresses,
+			"dns_suffixes":          domainConf.DnsSuffixes,
+			"gateway":               domainConf.FileServerIpConfig[0].Gateway,
+			"subnet_mask":           domainConf.FileServerIpConfig[0].HostIpConfig.SubnetMask,
+			"file_server_ip_config": fsServerIpConf,
+		})
+	}
+
+	serviceConf := []interface{}{}
+	serviceConf = append(serviceConf, map[string]interface{}{
+		// TODO: add more params configurations, like FileServerMemoryMB, FileServerCPUMhz etc.
+		"network":                       vsanConfig.FileServiceConfig.Network.Value,
+		"vsan_file_service_domain_conf": fsDomainConf,
+	})
+
+	if err := d.Set("vsan_file_service_conf", serviceConf); err != nil {
+		return err
+	}
+
+	return d.Set("vsan_file_service_enabled", vsanConfig.FileServiceConfig.Enabled)
 }
 
 // flattenClusterConfigSpecEx saves a ClusterConfigSpecEx into the supplied

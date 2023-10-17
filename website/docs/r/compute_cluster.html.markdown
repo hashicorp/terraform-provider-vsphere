@@ -489,6 +489,21 @@ details, see the referenced link in the above paragraph.
   group in the cluster.
   * `cache` - The canonical name of the disk to use for vSAN cache.
   * `storage` - An array of disk canonical names for vSAN storage.
+* `vsan_file_service_enabled` - (Optional) Enables vSAN file service on the
+  cluster. `vsan_file_service_conf` should be configured when this is `true`.
+* `vsan_file_service_conf` - (Optional) Configurations of vSAN file service.
+  * `network` - The network selected for vsan file service.
+  It's mandatory when `vsan_file_service_enabled` is set to `true`.
+  * `vsan_file_service_domain_conf` - (Optional) Domain configurations of vSAN file service.
+    * `name` - The name of vSAN file service domain.
+    * `dns_server_addresses` - The DNS server addresses of vSAN file service domain.
+    * `dns_suffixes` - The DNS suffixes of vSAN file service domain.
+    * `gateway` - The gateway of vSAN file server IP config.
+    * `subnet_mask` - The subnet mask of vSAN file server IP config.
+    * `file_server_ip_config` - The IP config for vSAN file server.
+      * `ip_address` - The IP address of vSAN file server IP config.
+      * `fqdn` - The FQDN of vSAN file server IP config.
+      * `is_primary` - If it is primary file server IP.
 
 ~> **NOTE:** You must disable vSphere HA before you enable vSAN on the cluster.
 You can enable or re-enable vSphere HA after vSAN is configured.
@@ -516,6 +531,32 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   vsan_disk_group {
     cache = data.vsphere_vmfs_disks.cache_disks[0]
     storage = data.vsphere_vmfs_disks.storage_disks
+  }
+  vsan_file_service_enabled = true
+  vsan_file_service_conf {
+    network = data.vsphere_network.network.id
+    vsan_file_service_domain_conf {
+      name = "<your_fs_domain_name>"
+      dns_server_addresses = ["1.2.3.4"]
+      dns_suffixes = ["example.com"]
+      gateway = "192.168.111.1"
+      subnet_mask = "255.255.255.0"
+      file_server_ip_config {
+        fqdn = "h192-168-111-2.example.com"
+        ip_address = "192.168.111.2"
+        is_primary = true
+      }
+      file_server_ip_config {
+        fqdn = "h192-168-111-3.example.com"
+        ip_address = "192.168.111.3"
+        is_primary = false
+      }
+      file_server_ip_config {
+        fqdn = "h192-168-111-4.example.com"
+        ip_address = "192.168.111.4"
+        is_primary = false
+      }
+    }
   }
 }
 ```
