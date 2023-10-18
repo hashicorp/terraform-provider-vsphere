@@ -462,8 +462,11 @@ details, see the referenced link in the above paragraph.
 ### vSAN Settings
 
 * `vsan_enabled` - (Optional) Enables vSAN on the cluster.
+* `vsan_esa_enabled` - (Optional) Enables vSAN ESA on the cluster.
+* `vsan_unmap_enabled` - (Optional) Enables vSAN unmap on the cluster.
+  You must explicitly enable vSAN unmap when you enable vSAN ESA on the cluster.
 * `vsan_dedup_enabled` - (Optional) Enables vSAN deduplication on the cluster.
-  Cannot be independently set to true. When vSAN deduplication is enabled, vSAN
+  Cannot be independently set to `true`. When vSAN deduplication is enabled, vSAN
   compression must also be enabled.
 * `vsan_compression_enabled` - (Optional) Enables vSAN compression on the
   cluster.
@@ -473,7 +476,6 @@ details, see the referenced link in the above paragraph.
   performance service on the cluster.
 * `vsan_network_diagnostic_mode_enabled` - (Optional) Enables network
   diagnostic mode for vSAN performance service on the cluster.
-* `vsan_unmap_enabled` - (Optional) Enables vSAN unmap on the cluster.
 * `vsan_remote_datastore_ids` - (Optional) The remote vSAN datastore IDs to be
   mounted to this cluster. Conflicts with `vsan_dit_encryption_enabled` and
   `vsan_dit_rekey_interval`, i.e., vSAN HCI Mesh feature cannot be enabled with
@@ -505,6 +507,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   ha_enabled = false
 
   vsan_enabled = true
+  vsan_esa_enabled = true
   vsan_dedup_enabled = true
   vsan_compression_enabled = true
   vsan_performance_enabled = true
@@ -558,3 +561,9 @@ specific version of vSphere.
 These settings require vSphere 7.0 or higher:
 
 * [`drs_scale_descendants_shares`](#drs_scale_descendants_shares)
+
+### Settings that Require vSphere 8.0 or higher
+
+These settings require vSphere 8.0 or higher:
+
+* [`vsan_esa_enabled`](#vsan_esa_enabled)

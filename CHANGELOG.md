@@ -1,10 +1,16 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
+## 2.6.0 (Unreleased)
+
+FEATURES:
+
+* `resource/compute_cluster`: Adds support for vSAN Express Storage Architecture in vSphere 8.0. ([#1874](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1874))
+
 ## 2.5.1 (October 12, 2023)
 
 BUG FIXES:
 
-* `resource/virtual_machine`: Fixed cloning regression on datastore cluster. Restored behavior not to send relocate specs for the virtual disks when it is cloned on datastore cluster with exception when `datastore_id`` is explicitly specified for the virtual disk. ([#2037](https://github.com/hashicorp/terraform-provider-vsphere/pull/2037))
+* `resource/virtual_machine`: Fixed cloning regression on datastore cluster. Restored behavior not to send relocate specs for the virtual disks when it is cloned on datastore cluster with exception when `datastore_id` is explicitly specified for the virtual disk. ([#2037](https://github.com/hashicorp/terraform-provider-vsphere/pull/2037))
 * `resource/vsphere_virtual_disk`: Fixed improper disk type handling forcing disks to be recreated. ([#2033](https://github.com/hashicorp/terraform-provider-vsphere/pull/2033))
 
 IMPROVEMENTS:
