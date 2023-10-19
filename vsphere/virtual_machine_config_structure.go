@@ -352,7 +352,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 		"hardware_version": {
 			Type:         schema.TypeInt,
 			Optional:     true,
-			ValidateFunc: validation.IntBetween(4, 19),
+			ValidateFunc: validation.IntBetween(4, 21),
 			Description:  "The hardware version for the virtual machine.",
 			Computed:     true,
 		},

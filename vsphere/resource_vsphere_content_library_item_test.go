@@ -186,8 +186,8 @@ func testAccResourceVSphereContentLibraryItemDescription(expected *regexp.Regexp
 		if err != nil {
 			return err
 		}
-		if !expected.MatchString(library.Description) {
-			return fmt.Errorf("Content Library item description does not match. expected: %s, got %s", expected.String(), library.Description)
+		if !expected.MatchString(*library.Description) {
+			return fmt.Errorf("Content Library item description does not match. expected: %s, got %v", expected.String(), library.Description)
 		}
 		return nil
 	}

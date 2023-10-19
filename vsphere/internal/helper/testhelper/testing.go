@@ -204,3 +204,13 @@ func ConfigDataRootVMNet() string {
 	}
 	`
 }
+
+func ConfigDSClusterData() string {
+	return fmt.Sprintf(`
+	data "vsphere_datastore_cluster" "ds_cluster1" {
+	  name          = "%s"
+	  datacenter_id = data.vsphere_datacenter.rootdc1.id
+	}
+ 
+`, os.Getenv("TF_VAR_VSPHERE_DS_CLUSTER1"))
+}

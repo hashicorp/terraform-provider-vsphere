@@ -1,5 +1,5 @@
 # Acceptance Tests
-Acceptance testing is undergoing revamping and streamlining. The current process recommends hosting on Equinix Metal.
+Acceptance testing is undergoing revamping and streamlining. The current process recommends hosting on Equinix Metal and currently is only meant to test vSphere 7 running on an ESXi 7 host (with nested ESXi 7 hosts).
 
 ## Download
 1. Log in to VMware Customer Connect.
@@ -74,6 +74,7 @@ A few manual steps need to be taken to privately network the nested ESXis setup 
 4. Power on the vcsa VM
 5. Visit the vCenter IP again, but this time port `:5480`, signing in may fail the first time, but it is the vsphere username/password found in `acctests/equinix/devrc`
 6. In the networking tab give it a valid IP on the private network (assuming 3 nested ESXIs will be created, use the 6th address).
+7. OPTIONAL: vCenter ships with a 60 day evaluation license. You could take this opportunity to add a permanent license into inventory, and right click the top-level vCenter instance and assign the license.
 
 ### TestRun Step
 This config can be destroyed between full test runs of the provider. It should cover cleaning up of things like the nested ESXis running in the wrong cluster, and cleaning up any leftover files in the NFS. Any lingering resources outside of those may need manual cleanup.
@@ -137,11 +138,16 @@ With these set, the nightly acceptances tests should run, normally the results o
 * Despite sweepers looking for it specifically, a common datastore called `nfs-vol2` can fail to unmount, causing widespread test failure. From the vSphere UI you will have to right-click and remove the datastore (it takes a few moments).
 * Sometimes the API seems to lockup/crash or lockout the CI client resulting in widespread error 503s.
 
+### PLEASE NOTE
+The current VCSA deployment seen in `acctests/equinix/vcsa_deploy.json` is set to thin provision the primary datastore `datastore1`. It seems that over time the VCSA VM will continue to expand until the datastore is full. There is probably a way to properly configure this in `acctests/equinix/vcsa_deploy.json`. Without this being corrected, or a bare metal server with more primary disk space being chosen, the CI probably needs to be rebuilt from scratch every 45 days.
+
+vSphere vCenter comes with a 60 day evaluation license. Until the space issue is resolved it is not essential that a permanent vCenter license be added. Longterm it would be nice if the entire infrastructure could be brought up and torn down daily, meaning neither issue would need to be addressed.
+
 # Local Testing
 The tests and required infrastructure have been heavily streamlined (believe it or not...) however its still expected they run Equinix for now, but it should be theoretically possible to run tests against local hardware (or perhaps totally virtualized). The main requirement is ESXi 7 with the following:
 
 * A lot of memory (20GB or more), ESXi/vCenter will need a lot, and then there will be a few VMs at play for now that probably all need 0.5 to 1GB each.
-* Probably 4 hard drives. The first hosts the vSphere and primary ESXi install (~70GB), a second one will serve as the datastore the NAS and 3 nested ESXi VMs run from (~100GB should be fine). The other 2 are needed as apart of the vmfs datastore tests, the size for these should not matter, make sure the override the regexp pattern for finding them `TF_VAR_VSPHERE_VMFS_REGEXP`.
+* Probably 4 hard drives. The first hosts the vSphere and primary ESXi install, a second one will serve as the datastore the NAS and 3 nested ESXi VMs run from (~100GB should be fine). The other 2 are needed as apart of the vmfs datastore tests, the size for these should not matter, make sure the override the regexp pattern for finding them `TF_VAR_VSPHERE_VMFS_REGEXP`.
 * 2 NICs and 2 Networks. The topology of the test cluster is 1 IPv4 network on NIC0 (needs to be reachable by wherever Terraform runs from) and another IPv4 network on NIC1 (this network can be private to the caller/Terraform, but needs to be reachable by ESXi.. obviously). Two /29 subnets may look like this:
   * "Public" Network:
     * (1) Gateway

@@ -892,20 +892,20 @@ func DiskMigrateRelocateOperation(data *schema.ResourceData, client *govmomi.Cli
 // backing data defined in config, taking on these filenames when cloned. After
 // the clone is complete, natural re-configuration happens to bring the disk
 // configurations fully in sync with what is defined.
-func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) ([]types.VirtualMachineRelocateSpecDiskLocator, error) {
+func DiskCloneRelocateOperation(resourceData *schema.ResourceData, client *govmomi.Client, deviceList object.VirtualDeviceList) ([]types.VirtualMachineRelocateSpecDiskLocator, error) {
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Generating full disk relocate spec list")
-	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
+	devices := SelectDisks(deviceList, resourceData.Get("scsi_controller_count").(int), resourceData.Get("sata_controller_count").(int), resourceData.Get("ide_controller_count").(int))
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
 		Sort:       devices,
-		DeviceList: l,
+		DeviceList: deviceList,
 	}
 	sort.Sort(devSort)
 	devices = devSort.Sort
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Disk devices order after sort: %s", DeviceListString(devices))
 	// Do the same for our listed disks.
-	curSet := d.Get(subresourceTypeDisk).([]interface{})
+	curSet := resourceData.Get(subresourceTypeDisk).([]interface{})
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Current resource set: %s", subresourceListString(curSet))
 	sort.Sort(virtualDiskSubresourceSorter(curSet))
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Resource set order after sort: %s", subresourceListString(curSet))
@@ -913,28 +913,28 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Generating relocators for source disks")
 	var relocators []types.VirtualMachineRelocateSpecDiskLocator
 	for i, device := range devices {
-		m := curSet[i].(map[string]interface{})
+		diskDataMap := curSet[i].(map[string]interface{})
 		vd := device.GetVirtualDevice()
-		ctlr := l.FindByKey(vd.ControllerKey)
+		ctlr := deviceList.FindByKey(vd.ControllerKey)
 		if ctlr == nil {
 			return nil, fmt.Errorf("could not find controller with key %d", vd.Key)
 		}
-		m["key"] = int(vd.Key)
+		diskDataMap["key"] = int(vd.Key)
 		var err error
-		m["device_address"], err = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
+		diskDataMap["device_address"], err = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
 		if err != nil {
 			return nil, fmt.Errorf("error computing device address: %s", err)
 		}
-		r := NewDiskSubresource(c, d, m, nil, i)
-		// A disk locator is only useful if a target datastore is available. If we
-		// don't have a datastore specified (ie: when Storage DRS is in use), then
-		// we just need to skip this disk. The disk will be migrated properly
-		// through the SDRS API.
-		if dsID := r.Get("datastore_id"); dsID == "" || dsID == diskDatastoreComputedName {
+		r := NewDiskSubresource(client, resourceData, diskDataMap, nil, i)
+
+		shouldRelocate := shouldAddRelocateSpec(resourceData, device.(*types.VirtualDisk), i)
+		if !shouldRelocate {
 			continue
 		}
+
+		r = addDiskDatastore(r, resourceData)
 		// Otherwise, proceed with generating and appending the locator.
-		relocator, err := r.Relocate(l, true)
+		relocator, err := r.Relocate(deviceList, true)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", r.Addr(), err)
 		}
@@ -944,6 +944,120 @@ func DiskCloneRelocateOperation(d *schema.ResourceData, c *govmomi.Client, l obj
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Disk relocator list: %s", diskRelocateListString(relocators))
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Disk relocator generation complete")
 	return relocators, nil
+}
+
+/*
+*
+Sets the value of the VM datastore
+*/
+func addDiskDatastore(r *DiskSubresource, d *schema.ResourceData) *DiskSubresource {
+	diskDsId := r.Get("datastore_id")
+	dataDsId := d.Get("datastore_id")
+	if (diskDsId == "" || diskDsId == diskDatastoreComputedName) && dataDsId != "" {
+		r.Set("datastore_id", dataDsId)
+	}
+
+	return r
+}
+func shouldAddRelocateSpec(d *schema.ResourceData, disk *types.VirtualDisk, schemaDiskIndex int) bool {
+	relocateProperties := []string{
+		"datastore_id",
+		"disk_mode",
+		"eagerly_scrub",
+		"disk_sharing",
+		"thin_provisioned",
+		"write_through",
+	}
+
+	diskProps := virtualDiskToSchemaPropsMap(disk)
+	dataProps := diskDataToSchemaProps(d, schemaDiskIndex)
+
+	// If the VM is cloned to a datastore cluster and no datastore is specified for the disk
+	// it should not be added to the relocate spec
+	diskDataStoreId, _ := dataProps["datastore_id"].(string)
+	diskDsIsEmpty := diskDataStoreId == "" || diskDataStoreId == diskDatastoreComputedName
+	if d.Get("datastore_id") == "" && d.Get("datastore_cluster_id") != "" && diskDsIsEmpty {
+		return false
+	}
+
+	for _, key := range relocateProperties {
+		dataProp, dataPropOk := dataProps[key]
+		diskProp, diskPropOk := diskProps[key]
+
+		diff := false
+		if dataPropOk && diskPropOk {
+			diff = dataProp != diskProp
+		}
+
+		if diff {
+			return true
+		}
+
+	}
+
+	return false
+}
+
+func virtualDiskToSchemaPropsMap(disk *types.VirtualDisk) map[string]interface{} {
+	m := make(map[string]interface{})
+	if backing, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo); ok {
+		m["datastore_id"] = backing.Datastore.Value
+		m["disk_mode"] = backing.DiskMode
+		m["eagerly_scrub"] = backing.EagerlyScrub
+		m["thin_provisioned"] = backing.ThinProvisioned
+		m["write_through"] = backing.WriteThrough
+	} else if backing, ok := disk.Backing.(*types.VirtualDiskFlatVer1BackingInfo); ok {
+		m["datastore_id"] = backing.Datastore.Value
+		m["disk_mode"] = backing.DiskMode
+		m["write_through"] = backing.WriteThrough
+	} else if backing, ok := disk.Backing.(*types.VirtualDiskLocalPMemBackingInfo); ok {
+		m["datastore_id"] = backing.Datastore.Value
+		m["disk_mode"] = backing.DiskMode
+	} else if backing, ok := disk.Backing.(*types.VirtualDiskSeSparseBackingInfo); ok {
+		m["datastore_id"] = backing.Datastore.Value
+		m["disk_mode"] = backing.DiskMode
+		m["write_through"] = backing.WriteThrough
+	} else if backing, ok := disk.Backing.(*types.VirtualDiskSeSparseBackingInfo); ok {
+		m["datastore_id"] = backing.Datastore.Value
+		m["disk_mode"] = backing.DiskMode
+		m["write_through"] = backing.WriteThrough
+	} else if backing, ok := disk.Backing.(*types.VirtualDiskSparseVer1BackingInfo); ok {
+		m["datastore_id"] = backing.Datastore.Value
+		m["disk_mode"] = backing.DiskMode
+		m["write_through"] = backing.WriteThrough
+	}
+
+	return m
+}
+
+func diskDataToSchemaProps(d *schema.ResourceData, deviceIndex int) map[string]interface{} {
+	m := make(map[string]interface{})
+	datastoreKey := fmt.Sprintf("disk.%d.datastore_id", deviceIndex)
+	if datastoreId, ok := d.GetOk(datastoreKey); ok {
+		m["datastore_id"] = datastoreId
+	}
+
+	diskModeKey := fmt.Sprintf("disk.%d.disk_mode", deviceIndex)
+	if diskMode, ok := d.GetOk(diskModeKey); ok {
+		m["disk_mode"] = diskMode
+	}
+
+	eagerlyScrubKey := fmt.Sprintf("disk.%d.eagerly_scrub", deviceIndex)
+	if eagerlyScrub, ok := d.GetOk(eagerlyScrubKey); ok {
+		m["eagerly_scrub"] = eagerlyScrub
+	}
+
+	thinProvisionedKey := fmt.Sprintf("disk.%d.thin_provisioned", deviceIndex)
+	if thinProvisioned, ok := d.GetOk(thinProvisionedKey); ok {
+		m["thin_provisioned"] = thinProvisioned
+	}
+
+	writeThroughKey := fmt.Sprintf("disk.%d.write_through", deviceIndex)
+	if writeThrough, ok := d.GetOk(writeThroughKey); ok {
+		m["write_through"] = writeThrough
+	}
+
+	return m
 }
 
 // DiskPostCloneOperation normalizes the virtual disks on a freshly-cloned
@@ -1466,15 +1580,7 @@ func (r *DiskSubresource) DiffExisting() error {
 		return fmt.Errorf("virtual disk %q: virtual disks cannot be shrunk (old: %d new: %d)", name, osize.(int), nsize.(int))
 	}
 
-	// Ensure that there is no change in either eagerly_scrub or thin_provisioned
-	// - these values cannot be changed once set.
-	if _, err = r.GetWithVeto("eagerly_scrub"); err != nil {
-		return fmt.Errorf("virtual disk %q: %s", name, err)
-	}
-	if _, err = r.GetWithVeto("thin_provisioned"); err != nil {
-		return fmt.Errorf("virtual disk %q: %s", name, err)
-	}
-	// Same with attach
+	// Ensure that there is no change in attach value
 	if _, err = r.GetWithVeto("attach"); err != nil {
 		return fmt.Errorf("virtual disk %q: %s", name, err)
 	}

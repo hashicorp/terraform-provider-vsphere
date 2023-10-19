@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/methods"
@@ -72,7 +73,8 @@ func (b *EnvironmentBrowser) DefaultDevices(ctx context.Context, key string, hos
 }
 
 // OSFamily fetches the operating system family for the supplied guest ID.
-func (b *EnvironmentBrowser) OSFamily(ctx context.Context, guest string) (string, error) {
+// The list of supported OS is dependent on the hardware version of the vm/template
+func (b *EnvironmentBrowser) OSFamily(ctx context.Context, guest string, hardwareVersion int) (string, error) {
 	var eb mo.EnvironmentBrowser
 
 	err := b.Properties(ctx, b.Reference(), nil, &eb)
@@ -85,6 +87,9 @@ func (b *EnvironmentBrowser) OSFamily(ctx context.Context, guest string) (string
 		Spec: &types.EnvironmentBrowserConfigOptionQuerySpec{
 			GuestId: []string{guest},
 		},
+	}
+	if hardwareVersion > 0 {
+		req.Spec.Key = virtualmachine.GetHardwareVersionID(hardwareVersion)
 	}
 	res, err := methods.QueryConfigOptionEx(ctx, b.Client(), &req)
 	if err != nil {

@@ -128,10 +128,29 @@ func ValidateVirtualMachineClone(d *schema.ResourceDiff, c *govmomi.Client) erro
 			if err != nil {
 				return fmt.Errorf("could not find resource pool ID %q: %s", poolID, err)
 			}
-			family, err := resourcepool.OSFamily(c, pool, d.Get("guest_id").(string))
+
+			// Retrieving the vm/template data to extract the hardware version.
+			// If there's a higher hardware version specified in the spec that value is used instead.
+			vm, err := virtualmachine.FromUUID(c, tUUID)
+			if err != nil {
+				return fmt.Errorf("cannot locate virtual machine or template with UUID %q: %s", tUUID, err)
+			}
+			vprops, err := virtualmachine.Properties(vm)
+			if err != nil {
+				return fmt.Errorf("error fetching virtual machine or template properties: %s", err)
+			}
+			vmHardwareVersion := virtualmachine.GetHardwareVersionNumber(vprops.Config.Version)
+			vmSpecHardwareVersion := d.Get("hardware_version").(int)
+			if vmSpecHardwareVersion > vmHardwareVersion {
+				vmHardwareVersion = vmSpecHardwareVersion
+			}
+
+			// Retrieving the guest OS family of the vm/template.
+			family, err := resourcepool.OSFamily(c, pool, d.Get("guest_id").(string), vmHardwareVersion)
 			if err != nil {
 				return fmt.Errorf("cannot find OS family for guest ID %q: %s", d.Get("guest_id").(string), err)
 			}
+			// Validating the customization spec is valid for the vm/template's guest OS family
 			if err := ValidateCustomizationSpec(d, family); err != nil {
 				return err
 			}
