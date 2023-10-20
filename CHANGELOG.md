@@ -2,6 +2,10 @@
 
 ## 2.6.0 (Unreleased)
 
+BUG FIXES:
+
+* `resource/virtual_machine`: Resolves upload error when deploying an OVF/OVA directly to an ESXi host. ([#1813](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1813))
+
 FEATURES:
 
 * `resource/compute_cluster`: Adds support for vSAN Express Storage Architecture in vSphere 8.0. ([#1874](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1874))
