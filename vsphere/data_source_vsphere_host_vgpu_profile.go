@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"log"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
@@ -22,14 +23,14 @@ func dataSourceVSphereHostVGpuProfile() *schema.Resource {
 				Required:    true,
 				Description: "The Managed Object ID of the host system.",
 			},
-			"name": {
+			"name_regex": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The name of the vGPU Profile to search for on host.",
+				Description: "A regular expression used to match the vGPU Profile on the host.",
 			},
 			"vgpu_profiles": {
 				Type:        schema.TypeList,
-				Description: "List of vGPU profiles available via host.",
+				Description: "List of vGPU profiles available via the host.",
 				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -94,7 +95,7 @@ func dataSourceVSphereHostVGpuProfileRead(d *schema.ResourceData, meta interface
 	vgpusRaw := hprops.Config.SharedGpuCapabilities
 
 	// If searching for a specific vGPU profile (by name)
-	name, ok := d.GetOk("name")
+	name, ok := d.GetOk("name_regex")
 	if (ok) && (name.(string) != "") {
 		return searchVGpuProfileByName(d, vgpusRaw, name.(string))
 	}
@@ -102,7 +103,7 @@ func dataSourceVSphereHostVGpuProfileRead(d *schema.ResourceData, meta interface
 	// Loop over all vGPU profiles on host
 	vgpus := make([]interface{}, len(vgpusRaw))
 	for i, v := range vgpusRaw {
-		log.Printf("[DEBUG] Host %s has vGPU profile %s", d.Get("host_id").(string), v.Vgpu)
+		log.Printf("[DEBUG] DataHostVGpuProfile: Host %s has vGPU profile %s", d.Get("host_id").(string), v.Vgpu)
 		vgpu := map[string]interface{}{
 			"vgpu":                      v.Vgpu,
 			"disk_snapshot_supported":   v.DiskSnapshotSupported,
@@ -124,13 +125,20 @@ func dataSourceVSphereHostVGpuProfileRead(d *schema.ResourceData, meta interface
 }
 
 func searchVGpuProfileByName(d *schema.ResourceData, vgpusRaw []types.HostSharedGpuCapabilities, name string) error {
-	vgpus := make([]interface{}, 1)
+	log.Printf("[DEBUG] DataHostVGpuProfile: Selecting devices which match name regex")
+
+	vgpus := make([]interface{}, 0, len(vgpusRaw))
+
+	re, err := regexp.Compile(name)
+	if err != nil {
+		return err
+	}
 
 	// Loop over all vGPU profile and attempt to match by name
 	for _, v := range vgpusRaw {
-		if v.Vgpu == name {
+		if re.Match([]byte(v.Vgpu)) {
 			// Identified matching vGPU profile
-			log.Printf("[DEBUG] Host %s has vGPU profile %s", d.Get("host_id").(string), v.Vgpu)
+			log.Printf("[DEBUG] DataHostVGpuProfile: Host %s has vGPU profile %s", d.Get("host_id").(string), v.Vgpu)
 			vgpu := map[string]interface{}{
 				"vgpu":                      v.Vgpu,
 				"disk_snapshot_supported":   v.DiskSnapshotSupported,
@@ -143,7 +151,7 @@ func searchVGpuProfileByName(d *schema.ResourceData, vgpusRaw []types.HostShared
 	}
 
 	if len(vgpus) == 0 {
-		log.Printf("[DEBUG] Host %s does not support vGPU profile %s", d.Get("host_id").(string), name)
+		log.Printf("[DEBUG] DataHostVGpuProfile: Host %s does not support vGPU profile name regex [%s]", d.Get("host_id").(string), name)
 	}
 
 	// Set the `vgpu_profile` output to located vGPU.
