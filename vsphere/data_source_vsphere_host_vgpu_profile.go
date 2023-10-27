@@ -138,7 +138,7 @@ func searchVGpuProfileByName(d *schema.ResourceData, vgpusRaw []types.HostShared
 				"suspend_supported":         v.SuspendSupported,
 				"migrate_supported":         v.MigrateSupported,
 			}
-			vgpus[0] = vgpu
+			vgpus = append(vgpus, vgpu)
 		}
 	}
 
