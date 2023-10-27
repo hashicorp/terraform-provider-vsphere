@@ -158,6 +158,7 @@ func Provider() *schema.Provider {
 			"vsphere_host":                       dataSourceVSphereHost(),
 			"vsphere_host_pci_device":            dataSourceVSphereHostPciDevice(),
 			"vsphere_host_thumbprint":            dataSourceVSphereHostThumbprint(),
+			"vsphere_host_vgpu_profile":          dataSourceVSphereHostVGpuProfile(),
 			"vsphere_license":                    dataSourceVSphereLicense(),
 			"vsphere_network":                    dataSourceVSphereNetwork(),
 			"vsphere_ovf_vm_template":            dataSourceVSphereOvfVMTemplate(),
