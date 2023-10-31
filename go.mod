@@ -6,7 +6,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.29.0
 	github.com/mitchellh/copystructure v1.2.0
-	github.com/vmware/govmomi v0.32.0
+	github.com/vmware/govmomi v0.33.1
 )
 
 require (
@@ -16,7 +16,7 @@ require (
 	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-checkpoint v0.5.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
