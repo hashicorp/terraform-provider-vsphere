@@ -318,14 +318,30 @@ func TestAccResourceVSphereComputeCluster_vsanStretchedCluster(t *testing.T) {
 				Config: testAccResourceVSphereComputeClusterStretchedClusterEnabled(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_stretched_cluster_enabled", "true"),
+					resource.TestCheckTypeSetElemAttrPair(
+						"vsphere_compute_cluster.compute_cluster",
+						"vsan_stretched_cluster.*.preferred_fault_domain_host_ids.*",
+						"data.vsphere_host.roothost1",
+						"id",
+					),
+					resource.TestCheckTypeSetElemAttrPair(
+						"vsphere_compute_cluster.compute_cluster",
+						"vsan_stretched_cluster.*.secondary_fault_domain_host_ids.*",
+						"data.vsphere_host.roothost2",
+						"id",
+					),
+					resource.TestCheckTypeSetElemAttrPair(
+						"vsphere_compute_cluster.compute_cluster",
+						"vsan_stretched_cluster.*.witness_node",
+						"data.vsphere_host.roothost3",
+						"id",
+					),
 				),
 			},
 			{
 				Config: testAccResourceVSphereComputeClusterStretchedClusterDisabled(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereComputeClusterCheckExists(true),
-					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_stretched_cluster_enabled", "false"),
 				),
 			},
 		},
@@ -1020,8 +1036,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   host_system_ids             = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
 
   vsan_enabled = true
-  vsan_stretched_cluster_enabled = true
-  vsan_stretched_cluster_conf {
+  vsan_stretched_cluster {
     preferred_fault_domain_host_ids = [data.vsphere_host.roothost1.id]
     secondary_fault_domain_host_ids = [data.vsphere_host.roothost2.id]
     witness_node = data.vsphere_host.roothost3.id
@@ -1049,8 +1064,6 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   host_system_ids             = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
 
   vsan_enabled = true
-  vsan_stretched_cluster_enabled = false
-
   force_evacuate_on_destroy = true
 }
 

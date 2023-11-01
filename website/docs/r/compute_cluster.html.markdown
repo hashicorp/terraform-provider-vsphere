@@ -489,11 +489,7 @@ details, see the referenced link in the above paragraph.
   group in the cluster.
   * `cache` - The canonical name of the disk to use for vSAN cache.
   * `storage` - An array of disk canonical names for vSAN storage.
-* `vsan_stretched_cluster_enabled` - (Optional) Enables vSAN stretched cluster on the
-  cluster. `preferred_fault_domain_host_ids`, `secondary_fault_domain_host_ids`, `witness_node` should be configured
-  in `vsan_stretched_cluster_conf` when this is `true`.
-* `vsan_stretched_cluster_conf` - (Optional) Configurations of vSAN stretched cluster.
-  It's mandatory when `vsan_stretched_cluster_enabled` is set to `true`.
+* `vsan_stretched_cluster` - (Optional) Configurations of vSAN stretched cluster.
   * `preferred_fault_domain_host_ids` - The managed object IDs of the hosts to put in the first fault domain.
   * `secondary_fault_domain_host_ids` - The managed object IDs of the hosts to put in the second fault domain.
   * `witness_node` - The managed object IDs of the host selected as witness node when enable stretched cluster.

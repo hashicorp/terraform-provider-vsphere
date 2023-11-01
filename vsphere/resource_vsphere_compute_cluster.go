@@ -578,34 +578,28 @@ func resourceVSphereComputeCluster() *schema.Resource {
 					},
 				},
 			},
-			"vsan_stretched_cluster_enabled": {
-				Type:        schema.TypeBool,
+			"vsan_stretched_cluster": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
 				Optional:    true,
-				Default:     false,
-				Description: "Whether the vSAN stretched cluster is configured for the cluster.",
-			},
-			"vsan_stretched_cluster_conf": {
-				Type:        schema.TypeSet,
-				Optional:    true,
-				Computed:    true,
 				Description: "The configuration for stretched cluster.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"preferred_fault_domain_host_ids": {
 							Type:        schema.TypeSet,
-							Optional:    true,
+							Required:    true,
 							Description: "The managed object IDs of the hosts to put in the first fault domain.",
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 						"secondary_fault_domain_host_ids": {
 							Type:        schema.TypeSet,
-							Optional:    true,
+							Required:    true,
 							Description: "The managed object IDs of the hosts to put in the second fault domain.",
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 						"witness_node": {
 							Type:        schema.TypeString,
-							Optional:    true,
+							Required:    true,
 							Description: "The managed object IDs of the host selected as witness node when enable stretched cluster.",
 						},
 						"preferred_fault_domain_name": {
@@ -1507,25 +1501,25 @@ func expandVsanDatastoreConfig(d *schema.ResourceData, meta interface{}) (*vsant
 
 func buildVsanStretchedClusterReq(d *schema.ResourceData, cluster types.ManagedObjectReference) (*vsantypes.VSANVcConvertToStretchedCluster, error) {
 	log.Printf("[DEBUG] building vsan stretched cluster request...")
-	conf := d.Get("vsan_stretched_cluster_conf").(*schema.Set).List()[0].(map[string]interface{})
+	conf := d.Get("vsan_stretched_cluster").([]interface{})[0].(map[string]interface{})
 
-	if conf["preferred_fault_domain_host_ids"] == "" {
-		return nil, fmt.Errorf("preferred_fault_domain_host_ids field is required in vsan_stretched_cluster_conf when enabling stretched cluster!")
+	hostSet := map[interface{}]bool{}
+	hostCount := 0
+	for _, host := range conf["preferred_fault_domain_host_ids"].(*schema.Set).List() {
+		hostSet[host] = true
+		hostCount++
+	}
+	for _, host := range conf["secondary_fault_domain_host_ids"].(*schema.Set).List() {
+		hostSet[host] = true
+		hostCount++
+	}
+	if len(hostSet) != hostCount {
+		return nil, fmt.Errorf("duplicate hostId appears in preferred fault domain host ids and secondary fault domain host ids")
 	}
 
-	if conf["secondary_fault_domain_host_ids"] == "" {
-		return nil, fmt.Errorf("secondary_fault_domain_host_ids field is required in vsan_stretched_cluster_conf when enabling stretched cluster!")
-	}
+	witness := structure.SliceStringsToManagedObjectReferences([]string{conf["witness_node"].(string)}, "HostSystem")
 
-	if conf["witness_node"] == "" {
-		return nil, fmt.Errorf("witness_node field is required in vsan_stretched_cluster_conf when enabling stretched cluster!")
-	}
-
-	witness_node := []string{}
-	witness_node = append(witness_node, conf["witness_node"].(string))
-	witness := structure.SliceStringsToManagedObjectReferences(witness_node, "HostSystem")
-
-	fault_domain_config := vsantypes.VimClusterVSANStretchedClusterFaultDomainConfig{
+	faultDomainConfig := vsantypes.VimClusterVSANStretchedClusterFaultDomainConfig{
 		FirstFdName:   conf["preferred_fault_domain_name"].(string),
 		FirstFdHosts:  structure.SliceInterfacesToManagedObjectReferences(conf["preferred_fault_domain_host_ids"].(*schema.Set).List(), "HostSystem"),
 		SecondFdName:  conf["secondary_fault_domain_name"].(string),
@@ -1536,10 +1530,9 @@ func buildVsanStretchedClusterReq(d *schema.ResourceData, cluster types.ManagedO
 	return &vsantypes.VSANVcConvertToStretchedCluster{
 		This:              vsan.VsanVcStretchedClusterSystem,
 		Cluster:           cluster.Reference(),
-		FaultDomainConfig: fault_domain_config,
+		FaultDomainConfig: faultDomainConfig,
 		WitnessHost:       witness[0],
 		PreferredFd:       conf["preferred_fault_domain_name"].(string),
-		DiskMapping:       nil,
 	}, nil
 }
 
@@ -1614,29 +1607,34 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 	}
 
 	// handle stretched cluster
-	if d.Get("vsan_stretched_cluster_enabled").(bool) && d.HasChange("vsan_stretched_cluster_enabled") {
-		req, err := buildVsanStretchedClusterReq(d, cluster.Reference())
-		if err != nil {
-			return err
+	if d.HasChange("vsan_stretched_cluster") {
+		_, n := d.GetChange("vsan_stretched_cluster")
+		// build or reconfigure stretched cluster
+		if len(n.([]interface{})) > 0 && n.([]interface{})[0].(map[string]interface{})["witness_node"].(string) != "" {
+			req, err := buildVsanStretchedClusterReq(d, cluster.Reference())
+			if err != nil {
+				return err
+			}
+
+			if err := vsanclient.ConvertToStretchedCluster(meta.(*Client).vsanClient, meta.(*Client).vimClient, *req); err != nil {
+				return fmt.Errorf("cannot stretch cluster %s with spec: %#v\n, err: %#v", d.Get("name").(string), *req, err)
+			} else {
+				log.Printf("[DEBUG] stretching cluster %s with spec: %#v", d.Get("name").(string), *req)
+			}
 		}
 
-		if err := vsanclient.ConvertToStretchedCluster(meta.(*Client).vsanClient, meta.(*Client).vimClient, *req); err != nil {
-			return fmt.Errorf("cannot stretch cluster %s with spec: %#v", d.Get("name").(string), *req)
-		} else {
-			log.Printf("[DEBUG] stretching cluster %s with spec: %#v", d.Get("name").(string), *req)
-		}
-	}
+		// disable stretched cluster
+		if len(n.([]interface{})) == 0 || n.([]interface{})[0].(map[string]interface{})["witness_node"].(string) == "" {
+			req, err := buildVsanRemoveWitnessHostReq(d, cluster.Reference(), meta.(*Client).vsanClient)
+			if err != nil {
+				return err
+			}
 
-	if !d.Get("vsan_stretched_cluster_enabled").(bool) && d.HasChange("vsan_stretched_cluster_enabled") {
-		req, err := buildVsanRemoveWitnessHostReq(d, cluster.Reference(), meta.(*Client).vsanClient)
-		if err != nil {
-			return err
-		}
-
-		if err := vsanclient.RemoveWitnessHost(meta.(*Client).vsanClient, meta.(*Client).vimClient, *req); err != nil {
-			return fmt.Errorf("cannot disable stretched cluster %s with spec: %#v", d.Get("name").(string), *req)
-		} else {
-			log.Printf("[DEBUG] disabling stretched cluster %s with spec: %#v", d.Get("name").(string), *req)
+			if err := vsanclient.RemoveWitnessHost(meta.(*Client).vsanClient, meta.(*Client).vimClient, *req); err != nil {
+				return fmt.Errorf("cannot disable stretched cluster %s with spec: %#v", d.Get("name").(string), *req)
+			} else {
+				log.Printf("[DEBUG] disabling stretched cluster %s with spec: %#v", d.Get("name").(string), *req)
+			}
 		}
 	}
 
@@ -1830,23 +1828,23 @@ func flattenVsanStretchedCluster(client *vsan.Client, d *schema.ResourceData, cl
 	}
 
 	if res.Returnval == nil {
-		return d.Set("vsan_stretched_cluster_enabled", false)
+		return d.Set("vsan_stretched_cluster", []interface{}{})
 	}
 
 	if res.Returnval[0].UnicastAgentAddr != "" {
-		conf := []interface{}{}
+		var conf []interface{}
 
 		for _, witnessHost := range res.Returnval {
 			preferredFaultDomainName := witnessHost.PreferredFdName
 			var secondaryFaultDomainName string
-			preferredFaultDomainHostIds := []string{}
-			secondaryFaultDomainHostIds := []string{}
+			var preferredFaultDomainHostIds []string
+			var secondaryFaultDomainHostIds []string
 			for _, hostConf := range obj.VsanHostConfig {
 				name := hostConf.FaultDomainInfo.Name
 				if name == preferredFaultDomainName {
 					preferredFaultDomainHostIds = append(preferredFaultDomainHostIds, hostConf.HostSystem.Value)
 				} else {
-					if len(secondaryFaultDomainName) == 0 {
+					if secondaryFaultDomainName == "" {
 						secondaryFaultDomainName = name
 					}
 					secondaryFaultDomainHostIds = append(secondaryFaultDomainHostIds, hostConf.HostSystem.Value)
@@ -1860,10 +1858,7 @@ func flattenVsanStretchedCluster(client *vsan.Client, d *schema.ResourceData, cl
 				"secondary_fault_domain_name":     secondaryFaultDomainName,
 			})
 		}
-		if err = d.Set("vsan_stretched_cluster_conf", conf); err != nil {
-			return err
-		}
-		return d.Set("vsan_stretched_cluster_enabled", true)
+		return d.Set("vsan_stretched_cluster", conf)
 	} else {
 		return fmt.Errorf("error getting witness node for cluster %s, agent address was unexpectedly empty", d.Get("name").(string))
 	}
