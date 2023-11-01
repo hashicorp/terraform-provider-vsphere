@@ -499,17 +499,26 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Default:     false,
 				Description: "Whether the vSAN service is enabled for the cluster.",
 			},
+			"vsan_esa_enabled": {
+				Type:          schema.TypeBool,
+				Optional:      true,
+				Default:       false,
+				Description:   "Whether the vSAN ESA service is enabled for the cluster.",
+				ConflictsWith: []string{"vsan_dedup_enabled", "vsan_compression_enabled"},
+			},
 			"vsan_dedup_enabled": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "Whether the vSAN deduplication service is enabled for the cluster.",
+				Type:          schema.TypeBool,
+				Optional:      true,
+				Default:       false,
+				Description:   "Whether the vSAN deduplication service is enabled for the cluster.",
+				ConflictsWith: []string{"vsan_esa_enabled"},
 			},
 			"vsan_compression_enabled": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "Whether the vSAN compression service is enabled for the cluster.",
+				Type:          schema.TypeBool,
+				Optional:      true,
+				Default:       false,
+				Description:   "Whether the vSAN compression service is enabled for the cluster.",
+				ConflictsWith: []string{"vsan_esa_enabled"},
 			},
 			"vsan_performance_enabled": {
 				Type:        schema.TypeBool,
@@ -562,13 +571,11 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Description: "A list of disk UUIDs to add to the vSAN cluster.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						// use 4gb disk from ova in the future for acctests
 						"cache": {
 							Type:        schema.TypeString,
 							Description: "Cache disk.",
 							Optional:    true,
 						},
-						// use 8gb disk from ova in the future for acctests
 						"storage": {
 							Type:        schema.TypeSet,
 							Description: "List of storage disks.",
@@ -1392,6 +1399,7 @@ func resourceVSphereComputeClusterFlattenData(
 	}
 
 	d.Set("vsan_enabled", structure.BoolNilFalse(vsanConfig.Enabled))
+	d.Set("vsan_esa_enabled", structure.BoolNilFalse(vsanConfig.VsanEsaEnabled))
 
 	if vsanConfig.DataEfficiencyConfig != nil {
 		d.Set("vsan_dedup_enabled", vsanConfig.DataEfficiencyConfig.DedupEnabled)
@@ -1553,6 +1561,24 @@ func buildVsanRemoveWitnessHostReq(d *schema.ResourceData, cluster types.Managed
 }
 
 func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta interface{}, cluster *object.ClusterComputeResource) error {
+	client, err := resourceVSphereComputeClusterClient(meta)
+	if err != nil {
+		return err
+	}
+	version := viapi.ParseVersionFromClient(client)
+
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 8, Minor: 0}) {
+		if !d.Get("vsan_enabled").(bool) && d.Get("vsan_esa_enabled").(bool) {
+			return fmt.Errorf("vSAN ESA service cannot be enabled on cluster due to vSAN is disabled: %s", d.Get("name").(string))
+		}
+		if !d.HasChange("vsan_enabled") && d.HasChange("vsan_esa_enabled") {
+			return fmt.Errorf("vSAN ESA service must be configured along with vSAN service: %s", d.Get("name").(string))
+		}
+		if d.Get("vsan_esa_enabled").(bool) && !d.Get("vsan_unmap_enabled").(bool) {
+			return fmt.Errorf("vSAN unmap service should be explicitly enabled when vSAN ESA is enabled: %s", d.Get("name").(string))
+		}
+	}
+
 	conf := vsantypes.VimVsanReconfigSpec{
 		Modify: true,
 		VsanClusterConfig: &vsantypes.VsanClusterConfigInfo{
@@ -1568,15 +1594,22 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 		},
 	}
 
-	dedupEnabled := d.Get("vsan_dedup_enabled").(bool)
-	compressionEnabled := d.Get("vsan_compression_enabled").(bool)
-	if dedupEnabled && !compressionEnabled {
-		return fmt.Errorf("vsan compression must be enabled if vsan dedup is enabled")
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 8, Minor: 0}) {
+		vsanEsaEnabled := d.Get("vsan_esa_enabled").(bool)
+		conf.VsanClusterConfig.(*vsantypes.VsanClusterConfigInfo).VsanEsaEnabled = &vsanEsaEnabled
 	}
 
-	conf.DataEfficiencyConfig = &vsantypes.VsanDataEfficiencyConfig{
-		DedupEnabled:       dedupEnabled,
-		CompressionEnabled: &compressionEnabled,
+	if d.Get("vsan_enabled").(bool) && !d.Get("vsan_esa_enabled").(bool) {
+		dedupEnabled := d.Get("vsan_dedup_enabled").(bool)
+		compressionEnabled := d.Get("vsan_compression_enabled").(bool)
+		if dedupEnabled && !compressionEnabled {
+			return fmt.Errorf("vsan compression must be enabled if vsan dedup is enabled")
+		}
+
+		conf.DataEfficiencyConfig = &vsantypes.VsanDataEfficiencyConfig{
+			DedupEnabled:       dedupEnabled,
+			CompressionEnabled: &compressionEnabled,
+		}
 	}
 
 	perfConfig, err := expandVsanPerfConfig(d)

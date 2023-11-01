@@ -5,12 +5,6 @@ variable "VSPHERE_RESOURCE_POOL" {
   default = "hashi-resource-pool"
 }
 
-variable "VSPHERE_NFS_DS_NAME" {
-  default = "nfs"
-}
-
-variable "VSPHERE_NAS_HOST" {}
-
 variable "VSPHERE_TEMPLATE" {
   default = "tfvsphere_template"
 }
@@ -20,28 +14,30 @@ variable "VSPHERE_TEST_OVF" {
 }
 
 variable "VSPHERE_VM_V1_PATH" {
-  default = "pxe-server"
+  default = "test-vm"
+}
+
+variable "VSPHERE_VMFS_REGEXP" {
+  default = "naa."
+}
+
+data "vsphere_vmfs_disks" "available" {
+  host_system_id = data.vsphere_host.host1.id
+  rescan         = true
+  filter         = var.VSPHERE_VMFS_REGEXP
 }
 
 resource "vsphere_resource_pool" "pool" {
   name                    = var.VSPHERE_RESOURCE_POOL
-  parent_resource_pool_id = vsphere_compute_cluster.compute_cluster.resource_pool_id
-}
-
-resource "vsphere_nas_datastore" "ds" {
-  name            = var.VSPHERE_NFS_DS_NAME
-  host_system_ids = [vsphere_host.host1.id] // TODO: needs to be networked privately for nested ESXIs to connect to it
-  type            = "NFS"
-  remote_hosts    = [var.VSPHERE_NAS_HOST]
-  remote_path     = "/nfs"
+  parent_resource_pool_id = data.vsphere_compute_cluster.compute_cluster.resource_pool_id
 }
 
 resource "vsphere_virtual_machine" "template" {
   name             = var.VSPHERE_TEMPLATE
-  resource_pool_id = vsphere_compute_cluster.compute_cluster.resource_pool_id
+  resource_pool_id = data.vsphere_compute_cluster.compute_cluster.resource_pool_id
   datastore_id     = vsphere_nas_datastore.ds.id
-  datacenter_id    = vsphere_datacenter.dc.moid
-  host_system_id   = vsphere_host.host1.id
+  datacenter_id    = data.vsphere_datacenter.dc.id
+  host_system_id   = data.vsphere_host.host1.id
 
   wait_for_guest_net_timeout = -1
 
@@ -56,14 +52,14 @@ resource "vsphere_virtual_machine" "template" {
   ovf_deploy {
     remote_ovf_url = var.VSPHERE_TEST_OVF
     ovf_network_map = {
-      "${vsphere_host_port_group.pg.name}" = data.vsphere_network.pg.id
+      "${var.VSPHERE_PG_NAME}" = data.vsphere_network.pg.id
     }
   }
 }
 
-resource "vsphere_virtual_machine" "pxe" {
+resource "vsphere_virtual_machine" "test-vm" {
   name             = var.VSPHERE_VM_V1_PATH
-  resource_pool_id = vsphere_compute_cluster.compute_cluster.resource_pool_id
+  resource_pool_id = data.vsphere_compute_cluster.compute_cluster.resource_pool_id
   datastore_id     = vsphere_nas_datastore.ds.id
 
   wait_for_guest_net_timeout = -1

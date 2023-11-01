@@ -11,18 +11,18 @@ jobs:
     if: github.event.issue.author_association == 'NONE'
     steps:
       - name: Checkout
-        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
         with:
           fetch-depth: 1
       - name: Render Template
         id: template
-        uses: chuhlomin/render-template@204ce622bc2fd5c787ff5ca885ff19fb577e7a41 # v1.6
+        uses: chuhlomin/render-template@b5c1c085165d9eb712cf4f2b56f89f11146ad017 # v1.7
         with:
           template: .github/issue_greeting_template.md
           vars: |
             author: ${{ github.actor }}
       - name: Create Comment
-        uses: peter-evans/create-or-update-comment@ca08ebd5dc95aa0cd97021e9708fcd6b87138c9b # v3.0.1
+        uses: peter-evans/create-or-update-comment@c6c9a1a66007646a28c153e2a8580a5bad27bcfa # v3.0.2
         with:
           issue-number: '${{ github.event.issue.number }}'
           body: '${{ steps.template.outputs.result }}'

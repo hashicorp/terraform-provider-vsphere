@@ -5,6 +5,10 @@ variable "NESTED_COUNT" {
   default = 3
 }
 
+variable "DOMAIN" {
+  default = "test.local"
+}
+
 variable "VSPHERE_PRIVATE_NETWORK" {}
 
 variable "PRIV_KEY" {}
@@ -13,7 +17,7 @@ resource "vsphere_virtual_machine" "nested-esxi" {
   count = var.NESTED_COUNT
 
   name                 = "${data.vsphere_ovf_vm_template.nested-esxi.name}-${count.index + 1}"
-  datacenter_id        = vsphere_datacenter.dc.moid
+  datacenter_id        = data.vsphere_datacenter.dc.id
   datastore_id         = data.vsphere_ovf_vm_template.nested-esxi.datastore_id
   host_system_id       = data.vsphere_ovf_vm_template.nested-esxi.host_system_id
   resource_pool_id     = data.vsphere_ovf_vm_template.nested-esxi.resource_pool_id
@@ -44,12 +48,12 @@ resource "vsphere_virtual_machine" "nested-esxi" {
 
   vapp {
     properties = {
-      "guestinfo.hostname"   = "nested-${count.index + 1}.test.local",
+      "guestinfo.hostname"   = "nested-${count.index + 1}.${var.DOMAIN}",
       "guestinfo.ipaddress"  = cidrhost(var.VSPHERE_PRIVATE_NETWORK, count.index + 3),
-      "guestinfo.netmask"    = "255.255.255.248",
+      "guestinfo.netmask"    = cidrnetmask(var.VSPHERE_PRIVATE_NETWORK),
       "guestinfo.gateway"    = cidrhost(var.VSPHERE_PRIVATE_NETWORK, 1),
       "guestinfo.dns"        = cidrhost(var.VSPHERE_PRIVATE_NETWORK, 1),
-      "guestinfo.domain"     = "test.local",
+      "guestinfo.domain"     = var.DOMAIN,
       "guestinfo.ntp"        = cidrhost(var.VSPHERE_PRIVATE_NETWORK, 1),
       "guestinfo.ssh"        = "True",
       "guestinfo.password"   = "VMware1!",
@@ -122,8 +126,8 @@ resource "vsphere_host" "nested-esxi" {
   hostname   = vsphere_virtual_machine.nested-esxi[count.index].vapp[0].properties["guestinfo.ipaddress"]
   username   = "root"
   password   = "VMware1!"
-  license    = vsphere_license.license.license_key
+  license    = data.vsphere_license.license.license_key
   force      = true
-  cluster    = vsphere_compute_cluster.compute_cluster.id
+  cluster    = data.vsphere_compute_cluster.compute_cluster.id
   thumbprint = local.thumbprints[count.index]
 }

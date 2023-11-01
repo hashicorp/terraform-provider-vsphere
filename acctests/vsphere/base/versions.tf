@@ -6,17 +6,11 @@ terraform {
     local = {
       source = "hashicorp/local"
     }
-    equinix = {
-      source = "equinix/equinix"
+    vsphere = {
+      source = "hashicorp/vsphere"
     }
     time = {
       source = "hashicorp/time"
-    }
-    random = {
-      source = "hashicorp/random"
-    }
-    tls = {
-      source = "hashicorp/tls"
     }
   }
   required_version = ">= 0.13"
