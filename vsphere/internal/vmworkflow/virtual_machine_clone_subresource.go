@@ -65,14 +65,14 @@ func VirtualMachineCloneSchema() map[string]*schema.Schema {
 			Type:          schema.TypeList,
 			Optional:      true,
 			MaxItems:      1,
-			Description:   "The customization spec for this clone. This allows the user to configure the virtual machine post-clone.",
+			Description:   "The customization specification for the virtual machine post-clone.",
 			ConflictsWith: []string{"clone.0.customize"},
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"id": {
 						Type:        schema.TypeString,
 						Required:    true,
-						Description: "The id of the GOSC spec equals to the GOSC name - unique per VC",
+						Description: "The unique identifier of the customization specification is its name and is unique per vCenter Server instance.",
 					},
 					"timeout": {
 						Type:        schema.TypeInt,

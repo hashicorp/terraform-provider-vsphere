@@ -103,7 +103,7 @@ func dataSourceVSphereGuestOSCustomization() *schema.Resource {
 									"auto_logon": {
 										Type:        schema.TypeBool,
 										Computed:    true,
-										Description: "Specifies whether or not the VM automatically logs on as Administrator.",
+										Description: "Specifies whether or not the guest operating system automatically logs on as Administrator.",
 									},
 									"auto_logon_count": {
 										Type:        schema.TypeInt,

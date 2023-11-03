@@ -31,7 +31,7 @@ func resourceVSphereGuestOsCustomizationRead(d *schema.ResourceData, meta interf
 }
 
 func resourceVSphereGuestOsCustomizationCreate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] Beginning creation of guest customization spec %s", d.Get("name"))
+	log.Printf("[DEBUG] Beginning creation of customization specification %s", d.Get("name"))
 	client := meta.(*Client).vimClient
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
