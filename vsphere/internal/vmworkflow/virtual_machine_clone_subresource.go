@@ -5,6 +5,7 @@ package vmworkflow
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/guestoscustomizations"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -26,6 +27,14 @@ import (
 // of a virtual machine through cloning from an existing template.
 // Customization is nested here, even though it exists in its own workflow.
 func VirtualMachineCloneSchema() map[string]*schema.Schema {
+	customizatonSpecSchema := guestoscustomizations.SpecSchema(true)
+	customizatonSpecSchema["timeout"] = &schema.Schema{
+		Type:        schema.TypeInt,
+		Optional:    true,
+		Default:     10,
+		Description: "The amount of time, in minutes, to wait for guest OS customization to complete before returning with an error. Setting this value to 0 or a negative value skips the waiter. Default: 10.",
+	}
+
 	return map[string]*schema.Schema{
 		"template_uuid": {
 			Type:        schema.TypeString,
@@ -45,11 +54,34 @@ func VirtualMachineCloneSchema() map[string]*schema.Schema {
 			ValidateFunc: validation.IntAtLeast(10),
 		},
 		"customize": {
-			Type:        schema.TypeList,
-			Optional:    true,
-			MaxItems:    1,
-			Description: "The customization spec for this clone. This allows the user to configure the virtual machine post-clone.",
-			Elem:        &schema.Resource{Schema: VirtualMachineCustomizeSchema()},
+			Type:          schema.TypeList,
+			Optional:      true,
+			MaxItems:      1,
+			ConflictsWith: []string{"clone.0.customization_spec"},
+			Description:   "The customization specification for the virtual machine post-clone.",
+			Elem:          &schema.Resource{Schema: customizatonSpecSchema},
+		},
+		"customization_spec": {
+			Type:          schema.TypeList,
+			Optional:      true,
+			MaxItems:      1,
+			Description:   "The customization spec for this clone. This allows the user to configure the virtual machine post-clone.",
+			ConflictsWith: []string{"clone.0.customize"},
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"id": {
+						Type:        schema.TypeString,
+						Required:    true,
+						Description: "The id of the GOSC spec equals to the GOSC name - unique per VC",
+					},
+					"timeout": {
+						Type:        schema.TypeInt,
+						Optional:    true,
+						Default:     10,
+						Description: "The amount of time, in minutes, to wait for guest OS customization to complete before returning with an error. Setting this value to 0 or a negative value skips the waiter. Default: 10.",
+					},
+				},
+			},
 		},
 		"ovf_network_map": {
 			Type:        schema.TypeMap,
@@ -151,7 +183,7 @@ func ValidateVirtualMachineClone(d *schema.ResourceDiff, c *govmomi.Client) erro
 				return fmt.Errorf("cannot find OS family for guest ID %q: %s", d.Get("guest_id").(string), err)
 			}
 			// Validating the customization spec is valid for the vm/template's guest OS family
-			if err := ValidateCustomizationSpec(d, family); err != nil {
+			if err := guestoscustomizations.ValidateCustomizationSpec(d, family, true); err != nil {
 				return err
 			}
 		} else {
