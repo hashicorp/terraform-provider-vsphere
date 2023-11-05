@@ -175,6 +175,7 @@ func Provider() *schema.Provider {
 			"vsphere_vmfs_disks":                 dataSourceVSphereVmfsDisks(),
 			"vsphere_role":                       dataSourceVsphereRole(),
 			"vsphere_guest_os_customization":     dataSourceVSphereGuestOSCustomization(),
+			"vsphere_sso_user":                   dataSourceVsphereSsoUser(),
 		},
 
 		ConfigureFunc: providerConfigure,

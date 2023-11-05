@@ -19,6 +19,7 @@ import (
 	"github.com/vmware/govmomi/vapi/rest"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/sso"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/pbm"
@@ -49,6 +50,9 @@ type Client struct {
 
 	// The REST client used for tags and content library.
 	restClient *rest.Client
+
+	// The SSO Admin client config used for on demand authentication
+	ssoAdminClientConfig *sso.SsoAdminClientConfig
 
 	// client timeout for certain operations
 	timeout time.Duration
@@ -212,6 +216,16 @@ func (c *Config) Client() (*Client, error) {
 		client.vsanClient = vc
 	} else {
 		log.Printf("[DEBUG] Connected endpoint does not support vSAN service")
+	}
+
+	if isEligibleSSOAdminEndpoint(client.vimClient) {
+		// Wrap the client and user Info for later use with the SSO admin client
+		client.ssoAdminClientConfig = &sso.SsoAdminClientConfig{
+			VimClient: client.vimClient,
+			UserInfo:  u.User,
+		}
+	} else {
+		log.Printf("[DEBUG] Connected endpoint does not SSO Admin service")
 	}
 
 	// Done, save sessions if we need to and return
