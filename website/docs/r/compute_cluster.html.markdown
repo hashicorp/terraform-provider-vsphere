@@ -491,9 +491,10 @@ details, see the referenced link in the above paragraph.
   group in the cluster.
   * `cache` - The canonical name of the disk to use for vSAN cache.
   * `storage` - An array of disk canonical names for vSAN storage.
-* `fault_domains` - (Optional) Configurations of fault domain.
-  * `name` - The name of fault domain.
-  * `host_ids` - The managed object IDs of the hosts to put in the fault domain.
+* `vsan_fault_domains` - (Optional) Configurations of vSAN fault domains.
+  * `fault_domain` - (Optional) The configuration for single fault domain.
+    * `name` - The name of fault domain.
+    * `host_ids` - The managed object IDs of the hosts to put in the fault domain.
 
 ~> **NOTE:** You must disable vSphere HA before you enable vSAN on the cluster.
 You can enable or re-enable vSphere HA after vSAN is configured.
@@ -523,13 +524,15 @@ resource "vsphere_compute_cluster" "compute_cluster" {
     cache = data.vsphere_vmfs_disks.cache_disks[0]
     storage = data.vsphere_vmfs_disks.storage_disks
   }
-  fault_domains {
-    name = "fd1"
-    host_ids = [data.vsphere_host.faultdomain1_hosts.*.id]
-  }
-  fault_domains {
-    name = "fd2"
-    host_ids = [data.vsphere_host.faultdomain2_hosts.*.id]
+  vsan_fault_domains {
+    fault_domain {
+      name = "fd1"
+      host_ids = [data.vsphere_host.faultdomain1_hosts.*.id]
+    }
+    fault_domain {
+      name = "fd2"
+      host_ids = [data.vsphere_host.faultdomain2_hosts.*.id]
+    }
   }
 }
 ```

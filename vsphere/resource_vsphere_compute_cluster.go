@@ -584,22 +584,31 @@ func resourceVSphereComputeCluster() *schema.Resource {
 					},
 				},
 			},
-			"fault_domains": {
+			"vsan_fault_domains": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "The configuration for fault domain.",
+				Description: "The configuration for vSAN fault domains.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": {
-							Type:        schema.TypeString,
-							Description: "The name of fault domain.",
-							Optional:    true,
-						},
-						"host_ids": {
+						"fault_domain": {
 							Type:        schema.TypeSet,
-							Description: "The managed object IDs of the hosts to put in the fault domain.",
 							Optional:    true,
-							Elem:        &schema.Schema{Type: schema.TypeString},
+							Description: "The configuration for single fault domain.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"name": {
+										Type:        schema.TypeString,
+										Description: "The name of fault domain.",
+										Required:    true,
+									},
+									"host_ids": {
+										Type:        schema.TypeSet,
+										Description: "The managed object IDs of the hosts to put in the fault domain.",
+										Required:    true,
+										Elem:        &schema.Schema{Type: schema.TypeString},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -1442,10 +1451,14 @@ func expandClusterConfigSpecEx(d *schema.ResourceData, version viapi.VSphereVers
 	}
 
 	obj := &types.ClusterConfigSpecEx{
-		DasConfig:          expandClusterDasConfigInfo(d, version),
-		DpmConfig:          expandClusterDpmConfigInfo(d),
-		DrsConfig:          expandClusterDrsConfigInfo(d, version),
-		VsanHostConfigSpec: expandVsanHostConfig(d, props.ConfigurationEx.(*types.ClusterConfigInfoEx).VsanHostConfig),
+		DasConfig: expandClusterDasConfigInfo(d, version),
+		DpmConfig: expandClusterDpmConfigInfo(d),
+		DrsConfig: expandClusterDrsConfigInfo(d, version),
+	}
+
+	obj.VsanHostConfigSpec, err = expandVsanHostConfig(d, props.ConfigurationEx.(*types.ClusterConfigInfoEx).VsanHostConfig)
+	if err != nil {
+		return nil, err
 	}
 
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
@@ -1459,15 +1472,30 @@ func expandClusterConfigSpecEx(d *schema.ResourceData, version viapi.VSphereVers
 
 // expandVsanHostConfig reads current VsanHostConfigInfo and only update
 // fault domain info so returns VsanHostConfigInfo as well.
-func expandVsanHostConfig(d *schema.ResourceData, obj []types.VsanHostConfigInfo) []types.VsanHostConfigInfo {
-	faultDomains := d.Get("fault_domains").(*schema.Set).List()
+func expandVsanHostConfig(d *schema.ResourceData, obj []types.VsanHostConfigInfo) ([]types.VsanHostConfigInfo, error) {
+	faultDomainSet := d.Get("vsan_fault_domains").(*schema.Set).List()
+	if len(faultDomainSet) < 3 {
+		log.Printf("[WARNING] fewer than 3 fault domains to be configured in vSAN cluster: %d", len(faultDomainSet))
+	}
 	fdMap := make(map[string]string)
-	for _, faultDomain := range faultDomains {
-		fd := faultDomain.(map[string]interface{})
-		fdName := fd["name"].(string)
-		hosts := fd["host_ids"].(*schema.Set).List()
-		for _, host := range hosts {
-			fdMap[host.(string)] = fdName
+	fdHostCount := -1
+	for _, faultDomains := range faultDomainSet {
+		fds := faultDomains.(map[string]interface{})
+		for _, fd := range fds["fault_domain"].(*schema.Set).List() {
+			f := fd.(map[string]interface{})
+			fdName := f["name"].(string)
+			hosts := f["host_ids"].(*schema.Set).List()
+			if fdHostCount == -1 {
+				fdHostCount = len(hosts)
+			} else if fdHostCount != len(hosts) {
+				log.Printf("[WARNING] inconsistent sizes of fault domains.")
+			}
+			for _, host := range hosts {
+				if _, ok := fdMap[host.(string)]; ok {
+					return nil, fmt.Errorf("duplicate host ids in different fault domains: %s", host.(string))
+				}
+				fdMap[host.(string)] = fdName
+			}
 		}
 	}
 
@@ -1484,12 +1512,11 @@ func expandVsanHostConfig(d *schema.ResourceData, obj []types.VsanHostConfigInfo
 		}
 		result = append(result, hostConfig)
 	}
-
-	return result
+	return result, nil
 }
 
 func flattenClusterVsanHostConfigInfo(d *schema.ResourceData, obj []types.VsanHostConfigInfo) error {
-	faultDomains := make([]map[string]interface{}, 0)
+	var faultDomains []map[string][]interface{}
 	fdMap := make(map[string]interface{})
 	for _, vsanHost := range obj {
 		if vsanHost.FaultDomainInfo != nil {
@@ -1501,14 +1528,19 @@ func flattenClusterVsanHostConfigInfo(d *schema.ResourceData, obj []types.VsanHo
 			}
 		}
 	}
+	var faultDomainList []interface{}
 	for fdName, hostIds := range fdMap {
-		faultDomains = append(faultDomains, map[string]interface{}{
+		faultDomainList = append(faultDomainList, map[string]interface{}{
 			"name":     fdName,
 			"host_ids": hostIds,
 		})
 	}
-
-	return d.Set("fault_domains", faultDomains)
+	if len(fdMap) > 0 {
+		faultDomains = append(faultDomains, map[string][]interface{}{
+			"fault_domain": faultDomainList,
+		})
+	}
+	return d.Set("vsan_fault_domains", faultDomains)
 }
 
 func expandVsanPerfConfig(d *schema.ResourceData) (*vsantypes.VsanPerfsvcConfig, error) {

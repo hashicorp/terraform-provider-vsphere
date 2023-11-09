@@ -343,26 +343,26 @@ func TestAccResourceVSphereComputeCluster_faultDomain(t *testing.T) {
 					testAccResourceVSphereComputeClusterCheckExists(true),
 					resource.TestCheckTypeSetElemAttrPair(
 						"vsphere_compute_cluster.compute_cluster",
-						"fault_domains.*.host_ids.*",
+						"vsan_fault_domains.*.fault_domain.*.host_ids.*",
 						"data.vsphere_host.roothost3",
 						"id",
 					),
 					resource.TestCheckTypeSetElemAttrPair(
 						"vsphere_compute_cluster.compute_cluster",
-						"fault_domains.*.host_ids.*",
+						"vsan_fault_domains.*.fault_domain.*.host_ids.*",
 						"data.vsphere_host.roothost4",
 						"id",
 					),
 					resource.TestCheckTypeSetElemNestedAttrs(
 						"vsphere_compute_cluster.compute_cluster",
-						"fault_domains.*",
+						"vsan_fault_domains.*.fault_domain.*",
 						map[string]string{
 							"name": "fd1",
 						},
 					),
 					resource.TestCheckTypeSetElemNestedAttrs(
 						"vsphere_compute_cluster.compute_cluster",
-						"fault_domains.*",
+						"vsan_fault_domains.*.fault_domain.*",
 						map[string]string{
 							"name": "fd2",
 						},
@@ -1097,13 +1097,15 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   datacenter_id               = data.vsphere_datacenter.rootdc1.id
   host_system_ids             = [data.vsphere_host.roothost3.id, data.vsphere_host.roothost4.id]
   vsan_enabled = true
-  fault_domains {
-    name = "fd1"
-    host_ids = [data.vsphere_host.roothost3.id]
-  }
-  fault_domains {
-    name = "fd2"
-    host_ids = [data.vsphere_host.roothost4.id]
+  vsan_fault_domains {
+    fault_domain {
+      name = "fd1"
+      host_ids = [data.vsphere_host.roothost3.id]
+    }
+    fault_domain {
+      name = "fd2"
+      host_ids = [data.vsphere_host.roothost4.id]
+    }
   }
   force_evacuate_on_destroy = true
 }
