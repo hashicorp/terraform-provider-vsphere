@@ -955,21 +955,68 @@ The options are:
 
 * `network_id` - (Required) The [managed object reference ID][docs-about-morefs] of the network on which to connect the virtual machine network interface.
 
-* `adapter_type` - (Optional) The network interface type. One of `e1000`, `e1000e`, or `vmxnet3`. Default: `vmxnet3`.
+* `adapter_type` - (Optional) The network interface type. One of `e1000`, `e1000e`, `sriov`, or `vmxnet3`. Default: `vmxnet3`.
 
 * `use_static_mac` - (Optional) If true, the `mac_address` field is treated as a static MAC address and set accordingly. Setting this to `true` requires `mac_address` to be set. Default: `false`.
 
 * `mac_address` - (Optional) The MAC address of the network interface. Can only be manually set if `use_static_mac` is `true`. Otherwise, the value is computed and presents the assigned MAC address for the interface.
 
-* `bandwidth_limit` - (Optional) The upper bandwidth limit of the network interface, in Mbits/sec. The default is no limit.
+* `bandwidth_limit` - (Optional) The upper bandwidth limit of the network interface, in Mbits/sec. The default is no limit. Ignored if `adapter_type` is set to `sriov`.
 
 * `bandwidth_reservation` - (Optional) The bandwidth reservation of the network interface, in Mbits/sec. The default is no reservation.
 
-* `bandwidth_share_level` - (Optional) The bandwidth share allocation level for the network interface. One of `low`, `normal`, `high`, or `custom`. Default: `normal`.
+* `bandwidth_share_level` - (Optional) The bandwidth share allocation level for the network interface. One of `low`, `normal`, `high`, or `custom`. Default: `normal`. Ignored if `adapter_type` is set to `sriov`.
 
-* `bandwidth_share_count` - (Optional) The share count for the network interface when the share level is `custom`.
+* `bandwidth_share_count` - (Optional) The share count for the network interface when the share level is `custom`. Ignored if `adapter_type` is set to `sriov`.
 
 * `ovf_mapping` - (Optional) Specifies which NIC in an OVF/OVA the `network_interface` should be associated. Only applies at creation when deploying from an OVF/OVA.
+
+#### Using SR-IOV Network Interfaces
+
+In order to attach your virtual machine to an SR-IOV network interface, 
+there are a few requirements
+
+* SR-IOV network interfaces must be declared after all non-SRIOV network interfaces.
+
+* The target host must be known, if creating a VM from scratch, this means setting the `host_system_id` option.
+
+* SR-IOV must be enabled on the relevant physical adapter on the host.
+
+* The `memory_reservation` must be fully set (that is, equal to the `memory`) for the VM.
+
+* The `network_interface` sub-resource takes a `physical_function` argument:
+  * This **must** be set if your adapter type is `sriov`.
+  * This **must not** be set if your adapter type is not `sriov`.
+  * This can be found by navigating to the relevant host in the vSphere Client,
+    going to the 'Configure' tab followed by 'Networking' then 'Physical adapters' and finding the
+    relevant physical network adapter; one of the properties of the NIC is its PCI Location.
+  * This is usually in the form of "0000:ab:cd.e"
+
+* The `bandwidth_*` options on the network interface are not permitted.
+
+* Adding, modifying, and deleting SR-IOV NICs is supported but requires a VM restart.
+
+* Modifying the number of non-SR-IOV (_e.g._, VMXNET3) interfaces when there are SR-IOV interfaces existing is
+  explicitly blocked (as the provider does not support modifying an interface at the same index from 
+  non-SR-IOV to SR-IOV or vice-versa). To work around this delete all SRIOV NICs for one terraform apply, and re-add 
+  them with any change to the number of non-SRIOV NICs on a second terraform apply.
+
+**Example**:
+
+```hcl
+resource "vsphere_virtual_machine" "vm" {
+  # ... other configuration ...
+  host_system_id      = data.vsphere_host.host.id
+  memory              = var.memory
+  memory_reservation  = var.memory
+  network_interface  {
+    network_id        = data.vsphere_network.network.id
+    adapter_type      = "sriov"
+    physical_function = "0000:3b:00.1" 
+  }
+  ... other network_interfaces... 
+}
+```
 
 ### CD-ROM Options
 

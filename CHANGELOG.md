@@ -8,6 +8,7 @@ BUG FIXES:
 
 FEATURES:
 
+* `resource/virtual_machine`: Adds support for the SR-IOV (`sriov`) network interface adapter type. ([#2059](https://github.com/hashicorp/terraform-provider-vsphere/pull/2059) ([#1417](https://github.com/hashicorp/terraform-provider-vsphere/pull/1417)
 * `resource/compute_cluster`: Adds support for vSAN Express Storage Architecture in vSphere 8.0. ([#1874](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1874))
 * `resource/compute_cluster`: Adds support for vSAN stretched clusters. ([#1885](https://github.com/hashicorp/terraform-provider-vsphere/pull/1885/))
 * `resource/compute_cluster`: Adds support for vSAN fault domains. ([#1968](https://github.com/hashicorp/terraform-provider-vsphere/pull/1969/))
