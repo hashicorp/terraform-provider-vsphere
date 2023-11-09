@@ -491,6 +491,12 @@ details, see the referenced link in the above paragraph.
   group in the cluster.
   * `cache` - The canonical name of the disk to use for vSAN cache.
   * `storage` - An array of disk canonical names for vSAN storage.
+* `vsan_stretched_cluster` - (Optional) Configurations of vSAN stretched cluster.
+  * `preferred_fault_domain_host_ids` - The managed object IDs of the hosts to put in the first fault domain.
+  * `secondary_fault_domain_host_ids` - The managed object IDs of the hosts to put in the second fault domain.
+  * `witness_node` - The managed object IDs of the host selected as witness node when enable stretched cluster.
+  * `preferred_fault_domain_name` - (Optional) The name of first fault domain. Default is `Preferred`.
+  * `secondary_fault_domain_name` - (Optional) The name of second fault domain. Default is `Secondary`.
 
 ~> **NOTE:** You must disable vSphere HA before you enable vSAN on the cluster.
 You can enable or re-enable vSphere HA after vSAN is configured.
