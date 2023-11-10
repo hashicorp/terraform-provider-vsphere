@@ -610,6 +610,10 @@ func resourceVSphereComputeCluster() *schema.Resource {
 									},
 								},
 							},
+						},
+					},
+				},
+			},
 			"vsan_stretched_cluster": {
 				Type:        schema.TypeList,
 				MaxItems:    1,
