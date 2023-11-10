@@ -10,6 +10,7 @@ FEATURES:
 
 * `resource/compute_cluster`: Adds support for vSAN Express Storage Architecture in vSphere 8.0. ([#1874](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1874))
 * `resource/compute_cluster`: Adds support for vSAN stretched clusters. ([#1885](https://github.com/hashicorp/terraform-provider-vsphere/pull/1885/))
+* `resource/compute_cluster`: Adds support for vSAN fault domains. ([#1968](https://github.com/hashicorp/terraform-provider-vsphere/pull/1969/))
 
 ## 2.5.1 (October 12, 2023)
 

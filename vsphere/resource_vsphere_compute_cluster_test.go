@@ -327,6 +327,52 @@ func TestAccResourceVSphereComputeCluster_vsanEsaEnabled(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereComputeCluster_faultDomain(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterConfigFaultDomains(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					resource.TestCheckTypeSetElemAttrPair(
+						"vsphere_compute_cluster.compute_cluster",
+						"vsan_fault_domains.*.fault_domain.*.host_ids.*",
+						"data.vsphere_host.roothost3",
+						"id",
+					),
+					resource.TestCheckTypeSetElemAttrPair(
+						"vsphere_compute_cluster.compute_cluster",
+						"vsan_fault_domains.*.fault_domain.*.host_ids.*",
+						"data.vsphere_host.roothost4",
+						"id",
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(
+						"vsphere_compute_cluster.compute_cluster",
+						"vsan_fault_domains.*.fault_domain.*",
+						map[string]string{
+							"name": "fd1",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(
+						"vsphere_compute_cluster.compute_cluster",
+						"vsan_fault_domains.*.fault_domain.*",
+						map[string]string{
+							"name": "fd2",
+						},
+					),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereComputeCluster_vsanStretchedCluster(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -1078,6 +1124,35 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   force_evacuate_on_destroy = true
 }
 
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootHost4(),
+		),
+	)
+}
+
+func testAccResourceVSphereComputeClusterConfigFaultDomains() string {
+	return fmt.Sprintf(`
+%s
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                        = "testacc-compute-cluster"
+  datacenter_id               = data.vsphere_datacenter.rootdc1.id
+  host_system_ids             = [data.vsphere_host.roothost3.id, data.vsphere_host.roothost4.id]
+  vsan_enabled = true
+  vsan_fault_domains {
+    fault_domain {
+      name = "fd1"
+      host_ids = [data.vsphere_host.roothost3.id]
+    }
+    fault_domain {
+      name = "fd2"
+      host_ids = [data.vsphere_host.roothost4.id]
+    }
+  }
+  force_evacuate_on_destroy = true
+}
 `,
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
