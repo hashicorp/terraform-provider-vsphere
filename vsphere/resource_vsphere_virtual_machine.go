@@ -1362,7 +1362,7 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 	}
 
 	log.Print(" [DEBUG] start deploying from ovf/ova Template")
-	err = ovfHelper.DeployOvf(ovfImportspec)
+	err = ovfHelper.DeployOvf(client, ovfImportspec)
 	if err != nil {
 		return nil, fmt.Errorf("error while importing ovf/ova template, %s", err)
 	}
