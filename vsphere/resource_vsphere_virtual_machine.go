@@ -1014,8 +1014,11 @@ func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.Res
 			_ = d.SetNew("imported", false)
 		case d.Id() == "":
 			if contentlibrary.IsContentLibraryItem(meta.(*Client).restClient, d.Get("clone.0.template_uuid").(string)) {
-				if _, ok := d.GetOk("datastore_cluster_id"); ok {
-					return fmt.Errorf("Cannot use datastore_cluster_id with Content Library source")
+				if ds_cluster_id, ok := d.GetOk("datastore_cluster_id"); ok {
+					err := d.SetNew("datastore_id", ds_cluster_id.(string))
+					if err != nil {
+						return fmt.Errorf("error setting datastore_id: %s", err)
+					}
 				}
 			} else if err := vmworkflow.ValidateVirtualMachineClone(d, client); err != nil {
 				return err
