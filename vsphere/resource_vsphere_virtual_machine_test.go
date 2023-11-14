@@ -2517,6 +2517,27 @@ func TestAccResourceVSphereVirtualMachine_deployOvaFromUrl(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_SRIOV(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+			testAccSriovPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineSriov(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+		},
+	})
+}
+
 func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	// Note that TF_VAR_VSPHERE_USE_LINKED_CLONE is also a variable and its presence
 	// speeds up tests greatly, but it's not a necessary variable, so we don't
@@ -2565,6 +2586,15 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 func testAccDsClusterRequiredPreCheck(t *testing.T) {
 	if os.Getenv("TF_VAR_VSPHERE_DS_CLUSTER1") == "" {
 		t.Skip("TF_VAR_VSPHERE_DS_CLUSTER1 must be set with a name of a DS cluster in order to run tests which require DS cluster ")
+	}
+}
+
+func testAccSriovPreCheck(t *testing.T) {
+	skipTxt := `TF_VAR_VSPHERE_SRIOV_HOST, TF_VAR_VSPHERE_SRIOV_HOST_VMFS and TF_VAR_VSPHERE_SRIOV_PHISICAL_FUNCTION variab;es must be set to run SRIOV test`
+	if os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST") == "" ||
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST_VMFS") == "" ||
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_PHISICAL_FUNCTION") == "" {
+		t.Skip(skipTxt)
 	}
 }
 
@@ -7214,6 +7244,53 @@ resource "vsphere_virtual_machine" "vm" {
 		testAccResourceVSphereVirtualMachineConfigBase(),
 		testhelper.TestOva,
 		vmName,
+	)
+}
+
+func testAccResourceVSphereVirtualMachineSriov() string {
+	return fmt.Sprintf(`
+	%s
+
+data "vsphere_host" "sriov_host" {
+  name =%q
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+data "vsphere_datastore" "sriov_vmfs" {
+  name = %q
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "test-acc-sriov"
+  resource_pool_id = data.vsphere_host.sriov_host.resource_pool_id
+  host_system_id = data.vsphere_host.sriov_host.id
+  guest_id         = "other3xLinuxGuest"
+  network_interface {
+    network_id   = data.vsphere_network.network1.id
+    adapter_type = "sriov"
+    physical_function = %q
+  }
+  datastore_id     = data.vsphere_datastore.sriov_vmfs.id
+  num_cpus = 2
+  memory   = 4096
+  memory_reservation = 4096
+  wait_for_guest_ip_timeout = 0
+  wait_for_guest_net_timeout = 0
+
+  disk {
+    label            = "disk0"
+    size             = 1
+    }
+}
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+		),
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST"),
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST_VMFS"),
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_PHISICAL_FUNCTION"),
 	)
 }
 
