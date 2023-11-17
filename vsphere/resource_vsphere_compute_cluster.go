@@ -586,9 +586,10 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				},
 			},
 			"vsan_fault_domains": {
-				Type:        schema.TypeSet,
-				Optional:    true,
-				Description: "The configuration for vSAN fault domains.",
+				Type:          schema.TypeSet,
+				Optional:      true,
+				ConflictsWith: []string{"vsan_stretched_cluster"},
+				Description:   "The configuration for vSAN fault domains.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"fault_domain": {
@@ -615,10 +616,11 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				},
 			},
 			"vsan_stretched_cluster": {
-				Type:        schema.TypeList,
-				MaxItems:    1,
-				Optional:    true,
-				Description: "The configuration for stretched cluster.",
+				Type:          schema.TypeList,
+				MaxItems:      1,
+				Optional:      true,
+				ConflictsWith: []string{"vsan_fault_domains"},
+				Description:   "The configuration for stretched cluster.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"preferred_fault_domain_host_ids": {
@@ -1500,9 +1502,11 @@ func expandClusterConfigSpecEx(d *schema.ResourceData, version viapi.VSphereVers
 		DrsConfig: expandClusterDrsConfigInfo(d, version),
 	}
 
-	obj.VsanHostConfigSpec, err = expandVsanHostConfig(d, props.ConfigurationEx.(*types.ClusterConfigInfoEx).VsanHostConfig)
-	if err != nil {
-		return nil, err
+	if _, stretchedClusterConfExist := d.GetOk("vsan_stretched_cluster"); !stretchedClusterConfExist {
+		obj.VsanHostConfigSpec, err = expandVsanHostConfig(d, props.ConfigurationEx.(*types.ClusterConfigInfoEx).VsanHostConfig)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
@@ -2029,8 +2033,10 @@ func flattenClusterConfigSpecEx(d *schema.ResourceData, obj *types.ClusterConfig
 		return err
 	}
 
-	if err := flattenClusterVsanHostConfigInfo(d, obj.VsanHostConfig); err != nil {
-		return err
+	if _, stretchedClusterConfExist := d.GetOk("vsan_stretched_cluster"); !stretchedClusterConfExist {
+		if err := flattenClusterVsanHostConfigInfo(d, obj.VsanHostConfig); err != nil {
+			return err
+		}
 	}
 
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
