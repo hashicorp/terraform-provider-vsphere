@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/guestoscustomizations"
 	"log"
 	"net"
 	"os"
@@ -1690,7 +1691,9 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 
 	var cw *virtualMachineCustomizationWaiter
 	// Send customization spec if any has been defined.
-	if len(d.Get("clone.0.customize").([]interface{})) > 0 {
+	hasCustomizeInCloneConfig := len(d.Get("clone.0.customize").([]interface{})) > 0
+	hasCustomizationSpecInCloneConfig := len(d.Get("clone.0.customization_spec").([]interface{})) > 0
+	if hasCustomizeInCloneConfig || hasCustomizationSpecInCloneConfig {
 		vmHardwareVersion := virtualmachine.GetHardwareVersionNumber(vprops.Config.Version)
 		vmSpecHardwareVersion := d.Get("hardware_version").(int)
 		if vmSpecHardwareVersion > vmHardwareVersion {
@@ -1701,9 +1704,28 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 		if err != nil {
 			return fmt.Errorf("cannot find OS family for guest ID %q: %s", d.Get("guest_id").(string), err)
 		}
-		custSpec := vmworkflow.ExpandCustomizationSpec(d, family)
-		cw = newVirtualMachineCustomizationWaiter(client, vm, d.Get("clone.0.customize.0.timeout").(int))
-		if err := virtualmachine.Customize(vm, custSpec); err != nil {
+		var timeout int
+		var customizationSpec types.CustomizationSpec
+		if hasCustomizeInCloneConfig {
+			timeout = d.Get("clone.0.customize.0.timeout").(int)
+			customizationSpec = guestoscustomizations.ExpandCustomizationSpec(d, family, true)
+		} else {
+			timeout = d.Get("clone.0.customization_spec.0.timeout").(int)
+			goscName := d.Get("clone.0.customization_spec.0.id").(string)
+			specItem, err := guestoscustomizations.FromName(client, goscName)
+			if err != nil {
+				return err
+			}
+
+			if !guestoscustomizations.IsSpecOsApplicableToVmOs(types.VirtualMachineGuestOsFamily(family), specItem.Info.Type) {
+				return fmt.Errorf("customization specification type %s is not applicable to OS family %s", specItem.Info.Type, family)
+			}
+
+			customizationSpec = specItem.Spec
+		}
+
+		cw = newVirtualMachineCustomizationWaiter(client, vm, timeout)
+		if err := virtualmachine.Customize(vm, customizationSpec); err != nil {
 			// Roll back the VMs as per the error handling in reconfigure.
 			if derr := resourceVSphereVirtualMachineDelete(d, meta); derr != nil {
 				return fmt.Errorf(formatVirtualMachinePostCloneRollbackError, vm.InventoryPath, err, derr)

@@ -11,6 +11,7 @@ The Terraform provider for VMware vSphere team at HashiCorp include:
 Collaborators from VMware include:
 
 * Ryan Johnson, Senior Staff Solutions Architect - [@tenthirtyam](https://github.com/tenthirtyam)
+* Vasil Atanasov, Member of Technical Staff - [@vasilsatanasov](https://github.com/vasilsatanasov)
 
 ### Why isn’t my PR merged yet?
 
