@@ -540,6 +540,11 @@ resource "vsphere_compute_cluster" "compute_cluster" {
       host_ids = [data.vsphere_host.faultdomain2_hosts.*.id]
     }
   }
+  vsan_stretched_cluster {
+    preferred_fault_domain_host_ids = [data.vsphere_host.preferred_fault_domain_host.*.id]
+    secondary_fault_domain_host_ids = [data.vsphere_host.secondary_fault_domain_host.*.id]
+    witness_node = data.vsphere_host.witness_host.id
+  }
 }
 ```
 

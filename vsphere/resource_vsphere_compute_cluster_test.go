@@ -379,6 +379,7 @@ func TestAccResourceVSphereComputeCluster_vsanStretchedCluster(t *testing.T) {
 			RunSweepers()
 			testAccPreCheck(t)
 			testAccResourceVSphereComputeClusterPreCheck(t)
+			testAccResourceVSphereComputeClusterVSANStretchedClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
@@ -687,6 +688,18 @@ func testAccResourceVSphereComputeClusterVSANEsaPreCheck(t *testing.T) {
 	}
 	if version := viapi.ParseVersionFromClient(client); !version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 8, Minor: 0}) {
 		t.Skip("vSAN ESA acceptance test should be run on vSphere 8.0 or higher")
+	}
+}
+
+func testAccResourceVSphereComputeClusterVSANStretchedClusterPreCheck(t *testing.T) {
+	if os.Getenv("TF_VSPHERE_VSAN_HOST_1") == "" {
+		t.Skip("set TF_VSPHERE_VSAN_HOST_1 to run vsphere_compute_cluster stretched cluster acceptance tests")
+	}
+	if os.Getenv("TF_VSPHERE_VSAN_HOST_2") == "" {
+		t.Skip("set TF_VSPHERE_VSAN_HOST_2 to run vsphere_compute_cluster stretched cluster acceptance tests")
+	}
+	if os.Getenv("TF_VSPHERE_VSAN_WITNESS_HOST") == "" {
+		t.Skip("set TF_VSPHERE_VSAN_WITNESS_HOST to run vsphere_compute_cluster stretched cluster acceptance tests")
 	}
 }
 
@@ -1183,9 +1196,9 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 `,
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2(),
-			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataVsanHost1(),
+			testhelper.ConfigDataVsanHost2(),
+			testhelper.ConfigDataVsanWitnessHost(),
 		),
 	)
 }
@@ -1206,9 +1219,9 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 `,
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2(),
-			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataVsanHost1(),
+			testhelper.ConfigDataVsanHost2(),
+			testhelper.ConfigDataVsanWitnessHost(),
 		),
 	)
 }
