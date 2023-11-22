@@ -789,6 +789,10 @@ func resourceVSphereComputeClusterDelete(d *schema.ResourceData, meta interface{
 		return err
 	}
 
+	if err := resourceVSphereComputeClusterDeleteProcessForceRemoveFaultDomain(d, cluster, spec); err != nil {
+		return err
+	}
+
 	if *spec.DasConfig.Enabled && *spec.DasConfig.AdmissionControlEnabled {
 		if v, ok := spec.DasConfig.AdmissionControlPolicy.(*types.ClusterFailoverHostAdmissionControlPolicy); ok {
 			_ = v
@@ -1339,6 +1343,26 @@ func resourceVSphereComputeClusterDeleteProcessForceRemoveHosts(
 	}
 
 	return nil
+}
+
+func resourceVSphereComputeClusterDeleteProcessForceRemoveFaultDomain(
+	d *schema.ResourceData,
+	cluster *object.ClusterComputeResource,
+	spec *types.ClusterConfigSpecEx,
+) error {
+	if !d.Get("force_evacuate_on_destroy").(bool) {
+		return nil
+	}
+
+	if spec.VsanHostConfigSpec == nil || len(spec.VsanHostConfigSpec) == 0 {
+		return nil
+	}
+
+	log.Printf("[DEBUG] %#v: Force-evacuating vsan fault domains in cluster before removal", spec.VsanHostConfigSpec)
+	for _, fd := range spec.VsanHostConfigSpec {
+		fd.FaultDomainInfo.Name = ""
+	}
+	return clustercomputeresource.Reconfigure(cluster, spec)
 }
 
 // resourceVSphereComputeClusterDeleteProcessForceRemoveVsanRemoteDatastore process
