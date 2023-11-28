@@ -1,6 +1,6 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
-## 2.6.0 (Unreleased)
+## 2.6.0 (November 29, 2023)
 
 BUG FIXES:
 
