@@ -7277,7 +7277,7 @@ data "vsphere_network" "network" {
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
-resource "vsphere_guest_os_customization_spec" "gosc_spec" {
+resource "vsphere_guest_os_customization" "gosc_spec" {
 	name = %q
 	type = "Linux"
 	spec {
@@ -7320,7 +7320,7 @@ resource "vsphere_virtual_machine" "vm" {
   clone {
     template_uuid = data.vsphere_virtual_machine.template.id
 	customization_spec {
-		id = vsphere_guest_os_customization_spec.gosc_spec.id
+		id = vsphere_guest_os_customization.gosc_spec.id
 	}
   }
 }
