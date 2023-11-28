@@ -4,7 +4,7 @@
 
 The Terraform provider for VMware vSphere team at HashiCorp include:
 
-* Tejitha Raju, Product Manager - [@tejavar](https://github.com/tejavar)
+* Vishnu Ravindra, Product Manager - [@vravind1](https://github.com/vravind1)
 * Alex Pilon, Engineer - [@appilon](https://github.com/appilon)
 * Brandy Jackson, Engineering Manager - [@ibrandyjackson](https://github.com/ibrandyjackson)
 
