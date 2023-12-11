@@ -1,5 +1,12 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
+## 2.6.1 (December 11, 2023)
+
+BUG FIXES:
+
+* `resource/guest_os_customization`: Resolves incorrect path for `RequiredWith` and `ConflictsWith` attribute identifiers for `windows_options`. ([#2083](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2083))
+* `resource/virtual_machine`: Resolves error setting SR-IOV (`sriov`) network interface address. ([#2081](https://github.com/hashicorp/terraform-provider-vsphere/pull/2081))
+
 ## 2.6.0 (November 29, 2023)
 
 BUG FIXES:
