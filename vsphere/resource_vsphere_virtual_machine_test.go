@@ -2559,6 +2559,27 @@ func TestAccResourceVSphereVirtualMachine_SRIOV(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_createMemoryReservationLockedToMax(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineCreateMemoryLockToMax(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "memory_reservation_locked_to_max", "true"),
+				),
+			},
+		},
+	})
+}
+
 func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	// Note that TF_VAR_VSPHERE_USE_LINKED_CLONE is also a variable and its presence
 	// speeds up tests greatly, but it's not a necessary variable, so we don't
@@ -7380,6 +7401,39 @@ resource "vsphere_virtual_machine" "vm" {
 		os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST"),
 		os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST_VMFS"),
 		os.Getenv("TF_VAR_VSPHERE_SRIOV_PHISICAL_FUNCTION"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineCreateMemoryLockToMax() string {
+	return fmt.Sprintf(`
+
+
+%s  // Mix and match config
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "testacc-test"
+  resource_pool_id = data.vsphere_host.roothost1.resource_pool_id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+  host_system_id = data.vsphere_host.roothost1.id
+
+  num_cpus            = 2
+  memory              = 2048
+  memory_reservation  = 2048
+  memory_reservation_locked_to_max = true
+  guest_id            = "other3xLinuxGuest"
+  wait_for_guest_net_timeout = 0
+  network_interface {
+    network_id = "${data.vsphere_network.network1.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
+}
+`,
+
+		testAccResourceVSphereVirtualMachineConfigBase(),
 	)
 }
 
