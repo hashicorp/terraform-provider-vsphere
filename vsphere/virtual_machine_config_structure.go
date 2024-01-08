@@ -249,6 +249,13 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Default:     1024,
 			Description: "The size of the virtual machine's memory, in MB.",
 		},
+		"memory_reservation_locked_to_max": {
+			Type:     schema.TypeBool,
+			Optional: true,
+			Description: "If set true, memory resource reservation for this virtual machine will always be equal to the virtual machine's memory size;" +
+				"increases in memory size will be rejected when a corresponding reservation increase is not possible." +
+				" This feature may only be enabled if it is currently possible to reserve all of the virtual machine's memory.",
+		},
 		"memory_hot_add_enabled": {
 			Type:        schema.TypeBool,
 			Optional:    true,
@@ -957,6 +964,12 @@ func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualM
 	_ = d.Set("num_cores_per_socket", obj.Hardware.NumCoresPerSocket)
 	_ = d.Set("memory", obj.Hardware.MemoryMB)
 	_ = d.Set("memory_hot_add_enabled", obj.MemoryHotAddEnabled)
+
+	memoryReservationLockedToMax := false
+	if obj.MemoryReservationLockedToMax != nil {
+		memoryReservationLockedToMax = *obj.MemoryReservationLockedToMax
+	}
+	_ = d.Set("memory_reservation_locked_to_max", memoryReservationLockedToMax)
 	_ = d.Set("cpu_hot_add_enabled", obj.CpuHotAddEnabled)
 	_ = d.Set("cpu_hot_remove_enabled", obj.CpuHotRemoveEnabled)
 	_ = d.Set("swap_placement_policy", obj.SwapPlacement)
@@ -1044,8 +1057,17 @@ func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, client *govmo
 // cloning from a template that has it enabled. The solution is to set it to
 // false when needed, but leave it alone when the change is not necessary.
 func getMemoryReservationLockedToMax(d *schema.ResourceData) *bool {
-	if d.Get("memory_reservation").(int) != d.Get("memory").(int) {
+	memory := d.Get("memory").(int)
+	memoryReservation := d.Get("memory_reservation").(int)
+	memoryLockMax := d.Get("memory_reservation_locked_to_max").(bool)
+
+	if memory != memoryReservation {
 		return structure.BoolPtr(false)
 	}
+
+	if memory == memoryReservation && memoryLockMax == true {
+		return structure.BoolPtr(true)
+	}
+
 	return nil
 }
