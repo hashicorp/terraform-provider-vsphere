@@ -663,6 +663,8 @@ The following options are general virtual machine and provider workflow options:
 
 * `pci_device_id` - (Optional) List of host PCI device IDs in which to create PCI passthroughs.
 
+* `shared_pci_device_id` - (Optional) A shared PCI device ID to create PCI passthrough.
+
 ~> **NOTE:** Cloning requires vCenter Server and is not supported on direct ESXi host connections.
 
 * `ovf_deploy` - (Optional) When specified, the virtual machine will be deployed from the provided OVF/OVA template. See [creating a virtual machine from an OVF/OVA template](#creating-a-virtual-machine-from-an-ovf-ova-template) for more information.

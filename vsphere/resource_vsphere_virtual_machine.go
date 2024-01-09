@@ -242,6 +242,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Description: "A list of PCI passthrough devices",
 			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
+		"shared_pci_device_id": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Id of Shared PCI passthrough device, 'grid_rtx8000-8q'",
+			Elem:        &schema.Schema{Type: schema.TypeString},
+		},
 		"clone": {
 			Type:        schema.TypeList,
 			Optional:    true,
@@ -514,7 +520,15 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 				devId := pciBacking.Id
 				pciDevs = append(pciDevs, devId)
 			} else {
-				log.Printf("[DEBUG] %s: PCI passthrough device %q has no backing ID", resourceVSphereVirtualMachineIDString(d), pci.GetVirtualDevice().DeviceInfo.GetDescription())
+				if pciBacking, ok := pci.Backing.(*types.VirtualPCIPassthroughVmiopBackingInfo); ok {
+					err = d.Set("shared_pci_device_id", pciBacking.Vgpu)
+					if err != nil {
+						return err
+					}
+				} else {
+					log.Printf("[WARN] Ignoring VM %q VirtualPCIPassthrough device with backing type of %T",
+						vm.InventoryPath, pci.Backing)
+				}
 			}
 		}
 	}
@@ -1937,6 +1951,12 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 	spec = virtualdevice.AppendDeviceChangeSpec(spec, delta...)
 	// PCI passthrough devices
 	l, delta, err = virtualdevice.PciPassthroughApplyOperation(d, c, l)
+	if err != nil {
+		return nil, err
+	}
+	spec = virtualdevice.AppendDeviceChangeSpec(spec, delta...)
+	// Shared PCI passthrough device
+	l, delta, err = virtualdevice.SharedPciPassthroughApplyOperation(d, c, l)
 	if err != nil {
 		return nil, err
 	}
