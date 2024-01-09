@@ -149,13 +149,10 @@ func createDirectory(datastoreFileManager *object.DatastoreFileManager, f *file)
 
 // fileUpload - upload file to a vSphere datastore
 func fileUpload(client *govmomi.Client, dc *object.Datacenter, ds *object.Datastore, source, destination string) error {
-	dsurl, err := ds.URL(context.TODO(), dc, destination)
-	if err != nil {
-		return err
-	}
+	dsurl := ds.NewURL(destination)
 
 	p := soap.DefaultUpload
-	err = client.Client.UploadFile(context.TODO(), source, dsurl, &p)
+	err := client.Client.UploadFile(context.TODO(), source, dsurl, &p)
 	if err != nil {
 		return err
 	}
