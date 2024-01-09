@@ -214,3 +214,30 @@ func ConfigDSClusterData() string {
  
 `, os.Getenv("TF_VAR_VSPHERE_DS_CLUSTER1"))
 }
+
+func ConfigDataVsanHost1() string {
+	return fmt.Sprintf(`
+data "vsphere_host" "roothost1" {
+  name          = "%s"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+`, os.Getenv("TF_VSPHERE_VSAN_HOST_1"))
+}
+
+func ConfigDataVsanHost2() string {
+	return fmt.Sprintf(`
+data "vsphere_host" "roothost2" {
+  name          = "%s"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+`, os.Getenv("TF_VSPHERE_VSAN_HOST_2"))
+}
+
+func ConfigDataVsanWitnessHost() string {
+	return fmt.Sprintf(`
+data "vsphere_host" "roothost3" {
+  name          = "%s"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+`, os.Getenv("TF_VSPHERE_VSAN_WITNESS_HOST"))
+}

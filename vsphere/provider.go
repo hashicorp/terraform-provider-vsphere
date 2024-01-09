@@ -141,6 +141,7 @@ func Provider() *schema.Provider {
 			"vsphere_vm_storage_policy":                       resourceVMStoragePolicy(),
 			"vsphere_role":                                    resourceVsphereRole(),
 			"vsphere_entity_permissions":                      resourceVsphereEntityPermissions(),
+			"vsphere_guest_os_customization":                  resourceVSphereGuestOsCustomization(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
@@ -169,6 +170,7 @@ func Provider() *schema.Provider {
 			"vsphere_virtual_machine":            dataSourceVSphereVirtualMachine(),
 			"vsphere_vmfs_disks":                 dataSourceVSphereVmfsDisks(),
 			"vsphere_role":                       dataSourceVsphereRole(),
+			"vsphere_guest_os_customization":     dataSourceVSphereGuestOSCustomization(),
 		},
 
 		ConfigureFunc: providerConfigure,

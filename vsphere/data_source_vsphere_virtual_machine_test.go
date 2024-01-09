@@ -33,6 +33,7 @@ func TestAccDataSourceVSphereVirtualMachine_basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "guest_id"),
 					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "scsi_type"),
 					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "memory"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "memory_reservation_locked_to_max"),
 					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "num_cpus"),
 					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "num_cores_per_socket"),
 					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "firmware"),

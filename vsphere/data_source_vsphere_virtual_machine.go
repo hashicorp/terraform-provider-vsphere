@@ -96,6 +96,11 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 						Type:     schema.TypeString,
 						Computed: true,
 					},
+					"physical_function": {
+						Type:        schema.TypeString,
+						Computed:    true,
+						Description: "The ID of the Physical SR-IOV NIC to attach to, e.g. '0000:d8:00.0'",
+					},
 					"bandwidth_limit": {
 						Type:         schema.TypeInt,
 						Optional:     true,

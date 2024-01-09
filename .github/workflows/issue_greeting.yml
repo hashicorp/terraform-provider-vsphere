@@ -16,13 +16,13 @@ jobs:
           fetch-depth: 1
       - name: Render Template
         id: template
-        uses: chuhlomin/render-template@b5c1c085165d9eb712cf4f2b56f89f11146ad017 # v1.7
+        uses: chuhlomin/render-template@a473db625a96c98e519d188812dc22bcaf54ffba # v1.9
         with:
           template: .github/issue_greeting_template.md
           vars: |
             author: ${{ github.actor }}
       - name: Create Comment
-        uses: peter-evans/create-or-update-comment@c6c9a1a66007646a28c153e2a8580a5bad27bcfa # v3.0.2
+        uses: peter-evans/create-or-update-comment@23ff15729ef2fc348714a3bb66d2f655ca9066f2 # v3.1.0
         with:
           issue-number: '${{ github.event.issue.number }}'
           body: '${{ steps.template.outputs.result }}'

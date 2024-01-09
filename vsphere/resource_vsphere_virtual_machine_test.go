@@ -2517,6 +2517,69 @@ func TestAccResourceVSphereVirtualMachine_deployOvaFromUrl(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_cloneWithCustomizationSpec(t *testing.T) {
+	goscName := acctest.RandomWithPrefix("gosc")
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneWithCustomizationSpec(goscName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_SRIOV(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+			testAccSriovPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineSriov(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_createMemoryReservationLockedToMax(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineCreateMemoryLockToMax(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "memory_reservation_locked_to_max", "true"),
+				),
+			},
+		},
+	})
+}
+
 func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	// Note that TF_VAR_VSPHERE_USE_LINKED_CLONE is also a variable and its presence
 	// speeds up tests greatly, but it's not a necessary variable, so we don't
@@ -2565,6 +2628,15 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 func testAccDsClusterRequiredPreCheck(t *testing.T) {
 	if os.Getenv("TF_VAR_VSPHERE_DS_CLUSTER1") == "" {
 		t.Skip("TF_VAR_VSPHERE_DS_CLUSTER1 must be set with a name of a DS cluster in order to run tests which require DS cluster ")
+	}
+}
+
+func testAccSriovPreCheck(t *testing.T) {
+	skipTxt := `TF_VAR_VSPHERE_SRIOV_HOST, TF_VAR_VSPHERE_SRIOV_HOST_VMFS and TF_VAR_VSPHERE_SRIOV_PHISICAL_FUNCTION variab;es must be set to run SRIOV test`
+	if os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST") == "" ||
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST_VMFS") == "" ||
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_PHISICAL_FUNCTION") == "" {
+		t.Skip(skipTxt)
 	}
 }
 
@@ -7214,6 +7286,154 @@ resource "vsphere_virtual_machine" "vm" {
 		testAccResourceVSphereVirtualMachineConfigBase(),
 		testhelper.TestOva,
 		vmName,
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigCloneWithCustomizationSpec(goscName string) string {
+	return fmt.Sprintf(`
+	%s
+
+data "vsphere_network" "network" {
+  name          = "VM Network"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+resource "vsphere_guest_os_customization" "gosc_spec" {
+	name = %q
+	type = "Linux"
+	spec {
+		linux_options {
+			domain = "example.com"
+			host_name = "linux"
+		}
+		network_interface {}
+	}
+	
+}
+
+data "vsphere_virtual_machine" "template" {
+  name          = %q
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "vm-1-template-clone"
+  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+  guest_id         = data.vsphere_virtual_machine.template.guest_id
+  network_interface {
+    network_id   = data.vsphere_network.network.id
+  }
+  datastore_id     = data.vsphere_datastore.rootds1.id
+
+  num_cpus = 2
+  memory   = 2048
+
+  scsi_type = data.vsphere_virtual_machine.template.scsi_type
+  wait_for_guest_ip_timeout = 0
+  wait_for_guest_net_timeout = 0
+
+ disk {
+    label            = "disk0"
+    size             = data.vsphere_virtual_machine.template.disks.0.size
+    }
+
+  clone {
+    template_uuid = data.vsphere_virtual_machine.template.id
+	customization_spec {
+		id = vsphere_guest_os_customization.gosc_spec.id
+	}
+  }
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootDS1(),
+		),
+		goscName,
+		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineSriov() string {
+	return fmt.Sprintf(`
+	%s
+
+data "vsphere_host" "sriov_host" {
+  name =%q
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+data "vsphere_datastore" "sriov_vmfs" {
+  name = %q
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "test-acc-sriov"
+  resource_pool_id = data.vsphere_host.sriov_host.resource_pool_id
+  host_system_id = data.vsphere_host.sriov_host.id
+  guest_id         = "other3xLinuxGuest"
+  network_interface {
+    network_id   = data.vsphere_network.network1.id
+    adapter_type = "sriov"
+    physical_function = %q
+  }
+  datastore_id     = data.vsphere_datastore.sriov_vmfs.id
+  num_cpus = 2
+  memory   = 4096
+  memory_reservation = 4096
+  wait_for_guest_ip_timeout = 0
+  wait_for_guest_net_timeout = 0
+
+  disk {
+    label            = "disk0"
+    size             = 1
+    }
+}
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+		),
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST"),
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST_VMFS"),
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_PHISICAL_FUNCTION"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineCreateMemoryLockToMax() string {
+	return fmt.Sprintf(`
+
+
+%s  // Mix and match config
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "testacc-test"
+  resource_pool_id = data.vsphere_host.roothost1.resource_pool_id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+  host_system_id = data.vsphere_host.roothost1.id
+
+  num_cpus            = 2
+  memory              = 2048
+  memory_reservation  = 2048
+  memory_reservation_locked_to_max = true
+  guest_id            = "other3xLinuxGuest"
+  wait_for_guest_net_timeout = 0
+  network_interface {
+    network_id = "${data.vsphere_network.network1.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
+}
+`,
+
+		testAccResourceVSphereVirtualMachineConfigBase(),
 	)
 }
 

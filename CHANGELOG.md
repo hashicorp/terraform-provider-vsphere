@@ -1,6 +1,13 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
-## 2.6.0 (Unreleased)
+## 2.6.1 (December 11, 2023)
+
+BUG FIXES:
+
+* `resource/guest_os_customization`: Resolves incorrect path for `RequiredWith` and `ConflictsWith` attribute identifiers for `windows_options`. ([#2083](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2083))
+* `resource/virtual_machine`: Resolves error setting SR-IOV (`sriov`) network interface address. ([#2081](https://github.com/hashicorp/terraform-provider-vsphere/pull/2081))
+
+## 2.6.0 (November 29, 2023)
 
 BUG FIXES:
 
@@ -9,6 +16,12 @@ BUG FIXES:
 FEATURES:
 
 * `resource/compute_cluster`: Adds support for vSAN Express Storage Architecture in vSphere 8.0. ([#1874](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1874))
+* `resource/compute_cluster`: Adds support for vSAN stretched clusters. ([#1885](https://github.com/hashicorp/terraform-provider-vsphere/pull/1885/))
+* `resource/compute_cluster`: Adds support for vSAN fault domains. ([#1968](https://github.com/hashicorp/terraform-provider-vsphere/pull/1969/))
+* `resource/guest_os_customization`: Adds support for the customization specifications for guest operating systems. ([#2053](https://github.com/hashicorp/terraform-provider-vsphere/pull/2053))
+* `datasource/guest_os_customization`: Adds support for the customization specifications for guest operating systems. ([#2053](https://github.com/hashicorp/terraform-provider-vsphere/pull/2053))
+* `resource/virtual_machine`: Adds support for the use of customization specifications for guest operating systems. ([#2053](https://github.com/hashicorp/terraform-provider-vsphere/pull/2053))
+* `resource/virtual_machine`: Adds support for the SR-IOV (`sriov`) network interface adapter type. ([#2059](https://github.com/hashicorp/terraform-provider-vsphere/pull/2059) and [#1417](https://github.com/hashicorp/terraform-provider-vsphere/pull/1417))
 
 ## 2.5.1 (October 12, 2023)
 
@@ -85,7 +98,7 @@ BUG FIXES:
 IMPROVEMENTS:
 
 * `resource/host`: Documentation updates. ([#1884](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1884))
-* `resource/vnic`: Fixes vnic tests. ([#1887](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1887))
+* `resource/vnic`: Fixes tests. ([#1887](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1887))
 
 CHORES:
 
@@ -185,7 +198,7 @@ BUG FIXES:
 * `resource/compute_cluster`: Updates `ha_datastore_apd_response_delay` to the API default (180) for `vmTerminateDelayForAPDSec`. Previously set to 3 (minutes) however the codebase uses this value as seconds. Users who had the field left blank may see a warning about the state value drifting from 3 to 180, after applying this should go away. ([#1542](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1542))
 * `resource/virtual_machine`: Don't read `storage_policy_id` if vCenter is not configured. This is not a scenario we test or support explicitly ([#1408](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1408))
 * `datasource/virtual_machine`: Fixes silent failure and add `default_ip_address` attribute. ([#1532](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1532))
-* `resource/virtual_machine`: Fixs race condition by always forcing a new datastore id. ([#1486](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1486))
+* `resource/virtual_machine`: Fixes race condition by always forcing a new datastore id. ([#1486](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1486))
 * `resource/virtual_machine`: Fixes default guest OS identifier. ([#1543](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1543))
 * `resource/virtual_machine`: Updates `windows_options` to ensure all required options for domain join are provided ([#1562](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1562))
 * `resource/virtual_machine`: Fixes migration of all disks and configuration files when the datastore_cluster_id is changed on the resource. ([#1546](https://github.com/terraform-providers/terraform-provider-vsphere/issues/1546))
@@ -227,18 +240,18 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-* `resource/virtual_machine`: Fix logic bug that caused the provider to set unsupported fields when talking to vsphere 6.5. ([1430](https://github.com/hashicorp/terraform-provide-vsphere/pull/1430))
+* `resource/virtual_machine`: Fix logic bug that caused the provider to set unsupported fields when talking to vSphere 6.5. ([1430](https://github.com/hashicorp/terraform-provide-vsphere/pull/1430))
 * `resource/virtual_machine`: Fix resource diff bug where it was not possible to ignore changes to `cdrom` subresource. ([1433](https://github.com/hashicorp/terraform-provide-vsphere/pull/1433))
 
 IMPROVEMENTS:
 
-* `resource/virtual_machine`: Support periodic time syncing for VMs on vsphere 7.0U1 onwards. ([1431](https://github.com/hashicorp/terraform-provide-vsphere/pull/1431))
+* `resource/virtual_machine`: Support periodic time syncing for VMs on vSphere 7.0U1 onwards. ([1431](https://github.com/hashicorp/terraform-provide-vsphere/pull/1431))
 
 ## 2.0.1 (June 09, 2021)
 
 BUG FIXES:
 
-* `resource/virtual_machine`: Only set vvtd/vbs if vsphere version is newer than 6.5. ([1423](https://github.com/hashicorp/terraform-provider-vsphere/pull/1423))
+* `resource/virtual_machine`: Only set vvtd/vbs if vSphere version is newer than 6.5. ([1423](https://github.com/hashicorp/terraform-provider-vsphere/pull/1423))
 
 ## 2.0.0 (June 02, 2021)
 
@@ -259,9 +272,9 @@ IMPROVEMENTS:
 * `provider`: Provider wide API timeout setting. ([1405](https://github.com/hashicorp/terraform-provider-vsphere/pull/1405))
 * `provider`: Enable keepalive for REST API sessions. ([1301](https://github.com/hashicorp/terraform-provider-vsphere/pull/1301))
 * `provider`: Upgrade Plugin SDK to 2.6.1 ([1379](https://github.com/hashicorp/terraform-provider-vsphere/pull/1379))
-* `datasource/virtual_machine`: Added 'network_interfaces' output. ([#1274]())
-* `resource/virtual_machine`: Allow unconfigurable vApp properties to be set. ([1199](https://github.com/hashicorp/terraform-provider-vsphere/pull/1199))
-* `resource/virtual_machine`: Enable VBS (vbsEnabled) and I/O MMU (vvtdEnabled). ([1287](https://github.com/hashicorp/terraform-provider-vsphere/pull/1287))
+* `datasource/virtual_machine`: Added `network_interfaces`` output. ([#1274](https://github.com/hashicorp/terraform-provider-vsphere/pull/1274))
+* `resource/virtual_machine`: Allow non-configurable vApp properties to be set. ([1199](https://github.com/hashicorp/terraform-provider-vsphere/pull/1199))
+* `resource/virtual_machine`: Enable VBS (`vbsEnabled`) and I/O MMU (`vvtdEnabled`). ([1287](https://github.com/hashicorp/terraform-provider-vsphere/pull/1287))
 * `resource/virtual_machine`: Added `replace_trigger` to support replacement of vms based external changes such as cloud_init ([#1360](https://github.com/hashicorp/terraform-provider-vsphere/issues/1360))
 
 ## 1.26.0 (April 20, 2021)
@@ -280,8 +293,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-* `resource/vsphere_entity_permissions`: Sorting permission objects on username/groupname before storing. ([#1311](https://github.com/hashicorp/terraform-provider-vsphere/pull/1311))
-* `resource/virtual_machine`: Limit netmask length for ipv4 and ipv6 netmasks. ([#1321](https://github.com/hashicorp/terraform-provider-vsphere/pull/1321))
+* `resource/vsphere_entity_permissions`: Sorting permission objects on user name/group name before storing. ([#1311](https://github.com/hashicorp/terraform-provider-vsphere/pull/1311))
+* `resource/virtual_machine`: Limit netmask length for ipv4 and ipv6 netmask. ([#1321](https://github.com/hashicorp/terraform-provider-vsphere/pull/1321))
 * `resource/virtual_machine`: Fix missing vApp properties. ([#1322](https://github.com/hashicorp/terraform-provider-vsphere/pull/1322))
 
 FEATURES:
@@ -290,7 +303,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
-* `resource/distributed_virtual_switch`: Allow vsphere 7. ([#1363](https://github.com/hashicorp/terraform-provider-vsphere/pull/1363))
+* `resource/distributed_virtual_switch`: Allow vSphere7. ([#1363](https://github.com/hashicorp/terraform-provider-vsphere/pull/1363))
 * `provider`: Bump Go to version 1.16. ([#1365](https://github.com/hashicorp/terraform-provider-vsphere/pull/1365))
 
 ## 1.24.3 (December 14, 2020)
@@ -304,7 +317,7 @@ BUG FIXES:
 
 BUG FIXES:
 
-* `resource/virtual_machine`: Prevent guest_id nil condition. ([#1234](https://github.com/hashicorp/terraform-provider-vsphere/pull/1234))
+* `resource/virtual_machine`: Prevent `guest_id`` nil condition. ([#1234](https://github.com/hashicorp/terraform-provider-vsphere/pull/1234))
 
 ## 1.24.1 (October 07, 2020)
 
@@ -364,11 +377,13 @@ FEATURES:
 * `datasource/entity_permission`: Data source to acquire ESXi host thumbprints . ([#1142](https://github.com/hashicorp/terraform-provider-vsphere/pull/1142))
 
 ## 1.21.1 (July 20, 2020)
+
 BUG FIXES:
 
 * `resource/virtual_machine`: Set guest_id before customization. ([#1139](https://github.com/hashicorp/terraform-provider-vsphere/pull/1139))
 
 ## 1.21.0 (June 30, 2020)
+
 FEATURES:
 
 * `resource/virtual_machine`: Support for SATA and IDE disks. ([#1118](https://github.com/hashicorp/terraform-provider-vsphere/pull/1118))
@@ -588,7 +603,7 @@ IMPROVEMENTS:
 * Add missing ENV variable checks for acceptance tests. ([#758](https://github.com/hashicorp/terraform-provider-vsphere/pull/758))
 * Switch to Terraform 0.12 SDK which is required for Terraform 0.12 support.
   This is the first release to use the 0.12 SDK required for Terraform 0.12
-  support. Some provider behaviour may have changed as a result of changes made
+  support. Some provider behavior may have changed as a result of changes made
   by the new SDK version. ([#760](https://github.com/hashicorp/terraform-provider-vsphere/pull/760))
 
 ## 1.10.0 (March 15, 2019)
@@ -957,7 +972,7 @@ BREAKING CHANGES:
 To transition to the new syntax, any `disk` sub-resource in a
 `vsphere_virtual_machine` resource that depends on a syntax such as:
 
-```
+```hcl
 resource "vsphere_virtual_machine" "vm" {
   ...
 
@@ -970,7 +985,7 @@ resource "vsphere_virtual_machine" "vm" {
 
 Should be changed to:
 
-```
+```hcl
 resource "vsphere_virtual_machine" "vm" {
   ...
 
@@ -984,7 +999,7 @@ resource "vsphere_virtual_machine" "vm" {
 If you are using `linked_clone`, add the new settings for `eagerly_scrub` and
 `thin_provisioned`:
 
-```
+```hcl
 resource "vsphere_virtual_machine" "vm" {
   ...
 
@@ -1138,8 +1153,8 @@ FEATURES:
 
 * **New Data Source:** `vsphere_tag` ([#171](https://github.com/hashicorp/terraform-provider-vsphere/issues/171))
 * **New Data Source:** `vsphere_tag_category` ([#167](https://github.com/hashicorp/terraform-provider-vsphere/issues/167))
-* **New Resoruce:** `vsphere_tag` ([#171](https://github.com/hashicorp/terraform-provider-vsphere/issues/171))
-* **New Resoruce:** `vsphere_tag_category` ([#164](https://github.com/hashicorp/terraform-provider-vsphere/issues/164))
+* **New Resource:** `vsphere_tag` ([#171](https://github.com/hashicorp/terraform-provider-vsphere/issues/171))
+* **New Resource:** `vsphere_tag_category` ([#164](https://github.com/hashicorp/terraform-provider-vsphere/issues/164))
 
 IMPROVEMENTS:
 
@@ -1171,7 +1186,7 @@ BUG FIXES:
 
 BREAKING CHANGES:
 
-* `vsphere_virtual_machine` now waits on a _routeable_ IP address by default,
+* `vsphere_virtual_machine` now waits on a _routable_ IP address by default,
   and does not wait when running `terraform plan`, `terraform refresh`, or
   `terraform destroy`. There is also now a timeout of 5 minutes, after which
   `terraform apply` will fail with an error. Note that the apply may not fail
@@ -1242,7 +1257,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * Updated [govmomi](https://github.com/vmware/govmomi) to v0.15.0 ([#114](https://github.com/hashicorp/terraform-provider-vsphere/issues/114))
-* Updated network interface discovery behaviour in refresh. [[#129](https://github.com/hashicorp/terraform-provider-vsphere/issues/129)]. This fixes
+* Updated network interface discovery behavior in refresh. [[#129](https://github.com/hashicorp/terraform-provider-vsphere/issues/129)]. This fixes
   several reported bugs - see the PR for references!
 
 ## 0.1.0 (June 20, 2017)
