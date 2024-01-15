@@ -1118,7 +1118,7 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 	// in-place modification.
 	// A result of this is that if you have any SRIOV network interfaces, you
 	// cannot Update the count of non-SRIOV network interfaces.
-	if r.HasChange("adapter_type") || r.HasChange("physical_function") {
+	if r.HasChange("adapter_type") || physicalFunctionChanged(r) {
 		// Ensure network interfaces aren't changing adapter_type to or from sriov
 		if err := r.blockAdapterTypeChangeSriov(); err != nil {
 			return nil, err
@@ -1512,4 +1512,22 @@ func (r *NetworkInterfaceSubresource) assignEthernetCard(l object.VirtualDeviceL
 		d.Key = -1
 	}
 	return nil
+}
+
+func physicalFunctionChanged(r *NetworkInterfaceSubresource) bool {
+	old, n := r.GetChange("physical_function")
+	var oldVal, newVal string
+	if old == nil {
+		oldVal = ""
+	} else {
+		oldVal = old.(string)
+	}
+
+	if n == nil {
+		newVal = ""
+	} else {
+		newVal = n.(string)
+	}
+
+	return newVal != oldVal
 }
