@@ -151,7 +151,13 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 		"sync_time_with_host": {
 			Type:        schema.TypeBool,
 			Optional:    true,
+			Default:     true,
 			Description: "Enable guest clock synchronization with the host. On vSphere 7.0 U1 and above, with only this setting the clock is synchronized on startup and resume. Requires VMware Tools to be installed.",
+		},
+		"sync_time_with_host_periodically": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Enable periodic clock synchronization with the host. Supported only on vSphere 7.0 U1 and above. On prior versions setting `sync_time_with_host` is enough for periodic synchronization. Requires VMware Tools to be installed.",
 		},
 		"tools_upgrade_policy": {
 			Type:         schema.TypeString,
@@ -159,11 +165,6 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Default:      string(types.UpgradePolicyManual),
 			Description:  "Set the upgrade policy for VMware Tools. Can be one of `manual` or `upgradeAtPowerCycle`.",
 			ValidateFunc: validation.StringInSlice(virtualMachineUpgradePolicyAllowedValues, false),
-		},
-		"sync_time_with_host_periodically": {
-			Type:        schema.TypeBool,
-			Optional:    true,
-			Description: "Enable periodic clock synchronization with the host. Supported only on vSphere 7.0 U1 and above. On prior versions setting `sync_time_with_host` is enough for periodic synchronization. Requires VMware Tools to be installed.",
 		},
 		"run_tools_scripts_after_power_on": {
 			Type:        schema.TypeBool,
