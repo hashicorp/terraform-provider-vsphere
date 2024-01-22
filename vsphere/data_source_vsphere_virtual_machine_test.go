@@ -197,6 +197,48 @@ func TestAccDataSourceVSphereVirtualMachine_moid(t *testing.T) {
 	})
 }
 
+func TestAccDataSourceVSphereVirtualMachine_nameAndFolder(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccDataSourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{{
+			Config: testAccDataSourceVirtualMachineFolder(),
+			Check: resource.ComposeTestCheckFunc(
+				resource.TestMatchResourceAttr(
+					"data.vsphere_virtual_machine.vm1",
+					"id",
+					regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$")),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "guest_id"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "scsi_type"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "memory"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "num_cpus"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "num_cores_per_socket"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "firmware"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "hardware_version"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "disks.#"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "disks.0.size"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "disks.0.eagerly_scrub"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "disks.0.thin_provisioned"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "disks.0.unit_number"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "disks.0.label"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "network_interface_types.#"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "network_interfaces.#"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "network_interfaces.0.adapter_type"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "network_interfaces.0.bandwidth_limit"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "network_interfaces.0.bandwidth_reservation"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "network_interfaces.0.bandwidth_share_level"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "network_interfaces.0.bandwidth_share_count"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "network_interfaces.0.mac_address"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "network_interfaces.0.network_id"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "firmware")),
+		}},
+	})
+}
+
 func testAccDataSourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_virtual_machine data source acceptance tests")
@@ -283,4 +325,50 @@ data "vsphere_virtual_machine" "template" {
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 	)
+}
+
+func testAccDataSourceVirtualMachineFolder() string {
+	return fmt.Sprintf(`
+	%s
+
+	resource "vsphere_folder" "new_vm_folder" {
+		path		  = "new-vm-folder"
+		datacenter_id = data.vsphere_datacenter.rootdc1.id
+		type		  = "vm"
+	
+	}
+	
+	resource "vsphere_virtual_machine" "vm" {
+	  name             = "foo"
+	  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+	  folder 		   = vsphere_folder.new_vm_folder.path
+	  datastore_id     = data.vsphere_datastore.rootds1.id
+	  num_cpus         = 1
+	  memory           = 1024
+	  guest_id         = "other3xLinux64Guest"
+	  network_interface {
+		network_id = data.vsphere_network.network1.id
+	  }
+	  disk {
+		label = "disk0"
+		size  = 10
+	  }
+	 wait_for_guest_ip_timeout = 0
+	 wait_for_guest_net_timeout  = 0
+	}
+	
+	data vsphere_virtual_machine "vm1" {
+		name 		  = vsphere_virtual_machine.vm.name
+		datacenter_id = data.vsphere_datacenter.rootdc1.id
+		folder 		  = vsphere_folder.new_vm_folder.path
+	}
+
+	
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootPortGroup1(),
+		testhelper.ConfigDataRootComputeCluster1(),
+		testhelper.ConfigDataRootDS1(),
+	))
+
 }
