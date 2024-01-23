@@ -5,7 +5,9 @@ package vsphere
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"log"
+	"path"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -22,6 +24,13 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 			Type:        schema.TypeString,
 			Description: "The managed object ID of the datacenter the virtual machine is in. This is not required when using ESXi directly, or if there is only one datacenter in your infrastructure.",
 			Optional:    true,
+		},
+		"folder": {
+			Type:          schema.TypeString,
+			Optional:      true,
+			Description:   "The name of the folder the virtual machine is in. Allows distinguishing virtual machines with the same name in different folder paths",
+			StateFunc:     folder.NormalizePath,
+			ConflictsWith: []string{"uuid", "moid"},
 		},
 		"scsi_controller_scan_count": {
 			Type:        schema.TypeInt,
@@ -183,6 +192,7 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 	uuid := d.Get("uuid").(string)
 	moid := d.Get("moid").(string)
 	name := d.Get("name").(string)
+	folderName := d.Get("folder").(string)
 	var vm *object.VirtualMachine
 	var err error
 
@@ -202,7 +212,12 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 			}
 			log.Printf("[DEBUG] Datacenter for VM/template search: %s", dc.InventoryPath)
 		}
-		vm, err = virtualmachine.FromPath(client, name, dc)
+
+		searchPath := name
+		if len(folderName) > 0 {
+			searchPath = path.Join(folderName, name)
+		}
+		vm, err = virtualmachine.FromPath(client, searchPath, dc)
 	}
 
 	if err != nil {
