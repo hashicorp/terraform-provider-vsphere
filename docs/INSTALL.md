@@ -74,41 +74,41 @@ The following examples use Bash on Linux (x64).
 
 1. On a Linux operating system with Internet access, download the plugin from GitHub using the shell.
 
-    ```console
-    RELEASE=x.y.z
-    wget -q https://releases.hashicorp.com/terraform-provider-vsphere/${RELEASE}/terraform-provider-vsphere_${RELEASE}_linux_amd64.zip
-    ```
+   ```console
+   RELEASE=x.y.z
+   wget -q https://releases.hashicorp.com/terraform-provider-vsphere/${RELEASE}/terraform-provider-vsphere_${RELEASE}_linux_amd64.zip
+   ```
 
 2. Extract the plugin.
 
-    ```console
-    tar xvf terraform-provider-vsphere_${RELEASE}_linux_amd64.zip
-    ```
+   ```console
+   unzip terraform-provider-vsphere_${RELEASE}_darwin_amd64.zip -d terraform-provider-vsphere_${RELEASE}
+   ```
 
 3. Create a directory for the provider.
 
-    > **Note**
-    >
-    > The directory hierarchy that Terraform uses to precisely determine the source of each provider it finds locally.
-    >
-    > `$PLUGIN_DIRECTORY/$SOURCEHOSTNAME/$SOURCENAMESPACE/$NAME/$VERSION/$OS_$ARCH/`
+   > **Note**
+   >
+   > The directory hierarchy that Terraform uses to precisely determine the source of each provider it finds locally.
+   >
+   > `$PLUGIN_DIRECTORY/$SOURCEHOSTNAME/$SOURCENAMESPACE/$NAME/$VERSION/$OS_$ARCH/`
 
-    ```console
-    mkdir -p ~/.terraform.d/plugins/local/hashicorp/vsphere/${RELEASE}/linux_amd64
-    ```
+   ```console
+   mkdir -p ~/.terraform.d/plugins/local/hashicorp/vsphere/${RELEASE}/linux_amd64
+   ```
 
 4. Copy the extracted plugin to a target system and move to the Terraform plugins directory.
 
-    ```console
-    mv terraform-provider-vsphere_v${RELEASE} ~/.terraform.d/plugins/local/hashicorp/vsphere/${RELEASE}/linux_amd64
-    ```
+   ```console
+   mv terraform-provider-vsphere_${RELEASE}/terraform-provider-vsphere_v${RELEASE} ~/.terraform.d/plugins/local/hashicorp/vsphere/${RELEASE}/linux_amd64
+   ```
 
 5. Verify the presence of the plugin in the Terraform plugins directory.
 
-    ```console
-    cd ~/.terraform.d/plugins/local/hashicorp/vsphere/${RELEASE}/linux_amd64
-    ls
-    ```
+   ```console
+   cd ~/.terraform.d/plugins/local/hashicorp/vsphere/${RELEASE}/linux_amd64
+   ls
+   ```
 
 ### macOS
 
@@ -116,47 +116,47 @@ The following example uses Bash (default) on macOS (Intel).
 
 1. On a macOS operating system with Internet access, install wget with [Homebrew](https://brew.sh).
 
-    ```console
-    brew install wget
-    ```
+   ```console
+   brew install wget
+   ```
 
 2. Download the plugin from GitHub using the shell.
 
-    ```console
-    RELEASE=2.2.0
-    wget -q https://releases.hashicorp.com/terraform-provider-vsphere/${RELEASE}/terraform-provider-vsphere_${RELEASE}_darwin_amd64.zip
-    ```
+   ```console
+   RELEASE=2.2.0
+   wget -q https://releases.hashicorp.com/terraform-provider-vsphere/${RELEASE}/terraform-provider-vsphere_${RELEASE}_darwin_amd64.zip
+   ```
 
 3. Extract the plugin.
 
-    ```console
-    tar xvf terraform-provider-vsphere_${RELEASE}_darwin_amd64.zip
-    ```
+   ```console
+   unzip terraform-provider-vsphere_${RELEASE}_darwin_amd64.zip -d terraform-provider-vsphere_${RELEASE}
+   ```
 
 4. Create a directory for the provider.
 
-    > **Note**
-    >
-    > The directory hierarchy that Terraform uses to precisely determine the source of each provider it finds locally.
-    >
-    > `$PLUGIN_DIRECTORY/$SOURCEHOSTNAME/$SOURCENAMESPACE/$NAME/$VERSION/$OS_$ARCH/`
+   > **Note**
+   >
+   > The directory hierarchy that Terraform uses to precisely determine the source of each provider it finds locally.
+   >
+   > `$PLUGIN_DIRECTORY/$SOURCEHOSTNAME/$SOURCENAMESPACE/$NAME/$VERSION/$OS_$ARCH/`
 
-    ```console
-    mkdir -p ~/.terraform.d/plugins/local/hashicorp/vsphere/${RELEASE}/darwin_amd64
-    ```
+   ```console
+   mkdir -p ~/.terraform.d/plugins/local/hashicorp/vsphere/${RELEASE}/darwin_amd64
+   ```
 
 5. Copy the extracted plugin to a target system and move to the Terraform plugins directory.
 
-    ```console
-    mv terraform-provider-vsphere_v${RELEASE} ~/.terraform.d/plugins/local/hashicorp/vsphere/${RELEASE}/darwin_amd64
-    ```
+   ```console
+   mv terraform-provider-vsphere_${RELEASE}/terraform-provider-vsphere_v${RELEASE} ~/.terraform.d/plugins/local/hashicorp/vsphere/${RELEASE}/darwin_amd64
+   ```
 
 6. Verify the presence of the plugin in the Terraform plugins directory.
 
-    ```console
-    cd ~/.terraform.d/plugins/local/hashicorp/vsphere/${RELEASE}/darwin_amd64
-    ls
-    ```
+   ```console
+   cd ~/.terraform.d/plugins/local/hashicorp/vsphere/${RELEASE}/darwin_amd64
+   ls
+   ```
 
 ### Windows
 
@@ -164,39 +164,39 @@ The following examples use PowerShell on Windows (x64).
 
 1. On a Windows operating system with Internet access, download the plugin using the PowerShell.
 
-    ```powershell
-    $RELEASE="x.y.z"
-    Invoke-WebRequest https://releases.hashicorp.com/terraform-provider-vsphere/${RELEASE}/terraform-provider-vsphere_${RELEASE}_windows_amd64.zip -outfile terraform-provider-vsphere_${RELEASE}_windows_amd64.zip
-    ```
+   ```powershell
+   $RELEASE="x.y.z"
+   Invoke-WebRequest https://releases.hashicorp.com/terraform-provider-vsphere/${RELEASE}/terraform-provider-vsphere_${RELEASE}_windows_amd64.zip -outfile terraform-provider-vsphere_${RELEASE}_windows_amd64.zip
+   ```
 
 2. Extract the plugin.
 
-    ```powershell
-    Expand-Archive terraform-provider-vsphere_${RELEASE}_windows_amd64.zip
+   ```powershell
+   Expand-Archive terraform-provider-vsphere_${RELEASE}_windows_amd64.zip
 
-    cd terraform-provider-vsphere_${RELEASE}_windows_amd64
-    ```
+   cd terraform-provider-vsphere_${RELEASE}_windows_amd64
+   ```
 
 3. Copy the extracted plugin to a target system and move to the Terraform plugins directory.
 
-    > **Note**
-    >
-    > The directory hierarchy that Terraform uses to precisely determine the source of each provider it finds locally.
-    >
-    > `$PLUGIN_DIRECTORY/$SOURCEHOSTNAME/$SOURCENAMESPACE/$NAME/$VERSION/$OS_$ARCH/`
+   > **Note**
+   >
+   > The directory hierarchy that Terraform uses to precisely determine the source of each provider it finds locally.
+   >
+   > `$PLUGIN_DIRECTORY/$SOURCEHOSTNAME/$SOURCENAMESPACE/$NAME/$VERSION/$OS_$ARCH/`
 
-    ```powershell
-    New-Item $ENV:APPDATA\terraform.d\plugins\local\hashicorp\vsphere\${RELEASE}\ -Name "windows_amd64" -ItemType "directory"
+   ```powershell
+   New-Item $ENV:APPDATA\terraform.d\plugins\local\hashicorp\vsphere\${RELEASE}\ -Name "windows_amd64" -ItemType "directory"
 
-    Move-Item terraform-provider-vsphere_v${RELEASE}.exe $ENV:APPDATA\terraform.d\plugins\local\hashicorp\vsphere\${RELEASE}\windows_amd64\terraform-provider-vsphere_v${RELEASE}.exe
-    ```
+   Move-Item terraform-provider-vsphere_v${RELEASE}.exe $ENV:APPDATA\terraform.d\plugins\local\hashicorp\vsphere\${RELEASE}\windows_amd64\terraform-provider-vsphere_v${RELEASE}.exe
+   ```
 
 4. Verify the presence of the plugin in the Terraform plugins directory.
 
-    ```powershell
-    cd $ENV:APPDATA\terraform.d\plugins\local\hashicorp\vsphere\${RELEASE}\windows_amd64
-    dir
-    ```
+   ```powershell
+   cd $ENV:APPDATA\terraform.d\plugins\local\hashicorp\vsphere\${RELEASE}\windows_amd64
+   dir
+   ```
 
 ### Configure the Terraform Configuration Files
 
