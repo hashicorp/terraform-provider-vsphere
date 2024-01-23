@@ -2580,6 +2580,33 @@ func TestAccResourceVSphereVirtualMachine_createMemoryReservationLockedToMax(t *
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_deployOvfFromUrlMultipleVmsSameName(t *testing.T) {
+	ovfNameTpl := "terraform_test_vm_" + acctest.RandStringFromCharSet(4, acctest.CharSetAlphaNum)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			testAccResourceVSphereVirtualMachineCheckExistsByName(false, "vm1"),
+			testAccResourceVSphereVirtualMachineCheckExistsByName(false, "vm2"),
+		),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineDeployOvfFromURLMultipleVMsSameName(ovfNameTpl),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExistsByName(true, "vm1"),
+					testAccResourceVSphereVirtualMachineCheckExistsByName(true, "vm2"),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBase(),
+			},
+		},
+	})
+}
+
 func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	// Note that TF_VAR_VSPHERE_USE_LINKED_CLONE is also a variable and its presence
 	// speeds up tests greatly, but it's not a necessary variable, so we don't
@@ -2654,6 +2681,25 @@ func testAccResourceVSphereVirtualMachineCheckExists(expected bool) resource.Tes
 		}
 		if !expected {
 			return errors.New("expected VM to be missing")
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereVirtualMachineCheckExistsByName(expected bool, vmName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		_, err := testGetVirtualMachine(s, vmName)
+		if err != nil {
+			missingState, _ := regexp.MatchString("not found in state", err.Error())
+			missingVSphere, _ := regexp.MatchString("virtual machine with UUID \"[-a-f0-9]+\" not found", err.Error())
+			if missingState && !expected || missingVSphere && !expected {
+				// Expected missing
+				return nil
+			}
+			return err
+		}
+		if !expected {
+			return errors.New("expected vm to be missing")
 		}
 		return nil
 	}
@@ -7434,6 +7480,115 @@ resource "vsphere_virtual_machine" "vm" {
 `,
 
 		testAccResourceVSphereVirtualMachineConfigBase(),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineDeployOvfFromURLMultipleVMsSameName(vmName string) string {
+	return fmt.Sprintf(`
+%s
+
+variable "ovf_url" {
+	default = "%s"
+}
+
+data "vsphere_ovf_vm_template" "ovf" {
+  name              = "%s"
+  resource_pool_id  = data.vsphere_host.roothost1.resource_pool_id
+  datastore_id      = vsphere_nas_datastore.ds1.id
+  host_system_id    = data.vsphere_host.roothost1.id
+  remote_ovf_url    = var.ovf_url
+
+  ovf_network_map   = {
+    "Production_DVS - Mgmt": data.vsphere_network.network1.id
+  }
+}
+
+resource "vsphere_folder" "vm_folder_1" {
+  path          = "vm-folder-11"
+  type          = "vm"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+resource "vsphere_folder" "vm_folder_2" {
+  path          = "vm-folder-12"
+  type          = "vm"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+
+
+resource "vsphere_virtual_machine" "vm1" {
+  datacenter_id    = data.vsphere_datacenter.rootdc1.id
+  folder = vsphere_folder.vm_folder_1.path
+  annotation       = data.vsphere_ovf_vm_template.ovf.annotation
+  name             = "ovf-multiple-name-1"
+  num_cpus         = data.vsphere_ovf_vm_template.ovf.num_cpus
+  memory           = data.vsphere_ovf_vm_template.ovf.memory
+  guest_id         = data.vsphere_ovf_vm_template.ovf.guest_id
+  resource_pool_id = data.vsphere_ovf_vm_template.ovf.resource_pool_id
+  datastore_id     = data.vsphere_ovf_vm_template.ovf.datastore_id
+  host_system_id   = data.vsphere_ovf_vm_template.ovf.host_system_id
+
+  dynamic "network_interface" {
+    for_each = data.vsphere_ovf_vm_template.ovf.ovf_network_map
+    content {
+        network_id = network_interface.value
+    }
+  }
+
+  wait_for_guest_net_timeout = 0
+
+  ovf_deploy {
+	  remote_ovf_url  = var.ovf_url
+	  ovf_network_map = data.vsphere_ovf_vm_template.ovf.ovf_network_map
+  }
+
+lifecycle {
+    ignore_changes = [
+      ept_rvi_mode,
+      hv_mode
+    ]
+  }
+}
+
+resource "vsphere_virtual_machine" "vm2" {
+  datacenter_id    = data.vsphere_datacenter.rootdc1.id
+  folder = vsphere_folder.vm_folder_2.path
+  annotation       = data.vsphere_ovf_vm_template.ovf.annotation
+  name             = "ovf-multiple-name-2"
+  num_cpus         = data.vsphere_ovf_vm_template.ovf.num_cpus
+  memory           = data.vsphere_ovf_vm_template.ovf.memory
+  guest_id         = data.vsphere_ovf_vm_template.ovf.guest_id
+  resource_pool_id = data.vsphere_ovf_vm_template.ovf.resource_pool_id
+  datastore_id     = data.vsphere_ovf_vm_template.ovf.datastore_id
+  host_system_id   = data.vsphere_ovf_vm_template.ovf.host_system_id
+
+  dynamic "network_interface" {
+    for_each = data.vsphere_ovf_vm_template.ovf.ovf_network_map
+    content {
+        network_id = network_interface.value
+    }
+  }
+
+  wait_for_guest_net_timeout = 0
+
+  ovf_deploy {
+	  remote_ovf_url  = var.ovf_url
+	  ovf_network_map = data.vsphere_ovf_vm_template.ovf.ovf_network_map
+  }
+
+lifecycle {
+    ignore_changes = [
+      ept_rvi_mode,
+      hv_mode
+    ]
+  }
+}
+
+`,
+		testAccResourceVSphereVirtualMachineConfigBase(),
+		os.Getenv("TF_VAR_VSPHERE_TEST_OVF"),
+		vmName,
 	)
 }
 

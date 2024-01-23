@@ -11,6 +11,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -1377,8 +1378,11 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return nil, fmt.Errorf("error while getting datacenter with id %s %s", dataCenterID, err)
 	}
-
-	vm, err := virtualmachine.FromPath(client, ovfHelper.Name, datacenterObj)
+	searchPath := ovfHelper.Name
+	if ovfHelper.Folder != nil && len(ovfHelper.Folder.InventoryPath) > 0 {
+		searchPath = filepath.Join(ovfHelper.Folder.InventoryPath, searchPath)
+	}
+	vm, err := virtualmachine.FromPath(client, searchPath, datacenterObj)
 	if err != nil {
 		return nil, fmt.Errorf("error while fetching the created vm, %s", err)
 	}
