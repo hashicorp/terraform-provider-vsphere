@@ -176,7 +176,7 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 			Optional:     true,
 			Default:      0,
 			Description:  "The unique device number for this disk. This number determines where on the SCSI bus this device will be attached.",
-			ValidateFunc: validation.IntBetween(0, 59),
+			ValidateFunc: validation.IntBetween(0, 255),
 		},
 		"keep_on_remove": {
 			Type:        schema.TypeBool,
@@ -1609,7 +1609,16 @@ func (r *DiskSubresource) DiffGeneral() error {
 	switch r.Get("controller_type").(string) {
 	case "scsi":
 		ctlrCount := r.rdd.Get("scsi_controller_count").(int)
-		maxUnit := ctlrCount*15 - 1
+		scsiType := r.rdd.Get("scsi_type").(string)
+		var maxPerCtlr int
+		if scsiType == "pvscsi" {
+			log.Println("[DEBUG] scsi type is pvscsi, max disks per controller is 64")
+			maxPerCtlr = 64
+		} else {
+			log.Println("[DEBUG] scsi type is not pvscsi, max disks per controller is 15")
+			maxPerCtlr = 15
+		}
+		maxUnit := ctlrCount * maxPerCtlr - 1
 		currentUnit := r.Get("unit_number").(int)
 		if currentUnit > maxUnit {
 			return fmt.Errorf("unit_number on disk %q too high (%d) - maximum value is %d with %d SCSI controller(s)", name, currentUnit, maxUnit, ctlrCount)
@@ -1934,11 +1943,21 @@ func (r *DiskSubresource) assignDisk(l object.VirtualDeviceList, disk *types.Vir
 	switch r.Get("controller_type").(string) {
 	case "scsi":
 		// Figure out the bus number, and look up the SCSI controller that matches
-		// that. You can attach 15 disks to a SCSI controller, and we allow a maximum
-		// of 30 devices.
-		bus := number / 15
+		// that. You can attach 15 disks to a SCSI controller,
+		// or 64 disks to a paravirtual SCSI controller,
+		// and we allow a maximum of 30 devices.
+		scsiType := r.rdd.Get("scsi_type").(string)
+		var maxPerCtlr int
+		if scsiType == "pvscsi" {
+			log.Println("[DEBUG] scsi type is pvscsi, max disks per controller is 64")
+			maxPerCtlr = 64
+		} else {
+			log.Println("[DEBUG] scsi type is not pvscsi, max disks per controller is 15")
+			maxPerCtlr = 15
+		}
+		bus := number / maxPerCtlr
 		// Also determine the unit number on that controller.
-		unit := int32(math.Mod(float64(number), 15))
+		unit := int32(math.Mod(float64(number), float64(maxPerCtlr)))
 
 		// Find the controller.
 		ctlr, err = r.ControllerForCreateUpdate(l, SubresourceControllerTypeSCSI, bus)
@@ -1947,7 +1966,7 @@ func (r *DiskSubresource) assignDisk(l object.VirtualDeviceList, disk *types.Vir
 		}
 
 		// Build the unit list.
-		units := make([]bool, 16)
+		units := make([]bool, maxPerCtlr + 1)
 		// Reserve the SCSI unit number
 		scsiUnit := ctlr.(types.BaseVirtualSCSIController).GetVirtualSCSIController().ScsiCtlrUnitNumber
 		units[scsiUnit] = true
@@ -2058,11 +2077,20 @@ func (r *Subresource) findControllerInfo(l object.VirtualDeviceList, disk *types
 	}
 	switch sc := ctlr.(type) {
 	case types.BaseVirtualSCSIController:
+		scsiType := l.Type(ctlr)
+		var maxPerCtlr int32
+		if scsiType == "pvscsi" {
+			log.Println("[DEBUG] scsi type is pvscsi, max disks per controller is 64")
+			maxPerCtlr = 64
+		} else {
+			log.Println("[DEBUG] scsi type is not pvscsi, max disks per controller is 15")
+			maxPerCtlr = 15
+		}
 		unit := *disk.UnitNumber
 		if unit > sc.GetVirtualSCSIController().ScsiCtlrUnitNumber {
 			unit--
 		}
-		unit += 15 * sc.GetVirtualSCSIController().BusNumber
+		unit += maxPerCtlr * sc.GetVirtualSCSIController().BusNumber
 		return int(unit), ctlr.(types.BaseVirtualController), nil
 	case types.BaseVirtualSATAController:
 		unit := *disk.UnitNumber

@@ -164,7 +164,16 @@ func migrateVSphereVirtualMachineStateV2(is *terraform.InstanceState, meta inter
 	// issues (nothing in the sub-resource read logic is reliant on schema
 	// versions), and an empty ResourceData is sent anyway.
 	diskCnt, _ := strconv.Atoi(is.Attributes["disk.#"])
-	maxBus := diskCnt / 15
+	scsiType := is.Attributes["scsi_type"]
+	var maxPerCtlr int
+	if scsiType == "pvscsi" {
+		log.Println("[DEBUG] scsi type is pvscsi, max disks per controller is 64")
+		maxPerCtlr = 64
+	} else {
+		log.Println("[DEBUG] scsi type is not pvscsi, max disks per controller is 15")
+		maxPerCtlr = 15
+	}
+	maxBus := diskCnt / maxPerCtlr
 	l := object.VirtualDeviceList(props.Config.Hardware.Device)
 	for k, v := range is.Attributes {
 		if !regexp.MustCompile("disk\\.[0-9]+\\.key").MatchString(k) {

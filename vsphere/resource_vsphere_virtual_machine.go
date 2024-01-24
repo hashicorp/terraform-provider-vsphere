@@ -221,7 +221,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Optional:    true,
 			Computed:    true,
 			Description: "A specification for a virtual disk device on this virtual machine.",
-			MaxItems:    60,
+			MaxItems:    256,
 			Elem:        &schema.Resource{Schema: virtualdevice.DiskSubresourceSchema()},
 		},
 		"network_interface": {
