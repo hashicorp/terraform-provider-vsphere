@@ -493,6 +493,26 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	_ = d.Set("datastore_id", ds.Reference().Value)
 	_ = d.Set("vmx_path", dp.Path)
 
+	isImported := d.Get("imported").(bool)
+	if isImported {
+		dsProps, err := datastore.Properties(ds)
+		if err != nil {
+			return fmt.Errorf("could not read properties for datastore: %s", ds.Name())
+		}
+		if dsProps.Parent.Type == "StoragePod" {
+			cluster, err := storagepod.FromID(client, dsProps.Parent.Value)
+			if err != nil {
+				return fmt.Errorf("could not read managed object reference (datastore cluster): %s", err)
+			}
+
+			if cluster == nil {
+				return fmt.Errorf("could not read managed object reference (datastore cluster): %s", dsProps.Parent.Value)
+			}
+
+			d.Set("datastore_cluster_id", cluster.Reference().Value)
+		}
+
+	}
 	// Read general VM config info
 	if err := flattenVirtualMachineConfigInfo(d, vprops.Config, client); err != nil {
 		return fmt.Errorf("error reading virtual machine configuration: %s", err)
