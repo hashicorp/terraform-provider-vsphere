@@ -2399,6 +2399,7 @@ func TestAccResourceVSphereVirtualMachine_cloneImport(t *testing.T) {
 					"clone",
 					"cdrom",
 					"wait_for_guest_net_timeout",
+					"sata_controller_count",
 				},
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					vm, err := testGetVirtualMachine(s, "vm")

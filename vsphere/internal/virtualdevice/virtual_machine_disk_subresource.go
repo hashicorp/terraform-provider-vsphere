@@ -1234,14 +1234,25 @@ func DiskImportOperation(d *schema.ResourceData, l object.VirtualDeviceList) err
 		// the device address.
 		m["key"] = (i + 1) * -1
 		m["device_address"] = addr
-		// Assign a computed label. This label *needs* be the label this disk is
-		// assigned in config, or you risk service interruptions or data corruption.
-		m["label"] = fmt.Sprintf("disk%d", i)
+		// Assign disk label coming from the configuration
+		// If there is no info about the label - assign computed label
+		deviceLabel := ""
+		deviceDescription := device.GetVirtualDevice().DeviceInfo.GetDescription()
+		if deviceDescription != nil {
+			deviceLabel = deviceDescription.Label
+		}
+		keepAfterRemove := false
+		if len(deviceLabel) > 0 {
+			m["label"] = deviceLabel
+		} else {
+			keepAfterRemove = true
+			m["label"] = fmt.Sprintf("disk%d", i)
+		}
 		// Set keep_on_remove to ensure that if labels are assigned incorrectly,
 		// all that happens is that the disk is removed. The comments above
 		// regarding the risk of incorrect label assignment are still true, but
 		// this greatly reduces the risk of data loss.
-		m["keep_on_remove"] = true
+		m["keep_on_remove"] = keepAfterRemove
 
 		curSet = append(curSet, m)
 	}
