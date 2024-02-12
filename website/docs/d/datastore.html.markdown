@@ -7,7 +7,7 @@ description: |-
   Provides a data source to return the ID of a vSphere datastore object.
 ---
 
-# vsphere\_datastore
+# vsphere_datastore
 
 The `vsphere_datastore` data source can be used to discover the ID of a
 vSphere datastore object. This can then be used with resources or data sources
@@ -33,8 +33,8 @@ data "vsphere_datastore" "datastore" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the datastore. This can be a name or path.
-* `datacenter_id` - (Optional) The [managed object reference ID][docs-about-morefs]
+- `name` - (Required) The name of the datastore. This can be a name or path.
+- `datacenter_id` - (Optional) The [managed object reference ID][docs-about-morefs]
   of the datacenter the datastore is located in. This can be omitted if the
   search path used in `name` is an absolute path. For default datacenters, use
   the `id` attribute from an empty `vsphere_datacenter` data source.
@@ -43,5 +43,9 @@ The following arguments are supported:
 
 ## Attribute Reference
 
-The only exported attribute from this data source is `id`, which represents the
-ID of the datastore.
+The following attributes are exported:
+
+- `id` - The ID of the datastore.
+- `stats` - The disk space usage statistics for the specific datastore. The total
+  datastore capacity is represented as `capacity` and the free remaining disk is
+  represented as `free`.
