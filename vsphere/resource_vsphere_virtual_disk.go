@@ -4,8 +4,10 @@
 package vsphere
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"errors"
@@ -497,7 +499,21 @@ func searchForDirectory(client *govmomi.Client, datacenter string, datastore str
 
 func resourceVSphereVirtualDiskImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	client := meta.(*Client).vimClient
-	p := d.Id()
+	var data map[string]string
+	if err := json.Unmarshal([]byte(d.Id()), &data); err != nil {
+		return nil, err
+	}
+	createDirectories, ok := data["create_directories"]
+	if ok {
+		createDirectoriesBool, _ := strconv.ParseBool(createDirectories)
+		log.Printf("[INFO] Set create_directories during import: %v", createDirectoriesBool)
+		_ = d.Set("create_directories", createDirectoriesBool)
+	}
+
+	p, ok := data["virtual_disk_path"]
+	if !ok {
+		return nil, errors.New("missing virtual_disk_path in input data")
+	}
 	if !strings.HasPrefix(p, "/") {
 		return nil, errors.New("ID must start with a trailing slash")
 	}
@@ -525,10 +541,12 @@ func resourceVSphereVirtualDiskImport(d *schema.ResourceData, meta interface{}) 
 		return nil, fmt.Errorf("Invalid datastore path '%s'", di.Name)
 	}
 
+	//addrParts[2] is in form: [<datastore>]path/to/vmdk
+	vmdkPath := strings.Split(addrParts[2], "]")[1]
 	_ = d.Set("datacenter", dc.Name())
 	_ = d.Set("datastore", dp.Datastore)
-	_ = d.Set("vmdk_path", dp.Path)
-	d.SetId(dp.Path)
+	_ = d.Set("vmdk_path", vmdkPath)
+	d.SetId(vmdkPath)
 
 	return []*schema.ResourceData{d}, nil
 }
