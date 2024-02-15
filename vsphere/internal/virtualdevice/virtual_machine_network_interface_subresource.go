@@ -26,13 +26,6 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-// networkInterfacePciDeviceOffset defines the PCI offset for virtual NICs on a vSphere PCI bus.
-const networkInterfacePciDeviceOffset = 7
-
-// sriovNetworkInterfacePciDeviceOffset defines the PCI offset for virtual SR-IOV NICs on a vSphere PCI bus.
-// sriov NICs have unitNumber 45-36 descending.
-const sriovNetworkInterfacePciDeviceOffset = 45
-
 const maxNetworkInterfaceCount = 10
 
 const (
@@ -265,63 +258,25 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 	curSet := d.Get(subresourceTypeNetworkInterface).([]interface{})
 	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Current resource set from state: %s", subresourceListString(curSet))
 
-	// Create arrays for the refreshed set of network interfaces which we will now populate. We have a maximum number
-	// of 10 network interfaces for each of non-SRIOV and SRIOV, so for simplicity create arrays of this length. We will
-	// combine these into a final array with just the interfaces that we find, in order non-SRIOV then SRIOV.  This is
-	// easier to deal with than trying to populate one big array based on unit number, as we ultimately want the SRIOV
-	// NICs in decreasing order from 45.
-	newSetNonSriov := make([]interface{}, maxNetworkInterfaceCount)
-	newSetSriov := make([]interface{}, maxNetworkInterfaceCount)
+	newSet := make([]interface{}, 0, maxNetworkInterfaceCount)
 
 	// First check for negative keys. These are freshly added devices that are
 	// usually coming into read post-create.
-	//
-	// If we find what we are looking for, we remove the device from the working
-	// set so that we don't try and process it in the next few passes.
 	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Looking for freshly-created resources to read in")
 	for n, item := range curSet {
 		m := item.(map[string]interface{})
 		if m["key"].(int) < 1 {
 			r := NewNetworkInterfaceSubresource(c, d, m, nil, n)
-			if err := r.Read(l); err != nil {
-				return fmt.Errorf("%s: %s", r.Addr(), err)
-			}
 			if r.Get("key").(int) < 1 {
-				// This should not have happened - if it did, our device
-				// creation/update logic failed somehow that we were not able to track.
-				return fmt.Errorf("device %d with address %s still unaccounted for after update/read", r.Get("key").(int), r.Get("device_address").(string))
-			}
-
-			_, _, idx, err := splitDevAddr(r.Get("device_address").(string))
-			if err != nil {
-				return fmt.Errorf("%s: error parsing device address: %s", r, err)
-			}
-
-			// Separately populate non-SRIOV and SRIOV arrays for refreshed network interfaces for simplicity, to avoid
-			// complications with non-SRIOV indexes being from 7 ascending, and SRIOV indexes being from 45 descending
-			if r.Get("adapter_type").(string) != networkInterfaceSubresourceTypeSriov {
-				newSetNonSriov[idx-networkInterfacePciDeviceOffset] = r.Data()
-			} else {
-				// newSetSriov will have elements populated in order of unitNumber 45, 44, 43, 42, 41...
-				newSetSriov[sriovNetworkInterfacePciDeviceOffset-idx] = r.Data()
-			}
-
-			// Remove the device we've dealt with from the working set
-			for i := 0; i < len(devices); i++ {
-				device := devices[i]
-				if device.GetVirtualDevice().Key == int32(r.Get("key").(int)) {
-					devices = append(devices[:i], devices[i+1:]...)
-					i--
-				}
+				r.Set("key", devices[n].GetVirtualDevice().Key)
 			}
 		}
 	}
 
 	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Network devices after freshly-created device search: %s", DeviceListString(devices))
-	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Resource sets to write after freshly-created device search: non-SRIOV %s and SRIOV %s", subresourceListString(newSetNonSriov), subresourceListString(newSetSriov))
+	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Resource sets to write after known device search: %s", subresourceListString(newSet))
 
-	// Go over the remaining devices, refresh via key, and then remove their
-	// entries as well.
+	// Go over all devices, refresh via key, and then remove their entries.
 	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Looking for devices known in state")
 	for i := 0; i < len(devices); i++ {
 		device := devices[i]
@@ -342,21 +297,13 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 			}
 			// Done reading, push this onto our new sets and remove the device from
 			// the list
-			_, _, idx, err := splitDevAddr(r.Get("device_address").(string))
-			if err != nil {
-				return fmt.Errorf("%s: error parsing device address: %s", r, err)
-			}
-			if r.Get("adapter_type").(string) != networkInterfaceSubresourceTypeSriov {
-				newSetNonSriov[idx-networkInterfacePciDeviceOffset] = r.Data()
-			} else {
-				newSetSriov[sriovNetworkInterfacePciDeviceOffset-idx] = r.Data()
-			}
+			newSet = append(newSet, r.Data())
 
 			devices = append(devices[:i], devices[i+1:]...)
 			i--
 		}
 	}
-	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Resource sets to write after known device search: non-SRIOV %s and SRIOV %s", subresourceListString(newSetNonSriov), subresourceListString(newSetSriov))
+	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Resource sets to write after known device search: %s", subresourceListString(newSet))
 	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Probable orphaned network interfaces: %s", DeviceListString(devices))
 
 	// Finally, any device that is still here is orphaned. They should be added
@@ -379,39 +326,16 @@ func NetworkInterfaceRefreshOperation(d *schema.ResourceData, c *govmomi.Client,
 		if err := r.Read(l); err != nil {
 			return fmt.Errorf("%s: %s", r.Addr(), err)
 		}
-		_, _, idx, err := splitDevAddr(r.Get("device_address").(string))
-		if err != nil {
-			return fmt.Errorf("%s: error parsing device address: %s", r, err)
-		}
-
-		// Add the orphaned device to the new sets
-		if r.Get("adapter_type").(string) != networkInterfaceSubresourceTypeSriov {
-			newSetNonSriov[idx-networkInterfacePciDeviceOffset] = r.Data()
-		} else {
-			newSetSriov[sriovNetworkInterfacePciDeviceOffset-idx] = r.Data()
-		}
+		// Done reading, push this onto our new sets and remove the device from
+		// the list
+		newSet = append(newSet, r.Data())
 	}
 
-	// Create the newSet of all devices from the combination of first the non-SRIOV devices and then the SRIOV devices
-	// with any nils so far (which could occur if there are gaps in the unit numbers of each) in the arrays removed.
-	// (so it might look like this in terms of unit numbers [7, 8, 9, 45, 44, 43])
-	var newSetAll []interface{}
-	for i := 0; i < len(newSetNonSriov); i++ {
-		if newSetNonSriov[i] != nil {
-			newSetAll = append(newSetAll, newSetNonSriov[i])
-		}
-	}
-	for i := 0; i < len(newSetSriov); i++ {
-		if newSetSriov[i] != nil {
-			newSetAll = append(newSetAll, newSetSriov[i])
-		}
-	}
+	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: %d devices and a new set of length %d", len(devices), len(newSet))
 
-	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: %d devices and a new set of length %d", len(devices), len(newSetAll))
-
-	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Resource set to write after adding orphaned devices: %s", subresourceListString(newSetAll))
+	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Resource set to write after adding orphaned devices: %s", subresourceListString(newSet))
 	log.Printf("[DEBUG] NetworkInterfaceRefreshOperation: Refresh operation complete, sending new resource set")
-	return d.Set(subresourceTypeNetworkInterface, newSetAll)
+	return d.Set(subresourceTypeNetworkInterface, newSet)
 }
 
 // NetworkInterfaceDiffOperation performs operations relevant to managing the
@@ -597,8 +521,7 @@ func NetworkInterfacePostCloneOperation(d *schema.ResourceData, c *govmomi.Clien
 	// Create arrays for the refreshed set of network interfaces which we will now populate. We have a maximum number
 	// of 10 network interfaces, so for simplicity create arrays of this length. The final array is the length of
 	// the count of network interfaces though.
-	srcSetNonSriov := make([]interface{}, maxNetworkInterfaceCount)
-	srcSetSriov := make([]interface{}, maxNetworkInterfaceCount)
+	srcSet := make([]interface{}, maxNetworkInterfaceCount)
 	log.Printf("[DEBUG] NetworkInterfacePostCloneOperation: Layout from source: %d devices", len(devices))
 
 	// Populate the source set as if the devices were orphaned. This give us a
@@ -622,39 +545,7 @@ func NetworkInterfacePostCloneOperation(d *schema.ResourceData, c *govmomi.Clien
 			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
 		}
 
-		// This will give idx as the 7 in pci:0:7, or in the case of SRIOV it will give 45 from pci:0:45
-		_, _, idx, err := splitDevAddr(r.Get("device_address").(string))
-		if err != nil {
-			return nil, nil, fmt.Errorf("%s: error parsing device address: %s", r, err)
-		}
-
-		// Ultimately populate srcSet from the start with non-SRIOV ids 7-16 and from the end backwards with
-		// SRIOV ids 45-36
-		// Separately populate non-SRIOV and SRIOV arrays for source network interfaces for simplicity, to avoid
-		// complications with non-SRIOV indexes being from 7 ascending, and SRIOV indexes being from 45 descending
-		if r.Get("adapter_type").(string) != networkInterfaceSubresourceTypeSriov {
-			srcSetNonSriov[idx-networkInterfacePciDeviceOffset] = r.Data()
-
-		} else {
-			srcSetSriov[sriovNetworkInterfacePciDeviceOffset-idx] = r.Data()
-		}
-	}
-
-	// Create the srcSet of all devices from the combination of first the
-	// non-SRIOV devices and then the SRIOV devices with any nils so far
-	// (which could occur in edge cases where device unit numbers are not
-	// 100% sequential) in the arrays removed.
-	// (so it might look like this in terms of unit numbers [7, 8, 9, 45, 44, 43])
-	var srcSet []interface{}
-	for i := 0; i < len(srcSetNonSriov); i++ {
-		if srcSetNonSriov[i] != nil {
-			srcSet = append(srcSet, srcSetNonSriov[i])
-		}
-	}
-	for i := 0; i < len(srcSetSriov); i++ {
-		if srcSetSriov[i] != nil {
-			srcSet = append(srcSet, srcSetSriov[i])
-		}
+		srcSet = append(srcSet, r.Data())
 	}
 
 	// Now go over our current set, kind of treating it like an apply:
@@ -923,14 +814,6 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 		r.SetRestart("<device sriov create>")
 	}
 
-	// CreateEthernetCard does not attach stuff, however, assuming that you will
-	// let vSphere take care of the attachment and what not, as there is usually
-	// only one PCI device per virtual machine and their tools don't really care
-	// about state. Terraform does though, so we need to not only set but also
-	// track that stuff.
-	if err := r.assignEthernetCard(l, device, ctlr); err != nil {
-		return nil, err
-	}
 	// Ensure the device starts connected
 	err = l.Connect(device)
 	if err != nil && !strings.Contains(err.Error(), "is not connectable") {
@@ -1112,17 +995,7 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 	// device, with the old device unit number preserved so that it (hopefully)
 	// gets the same device position as its previous incarnation, allowing old
 	// device aliases to work, etc.
-	// The one change that is vetoed is changing adapter type to or from sriov,
-	// because the device unit numbers for sriov are from 45 downwards, and
-	// those for other networks are from 7 upwards, so it is too fiddly to support
-	// in-place modification.
-	// A result of this is that if you have any SRIOV network interfaces, you
-	// cannot Update the count of non-SRIOV network interfaces.
 	if r.HasChange("adapter_type") || physicalFunctionChanged(r) {
-		// Ensure network interfaces aren't changing adapter_type to or from sriov
-		if err := r.blockAdapterTypeChangeSriov(); err != nil {
-			return nil, err
-		}
 		if r.HasChange("adapter_type") {
 			log.Printf("[DEBUG] %s: Device type changing to %s, re-creating device", r, r.Get("adapter_type").(string))
 		} else if r.HasChange("physical_function") {
@@ -1137,16 +1010,7 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 			newDevice, err = r.addPhysicalFunction(newDevice)
 		}
 
-		newCard := newDevice.(types.BaseVirtualEthernetCard).GetVirtualEthernetCard()
-		// Copy controller attributes and unit number
-		newCard.ControllerKey = card.ControllerKey
-		if card.UnitNumber != nil {
-			un := *card.UnitNumber
-			newCard.UnitNumber = &un
-		}
-		// Ensure the device starts connected
-		// Set the key
-		newCard.Key = l.NewKey()
+		r.Set("key", l.NewKey())
 		// If VMware Tools is not running, this operation requires a reboot
 		if r.rdd.Get("vmware_tools_status").(string) != string(types.VirtualMachineToolsRunningStatusGuestToolsRunning) {
 			r.SetRestart("<adapter_type>")
@@ -1308,31 +1172,6 @@ func (r *NetworkInterfaceSubresource) Delete(l object.VirtualDeviceList) ([]type
 	return spec, nil
 }
 
-// A change that is vetoed is changing adapter type to or from sriov,
-// because the device unit numbers for sriov are from 45 downwards, and
-// those for other networks are from 7 upwards, and when we Update a network
-// interface it copies the unit number from the old one, so it is too fiddly to support
-// in-place modification.
-// A result of this is that if you have any SRIOV network interfaces, you
-// cannot Update the count of non-SRIOV network interfaces.
-func (r *NetworkInterfaceSubresource) blockAdapterTypeChangeSriov() error {
-	if r.HasChange("adapter_type") {
-		oldAdapterType, newAdapterType := r.GetChange("adapter_type")
-		if (oldAdapterType != networkInterfaceSubresourceTypeSriov && newAdapterType == networkInterfaceSubresourceTypeSriov) ||
-			(oldAdapterType == networkInterfaceSubresourceTypeSriov && newAdapterType != networkInterfaceSubresourceTypeSriov) {
-			log.Printf("[DEBUG] blockAdapterTypeChangeSriov: Network interface %s index %d changing type from %s to %s. "+
-				"Block this", r, r.Index, oldAdapterType, newAdapterType)
-			return fmt.Errorf("changing the network_interface list such that there is a change in adapter_type to"+
-				" or from sriov for a particular index of network_interface is not supported.\n"+
-				"Index %d, old adapter_type %s, new adapter_type %s\n"+
-				"Delete all the sriov network interfaces, apply, and then re-add network interfaces and reapply instead.", r.Index, oldAdapterType, newAdapterType)
-		}
-		return nil
-	}
-
-	return nil
-}
-
 // Bandwidth settings are irrelevant for SR-IOV interfaces so we should warn if the user is trying
 // to set them.
 func (r *NetworkInterfaceSubresource) blockBandwidthSettingsSriov() error {
@@ -1377,12 +1216,6 @@ func (r *NetworkInterfaceSubresource) ValidateDiff() error {
 
 	}
 
-	// Ensure network interfaces aren't changing adapter_type to or from sriov - this is too hard
-	// to cope with given the discrepancy in unit number ranges
-	if err := r.blockAdapterTypeChangeSriov(); err != nil {
-		return err
-	}
-
 	// Don't allow bandwidth settings on SRIOV that aren't the defaults
 	if err := r.blockBandwidthSettingsSriov(); err != nil {
 		return err
@@ -1408,108 +1241,6 @@ func (r *NetworkInterfaceSubresource) restrictResourceAllocationSettings() error
 		if r.Get(key) != expected {
 			return fmt.Errorf("%s requires vSphere 6.0 or higher", key)
 		}
-	}
-	return nil
-}
-
-// assignEthernetCard is a subset of the logic that goes into AssignController
-// right now but with an unit offset that reflects the type of network interface.
-// (7 ascending or 45 descending)
-// This is based on what we have observed on vSphere in terms of reserved PCI
-// unit numbers (the first non-SRIOV NIC automatically gets re-assigned to unit number 7
-// if it's not that already.)
-// SRIOV NICs which get re-assigned to unit number 45 descending
-// This function makes sure that our state matches that unit number that vSphere will assign.
-func (r *NetworkInterfaceSubresource) assignEthernetCard(l object.VirtualDeviceList, device types.BaseVirtualDevice, c types.BaseVirtualController) error {
-	var newUnit int32
-
-	// The first part of this is basically the private newUnitNumber function
-	// from VirtualDeviceList, with a maximum unit count of 10. This basically
-	// means that no more than 10 virtual SRIOV NICs or 10 virtual non-SRIOV NICs
-	// can be assigned right now, which hopefully should be plenty.
-
-	// Work out the unit number of the network interface
-	if r.Get("adapter_type").(string) == networkInterfaceSubresourceTypeSriov {
-		// For SRIOV units we don't use the resource index as a guide, we just find
-		// the next available unit number and assign that. Otherwise non-SRIOV
-		// resource indexes cloud the picture
-
-		// The PCI device offset. This seems to be where vSphere starts assigning
-		// virtual NICs on the PCI controller.
-		// SR-IOV NICs are assigned the next free unitNumber from 45 descending.
-		sriovPciDeviceOffset := int32(sriovNetworkInterfacePciDeviceOffset)
-
-		// For simplicity, create an array of available sriov units 45, 44, 43, ... 36
-		sriovAvailableUnits := make([]int32, maxNetworkInterfaceCount)
-		for idx := int32(0); idx < maxNetworkInterfaceCount; idx++ {
-			sriovAvailableUnits[idx] = sriovNetworkInterfacePciDeviceOffset - idx
-		}
-
-		ckey := c.GetVirtualController().Key
-
-		// Work out which SRIOV unit numbers are already in use
-		for _, device := range l {
-			d := device.GetVirtualDevice()
-			if d.ControllerKey != ckey || d.UnitNumber == nil || *d.UnitNumber > sriovPciDeviceOffset || *d.UnitNumber <= sriovPciDeviceOffset-maxNetworkInterfaceCount {
-				continue
-			}
-
-			// Remove in-use units from the list of available units
-			for indx, value := range sriovAvailableUnits {
-				if value == *d.UnitNumber {
-					sriovAvailableUnits = append(sriovAvailableUnits[:indx], sriovAvailableUnits[indx+1:]...)
-					break
-				}
-			}
-		}
-
-		// Now that we know which units are used, we can pick one
-		if len(sriovAvailableUnits) == 0 {
-			return fmt.Errorf("all ten SR-IOV device units are currently in use on the PCI bus. cannot assign SR-IOV network.")
-		}
-		newUnit = sriovAvailableUnits[0]
-	} else {
-
-		// Non-SRIOV NIC are assigned the next free unitNumber from 7. We use the index
-		// of the resource to match assigned unit numbers from 7 up.
-
-		// The PCI device offset. This seems to be where vSphere starts assigning
-		// virtual NICs on the PCI controller.
-		pciDeviceOffset := int32(networkInterfacePciDeviceOffset)
-
-		// No more than 10 virtual non-SRIOV NICs can be assigned right now, which
-		// hopefully should be plenty.
-		units := make([]bool, maxNetworkInterfaceCount)
-		ckey := c.GetVirtualController().Key
-
-		// Work out which units are already used
-		for _, device := range l {
-			d := device.GetVirtualDevice()
-			if d.ControllerKey != ckey || d.UnitNumber == nil || *d.UnitNumber < pciDeviceOffset || *d.UnitNumber >= pciDeviceOffset+maxNetworkInterfaceCount {
-				continue
-			}
-			units[*d.UnitNumber-pciDeviceOffset] = true
-		}
-
-		// Create a new unit number based on the index of the network interface resource offset from 7
-		// and check that it isn't in use already
-		newUnit = int32(r.Index) + pciDeviceOffset
-		if units[newUnit-pciDeviceOffset] {
-			return fmt.Errorf("device unit at %d is currently in use on the PCI bus", newUnit)
-		}
-	}
-
-	d := device.GetVirtualDevice()
-	d.ControllerKey = c.GetVirtualController().Key
-	log.Printf("[DEBUG] assignEthernetCard: Set unit number of device %s to %d", device, newUnit)
-
-	// It seems that setting this UnitNumber has no effect on actually which UnitNumber the network interface gets,
-	// that is down to the vSphere vagaries of non-SRIOV being 7+ in order of addition,  and SRIOV being 45-, so this
-	// must just be for our tracking purposes.
-	d.UnitNumber = &newUnit
-
-	if d.Key == 0 {
-		d.Key = -1
 	}
 	return nil
 }

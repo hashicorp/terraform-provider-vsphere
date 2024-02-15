@@ -1663,6 +1663,26 @@ func TestAccResourceVSphereVirtualMachine_cloneMultiNICFromSingleNICTemplate(t *
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_cloneMultiNICSRIOVFromVMXNET3Template(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneMultiNICVMXNET3(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVirtualMachine_cloneWithDifferentTimezone(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -2630,23 +2650,23 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE") == "" {
 		t.Skip("set TF_VAR_VSPHERE_TEMPLATE to run vsphere_virtual_machine acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE") == "" {
+	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE_ISO_TRANSPORT") == "" {
 		t.Skip("set TF_VAR_VSPHERE_TEMPLATE_ISO_TRANSPORT to run vsphere_virtual_machine acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE") == "" {
+	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE_WINDOWS") == "" {
 		t.Skip("set TF_VAR_VSPHERE_TEMPLATE_WINDOWS to run vsphere_virtual_machine acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE") == "" {
+	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE_NONUSER_VAPP") == "" {
 		t.Skip("set TF_VAR_VSPHERE_TEMPLATE_NONUSER_VAPP to run vsphere_virtual_machine acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE") == "" {
+	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE_COREOS") == "" {
 		t.Skip("set TF_VAR_VSPHERE_TEMPLATE_COREOS to run vsphere_virtual_machine acceptance tests")
 	}
 	if os.Getenv("TF_VAR_VSPHERE_ESXI1") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_virtual_machine acceptance tests")
+		t.Skip("set TF_VAR_VSPHERE_ESXI1 to run vsphere_virtual_machine acceptance tests")
 	}
 	if os.Getenv("TF_VAR_VSPHERE_ESXI2") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST2 to run vsphere_virtual_machine acceptance tests")
+		t.Skip("set TF_VAR_VSPHERE_ESXI2 to run vsphere_virtual_machine acceptance tests")
 	}
 	if os.Getenv("TF_VAR_VSPHERE_NAS_HOST") == "" {
 		t.Skip("set TF_VAR_VSPHERE_NAS_HOST to run vsphere_virtual_machine acceptance tests")
@@ -2660,10 +2680,10 @@ func testAccDsClusterRequiredPreCheck(t *testing.T) {
 }
 
 func testAccSriovPreCheck(t *testing.T) {
-	skipTxt := `TF_VAR_VSPHERE_SRIOV_HOST, TF_VAR_VSPHERE_SRIOV_HOST_VMFS and TF_VAR_VSPHERE_SRIOV_PHISICAL_FUNCTION variab;es must be set to run SRIOV test`
+	skipTxt := `TF_VAR_VSPHERE_SRIOV_HOST, TF_VAR_VSPHERE_SRIOV_HOST_VMFS and TF_VAR_VSPHERE_SRIOV_PHYSICAL_FUNCTION variables must be set to run SRIOV test`
 	if os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST") == "" ||
 		os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST_VMFS") == "" ||
-		os.Getenv("TF_VAR_VSPHERE_SRIOV_PHISICAL_FUNCTION") == "" {
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_PHYSICAL_FUNCTION") == "" {
 		t.Skip(skipTxt)
 	}
 }
@@ -4634,6 +4654,13 @@ resource "vsphere_virtual_machine" "vm" {
     label = "disk0"
     size  = 20
   }
+
+  lifecycle {
+    ignore_changes = [
+      ept_rvi_mode,
+      hv_mode
+    ]
+  }
 }
 `,
 
@@ -5673,6 +5700,8 @@ resource "vsphere_virtual_machine" "vm" {
   num_cpus = 2
   memory   = 2048
   guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  // ACPI motherboard layout requires EFI. Only required for hardware version 20+ (vSphere 8)
+  firmware = "efi"
 
   wait_for_guest_net_timeout = 0
 
@@ -5699,12 +5728,107 @@ resource "vsphere_virtual_machine" "vm" {
   cdrom {
     client_device = true
   }
+
+  lifecycle {
+    ignore_changes = [
+      ept_rvi_mode,
+      hv_mode
+    ]
+  }
 }
 `,
 
 		testAccResourceVSphereVirtualMachineConfigBase(),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 		os.Getenv("TF_VAR_VSPHERE_USE_LINKED_CLONE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigCloneMultiNICVMXNET3() string {
+	return fmt.Sprintf(`
+%s  // Mix and match config
+
+data "vsphere_virtual_machine" "template" {
+  name          = "%s"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+}
+
+variable "host" {
+  default = "%s"
+}
+
+data "vsphere_host" "host" {
+  name          = "${var.host}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "testacc-test"
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = "${data.vsphere_datastore.rootds1.id}"
+  // ACPI motherboard layout requires EFI. Only required for hardware version 20+ (vSphere 8)
+  firmware = "efi"
+
+  num_cpus = 2
+  memory   = 2048
+  memory_reservation = 2048
+  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+
+  wait_for_guest_net_timeout = 0
+
+  host_system_id   = data.vsphere_host.host.id
+
+  network_interface {
+    network_id = "${data.vsphere_network.network1.id}"
+    adapter_type = "vmxnet3"
+  }
+
+  network_interface {
+    network_id = "${data.vsphere_network.network1.id}"
+    adapter_type = "vmxnet3"
+  }
+
+  network_interface {
+    network_id = "${data.vsphere_network.network1.id}"
+    adapter_type = "vmxnet3"
+  }
+
+  network_interface {
+    network_id = "${data.vsphere_network.network1.id}"
+    adapter_type = "sriov"
+    physical_function = "%s"
+  }
+  
+  network_interface {
+    network_id = "${data.vsphere_network.network1.id}"
+    adapter_type = "sriov"
+    physical_function = "%s"
+  }
+
+  disk {
+    label            = "disk0"
+    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
+    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+  }
+
+  clone {
+    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+  }
+
+  lifecycle {
+    ignore_changes = [
+      ept_rvi_mode,
+      hv_mode
+    ]
+  }
+}
+`,
+		testAccResourceVSphereVirtualMachineConfigBase(),
+		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_PHYSICAL_FUNCTION"),
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_PHYSICAL_FUNCTION"),
 	)
 }
 
@@ -7438,7 +7562,14 @@ resource "vsphere_virtual_machine" "vm" {
   disk {
     label            = "disk0"
     size             = 1
-    }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      ept_rvi_mode,
+      hv_mode
+    ]
+  }
 }
 `,
 		testhelper.CombineConfigs(
@@ -7447,7 +7578,7 @@ resource "vsphere_virtual_machine" "vm" {
 		),
 		os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST"),
 		os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST_VMFS"),
-		os.Getenv("TF_VAR_VSPHERE_SRIOV_PHISICAL_FUNCTION"),
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_PHYSICAL_FUNCTION"),
 	)
 }
 
