@@ -333,10 +333,15 @@ func computeDevAddr(device types.BaseVirtualDevice, ctlr types.BaseVirtualContro
 	if err != nil {
 		return "", err
 	}
+
+	un := -1
+	if vd.UnitNumber != nil {
+		un = int(structure.DeRef(vd.UnitNumber).(int32))
+	}
 	parts := []string{
 		ctype,
 		strconv.Itoa(int(vc.BusNumber)),
-		strconv.Itoa(int(structure.DeRef(vd.UnitNumber).(int32))),
+		strconv.Itoa(un),
 	}
 	return strings.Join(parts, ":"), nil
 }
@@ -469,7 +474,7 @@ func (r *Subresource) FindVirtualDeviceByAddr(l object.VirtualDeviceList) (types
 	dsf := findVirtualDeviceInListDeviceSelectFunc(ckey, du)
 	devices := l.Select(dsf)
 	if len(devices) != 1 {
-		return nil, fmt.Errorf("invalid device result - %d results returned (expected 1): controller key %q, disk number: %d", len(devices), ckey, du)
+		return nil, fmt.Errorf("invalid device result - %d results returned (expected 1): controller key %q, device number: %d", len(devices), ckey, du)
 	}
 	device := devices[0]
 	log.Printf("[DEBUG] FindVirtualDevice: Device found: %s", l.Name(device))
