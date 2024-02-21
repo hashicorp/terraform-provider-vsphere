@@ -118,7 +118,6 @@ func resourceVSphereResourcePool() *schema.Resource {
 			Description: "Determines if the shares of all descendants of the resource pool are scaled up or down when the shares of the resource pool are scaled up or down.",
 			Optional:    true,
 			Default:      string(types.ResourceConfigSpecScaleSharesBehaviorDisabled),
-			// ValidateFunc: validateScalableShares,
 			ValidateFunc: validation.StringInSlice(resourcePoolScaleDescendantsSharesAllowedValues, false),
 		},
 		vSphereTagAttributeKey:    tagsSchema(),
@@ -407,11 +406,10 @@ func resourceVSphereResourcePoolReadTags(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-// resourceVSphereResourcePoolScaleDescendantsSharesValidate validates the
-// scale_descendants_shares field for vsphere_resource_pool.
+// check whether parent resource pool has "scale_descendants_shares" enabled, if yes ignore the setting for the present resource
 func scale_descendants_shares_validate(version viapi.VSphereVersion, obj *types.ResourceConfigSpec, prp *object.ResourcePool) error {
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0}) {
-		// get the cluster deatils to check the cluster scale_descendants_shares
+		// get the cluster details to check the cluster scale_descendants_shares
 		prpProp, err := resourcepool.Properties(prp)
 		if err != nil {
 			return fmt.Errorf("error getting properties of resource pool: %s", err)
@@ -421,25 +419,5 @@ func scale_descendants_shares_validate(version viapi.VSphereVersion, obj *types.
 			obj.ScaleDescendantsShares = ""
 		}
 	}
-	// log.Printf("[DEBUG] obj.ScaleDescendantsShares = {%s}", obj.ScaleDescendantsShares)
 	return nil
-}
-
-func validateScalableShares(i interface{}, k string) (warnings []string, errors []error) {
-	valid := append(resourcePoolScaleDescendantsSharesAllowedValues, "")
-	v, ok := i.(string)
-	if !ok {
-		errors = append(errors, fmt.Errorf("expected type of %s to be string", k))
-		return warnings, errors
-	}
-
-	for _, str := range valid {
-		if v == str {
-			return warnings, errors
-		}
-	}
-
-	errors = append(errors, fmt.Errorf("expected %s to be one of %q, got %s", k, valid, v))
-
-	return warnings, errors
 }
