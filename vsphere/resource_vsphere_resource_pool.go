@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package vsphere
 
 import (
@@ -111,10 +114,11 @@ func resourceVSphereResourcePool() *schema.Resource {
 			Default:     -1,
 		},
 		"scale_descendants_shares": {
-			Type:         schema.TypeString,
-			Description:  "Determines if the shares of all descendants of the resource pool are scaled up or down when the shares of the resource pool are scaled up or down.",
-			Optional:     true,
+			Type:        schema.TypeString,
+			Description: "Determines if the shares of all descendants of the resource pool are scaled up or down when the shares of the resource pool are scaled up or down.",
+			Optional:    true,
 			Default:      string(types.ResourceConfigSpecScaleSharesBehaviorDisabled),
+			// ValidateFunc: validateScalableShares,
 			ValidateFunc: validation.StringInSlice(resourcePoolScaleDescendantsSharesAllowedValues, false),
 		},
 		vSphereTagAttributeKey:    tagsSchema(),
@@ -157,6 +161,10 @@ func resourceVSphereResourcePoolCreate(d *schema.ResourceData, meta interface{})
 	}
 	version := viapi.ParseVersionFromClient(client)
 	rpSpec := expandResourcePoolConfigSpec(d, version)
+	err = scale_descendants_shares_validate(version, rpSpec, prp)
+	if err != nil {
+		return err
+	}
 	rp, err := resourcepool.Create(prp, d.Get("name").(string), rpSpec)
 	if err != nil {
 		return err
@@ -235,6 +243,14 @@ func resourceVSphereResourcePoolUpdate(d *schema.ResourceData, meta interface{})
 	}
 	version := viapi.ParseVersionFromClient(client)
 	rpSpec := expandResourcePoolConfigSpec(d, version)
+	prp, err := resourcepool.FromID(client, d.Get("parent_resource_pool_id").(string))
+	if err != nil {
+		return err
+	}
+	err = scale_descendants_shares_validate(version, rpSpec, prp)
+	if err != nil {
+		return err
+	}
 	err = resourcepool.Update(rp, d.Get("name").(string), rpSpec)
 	if err != nil {
 		return err
@@ -389,4 +405,41 @@ func resourceVSphereResourcePoolReadTags(d *schema.ResourceData, meta interface{
 		log.Printf("[DEBUG] %s: Tags unsupported on this connection, skipping tag read", resourceVSphereResourcePoolIDString(d))
 	}
 	return nil
+}
+
+// resourceVSphereResourcePoolScaleDescendantsSharesValidate validates the
+// scale_descendants_shares field for vsphere_resource_pool.
+func scale_descendants_shares_validate(version viapi.VSphereVersion, obj *types.ResourceConfigSpec, prp *object.ResourcePool) error {
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0}) {
+		// get the cluster deatils to check the cluster scale_descendants_shares
+		prpProp, err := resourcepool.Properties(prp)
+		if err != nil {
+			return fmt.Errorf("error getting properties of resource pool: %s", err)
+		}
+		prpDrsConfig := *&prpProp.Config
+		if prpDrsConfig.ScaleDescendantsShares == string(types.ResourceConfigSpecScaleSharesBehaviorScaleCpuAndMemoryShares) {
+			obj.ScaleDescendantsShares = ""
+		}
+	}
+	// log.Printf("[DEBUG] obj.ScaleDescendantsShares = {%s}", obj.ScaleDescendantsShares)
+	return nil
+}
+
+func validateScalableShares(i interface{}, k string) (warnings []string, errors []error) {
+	valid := append(resourcePoolScaleDescendantsSharesAllowedValues, "")
+	v, ok := i.(string)
+	if !ok {
+		errors = append(errors, fmt.Errorf("expected type of %s to be string", k))
+		return warnings, errors
+	}
+
+	for _, str := range valid {
+		if v == str {
+			return warnings, errors
+		}
+	}
+
+	errors = append(errors, fmt.Errorf("expected %s to be one of %q, got %s", k, valid, v))
+
+	return warnings, errors
 }
