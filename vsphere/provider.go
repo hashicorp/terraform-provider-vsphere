@@ -96,6 +96,12 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_API_TIMEOUT", 5),
 				Description: "API timeout in minutes (Default: 5)",
 			},
+			"no_init": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Do not attempt to connect to vsphere (provider will start but actual operations will fail unpredictably)",
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -121,6 +127,7 @@ func Provider() *schema.Provider {
 			"vsphere_ha_vm_override":                          resourceVSphereHAVMOverride(),
 			"vsphere_host_port_group":                         resourceVSphereHostPortGroup(),
 			"vsphere_host_virtual_switch":                     resourceVSphereHostVirtualSwitch(),
+			"vsphere_remove_host_virtual_switch":              resourceVSphereRemoveHostVirtualSwitch(),
 			"vsphere_license":                                 resourceVSphereLicense(),
 			"vsphere_resource_pool":                           resourceVSphereResourcePool(),
 			"vsphere_tag":                                     resourceVSphereTag(),
@@ -135,6 +142,7 @@ func Provider() *schema.Provider {
 			"vsphere_virtual_machine_snapshot":                resourceVSphereVirtualMachineSnapshot(),
 			"vsphere_host":                                    resourceVsphereHost(),
 			"vsphere_vnic":                                    resourceVsphereNic(),
+			"vsphere_migrated_vnic":                           resourceVsphereMigratedNic(),
 			"vsphere_vm_storage_policy":                       resourceVMStoragePolicy(),
 			"vsphere_role":                                    resourceVsphereRole(),
 			"vsphere_entity_permissions":                      resourceVsphereEntityPermissions(),
@@ -176,6 +184,14 @@ func Provider() *schema.Provider {
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	timeoutMins := time.Duration(d.Get("api_timeout").(int))
 	defaultAPITimeout = timeoutMins * time.Minute
+
+	noInitString, ok := d.GetOk("no_init")
+	if ok {
+		noInit := noInitString.(bool)
+		if noInit == true {
+			return nil, nil
+		}
+	}
 
 	c, err := NewConfig(d)
 	if err != nil {
