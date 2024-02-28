@@ -2,6 +2,10 @@ module github.com/hashicorp/terraform-provider-vsphere
 
 go 1.22
 
+replace (
+	github.com/vmware/govmomi => /Users/zhelyazkovs/git/govmomi
+)
+
 require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.33.0
