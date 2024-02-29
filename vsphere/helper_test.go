@@ -356,7 +356,7 @@ func testPowerOffVM(s *terraform.State, resourceName string) error {
 	}
 	tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer tcancel()
-	if err := task.Wait(tctx); err != nil {
+	if err := task.WaitEx(tctx); err != nil {
 		return fmt.Errorf("error waiting for poweroff: %s", err)
 	}
 	return nil
@@ -494,7 +494,7 @@ func testDeleteVM(s *terraform.State, resourceName string) error {
 	}
 	tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer tcancel()
-	return task.Wait(tctx)
+	return task.WaitEx(tctx)
 }
 
 // testGetTagCategory gets a tag category by name.
@@ -784,7 +784,7 @@ func testDeleteDatastoreFile(client *govmomi.Client, dsID string, path string) e
 	if err != nil {
 		return err
 	}
-	return task.Wait(context.TODO())
+	return task.WaitEx(context.TODO())
 }
 
 // testGetDatastoreCluster is a convenience method to fetch a datastore cluster by

@@ -228,7 +228,7 @@ func Reconfigure(obj BaseComputeResource, spec types.BaseComputeResourceConfigSp
 	if err != nil {
 		return err
 	}
-	return task.Wait(ctx)
+	return task.WaitEx(ctx)
 }
 
 // HasChildren checks to see if a compute resource has any child items (hosts

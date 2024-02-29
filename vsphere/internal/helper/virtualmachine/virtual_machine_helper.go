@@ -514,7 +514,7 @@ func Create(c *govmomi.Client, f *object.Folder, s types.VirtualMachineConfigSpe
 	}
 	tctx, tcancel := context.WithTimeout(context.Background(), timeout)
 	defer tcancel()
-	result, err := task.WaitForResult(tctx, nil)
+	result, err := task.WaitForResultEx(tctx, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -535,7 +535,7 @@ func Clone(c *govmomi.Client, src *object.VirtualMachine, f *object.Folder, name
 		}
 		return nil, err
 	}
-	result, err := task.WaitForResult(ctx, nil)
+	result, err := task.WaitForResultEx(ctx, nil)
 	if err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
 			err = errors.New("timeout waiting for clone to complete")
@@ -663,7 +663,7 @@ func Customize(vm *object.VirtualMachine, spec types.CustomizationSpec) error {
 	}
 	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer tcancel()
-	return task.Wait(tctx)
+	return task.WaitEx(tctx)
 }
 
 // PowerOn wraps powering on a VM and the waiting for the subsequent task.
@@ -707,7 +707,7 @@ powerLoop:
 					log.Printf("[DEBUG] Failed to submit PowerOn task for vm %q. Error: %s", vmPath, err)
 					return fmt.Errorf("failed to submit poweron task for vm %q: %s", vmPath, err)
 				}
-				err = task.Wait(ctx)
+				err = task.WaitEx(ctx)
 				if err != nil {
 					if err.Error() == "The operation is not allowed in the current state." {
 						log.Printf("[DEBUG] vm %q cannot be powered on in the current state", vmPath)
@@ -738,7 +738,7 @@ func PowerOff(vm *object.VirtualMachine) error {
 	}
 	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer tcancel()
-	return task.Wait(tctx)
+	return task.WaitEx(tctx)
 }
 
 // ShutdownGuest wraps the graceful shutdown of a guest VM, and then waiting an
@@ -839,7 +839,7 @@ func Reconfigure(vm *object.VirtualMachine, spec types.VirtualMachineConfigSpec,
 	}
 	tctx, tcancel := context.WithTimeout(context.Background(), timeout)
 	defer tcancel()
-	return task.Wait(tctx)
+	return task.WaitEx(tctx)
 }
 
 // Relocate wraps the Relocate task and the subsequent waiting for the task to
@@ -852,7 +852,7 @@ func Relocate(vm *object.VirtualMachine, spec types.VirtualMachineRelocateSpec, 
 	if err != nil {
 		return err
 	}
-	if err := task.Wait(ctx); err != nil {
+	if err := task.WaitEx(ctx); err != nil {
 		// Provide a friendly error message if we timed out waiting for the migration.
 		if ctx.Err() == context.DeadlineExceeded {
 			return errors.New("timeout waiting for migration to complete")
@@ -873,7 +873,7 @@ func Destroy(vm *object.VirtualMachine) error {
 	}
 	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer tcancel()
-	return task.Wait(tctx)
+	return task.WaitEx(tctx)
 }
 
 // MOIDForUUIDResult is a struct that holds a virtual machine UUID -> MOID
@@ -1049,7 +1049,7 @@ func SetHardwareVersion(vm *object.VirtualMachine, target int) error {
 	if err != nil {
 		return err
 	}
-	_, err = task.WaitForResult(ctx, nil)
+	_, err = task.WaitForResultEx(ctx, nil)
 	return err
 }
 

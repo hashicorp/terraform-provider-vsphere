@@ -21,7 +21,7 @@ Learn more:
 
     For general information about Terraform, visit [terraform.io][terraform-install] and [the project][terraform-github] on GitHub.
 
-* [Go 1.20][golang-install]
+* [Go 1.22][golang-install]
 
     Required if building the provider.
 
@@ -37,7 +37,7 @@ Learn more:
 
 ## Using the Provider
 
-The Terraform Provider for VMware vSphere is an official provider. Official providers are maintained by the Terraform team at [HashiCorp][hashicorp] and are listed on the [Terraform Registry][terraform-registry].  
+The Terraform Provider for VMware vSphere is an official provider. Official providers are maintained by the Terraform team at [HashiCorp][hashicorp] and are listed on the [Terraform Registry][terraform-registry].
 
 To use a released version of the Terraform provider in your environment, run `terraform init` and Terraform will automatically install the provider from the Terraform Registry.
 

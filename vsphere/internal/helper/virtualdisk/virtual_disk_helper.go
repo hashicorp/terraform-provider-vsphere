@@ -82,7 +82,7 @@ func Move(client *govmomi.Client, srcPath string, srcDC *object.Datacenter, dstP
 	}
 	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer tcancel()
-	if err := task.Wait(tctx); err != nil {
+	if err := task.WaitEx(tctx); err != nil {
 		return "", err
 	}
 	log.Printf("[DEBUG] Virtual disk %q in datacenter %s successfully moved to destination %s%s",
@@ -137,7 +137,7 @@ func Delete(client *govmomi.Client, name string, dc *object.Datacenter) error {
 	}
 	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer tcancel()
-	if err := task.Wait(tctx); err != nil {
+	if err := task.WaitEx(tctx); err != nil {
 		return err
 	}
 	log.Printf("[DEBUG] Virtual disk %q in datacenter %s deleted successfully", name, dc)

@@ -139,7 +139,7 @@ func EnterMaintenanceMode(host *object.HostSystem, timeout time.Duration, evacua
 		return err
 	}
 
-	err = task.Wait(ctx)
+	err = task.WaitEx(ctx)
 	if err != nil {
 		return err
 	}
@@ -176,7 +176,7 @@ func ExitMaintenanceMode(host *object.HostSystem, timeout time.Duration) error {
 		return err
 	}
 
-	err = task.Wait(ctx)
+	err = task.WaitEx(ctx)
 	if err != nil {
 		return err
 	}
