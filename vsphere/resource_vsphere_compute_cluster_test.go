@@ -105,6 +105,31 @@ func TestAccResourceVSphereComputeCluster_drsHAEnabled(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereComputeCluster_vlcm(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterConfigVlcm(""),
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+			{
+				Config: testAccResourceVSphereComputeClusterConfigVlcm(testAccResourceVSphereComputeClusterImageConfig()),
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+			{
+				Config: testAccResourceVSphereComputeClusterConfigVlcm(""),
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereComputeCluster_vsanDedupEnabled(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -1269,6 +1294,41 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 			testhelper.ConfigDataRootVMNet(),
 		),
 	)
+}
+
+func testAccResourceVSphereComputeClusterConfigVlcm(imageConfig string) string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name            = "testacc-compute-cluster"
+  datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
+  host_system_ids = [data.vsphere_host.roothost3.id]
+  
+  force_evacuate_on_destroy = true
+
+  %s
+}
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost2(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataSoftwareDepot(),
+		),
+		imageConfig,
+	)
+}
+
+func testAccResourceVSphereComputeClusterImageConfig() string {
+	return `
+host_image {
+  component {
+    key = vsphere_offline_software_depot.depot.component.0.key
+    version = vsphere_offline_software_depot.depot.component.0.version.0
+  }
+}
+`
 }
 
 func testAccResourceVSphereComputeClusterConfigDRSHABasicExplicitFailoverHost() string {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"testing"
 )
@@ -21,23 +22,13 @@ func TestAccResourceVSphereOfflineSoftwareDepot_basic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereOfflineSoftwareDepot(),
+				Config: testhelper.ConfigDataSoftwareDepot(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereOfflineSoftwareDepotCheckFunc(),
 				),
 			},
 		},
 	})
-}
-
-func testAccResourceVSphereOfflineSoftwareDepot() string {
-	return fmt.Sprintf(`
-resource "vsphere_offline_software_depot" "depot" {
-  location = "%s"
-}
-`,
-		os.Getenv("TF_VAR_VSPHERE_SOFTWARE_DEPOT_LOCATION"),
-	)
 }
 
 func testAccResourceVSphereOfflineSoftwareDepotCheckFunc() resource.TestCheckFunc {

@@ -6,6 +6,8 @@ package vsphere
 import (
 	"context"
 	"fmt"
+	"github.com/vmware/govmomi/vapi/cis/tasks"
+	"github.com/vmware/govmomi/vapi/esx/settings/clusters"
 	"log"
 	"sort"
 	"strings"
@@ -448,6 +450,41 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Description: "Advanced configuration options for vSphere HA.",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
+			// vLCM
+			"host_image": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    1,
+				Description: "Details about the host image which should be applied to the cluster.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"esx_version": {
+							Type:        schema.TypeString,
+							Description: "The ESXi version which the image is based on.",
+							Optional:    true,
+						},
+						"component": {
+							Type:        schema.TypeList,
+							Description: "List of custom components.",
+							Optional:    true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"key": {
+										Type:        schema.TypeString,
+										Description: "The identifier for the component.",
+										Optional:    true,
+									},
+									"version": {
+										Type:        schema.TypeString,
+										Description: "The version to use.",
+										Optional:    true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 			// Proactive HA
 			"proactive_ha_enabled": {
 				Type:        schema.TypeBool,
@@ -763,6 +800,10 @@ func resourceVSphereComputeClusterUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	if err := resourceVSphereComputeClusterApplyCustomAttributes(d, meta, cluster); err != nil {
+		return err
+	}
+
+	if err := resourceVSphereComputeClusterApplyHostImage(d, meta, cluster); err != nil {
 		return err
 	}
 
@@ -1090,6 +1131,84 @@ func resourceVSphereComputeClusterApplyCustomAttributes(
 
 	log.Printf("[DEBUG] %s: Applying any pending custom attributes", resourceVSphereComputeClusterIDString(d))
 	return attrsProcessor.ProcessDiff(cluster)
+}
+
+func resourceVSphereComputeClusterApplyHostImage(
+	d *schema.ResourceData,
+	meta interface{},
+	cluster *object.ClusterComputeResource,
+) error {
+	if !d.HasChange("host_image") {
+		return nil
+	}
+
+	client := meta.(*Client).restClient
+
+	m := clusters.NewManager(client)
+
+	if draftId, err := m.CreateSoftwareDraft(d.Id()); err != nil {
+		return err
+	} else {
+		spec := clusters.SoftwareComponentsUpdateSpec{ComponentsToSet: make(map[string]string)}
+		oldComponents, newComponents := d.GetChange("host_image.0.component")
+		oldComponentsMap := getComponentsMap(oldComponents.([]interface{}))
+		newComponentsMap := getComponentsMap(newComponents.([]interface{}))
+
+		spec.ComponentsToSet = getComponentsToAdd(oldComponentsMap, newComponentsMap)
+		componentsToRemove := getComponentsToRemove(oldComponentsMap, newComponentsMap)
+
+		if err = m.UpdateSoftwareDraftComponents(d.Id(), draftId, spec); err != nil {
+			return err
+		} else if len(componentsToRemove) > 0 {
+			for _, componentId := range componentsToRemove {
+				if err := m.RemoveSoftwareDraftComponents(d.Id(), draftId, componentId); err != nil {
+					return err
+				}
+			}
+		}
+
+		if taskId, err := m.CommitSoftwareDraft(d.Id(), draftId, clusters.SettingsClustersSoftwareDraftsCommitSpec{}); err != nil {
+			return err
+		} else {
+			_, err := tasks.NewManager(client).WaitForCompletion(context.Background(), taskId)
+			return err
+		}
+	}
+}
+
+func getComponentsToAdd(old, new map[string]interface{}) map[string]string {
+	result := make(map[string]string)
+
+	for k, v := range new {
+		if _, contains := old[k]; !contains {
+			version, _ := v.(map[string]interface{})["version"].(string)
+			result[k] = version
+		}
+	}
+
+	return result
+}
+
+func getComponentsToRemove(old, new map[string]interface{}) []string {
+	result := make([]string, 0)
+
+	for k, _ := range old {
+		if _, contains := new[k]; !contains {
+			result = append(result, k)
+		}
+	}
+
+	return result
+}
+
+func getComponentsMap(components []interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	for _, component := range components {
+		result[component.(map[string]interface{})["key"].(string)] = component
+	}
+
+	return result
 }
 
 // resourceVSphereComputeClusterReadCustomAttributes reads the custom

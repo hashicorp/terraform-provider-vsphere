@@ -23,7 +23,26 @@ func resourceVsphereOfflineSoftwareDepot() *schema.Resource {
 			Type:        schema.TypeList,
 			Description: "The list of components in this depot.",
 			Computed:    true,
-			Elem:        independentComponentSchema(),
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"key": {
+						Type:        schema.TypeString,
+						Description: "The key of the component.",
+						Computed:    true,
+					},
+					"display_name": {
+						Type:        schema.TypeString,
+						Description: "The name of the component.",
+						Computed:    true,
+					},
+					"version": {
+						Type:        schema.TypeList,
+						Description: "The list of versions of the component.",
+						Computed:    true,
+						Elem:        &schema.Schema{Type: schema.TypeString},
+					},
+				},
+			},
 		},
 	}
 
@@ -32,29 +51,6 @@ func resourceVsphereOfflineSoftwareDepot() *schema.Resource {
 		Read:   resourceVsphereOfflineSoftwareDepotRead,
 		Delete: resourceVsphereOfflineSoftwareDepotDelete,
 		Schema: s,
-	}
-}
-
-func independentComponentSchema() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"key": {
-				Type:        schema.TypeString,
-				Description: "The key of the component.",
-				Computed:    true,
-			},
-			"display_name": {
-				Type:        schema.TypeString,
-				Description: "The name of the component.",
-				Computed:    true,
-			},
-			"versions": {
-				Type:        schema.TypeList,
-				Description: "The list of versions of the component.",
-				Computed:    true,
-				Elem:        &schema.Schema{Type: schema.TypeString},
-			},
-		},
 	}
 }
 
@@ -131,7 +127,7 @@ func readIndependentComponents(data map[string]depots.SettingsDepotsComponentSum
 		component["key"] = key
 		component["display_name"] = srcComponent.DisplayName
 		versions := make([]string, len(srcComponent.Versions))
-		component["versions"] = versions
+		component["version"] = versions
 		for i, version := range srcComponent.Versions {
 			versions[i] = version.Version
 		}
