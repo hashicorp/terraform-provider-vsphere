@@ -53,7 +53,7 @@ func RemoveDiskMapping(client *govmomi.Client, host *object.HostSystem, hvs *obj
 			return err
 		}
 		task := object.NewTask(client.Client, resp.Returnval)
-		if err := task.Wait(ctx); err != nil {
+		if err := task.WaitEx(ctx); err != nil {
 			return err
 		}
 	} else {
@@ -67,7 +67,7 @@ func RemoveDiskMapping(client *govmomi.Client, host *object.HostSystem, hvs *obj
 			return err
 		}
 		task := object.NewTask(client.Client, resp.Returnval)
-		if err := task.Wait(ctx); err != nil {
+		if err := task.WaitEx(ctx); err != nil {
 			return err
 		}
 	}
@@ -89,5 +89,5 @@ func InitializeDisks(client *govmomi.Client, host *object.HostSystem, hvs *objec
 		return err
 	}
 	task := object.NewTask(client.Client, resp.Returnval)
-	return task.Wait(ctx)
+	return task.WaitEx(ctx)
 }

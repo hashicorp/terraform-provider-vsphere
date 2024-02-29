@@ -126,7 +126,7 @@ func Rename(cluster *object.ClusterComputeResource, name string) error {
 	if err != nil {
 		return err
 	}
-	return task.Wait(ctx)
+	return task.WaitEx(ctx)
 }
 
 // MoveToFolder is a complex method that moves a ClusterComputeResource to a given relative
@@ -165,7 +165,7 @@ func Delete(cluster *object.ClusterComputeResource) error {
 	if err != nil {
 		return err
 	}
-	return task.Wait(ctx)
+	return task.WaitEx(ctx)
 }
 
 func Hosts(cluster *object.ClusterComputeResource) ([]*object.HostSystem, error) {
@@ -237,7 +237,7 @@ func MoveHostsInto(client *govmomi.Client, cluster *object.ClusterComputeResourc
 	}
 
 	task := object.NewTask(cluster.Client(), resp.Returnval)
-	return task.Wait(ctx)
+	return task.WaitEx(ctx)
 }
 
 // MoveHostsOutOf moves a supplied list of hosts out of the specified cluster.

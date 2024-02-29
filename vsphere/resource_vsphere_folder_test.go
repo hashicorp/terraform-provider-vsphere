@@ -647,7 +647,7 @@ func testAccResourceVSphereFolderDeleteOOB(s *terraform.State) error {
 		}
 		tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 		defer tcancel()
-		if err := task.Wait(tctx); err != nil {
+		if err := task.WaitEx(tctx); err != nil {
 			return err
 		}
 	}

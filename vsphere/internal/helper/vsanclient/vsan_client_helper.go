@@ -22,7 +22,7 @@ func Reconfigure(vsanClient *vsan.Client, cluster vimtypes.ManagedObjectReferenc
 	if err != nil {
 		return err
 	}
-	return task.Wait(ctx)
+	return task.WaitEx(ctx)
 }
 
 func GetVsanConfig(vsanClient *vsan.Client, cluster vimtypes.ManagedObjectReference) (*vsantypes.VsanConfigInfoEx, error) {
@@ -45,7 +45,7 @@ func ConvertToStretchedCluster(vsanClient *vsan.Client, client *govmomi.Client, 
 	}
 
 	task := object.NewTask(client.Client, res.Returnval)
-	return task.Wait(ctx)
+	return task.WaitEx(ctx)
 }
 
 // removing the witness host automatically disables stretched cluster.
@@ -60,7 +60,7 @@ func RemoveWitnessHost(vsanClient *vsan.Client, client *govmomi.Client, req vsan
 	}
 
 	task := object.NewTask(client.Client, res.Returnval)
-	return task.Wait(ctx)
+	return task.WaitEx(ctx)
 }
 
 func GetWitnessHosts(vsanClient *vsan.Client, cluster vimtypes.ManagedObjectReference) (*vsantypes.VSANVcGetWitnessHostsResponse, error) {

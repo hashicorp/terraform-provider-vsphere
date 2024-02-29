@@ -192,7 +192,7 @@ func Delete(rp *object.ResourcePool) error {
 	if err != nil {
 		return err
 	}
-	return task.Wait(ctx)
+	return task.WaitEx(ctx)
 }
 
 // MoveIntoResourcePool moves a virtual machine, resource pool, or

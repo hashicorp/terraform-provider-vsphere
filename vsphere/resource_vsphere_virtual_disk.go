@@ -269,7 +269,7 @@ func resourceVSphereVirtualDiskRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	info, err := task.WaitForResult(context.TODO(), nil)
+	info, err := task.WaitForResultEx(context.TODO(), nil)
 	if err != nil {
 		if info != nil && info.Error != nil {
 			_, ok := info.Error.Fault.(*types.FileNotFound)
@@ -368,7 +368,7 @@ func resourceVSphereVirtualDiskDelete(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	_, err = task.WaitForResult(context.TODO(), nil)
+	_, err = task.WaitForResultEx(context.TODO(), nil)
 	if err != nil {
 		log.Printf("[INFO] Failed to delete disk:  %v", err)
 		return err
@@ -415,7 +415,7 @@ func createHardDisk(client *govmomi.Client, size int, diskPath string, diskType 
 		return err
 	}
 
-	_, err = task.WaitForResult(context.TODO(), nil)
+	_, err = task.WaitForResultEx(context.TODO(), nil)
 	if err != nil {
 		log.Printf("[INFO] Failed to create disk:  %v", err)
 		return err
@@ -466,7 +466,7 @@ func searchForDirectory(client *govmomi.Client, datacenter string, datastore str
 		return err
 	}
 
-	info, err := task.WaitForResult(context.TODO(), nil)
+	info, err := task.WaitForResultEx(context.TODO(), nil)
 	if err != nil {
 		if info != nil && info.Error != nil {
 			_, ok := info.Error.Fault.(*types.FileNotFound)

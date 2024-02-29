@@ -296,7 +296,7 @@ func MoveObjectTo(ref types.ManagedObjectReference, folder *object.Folder) error
 	}
 	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer tcancel()
-	return task.Wait(tctx)
+	return task.WaitEx(tctx)
 }
 
 // FromPath takes a relative folder path, an object type, and an optional

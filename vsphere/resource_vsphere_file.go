@@ -344,7 +344,7 @@ func resourceVSphereFileUpdate(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			return err
 		}
-		_, err = task.WaitForResult(context.TODO(), nil)
+		_, err = task.WaitForResultEx(context.TODO(), nil)
 		if err != nil {
 			return err
 		}
@@ -413,7 +413,7 @@ func deleteFile(client *govmomi.Client, f *file) error {
 			return err
 		}
 
-		_, err = task.WaitForResult(context.TODO(), nil)
+		_, err = task.WaitForResultEx(context.TODO(), nil)
 		if err != nil {
 			return err
 		}
@@ -427,7 +427,7 @@ func deleteFile(client *govmomi.Client, f *file) error {
 			return err
 		}
 
-		_, err = task.WaitForResult(context.TODO(), nil)
+		_, err = task.WaitForResultEx(context.TODO(), nil)
 		if err != nil {
 			return err
 		}

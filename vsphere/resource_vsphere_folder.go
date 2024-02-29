@@ -261,7 +261,7 @@ func resourceVSphereFolderUpdate(d *schema.ResourceData, meta interface{}) error
 			}
 			tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 			defer tcancel()
-			if err := task.Wait(tctx); err != nil {
+			if err := task.WaitEx(tctx); err != nil {
 				return fmt.Errorf("error on waiting for move task completion: %s", err)
 			}
 		}
@@ -296,7 +296,7 @@ func resourceVSphereFolderDelete(d *schema.ResourceData, meta interface{}) error
 	}
 	tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer tcancel()
-	if err := task.Wait(tctx); err != nil {
+	if err := task.WaitEx(tctx); err != nil {
 		return fmt.Errorf("error on waiting for deletion task completion: %s", err)
 	}
 

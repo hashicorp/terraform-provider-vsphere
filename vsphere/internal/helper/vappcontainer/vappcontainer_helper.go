@@ -95,7 +95,7 @@ func Delete(vc *object.VirtualApp) error {
 	if err != nil {
 		return err
 	}
-	return task.Wait(ctx)
+	return task.WaitEx(ctx)
 }
 
 // HasChildren checks to see if a vApp container has any child items (virtual

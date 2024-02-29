@@ -128,7 +128,7 @@ func ApplyDRSConfiguration(client *govmomi.Client, pod *object.StoragePod, spec 
 	if err != nil {
 		return err
 	}
-	return task.Wait(ctx)
+	return task.WaitEx(ctx)
 }
 
 // Rename renames a StoragePod.
@@ -140,7 +140,7 @@ func Rename(pod *object.StoragePod, name string) error {
 	if err != nil {
 		return err
 	}
-	return task.Wait(ctx)
+	return task.WaitEx(ctx)
 }
 
 // MoveToFolder is a complex method that moves a StoragePod to a given relative
@@ -173,7 +173,7 @@ func Delete(pod *object.StoragePod) error {
 	if err != nil {
 		return err
 	}
-	return task.Wait(ctx)
+	return task.WaitEx(ctx)
 }
 
 // StorageDRSEnabled checks a StoragePod to see if Storage DRS is enabled.
@@ -402,7 +402,7 @@ func applySDRS(client *govmomi.Client, placement *types.StoragePlacementResult, 
 	if err != nil {
 		return nil, err
 	}
-	result, err := task.WaitForResult(ctx, nil)
+	result, err := task.WaitForResultEx(ctx, nil)
 	if err != nil {
 		// Provide a friendly error message for timeouts
 		if ctx.Err() == context.DeadlineExceeded {
