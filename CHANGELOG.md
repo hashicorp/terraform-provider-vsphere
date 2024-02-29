@@ -1,5 +1,32 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
+## 2.7.0 (Unreleased)
+
+BUG FIXES:
+
+* `resource/virtual_machine`: Fixes support for SR-IOV passthrough virtual machine network adapters. ([#2133](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2133))
+* `resource/virtual_machine`: Unifies `disk.keep_on_remove` with default and `disk.label` with the correct one assigned to the virtual machine disk during import. If the datastore for a virtual machine is part of a datastore cluster the `datastore_cluster_id` attribute is filled during import. ([#2127](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2127))
+* `resource/virtual_machine`: Changed the default value for `sync_time_with_host` in `r/vsphere_virtual_machine` to `true` to align with default value provided by the UI. ([#2120](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2120))
+* `resource/virtual_machine`: Added the virtual machine folder in the search for virtual machine criteria when deploying from an OVF/OVA. scenario. Allows virtual machines with same names in different virtual machine folders to be not distinguished as different managed entities. ([#2118](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2118))
+* `resource/virtual_disk`: Fixes import to use the correct the `vmdk_path`. ([#1762](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1762))
+
+FEATURES:
+
+* `resource/virtual_machine`: Adds support for `memory_reservation_locked_to_max` property. If set true, memory resource reservation for the virtual machine will always be equal to the virtual machine's memory size. ([#2093](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2093))
+* `data/vsphere_host_vgpu_profile`: Adds data source to the provider to query and return available vGPU profiles for an ESXi host. ([#2048](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2048))
+* `data/vsphere_datastore_stats`: Adds datastore stats to report total capacity and free space of datastores. ([#1896](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1896))
+* `data/vsphere_datastore`: Adds stats to report total capacity and free space of a single datastore. ([#1896](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1896))
+
+DOCUMENTATION:
+
+* Updates `INSTALL.md` use use `unzip` for Linux and macOS examples. ([#2105](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2105))
+
+CHORES:
+
+* `provider`: Updates `vmware/govmomi` to v0.35.0. ([#2132](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2132))
+* `provider`: Updates `hashicorp/terraform-plugin-sdk` to v2.32.0. ([#2125](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2125))
+* `provider`: Updates `golang/go` to v1.22.0 ([#2139](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2139))
+
 ## 2.6.1 (December 11, 2023)
 
 BUG FIXES:
