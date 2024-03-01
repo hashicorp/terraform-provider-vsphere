@@ -616,6 +616,8 @@ The following options are general virtual machine and provider workflow options:
 
 * `clone` - (Optional) When specified, the virtual machine will be created as a clone of a specified template. Optional customization options can be submitted for the resource. See [creating a virtual machine from a template](#creating-a-virtual-machine-from-a-template) for more information.
 
+~> **NOTE:** Cloning requires vCenter Server and is not supported on direct ESXi host connections.
+
 * `extra_config_reboot_required` - (Optional) Allow the virtual machine to be rebooted when a change to `extra_config` occurs. Default: `true`.
 
 * `custom_attributes` - (Optional) Map of custom attribute ids to attribute value strings to set for virtual machine. Please refer to the [`vsphere_custom_attributes`][docs-setting-custom-attributes] resource for more information on setting custom attributes.
@@ -661,11 +663,9 @@ The following options are general virtual machine and provider workflow options:
 
 * `network_interface` - (Required) A specification for a virtual NIC on the virtual machine. See [network interface options](#network-interface-options) for more information.
 
-* `pci_device_id` - (Optional) List of host PCI device IDs in which to create PCI passthroughs.
-
-~> **NOTE:** Cloning requires vCenter Server and is not supported on direct ESXi host connections.
-
 * `ovf_deploy` - (Optional) When specified, the virtual machine will be deployed from the provided OVF/OVA template. See [creating a virtual machine from an OVF/OVA template](#creating-a-virtual-machine-from-an-ovf-ova-template) for more information.
+
+* `pci_device_id` - (Optional) List of host PCI device IDs in which to create PCI passthroughs.
 
 * `replace_trigger` - (Optional) Triggers replacement of resource whenever it changes.
 
@@ -682,6 +682,16 @@ For example, `replace_trigger = sha256(format("%s-%s",data.template_file.cloud_i
 * `scsi_type` - (Optional) The SCSI controller type for the virtual machine. One of `lsilogic` (LSI Logic Parallel), `lsilogic-sas` (LSI Logic SAS) or `pvscsi` (VMware Paravirtual). Default: `pvscsi`.
 
 * `scsi_bus_sharing` - (Optional) The type of SCSI bus sharing for the virtual machine SCSI controller. One of `physicalSharing`, `virtualSharing`, and `noSharing`. Default: `noSharing`.
+
+* `shared_pci_device_id` - (Optional) List of shared PCI device(s) to create
+shared PCI passthrough.
+
+For example, attaching a vGPU to the virtual machine:
+`shared_pci_device_id = ["grid_a100d-40c"]`
+
+~> **NOTE:** The use of vGPU requires that the VM has memory reservation set equal
+to the amount of provisioned memory. This can be accomplished by leveraging
+the [`memory_reservation`](#memory_reservation) option.
 
 * `storage_policy_id` - (Optional) The ID of the storage policy to assign to the home directory of a virtual machine.
 
