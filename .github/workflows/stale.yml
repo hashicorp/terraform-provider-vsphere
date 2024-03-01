@@ -1,8 +1,10 @@
 ---
 name: Manage Stale Items
-'on':
+
+on:
   schedule:
     - cron: 00 00 * * *
+
 jobs:
   stale:
     runs-on: ubuntu-latest
@@ -34,7 +36,7 @@ jobs:
           stale-pr-message: >
             Marking this pull request as stale due to inactivity in the past
             180 days. This helps us focus on the active pull requests. If this
-            pull request receives no comments in the next 30 days it will 
+            pull request receives no comments in the next 30 days it will
             automatically be closed.
 
             If this pull request was automatically closed and you feel this

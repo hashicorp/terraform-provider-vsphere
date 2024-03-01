@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
         with:
           ref: 'main'
-  
+
       - name: Write the SSH key and create session folders
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ./ssh_private_key
@@ -61,7 +61,7 @@ jobs:
         uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version-file: '.go-version'
-      
+
       - name: Set up Node
         uses: actions/setup-node@8f152de45cc393bb48ce5d89d36b731f54556e65 # v4.0.0
         with:
@@ -73,13 +73,13 @@ jobs:
 
       - name: Go mod verify
         run: go mod verify
-      
+
       - name: Run acceptance tests
         continue-on-error: true
         run: |
           set -euo pipefail
           TF_ACC=1 go test -json -v ./... -timeout 360m 2>&1 | tee /tmp/gotest.log | gotestfmt
-      
+
       - name: Get today's date
         run: echo "TODAY_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 

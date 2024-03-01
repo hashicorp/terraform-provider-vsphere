@@ -1,5 +1,4 @@
---
-name: "Pull Request Labels"
+name: Pull Request Labels
 
 on:
   pull_request_target:

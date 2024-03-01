@@ -1,9 +1,10 @@
----
 name: Issue Greeting
-'on':
+
+on:
   issues:
     types:
       - opened
+
 jobs:
   greeting:
     name: Send Greeting
