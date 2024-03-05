@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/vmware/govmomi/vapi/cis/tasks"
 	"github.com/vmware/govmomi/vapi/esx/settings/clusters"
+	"github.com/vmware/govmomi/vapi/rest"
 	"log"
 	"sort"
 	"strings"
@@ -728,6 +729,11 @@ func resourceVSphereComputeClusterCreate(d *schema.ResourceData, meta interface{
 		return err
 	}
 
+	// Apply vLCM settings
+	if err := resourceVSphereComputeClusterApplyHostImage(d, meta, cluster); err != nil {
+		return err
+	}
+
 	// All done!
 	log.Printf("[DEBUG] %s: Create finished successfully", resourceVSphereComputeClusterIDString(d))
 	return resourceVSphereComputeClusterRead(d, meta)
@@ -1142,13 +1148,28 @@ func resourceVSphereComputeClusterApplyHostImage(
 		return nil
 	}
 
+	if d.Get("host_image") == nil {
+		return fmt.Errorf("disabling vLCM is not allowed")
+	}
+
 	client := meta.(*Client).restClient
 
 	m := clusters.NewManager(client)
+	if vlcmEnabled, err := m.GetSoftwareManagement(d.Id()); err != nil {
+		return err
+	} else if !vlcmEnabled.Enabled {
+		if err := resourceVsphereComputeClusterEnableSoftwareManagement(d, client); err != nil {
+			return err
+		}
+	}
 
 	if draftId, err := m.CreateSoftwareDraft(d.Id()); err != nil {
 		return err
 	} else {
+		if err := m.SetSoftwareDraftBaseImage(d.Id(), draftId, d.Get("host_image.0.esx_version").(string)); err != nil {
+			return err
+		}
+
 		spec := clusters.SoftwareComponentsUpdateSpec{ComponentsToSet: make(map[string]string)}
 		oldComponents, newComponents := d.GetChange("host_image.0.component")
 		oldComponentsMap := getComponentsMap(oldComponents.([]interface{}))
@@ -1173,6 +1194,26 @@ func resourceVSphereComputeClusterApplyHostImage(
 			_, err := tasks.NewManager(client).WaitForCompletion(context.Background(), taskId)
 			return err
 		}
+	}
+}
+
+func resourceVsphereComputeClusterEnableSoftwareManagement(d *schema.ResourceData, client *rest.Client) error {
+	m := clusters.NewManager(client)
+
+	if draftId, err := m.CreateSoftwareDraft(d.Id()); err != nil {
+		return err
+	} else if err := m.SetSoftwareDraftBaseImage(d.Id(), draftId, d.Get("host_image.0.esx_version").(string)); err != nil {
+		return err
+	} else if taskId, err := m.CommitSoftwareDraft(d.Id(), draftId, clusters.SettingsClustersSoftwareDraftsCommitSpec{}); err != nil {
+		return err
+	} else if _, err := tasks.NewManager(client).WaitForCompletion(context.Background(), taskId); err != nil {
+		return err
+	} else if taskId, err := m.EnableSoftwareManagement(d.Id(), false); err != nil {
+		return err
+	} else if _, err := tasks.NewManager(client).WaitForCompletion(context.Background(), taskId); err != nil {
+		return err
+	} else {
+		return nil
 	}
 }
 

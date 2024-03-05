@@ -159,6 +159,7 @@ func Provider() *schema.Provider {
 			"vsphere_dynamic":                    dataSourceVSphereDynamic(),
 			"vsphere_folder":                     dataSourceVSphereFolder(),
 			"vsphere_host":                       dataSourceVSphereHost(),
+			"vsphere_host_base_images":           dataSourceVSphereHostBaseImages(),
 			"vsphere_host_pci_device":            dataSourceVSphereHostPciDevice(),
 			"vsphere_host_thumbprint":            dataSourceVSphereHostThumbprint(),
 			"vsphere_host_vgpu_profile":          dataSourceVSphereHostVGpuProfile(),

@@ -91,6 +91,7 @@ func resourceVsphereOfflineSoftwareDepotRead(d *schema.ResourceData, meta interf
 	if data, err := m.GetOfflineDepotContent(d.Id()); err != nil {
 		return err
 	} else {
+		d.SetId(d.Id())
 		return d.Set("component", readComponents(data))
 	}
 }

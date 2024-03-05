@@ -1298,6 +1298,8 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 
 func testAccResourceVSphereComputeClusterConfigVlcm(imageConfig string) string {
 	return fmt.Sprintf(`
+data "vsphere_host_base_images" "base_images" {}
+
 %s
 
 resource "vsphere_compute_cluster" "compute_cluster" {
@@ -1323,6 +1325,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 func testAccResourceVSphereComputeClusterImageConfig() string {
 	return `
 host_image {
+  esx_version = "${data.vsphere_host_base_images.base_images.version.0}"
   component {
     key = vsphere_offline_software_depot.depot.component.0.key
     version = vsphere_offline_software_depot.depot.component.0.version.0
