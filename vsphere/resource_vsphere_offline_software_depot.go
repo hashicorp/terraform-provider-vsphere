@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/vmware/govmomi/vapi/cis/tasks"
 	"github.com/vmware/govmomi/vapi/esx/settings/depots"
 )
@@ -14,10 +15,11 @@ import (
 func resourceVsphereOfflineSoftwareDepot() *schema.Resource {
 	s := map[string]*schema.Schema{
 		"location": {
-			Type:        schema.TypeString,
-			Description: "The remote location where the contents for this depot are served.",
-			Required:    true,
-			ForceNew:    true,
+			Type:         schema.TypeString,
+			Description:  "The remote location where the contents for this depot are served.",
+			Required:     true,
+			ForceNew:     true,
+			ValidateFunc: validation.NoZeroValues,
 		},
 		"component": {
 			Type:        schema.TypeList,
@@ -26,20 +28,23 @@ func resourceVsphereOfflineSoftwareDepot() *schema.Resource {
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"key": {
-						Type:        schema.TypeString,
-						Description: "The key of the component.",
-						Computed:    true,
+						Type:         schema.TypeString,
+						Description:  "The key of the component.",
+						Computed:     true,
+						ValidateFunc: validation.NoZeroValues,
 					},
 					"display_name": {
-						Type:        schema.TypeString,
-						Description: "The name of the component.",
-						Computed:    true,
+						Type:         schema.TypeString,
+						Description:  "The name of the component.",
+						Computed:     true,
+						ValidateFunc: validation.NoZeroValues,
 					},
 					"version": {
-						Type:        schema.TypeList,
-						Description: "The list of versions of the component.",
-						Computed:    true,
-						Elem:        &schema.Schema{Type: schema.TypeString},
+						Type:         schema.TypeList,
+						Description:  "The list of versions of the component.",
+						Computed:     true,
+						Elem:         &schema.Schema{Type: schema.TypeString},
+						ValidateFunc: validation.NoZeroValues,
 					},
 				},
 			},

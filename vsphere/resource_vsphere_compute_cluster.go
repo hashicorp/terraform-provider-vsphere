@@ -460,9 +460,10 @@ func resourceVSphereComputeCluster() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"esx_version": {
-							Type:        schema.TypeString,
-							Description: "The ESXi version which the image is based on.",
-							Optional:    true,
+							Type:         schema.TypeString,
+							Description:  "The ESXi version which the image is based on.",
+							Optional:     true,
+							ValidateFunc: validation.NoZeroValues,
 						},
 						"component": {
 							Type:        schema.TypeList,
@@ -471,14 +472,16 @@ func resourceVSphereComputeCluster() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"key": {
-										Type:        schema.TypeString,
-										Description: "The identifier for the component.",
-										Optional:    true,
+										Type:         schema.TypeString,
+										Description:  "The identifier for the component.",
+										Optional:     true,
+										ValidateFunc: validation.NoZeroValues,
 									},
 									"version": {
-										Type:        schema.TypeString,
-										Description: "The version to use.",
-										Optional:    true,
+										Type:         schema.TypeString,
+										Description:  "The version to use.",
+										Optional:     true,
+										ValidateFunc: validation.NoZeroValues,
 									},
 								},
 							},
