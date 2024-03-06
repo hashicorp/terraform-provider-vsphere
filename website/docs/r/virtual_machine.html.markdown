@@ -807,6 +807,10 @@ The options are:
 
 * `nested_hv_enabled` - (Optional) Enable nested hardware virtualization on the virtual machine, facilitating nested virtualization in the guest operating system. Default: `false`.
 
+* `sata_controller_count` - (Optional) The number of SATA controllers that the virtual machine. This directly affects the number of disks you can add to the virtual machine and the maximum disk unit number. Note that lowering this value does not remove controllers. Default: `0`.
+
+* `scsi_controller_count` - (Optional) The number of SCSI controllers on the virtual machine. This setting directly affects the number of disks you can add to the virtual machine and the maximum disk unit number. Note that lowering this value does not remove controllers. Default: `1`.
+
 * `shutdown_wait_timeout` - (Optional) The amount of time, in minutes, to wait for a graceful guest shutdown when making necessary updates to the virtual machine. If `force_power_off` is set to `true`, the virtual machine will be forced to power-off after the timeout, otherwise an error is returned. Default: `3` minutes.
 
 * `swap_placement_policy` - (Optional) The swap file placement policy for the virtual machine. One of `inherit`, `hostLocal`, or `vmDirectory`. Default: `inherit`.
