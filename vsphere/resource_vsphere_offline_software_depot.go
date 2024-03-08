@@ -28,23 +28,20 @@ func resourceVsphereOfflineSoftwareDepot() *schema.Resource {
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"key": {
-						Type:         schema.TypeString,
-						Description:  "The key of the component.",
-						Computed:     true,
-						ValidateFunc: validation.NoZeroValues,
+						Type:        schema.TypeString,
+						Description: "The key of the component.",
+						Computed:    true,
 					},
 					"display_name": {
-						Type:         schema.TypeString,
-						Description:  "The name of the component.",
-						Computed:     true,
-						ValidateFunc: validation.NoZeroValues,
+						Type:        schema.TypeString,
+						Description: "The name of the component.",
+						Computed:    true,
 					},
 					"version": {
-						Type:         schema.TypeList,
-						Description:  "The list of versions of the component.",
-						Computed:     true,
-						Elem:         &schema.Schema{Type: schema.TypeString},
-						ValidateFunc: validation.NoZeroValues,
+						Type:        schema.TypeList,
+						Description: "The list of versions of the component.",
+						Computed:    true,
+						Elem:        &schema.Schema{Type: schema.TypeString},
 					},
 				},
 			},
