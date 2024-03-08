@@ -548,6 +548,16 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 }
 ```
 
+### vLCM Settings
+
+After vLCM is enabled on a cluster it is not possible to disable it.
+
+* `host_image` - (Optional) Enables vLCM on the cluster and applies an ESXi image with the provided configuration.
+  * `esx_version` - The ESXi version which will be used as a base for the image. See [`host_base_images`][docs-d-host-base-images].
+  * `component` - A custom component to add to the base image. TODO - add link to offline depot resource docs 
+    * `key` - The identifier of the component
+    * `version` - The version of the component 
+
 ## Attribute Reference
 
 The following attributes are exported:
@@ -561,6 +571,7 @@ The following attributes are exported:
 
 [docs-r-vsphere-virtual-machine-resource-pool-id]: /docs/providers/vsphere/r/virtual_machine.html#resource_pool_id
 [docs-r-vsphere-virtual-machine]: /docs/providers/vsphere/r/virtual_machine.html
+[docs-d-host-base-images]: /docs/providers/vsphere/d/host_base_images.html
 
 ## Importing
 
