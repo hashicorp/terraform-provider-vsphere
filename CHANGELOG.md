@@ -1,5 +1,11 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
+## 2.8.0 (Unreleased)
+
+CHORES:
+
+* `provider`: Updates `vmware/govmomi` to v0.36.0. ([#2149](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2149))
+
 ## 2.7.0 (March 06, 2024)
 
 BUG FIXES:
