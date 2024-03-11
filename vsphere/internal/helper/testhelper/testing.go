@@ -241,3 +241,11 @@ data "vsphere_host" "roothost3" {
 }
 `, os.Getenv("TF_VSPHERE_VSAN_WITNESS_HOST"))
 }
+
+func ConfigDataSoftwareDepot() string {
+	return fmt.Sprintf(`
+resource "vsphere_offline_software_depot" "depot" {
+  location = "%s"
+}
+`, os.Getenv("TF_VAR_VSPHERE_SOFTWARE_DEPOT_LOCATION"))
+}

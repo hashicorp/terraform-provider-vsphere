@@ -2,6 +2,20 @@
 
 ## 2.8.0 (Unreleased)
 
+FEATURES:
+
+* `resource/vsphere_offline_software_depot`: Adds resource to the provider for offline software
+  depots. Support for online depots can be added at a later time. Only depots with source type
+  "PULL" are supported. This is intentional and aims to discourage the use of the deprecated VUM
+  functionality. ([#2143](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2143))
+* `data/vsphere_host_base_images`: Adds data source to the provider for base images. Declaring this
+  data source allows users to retrieve the full list of available ESXi versions for their
+  environment. ([#2143](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2143))
+* `resource/vsphere_compute_cluster`: Adds property that serves as an entry point for the vLCM
+  configuration. Allows selection of a base image and a list of custom components from a depot.
+  Configuring this property for the first time also enables vLCM on the cluster.
+  ([#2143](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2143))
+
 CHORES:
 
 * `provider`: Updates `vmware/govmomi` to v0.36.0. ([#2149](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2149))
