@@ -111,7 +111,7 @@ func RenameObject(client *govmomi.Client, ref types.ManagedObjectReference, new 
 	t := object.NewTask(client.Client, res.Returnval)
 	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer tcancel()
-	return t.Wait(tctx)
+	return t.WaitEx(tctx)
 }
 
 // ValidateVirtualCenter ensures that the client is connected to vCenter.

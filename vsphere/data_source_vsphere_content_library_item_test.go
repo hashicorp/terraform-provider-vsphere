@@ -5,7 +5,6 @@ package vsphere
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"testing"
 
@@ -19,7 +18,6 @@ func TestAccDataSourceVSphereContentLibraryItem_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereContentLibraryItemPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -35,34 +33,18 @@ func TestAccDataSourceVSphereContentLibraryItem_basic(t *testing.T) {
 	})
 }
 
-func testAccDataSourceVSphereContentLibraryItemPreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_CONTENT_LIBRARY") == "" {
-		t.Skip("set TF_VAR_VSPHERE_CONTENT_LIBRARY to run vsphere_content_library acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_CONTENT_LIBRARY_ITEM") == "" {
-		t.Skip("set TF_VAR_VSPHERE_CONTENT_LIBRARY_ITEM to run vsphere_content_library_item acceptance tests")
-	}
-}
-
 func testAccDataSourceVSphereContentLibraryItemConfig() string {
 	return fmt.Sprintf(`
-variable "datacenter" {
+%s
+
+variable "file" {
   type    = string
-  default = "%s"
-}
-
-variable "file_list" {
-  type    = list(string)
-  default = %s 
-}
-
-data "vsphere_datacenter" "dc" {
-  name = data.vsphere_datacenter.rootdc1.name
+  default = "%s" 
 }
 
 data "vsphere_datastore" "ds" {
   datacenter_id = data.vsphere_datacenter.rootdc1.id
-  name = var.datastore
+  name          = vsphere_nas_datastore.ds1.name
 }
 
 resource "vsphere_content_library" "library" {
@@ -76,15 +58,16 @@ resource "vsphere_content_library_item" "item" {
   description = "Ubuntu Description"
   library_id  = vsphere_content_library.library.id
   type        = "ovf"
-  file_url    = var.file_list
+  file_url    = var.file
 }
 
 data "vsphere_content_library_item" "item" {
   name       = vsphere_content_library_item.item.name
   library_id = vsphere_content_library.library.id
+  type       = "ovf"
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
-		os.Getenv("TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES"),
+		testhelper.ContentLibraryFiles,
 	)
 }

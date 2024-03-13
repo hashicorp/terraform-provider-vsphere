@@ -140,7 +140,7 @@ func TestAccResourceVSphereContentLibraryItem_remoteOva(t *testing.T) {
 }
 
 func testAccResourceVSphereContentLibraryItemGetOva() {
-	_ = testAccResourceVSphereContentLibraryItemGetFile(os.Getenv("TF_VAR_VSPHERE_TEST_OVA"), "./testdata/test.ova")
+	_ = testAccResourceVSphereContentLibraryItemGetFile(testhelper.TestOva, "./testdata/test.ova")
 }
 
 func testAccResourceVSphereContentLibraryItemGetFile(url, file string) error {
@@ -186,8 +186,8 @@ func testAccResourceVSphereContentLibraryItemDescription(expected *regexp.Regexp
 		if err != nil {
 			return err
 		}
-		if !expected.MatchString(library.Description) {
-			return fmt.Errorf("Content Library item description does not match. expected: %s, got %s", expected.String(), library.Description)
+		if !expected.MatchString(*library.Description) {
+			return fmt.Errorf("Content Library item description does not match. expected: %s, got %v", expected.String(), library.Description)
 		}
 		return nil
 	}
@@ -291,7 +291,7 @@ resource "vsphere_content_library_item" "item" {
 }
 `,
 		testaccresourcevspherecontentlibraryitemconfigBase(),
-		os.Getenv("TF_VAR_VSPHERE_TEST_OVA"),
+		testhelper.TestOva,
 	)
 }
 

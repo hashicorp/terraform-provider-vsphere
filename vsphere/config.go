@@ -405,7 +405,7 @@ func (c *Config) restoreVimClient(client *vim25.Client) (bool, error) {
 
 	p, err := c.vimSessionFile()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("error determining SOAP session filename: %s", err)
 	}
 	log.Printf("[DEBUG] Attempting to locate SOAP client session data in %q", p)
 	f, err := os.Open(p)
@@ -415,7 +415,7 @@ func (c *Config) restoreVimClient(client *vim25.Client) (bool, error) {
 			return false, nil
 		}
 
-		return false, err
+		return false, fmt.Errorf("error opening SOAP client session: %s", err)
 	}
 
 	defer func() {
@@ -427,7 +427,7 @@ func (c *Config) restoreVimClient(client *vim25.Client) (bool, error) {
 	dec := json.NewDecoder(f)
 	err = dec.Decode(client)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("error decoding SOAP client session: %s", err)
 	}
 
 	return true, nil
@@ -465,7 +465,7 @@ func (c *Config) LoadVimClient() (*govmomi.Client, error) {
 			}
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("error retrieving session manager's current session: %s", err)
 	}
 
 	// If the session is nil, the client is not authenticated

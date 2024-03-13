@@ -105,6 +105,31 @@ func TestAccResourceVSphereComputeCluster_drsHAEnabled(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereComputeCluster_vlcm(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterConfigVlcm(""),
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+			{
+				Config: testAccResourceVSphereComputeClusterConfigVlcm(testAccResourceVSphereComputeClusterImageConfig()),
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+			{
+				Config: testAccResourceVSphereComputeClusterConfigVlcm(""),
+				Check:  resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereComputeCluster_vsanDedupEnabled(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -298,6 +323,120 @@ func TestAccResourceVSphereComputeCluster_vsanDITEncryption(t *testing.T) {
 					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_enabled", "true"),
 					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_dit_encryption_enabled", "true"),
 					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_dit_rekey_interval", "1800"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereComputeCluster_vsanEsaEnabled(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+			testAccResourceVSphereComputeClusterVSANEsaPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterConfigVSANEsaEnabled(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_enabled", "true"),
+					resource.TestCheckResourceAttr("vsphere_compute_cluster.compute_cluster", "vsan_esa_enabled", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereComputeCluster_faultDomain(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterConfigFaultDomains(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					resource.TestCheckTypeSetElemAttrPair(
+						"vsphere_compute_cluster.compute_cluster",
+						"vsan_fault_domains.*.fault_domain.*.host_ids.*",
+						"data.vsphere_host.roothost3",
+						"id",
+					),
+					resource.TestCheckTypeSetElemAttrPair(
+						"vsphere_compute_cluster.compute_cluster",
+						"vsan_fault_domains.*.fault_domain.*.host_ids.*",
+						"data.vsphere_host.roothost4",
+						"id",
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(
+						"vsphere_compute_cluster.compute_cluster",
+						"vsan_fault_domains.*.fault_domain.*",
+						map[string]string{
+							"name": "fd1",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(
+						"vsphere_compute_cluster.compute_cluster",
+						"vsan_fault_domains.*.fault_domain.*",
+						map[string]string{
+							"name": "fd2",
+						},
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereComputeCluster_vsanStretchedCluster(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereComputeClusterPreCheck(t)
+			testAccResourceVSphereComputeClusterVSANStretchedClusterPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereComputeClusterStretchedClusterEnabled(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
+					resource.TestCheckTypeSetElemAttrPair(
+						"vsphere_compute_cluster.compute_cluster",
+						"vsan_stretched_cluster.*.preferred_fault_domain_host_ids.*",
+						"data.vsphere_host.roothost1",
+						"id",
+					),
+					resource.TestCheckTypeSetElemAttrPair(
+						"vsphere_compute_cluster.compute_cluster",
+						"vsan_stretched_cluster.*.secondary_fault_domain_host_ids.*",
+						"data.vsphere_host.roothost2",
+						"id",
+					),
+					resource.TestCheckTypeSetElemAttrPair(
+						"vsphere_compute_cluster.compute_cluster",
+						"vsan_stretched_cluster.*.witness_node",
+						"data.vsphere_host.roothost3",
+						"id",
+					),
+				),
+			},
+			{
+				Config: testAccResourceVSphereComputeClusterStretchedClusterDisabled(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereComputeClusterCheckExists(true),
 				),
 			},
 		},
@@ -560,6 +699,32 @@ func testAccResourceVSphereComputeClusterPreCheck(t *testing.T) {
 	}
 	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_virtual_machine acceptance tests")
+	}
+}
+
+func testAccResourceVSphereComputeClusterVSANEsaPreCheck(t *testing.T) {
+	meta, err := testAccProviderMeta(t)
+	if err != nil {
+		t.Skip("can not get meta")
+	}
+	client, err := resourceVSphereComputeClusterClient(meta)
+	if err != nil {
+		t.Skip("can not get client")
+	}
+	if version := viapi.ParseVersionFromClient(client); !version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 8, Minor: 0}) {
+		t.Skip("vSAN ESA acceptance test should be run on vSphere 8.0 or higher")
+	}
+}
+
+func testAccResourceVSphereComputeClusterVSANStretchedClusterPreCheck(t *testing.T) {
+	if os.Getenv("TF_VSPHERE_VSAN_HOST_1") == "" {
+		t.Skip("set TF_VSPHERE_VSAN_HOST_1 to run vsphere_compute_cluster stretched cluster acceptance tests")
+	}
+	if os.Getenv("TF_VSPHERE_VSAN_HOST_2") == "" {
+		t.Skip("set TF_VSPHERE_VSAN_HOST_2 to run vsphere_compute_cluster stretched cluster acceptance tests")
+	}
+	if os.Getenv("TF_VSPHERE_VSAN_WITNESS_HOST") == "" {
+		t.Skip("set TF_VSPHERE_VSAN_WITNESS_HOST to run vsphere_compute_cluster stretched cluster acceptance tests")
 	}
 }
 
@@ -982,6 +1147,110 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 	)
 }
 
+func testAccResourceVSphereComputeClusterConfigVSANEsaEnabled() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                        = "testacc-compute-cluster"
+  datacenter_id               = data.vsphere_datacenter.rootdc1.id
+  host_system_ids             = [data.vsphere_host.roothost3.id, data.vsphere_host.roothost4.id]
+
+  vsan_enabled = true
+  vsan_esa_enabled = true
+  vsan_unmap_enabled = true
+  force_evacuate_on_destroy = true
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootHost4(),
+		),
+	)
+}
+
+func testAccResourceVSphereComputeClusterConfigFaultDomains() string {
+	return fmt.Sprintf(`
+%s
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                        = "testacc-compute-cluster"
+  datacenter_id               = data.vsphere_datacenter.rootdc1.id
+  host_system_ids             = [data.vsphere_host.roothost3.id, data.vsphere_host.roothost4.id]
+  vsan_enabled = true
+  vsan_fault_domains {
+    fault_domain {
+      name = "fd1"
+      host_ids = [data.vsphere_host.roothost3.id]
+    }
+    fault_domain {
+      name = "fd2"
+      host_ids = [data.vsphere_host.roothost4.id]
+    }
+  }
+  force_evacuate_on_destroy = true
+}
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataRootHost4(),
+		),
+	)
+}
+
+func testAccResourceVSphereComputeClusterStretchedClusterEnabled() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                        = "testacc-compute-cluster"
+  datacenter_id               = data.vsphere_datacenter.rootdc1.id
+  host_system_ids             = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
+
+  vsan_enabled = true
+  vsan_stretched_cluster {
+    preferred_fault_domain_host_ids = [data.vsphere_host.roothost1.id]
+    secondary_fault_domain_host_ids = [data.vsphere_host.roothost2.id]
+    witness_node = data.vsphere_host.roothost3.id
+  }
+  force_evacuate_on_destroy = true
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataVsanHost1(),
+			testhelper.ConfigDataVsanHost2(),
+			testhelper.ConfigDataVsanWitnessHost(),
+		),
+	)
+}
+
+func testAccResourceVSphereComputeClusterStretchedClusterDisabled() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                        = "testacc-compute-cluster"
+  datacenter_id               = data.vsphere_datacenter.rootdc1.id
+  host_system_ids             = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
+
+  vsan_enabled = true
+  force_evacuate_on_destroy = true
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataVsanHost1(),
+			testhelper.ConfigDataVsanHost2(),
+			testhelper.ConfigDataVsanWitnessHost(),
+		),
+	)
+}
+
 func testAccResourceVSphereComputeClusterConfigBasic() string {
 	return fmt.Sprintf(`
 %s
@@ -1025,6 +1294,44 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 			testhelper.ConfigDataRootVMNet(),
 		),
 	)
+}
+
+func testAccResourceVSphereComputeClusterConfigVlcm(imageConfig string) string {
+	return fmt.Sprintf(`
+data "vsphere_host_base_images" "base_images" {}
+
+%s
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name            = "testacc-compute-cluster"
+  datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
+  host_system_ids = [data.vsphere_host.roothost3.id]
+  
+  force_evacuate_on_destroy = true
+
+  %s
+}
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost2(),
+			testhelper.ConfigDataRootHost3(),
+			testhelper.ConfigDataSoftwareDepot(),
+		),
+		imageConfig,
+	)
+}
+
+func testAccResourceVSphereComputeClusterImageConfig() string {
+	return `
+host_image {
+  esx_version = "${data.vsphere_host_base_images.base_images.version.0}"
+  component {
+    key = vsphere_offline_software_depot.depot.component.0.key
+    version = vsphere_offline_software_depot.depot.component.0.version.0
+  }
+}
+`
 }
 
 func testAccResourceVSphereComputeClusterConfigDRSHABasicExplicitFailoverHost() string {

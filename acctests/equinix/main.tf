@@ -7,8 +7,6 @@ variable "PACKET_AUTH" {
 
 variable "PACKET_PROJECT" {}
 
-variable "PRIV_KEY" {}
-
 variable "VCSA_DEPLOY_PATH" {}
 
 variable "ESXI_VERSION" {
@@ -23,160 +21,109 @@ variable "ESXI_PLAN" {
   default = "c3.medium.x86"
 }
 
-variable "STORAGE_PLAN" {
-  default = "c3.small.x86"
-}
-
 variable "LAB_PREFIX" {
   default = ""
 }
 
-provider "metal" {
+variable "DOMAIN" {
+  default = "test.local"
+}
+
+provider "equinix" {
   auth_token = var.PACKET_AUTH
 }
 
-resource "metal_device" "esxi1" {
-  hostname         = "${var.LAB_PREFIX}esxi1.vspheretest.internal"
-  plan             = var.ESXI_PLAN
-  metro            = var.PACKET_FACILITY
-  operating_system = var.ESXI_VERSION
-  billing_cycle    = "hourly"
-  project_id       = var.PACKET_PROJECT
+resource "tls_private_key" "gh-actions-ssh" {
+  algorithm = "RSA" # for some reason ED25519 does not work
+  rsa_bits  = 4096
 }
 
-resource "metal_device_network_type" "esxi1" {
-  device_id = metal_device.esxi1.id
+resource "local_sensitive_file" "gh-actions-ssh" {
+  content         = tls_private_key.gh-actions-ssh.private_key_openssh
+  filename        = "./gh-actions-ssh"
+  file_permission = "0600"
+}
+
+resource "equinix_metal_project_ssh_key" "gh-actions-ssh" {
+  name       = "gh-actions-ssh"
+  public_key = tls_private_key.gh-actions-ssh.public_key_openssh
+  project_id = var.PACKET_PROJECT
+}
+
+resource "equinix_metal_device" "esxi1" {
+  hostname            = "${var.LAB_PREFIX}e.${var.DOMAIN}"
+  plan                = var.ESXI_PLAN
+  metro               = var.PACKET_FACILITY
+  operating_system    = var.ESXI_VERSION
+  billing_cycle       = "hourly"
+  project_ssh_key_ids = [equinix_metal_project_ssh_key.gh-actions-ssh.id]
+  project_id          = var.PACKET_PROJECT
+}
+
+resource "equinix_metal_device_network_type" "esxi1" {
+  device_id = equinix_metal_device.esxi1.id
   type      = "hybrid"
 }
 
-resource "metal_device" "esxi2" {
-  hostname         = "${var.LAB_PREFIX}esxi2.vspheretest.internal"
-  plan             = var.ESXI_PLAN
-  metro            = var.PACKET_FACILITY
-  operating_system = var.ESXI_VERSION
-  billing_cycle    = "hourly"
-  project_id       = var.PACKET_PROJECT
-}
-
-resource "metal_device_network_type" "esxi2" {
-  device_id = metal_device.esxi2.id
-  type      = "hybrid"
-}
-
-resource "metal_device" "esxi3" {
-  hostname         = "${var.LAB_PREFIX}esxi3.vspheretest.internal"
-  plan             = var.ESXI_PLAN
-  metro            = var.PACKET_FACILITY
-  operating_system = var.ESXI_VERSION
-  billing_cycle    = "hourly"
-  project_id       = var.PACKET_PROJECT
-}
-
-resource "metal_device_network_type" "esxi3" {
-  device_id = metal_device.esxi3.id
-  type      = "hybrid"
-}
-
-resource "metal_device" "esxi4" {
-  hostname         = "${var.LAB_PREFIX}esxi4.vspheretest.internal"
-  plan             = var.ESXI_PLAN
-  metro            = var.PACKET_FACILITY
-  operating_system = var.ESXI_VERSION
-  billing_cycle    = "hourly"
-  project_id       = var.PACKET_PROJECT
-}
-
-resource "metal_device_network_type" "esxi4" {
-  device_id = metal_device.esxi4.id
-  type      = "hybrid"
-}
-
-resource "metal_device" "storage1" {
-  hostname         = "${var.LAB_PREFIX}storage1.vspheretest.internal"
-  plan             = var.STORAGE_PLAN
-  metro            = var.PACKET_FACILITY
-  operating_system = "ubuntu_20_04"
-  billing_cycle    = "hourly"
-  project_id       = var.PACKET_PROJECT
-  provisioner "remote-exec" {
-    inline = [
-      "mkdir -p /nfs/ds1 /nfs/ds2 /nfs/ds2 /nfs/ds3",
-      "apt-get update",
-      "apt-get install nfs-common nfs-kernel-server -y",
-      "echo \"/nfs *(rw,no_root_squash)\" > /etc/exports",
-      "echo \"/nfs/ds1 *(rw,no_root_squash)\" >> /etc/exports",
-      "echo \"/nfs/ds2 *(rw,no_root_squash)\" >> /etc/exports",
-      "echo \"/nfs/ds3 *(rw,no_root_squash)\" >> /etc/exports",
-      "exportfs -a",
-    ]
-    connection {
-      host        = metal_device.storage1.network.0.address
-      private_key = file(var.PRIV_KEY)
-    }
-  }
-}
-
-resource "metal_vlan" "vmvlan" {
+resource "equinix_metal_vlan" "vmvlan" {
   metro      = var.PACKET_FACILITY
   project_id = var.PACKET_PROJECT
 }
 
-resource "metal_port_vlan_attachment" "vmvlan_esxi1" {
-  device_id = metal_device.esxi1.id
-  port_name = "eth1"
-  vlan_vnid = metal_vlan.vmvlan.vxlan
+resource "time_sleep" "wait_120_seconds" {
+  depends_on = [equinix_metal_device_network_type.esxi1]
+
+  create_duration = "120s"
 }
 
-resource "metal_port_vlan_attachment" "vmvlan_esxi2" {
-  device_id = metal_device.esxi2.id
+resource "equinix_metal_port_vlan_attachment" "esxi1" {
+  depends_on = [time_sleep.wait_120_seconds]
+
+  device_id = equinix_metal_device.esxi1.id
   port_name = "eth1"
-  vlan_vnid = metal_vlan.vmvlan.vxlan
+  vlan_vnid = equinix_metal_vlan.vmvlan.vxlan
 }
 
-resource "metal_port_vlan_attachment" "vmvlan_esxi3" {
-  device_id = metal_device.esxi3.id
-  port_name = "eth1"
-  vlan_vnid = metal_vlan.vmvlan.vxlan
+resource "random_password" "admin" {
+  length      = 12
+  min_upper   = 1
+  min_lower   = 1
+  min_numeric = 1
+  min_special = 1
 }
 
-resource "metal_port_vlan_attachment" "vmvlan_esxi4" {
-  device_id = metal_device.esxi4.id
-  port_name = "eth1"
-  vlan_vnid = metal_vlan.vmvlan.vxlan
+locals {
+  vcenter_fqdn = "vcenter.${var.DOMAIN}"
 }
 
-resource "local_file" "vcsa_template" {
+resource "local_sensitive_file" "vcsa_template" {
+  depends_on = [equinix_metal_port_vlan_attachment.esxi1]
+
   content = templatefile("${path.cwd}/vcsa_deploy.json", {
-    hostname       = metal_device.esxi1.network.0.address
-    password       = metal_device.esxi1.root_password
-    ip_address     = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}", 3)
-    ip_prefix      = metal_device.esxi1.network.0.cidr
-    gateway        = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}", 1)
-    vcenter_fqdn   = "vcenter.vspheretest.internal"
-    admin_password = "Password123!"
+    hostname       = equinix_metal_device.esxi1.network.0.address
+    password       = equinix_metal_device.esxi1.root_password
+    ip_address     = cidrhost("${equinix_metal_device.esxi1.network.0.address}/${equinix_metal_device.esxi1.network.0.cidr}", 3)
+    ip_prefix      = equinix_metal_device.esxi1.network.0.cidr
+    gateway        = cidrhost("${equinix_metal_device.esxi1.network.0.address}/${equinix_metal_device.esxi1.network.0.cidr}", 1)
+    vcenter_fqdn   = local.vcenter_fqdn
+    admin_password = random_password.admin.result
   })
   filename = "./tmp/vcsa.json"
   provisioner "local-exec" {
-    command = "sleep 290; echo five more; sleep 290; TERM=xterm-256color ${var.VCSA_DEPLOY_PATH} install --accept-eula --acknowledge-ceip --no-ssl-certificate-verification --verbose --skip-ovftool-verification $(pwd)/tmp/vcsa.json"
+    command = "sleep 300; TERM=xterm-256color ${var.VCSA_DEPLOY_PATH} install --accept-eula --acknowledge-ceip --no-ssl-certificate-verification --verbose --skip-ovftool-verification $(pwd)/tmp/vcsa.json"
   }
 }
 
-output "ip" {
-  value = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}", 3)
-}
-
-resource "local_file" "devrc" {
-  sensitive_content = templatefile("./devrc.tpl", {
-    nas_host       = metal_device.storage1.network.0.address
-    esxi_host_1    = metal_device.esxi1.network.0.address
-    esxi_host_1_pw = metal_device.esxi1.root_password
-    esxi_host_2    = metal_device.esxi2.network.0.address
-    esxi_host_2_pw = metal_device.esxi2.root_password
-    esxi_host_3    = metal_device.esxi3.network.0.address
-    esxi_host_3_pw = metal_device.esxi3.root_password
-    esxi_host_4    = metal_device.esxi4.network.0.address
-    esxi_host_4_pw = metal_device.esxi4.root_password
-    vsphere_host   = cidrhost("${metal_device.esxi1.network.0.address}/${metal_device.esxi1.network.0.cidr}", 3)
+resource "local_sensitive_file" "devrc" {
+  content = templatefile("./devrc.tpl", {
+    esxi_host_1     = equinix_metal_device.esxi1.network.0.address
+    esxi_host_1_pw  = equinix_metal_device.esxi1.root_password
+    vsphere_host    = cidrhost("${equinix_metal_device.esxi1.network.0.address}/${equinix_metal_device.esxi1.network.0.cidr}", 3)
+    public_network  = "${cidrhost("${equinix_metal_device.esxi1.network.0.address}/${equinix_metal_device.esxi1.network.0.cidr}", 0)}/${equinix_metal_device.esxi1.network.0.cidr}"
+    private_network = "${cidrhost("${equinix_metal_device.esxi1.network.2.address}/${equinix_metal_device.esxi1.network.2.cidr}", 0)}/${equinix_metal_device.esxi1.network.2.cidr}"
+    admin_user      = "administrator@${local.vcenter_fqdn}"
+    admin_password  = random_password.admin.result
+    priv_key        = "${path.cwd}/gh-actions-ssh"
   })
   filename = "./devrc"
 }

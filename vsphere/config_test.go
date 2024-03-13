@@ -71,17 +71,17 @@ func testAccClientPreCheck(t *testing.T) {
 }
 
 func testAccClientGenerateConfig() *Config {
-	insecure, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_ALLOW_UNVERIFIED_SSL"))
-	debug, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_CLIENT_DEBUG"))
+	insecure, _ := strconv.ParseBool(os.Getenv("VSPHERE_ALLOW_UNVERIFIED_SSL"))
+	debug, _ := strconv.ParseBool(os.Getenv("VSPHERE_CLIENT_DEBUG"))
 
 	return &Config{
 		InsecureFlag:  insecure,
 		Debug:         debug,
-		User:          os.Getenv("TF_VAR_VSPHERE_USER"),
-		Password:      os.Getenv("TF_VAR_VSPHERE_PASSWORD"),
-		VSphereServer: os.Getenv("TF_VAR_VSPHERE_SERVER"),
-		DebugPath:     os.Getenv("TF_VAR_VSPHERE_CLIENT_DEBUG_PATH"),
-		DebugPathRun:  os.Getenv("TF_VAR_VSPHERE_CLIENT_DEBUG_PATH_RUN"),
+		User:          os.Getenv("VSPHERE_USER"),
+		Password:      os.Getenv("VSPHERE_PASSWORD"),
+		VSphereServer: os.Getenv("VSPHERE_SERVER"),
+		DebugPath:     os.Getenv("VSPHERE_CLIENT_DEBUG_PATH"),
+		DebugPathRun:  os.Getenv("VSPHERE_CLIENT_DEBUG_PATH_RUN"),
 	}
 }
 

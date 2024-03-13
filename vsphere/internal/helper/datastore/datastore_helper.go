@@ -211,7 +211,7 @@ func searchDatastore(ds *object.Datastore, name string) (*types.HostDatastoreBro
 	}
 	tctx, tcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer tcancel()
-	info, err := task.WaitForResult(tctx, nil)
+	info, err := task.WaitForResultEx(tctx, nil)
 	if err != nil {
 		return nil, err
 	}

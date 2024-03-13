@@ -26,6 +26,11 @@ func dataSourceVSphereDatastore() *schema.Resource {
 				Description: "The managed object ID of the datacenter the datastore is in. This is not required when using ESXi directly, or if there is only one datacenter in your infrastructure.",
 				Optional:    true,
 			},
+			"stats": {
+				Type:        schema.TypeMap,
+				Description: "The usage stats of the datastore, include total capacity and free space in bytes.",
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -48,5 +53,10 @@ func dataSourceVSphereDatastoreRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	d.SetId(ds.Reference().Value)
+	props, err := datastore.Properties(ds)
+	if err != nil {
+		return fmt.Errorf("error getting properties for datastore ID %q: %s", ds.Reference().Value, err)
+	}
+	d.Set("stats", map[string]string{"capacity": fmt.Sprintf("%v", props.Summary.Capacity), "free": fmt.Sprintf("%v", props.Summary.FreeSpace)})
 	return nil
 }

@@ -133,6 +133,11 @@ func resourceVSphereFileCreate(d *schema.ResourceData, meta interface{}) error {
 
 func createDirectory(datastoreFileManager *object.DatastoreFileManager, f *file) error {
 	directoryPathIndex := strings.LastIndex(f.destinationFile, "/")
+	if directoryPathIndex < 0 {
+		// there are no parent directories in the file's name - nothing to create
+		return nil
+	}
+
 	targetPath := f.destinationFile[0:directoryPathIndex]
 	err := datastoreFileManager.FileManager.MakeDirectory(context.TODO(),
 		datastoreFileManager.Datastore.Path(targetPath), datastoreFileManager.Datacenter, true)
@@ -144,13 +149,10 @@ func createDirectory(datastoreFileManager *object.DatastoreFileManager, f *file)
 
 // fileUpload - upload file to a vSphere datastore
 func fileUpload(client *govmomi.Client, dc *object.Datacenter, ds *object.Datastore, source, destination string) error {
-	dsurl, err := ds.URL(context.TODO(), dc, destination)
-	if err != nil {
-		return err
-	}
+	dsurl := ds.NewURL(destination)
 
 	p := soap.DefaultUpload
-	err = client.Client.UploadFile(context.TODO(), source, dsurl, &p)
+	err := client.Client.UploadFile(context.TODO(), source, dsurl, &p)
 	if err != nil {
 		return err
 	}
@@ -342,7 +344,7 @@ func resourceVSphereFileUpdate(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			return err
 		}
-		_, err = task.WaitForResult(context.TODO(), nil)
+		_, err = task.WaitForResultEx(context.TODO(), nil)
 		if err != nil {
 			return err
 		}
@@ -411,7 +413,7 @@ func deleteFile(client *govmomi.Client, f *file) error {
 			return err
 		}
 
-		_, err = task.WaitForResult(context.TODO(), nil)
+		_, err = task.WaitForResultEx(context.TODO(), nil)
 		if err != nil {
 			return err
 		}
@@ -425,7 +427,7 @@ func deleteFile(client *govmomi.Client, f *file) error {
 			return err
 		}
 
-		_, err = task.WaitForResult(context.TODO(), nil)
+		_, err = task.WaitForResultEx(context.TODO(), nil)
 		if err != nil {
 			return err
 		}

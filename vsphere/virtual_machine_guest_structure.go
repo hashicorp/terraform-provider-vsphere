@@ -31,12 +31,6 @@ func schemaVirtualMachineGuestInfo() map[string]*schema.Schema {
 	}
 }
 
-type int32arr []int32
-
-func (a int32arr) Len() int           { return len(a) }
-func (a int32arr) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a int32arr) Less(i, j int) bool { return a[i] < a[j] }
-
 // buildAndSelectGuestIPs builds a list of IP addresses known to VMware Tools.
 // From this list, it selects the first IP address it seems that's associated
 // with a default gateway - first IPv4, and then IPv6 if criteria can't be
@@ -46,8 +40,8 @@ func (a int32arr) Less(i, j int) bool { return a[i] < a[j] }
 func buildAndSelectGuestIPs(d *schema.ResourceData, guest types.GuestInfo) error {
 	log.Printf("[DEBUG] %s: Checking guest networking state", resourceVSphereVirtualMachineIDString(d))
 	var v4primary, v6primary, v4gw, v6gw net.IP
-	var v4net2addrs, v6net2addrs map[int32][]string
-	var deviceConfigIds int32arr
+	var v4net2addrs, v6net2addrs map[string][]string
+	var deviceMacAddresses []string
 
 	// Fetch gateways first.
 	for _, s := range guest.IpStack {
@@ -64,27 +58,31 @@ func buildAndSelectGuestIPs(d *schema.ResourceData, guest types.GuestInfo) error
 	}
 
 	addrs := make([]string, 0)
-	v4net2addrs = make(map[int32][]string)
-	v6net2addrs = make(map[int32][]string)
+	v4net2addrs = make(map[string][]string)
+	v6net2addrs = make(map[string][]string)
+
+	sort.Slice(guest.Net, func(i, j int) bool {
+		return guest.Net[i].DeviceConfigId < guest.Net[j].DeviceConfigId
+	})
 
 	// Now fetch all IP addresses, checking at the same time to see if the IP
 	// address is eligible to be a primary IP address.
 	for _, n := range guest.Net {
 		if n.IpConfig != nil {
-			deviceConfigIds = append(deviceConfigIds, n.DeviceConfigId)
-			v4net2addrs[n.DeviceConfigId] = make([]string, 0)
-			v6net2addrs[n.DeviceConfigId] = make([]string, 0)
+			deviceMacAddresses = append(deviceMacAddresses, n.MacAddress)
+			v4net2addrs[n.MacAddress] = make([]string, 0)
+			v6net2addrs[n.MacAddress] = make([]string, 0)
 			for _, addr := range n.IpConfig.IpAddress {
 				ip := net.ParseIP(addr.IpAddress)
 				var mask net.IPMask
 				if ip.To4() != nil {
-					v4net2addrs[n.DeviceConfigId] = append(v4net2addrs[n.DeviceConfigId], addr.IpAddress)
+					v4net2addrs[n.MacAddress] = append(v4net2addrs[n.MacAddress], addr.IpAddress)
 					mask = net.CIDRMask(int(addr.PrefixLength), 32)
 					if v4gw != nil && ip.Mask(mask).Equal(v4gw.Mask(mask)) && v4primary == nil {
 						v4primary = ip
 					}
 				} else {
-					v6net2addrs[n.DeviceConfigId] = append(v6net2addrs[n.DeviceConfigId], addr.IpAddress)
+					v6net2addrs[n.MacAddress] = append(v6net2addrs[n.MacAddress], addr.IpAddress)
 					mask = net.CIDRMask(int(addr.PrefixLength), 128)
 					if v6gw != nil && ip.Mask(mask).Equal(v6gw.Mask(mask)) && v6primary == nil {
 						v6primary = ip
@@ -94,10 +92,9 @@ func buildAndSelectGuestIPs(d *schema.ResourceData, guest types.GuestInfo) error
 		}
 	}
 
-	sort.Sort(deviceConfigIds)
-	for _, deviceConfigID := range deviceConfigIds {
-		addrs = append(addrs, v4net2addrs[deviceConfigID]...)
-		addrs = append(addrs, v6net2addrs[deviceConfigID]...)
+	for _, deviceMacAddress := range deviceMacAddresses {
+		addrs = append(addrs, v4net2addrs[deviceMacAddress]...)
+		addrs = append(addrs, v6net2addrs[deviceMacAddress]...)
 	}
 
 	// Fall back to the IpAddress property in GuestInfo directly when the

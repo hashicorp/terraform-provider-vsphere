@@ -161,12 +161,12 @@ func ConfigResDS1() string {
 	return fmt.Sprintf(`
 resource "vsphere_nas_datastore" "ds1" {
   name            = "%s"
-  host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
+  host_system_ids = [data.vsphere_host.roothost1.id]
   type            = "NFS"
   remote_hosts    = ["%s"]
   remote_path     = "%s"
 }
-`, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"), os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"))
+`, NfsDsName2, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), NfsPath2)
 }
 
 func ConfigDataRootComputeCluster1() string {
@@ -203,4 +203,49 @@ func ConfigDataRootVMNet() string {
 	  datacenter_id = data.vsphere_datacenter.rootdc1.id
 	}
 	`
+}
+
+func ConfigDSClusterData() string {
+	return fmt.Sprintf(`
+	data "vsphere_datastore_cluster" "ds_cluster1" {
+	  name          = "%s"
+	  datacenter_id = data.vsphere_datacenter.rootdc1.id
+	}
+ 
+`, os.Getenv("TF_VAR_VSPHERE_DS_CLUSTER1"))
+}
+
+func ConfigDataVsanHost1() string {
+	return fmt.Sprintf(`
+data "vsphere_host" "roothost1" {
+  name          = "%s"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+`, os.Getenv("TF_VSPHERE_VSAN_HOST_1"))
+}
+
+func ConfigDataVsanHost2() string {
+	return fmt.Sprintf(`
+data "vsphere_host" "roothost2" {
+  name          = "%s"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+`, os.Getenv("TF_VSPHERE_VSAN_HOST_2"))
+}
+
+func ConfigDataVsanWitnessHost() string {
+	return fmt.Sprintf(`
+data "vsphere_host" "roothost3" {
+  name          = "%s"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+`, os.Getenv("TF_VSPHERE_VSAN_WITNESS_HOST"))
+}
+
+func ConfigDataSoftwareDepot() string {
+	return fmt.Sprintf(`
+resource "vsphere_offline_software_depot" "depot" {
+  location = "%s"
+}
+`, os.Getenv("TF_VAR_VSPHERE_SOFTWARE_DEPOT_LOCATION"))
 }

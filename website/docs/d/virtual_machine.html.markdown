@@ -60,6 +60,7 @@ The following arguments are supported:
   is not performed.
 * `uuid` - (Optional) Specify this field for a UUID lookup, `name` and `datacenter_id`
   are not required if this is specified.
+* `folder` - (Optional) The name of the virtual machine folder where the virtual machine is located. The `name` argument is limited to 80 characters. If the `name` argument includes the full path to the virtual machine and exceeds the 80 characters limit, the `folder` folder argument can be used.
 * `datacenter_id` - (Optional) The [managed object reference
   ID][docs-about-morefs] of the datacenter the virtual machine is located in.
   This can be omitted if the search path used in `name` is an absolute path.

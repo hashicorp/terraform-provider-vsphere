@@ -462,8 +462,11 @@ details, see the referenced link in the above paragraph.
 ### vSAN Settings
 
 * `vsan_enabled` - (Optional) Enables vSAN on the cluster.
+* `vsan_esa_enabled` - (Optional) Enables vSAN ESA on the cluster.
+* `vsan_unmap_enabled` - (Optional) Enables vSAN unmap on the cluster.
+  You must explicitly enable vSAN unmap when you enable vSAN ESA on the cluster.
 * `vsan_dedup_enabled` - (Optional) Enables vSAN deduplication on the cluster.
-  Cannot be independently set to true. When vSAN deduplication is enabled, vSAN
+  Cannot be independently set to `true`. When vSAN deduplication is enabled, vSAN
   compression must also be enabled.
 * `vsan_compression_enabled` - (Optional) Enables vSAN compression on the
   cluster.
@@ -473,7 +476,6 @@ details, see the referenced link in the above paragraph.
   performance service on the cluster.
 * `vsan_network_diagnostic_mode_enabled` - (Optional) Enables network
   diagnostic mode for vSAN performance service on the cluster.
-* `vsan_unmap_enabled` - (Optional) Enables vSAN unmap on the cluster.
 * `vsan_remote_datastore_ids` - (Optional) The remote vSAN datastore IDs to be
   mounted to this cluster. Conflicts with `vsan_dit_encryption_enabled` and
   `vsan_dit_rekey_interval`, i.e., vSAN HCI Mesh feature cannot be enabled with
@@ -489,6 +491,16 @@ details, see the referenced link in the above paragraph.
   group in the cluster.
   * `cache` - The canonical name of the disk to use for vSAN cache.
   * `storage` - An array of disk canonical names for vSAN storage.
+* `vsan_fault_domains` - (Optional) Configurations of vSAN fault domains.
+  * `fault_domain` - The configuration for single fault domain.
+    * `name` - The name of fault domain.
+    * `host_ids` - The managed object IDs of the hosts to put in the fault domain.
+* `vsan_stretched_cluster` - (Optional) Configurations of vSAN stretched cluster.
+  * `preferred_fault_domain_host_ids` - The managed object IDs of the hosts to put in the first fault domain.
+  * `secondary_fault_domain_host_ids` - The managed object IDs of the hosts to put in the second fault domain.
+  * `witness_node` - The managed object IDs of the host selected as witness node when enable stretched cluster.
+  * `preferred_fault_domain_name` - (Optional) The name of first fault domain. Default is `Preferred`.
+  * `secondary_fault_domain_name` - (Optional) The name of second fault domain. Default is `Secondary`.
 
 ~> **NOTE:** You must disable vSphere HA before you enable vSAN on the cluster.
 You can enable or re-enable vSphere HA after vSAN is configured.
@@ -505,6 +517,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   ha_enabled = false
 
   vsan_enabled = true
+  vsan_esa_enabled = true
   vsan_dedup_enabled = true
   vsan_compression_enabled = true
   vsan_performance_enabled = true
@@ -517,8 +530,33 @@ resource "vsphere_compute_cluster" "compute_cluster" {
     cache = data.vsphere_vmfs_disks.cache_disks[0]
     storage = data.vsphere_vmfs_disks.storage_disks
   }
+  vsan_fault_domains {
+    fault_domain {
+      name = "fd1"
+      host_ids = [data.vsphere_host.faultdomain1_hosts.*.id]
+    }
+    fault_domain {
+      name = "fd2"
+      host_ids = [data.vsphere_host.faultdomain2_hosts.*.id]
+    }
+  }
+  vsan_stretched_cluster {
+    preferred_fault_domain_host_ids = [data.vsphere_host.preferred_fault_domain_host.*.id]
+    secondary_fault_domain_host_ids = [data.vsphere_host.secondary_fault_domain_host.*.id]
+    witness_node = data.vsphere_host.witness_host.id
+  }
 }
 ```
+
+### vLCM Settings
+
+After vLCM is enabled on a cluster it is not possible to disable it.
+
+* `host_image` - (Optional) Enables vLCM on the cluster and applies an ESXi image with the provided configuration.
+  * `esx_version` - The ESXi version which will be used as a base for the image. See [`host_base_images`][docs-d-host-base-images].
+  * `component` - A custom component to add to the base image. TODO - add link to offline depot resource docs 
+    * `key` - The identifier of the component
+    * `version` - The version of the component 
 
 ## Attribute Reference
 
@@ -533,6 +571,7 @@ The following attributes are exported:
 
 [docs-r-vsphere-virtual-machine-resource-pool-id]: /docs/providers/vsphere/r/virtual_machine.html#resource_pool_id
 [docs-r-vsphere-virtual-machine]: /docs/providers/vsphere/r/virtual_machine.html
+[docs-d-host-base-images]: /docs/providers/vsphere/d/host_base_images.html
 
 ## Importing
 
@@ -558,3 +597,9 @@ specific version of vSphere.
 These settings require vSphere 7.0 or higher:
 
 * [`drs_scale_descendants_shares`](#drs_scale_descendants_shares)
+
+### Settings that Require vSphere 8.0 or higher
+
+These settings require vSphere 8.0 or higher:
+
+* [`vsan_esa_enabled`](#vsan_esa_enabled)

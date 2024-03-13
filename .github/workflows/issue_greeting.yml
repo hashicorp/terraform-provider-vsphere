@@ -1,9 +1,10 @@
----
 name: Issue Greeting
-'on':
+
+on:
   issues:
     types:
       - opened
+
 jobs:
   greeting:
     name: Send Greeting
@@ -11,18 +12,18 @@ jobs:
     if: github.event.issue.author_association == 'NONE'
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
         with:
           fetch-depth: 1
       - name: Render Template
         id: template
-        uses: chuhlomin/render-template@v1.6
+        uses: chuhlomin/render-template@a473db625a96c98e519d188812dc22bcaf54ffba # v1.9
         with:
           template: .github/issue_greeting_template.md
           vars: |
             author: ${{ github.actor }}
       - name: Create Comment
-        uses: peter-evans/create-or-update-comment@v2
+        uses: peter-evans/create-or-update-comment@23ff15729ef2fc348714a3bb66d2f655ca9066f2 # v3.1.0
         with:
           issue-number: '${{ github.event.issue.number }}'
           body: '${{ steps.template.outputs.result }}'

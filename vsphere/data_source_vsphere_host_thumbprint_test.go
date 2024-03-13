@@ -39,7 +39,8 @@ func testAccDataSourceVSphereHostThumbprintPreCheck(t *testing.T) {
 func testAccDataSourceVSphereHostThumbprintConfig() string {
 	return fmt.Sprintf(`
 data "vsphere_host_thumbprint" "thumb" {
-  address = "%s"
+  address  = "%s"
+  insecure = true
 }`,
 		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
 	)

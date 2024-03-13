@@ -77,7 +77,7 @@ func resourceVSphereVirtualMachineSnapshotCreate(d *schema.ResourceData, meta in
 
 	tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer tcancel()
-	taskInfo, err := task.WaitForResult(tctx, nil)
+	taskInfo, err := task.WaitForResultEx(tctx, nil)
 	if err != nil {
 		log.Printf("[DEBUG] Error While waiting for the Task for Create Snapshot: %v", err)
 		return fmt.Errorf(" Error While waiting for the Task for Create Snapshot: %s", err)
@@ -124,7 +124,7 @@ func resourceVSphereVirtualMachineSnapshotDelete(d *schema.ResourceData, meta in
 	}
 	log.Printf("[DEBUG] Task created for Delete Snapshot: %v", task)
 
-	err = task.Wait(ctx)
+	err = task.WaitEx(ctx)
 	if err != nil {
 		log.Printf("[DEBUG] Error While waiting for the Task of Delete Snapshot: %v", err)
 		return fmt.Errorf("Error While waiting for the Task of Delete Snapshot: %s", err)

@@ -179,7 +179,7 @@ func resourceVsphereHostCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	p := property.DefaultCollector(client.Client)
-	res, err := gtask.Wait(context.TODO(), task.Reference(), p, nil)
+	res, err := gtask.WaitEx(context.TODO(), task.Reference(), p, nil)
 	if err != nil {
 		return fmt.Errorf("host addition failed. %s", err)
 	}
@@ -508,7 +508,7 @@ func resourceVsphereHostDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 	p := property.DefaultCollector(client.Client)
-	_, err = gtask.Wait(context.TODO(), task.Reference(), p, nil)
+	_, err = gtask.WaitEx(context.TODO(), task.Reference(), p, nil)
 	if err != nil {
 		return fmt.Errorf("error while waiting for host (%s) to be removed: %s", hostID, err)
 	}
@@ -604,7 +604,7 @@ func resourceVSphereHostUpdateCluster(d *schema.ResourceData, meta, _, newVal in
 		return fmt.Errorf("error while moving HostSystem with ID %s to new cluster. Error: %s", hostID, err)
 	}
 	p := property.DefaultCollector(client.Client)
-	_, err = gtask.Wait(context.TODO(), task.Reference(), p, nil)
+	_, err = gtask.WaitEx(context.TODO(), task.Reference(), p, nil)
 	if err != nil {
 		return fmt.Errorf("error while moving host to new cluster (%s): %s", newClusterID, err)
 	}
@@ -633,7 +633,7 @@ func resourceVSphereHostReconnect(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	p := property.DefaultCollector(client.Client)
-	_, err = gtask.Wait(context.TODO(), task.Reference(), p, nil)
+	_, err = gtask.WaitEx(context.TODO(), task.Reference(), p, nil)
 	if err != nil {
 		return fmt.Errorf("error while reconnecting host(%s): %s", hostID, err)
 	}
@@ -663,7 +663,7 @@ func resourceVSphereHostDisconnect(d *schema.ResourceData, meta interface{}) err
 	}
 
 	p := property.DefaultCollector(client.Client)
-	_, err = gtask.Wait(context.TODO(), task.Reference(), p, nil)
+	_, err = gtask.WaitEx(context.TODO(), task.Reference(), p, nil)
 	if err != nil {
 		return fmt.Errorf("error while disconnecting host(%s): %s", hostID, err)
 	}

@@ -77,7 +77,7 @@ func resourceVSphereDistributedPortGroupCreate(d *schema.ResourceData, meta inte
 	}
 	tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer tcancel()
-	info, err := task.WaitForResult(tctx, nil)
+	info, err := task.WaitForResultEx(tctx, nil)
 	if err != nil {
 		return fmt.Errorf("error waiting for portgroup creation to complete: %s", err)
 	}
@@ -173,7 +173,7 @@ func resourceVSphereDistributedPortGroupUpdate(d *schema.ResourceData, meta inte
 	}
 	tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer tcancel()
-	if err := task.Wait(tctx); err != nil {
+	if err := task.WaitEx(tctx); err != nil {
 		return fmt.Errorf("error waiting for portgroup update to complete: %s", err)
 	}
 
@@ -213,7 +213,7 @@ func resourceVSphereDistributedPortGroupDelete(d *schema.ResourceData, meta inte
 	}
 	tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer tcancel()
-	if err := task.Wait(tctx); err != nil {
+	if err := task.WaitEx(tctx); err != nil {
 		return fmt.Errorf("error waiting for portgroup deletion to complete: %s", err)
 	}
 	return nil

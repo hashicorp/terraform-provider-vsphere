@@ -17,14 +17,9 @@ import (
 
 // Basic file creation (upload to vSphere)
 func TestAccResourceVSphereFile_basic(t *testing.T) {
-	testVmdkFileData := []byte(`# Disk DescriptorFile
-version=1
-CID=fffffffe
-parentCID=ffffffff
-createType="twoGbMaxExtentSparse"
-`)
-	testVmdkFile := "/tmp/tf_test.vmdk"
-	err := os.WriteFile(testVmdkFile, testVmdkFileData, 0600)
+	testFileData := []byte("test file data")
+	testFile := "/tmp/tf_test.txt"
+	err := os.WriteFile(testFile, testFileData, 0600)
 	if err != nil {
 		t.Errorf("error %s", err)
 		return
@@ -34,8 +29,8 @@ createType="twoGbMaxExtentSparse"
 	datastore := os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")
 	testMethod := "basic"
 	resourceName := "vsphere_file." + testMethod
-	destinationFile := "tf_file_test.vmdk"
-	sourceFile := testVmdkFile
+	destinationFile := "tf_file_test.txt"
+	sourceFile := testFile
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -62,24 +57,90 @@ createType="twoGbMaxExtentSparse"
 			},
 		},
 	})
-	_ = os.Remove(testVmdkFile)
+	_ = os.Remove(testFile)
+}
+
+// Test file creation (upload to vSphere) in non-existing folders with create_directories set to True
+func TestAccResourceVSphereFile_uploadWithCreateDirectories(t *testing.T) {
+	testFileData := []byte("test file data")
+	testFile := "/tmp/tf_test.txt"
+	err := os.WriteFile(testFile, testFileData, 0600)
+	if err != nil {
+		t.Errorf("error %s", err)
+		return
+	}
+
+	datacenter := os.Getenv("TF_VAR_VSPHERE_DATACENTER")
+	datastore := os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")
+	fileInNestedFolder := "fileInNestedFolder"
+	fileInNestedFolderResourceName := "vsphere_file." + fileInNestedFolder
+	destinationFileInNestedFolderPath := "/folder1/folder2/folder3/tf_file_test.txt"
+	fileInRootFolder := "fileInRootFolder"
+	fileInRootFolderResourceName := "vsphere_file." + fileInRootFolder
+	destinationFileInRootFolderPath := "tf_file_test.txt"
+	sourceFile := testFile
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccCheckEnvVariables(t, []string{"TF_VAR_VSPHERE_DATACENTER", "TF_VAR_VSPHERE_NFS_DS_NAME"})
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereFileDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(
+					testAccCheckVSphereFileCreateFolderConfig,
+					fileInNestedFolder,
+					datacenter,
+					datastore,
+					sourceFile,
+					destinationFileInNestedFolderPath,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereFileExists(
+						fileInNestedFolderResourceName, destinationFileInNestedFolderPath, true),
+					resource.TestCheckResourceAttr(
+						fileInNestedFolderResourceName, "destination_file", destinationFileInNestedFolderPath),
+				),
+			},
+			{
+				Config: fmt.Sprintf(
+					testAccCheckVSphereFileCreateFolderConfig,
+					fileInRootFolder,
+					datacenter,
+					datastore,
+					sourceFile,
+					destinationFileInRootFolderPath,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereFileExists(
+						fileInRootFolderResourceName, destinationFileInRootFolderPath, true),
+					resource.TestCheckResourceAttr(
+						fileInRootFolderResourceName, "destination_file", destinationFileInRootFolderPath),
+				),
+			},
+		},
+	})
+	_ = os.Remove(testFile)
 }
 
 // Basic file copy within vSphere
 func TestAccResourceVSphereFile_basicUploadAndCopy(t *testing.T) {
-	testVmdkFileData := []byte("# Disk DescriptorFile\n")
-	sourceFile := "/tmp/tf_test.vmdk"
+	testFileData := []byte("test file data")
+	sourceFile := "/tmp/tf_test.txt"
 	uploadResourceName := "myfileupload"
 	copyResourceName := "myfilecopy"
 	sourceDatacenter := os.Getenv("TF_VAR_VSPHERE_DATACENTER")
 	datacenter := sourceDatacenter
 	sourceDatastore := os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")
 	datastore := sourceDatastore
-	destinationFile := "tf_file_test.vmdk"
+	destinationFile := "tf_file_test.txt"
 	sourceFileCopy := "${vsphere_file." + uploadResourceName + ".destination_file}"
-	destinationFileCopy := "tf_file_test_copy.vmdk"
+	destinationFileCopy := "tf_file_test_copy.txt"
 
-	err := os.WriteFile(sourceFile, testVmdkFileData, 0600)
+	err := os.WriteFile(sourceFile, testFileData, 0600)
 	if err != nil {
 		t.Errorf("error %s", err)
 		return
@@ -124,9 +185,9 @@ func TestAccResourceVSphereFile_basicUploadAndCopy(t *testing.T) {
 
 // file creation followed by a rename of file (update)
 func TestAccResourceVSphereFile_renamePostCreation(t *testing.T) {
-	testVmdkFileData := []byte("# Disk DescriptorFile\n")
-	testVmdkFile := "/tmp/tf_test.vmdk"
-	err := os.WriteFile(testVmdkFile, testVmdkFileData, 0600)
+	testFileData := []byte("test file data")
+	testFile := "/tmp/tf_test.txt"
+	err := os.WriteFile(testFile, testFileData, 0600)
 	if err != nil {
 		t.Errorf("error %s", err)
 		return
@@ -136,9 +197,9 @@ func TestAccResourceVSphereFile_renamePostCreation(t *testing.T) {
 	datastore := os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")
 	testMethod := "create_upgrade"
 	resourceName := "vsphere_file." + testMethod
-	destinationFile := "tf_test_file.vmdk"
-	destinationFileMoved := "tf_test_file_moved.vmdk"
-	sourceFile := testVmdkFile
+	destinationFile := "tf_test_file.txt"
+	destinationFileMoved := "tf_test_file_moved.txt"
+	sourceFile := testFile
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -181,25 +242,25 @@ func TestAccResourceVSphereFile_renamePostCreation(t *testing.T) {
 			},
 		},
 	})
-	_ = os.Remove(testVmdkFile)
+	_ = os.Remove(testFile)
 }
 
 // file upload, then copy, finally the copy is renamed (moved) (update)
 func TestAccResourceVSphereFile_uploadAndCopyAndUpdate(t *testing.T) {
-	testVmdkFileData := []byte("# Disk DescriptorFile\n")
-	sourceFile := "/tmp/tf_test.vmdk"
+	testFileData := []byte("test file data")
+	sourceFile := "/tmp/tf_test.txt"
 	uploadResourceName := "myfileupload"
 	copyResourceName := "myfilecopy"
 	sourceDatacenter := os.Getenv("TF_VAR_VSPHERE_DATACENTER")
 	datacenter := sourceDatacenter
 	sourceDatastore := os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")
 	datastore := sourceDatastore
-	destinationFile := "tf_file_test.vmdk"
+	destinationFile := "tf_file_test.txt"
 	sourceFileCopy := "${vsphere_file." + uploadResourceName + ".destination_file}"
-	destinationFileCopy := "tf_file_test_copy.vmdk"
-	destinationFileMoved := "tf_test_file_moved.vmdk"
+	destinationFileCopy := "tf_file_test_copy.txt"
+	destinationFileMoved := "tf_test_file_moved.txt"
 
-	err := os.WriteFile(sourceFile, testVmdkFileData, 0600)
+	err := os.WriteFile(sourceFile, testFileData, 0600)
 	if err != nil {
 		t.Errorf("error %s", err)
 		return
@@ -366,5 +427,14 @@ resource "vsphere_file" "%s" {
 	datastore         = "%s"
 	source_file       = "%s"
 	destination_file  = "%s"
+}
+`
+const testAccCheckVSphereFileCreateFolderConfig = `
+resource "vsphere_file" "%s" {
+	datacenter       = "%s"
+	datastore        = "%s"
+	source_file      = "%s"
+	destination_file = "%s"
+    create_directories = true
 }
 `

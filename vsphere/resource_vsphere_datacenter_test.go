@@ -6,7 +6,6 @@ package vsphere
 import (
 	"context"
 	"fmt"
-	"os"
 	"path"
 	"testing"
 
@@ -160,7 +159,7 @@ func TestAccResourceVSphereDatacenter_createOnRootFolder(t *testing.T) {
 
 // Create a datacenter on a subfolder
 func TestAccResourceVSphereDatacenter_createOnSubfolder(t *testing.T) {
-	dcFolder := os.Getenv("TF_VAR_VSPHERE_DC_FOLDER")
+	dcFolder := "dc-folder"
 	name := "testDC"
 
 	resource.Test(t, resource.TestCase{

@@ -88,10 +88,11 @@ via supplying the full datastore path to the virtual disk. An example is below:
 [docs-import]: https://www.terraform.io/docs/import/index.html
 
 ```
-terraform import vsphere_virtual_disk.virtual_disk "/dc-01/[datastore-01] foo/bar.vmdk"
+terraform import vsphere_virtual_disk.virtual_disk \
+  '{"virtual_disk_path": "/dc-01/[datastore-01]foo/bar.vmdk", \ "create_directories": "true"}'
 ```
 
 The above would import the virtual disk located at `foo/bar.vmdk` in the `datastore-01`
-datastore of the `dc-01` datacenter.
+datastore of the `dc-01` datacenter with `create_directories` set as `true`.
 
 ~> **NOTE:** Import is not supported if using the **deprecated** `adapter_type` field.

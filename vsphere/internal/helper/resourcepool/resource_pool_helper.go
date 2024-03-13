@@ -152,14 +152,15 @@ func DefaultDevices(client *govmomi.Client, pool *object.ResourcePool, guest str
 }
 
 // OSFamily uses the resource pool's environment browser to get the OS family
-// for a specific guest ID.
-func OSFamily(client *govmomi.Client, pool *object.ResourcePool, guest string) (string, error) {
+// for a specific guest ID. The list of supported OS is dependent on the hardware version of the vm/template
+// so that is also passed to the environment browser.
+func OSFamily(client *govmomi.Client, pool *object.ResourcePool, guest string, hardwareVersion int) (string, error) {
 	log.Printf("[DEBUG] Looking for OS family for guest ID %q", guest)
 	pprops, err := Properties(pool)
 	if err != nil {
 		return "", err
 	}
-	return computeresource.OSFamily(client, pprops.Owner, guest)
+	return computeresource.OSFamily(client, pprops.Owner, guest, hardwareVersion)
 }
 
 // Create creates a ResourcePool.
@@ -191,7 +192,7 @@ func Delete(rp *object.ResourcePool) error {
 	if err != nil {
 		return err
 	}
-	return task.Wait(ctx)
+	return task.WaitEx(ctx)
 }
 
 // MoveIntoResourcePool moves a virtual machine, resource pool, or

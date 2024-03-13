@@ -128,9 +128,6 @@ func testAccResourceVSphereStorageDrsVMOverridePreCheck(t *testing.T) {
 	if os.Getenv("TF_VAR_VSPHERE_NAS_HOST") == "" {
 		t.Skip("set TF_VAR_VSPHERE_NAS_HOST to run vsphere_storage_drs_vm_override acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_NFS_PATH") == "" {
-		t.Skip("set TF_VAR_VSPHERE_NFS_PATH to run vsphere_storage_drs_vm_override acceptance tests")
-	}
 	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_storage_drs_vm_override acceptance tests")
 	}
@@ -217,7 +214,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name                 = "%s"
-  host_system_ids      = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
+  host_system_ids      = [data.vsphere_host.roothost1.id]
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -255,13 +252,12 @@ resource "vsphere_storage_drs_vm_override" "drs_vm_override" {
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2(),
 			testhelper.ConfigDataRootComputeCluster1(),
 			testhelper.ConfigResResourcePool1(),
 			testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"),
+		testhelper.NfsPath2,
+		testhelper.NfsDsName2,
 	)
 }
 
@@ -285,7 +281,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name                 = "testacc-nas"
-  host_system_ids      = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
+  host_system_ids      = [data.vsphere_host.roothost1.id]
   datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
 
   type         = "NFS"
@@ -326,11 +322,10 @@ resource "vsphere_storage_drs_vm_override" "drs_vm_override" {
 		testhelper.CombineConfigs(
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2(),
 			testhelper.ConfigDataRootComputeCluster1(),
 			testhelper.ConfigResResourcePool1(),
 			testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
-		os.Getenv("TF_VAR_VSPHERE_NFS_PATH2"),
+		testhelper.NfsPath2,
 	)
 }

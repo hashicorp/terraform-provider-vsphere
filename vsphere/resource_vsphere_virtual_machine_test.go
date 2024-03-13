@@ -35,6 +35,8 @@ const (
 	testAccResourceVSphereVirtualMachineDiskNameExtraVmdk = "terraform-test-vm-extra-disk.vmdk"
 	testAccResourceVSphereVirtualMachineStaticMacAddr     = "06:5c:89:2b:a0:64"
 	testAccResourceVSphereVirtualMachineAnnotation        = "Managed by Terraform"
+	testAccResourceVSphereVirtualMachineIsoDatastore      = "nfs"
+	testAccResourceVSphereVirtualMachineIsoFile           = "fake.iso"
 )
 
 func TestAccResourceVSphereVirtualMachine_basic(t *testing.T) {
@@ -504,10 +506,6 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitInsufficientBus(t *testing
 				Config:      testAccResourceVSphereVirtualMachineConfigMultiHighBusInsufficientBus(),
 				ExpectError: regexp.MustCompile("unit_number on disk \"disk1\" too high \\(15\\) - maximum value is 14 with 1 SCSI controller\\(s\\)"),
 			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
-			},
 		},
 	})
 }
@@ -850,9 +848,6 @@ func TestAccResourceVSphereVirtualMachine_cdromIsoBacking(t *testing.T) {
 					testAccResourceVSphereVirtualMachineCheckIsoCdrom(),
 				),
 			},
-			{
-				Config: testAccResourceVSphereEmpty,
-			},
 		},
 	})
 }
@@ -869,9 +864,6 @@ func TestAccResourceVSphereVirtualMachine_cdromConflictingParameters(t *testing.
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigConflictingCdromParameters(),
 				ExpectError: regexp.MustCompile("Cannot have both client_device parameter and ISO file parameters"),
-			},
-			{
-				Config: testAccResourceVSphereEmpty,
 			},
 		},
 	})
@@ -1163,9 +1155,6 @@ func TestAccResourceVSphereVirtualMachine_vAppContainerAndFolder(t *testing.T) {
 				Config:      testAccResourceVSphereVirtualMachineConfigVAppAndFolder(),
 				ExpectError: regexp.MustCompile("cannot set folder while VM is in a vApp container"),
 			},
-			{
-				Config: testAccResourceVSphereEmpty,
-			},
 		},
 	})
 }
@@ -1403,17 +1392,18 @@ func TestAccResourceVSphereVirtualMachine_blockComputedDiskName(t *testing.T) {
 			testAccPreCheck(t)
 			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
-		Providers:    testAccProviders,
+		Providers: testAccProviders,
+		ExternalProviders: map[string]resource.ExternalProvider{
+			"random": {
+				Source: "hashicorp/random",
+			},
+		},
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigComputedDisk(),
 				ExpectError: regexp.MustCompile("disk label or name must be defined and cannot be computed"),
 				PlanOnly:    true,
-			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
 			},
 		},
 	})
@@ -1432,10 +1422,6 @@ func TestAccResourceVSphereVirtualMachine_blockVAppSettingsOnNonClones(t *testin
 			{
 				Config:      testAccResourceVSphereVirtualMachineVAppPropertiesNonClone(),
 				ExpectError: regexp.MustCompile("vApp properties can only be set on cloned virtual machines"),
-			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
 			},
 		},
 	})
@@ -1485,10 +1471,6 @@ func TestAccResourceVSphereVirtualMachine_blockDiskLabelStartingWithOrphanedPref
 				Config:      testAccResourceVSphereVirtualMachineConfigBadOrphanedLabel(),
 				ExpectError: regexp.MustCompile(regexp.QuoteMeta(`disk label "orphaned_disk_0" cannot start with "orphaned_disk_"`)),
 				PlanOnly:    true,
-			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
 			},
 		},
 	})
@@ -1602,14 +1584,14 @@ func TestAccResourceVSphereVirtualMachine_cloneCustomizeForceNewWithDatastore(t 
 			},
 			{
 				Config: testAccResourceVSphereVirtualMachineConfigCloneParameterized(
-					os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"),
+					testhelper.NfsDsName2,
 					"terraform-test-renamed",
 				),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckHostname("terraform-test-renamed"),
-					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(testhelper.NfsDsName2),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, testhelper.NfsDsName2),
 					func(s *terraform.State) error {
 						oldID := state.RootModule().Resources["vsphere_virtual_machine.vm"].Primary.ID
 						return testCheckResourceNotAttr("vsphere_virtual_machine.vm", "id", oldID)(s)
@@ -1681,6 +1663,26 @@ func TestAccResourceVSphereVirtualMachine_cloneMultiNICFromSingleNICTemplate(t *
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_cloneMultiNICSRIOVFromVMXNET3Template(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneMultiNICVMXNET3(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVirtualMachine_cloneWithDifferentTimezone(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -1740,10 +1742,6 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadTimezone(t *testing.T) {
 				ExpectError: regexp.MustCompile("must be similar to America/Los_Angeles or other Linux/Unix TZ format"),
 				PlanOnly:    true,
 			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
-			},
 		},
 	})
 }
@@ -1786,10 +1784,6 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithLinkedClone(t *tes
 				ExpectError: regexp.MustCompile("must be the exact size of source when using linked_clone"),
 				PlanOnly:    true,
 			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
-			},
 		},
 	})
 }
@@ -1808,10 +1802,6 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithoutLinkedClone(t *
 				Config:      testAccResourceVSphereVirtualMachineConfigBadSizeUnlinked(),
 				ExpectError: regexp.MustCompile("must be at least the same size of source when cloning"),
 				PlanOnly:    true,
-			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
 			},
 		},
 	})
@@ -1834,10 +1824,7 @@ func TestAccResourceVSphereVirtualMachine_cloneIntoEmptyCluster(t *testing.T) {
 				ExpectError: regexp.MustCompile("compute resource .* is missing an Environment Browser\\. Check host, cluster, and vSphere license health of all associated resources and try again"),
 				//PlanOnly:    true,
 			},
-			{
-				Config: testAccResourceVSphereEmpty,
-				Check:  resource.ComposeTestCheckFunc(),
-			}},
+		},
 	})
 }
 
@@ -1856,6 +1843,47 @@ func TestAccResourceVSphereVirtualMachine_cloneWithDifferentHostname(t *testing.
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckHostname("terraform-test-renamed"),
+				),
+			},
+		},
+	})
+}
+func TestAccResourceVSphereVirtualMachine_cloneWithDiskTypeChange(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneChangedDiskType(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineCheckEagerlyScrub(0, true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneOnDsCuster(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+			testAccDsClusterRequiredPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneChangedDiskTypeDsCluster(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
 				),
 			},
 		},
@@ -1963,9 +1991,6 @@ func TestAccResourceVSphereVirtualMachine_hostCheck(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccResourceVSphereEmpty,
-			},
-			{
 				Config: testAccResourceVSphereVirtualMachineConfigHostCheck(os.Getenv("TF_VAR_VSPHERE_ESXI2")),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
@@ -2046,11 +2071,11 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionGlobalSetting(t *testing
 				Config: testAccResourceVSphereVirtualMachineConfigBase(),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionGlobal(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionGlobal(testhelper.NfsDsName2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(testhelper.NfsDsName2),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, testhelper.NfsDsName2),
 				),
 			},
 			{
@@ -2082,12 +2107,12 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionSingleDisk(t *testing.T)
 				Config: testAccResourceVSphereVirtualMachineConfigBase(),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionSingleDisk(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionSingleDisk(testhelper.NfsDsName2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")),
 					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(1, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(1, testhelper.NfsDsName2),
 				),
 			},
 			{
@@ -2120,9 +2145,9 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionPinDatastore(t *testing.
 				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionPinDatastore("vsphere_nas_datastore.ds1.id"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(1, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(testhelper.NfsDsName2),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, testhelper.NfsDsName2),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(1, testhelper.NfsDsName2),
 				),
 			},
 			{
@@ -2152,11 +2177,11 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionRenamedVirtualMachine(t 
 				Config: testAccResourceVSphereVirtualMachineConfigBase(),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("testacc-test", os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("testacc-test", testhelper.NfsDsName2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(testhelper.NfsDsName2),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, testhelper.NfsDsName2),
 				),
 			},
 			{
@@ -2168,11 +2193,11 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionRenamedVirtualMachine(t 
 				),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("foobar-test", os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionRename("foobar-test", testhelper.NfsDsName2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME")),
-					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+					testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, testhelper.NfsDsName2),
 				),
 			},
 		},
@@ -2207,9 +2232,9 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionLinkedClones(t *testing.
 				Check: resource.ComposeTestCheckFunc(
 					copyStatePtr(&state),
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					testAccResourceVSphereVirtualMachineCheckVmxDatastore(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+					testAccResourceVSphereVirtualMachineCheckVmxDatastore(testhelper.NfsDsName2),
 					func(s *terraform.State) error {
-						return testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2"))(s)
+						return testAccResourceVSphereVirtualMachineCheckVmdkDatastore(0, testhelper.NfsDsName2)(s)
 					},
 				),
 			},
@@ -2239,7 +2264,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionBlockExternallyAttachedD
 				),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionAttachedDisk(os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME2")),
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionAttachedDisk(testhelper.NfsDsName2),
 				ExpectError: regexp.MustCompile(regexp.QuoteMeta(
 					fmt.Sprintf("externally attached disk %q cannot be migrated", testAccResourceVSphereVirtualMachineDiskNameExtraVmdk),
 				)),
@@ -2394,6 +2419,7 @@ func TestAccResourceVSphereVirtualMachine_cloneImport(t *testing.T) {
 					"clone",
 					"cdrom",
 					"wait_for_guest_net_timeout",
+					"sata_controller_count",
 				},
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					vm, err := testGetVirtualMachine(s, "vm")
@@ -2512,6 +2538,96 @@ func TestAccResourceVSphereVirtualMachine_deployOvaFromUrl(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_cloneWithCustomizationSpec(t *testing.T) {
+	goscName := acctest.RandomWithPrefix("gosc")
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneWithCustomizationSpec(goscName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_SRIOV(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+			testAccSriovPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineSriov(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_createMemoryReservationLockedToMax(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineCreateMemoryLockToMax(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "memory_reservation_locked_to_max", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_deployOvfFromUrlMultipleVmsSameName(t *testing.T) {
+	ovfNameTpl := "terraform_test_vm_" + acctest.RandStringFromCharSet(4, acctest.CharSetAlphaNum)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			testAccResourceVSphereVirtualMachineCheckExistsByName(false, "vm1"),
+			testAccResourceVSphereVirtualMachineCheckExistsByName(false, "vm2"),
+		),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineDeployOvfFromURLMultipleVMsSameName(ovfNameTpl),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExistsByName(true, "vm1"),
+					testAccResourceVSphereVirtualMachineCheckExistsByName(true, "vm2"),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBase(),
+			},
+		},
+	})
+}
+
 func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	// Note that TF_VAR_VSPHERE_USE_LINKED_CLONE is also a variable and its presence
 	// speeds up tests greatly, but it's not a necessary variable, so we don't
@@ -2534,32 +2650,41 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE") == "" {
 		t.Skip("set TF_VAR_VSPHERE_TEMPLATE to run vsphere_virtual_machine acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE") == "" {
+	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE_ISO_TRANSPORT") == "" {
 		t.Skip("set TF_VAR_VSPHERE_TEMPLATE_ISO_TRANSPORT to run vsphere_virtual_machine acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE") == "" {
+	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE_WINDOWS") == "" {
 		t.Skip("set TF_VAR_VSPHERE_TEMPLATE_WINDOWS to run vsphere_virtual_machine acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE") == "" {
+	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE_NONUSER_VAPP") == "" {
 		t.Skip("set TF_VAR_VSPHERE_TEMPLATE_NONUSER_VAPP to run vsphere_virtual_machine acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE") == "" {
+	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE_COREOS") == "" {
 		t.Skip("set TF_VAR_VSPHERE_TEMPLATE_COREOS to run vsphere_virtual_machine acceptance tests")
 	}
 	if os.Getenv("TF_VAR_VSPHERE_ESXI1") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_virtual_machine acceptance tests")
+		t.Skip("set TF_VAR_VSPHERE_ESXI1 to run vsphere_virtual_machine acceptance tests")
 	}
 	if os.Getenv("TF_VAR_VSPHERE_ESXI2") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST2 to run vsphere_virtual_machine acceptance tests")
+		t.Skip("set TF_VAR_VSPHERE_ESXI2 to run vsphere_virtual_machine acceptance tests")
 	}
 	if os.Getenv("TF_VAR_VSPHERE_NAS_HOST") == "" {
 		t.Skip("set TF_VAR_VSPHERE_NAS_HOST to run vsphere_virtual_machine acceptance tests")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_NFS_PATH") == "" {
-		t.Skip("set TF_VAR_VSPHERE_NFS_PATH to run vsphere_virtual_machine acceptance tests")
+}
+
+func testAccDsClusterRequiredPreCheck(t *testing.T) {
+	if os.Getenv("TF_VAR_VSPHERE_DS_CLUSTER1") == "" {
+		t.Skip("TF_VAR_VSPHERE_DS_CLUSTER1 must be set with a name of a DS cluster in order to run tests which require DS cluster ")
 	}
-	if os.Getenv("TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES") == "" {
-		t.Skip("set TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES to run vsphere_virtual_machine acceptance tests")
+}
+
+func testAccSriovPreCheck(t *testing.T) {
+	skipTxt := `TF_VAR_VSPHERE_SRIOV_HOST, TF_VAR_VSPHERE_SRIOV_HOST_VMFS and TF_VAR_VSPHERE_SRIOV_PHYSICAL_FUNCTION variables must be set to run SRIOV test`
+	if os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST") == "" ||
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST_VMFS") == "" ||
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_PHYSICAL_FUNCTION") == "" {
+		t.Skip(skipTxt)
 	}
 }
 
@@ -2578,6 +2703,58 @@ func testAccResourceVSphereVirtualMachineCheckExists(expected bool) resource.Tes
 		if !expected {
 			return errors.New("expected VM to be missing")
 		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereVirtualMachineCheckExistsByName(expected bool, vmName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		_, err := testGetVirtualMachine(s, vmName)
+		if err != nil {
+			missingState, _ := regexp.MatchString("not found in state", err.Error())
+			missingVSphere, _ := regexp.MatchString("virtual machine with UUID \"[-a-f0-9]+\" not found", err.Error())
+			if missingState && !expected || missingVSphere && !expected {
+				// Expected missing
+				return nil
+			}
+			return err
+		}
+		if !expected {
+			return errors.New("expected vm to be missing")
+		}
+		return nil
+	}
+}
+
+func testAccResourceVSphereVirtualMachineCheckEagerlyScrub(diskIndex int, eagerlyScrubedValue bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVirtualMachineProperties(s, "vm")
+		if err != nil {
+			return err
+		}
+
+		currentDiskIndex := -1
+		for _, device := range props.Config.Hardware.Device {
+			disk, ok := device.(*types.VirtualDisk)
+			if !ok {
+				continue
+			}
+			currentDiskIndex++
+			if currentDiskIndex != diskIndex {
+				continue
+			}
+			backing, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+			if !ok {
+				continue
+			}
+
+			if *backing.EagerlyScrub != eagerlyScrubedValue {
+				return fmt.Errorf("expected %t as eagerlyScrubbed for disk %d but received %t",
+					eagerlyScrubedValue, diskIndex, *backing.EagerlyScrub)
+			}
+
+		}
+
 		return nil
 	}
 }
@@ -2944,8 +3121,8 @@ func testAccResourceVSphereVirtualMachineCheckIsoCdrom() resource.TestCheckFunc 
 				}
 				if backing, ok := cdrom.Backing.(*types.VirtualCdromIsoBackingInfo); ok {
 					expected := &object.DatastorePath{
-						Datastore: os.Getenv("TF_VAR_VSPHERE_ISO_DATASTORE"),
-						Path:      os.Getenv("TF_VAR_VSPHERE_ISO_FILE"),
+						Datastore: testAccResourceVSphereVirtualMachineIsoDatastore,
+						Path:      testAccResourceVSphereVirtualMachineIsoFile,
 					}
 					actual := new(object.DatastorePath)
 					actual.FromString(backing.FileName)
@@ -4272,8 +4449,8 @@ resource "vsphere_virtual_machine" "vm" {
 `,
 
 		testAccResourceVSphereVirtualMachineConfigBase(),
-		os.Getenv("TF_VAR_VSPHERE_ISO_DATASTORE"),
-		os.Getenv("TF_VAR_VSPHERE_ISO_FILE"),
+		testAccResourceVSphereVirtualMachineIsoDatastore,
+		testAccResourceVSphereVirtualMachineIsoFile,
 	)
 }
 
@@ -4326,8 +4503,8 @@ resource "vsphere_virtual_machine" "vm" {
 `,
 
 		testAccResourceVSphereVirtualMachineConfigBase(),
-		os.Getenv("TF_VAR_VSPHERE_ISO_DATASTORE"),
-		os.Getenv("TF_VAR_VSPHERE_ISO_FILE"),
+		testAccResourceVSphereVirtualMachineIsoDatastore,
+		testAccResourceVSphereVirtualMachineIsoFile,
 	)
 }
 
@@ -4379,8 +4556,8 @@ resource "vsphere_virtual_machine" "vm" {
 `,
 
 		testAccResourceVSphereVirtualMachineConfigBase(),
-		os.Getenv("TF_VAR_VSPHERE_ISO_DATASTORE"),
-		os.Getenv("TF_VAR_VSPHERE_ISO_FILE"),
+		testAccResourceVSphereVirtualMachineIsoDatastore,
+		testAccResourceVSphereVirtualMachineIsoFile,
 	)
 }
 
@@ -4476,6 +4653,13 @@ resource "vsphere_virtual_machine" "vm" {
   disk {
     label = "disk0"
     size  = 20
+  }
+
+  lifecycle {
+    ignore_changes = [
+      ept_rvi_mode,
+      hv_mode
+    ]
   }
 }
 `,
@@ -5516,6 +5700,8 @@ resource "vsphere_virtual_machine" "vm" {
   num_cpus = 2
   memory   = 2048
   guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  // ACPI motherboard layout requires EFI. Only required for hardware version 20+ (vSphere 8)
+  firmware = "efi"
 
   wait_for_guest_net_timeout = 0
 
@@ -5542,12 +5728,107 @@ resource "vsphere_virtual_machine" "vm" {
   cdrom {
     client_device = true
   }
+
+  lifecycle {
+    ignore_changes = [
+      ept_rvi_mode,
+      hv_mode
+    ]
+  }
 }
 `,
 
 		testAccResourceVSphereVirtualMachineConfigBase(),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 		os.Getenv("TF_VAR_VSPHERE_USE_LINKED_CLONE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigCloneMultiNICVMXNET3() string {
+	return fmt.Sprintf(`
+%s  // Mix and match config
+
+data "vsphere_virtual_machine" "template" {
+  name          = "%s"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+}
+
+variable "host" {
+  default = "%s"
+}
+
+data "vsphere_host" "host" {
+  name          = "${var.host}"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "testacc-test"
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = "${data.vsphere_datastore.rootds1.id}"
+  // ACPI motherboard layout requires EFI. Only required for hardware version 20+ (vSphere 8)
+  firmware = "efi"
+
+  num_cpus = 2
+  memory   = 2048
+  memory_reservation = 2048
+  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+
+  wait_for_guest_net_timeout = 0
+
+  host_system_id   = data.vsphere_host.host.id
+
+  network_interface {
+    network_id = "${data.vsphere_network.network1.id}"
+    adapter_type = "vmxnet3"
+  }
+
+  network_interface {
+    network_id = "${data.vsphere_network.network1.id}"
+    adapter_type = "vmxnet3"
+  }
+
+  network_interface {
+    network_id = "${data.vsphere_network.network1.id}"
+    adapter_type = "vmxnet3"
+  }
+
+  network_interface {
+    network_id = "${data.vsphere_network.network1.id}"
+    adapter_type = "sriov"
+    physical_function = "%s"
+  }
+  
+  network_interface {
+    network_id = "${data.vsphere_network.network1.id}"
+    adapter_type = "sriov"
+    physical_function = "%s"
+  }
+
+  disk {
+    label            = "disk0"
+    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
+    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+  }
+
+  clone {
+    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+  }
+
+  lifecycle {
+    ignore_changes = [
+      ept_rvi_mode,
+      hv_mode
+    ]
+  }
+}
+`,
+		testAccResourceVSphereVirtualMachineConfigBase(),
+		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_PHYSICAL_FUNCTION"),
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_PHYSICAL_FUNCTION"),
 	)
 }
 
@@ -5678,6 +5959,152 @@ resource "vsphere_virtual_machine" "vm" {
 		testAccResourceVSphereVirtualMachineConfigBase(),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 		os.Getenv("TF_VAR_VSPHERE_USE_LINKED_CLONE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigCloneChangedDiskType() string {
+	return fmt.Sprintf(`
+	%s
+
+data "vsphere_network" "network" {
+  name          = "VM Network"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+resource "vsphere_virtual_machine" "template" {
+  name          = "vm-1-template"
+  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinuxGuest"
+
+  network_interface {
+    network_id   = data.vsphere_network.network.id
+  }
+
+
+  wait_for_guest_ip_timeout = 0
+  wait_for_guest_net_timeout = 0
+
+  disk {
+    label            = "disk0"
+    size             = 4
+    eagerly_scrub    = false
+    thin_provisioned = false
+    }
+ lifecycle {
+	ignore_changes = [disk]
+	}
+}
+
+
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "vm-1-template-clone"
+  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+  guest_id         = vsphere_virtual_machine.template.guest_id
+  network_interface {
+    network_id   = data.vsphere_network.network.id
+  }
+  datastore_id     = data.vsphere_datastore.rootds1.id
+
+  num_cpus = 2
+  memory   = 2048
+
+  scsi_type =vsphere_virtual_machine.template.scsi_type
+  wait_for_guest_ip_timeout = 0
+  wait_for_guest_net_timeout = 0
+
+  disk {
+    label            = "disk0"
+    size             = vsphere_virtual_machine.template.disk.0.size
+    eagerly_scrub    = true
+    thin_provisioned = false
+    }
+
+  clone {
+    template_uuid = vsphere_virtual_machine.template.id
+  }
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootDS1(),
+		),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigCloneChangedDiskTypeDsCluster() string {
+	return fmt.Sprintf(`
+	%s
+
+data "vsphere_network" "network" {
+  name          = "VM Network"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+resource "vsphere_virtual_machine" "template" {
+  name          = "vm-1-template"
+  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinuxGuest"
+
+  network_interface {
+    network_id   = data.vsphere_network.network.id
+  }
+
+
+  wait_for_guest_ip_timeout = 0
+  wait_for_guest_net_timeout = 0
+
+  disk {
+    label            = "disk0"
+    size             = 4
+    }
+}
+
+
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "vm-1-template-clone"
+  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+  guest_id         = vsphere_virtual_machine.template.guest_id
+  network_interface {
+    network_id   = data.vsphere_network.network.id
+  }
+  datastore_cluster_id     = data.vsphere_datastore_cluster.ds_cluster1.id
+
+  num_cpus = 2
+  memory   = 2048
+
+  scsi_type =vsphere_virtual_machine.template.scsi_type
+  wait_for_guest_ip_timeout = 0
+  wait_for_guest_net_timeout = 0
+
+  disk {
+    label            = "disk0"
+    size             = vsphere_virtual_machine.template.disk.0.size
+    }
+
+  clone {
+    template_uuid = vsphere_virtual_machine.template.id
+  }
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDSClusterData(),
+		),
 	)
 }
 
@@ -6920,7 +7347,7 @@ resource "vsphere_virtual_machine" "vm" {
 
 `,
 		testAccResourceVSphereVirtualMachineConfigBase(),
-		os.Getenv("TF_VAR_VSPHERE_CONTENT_LIBRARY_FILES"),
+		testhelper.ContentLibraryFiles,
 	)
 }
 
@@ -7028,7 +7455,271 @@ resource "vsphere_virtual_machine" "vm" {
 }
 `,
 		testAccResourceVSphereVirtualMachineConfigBase(),
-		os.Getenv("TF_VAR_VSPHERE_TEST_OVA"),
+		testhelper.TestOva,
+		vmName,
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigCloneWithCustomizationSpec(goscName string) string {
+	return fmt.Sprintf(`
+	%s
+
+data "vsphere_network" "network" {
+  name          = "VM Network"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+resource "vsphere_guest_os_customization" "gosc_spec" {
+	name = %q
+	type = "Linux"
+	spec {
+		linux_options {
+			domain = "example.com"
+			host_name = "linux"
+		}
+		network_interface {}
+	}
+	
+}
+
+data "vsphere_virtual_machine" "template" {
+  name          = %q
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "vm-1-template-clone"
+  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+  guest_id         = data.vsphere_virtual_machine.template.guest_id
+  network_interface {
+    network_id   = data.vsphere_network.network.id
+  }
+  datastore_id     = data.vsphere_datastore.rootds1.id
+
+  num_cpus = 2
+  memory   = 2048
+
+  scsi_type = data.vsphere_virtual_machine.template.scsi_type
+  wait_for_guest_ip_timeout = 0
+  wait_for_guest_net_timeout = 0
+
+ disk {
+    label            = "disk0"
+    size             = data.vsphere_virtual_machine.template.disks.0.size
+    }
+
+  clone {
+    template_uuid = data.vsphere_virtual_machine.template.id
+	customization_spec {
+		id = vsphere_guest_os_customization.gosc_spec.id
+	}
+  }
+}
+
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootDS1(),
+		),
+		goscName,
+		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineSriov() string {
+	return fmt.Sprintf(`
+	%s
+
+data "vsphere_host" "sriov_host" {
+  name =%q
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+data "vsphere_datastore" "sriov_vmfs" {
+  name = %q
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "test-acc-sriov"
+  resource_pool_id = data.vsphere_host.sriov_host.resource_pool_id
+  host_system_id = data.vsphere_host.sriov_host.id
+  guest_id         = "other3xLinuxGuest"
+  network_interface {
+    network_id   = data.vsphere_network.network1.id
+    adapter_type = "sriov"
+    physical_function = %q
+  }
+  datastore_id     = data.vsphere_datastore.sriov_vmfs.id
+  num_cpus = 2
+  memory   = 4096
+  memory_reservation = 4096
+  wait_for_guest_ip_timeout = 0
+  wait_for_guest_net_timeout = 0
+
+  disk {
+    label            = "disk0"
+    size             = 1
+  }
+
+  lifecycle {
+    ignore_changes = [
+      ept_rvi_mode,
+      hv_mode
+    ]
+  }
+}
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootPortGroup1(),
+		),
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST"),
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST_VMFS"),
+		os.Getenv("TF_VAR_VSPHERE_SRIOV_PHYSICAL_FUNCTION"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineCreateMemoryLockToMax() string {
+	return fmt.Sprintf(`
+
+
+%s  // Mix and match config
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "testacc-test"
+  resource_pool_id = data.vsphere_host.roothost1.resource_pool_id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+  host_system_id = data.vsphere_host.roothost1.id
+
+  num_cpus            = 2
+  memory              = 2048
+  memory_reservation  = 2048
+  memory_reservation_locked_to_max = true
+  guest_id            = "other3xLinuxGuest"
+  wait_for_guest_net_timeout = 0
+  network_interface {
+    network_id = "${data.vsphere_network.network1.id}"
+  }
+
+  disk {
+    label = "disk0"
+    size  = 20
+  }
+}
+`,
+
+		testAccResourceVSphereVirtualMachineConfigBase(),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineDeployOvfFromURLMultipleVMsSameName(vmName string) string {
+	return fmt.Sprintf(`
+%s
+
+variable "ovf_url" {
+	default = "%s"
+}
+
+data "vsphere_ovf_vm_template" "ovf" {
+  name              = "%s"
+  resource_pool_id  = data.vsphere_host.roothost1.resource_pool_id
+  datastore_id      = vsphere_nas_datastore.ds1.id
+  host_system_id    = data.vsphere_host.roothost1.id
+  remote_ovf_url    = var.ovf_url
+
+  ovf_network_map   = {
+    "Production_DVS - Mgmt": data.vsphere_network.network1.id
+  }
+}
+
+resource "vsphere_folder" "vm_folder_1" {
+  path          = "vm-folder-11"
+  type          = "vm"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+resource "vsphere_folder" "vm_folder_2" {
+  path          = "vm-folder-12"
+  type          = "vm"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+
+
+resource "vsphere_virtual_machine" "vm1" {
+  datacenter_id    = data.vsphere_datacenter.rootdc1.id
+  folder = vsphere_folder.vm_folder_1.path
+  annotation       = data.vsphere_ovf_vm_template.ovf.annotation
+  name             = "ovf-multiple-name-1"
+  num_cpus         = data.vsphere_ovf_vm_template.ovf.num_cpus
+  memory           = data.vsphere_ovf_vm_template.ovf.memory
+  guest_id         = data.vsphere_ovf_vm_template.ovf.guest_id
+  resource_pool_id = data.vsphere_ovf_vm_template.ovf.resource_pool_id
+  datastore_id     = data.vsphere_ovf_vm_template.ovf.datastore_id
+  host_system_id   = data.vsphere_ovf_vm_template.ovf.host_system_id
+
+  dynamic "network_interface" {
+    for_each = data.vsphere_ovf_vm_template.ovf.ovf_network_map
+    content {
+        network_id = network_interface.value
+    }
+  }
+
+  wait_for_guest_net_timeout = 0
+
+  ovf_deploy {
+	  remote_ovf_url  = var.ovf_url
+	  ovf_network_map = data.vsphere_ovf_vm_template.ovf.ovf_network_map
+  }
+
+lifecycle {
+    ignore_changes = [
+      ept_rvi_mode,
+      hv_mode
+    ]
+  }
+}
+
+resource "vsphere_virtual_machine" "vm2" {
+  datacenter_id    = data.vsphere_datacenter.rootdc1.id
+  folder = vsphere_folder.vm_folder_2.path
+  annotation       = data.vsphere_ovf_vm_template.ovf.annotation
+  name             = "ovf-multiple-name-2"
+  num_cpus         = data.vsphere_ovf_vm_template.ovf.num_cpus
+  memory           = data.vsphere_ovf_vm_template.ovf.memory
+  guest_id         = data.vsphere_ovf_vm_template.ovf.guest_id
+  resource_pool_id = data.vsphere_ovf_vm_template.ovf.resource_pool_id
+  datastore_id     = data.vsphere_ovf_vm_template.ovf.datastore_id
+  host_system_id   = data.vsphere_ovf_vm_template.ovf.host_system_id
+
+  dynamic "network_interface" {
+    for_each = data.vsphere_ovf_vm_template.ovf.ovf_network_map
+    content {
+        network_id = network_interface.value
+    }
+  }
+
+  wait_for_guest_net_timeout = 0
+
+  ovf_deploy {
+	  remote_ovf_url  = var.ovf_url
+	  ovf_network_map = data.vsphere_ovf_vm_template.ovf.ovf_network_map
+  }
+
+lifecycle {
+    ignore_changes = [
+      ept_rvi_mode,
+      hv_mode
+    ]
+  }
+}
+
+`,
+		testAccResourceVSphereVirtualMachineConfigBase(),
+		os.Getenv("TF_VAR_VSPHERE_TEST_OVF"),
 		vmName,
 	)
 }

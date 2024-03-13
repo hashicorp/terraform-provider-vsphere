@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -17,6 +18,8 @@ import (
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"github.com/vmware/govmomi"
 )
+
+// TODO: move away from tests being composed in this manner
 
 type genTfConfig func(string) string
 
@@ -43,7 +46,7 @@ func generateSteps(cfgFunc genTfConfig, netstack string) []resource.TestStep {
 	return out
 }
 
-func TestAccResourceVSphereVNic_dvs(t *testing.T) {
+func TestAccResourceVSphereVNic_dvs_default(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -67,7 +70,7 @@ func TestAccResourceVSphereVNic_dvs_vmotion(t *testing.T) {
 	})
 }
 
-func TestAccResourceVSphereVNic_hvs(t *testing.T) {
+func TestAccResourceVSphereVNic_hvs_default(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -111,6 +114,117 @@ func TestAccResourceVSphereVNic_hvs_vmotion(t *testing.T) {
 						"192.0.2.10|255.255.255.0|192.0.2.1",
 						"",
 						"vmotion"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVNic_services_nonDefaultNetstack(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccVSphereVNicDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testaccvspherevnicconfigHvs(
+					combineSnippets(
+						ipv4Snippet("192.0.2.10|255.255.255.0|192.0.2.1"),
+						"",
+						netstackSnippet("vmotion"),
+						"",
+						`services = ["vsan"]`,
+					),
+				),
+				ExpectError: regexp.MustCompile("services can only be configured when netstack is set to defaultTcpipStack"),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVNic_services_invalid(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccVSphereVNicDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testaccvspherevnicconfigHvs(
+					combineSnippets(
+						ipv4Snippet("192.0.2.10|255.255.255.0|192.0.2.1"),
+						"",
+						netstackSnippet("defaultTcpipStack"),
+						"",
+						`services = ["invalid"]`,
+					),
+				),
+				ExpectError: regexp.MustCompile("Error"),
+				PlanOnly:    true,
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVNic_services_valid(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccVSphereVNicDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testaccvspherevnicconfigHvs(
+					combineSnippets(
+						ipv4Snippet("192.0.2.10|255.255.255.0|192.0.2.1"),
+						"",
+						netstackSnippet("defaultTcpipStack"),
+						"",
+						`services = ["vsan"]`,
+					),
+				),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("vsphere_vnic.v1", "services.#", "1"),
+					resource.TestCheckTypeSetElemAttr("vsphere_vnic.v1", "services.*", "vsan"),
+				),
+			},
+			{
+				Config: testaccvspherevnicconfigHvs(
+					combineSnippets(
+						ipv4Snippet("192.0.2.10|255.255.255.0|192.0.2.1"),
+						"",
+						netstackSnippet("defaultTcpipStack"),
+						"",
+						`services = ["vmotion"]`,
+					),
+				),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("vsphere_vnic.v1", "services.#", "1"),
+					resource.TestCheckTypeSetElemAttr("vsphere_vnic.v1", "services.*", "vmotion"),
+				),
+			},
+			{
+				Config: testaccvspherevnicconfigHvs(
+					combineSnippets(
+						ipv4Snippet("192.0.2.10|255.255.255.0|192.0.2.1"),
+						"",
+						netstackSnippet("defaultTcpipStack"),
+						"",
+						`services = ["vmotion", "management", "vsan"]`,
+					),
+				),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("vsphere_vnic.v1", "services.#", "3"),
+					resource.TestCheckTypeSetElemAttr("vsphere_vnic.v1", "services.*", "vmotion"),
+					resource.TestCheckTypeSetElemAttr("vsphere_vnic.v1", "services.*", "management"),
+					resource.TestCheckTypeSetElemAttr("vsphere_vnic.v1", "services.*", "vsan"),
 				),
 			},
 		},
@@ -201,7 +315,7 @@ func testAccVsphereVNicNetworkSettings(name, ipv4State, ipv6State, netstack stri
 			for _, ipv6addr := range vnic.Spec.Ip.IpV6Config.IpV6Address {
 				if strings.EqualFold(ipv6addr.IpAddress, ip) {
 					if ipv6addr.PrefixLength != int32(prefix) ||
-						strings.EqualFold(routeConfig.IpV6DefaultGateway, gw) {
+						!strings.EqualFold(routeConfig.IpV6DefaultGateway, gw) {
 						return fmt.Errorf(
 							"ipv6 network error, static config mismatch. prefix length %d vs %d, gw %s vs %s",
 							prefix, ipv6addr.PrefixLength,
@@ -272,18 +386,9 @@ func testaccvspherevnicconfigHvs(netConfig string) string {
 	  datacenter_id = data.vsphere_datacenter.rootdc1.id
 	}
 	
-	
-	resource "vsphere_host_virtual_switch" "hvs1" {
-	  name             = "hashi-dc_HPG0"
-	  host_system_id   = data.vsphere_host.h1.id
-	  network_adapters = ["%s", "%s"]
-	  active_nics      = ["%s"]
-	  standby_nics     = ["%s"]
-	}
-	
 	resource "vsphere_host_port_group" "p1" {
 	  name                     = "ko-pg"
-	  virtual_switch_name = vsphere_host_virtual_switch.hvs1.name
+	  virtual_switch_name = "vSwitch0"
 	  host_system_id   = data.vsphere_host.h1.id
 	}
 	
@@ -294,10 +399,6 @@ func testaccvspherevnicconfigHvs(netConfig string) string {
 	}
 	`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI3"),
-		os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"),
-		os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"),
-		os.Getenv("TF_VAR_VSPHERE_HOST_NIC0"),
-		os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"),
 		netConfig)
 }
 
@@ -309,7 +410,7 @@ func testaccvspherevnicconfigDvs(netConfig string) string {
 	  name          = "hashi-dc_DVPG0"
 	  datacenter_id = data.vsphere_datacenter.rootdc1.id
 	  host {
-		host_system_id = data.vsphere_host.roothost1.id
+		host_system_id = data.vsphere_host.roothost2.id
 		devices        = ["%s"]
 	  }
 	}
@@ -321,16 +422,16 @@ func testaccvspherevnicconfigDvs(netConfig string) string {
 	}
 	
 	resource "vsphere_vnic" "v1" {
-	  host                    = data.vsphere_host.roothost1.id
+	  host                    = data.vsphere_host.roothost2.id
 	  distributed_switch_port = vsphere_distributed_virtual_switch.d1.id
 	  distributed_port_group  = vsphere_distributed_port_group.p1.id
 	  %s
 	}
 	`, testhelper.CombineConfigs(
 		testhelper.ConfigDataRootDC1(),
-		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootHost2(),
 	),
-		os.Getenv("TF_VAR_VSPHERE_HOST_NIC1"),
+		testhelper.HostNic1,
 		netConfig)
 }
 
