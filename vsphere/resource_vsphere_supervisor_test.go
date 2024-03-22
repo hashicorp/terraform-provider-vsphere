@@ -6,6 +6,7 @@ package vsphere
 import (
 	"fmt"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -13,11 +14,15 @@ import (
 
 func TestAccResourceVSphereSupervisor_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		//PreCheck: func() {
-		//	RunSweepers()
-		//	testAccPreCheck(t)
-		//	testAccCheckEnvVariables(t, []string{"ESX_HOSTNAME", "ESX_USERNAME", "ESX_PASSWORD"})
-		//},
+		PreCheck: func() {
+			testAccCheckEnvVariables(t, []string{
+				"TF_VAR_STORAGE_POLICY",
+				"TF_VAR_MANAGEMENT_NETWORK",
+				"TF_VAR_CONTENT_LIBRARY",
+				"TF_VAR_DISTRIBUTED_SWITCH",
+				"TF_VAR_EDGE_CLUSTER",
+			})
+		},
 		Providers: testAccProviders,
 		//CheckDestroy: testAccVSphereHostDestroy,
 		Steps: []resource.TestStep{
@@ -34,22 +39,31 @@ func testAccVSphereSupervisorConfig() string {
 %s
 
 data vsphere_storage_policy image_policy {
-	name = "vi-cluster1 vSAN Storage Policy"
+	name = "%s"
 }
 
 data vsphere_network mgmt_net {
-  name = "vi-cluster1-vds-Mgmt-DVPG"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+	name = "%s"
+	datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+}
+
+data vsphere_content_library subscribed_lib {
+	name = "%s"
+}
+
+data vsphere_distributed_virtual_switch dvs {
+	name = "%s"
+	datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 }
 
 resource "vsphere_supervisor" "supervisor" {
 	cluster = "${data.vsphere_compute_cluster.rootcompute_cluster1.id}"
 	storage_policy = "${data.vsphere_storage_policy.image_policy.id}"
-	content_library = "22585f3f-68a0-4c3d-8bab-466223c6699e"
+	content_library = "${data.vsphere_content_library.subscribed_lib.id}"
 	main_dns = "10.0.0.250"
 	worker_dns = "10.0.0.250"
-	edge_cluster = "1c620ec9-66b7-4e8e-b4d9-92bd3c968e91"
-	dvs_uuid = "50 05 6c b3 5e 8c a2 a0-0f b5 9a fa 86 2b 91 23"
+	edge_cluster = "%s"
+	dvs_uuid = "${data.vsphere_distributed_virtual_switch.dvs.id}"
 	sizing_hint = "MEDIUM"
 	
 	management_network {
@@ -83,7 +97,12 @@ resource "vsphere_supervisor" "supervisor" {
 	search_domains = [ "vrack.vsphere.local" ]
 }
 `,
-		testAccConfigBase())
+		testAccConfigBase(),
+		os.Getenv("TF_VAR_STORAGE_POLICY"),
+		os.Getenv("TF_VAR_MANAGEMENT_NETWORK"),
+		os.Getenv("TF_VAR_CONTENT_LIBRARY"),
+		os.Getenv("TF_VAR_DISTRIBUTED_SWITCH"),
+		os.Getenv("TF_VAR_EDGE_CLUSTER"))
 }
 
 func testAccConfigBase() string {
