@@ -27,62 +27,67 @@ func resourceVsphereSupervisor() *schema.Resource {
 			"storage_policy": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "TODO",
+				Description: "The name of a storage policy associated with the datastore where the container images will be stored.",
 			},
 			"management_network": {
 				Type:        schema.TypeList,
 				Required:    true,
-				Description: "TODO",
+				Description: "The name of the management network which the control plane VMs will be connected to.",
 				MaxItems:    1,
 				Elem:        mgmtNetworkSchema(),
 			},
 			"content_library": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "TODO",
+				Description: "ID of the subscribed content library.",
 			},
-			"dns": {
+			"main_dns": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "TODO",
+				Description: "List of DNS servers to use on the Kubernetes API server.",
+			},
+			"worker_dns": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "List of DNS servers to use on the worker nodes.",
 			},
 			"edge_cluster": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "TODO",
+				Description: "ID of the NSX Edge Cluster.",
 			},
 			"dvs_uuid": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "TODO",
+				Description: "The UUID (not ID) of the distributed switch.",
 			},
 			"sizing_hint": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "TODO",
+				Description: "Size of the Kubernetes API server.",
 			},
 			"egress_cidr": {
 				Type:        schema.TypeList,
 				Required:    true,
-				Description: "TODO",
+				Description: "CIDR blocks from which NSX assigns IP addresses used for performing SNAT from container IPs to external IPs.",
 				Elem:        cidrSchema(),
 			},
 			"ingress_cidr": {
 				Type:        schema.TypeList,
 				Required:    true,
-				Description: "TODO",
+				Description: "CIDR blocks from which NSX assigns IP addresses for Kubernetes Ingresses and Kubernetes Services of type LoadBalancer.",
 				Elem:        cidrSchema(),
 			},
 			"pod_cidr": {
 				Type:        schema.TypeList,
 				Required:    true,
-				Description: "TODO",
+				Description: "CIDR blocks from which Kubernetes allocates pod IP addresses.",
 				Elem:        cidrSchema(),
 			},
 			"service_cidr": {
 				Type:        schema.TypeList,
 				Required:    true,
-				Description: "TODO",
+				Description: "CIDR block from which Kubernetes allocates service cluster IP addresses.",
 				MaxItems:    1,
 				MinItems:    1,
 				Elem:        cidrSchema(),
@@ -90,7 +95,7 @@ func resourceVsphereSupervisor() *schema.Resource {
 			"search_domains": {
 				Type:        schema.TypeList,
 				Required:    true,
-				Description: "TODO",
+				Description: "List of DNS search domains.",
 				MaxItems:    1,
 				MinItems:    1,
 				Elem:        &schema.Schema{Type: schema.TypeString},
@@ -105,27 +110,27 @@ func mgmtNetworkSchema() *schema.Resource {
 			"network": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "TODO",
+				Description: "ID of the network. (e.g. a distributed portgroup).",
 			},
 			"starting_address": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "TODO",
+				Description: "Starting address of the management network range.",
 			},
 			"subnet_mask": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "TODO",
+				Description: "Subnet mask.",
 			},
 			"gateway": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "TODO",
+				Description: "Gateway IP address.",
 			},
 			"address_count": {
 				Type:        schema.TypeInt,
 				Required:    true,
-				Description: "TODO",
+				Description: "Number of addresses to allocate. Starts from 'starting_address'",
 			},
 		},
 	}
@@ -137,12 +142,12 @@ func cidrSchema() *schema.Resource {
 			"address": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "TODO",
+				Description: "Network address.",
 			},
 			"prefix": {
 				Type:        schema.TypeInt,
 				Required:    true,
-				Description: "TODO",
+				Description: "Subnet prefix.",
 			},
 		},
 	}
@@ -202,7 +207,8 @@ func buildClusterEnableSpec(d *schema.ResourceData) *namespace.EnableClusterSpec
 	}
 
 	contentLib := d.Get("content_library").(string)
-	dns := d.Get("dns").(string)
+	mainDns := d.Get("main_dns").(string)
+	workerDns := d.Get("worker_dns").(string)
 	dnsSearchDomains := d.Get("search_domains").([]interface{})
 	storagePolicy := d.Get("storage_policy").(string)
 	serviceCidrs := d.Get("service_cidr").([]interface{})
@@ -217,8 +223,8 @@ func buildClusterEnableSpec(d *schema.ResourceData) *namespace.EnableClusterSpec
 		MasterManagementNetwork:                getMgmtNetwork(d),
 		ImageStorage:                           namespace.ImageStorageSpec{StoragePolicy: storagePolicy},
 		NcpClusterNetworkSpec:                  &ncpNetworkSpec,
-		MasterDNS:                              []string{dns},
-		WorkerDNS:                              []string{dns},
+		MasterDNS:                              []string{mainDns},
+		WorkerDNS:                              []string{workerDns},
 		DefaultKubernetesServiceContentLibrary: contentLib,
 		MasterDNSSearchDomains:                 structure.SliceInterfacesToStrings(dnsSearchDomains),
 	}
