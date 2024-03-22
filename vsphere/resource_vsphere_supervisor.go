@@ -5,9 +5,11 @@ package vsphere
 
 import (
 	"context"
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/vapi/namespace"
+	"time"
 )
 
 func resourceVsphereSupervisor() *schema.Resource {
@@ -148,29 +150,43 @@ func cidrSchema() *schema.Resource {
 
 func resourceVsphereSupervisorCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client).restClient
-	nm := namespace.NewManager(c)
+	m := namespace.NewManager(c)
 
 	clusterId := d.Get("cluster").(string)
 
 	spec := buildClusterEnableSpec(d)
 
-	err := nm.EnableCluster(context.Background(), clusterId, spec)
+	if err := m.EnableCluster(context.Background(), clusterId, spec); err != nil {
+		return err
+	}
 
 	d.SetId(clusterId)
 
-	return err
+	return waitForSupervisorEnable(m, d)
 }
 
 func resourceVsphereSupervisorRead(d *schema.ResourceData, meta interface{}) error {
+	c := meta.(*Client).restClient
+	m := namespace.NewManager(c)
+
+	cluster := getClusterById(m, d.Id())
+
+	if cluster == nil {
+		return fmt.Errorf("could not find cluster %s", cluster.ID)
+	}
+
 	return nil
 }
 
 func resourceVsphereSupervisorUpdate(d *schema.ResourceData, meta interface{}) error {
-	return nil
+	return fmt.Errorf("updating a supervisor's settings is not supported")
 }
 
 func resourceVsphereSupervisorDelete(d *schema.ResourceData, meta interface{}) error {
-	return nil
+	c := meta.(*Client).restClient
+	m := namespace.NewManager(c)
+
+	return m.DisableCluster(context.Background(), d.Id())
 }
 
 func buildClusterEnableSpec(d *schema.ResourceData) *namespace.EnableClusterSpec {
@@ -249,4 +265,43 @@ func getSizingHint(data interface{}) *namespace.SizingHint {
 	}
 
 	return &namespace.UndefinedSizingHint
+}
+
+func waitForSupervisorEnable(m *namespace.Manager, d *schema.ResourceData) error {
+	ticker := time.NewTicker(time.Minute * time.Duration(1))
+
+	for {
+		select {
+		case <-context.Background().Done():
+		case <-ticker.C:
+			cluster := getClusterById(m, d.Id())
+
+			if cluster == nil {
+				return fmt.Errorf("could not find cluster %s", cluster.ID)
+			}
+
+			if namespace.RunningConfigStatus == *cluster.ConfigStatus {
+				return nil
+			}
+			if namespace.ErrorConfigStatus == *cluster.ConfigStatus {
+				return fmt.Errorf("could not enable supervisor on cluster %s", cluster.ID)
+			}
+		}
+	}
+}
+
+func getClusterById(m *namespace.Manager, id string) *namespace.ClusterSummary {
+	clusters, err := m.ListClusters(context.Background())
+
+	if err != nil {
+		return nil
+	}
+
+	for _, cluster := range clusters {
+		if id == cluster.ID {
+			return &cluster
+		}
+	}
+
+	return nil
 }
