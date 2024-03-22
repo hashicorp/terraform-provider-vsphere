@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/vapi/namespace"
 	"time"
@@ -20,14 +21,16 @@ func resourceVsphereSupervisor() *schema.Resource {
 		Delete: resourceVsphereSupervisorDelete,
 		Schema: map[string]*schema.Schema{
 			"cluster": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "ID of the vSphere cluster on which workload management will be enabled.",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "ID of the vSphere cluster on which workload management will be enabled.",
+				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"storage_policy": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of a storage policy associated with the datastore where the container images will be stored.",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "The name of a storage policy associated with the datastore where the container images will be stored.",
+				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"management_network": {
 				Type:        schema.TypeList,
@@ -37,34 +40,40 @@ func resourceVsphereSupervisor() *schema.Resource {
 				Elem:        mgmtNetworkSchema(),
 			},
 			"content_library": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "ID of the subscribed content library.",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "ID of the subscribed content library.",
+				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"main_dns": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "List of DNS servers to use on the Kubernetes API server.",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "List of DNS servers to use on the Kubernetes API server.",
+				ValidateFunc: validation.IsIPv4Address,
 			},
 			"worker_dns": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "List of DNS servers to use on the worker nodes.",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "List of DNS servers to use on the worker nodes.",
+				ValidateFunc: validation.IsIPv4Address,
 			},
 			"edge_cluster": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "ID of the NSX Edge Cluster.",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "ID of the NSX Edge Cluster.",
+				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"dvs_uuid": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The UUID (not ID) of the distributed switch.",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "The UUID (not ID) of the distributed switch.",
+				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"sizing_hint": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Size of the Kubernetes API server.",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Size of the Kubernetes API server.",
+				ValidateFunc: validation.StringInSlice([]string{"TINY", "SMALL", "MEDIUM", "LARGE"}, false),
 			},
 			"egress_cidr": {
 				Type:        schema.TypeList,
@@ -98,7 +107,10 @@ func resourceVsphereSupervisor() *schema.Resource {
 				Description: "List of DNS search domains.",
 				MaxItems:    1,
 				MinItems:    1,
-				Elem:        &schema.Schema{Type: schema.TypeString},
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validation.StringIsNotEmpty,
+				},
 			},
 		},
 	}
@@ -108,29 +120,34 @@ func mgmtNetworkSchema() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"network": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "ID of the network. (e.g. a distributed port group).",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "ID of the network. (e.g. a distributed port group).",
+				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"starting_address": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Starting address of the management network range.",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Starting address of the management network range.",
+				ValidateFunc: validation.IsIPv4Address,
 			},
 			"subnet_mask": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Subnet mask.",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Subnet mask.",
+				ValidateFunc: validation.IsIPv4Address,
 			},
 			"gateway": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Gateway IP address.",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Gateway IP address.",
+				ValidateFunc: validation.IsIPv4Address,
 			},
 			"address_count": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "Number of addresses to allocate. Starts from 'starting_address'",
+				Type:         schema.TypeInt,
+				Required:     true,
+				Description:  "Number of addresses to allocate. Starts from 'starting_address'",
+				ValidateFunc: validation.IntAtLeast(1),
 			},
 		},
 	}
@@ -140,14 +157,16 @@ func cidrSchema() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"address": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Network address.",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Network address.",
+				ValidateFunc: validation.IsIPv4Address,
 			},
 			"prefix": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "Subnet prefix.",
+				Type:         schema.TypeInt,
+				Required:     true,
+				Description:  "Subnet prefix.",
+				ValidateFunc: validation.IntBetween(0, 32),
 			},
 		},
 	}
