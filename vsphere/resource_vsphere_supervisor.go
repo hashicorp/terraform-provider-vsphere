@@ -81,7 +81,7 @@ func resourceVsphereSupervisor() *schema.Resource {
 			"pod_cidr": {
 				Type:        schema.TypeList,
 				Required:    true,
-				Description: "CIDR blocks from which Kubernetes allocates pod IP addresses.",
+				Description: "CIDR blocks from which Kubernetes allocates pod IP addresses. Minimum subnet size is 23.",
 				Elem:        cidrSchema(),
 			},
 			"service_cidr": {
@@ -110,7 +110,7 @@ func mgmtNetworkSchema() *schema.Resource {
 			"network": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "ID of the network. (e.g. a distributed portgroup).",
+				Description: "ID of the network. (e.g. a distributed port group).",
 			},
 			"starting_address": {
 				Type:        schema.TypeString,
