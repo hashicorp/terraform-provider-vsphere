@@ -24,11 +24,14 @@ func TestAccResourceVSphereSupervisor_basic(t *testing.T) {
 			})
 		},
 		Providers: testAccProviders,
-		//CheckDestroy: testAccVSphereHostDestroy,
 		Steps: []resource.TestStep{
 			{
+				// You can change the network settings in the configuration
+				// so that they fit your environment
 				Config: testAccVSphereSupervisorConfig(),
-				Check:  resource.ComposeTestCheckFunc(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("vsphere_supervisor.supervisor", "id"),
+				),
 			},
 		},
 	})
