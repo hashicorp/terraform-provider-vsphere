@@ -112,6 +112,12 @@ func resourceVsphereSupervisor() *schema.Resource {
 					ValidateFunc: validation.StringIsNotEmpty,
 				},
 			},
+			"namespace": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "TODO.",
+				Elem:        namespaceSchema(),
+			},
 		},
 	}
 }
@@ -172,21 +178,73 @@ func cidrSchema() *schema.Resource {
 	}
 }
 
+func namespaceSchema() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"name": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "TODO.",
+			},
+			"content_libraries": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "TODO.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"vm_class": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "TODO.",
+				Elem:        vmClassSchema(),
+			},
+		},
+	}
+}
+
+func vmClassSchema() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "TODO.",
+			},
+			"cpus": {
+				Type:        schema.TypeInt,
+				Required:    true,
+				Description: "TODO.",
+			},
+			"memory": {
+				Type:        schema.TypeInt,
+				Required:    true,
+				Description: "TODO.",
+			},
+		},
+	}
+}
+
 func resourceVsphereSupervisorCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client).restClient
 	m := namespace.NewManager(c)
 
-	clusterId := d.Get("cluster").(string)
+	//clusterId := d.Get("cluster").(string)
+	//
+	//spec := buildClusterEnableSpec(d)
+	//
+	//if err := m.EnableCluster(context.Background(), clusterId, spec); err != nil {
+	//	return err
+	//}
+	//
+	//d.SetId(clusterId)
+	d.SetId("domain-c1007")
 
-	spec := buildClusterEnableSpec(d)
-
-	if err := m.EnableCluster(context.Background(), clusterId, spec); err != nil {
-		return err
-	}
-
-	d.SetId(clusterId)
-
-	return waitForSupervisorEnable(m, d)
+	//if err := waitForSupervisorEnable(m, d); err != nil {
+	//	return err
+	//}
+	return createNamespaces(m, d)
 }
 
 func resourceVsphereSupervisorRead(d *schema.ResourceData, meta interface{}) error {
@@ -210,7 +268,11 @@ func resourceVsphereSupervisorDelete(d *schema.ResourceData, meta interface{}) e
 	c := meta.(*Client).restClient
 	m := namespace.NewManager(c)
 
-	return m.DisableCluster(context.Background(), d.Id())
+	if err := m.DisableCluster(context.Background(), d.Id()); err != nil {
+		return err
+	}
+
+	return waitForSupervisorDisable(m, d)
 }
 
 func buildClusterEnableSpec(d *schema.ResourceData) *namespace.EnableClusterSpec {
@@ -315,6 +377,26 @@ func waitForSupervisorEnable(m *namespace.Manager, d *schema.ResourceData) error
 	}
 }
 
+func waitForSupervisorDisable(m *namespace.Manager, d *schema.ResourceData) error {
+	ticker := time.NewTicker(time.Minute * time.Duration(1))
+
+	for {
+		select {
+		case <-context.Background().Done():
+		case <-ticker.C:
+			cluster := getClusterById(m, d.Id())
+
+			if cluster == nil {
+				return nil
+			}
+
+			if namespace.ErrorConfigStatus == *cluster.ConfigStatus {
+				return fmt.Errorf("could not disable supervisor on cluster %s", cluster.ID)
+			}
+		}
+	}
+}
+
 func getClusterById(m *namespace.Manager, id string) *namespace.ClusterSummary {
 	clusters, err := m.ListClusters(context.Background())
 
@@ -329,4 +411,59 @@ func getClusterById(m *namespace.Manager, id string) *namespace.ClusterSummary {
 	}
 
 	return nil
+}
+
+func createNamespaces(m *namespace.Manager, d *schema.ResourceData) error {
+	namespaces := d.Get("namespace").([]interface{})
+
+	for _, ns := range namespaces {
+		nsData := ns.(map[string]interface{})
+
+		namespaceSpec := namespace.NamespacesInstancesCreateSpec{
+			Namespace:     nsData["name"].(string),
+			Cluster:       d.Id(),
+			VmServiceSpec: namespace.VmServiceSpec{},
+		}
+
+		if contentLibs, contains := nsData["content_libraries"]; contains {
+			namespaceSpec.VmServiceSpec.ContentLibraries = structure.SliceInterfacesToStrings(contentLibs.([]interface{}))
+		}
+
+		if vmClassData, contains := nsData["vm_class"]; contains {
+			vmClasses, err := createVmClasses(m, vmClassData.([]interface{}))
+
+			if err != nil {
+				return err
+			}
+
+			namespaceSpec.VmServiceSpec.VmClasses = vmClasses
+		}
+
+		if err := m.CreateNamespace(context.Background(), namespaceSpec); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func createVmClasses(m *namespace.Manager, vmClasses []interface{}) ([]string, error) {
+	result := make([]string, len(vmClasses))
+
+	for i, vmClass := range vmClasses {
+		vmClassData := vmClass.(map[string]interface{})
+		vmClassSpec := namespace.VirtualMachineClassesCreateSpec{
+			Id:       vmClassData["id"].(string),
+			CpuCount: int64(vmClassData["cpus"].(int)),
+			MemoryMb: int64(vmClassData["memory"].(int)),
+		}
+
+		if err := m.CreateVmClass(context.Background(), vmClassSpec); err != nil {
+			return result, err
+		}
+
+		result[i] = vmClassSpec.Id
+	}
+
+	return result, nil
 }

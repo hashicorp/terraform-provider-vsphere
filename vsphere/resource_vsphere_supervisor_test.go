@@ -98,6 +98,21 @@ resource "vsphere_supervisor" "supervisor" {
 	}
 
 	search_domains = [ "vrack.vsphere.local" ]
+
+	namespace {
+		name = "test-namespace-03"
+		content_libraries = [ "${data.vsphere_content_library.subscribed_lib.id}" ]
+		vm_class {
+			id = "test-class-04"
+			cpus = 4
+			memory = 4096
+		}
+		vm_class {
+			id = "test-class-05"
+			cpus = 4
+			memory = 4096
+		}
+	}
 }
 `,
 		testAccConfigBase(),
