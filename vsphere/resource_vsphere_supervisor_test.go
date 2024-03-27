@@ -100,17 +100,19 @@ resource "vsphere_supervisor" "supervisor" {
 	search_domains = [ "vrack.vsphere.local" ]
 
 	namespace {
-		name = "test-namespace-03"
+		name = "test-namespace-08"
 		content_libraries = [ "${data.vsphere_content_library.subscribed_lib.id}" ]
 		vm_class {
-			id = "test-class-04"
+			id = "test-class-08"
 			cpus = 4
 			memory = 4096
+			memory_reservation = 100
 		}
 		vm_class {
-			id = "test-class-05"
+			id = "test-class-09"
 			cpus = 4
 			memory = 4096
+			memory_reservation = 100
 		}
 	}
 }

@@ -222,6 +222,16 @@ func vmClassSchema() *schema.Resource {
 				Required:    true,
 				Description: "TODO.",
 			},
+			"cpu_reservation": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "TODO.",
+			},
+			"memory_reservation": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "TODO.",
+			},
 		},
 	}
 }
@@ -453,9 +463,15 @@ func createVmClasses(m *namespace.Manager, vmClasses []interface{}) ([]string, e
 	for i, vmClass := range vmClasses {
 		vmClassData := vmClass.(map[string]interface{})
 		vmClassSpec := namespace.VirtualMachineClassesCreateSpec{
-			Id:       vmClassData["id"].(string),
-			CpuCount: int64(vmClassData["cpus"].(int)),
-			MemoryMb: int64(vmClassData["memory"].(int)),
+			Id:                vmClassData["id"].(string),
+			CpuCount:          int64(vmClassData["cpus"].(int)),
+			MemoryMb:          int64(vmClassData["memory"].(int)),
+			CpuReservation:    int64(vmClassData["cpu_reservation"].(int)),
+			MemoryReservation: int64(vmClassData["memory_reservation"].(int)),
+		}
+
+		vmClassSpec.Devices.VgpuDevices = []namespace.VgpuDevice{
+			{ProfileName: "mockup-vmiop-4c"},
 		}
 
 		if err := m.CreateVmClass(context.Background(), vmClassSpec); err != nil {
