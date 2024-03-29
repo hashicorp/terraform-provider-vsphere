@@ -41,6 +41,14 @@ func resourceVsphereVmClass() *schema.Resource {
 				Optional:    true,
 				Description: "The percentage of the available memory capacity which will be reserved.",
 			},
+			"vgpu_devices": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "A comma-separated list of GPU devices.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
 }
@@ -55,6 +63,15 @@ func resourceVsphereVmClassCreate(d *schema.ResourceData, meta interface{}) erro
 		MemoryMb:          int64(d.Get("memory").(int)),
 		CpuReservation:    int64(d.Get("cpu_reservation").(int)),
 		MemoryReservation: int64(d.Get("memory_reservation").(int)),
+	}
+
+	vgpuDevices := d.Get("vgpu_devices").([]interface{})
+	vmClassSpec.Devices = namespace.VirtualDevices{
+		VgpuDevices: make([]namespace.VgpuDevice, len(vgpuDevices)),
+	}
+
+	for i, g := range vgpuDevices {
+		vmClassSpec.Devices.VgpuDevices[i] = namespace.VgpuDevice{ProfileName: g.(string)}
 	}
 
 	if err := m.CreateVmClass(context.Background(), vmClassSpec); err != nil {
@@ -85,6 +102,15 @@ func resourceVsphereVmClassUpdate(d *schema.ResourceData, meta interface{}) erro
 		MemoryMb:          int64(d.Get("memory").(int)),
 		CpuReservation:    int64(d.Get("cpu_reservation").(int)),
 		MemoryReservation: int64(d.Get("memory_reservation").(int)),
+	}
+
+	vgpuDevices := d.Get("vgpu_devices").([]interface{})
+	vmClassSpec.Devices = namespace.VirtualDevices{
+		VgpuDevices: make([]namespace.VgpuDevice, len(vgpuDevices)),
+	}
+
+	for i, g := range vgpuDevices {
+		vmClassSpec.Devices.VgpuDevices[i] = namespace.VgpuDevice{ProfileName: g.(string)}
 	}
 
 	return m.UpdateVmClass(context.Background(), d.Id(), vmClassSpec)
