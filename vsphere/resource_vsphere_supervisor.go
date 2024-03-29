@@ -113,9 +113,9 @@ func resourceVsphereSupervisor() *schema.Resource {
 				},
 			},
 			"namespace": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "TODO.",
+				Description: "List of namespaces associated with the cluster.",
 				Elem:        namespaceSchema(),
 			},
 		},
@@ -184,53 +184,23 @@ func namespaceSchema() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "TODO.",
+				Description: "The name of the namespace.",
 			},
 			"content_libraries": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "TODO.",
+				Description: "A comma-separated list of content libraries.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"vm_class": {
+			"vm_classes": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "TODO.",
-				Elem:        vmClassSchema(),
-			},
-		},
-	}
-}
-
-func vmClassSchema() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"id": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "TODO.",
-			},
-			"cpus": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "TODO.",
-			},
-			"memory": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "TODO.",
-			},
-			"cpu_reservation": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "TODO.",
-			},
-			"memory_reservation": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "TODO.",
+				Description: "A comma-separated list of virtual machine classes.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 		},
 	}
@@ -240,21 +210,31 @@ func resourceVsphereSupervisorCreate(d *schema.ResourceData, meta interface{}) e
 	c := meta.(*Client).restClient
 	m := namespace.NewManager(c)
 
-	//clusterId := d.Get("cluster").(string)
-	//
-	//spec := buildClusterEnableSpec(d)
-	//
-	//if err := m.EnableCluster(context.Background(), clusterId, spec); err != nil {
-	//	return err
-	//}
-	//
-	//d.SetId(clusterId)
-	d.SetId("domain-c1007")
+	clusterId := d.Get("cluster").(string)
 
-	//if err := waitForSupervisorEnable(m, d); err != nil {
-	//	return err
-	//}
-	return createNamespaces(m, d)
+	spec := buildClusterEnableSpec(d)
+
+	if err := m.EnableCluster(context.Background(), clusterId, spec); err != nil {
+		return err
+	}
+
+	d.SetId(clusterId)
+
+	if err := waitForSupervisorEnable(m, d); err != nil {
+		return err
+	}
+
+	namespaces := d.Get("namespace").(*schema.Set).List()
+
+	for _, ns := range namespaces {
+		nsData := ns.(map[string]interface{})
+
+		if err := createNamespace(m, nsData, d.Id()); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func resourceVsphereSupervisorRead(d *schema.ResourceData, meta interface{}) error {
@@ -271,7 +251,46 @@ func resourceVsphereSupervisorRead(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceVsphereSupervisorUpdate(d *schema.ResourceData, meta interface{}) error {
-	return fmt.Errorf("updating a supervisor's settings is not supported")
+	if d.HasChange("namespace") {
+		c := meta.(*Client).restClient
+		m := namespace.NewManager(c)
+
+		oldRaw, newRaw := d.GetChange("namespace")
+		oldSet := oldRaw.(*schema.Set)
+		newSet := newRaw.(*schema.Set)
+
+		// these haven't changed, we don't need to do anything with them
+		intersection := oldSet.Intersection(newSet)
+		oldNamespaces := getNamespacesMap(oldSet.Difference(intersection).List())
+		newNamespaces := getNamespacesMap(newSet.Difference(intersection).List())
+
+		for k, v := range oldNamespaces {
+			if _, found := newNamespaces[k]; found {
+				// Namespace still exists but has changed
+				if err := updateNamespace(m, v.(map[string]interface{})); err != nil {
+					return err
+				}
+			} else {
+				// Namespace no longer exists
+				if err := deleteNamespace(m, v.(map[string]interface{})); err != nil {
+					return err
+				}
+			}
+		}
+
+		for k, v := range newNamespaces {
+			if _, found := oldNamespaces[k]; !found {
+				// This is a new namespace
+				if err := createNamespace(m, v.(map[string]interface{}), d.Id()); err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	}
+
+	return fmt.Errorf("only updates to namespaces are supported")
 }
 
 func resourceVsphereSupervisorDelete(d *schema.ResourceData, meta interface{}) error {
@@ -366,6 +385,7 @@ func getSizingHint(data interface{}) *namespace.SizingHint {
 
 func waitForSupervisorEnable(m *namespace.Manager, d *schema.ResourceData) error {
 	ticker := time.NewTicker(time.Minute * time.Duration(1))
+	failureCount := 0
 
 	for {
 		select {
@@ -381,7 +401,16 @@ func waitForSupervisorEnable(m *namespace.Manager, d *schema.ResourceData) error
 				return nil
 			}
 			if namespace.ErrorConfigStatus == *cluster.ConfigStatus {
-				return fmt.Errorf("could not enable supervisor on cluster %s", cluster.ID)
+				// The supervisor sometimes reports errors but manages to recover
+				// We will only give up if we get several consecutive errors
+				if failureCount > 3 {
+					return fmt.Errorf("could not enable supervisor on cluster %s", cluster.ID)
+				}
+				failureCount++
+			}
+			if namespace.ConfiguringConfigStatus == *cluster.ConfigStatus {
+				// Reset error counter
+				failureCount = 0
 			}
 		}
 	}
@@ -423,63 +452,51 @@ func getClusterById(m *namespace.Manager, id string) *namespace.ClusterSummary {
 	return nil
 }
 
-func createNamespaces(m *namespace.Manager, d *schema.ResourceData) error {
-	namespaces := d.Get("namespace").([]interface{})
+func getNamespacesMap(namespaces []interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
 
-	for _, ns := range namespaces {
-		nsData := ns.(map[string]interface{})
-
-		namespaceSpec := namespace.NamespacesInstancesCreateSpec{
-			Namespace:     nsData["name"].(string),
-			Cluster:       d.Id(),
-			VmServiceSpec: namespace.VmServiceSpec{},
-		}
-
-		if contentLibs, contains := nsData["content_libraries"]; contains {
-			namespaceSpec.VmServiceSpec.ContentLibraries = structure.SliceInterfacesToStrings(contentLibs.([]interface{}))
-		}
-
-		if vmClassData, contains := nsData["vm_class"]; contains {
-			vmClasses, err := createVmClasses(m, vmClassData.([]interface{}))
-
-			if err != nil {
-				return err
-			}
-
-			namespaceSpec.VmServiceSpec.VmClasses = vmClasses
-		}
-
-		if err := m.CreateNamespace(context.Background(), namespaceSpec); err != nil {
-			return err
-		}
+	for _, n := range namespaces {
+		name := n.(map[string]interface{})["name"].(string)
+		result[name] = n
 	}
 
-	return nil
+	return result
 }
 
-func createVmClasses(m *namespace.Manager, vmClasses []interface{}) ([]string, error) {
-	result := make([]string, len(vmClasses))
-
-	for i, vmClass := range vmClasses {
-		vmClassData := vmClass.(map[string]interface{})
-		vmClassSpec := namespace.VirtualMachineClassesCreateSpec{
-			Id:                vmClassData["id"].(string),
-			CpuCount:          int64(vmClassData["cpus"].(int)),
-			MemoryMb:          int64(vmClassData["memory"].(int)),
-			CpuReservation:    int64(vmClassData["cpu_reservation"].(int)),
-			MemoryReservation: int64(vmClassData["memory_reservation"].(int)),
-		}
-
-		vmClassSpec.Devices.VgpuDevices = []namespace.VgpuDevice{
-			{ProfileName: "mockup-vmiop-4c"},
-		}
-
-		if err := m.CreateVmClass(context.Background(), vmClassSpec); err != nil {
-			return result, err
-		}
-
-		result[i] = vmClassSpec.Id
+func createNamespace(m *namespace.Manager, nsData map[string]interface{}, cluster string) error {
+	namespaceSpec := namespace.NamespacesInstanceCreateSpec{
+		Namespace:     nsData["name"].(string),
+		Cluster:       cluster,
+		VmServiceSpec: namespace.VmServiceSpec{},
 	}
 
-	return result, nil
+	if contentLibs, contains := nsData["content_libraries"]; contains {
+		namespaceSpec.VmServiceSpec.ContentLibraries = structure.SliceInterfacesToStrings(contentLibs.([]interface{}))
+	}
+
+	if vmClasses, contains := nsData["vm_classes"]; contains {
+		namespaceSpec.VmServiceSpec.VmClasses = structure.SliceInterfacesToStrings(vmClasses.([]interface{}))
+	}
+
+	return m.CreateNamespace(context.Background(), namespaceSpec)
+}
+
+func updateNamespace(m *namespace.Manager, nsData map[string]interface{}) error {
+	spec := namespace.NamespacesInstanceUpdateSpec{
+		VmServiceSpec: namespace.VmServiceSpec{},
+	}
+
+	if contentLibs, contains := nsData["content_libraries"]; contains {
+		spec.VmServiceSpec.ContentLibraries = structure.SliceInterfacesToStrings(contentLibs.([]interface{}))
+	}
+
+	if vmClasses, contains := nsData["vm_classes"]; contains {
+		spec.VmServiceSpec.VmClasses = structure.SliceInterfacesToStrings(vmClasses.([]interface{}))
+	}
+
+	return m.UpdateNamespace(context.Background(), nsData["name"].(string), spec)
+}
+
+func deleteNamespace(m *namespace.Manager, nsData map[string]interface{}) error {
+	return m.DeleteNamespace(context.Background(), nsData["name"].(string))
 }
