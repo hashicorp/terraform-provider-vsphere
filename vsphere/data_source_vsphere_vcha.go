@@ -1,25 +1,16 @@
 package vsphere
 
 import (
-	"fmt"
 	"context"
-	"log"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	// "github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
-	// "github.com/vmware/govmomi/object"
-	// "github.com/vmware/govmomi/property"
-	// gtask "github.com/vmware/govmomi/task"
-	// "github.com/vmware/govmomi/vim25"
-	// "github.com/vmware/govmomi"
-	// "github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/vim25/methods"
-	// "github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
 func dataSourceVSphereVcha() *schema.Resource {
-	return &schema.Resource {
+	return &schema.Resource{
 		Read: dataSourceVSphereVchaRead,
 
 		Schema: map[string]*schema.Schema{
@@ -27,6 +18,11 @@ func dataSourceVSphereVcha() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "ID of the vSphere datacenter where vCHA is to be deployed.",
+			},
+			"healthstatus": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Health of vCenter HA",
 			},
 			"network": {
 				Type:        schema.TypeString,
@@ -83,6 +79,15 @@ func dataSourceVSphereVcha() *schema.Resource {
 				Computed:    true,
 				Description: "Passive node VM name",
 			},
+			"check_type": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeMap,
+					Elem: &schema.Schema{Type: schema.TypeString},
+				},
+				Description: "type of object",
+			},
 			"witness_datastore": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -98,88 +103,18 @@ func dataSourceVSphereVcha() *schema.Resource {
 				Computed:    true,
 				Description: "Witness node VM name",
 			},
-			/*
-				"active": {
-					Type:     schema.TypeList,
-					Optional: true,
-					MaxItems: 1,
-					Elem: &schema.Resource{Schema: map[string]*schema.Schema{
-						"thumbprint": {
-							Type:        schema.TypeBool,
-							Optional:    false,
-							Description: "Active node thumbprint",
-						},
-						"ip": {
-							Type:        schema.TypeString,
-							Optional:    false,
-							Description: "Active node IP address",
-						},
-						"name": {
-							Type:        schema.TypeString,
-							Optional:    false,
-							Description: "Active node VM name",
-						},
-					}},
-				},
-				"passive": {
-					Type:     schema.TypeList,
-					Optional: true,
-					MaxItems: 1,
-					Elem: &schema.Resource{Schema: map[string]*schema.Schema{
-						"datastore": {
-							Type:        schema.TypeBool,
-							Optional:    false,
-							Description: "Active node thumbprint",
-						},
-						"ip": {
-							Type:        schema.TypeString,
-							Optional:    false,
-							Description: "Active node IP address",
-						},
-						"name": {
-							Type:        schema.TypeString,
-							Optional:    false,
-							Description: "Active node VM name",
-						},
-					}},
-				},
-				"witness": {
-					Type:     schema.TypeList,
-					Optional: true,
-					MaxItems: 1,
-					Elem: &schema.Resource{Schema: map[string]*schema.Schema{
-						"datastore": {
-							Type:        schema.TypeBool,
-							Optional:    false,
-							Description: "Active node thumbprint",
-						},
-						"ip": {
-							Type:        schema.TypeString,
-							Optional:    false,
-							Description: "Active node IP address",
-						},
-						"name": {
-							Type:        schema.TypeString,
-							Optional:    false,
-							Description: "Active node VM name",
-						},
-					}},
-				},
-			*/
 		},
 	}
 }
 
 func dataSourceVSphereVchaRead(d *schema.ResourceData, meta interface{}) error {
-	// NOTE: Destroying the host without telling vsphere about it will result in us not
-	// knowing that the host does not exist any more.
 
-	// Look for host
 	client := meta.(*Client).vimClient
-	// hostID := d.Id()
-
 	getVchaConfig := types.GetVchaConfig{
 		This: *client.Client.ServiceContent.FailoverClusterConfigurator,
+	}
+	getVchaHealth := types.GetVchaClusterHealth{
+		This: *client.Client.ServiceContent.FailoverClusterManager,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
@@ -191,6 +126,7 @@ func dataSourceVSphereVchaRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	vchaClusterConfigInfo := taskResponse.Returnval
+
 	failoverNodeInfo1 := vchaClusterConfigInfo.FailoverNodeInfo1
 	failoverNode1Ip := failoverNodeInfo1.ClusterIpSettings.Ip.(*types.CustomizationFixedIp)
 	err = d.Set("active_ip", failoverNode1Ip.IpAddress)
@@ -209,6 +145,18 @@ func dataSourceVSphereVchaRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	d.SetId(failoverNodeInfo1.BiosUuid)
+
+	vchaHealthResponse, err := methods.GetVchaClusterHealth(ctx, client.Client, &getVchaHealth)
+	if err != nil {
+		return fmt.Errorf("error while retrieving vCHA Health.  Error: %s", err)
+	}
+	vchaHealthInfo := vchaHealthResponse.Returnval
+	clusterInfo := vchaHealthInfo.RuntimeInfo
+	health := clusterInfo.ClusterState
+
+	d.Set("healthstatus", health)
+
+	d.SetId("vcha_output")
+
 	return nil
 }
