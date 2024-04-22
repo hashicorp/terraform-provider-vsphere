@@ -2,8 +2,11 @@
 # SPDX-License-Identifier: MPL-2.0
 
 archives:
-  - format: zip
-    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+  - files:
+       # Ensure only built binary and license file are archived
+       - 'LICENSE'
+     format: zip
+     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
 builds:
   - # Special binary naming is only necessary for Terraform CLI 0.12
     binary: '{{ .ProjectName }}_v{{ .Version }}_x5'
