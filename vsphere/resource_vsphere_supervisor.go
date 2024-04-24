@@ -247,6 +247,9 @@ func resourceVsphereSupervisorRead(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("could not find cluster %s", cluster.ID)
 	}
 
+	// To fully implement "read" and allow this resource to be imported
+	// the following API has to be added to Govmomi
+	// https://developer.vmware.com/apis/vsphere-automation/latest/vcenter/api/vcenter/namespace-management/clusters/cluster/get/
 	return nil
 }
 
