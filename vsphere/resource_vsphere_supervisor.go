@@ -46,16 +46,20 @@ func resourceVsphereSupervisor() *schema.Resource {
 				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"main_dns": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "List of DNS servers to use on the Kubernetes API server.",
-				ValidateFunc: validation.IsIPv4Address,
+				Type:        schema.TypeList,
+				Required:    true,
+				Description: "List of DNS servers to use on the Kubernetes API server.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"worker_dns": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "List of DNS servers to use on the worker nodes.",
-				ValidateFunc: validation.IsIPv4Address,
+				Type:        schema.TypeList,
+				Required:    true,
+				Description: "List of DNS servers to use on the worker nodes.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"edge_cluster": {
 				Type:         schema.TypeString,
@@ -320,8 +324,8 @@ func buildClusterEnableSpec(d *schema.ResourceData) *namespace.EnableClusterSpec
 	}
 
 	contentLib := d.Get("content_library").(string)
-	mainDns := d.Get("main_dns").(string)
-	workerDns := d.Get("worker_dns").(string)
+	mainDns := d.Get("main_dns").([]interface{})
+	workerDns := d.Get("worker_dns").([]interface{})
 	dnsSearchDomains := d.Get("search_domains").([]interface{})
 	storagePolicy := d.Get("storage_policy").(string)
 	serviceCidrs := d.Get("service_cidr").([]interface{})
@@ -336,8 +340,8 @@ func buildClusterEnableSpec(d *schema.ResourceData) *namespace.EnableClusterSpec
 		MasterManagementNetwork:                getMgmtNetwork(d),
 		ImageStorage:                           namespace.ImageStorageSpec{StoragePolicy: storagePolicy},
 		NcpClusterNetworkSpec:                  &ncpNetworkSpec,
-		MasterDNS:                              []string{mainDns},
-		WorkerDNS:                              []string{workerDns},
+		MasterDNS:                              structure.SliceInterfacesToStrings(mainDns),
+		WorkerDNS:                              structure.SliceInterfacesToStrings(workerDns),
 		DefaultKubernetesServiceContentLibrary: contentLib,
 		MasterDNSSearchDomains:                 structure.SliceInterfacesToStrings(dnsSearchDomains),
 	}

@@ -81,8 +81,8 @@ resource "vsphere_supervisor" "supervisor" {
 * * `gateway` - Gateway IP address.
 * * `address_count` - Number of addresses to allocate. Starts from `starting_address`
 * `content_library` - The identifier of the subscribed content library.
-* `main_dns` - The address of the primary DNS server.
-* `worker_dns` - The address of the DNS server to use for the worker nodes.
+* `main_dns` - The list of addresses of the primary DNS servers.
+* `worker_dns` - The list of addresses of the DNS servers to use for the worker nodes.
 * `edge_cluster` - The identifier of the NSX Edge Cluster.
 * `dvs_uuid` - The UUID of the distributed switch.
 * `sizing_hint` - The size of the Kubernetes API server.
