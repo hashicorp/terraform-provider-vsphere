@@ -35,7 +35,7 @@ func resourceVsphereSupervisor() *schema.Resource {
 			"management_network": {
 				Type:        schema.TypeList,
 				Required:    true,
-				Description: "The name of the management network which the control plane VMs will be connected to.",
+				Description: "The configuration for the management network which the control plane VMs will be connected to.",
 				MaxItems:    1,
 				Elem:        mgmtNetworkSchema(),
 			},
@@ -189,7 +189,7 @@ func namespaceSchema() *schema.Resource {
 			"content_libraries": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "A comma-separated list of content libraries.",
+				Description: "A list of content libraries.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -197,7 +197,7 @@ func namespaceSchema() *schema.Resource {
 			"vm_classes": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "A comma-separated list of virtual machine classes.",
+				Description: "A list of virtual machine classes.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
