@@ -92,7 +92,7 @@ resource "vsphere_supervisor" "supervisor" {
 	worker_dns = [ "10.0.0.250" ]
 	edge_cluster = "%s"
 	dvs_uuid = "${data.vsphere_distributed_virtual_switch.dvs.id}"
-	sizing_hint = "MEDIUM"
+	sizing_hint = "SMALL"
 	
 	management_network {
 		network = "${data.vsphere_network.mgmt_net.id}"
@@ -177,11 +177,11 @@ resource "vsphere_supervisor" "supervisor" {
 	cluster = "${data.vsphere_compute_cluster.rootcompute_cluster1.id}"
 	storage_policy = "${data.vsphere_storage_policy.image_policy.id}"
 	content_library = "${data.vsphere_content_library.subscribed_lib.id}"
-	main_dns = "10.0.0.250"
-	worker_dns = "10.0.0.250"
+	main_dns = [ "10.0.0.250" ]
+	worker_dns = [ "10.0.0.250" ]
 	edge_cluster = "%s"
 	dvs_uuid = "${data.vsphere_distributed_virtual_switch.dvs.id}"
-	sizing_hint = "MEDIUM"
+	sizing_hint = "SMALL"
 	
 	management_network {
 		network = "${data.vsphere_network.mgmt_net.id}"
