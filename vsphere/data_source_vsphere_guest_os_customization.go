@@ -136,6 +136,11 @@ func dataSourceVSphereGuestOSCustomization() *schema.Resource {
 										Computed:    true,
 										Description: "The user account of the domain administrator used to join this virtual machine to the domain.",
 									},
+									"domain_ou": {
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "The MachineObjectOU which specifies the full LDAP path name of the OU to which the virtual machine belongs.",
+									},
 									"domain_admin_password": {
 										Type:        schema.TypeString,
 										Optional:    true,
@@ -218,5 +223,5 @@ func dataSourceVSphereGuestCustomizationRead(d *schema.ResourceData, meta interf
 
 	d.SetId(name)
 
-	return guestoscustomizations.FlattenGuestOsCustomizationSpec(d, specItem)
+	return guestoscustomizations.FlattenGuestOsCustomizationSpec(d, specItem, client)
 }
