@@ -34,4 +34,4 @@ The following arguments are supported:
 * `description` - The description for the customization specification.
 * `last_update_time` - The time of last modification to the customization specification.
 * `change_version` - The number of last changed version to the customization specification.
-* `spec` - Container object for the guest operating system properties to be customized. See [virtual machine customizations](#virtual-machine-customizations)
+* `spec` - Container object for the guest operating system properties to be customized. See [virtual machine customizations](virtual_machine#virtual-machine-customizations)

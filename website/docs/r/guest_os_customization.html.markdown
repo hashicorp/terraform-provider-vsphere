@@ -40,7 +40,7 @@ The following arguments are supported:
 * `name` - (Required) The name of the customization specification is the unique identifier per vCenter Server instance.
 * `type` - (Required) The type of customization specification: One among: Windows, Linux.
 * `description` - (Optional) The description for the customization specification.
-* `spec` - Container object for the Guest OS properties about to be customized . See [virtual machine customizations](#virtual-machine-customizations)
+* `spec` - Container object for the Guest OS properties about to be customized . See [virtual machine customizations](virtual_machine#virtual-machine-customizations)
 
 ## Attribute Reference
 
