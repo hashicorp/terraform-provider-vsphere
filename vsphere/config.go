@@ -5,7 +5,7 @@ package vsphere
 
 import (
 	"context"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -325,7 +325,7 @@ func (c *Config) sessionFile() (string, error) {
 	// Key session file off of full URI and insecure setting.
 	// Hash key to get a predictable, canonical format.
 	key := fmt.Sprintf("%s#insecure=%t", u.String(), c.InsecureFlag)
-	name := fmt.Sprintf("%040x", sha1.Sum([]byte(key)))
+	name := fmt.Sprintf("%040x", sha256.Sum256([]byte(key)))
 	return name, nil
 }
 
