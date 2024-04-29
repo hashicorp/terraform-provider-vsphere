@@ -11,18 +11,18 @@ description: |-
 
 The `vsphere_folder` resource can be used to manage vSphere inventory folders.
 The resource supports creating folders of the 5 major types - datacenter
-folders, host and cluster folders, virtual machine folders, datastore folders,
+folders, host and cluster folders, virtual machine folders, storage folders,
 and network folders.
 
 Paths are always relative to the specific type of folder you are creating.
-Subfolders are discovered by parsing the relative path specified in `path`, so
+A subfolder is discovered by parsing the relative path specified in `path`, so
 `foo/bar` will create a folder named `bar` in the parent folder `foo`, as long
 as that folder exists.
 
 ## Example Usage
 
 The basic example below creates a virtual machine folder named
-`terraform-test-folder` in the default datacenter's VM hierarchy. 
+`terraform-test-folder` in the default datacenter's VM hierarchy.
 
 ```hcl
 data "vsphere_datacenter" "dc" {}
@@ -30,7 +30,7 @@ data "vsphere_datacenter" "dc" {}
 resource "vsphere_folder" "folder" {
   path          = "terraform-test-folder"
   type          = "vm"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = data.vsphere_datacenter.dc.id
 }
 ```
 
@@ -51,13 +51,13 @@ data "vsphere_datacenter" "dc" {}
 resource "vsphere_folder" "parent" {
   path          = "terraform-test-parent"
   type          = "vm"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = data.vsphere_datacenter.dc.id
 }
 
 resource "vsphere_folder" "folder" {
   path          = "${vsphere_folder.parent.path}/terraform-test-folder"
   type          = "vm"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = data.vsphere_datacenter.dc.id
 }
 ```
 
@@ -92,13 +92,13 @@ modifying the name (the part after the last `/`), your folder will be renamed.
 ~> **NOTE:** Tagging support is unsupported on direct ESXi connections and
 requires vCenter 6.0 or higher.
 
-* `custom_attributes` - (Optional) Map of custom attribute ids to attribute 
-  value strings to set for folder. See [here][docs-setting-custom-attributes] 
+* `custom_attributes` - (Optional) Map of custom attribute ids to attribute
+  value strings to set for folder. See [here][docs-setting-custom-attributes]
   for a reference on how to set values for custom attributes.
 
 [docs-setting-custom-attributes]: /docs/providers/vsphere/r/custom_attribute.html#using-custom-attributes-in-a-supported-resource
 
-~> **NOTE:** Custom attributes are unsupported on direct ESXi connections 
+~> **NOTE:** Custom attributes are unsupported on direct ESXi connections
 and require vCenter.
 
 ## Attribute Reference
