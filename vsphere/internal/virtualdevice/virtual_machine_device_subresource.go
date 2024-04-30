@@ -1018,7 +1018,7 @@ func (c *pciApplyConfig) modifyVirtualPciDevices(devList *schema.Set, op types.V
 }
 
 // PciPassthroughApplyOperation checks for changes in a virtual machine's
-// PCI passthrough devices and creates config specs to apply apply to the
+// PCI passthrough devices and creates config specs to apply to the
 // virtual machine.
 func PciPassthroughApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	old, newValue := d.GetChange("pci_device_id")
@@ -1090,6 +1090,151 @@ func PciPassthroughPostCloneOperation(d *schema.ResourceData, c *govmomi.Client,
 
 	// Remove deleted PCI passthrough devices
 	err = applyConfig.modifyVirtualPciDevices(delDevs, types.VirtualDeviceConfigSpecOperationRemove)
+	if err != nil {
+		return nil, nil, err
+	}
+	return applyConfig.VirtualDevice, applyConfig.Spec, nil
+}
+
+// modifyVirtualSharedPciDevices will take a list of devices and an operation and
+// will create the appropriate config spec.
+func (c *pciApplyConfig) modifyVirtualSharedPciDevices(devList *schema.Set, op types.VirtualDeviceConfigSpecOperation) error {
+	log.Printf("VirtualMachine: Creating Shared PCI device specs %v", op)
+	for _, devId := range devList.List() {
+		log.Printf("[DEBUG] modifyVirtualSharedPciDevices: Appending %v spec for %s", op, devId.(string))
+
+		dev := &types.VirtualPCIPassthrough{
+			VirtualDevice: types.VirtualDevice{
+				DynamicData: types.DynamicData{},
+				Backing: &types.VirtualPCIPassthroughVmiopBackingInfo{
+					Vgpu: devId.(string),
+				},
+			},
+		}
+
+		vm, err := virtualmachine.FromUUID(c.Client, c.ResourceData.Id())
+		if err != nil {
+			return err
+		}
+
+		vprops, err := virtualmachine.Properties(vm)
+		if err != nil {
+			return err
+		}
+
+		// This will only find a device for delete operations.
+		for _, vmDevP := range vprops.Config.Hardware.Device {
+			if vmDev, ok := vmDevP.(*types.VirtualPCIPassthrough); ok {
+				if vmDev.Backing.(*types.VirtualPCIPassthroughVmiopBackingInfo).Vgpu == devId {
+					dev = vmDev
+				}
+			}
+		}
+
+		dspec, err := object.VirtualDeviceList{dev}.ConfigSpec(op)
+		if err != nil {
+			return err
+		}
+
+		c.Spec = append(c.Spec, dspec...)
+		c.VirtualDevice = applyDeviceChange(c.VirtualDevice, dspec)
+	}
+	log.Printf("VirtualMachine: Shared PCI device specs created")
+	return nil
+}
+
+// SharedPciApplyOperation checks for changes in a virtual machine's
+// Shared PCI device and creates config specs to apply to the
+// virtual machine.
+func SharedPciApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("[DEBUG] SharedPciApplyOperation: Looking for shared PCI device changes")
+
+	// Get current (old) and new devices
+	old, newValue := d.GetChange("shared_pci_device_id")
+	oldDevIds := old.(*schema.Set)
+	newDevIds := newValue.(*schema.Set)
+
+	// Compare
+	delDevs := oldDevIds.Difference(newDevIds)
+	addDevs := newDevIds.Difference(oldDevIds)
+
+	// Create base apply config
+	applyConfig := &pciApplyConfig{
+		Client:        c,
+		ResourceData:  d,
+		Spec:          []types.BaseVirtualDeviceConfigSpec{},
+		VirtualDevice: l,
+	}
+
+	// If there are no changes, return as is
+	if addDevs.Len() == 0 && delDevs.Len() == 0 {
+		log.Printf("[DEBUG] SharedPciApplyOperation: No shared PCI device additions/deletions")
+		return applyConfig.VirtualDevice, applyConfig.Spec, nil
+	}
+
+	// Set reboot
+	_ = d.Set("reboot_required", true)
+
+	// Add new Shared PCI devices
+	log.Printf("[DEBUG] SharedPciApplyOperation: Identified %d shared PCI device additions",
+		addDevs.Len())
+	err := applyConfig.modifyVirtualSharedPciDevices(addDevs, types.VirtualDeviceConfigSpecOperationAdd)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Remove deleted Shared PCI devices
+	log.Printf("[DEBUG] SharedPciApplyOperation: Identified %d shared PCI device deletions",
+		delDevs.Len())
+	err = applyConfig.modifyVirtualSharedPciDevices(delDevs, types.VirtualDeviceConfigSpecOperationRemove)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return applyConfig.VirtualDevice, applyConfig.Spec, nil
+}
+
+// SharedPciPostCloneOperation normalizes the Shared PCI devices
+// on a newly-cloned virtual machine and outputs any necessary device change
+// operations. It also sets the state in advance of the post-create read.
+func SharedPciPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+	log.Printf("[DEBUG] SharedPCIPostCloneOperation: Looking for shared PCI device changes post-clone")
+
+	// Get current (old) and new devices
+	old, newValue := d.GetChange("shared_pci_device_id")
+	oldDevIds := old.(*schema.Set)
+	newDevIds := newValue.(*schema.Set)
+
+	// Compare
+	delDevs := oldDevIds.Difference(newDevIds)
+	addDevs := newDevIds.Difference(oldDevIds)
+
+	// Create base apply config
+	applyConfig := &pciApplyConfig{
+		Client:        c,
+		ResourceData:  d,
+		Spec:          []types.BaseVirtualDeviceConfigSpec{},
+		VirtualDevice: l,
+	}
+
+	// If there are no changes, return as is
+	if addDevs.Len() <= 0 && delDevs.Len() <= 0 {
+		log.Printf("[DEBUG] SharedPCIPostCloneOperation: No shared PCI device additions/deletions post-clone")
+		return applyConfig.VirtualDevice, applyConfig.Spec, nil
+	}
+
+	// Add new Shared PCI devices
+	log.Printf("[DEBUG] SharedPCIPostCloneOperation: Identified %d shared PCI device additions post-clone",
+		addDevs.Len())
+	err := applyConfig.modifyVirtualSharedPciDevices(addDevs, types.VirtualDeviceConfigSpecOperationAdd)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Remove deleted Shared PCI devices
+	log.Printf("[DEBUG] SharedPCIPostCloneOperation: Identified %d shared PCI device deletions post-clone",
+		delDevs.Len())
+	err = applyConfig.modifyVirtualSharedPciDevices(delDevs, types.VirtualDeviceConfigSpecOperationRemove)
 	if err != nil {
 		return nil, nil, err
 	}

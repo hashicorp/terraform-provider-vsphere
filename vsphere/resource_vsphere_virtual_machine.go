@@ -7,13 +7,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/guestoscustomizations"
 	"log"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/guestoscustomizations"
 
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/ovfdeploy"
@@ -242,6 +243,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Type:        schema.TypeSet,
 			Optional:    true,
 			Description: "A list of PCI passthrough devices",
+			Elem:        &schema.Schema{Type: schema.TypeString},
+		},
+		"shared_pci_device_id": {
+			Type:        schema.TypeSet,
+			Optional:    true,
+			Description: "A list of Shared PCI passthrough device, 'grid_rtx8000-8q'",
 			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
 		"clone": {
@@ -530,17 +537,31 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 
 	// Read the virtual machine PCI passthrough devices
 	var pciDevs []string
+	var sharedPciDevs []string
 	for _, dev := range vprops.Config.Hardware.Device {
 		if pci, ok := dev.(*types.VirtualPCIPassthrough); ok {
-			if pciBacking, ok := pci.Backing.(*types.VirtualPCIPassthroughDeviceBackingInfo); ok {
-				devId := pciBacking.Id
+			switch t := pci.Backing.(type) {
+			case *types.VirtualPCIPassthroughDeviceBackingInfo:
+				devId := t.Id
 				pciDevs = append(pciDevs, devId)
-			} else {
-				log.Printf("[DEBUG] %s: PCI passthrough device %q has no backing ID", resourceVSphereVirtualMachineIDString(d), pci.GetVirtualDevice().DeviceInfo.GetDescription())
+				log.Printf("[DEBUG] Identified VM %q VirtualPCIPassthrough device %s with backing type of %T",
+					vm.InventoryPath, devId, pci.Backing)
+			case *types.VirtualPCIPassthroughVmiopBackingInfo:
+				dev := t.Vgpu
+				sharedPciDevs = append(sharedPciDevs, dev)
+				log.Printf("[DEBUG] Identified VM %q VirtualPCIPassthrough device %s with backing type of %T",
+					vm.InventoryPath, dev, pci.Backing)
+			default:
+				log.Printf("[WARN] Ignoring VM %q VirtualPCIPassthrough device with backing type of %T",
+					vm.InventoryPath, pci.Backing)
 			}
 		}
 	}
 	err = d.Set("pci_device_id", pciDevs)
+	if err != nil {
+		return err
+	}
+	err = d.Set("shared_pci_device_id", sharedPciDevs)
 	if err != nil {
 		return err
 	}
@@ -1685,6 +1706,17 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 		)
 	}
 	cfgSpec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec.DeviceChange, delta...)
+	// Shared PCI devices
+	devices, delta, err = virtualdevice.SharedPciPostCloneOperation(d, client, devices)
+	if err != nil {
+		return resourceVSphereVirtualMachineRollbackCreate(
+			d,
+			meta,
+			vm,
+			fmt.Errorf("error processing shared PCI device changes post-clone: %s", err),
+		)
+	}
+	cfgSpec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec.DeviceChange, delta...)
 	log.Printf("[DEBUG] %s: Final device list: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceListString(devices))
 	log.Printf("[DEBUG] %s: Final device change cfgSpec: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceChangeString(cfgSpec.DeviceChange))
 
@@ -1984,6 +2016,12 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 	spec = virtualdevice.AppendDeviceChangeSpec(spec, delta...)
 	// PCI passthrough devices
 	l, delta, err = virtualdevice.PciPassthroughApplyOperation(d, c, l)
+	if err != nil {
+		return nil, err
+	}
+	spec = virtualdevice.AppendDeviceChangeSpec(spec, delta...)
+	// Shared PCI device
+	l, delta, err = virtualdevice.SharedPciApplyOperation(d, c, l)
 	if err != nil {
 		return nil, err
 	}
