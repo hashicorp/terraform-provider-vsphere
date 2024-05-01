@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/guestoscustomizations"
 	"log"
 	"net"
 	"os"
@@ -15,15 +14,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/ovfdeploy"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/guestoscustomizations"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/ovfdeploy"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/spbm"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
@@ -1007,15 +1006,18 @@ func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.Res
 
 		switch {
 		case d.Get("imported").(bool):
-			// Imported workflows need to have the configuration of the clone
-			// sub-resource block persisted to state without forcing a new resource.
-			// Any changes after that will be properly tracked as a ForceNew, by
-			// flagging the imported flag to off.
-			_ = d.SetNew("imported", false)
+			// If the VM was imported, set the 'imported' flag to false without forcing a new resource.
+			if err := d.SetNew("imported", false); err != nil {
+				return fmt.Errorf("error setting imported: %s", err)
+			}
 		case d.Id() == "":
-			if contentlibrary.IsContentLibraryItem(meta.(*Client).restClient, d.Get("clone.0.template_uuid").(string)) {
-				if _, ok := d.GetOk("datastore_cluster_id"); ok {
-					return fmt.Errorf("Cannot use datastore_cluster_id with Content Library source")
+			templateUUID := d.Get("clone.0.template_uuid").(string)
+			isContentLibraryItem := contentlibrary.IsContentLibraryItem(meta.(*Client).restClient, templateUUID)
+			if isContentLibraryItem {
+				if dsClusterID, ok := d.GetOk("datastore_cluster_id"); ok {
+					if err := d.SetNew("datastore_id", dsClusterID.(string)); err != nil {
+						return fmt.Errorf("error setting datastore_id: %s", err)
+					}
 				}
 			} else if err := vmworkflow.ValidateVirtualMachineClone(d, client); err != nil {
 				return err
