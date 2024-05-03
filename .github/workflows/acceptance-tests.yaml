@@ -65,7 +65,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@8f152de45cc393bb48ce5d89d36b731f54556e65 # v4.0.0
         with:
-          node-version: 18
+          node-version: 20
 
       # Due to third party action restrictions, install and use the tool directly
       - name: Set up gotestfmt
@@ -84,7 +84,7 @@ jobs:
         run: echo "TODAY_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
       - name: Upload test log
-        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
           name: test-log-${{ env.TODAY_DATE }}
           path: /tmp/gotest.log
