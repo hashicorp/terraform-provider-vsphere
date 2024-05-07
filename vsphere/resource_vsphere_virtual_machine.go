@@ -1734,7 +1734,8 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 		var customizationSpec types.CustomizationSpec
 		if hasCustomizeInCloneConfig {
 			timeout = d.Get("clone.0.customize.0.timeout").(int)
-			customizationSpec = guestoscustomizations.ExpandCustomizationSpec(d, family, true)
+			version := viapi.ParseVersionFromClient(client)
+			customizationSpec = guestoscustomizations.ExpandCustomizationSpec(d, family, true, version)
 		} else {
 			timeout = d.Get("clone.0.customization_spec.0.timeout").(int)
 			goscName := d.Get("clone.0.customization_spec.0.id").(string)

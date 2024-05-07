@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
@@ -192,6 +193,13 @@ func SpecSchema(isVM bool) map[string]*schema.Schema {
 					Description:   "The domain that the virtual machine should join.",
 					RequiredWith:  []string{prefix + "windows_options.0.domain_admin_user", prefix + "windows_options.0.domain_admin_password"},
 				},
+				"domain_ou": {
+					Type:          schema.TypeString,
+					Optional:      true,
+					ConflictsWith: []string{prefix + "windows_options.0.workgroup"},
+					Description:   "The MachineObjectOU which specifies the full LDAP path name of the OU to which the virtual machine belongs.",
+					RequiredWith:  []string{prefix + "windows_options.0.join_domain"},
+				},
 				"workgroup": {
 					Type:          schema.TypeString,
 					Optional:      true,
@@ -299,7 +307,7 @@ func FromName(client *govmomi.Client, name string) (*types.CustomizationSpecItem
 	return csm.GetCustomizationSpec(ctx, name)
 }
 
-func FlattenGuestOsCustomizationSpec(d *schema.ResourceData, specItem *types.CustomizationSpecItem) error {
+func FlattenGuestOsCustomizationSpec(d *schema.ResourceData, specItem *types.CustomizationSpecItem, client *govmomi.Client) error {
 	d.Set("type", specItem.Info.Type)
 	d.Set("description", specItem.Info.Description)
 	d.Set("last_update_time", specItem.Info.LastUpdateTime.String())
@@ -323,7 +331,8 @@ func FlattenGuestOsCustomizationSpec(d *schema.ResourceData, specItem *types.Cus
 			specData["windows_sysprep_text"] = sysprepText
 		} else {
 			specItemWinOptions := specItem.Spec.Identity.(*types.CustomizationSysprep)
-			windowsOptions, err := flattenWindowsOptions(specItemWinOptions)
+			version := viapi.ParseVersionFromClient(client)
+			windowsOptions, err := flattenWindowsOptions(specItemWinOptions, version)
 			if err != nil {
 				return err
 			}
@@ -380,12 +389,14 @@ func IsSpecOsApplicableToVmOs(vmOsFamily types.VirtualMachineGuestOsFamily, spec
 	return false
 }
 
-func ExpandGuestOsCustomizationSpec(d *schema.ResourceData) (*types.CustomizationSpecItem, error) {
+func ExpandGuestOsCustomizationSpec(d *schema.ResourceData, client *govmomi.Client) (*types.CustomizationSpecItem, error) {
 	osType := d.Get("type").(string)
 	osFamily := types.VirtualMachineGuestOsFamilyLinuxGuest
 	if osType == GuestOsCustomizationTypeWindows {
 		osFamily = types.VirtualMachineGuestOsFamilyWindowsGuest
 	}
+
+	version := viapi.ParseVersionFromClient(client)
 
 	return &types.CustomizationSpecItem{
 		Info: types.CustomizationSpecInfo{
@@ -393,7 +404,7 @@ func ExpandGuestOsCustomizationSpec(d *schema.ResourceData) (*types.Customizatio
 			Type:        osType,
 			Description: d.Get("description").(string),
 		},
-		Spec: ExpandCustomizationSpec(d, string(osFamily), false),
+		Spec: ExpandCustomizationSpec(d, string(osFamily), false, version),
 	}, nil
 }
 
@@ -413,7 +424,7 @@ func ValidateCustomizationSpec(d *schema.ResourceDiff, family string, isVM bool)
 	}
 	return nil
 }
-func flattenWindowsOptions(customizationPrep *types.CustomizationSysprep) ([]map[string]interface{}, error) {
+func flattenWindowsOptions(customizationPrep *types.CustomizationSysprep, version viapi.VSphereVersion) ([]map[string]interface{}, error) {
 	winOptionsData := make(map[string]interface{})
 	if customizationPrep.GuiRunOnce != nil {
 		winOptionsData["run_once_command_list"] = customizationPrep.GuiRunOnce.CommandList
@@ -429,6 +440,9 @@ func flattenWindowsOptions(customizationPrep *types.CustomizationSysprep) ([]map
 		winOptionsData["domain_admin_password"] = customizationPrep.Identification.DomainAdminPassword.Value
 	}
 	winOptionsData["join_domain"] = customizationPrep.Identification.JoinDomain
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 8, Minor: 0, Patch: 2}) {
+		winOptionsData["domain_OU"] = customizationPrep.Identification.DomainOU
+	}
 	winOptionsData["workgroup"] = customizationPrep.Identification.JoinWorkgroup
 	hostName, err := flattenHostName(customizationPrep.UserData.ComputerName)
 	if err != nil {
@@ -499,10 +513,10 @@ func flattenHostName(hostName types.BaseCustomizationName) (HostName, error) {
 
 // ExpandCustomizationSpec reads certain ResourceData keys and
 // returns a CustomizationSpec.
-func ExpandCustomizationSpec(d *schema.ResourceData, family string, isVM bool) types.CustomizationSpec {
+func ExpandCustomizationSpec(d *schema.ResourceData, family string, isVM bool, version viapi.VSphereVersion) types.CustomizationSpec {
 	prefix := getSchemaPrefix(isVM)
 	obj := types.CustomizationSpec{
-		Identity:         expandBaseCustomizationIdentitySettings(d, family, prefix),
+		Identity:         expandBaseCustomizationIdentitySettings(d, family, prefix, version),
 		GlobalIPSettings: expandCustomizationGlobalIPSettings(d, prefix),
 		NicSettingMap:    expandSliceOfCustomizationAdapterMapping(d, prefix),
 	}
@@ -515,7 +529,7 @@ func ExpandCustomizationSpec(d *schema.ResourceData, family string, isVM bool) t
 // Only one of the three types of identity settings can be specified: Linux
 // settings (from linux_options), Windows settings (from windows_options), and
 // the raw Windows sysprep file (via windows_sysprep_text).
-func expandBaseCustomizationIdentitySettings(d *schema.ResourceData, family string, prefix string) types.BaseCustomizationIdentitySettings {
+func expandBaseCustomizationIdentitySettings(d *schema.ResourceData, family string, prefix string, version viapi.VSphereVersion) types.BaseCustomizationIdentitySettings {
 	var obj types.BaseCustomizationIdentitySettings
 	windowsExists := len(d.Get(prefix+"windows_options").([]interface{})) > 0
 	sysprepExists := len(d.Get(prefix+"windows_sysprep_text").(string)) > 0
@@ -525,7 +539,7 @@ func expandBaseCustomizationIdentitySettings(d *schema.ResourceData, family stri
 		obj = expandCustomizationLinuxPrep(d, linuxKeyPrefix)
 	case family == string(types.VirtualMachineGuestOsFamilyWindowsGuest) && windowsExists:
 		windowsKeyPrefix := prefix + "windows_options.0."
-		obj = expandCustomizationSysprep(d, windowsKeyPrefix)
+		obj = expandCustomizationSysprep(d, windowsKeyPrefix, version)
 	case family == string(types.VirtualMachineGuestOsFamilyWindowsGuest) && sysprepExists:
 		obj = &types.CustomizationSysprepText{
 			Value: d.Get(prefix + "windows_sysprep_text").(string),
@@ -554,12 +568,12 @@ func expandCustomizationLinuxPrep(d *schema.ResourceData, prefix string) *types.
 
 // expandCustomizationSysprep reads certain ResourceData keys and
 // returns a CustomizationSysprep.
-func expandCustomizationSysprep(d *schema.ResourceData, prefix string) *types.CustomizationSysprep {
+func expandCustomizationSysprep(d *schema.ResourceData, prefix string, version viapi.VSphereVersion) *types.CustomizationSysprep {
 	obj := &types.CustomizationSysprep{
 		GuiUnattended:  expandCustomizationGuiUnattended(d, prefix),
 		UserData:       expandCustomizationUserData(d, prefix),
 		GuiRunOnce:     expandCustomizationGuiRunOnce(d, prefix),
-		Identification: expandCustomizationIdentification(d, prefix),
+		Identification: expandCustomizationIdentification(d, prefix, version),
 	}
 	return obj
 }
@@ -596,11 +610,14 @@ func expandCustomizationGuiUnattended(d *schema.ResourceData, prefix string) typ
 
 // expandCustomizationIdentification reads certain ResourceData keys and
 // returns a CustomizationIdentification.
-func expandCustomizationIdentification(d *schema.ResourceData, prefix string) types.CustomizationIdentification {
+func expandCustomizationIdentification(d *schema.ResourceData, prefix string, version viapi.VSphereVersion) types.CustomizationIdentification {
 	obj := types.CustomizationIdentification{
 		JoinWorkgroup: d.Get(prefix + "workgroup").(string),
 		JoinDomain:    d.Get(prefix + "join_domain").(string),
 		DomainAdmin:   d.Get(prefix + "domain_admin_user").(string),
+	}
+	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 8, Minor: 0, Patch: 2}) {
+		obj.DomainOU = d.Get(prefix + "domain_ou").(string)
 	}
 	if v, ok := d.GetOk(prefix + "domain_admin_password"); ok {
 		obj.DomainAdminPassword = &types.CustomizationPassword{

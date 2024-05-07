@@ -30,7 +30,7 @@ func resourceVSphereGuestOsCustomizationRead(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	return guestoscustomizations.FlattenGuestOsCustomizationSpec(d, specItem)
+	return guestoscustomizations.FlattenGuestOsCustomizationSpec(d, specItem, client)
 }
 
 func resourceVSphereGuestOsCustomizationCreate(d *schema.ResourceData, meta interface{}) error {
@@ -40,7 +40,8 @@ func resourceVSphereGuestOsCustomizationCreate(d *schema.ResourceData, meta inte
 	defer cancel()
 
 	csm := object.NewCustomizationSpecManager(client.Client)
-	spec, err := guestoscustomizations.ExpandGuestOsCustomizationSpec(d)
+
+	spec, err := guestoscustomizations.ExpandGuestOsCustomizationSpec(d, client)
 	if err != nil {
 		log.Printf("[ERROR] Error creating customization specification %s expansion: %s", d.Get("name"), err.Error())
 		return err
@@ -79,7 +80,7 @@ func resourceVSphereGuestOsCustomizationUpdate(d *schema.ResourceData, meta inte
 		d.SetId(newName.(string))
 	}
 
-	spec, err := guestoscustomizations.ExpandGuestOsCustomizationSpec(d)
+	spec, err := guestoscustomizations.ExpandGuestOsCustomizationSpec(d, client)
 	if err != nil {
 		log.Printf("[ERROR] Error expanding the customization specification %s: %s ", d.Get("name"), err.Error())
 		return err

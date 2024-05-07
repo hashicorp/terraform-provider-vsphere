@@ -977,7 +977,7 @@ The options are:
 
 #### Using SR-IOV Network Interfaces
 
-In order to attach your virtual machine to an SR-IOV network interface, 
+In order to attach your virtual machine to an SR-IOV network interface,
 there are a few requirements
 
 * SR-IOV network interfaces must be declared after all non-SRIOV network interfaces.
@@ -1001,8 +1001,8 @@ there are a few requirements
 * Adding, modifying, and deleting SR-IOV NICs is supported but requires a VM restart.
 
 * Modifying the number of non-SR-IOV (_e.g._, VMXNET3) interfaces when there are SR-IOV interfaces existing is
-  explicitly blocked (as the provider does not support modifying an interface at the same index from 
-  non-SR-IOV to SR-IOV or vice-versa). To work around this delete all SRIOV NICs for one terraform apply, and re-add 
+  explicitly blocked (as the provider does not support modifying an interface at the same index from
+  non-SR-IOV to SR-IOV or vice-versa). To work around this delete all SRIOV NICs for one terraform apply, and re-add
   them with any change to the number of non-SRIOV NICs on a second terraform apply.
 
 **Example**:
@@ -1016,9 +1016,9 @@ resource "vsphere_virtual_machine" "vm" {
   network_interface  {
     network_id        = data.vsphere_network.network.id
     adapter_type      = "sriov"
-    physical_function = "0000:3b:00.1" 
+    physical_function = "0000:3b:00.1"
   }
-  ... other network_interfaces... 
+  ... other network_interfaces...
 }
 ```
 
@@ -1266,6 +1266,25 @@ The options are:
 * `workgroup` - (Optional) The workgroup name for the virtual machine. One of this or `join_domain` must be included.
 
 * `join_domain` - (Optional) The domain name in which to join  the virtual machine. One of this or `workgroup` must be included.
+
+* `domain_ou` - (Optional) The MachineObjectOU which specifies the full LDAP path name of the OU to which the virtual machine belongs.
+
+**Example**:
+
+```hcl
+resource "vsphere_virtual_machine" "vm" {
+  # ... other configuration ...
+  clone {
+    # ... other configuration ...
+    customize {
+      # ... other configuration ...
+      windows_options {
+        domain_ou = "OU=bar,OU=foo,DC=example,DC=com"
+      }
+    }
+  }
+}
+```
 
 * `domain_admin_user` - (Optional) The user account with administrative privileges to use to join the guest operating system to the domain. Required if setting `join_domain`.
 
