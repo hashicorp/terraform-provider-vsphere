@@ -1,74 +1,150 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
-## 2.8.0 (Unreleased)
+## 2.8.0 (May 07, 2024)
+
+BUG FIX:
+
+* `resource/virtual_machine`: Removed the default values for `ept_rvi_mode` and `hv_mode` from the
+  virtual machine configuration.
+  ([#2172](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2172))
+* `resource/virtual_machine`: Fixed issue when network interfaces, created by Docker, with the same
+  `deviceConfigId` causes an unexpected output.
+  ([#2121](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2121))
 
 FEATURES:
+
+* `resource/virtual_machine`: Adds support for specifying a `datastore_cluster_id` when cloning from
+  a vSphere content library.
+  ([#2061](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2061))
+* `resource/guest_os_customization`: Adds support for `domain_ou` for Windows customizations added
+  in vSphere 8.0.2.
+  ([#2181](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2181))
+* Adds resources for vSphere workload management.
+  ([#2791](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2179))
+  - Enable workload management on a cluster.
+  - Creatw custom namespaces and VM classes.
+  - Choose a content library.
+  - Configure passthrough devices for VM classes (e.g. vGPU).
 
 * `resource/vsphere_offline_software_depot`: Adds resource to the provider for offline software
   depots. Support for online depots can be added at a later time. Only depots with source type
   "PULL" are supported. This is intentional and aims to discourage the use of the deprecated VUM
-  functionality. ([#2143](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2143))
+  functionality.
+  ([#2143](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2143))
 * `data/vsphere_host_base_images`: Adds data source to the provider for base images. Declaring this
   data source allows users to retrieve the full list of available ESXi versions for their
-  environment. ([#2143](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2143))
+  environment.
+  ([#2143](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2143))
 * `resource/vsphere_compute_cluster`: Adds property that serves as an entry point for the vLCM
   configuration. Allows selection of a base image and a list of custom components from a depot.
   Configuring this property for the first time also enables vLCM on the cluster.
   ([#2143](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2143))
 
+DOCUMENTATION:
+
+* `vsphere_folder`: Added clarification for storage folders instead of datastore folders.
+  ([#2183](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2183))
+* `resource/virtual_machine`: Corrected resource and data source anchor links intended for
+  `virtual_machine#virtual-machine-customizations`.
+  ([#2182](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2182))
+
 CHORES:
 
-* `provider`: Updates `vmware/govmomi` to v0.36.0. ([#2149](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2149))
+* `provider`: Updated to allows the use of a SHA256 thumbprint when connecting to vCenter Server.
+  Support for SHA256 was added to `vmware/govmomi` 0.36.1.
+  ([#2184](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2184))
+* `provider`: Updates `hashicorp/terraform-plugin-sdk` to 2.33.0.
+  ([#2137](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2137))
+* `provider`: Updates `vmware/govmomi` to 0.37.1.
+  ([#2174](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2174))
+* `provider`: Updates `golang.org/x/net` to 0.23.0.
+  ([#2173](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2173))
+* `provider`: Updates `golang.org/protobuf` to 1.33.0.
+  ([#2155](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2155))
 
 ## 2.7.0 (March 06, 2024)
 
 BUG FIXES:
 
-* `resource/virtual_machine`: Fixes support for SR-IOV passthrough virtual machine network adapters. ([#2133](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2133))
-* `resource/virtual_machine`: Unifies `disk.keep_on_remove` with default and `disk.label` with the correct one assigned to the virtual machine disk during import. If the datastore for a virtual machine is part of a datastore cluster the `datastore_cluster_id` attribute is filled during import. ([#2127](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2127))
-* `resource/virtual_machine`: Changed the default value for `sync_time_with_host` in `r/vsphere_virtual_machine` to `true` to align with default value provided by the UI. ([#2120](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2120))
-* `resource/virtual_machine`: Added the virtual machine folder in the search for virtual machine criteria when deploying from an OVF/OVA. scenario. Allows virtual machines with same names in different virtual machine folders to be not distinguished as different managed entities. ([#2118](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2118))
-* `resource/virtual_disk`: Fixes import to use the correct the `vmdk_path`. ([#1762](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1762))
+* `resource/virtual_machine`: Fixes support for SR-IOV passthrough virtual machine network adapters.
+  ([#2133](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2133))
+* `resource/virtual_machine`: Unifies `disk.keep_on_remove` with default and `disk.label` with the
+  correct one assigned to the virtual machine disk during import. If the datastore for a virtual
+  machine is part of a datastore cluster the `datastore_cluster_id` attribute is filled during
+  import. ([#2127](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2127))
+* `resource/virtual_machine`: Changed the default value for `sync_time_with_host` in
+  `r/vsphere_virtual_machine` to `true` to align with default value provided by the UI.
+  ([#2120](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2120))
+* `resource/virtual_machine`: Added the virtual machine folder in the search for virtual machine
+  criteria when deploying from an OVF/OVA. scenario. Allows virtual machines with same names in
+  different virtual machine folders to be not distinguished as different managed entities.
+  ([#2118](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2118))
+* `resource/virtual_disk`: Fixes import to use the correct the `vmdk_path`.
+  ([#1762](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1762))
 
 FEATURES:
 
-* `resource/virtual_machine`: Adds support for `memory_reservation_locked_to_max` property. If set true, memory resource reservation for the virtual machine will always be equal to the virtual machine's memory size. ([#2093](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2093))
-* `data/vsphere_host_vgpu_profile`: Adds data source to the provider to query and return available vGPU profiles for an ESXi host. ([#2048](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2048))
-* `data/vsphere_datastore_stats`: Adds datastore stats to report total capacity and free space of datastores. ([#1896](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1896))
-* `data/vsphere_datastore`: Adds stats to report total capacity and free space of a single datastore. ([#1896](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1896))
+* `resource/virtual_machine`: Adds support for `memory_reservation_locked_to_max` property. If set
+  true, memory resource reservation for the virtual machine will always be equal to the virtual
+  machine's memory size.
+  ([#2093](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2093))
+* `data/vsphere_host_vgpu_profile`: Adds data source to the provider to query and return available
+  vGPU profiles for an ESXi host.
+  ([#2048](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2048))
+* `data/vsphere_datastore_stats`: Adds datastore stats to report total capacity and free space of
+  datastores.
+  ([#1896](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1896))
+* `data/vsphere_datastore`: Adds stats to report total capacity and free space of a single
+  datastore. ([#1896](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1896))
 
 DOCUMENTATION:
 
-* Updates `INSTALL.md` use use `unzip` for Linux and macOS examples. ([#2105](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2105))
+* Updates `INSTALL.md` use use `unzip` for Linux and macOS examples.
+  ([#2105](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2105))
 
 CHORES:
 
-* `provider`: Updates `vmware/govmomi` to v0.35.0. ([#2132](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2132))
-* `provider`: Updates `hashicorp/terraform-plugin-sdk` to v2.32.0. ([#2125](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2125))
-* `provider`: Updates `golang/go` to v1.22.0 ([#2139](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2139))
+* `provider`: Updates `vmware/govmomi` to v0.35.0.
+  ([#2132](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2132))
+* `provider`: Updates `hashicorp/terraform-plugin-sdk` to v2.32.0.
+  ([#2125](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2125))
+* `provider`: Updates `golang/go` to v1.22.0
+  ([#2139](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2139))
 
 ## 2.6.1 (December 11, 2023)
 
 BUG FIXES:
 
-* `resource/guest_os_customization`: Resolves incorrect path for `RequiredWith` and `ConflictsWith` attribute identifiers for `windows_options`. ([#2083](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2083))
-* `resource/virtual_machine`: Resolves error setting SR-IOV (`sriov`) network interface address. ([#2081](https://github.com/hashicorp/terraform-provider-vsphere/pull/2081))
+* `resource/guest_os_customization`: Resolves incorrect path for `RequiredWith` and `ConflictsWith`
+  attribute identifiers for `windows_options`.
+  ([#2083](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2083))
+* `resource/virtual_machine`: Resolves error setting SR-IOV (`sriov`) network interface address.
+  ([#2081](https://github.com/hashicorp/terraform-provider-vsphere/pull/2081))
 
 ## 2.6.0 (November 29, 2023)
 
 BUG FIXES:
 
-* `resource/virtual_machine`: Resolves upload error when deploying an OVF/OVA directly to an ESXi host. ([#1813](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1813))
+* `resource/virtual_machine`: Resolves upload error when deploying an OVF/OVA directly to an ESXi
+  host. ([#1813](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1813))
 
 FEATURES:
 
-* `resource/compute_cluster`: Adds support for vSAN Express Storage Architecture in vSphere 8.0. ([#1874](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1874))
-* `resource/compute_cluster`: Adds support for vSAN stretched clusters. ([#1885](https://github.com/hashicorp/terraform-provider-vsphere/pull/1885/))
-* `resource/compute_cluster`: Adds support for vSAN fault domains. ([#1968](https://github.com/hashicorp/terraform-provider-vsphere/pull/1969/))
-* `resource/guest_os_customization`: Adds support for the customization specifications for guest operating systems. ([#2053](https://github.com/hashicorp/terraform-provider-vsphere/pull/2053))
-* `datasource/guest_os_customization`: Adds support for the customization specifications for guest operating systems. ([#2053](https://github.com/hashicorp/terraform-provider-vsphere/pull/2053))
-* `resource/virtual_machine`: Adds support for the use of customization specifications for guest operating systems. ([#2053](https://github.com/hashicorp/terraform-provider-vsphere/pull/2053))
-* `resource/virtual_machine`: Adds support for the SR-IOV (`sriov`) network interface adapter type. ([#2059](https://github.com/hashicorp/terraform-provider-vsphere/pull/2059) and [#1417](https://github.com/hashicorp/terraform-provider-vsphere/pull/1417))
+* `resource/compute_cluster`: Adds support for vSAN Express Storage Architecture in vSphere 8.0.
+  ([#1874](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1874))
+* `resource/compute_cluster`: Adds support for vSAN stretched clusters.
+  ([#1885](https://github.com/hashicorp/terraform-provider-vsphere/pull/1885/))
+* `resource/compute_cluster`: Adds support for vSAN fault domains.
+  ([#1968](https://github.com/hashicorp/terraform-provider-vsphere/pull/1969/))
+* `resource/guest_os_customization`: Adds support for the customization specifications for guest
+  operating systems. ([#2053](https://github.com/hashicorp/terraform-provider-vsphere/pull/2053))
+* `datasource/guest_os_customization`: Adds support for the customization specifications for guest
+  operating systems. ([#2053](https://github.com/hashicorp/terraform-provider-vsphere/pull/2053))
+* `resource/virtual_machine`: Adds support for the use of customization specifications for guest
+  operating systems. ([#2053](https://github.com/hashicorp/terraform-provider-vsphere/pull/2053))
+* `resource/virtual_machine`: Adds support for the SR-IOV (`sriov`) network interface adapter type.
+  ([#2059](https://github.com/hashicorp/terraform-provider-vsphere/pull/2059) and
+  [#1417](https://github.com/hashicorp/terraform-provider-vsphere/pull/1417))
 
 ## 2.5.1 (October 12, 2023)
 
