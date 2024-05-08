@@ -1,5 +1,13 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
+## 2.8.1 (May 08, 2024)
+
+BUG FIX:
+
+* `resource/virtual_machine`: Reverts removing the default values for `ept_rvi_mode` and `hv_mode`
+  from the virtual machine configuration.
+  ([#2194](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2194))
+
 ## 2.8.0 (May 07, 2024)
 
 BUG FIX:
