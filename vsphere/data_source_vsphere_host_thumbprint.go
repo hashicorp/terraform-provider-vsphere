@@ -2,7 +2,7 @@ package vsphere
 
 import (
 	"bytes"
-	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/tls"
 	"fmt"
 
@@ -34,14 +34,14 @@ func dataSourceVSphereHostThumbprint() *schema.Resource {
 }
 
 func dataSourceVSphereHostThumbprintRead(d *schema.ResourceData, _ interface{}) error {
-	config := &tls.Config{}
+	config := &tls.Config{MinVersion: tls.VersionTLS12}
 	config.InsecureSkipVerify = d.Get("insecure").(bool)
 	conn, err := tls.Dial("tcp", d.Get("address").(string)+":"+d.Get("port").(string), config)
 	if err != nil {
 		return err
 	}
 	cert := conn.ConnectionState().PeerCertificates[0]
-	fingerprint := sha1.Sum(cert.Raw)
+	fingerprint := sha256.Sum224(cert.Raw)
 
 	var buf bytes.Buffer
 	for i, f := range fingerprint {

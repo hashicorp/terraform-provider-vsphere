@@ -63,11 +63,11 @@ type Client struct {
 // Read call to determine if tags are supported on this connection, and if they
 // are, read them from the object and save them in the resource:
 //
-//   if tm, _ := meta.(*VSphereClient).TagsManager(); tm != nil {
-//     if err := readTagsForResource(restClient, obj, d); err != nil {
-//       return err
-//     }
-//   }
+//	if tm, _ := meta.(*VSphereClient).TagsManager(); tm != nil {
+//	  if err := readTagsForResource(restClient, obj, d); err != nil {
+//	    return err
+//	  }
+//	}
 func (c *Client) TagsManager() (*tags.Manager, error) {
 	if err := viapi.ValidateVirtualCenter(c.vimClient); err != nil {
 		return nil, err
@@ -353,6 +353,7 @@ func (c *Config) SaveVimClient(client *govmomi.Client) error {
 		return err
 	}
 
+	p = filepath.Clean(p)
 	f, err := os.OpenFile(p, os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
@@ -391,6 +392,7 @@ func (c *Config) restoreVimClient(client *vim25.Client) (bool, error) {
 		return false, err
 	}
 	log.Printf("[DEBUG] Attempting to locate SOAP client session data in %q", p)
+	p = filepath.Clean(p)
 	f, err := os.Open(p)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -524,6 +526,7 @@ func restSessionValid(client *rest.Client) bool {
 	return true
 }
 func readRestSession(path string) (string, error) {
+	path = filepath.Clean(path)
 	f, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {

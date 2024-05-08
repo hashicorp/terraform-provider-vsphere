@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -190,6 +191,7 @@ func uploadDisksFromLocal(filePath string, ovfFileItem types.OvfFileItem, device
 	}
 	vmdkFilePath := absoluteFilePath + ovfFileItem.Path
 	log.Print(" [DEBUG] Absolute vmdk path: " + vmdkFilePath)
+	vmdkFilePath = filepath.Clean(vmdkFilePath)
 	file, err := os.Open(vmdkFilePath)
 	if err != nil {
 		return err
@@ -227,6 +229,7 @@ func uploadDisksFromURL(filePath string, ovfFileItem types.OvfFileItem, deviceOb
 
 func uploadOvaDisksFromLocal(filePath string, ovfFileItem types.OvfFileItem, deviceObj types.HttpNfcLeaseDeviceUrl, currBytesRead *int64) error {
 	diskName := ovfFileItem.Path
+	filePath = filepath.Clean(filePath)
 	ovaFile, err := os.Open(filePath)
 	if err != nil {
 		return err
@@ -265,6 +268,7 @@ func GetOvfDescriptor(filePath string, deployOva bool, fromLocal bool, allowUnve
 	ovfDescriptor := ""
 	if !deployOva {
 		if fromLocal {
+			filePath = filepath.Clean(filePath)
 			fileBuffer, err := ioutil.ReadFile(filePath)
 			if err != nil {
 				return "", err
@@ -290,6 +294,7 @@ func GetOvfDescriptor(filePath string, deployOva bool, fromLocal bool, allowUnve
 		}
 	} else {
 		if fromLocal {
+			filePath = filepath.Clean(filePath)
 			ovaFile, err := os.Open(filePath)
 			if err != nil {
 				return "", err
