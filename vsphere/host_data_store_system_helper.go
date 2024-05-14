@@ -35,10 +35,9 @@ func availableScsiDisk(dss *object.HostDatastoreSystem, name string) (*types.Hos
 	}
 
 	var disk *types.HostScsiDisk
-	for _, d := range disks {
+	for di, d := range disks {
 		if d.CanonicalName == name {
-			d := d
-			disk = &d
+			disk = &(disks[di])
 			break
 		}
 	}
@@ -64,10 +63,9 @@ func diskSpecForCreate(dss *object.HostDatastoreSystem, name string) (*types.Vmf
 		return nil, fmt.Errorf("could not get disk creation options for %q: %s", name, err)
 	}
 	var option *types.VmfsDatastoreOption
-	for _, o := range options {
-		if _, ok := o.Info.(*types.VmfsDatastoreAllExtentOption); ok {
-			o := o
-			option = &o
+	for oi, o := range options {
+		if oi, ok := o.Info.(*types.VmfsDatastoreAllExtentOption); ok {
+			option = &(options[oi])
 			break
 		}
 	}
@@ -99,10 +97,9 @@ func diskSpecForExtend(dss *object.HostDatastoreSystem, ds *object.Datastore, na
 		return nil, fmt.Errorf("could not get disk extension options for %q: %s", name, err)
 	}
 	var option *types.VmfsDatastoreOption
-	for _, o := range options {
-		if _, ok := o.Info.(*types.VmfsDatastoreAllExtentOption); ok {
-			o := o
-			option = &o
+	for oi, o := range options {
+		if oi, ok := o.Info.(*types.VmfsDatastoreAllExtentOption); ok {
+			option = &(options[oi])
 			break
 		}
 	}
