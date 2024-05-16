@@ -1,7 +1,6 @@
 module github.com/hashicorp/terraform-provider-vsphere
 
 go 1.16
-replace github.com/vmware/govmomi => ../govmomi
 require (
 	github.com/apparentlymart/go-cidr v1.1.0 // indirect
 	github.com/aws/aws-sdk-go v1.37.0 // indirect
