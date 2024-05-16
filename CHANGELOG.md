@@ -9,6 +9,11 @@ BUG FIX:
   function to go through the 64bit case.
   ([#2200](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2200))
 
+FEATURES:
+
+* `data/virtual_machine`: Adds support for `instance_uuid`.
+  ([#2198](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2198))
+
 ## 2.8.1 (May 08, 2024)
 
 BUG FIX:

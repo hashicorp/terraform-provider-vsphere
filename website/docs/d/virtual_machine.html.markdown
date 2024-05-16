@@ -148,6 +148,7 @@ The following attributes are exported:
   VMware Tools is not running on the virtual machine, or if the VM is powered
   off, this value will be blank.
 * `guest_ip_addresses` - A list of IP addresses as reported by VMware Tools.
+* `instance_uuid` - The instance UUID of the virtual machine or template.
 
 ~> **NOTE:** Keep in mind when using the results of `scsi_type` and
 `network_interface_types`, that the `vsphere_virtual_machine` resource only

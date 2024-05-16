@@ -5,12 +5,12 @@ package vsphere
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"log"
 	"path"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/virtualdevice"
@@ -160,6 +160,11 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 			Computed:    true,
 			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
+		"instance_uuid": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "Instance UUID of this virtual machine.",
+		},
 	}
 
 	// Merge the VirtualMachineConfig structure so that we can include the number of
@@ -251,6 +256,7 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 	_ = d.Set("scsi_type", virtualdevice.ReadSCSIBusType(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int)))
 	_ = d.Set("scsi_bus_sharing", virtualdevice.ReadSCSIBusSharing(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int)))
 	_ = d.Set("firmware", props.Config.Firmware)
+	_ = d.Set("instance_uuid", props.Config.InstanceUuid)
 	disks, err := virtualdevice.ReadDiskAttrsForDataSource(object.VirtualDeviceList(props.Config.Hardware.Device), d)
 	if err != nil {
 		return fmt.Errorf("error reading disk sizes: %s", err)
