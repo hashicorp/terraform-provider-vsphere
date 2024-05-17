@@ -321,6 +321,7 @@ func (uploadSession libraryUploadSession) uploadLocalFile(file string) error {
 }
 
 func openLocalFile(file string) (*io.Reader, *int64, error) {
+	file = filepath.Clean(file)
 	openFile, err := os.Open(file)
 	if err != nil {
 		return nil, nil, err
@@ -351,9 +352,14 @@ func (uploadSession libraryUploadSession) uploadOvaDisksFromLocal(ovaFilePath st
 }
 
 func (uploadSession libraryUploadSession) uploadOvaDisksFromURL(ovfFilePath string, diskName string, size int64) error {
-	resp, err := http.Get(ovfFilePath)
+	//	resp, err := http.Get(ovfFilePath)
+	req, err := http.NewRequest(http.MethodGet, ovfFilePath, nil)
 	if err != nil {
 		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("error sending request: %w", err)
 	}
 	if resp.StatusCode == http.StatusOK {
 		err = uploadSession.findAndUploadDiskFromOva(resp.Body, diskName, size)
