@@ -64,7 +64,7 @@ func diskSpecForCreate(dss *object.HostDatastoreSystem, name string) (*types.Vmf
 	}
 	var option *types.VmfsDatastoreOption
 	for oi, o := range options {
-		if oi, ok := o.Info.(*types.VmfsDatastoreAllExtentOption); ok {
+		if _, ok := o.Info.(*types.VmfsDatastoreAllExtentOption); ok {
 			option = &(options[oi])
 			break
 		}
@@ -98,7 +98,7 @@ func diskSpecForExtend(dss *object.HostDatastoreSystem, ds *object.Datastore, na
 	}
 	var option *types.VmfsDatastoreOption
 	for oi, o := range options {
-		if oi, ok := o.Info.(*types.VmfsDatastoreAllExtentOption); ok {
+		if _, ok := o.Info.(*types.VmfsDatastoreAllExtentOption); ok {
 			option = &(options[oi])
 			break
 		}
