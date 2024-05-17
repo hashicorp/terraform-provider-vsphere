@@ -1,5 +1,14 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
+## 2.8.2 (Not Released)
+
+BUG FIX:
+
+* `resource/virtual_machine`: Fixes overflow for the disk sub-resource when running a 32-bit version
+  of the provider .Modified the call to `GiBToByte` by passing the parameter as `int64` which forces the
+  function to go through the 64bit case.
+  ([#2200](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2200))
+
 ## 2.8.1 (May 08, 2024)
 
 BUG FIX:

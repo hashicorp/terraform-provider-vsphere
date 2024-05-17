@@ -1858,7 +1858,7 @@ func (r *DiskSubresource) expandDiskSettings(disk *types.VirtualDisk) error {
 		if os.(int) > ns.(int) {
 			return fmt.Errorf("virtual disks cannot be shrunk")
 		}
-		disk.CapacityInBytes = structure.GiBToByte(ns.(int))
+		disk.CapacityInBytes = structure.GiBToByte(int64(ns.(int)))
 		disk.CapacityInKB = disk.CapacityInBytes / 1024
 	}
 
