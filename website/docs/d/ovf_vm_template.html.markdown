@@ -137,7 +137,7 @@ resource "vsphere_virtual_machine" "vmFromLocalOvf" {
   num_cores_per_socket = data.vsphere_ovf_vm_template.ovfLocal.num_cores_per_socket
   memory               = data.vsphere_ovf_vm_template.ovfLocal.memory
   guest_id             = data.vsphere_ovf_vm_template.ovfLocal.guest_id
-  firmware             = data.vsphere_ovf_vm_template.ovfRemote.firmware
+  firmware             = data.vsphere_ovf_vm_template.ovfLocal.firmware
   scsi_type            = data.vsphere_ovf_vm_template.ovfLocal.scsi_type
   nested_hv_enabled    = data.vsphere_ovf_vm_template.ovfLocal.nested_hv_enabled
   dynamic "network_interface" {
