@@ -988,6 +988,7 @@ func (c *pciApplyConfig) modifyVirtualPciDevices(devList *schema.Set, op types.V
 					SystemId:                       c.SystemID,
 					VendorId:                       pciDev.VendorId,
 				},
+				Key: c.VirtualDevice.NewKey(),
 			},
 		}
 		vm, err := virtualmachine.FromUUID(c.Client, c.ResourceData.Id())
