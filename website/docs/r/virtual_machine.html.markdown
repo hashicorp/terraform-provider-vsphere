@@ -729,15 +729,19 @@ The following options control boot settings on a virtual machine:
 
 * `efi_secure_boot_enabled` - (Optional) Use this option to enable EFI secure boot when the `firmware` type is set to is `efi`. Default: `false`.
 
-~> **NOTE:** EFI secure boot is only available on vSphere 6.5 and later.
+~> **NOTE:** `efi_secure_boot_enabled` is only available on vSphere 6.5 and later.
 
 ### VMware Tools Options
 
 The following options control VMware Tools settings on the virtual machine:
 
-* `sync_time_with_host` - (Optional) Enable the guest operating system to synchronization its clock with the host when the virtual machine is powered on or resumed. Requires vSphere 7.0 Update 1 and later. Requires VMware Tools to be installed.
+* `sync_time_with_host` - (Optional) Enable the guest operating system to synchronization its clock with the host when the virtual machine is powered on or resumed. Requires VMware Tools to be installed. Default: `true`.
 
-* `sync_time_with_host_periodically` - (Optional) Enable the guest operating system to periodically synchronize its clock with the host. Requires vSphere 7.0 Update 1 and later. On previous versions, setting `sync_time_with_host` is will enable periodic synchronization. Requires VMware Tools to be installed.
+~> **NOTE:** `sync_time_with_host` is only available on vSphere 7.0 Update 1 and later.
+
+* `sync_time_with_host_periodically` - (Optional) Enable the guest operating system to periodically synchronize its clock with the host. Default: `false`.
+
+~> **NOTE:** `sync_time_with_host_periodically` is only available on vSphere 7.0 Update 1 and later. On previous versions, setting `sync_time_with_host` is will enable periodic synchronization.
 
 * `run_tools_scripts_after_power_on` - (Optional) Enable post-power-on scripts to run when VMware Tools is installed. Default: `true`.
 
@@ -748,10 +752,6 @@ The following options control VMware Tools settings on the virtual machine:
 * `run_tools_scripts_before_guest_shutdown` - (Optional) Enable pre-shutdown scripts to run when VMware Tools is installed. Default: `true`.
 
 * `run_tools_scripts_before_guest_standby` - (Optional) Enable pre-standby scripts to run when VMware Tools is installed. Default: `true`.
-
-* `sync_time_with_host` - (Optional) Enable the guest operating system to synchronization its clock with the host when the virtual machine is powered on or resumed. Requires vSphere 7.0 Update 1 and later. Requires VMware Tools to be installed. Default: `true`.
-
-* `sync_time_with_host_periodically` - (Optional) Enable the guest operating system to periodically synchronize its clock with the host. Requires vSphere 7.0 Update 1 and later. On previous versions, setting `sync_time_with_host` is will enable periodic synchronization. Requires VMware Tools to be installed. Default: `false`.
 
 * `tools_upgrade_policy` - (Optional) Enable automatic upgrade of the VMware Tools version when the virtual machine is rebooted. If necessary, VMware Tools is upgraded to the latest version supported by the host on which the virtual machine is running. Requires VMware Tools to be installed. One of `manual` or `upgradeAtPowerCycle`. Default: `manual`.
 
@@ -815,9 +815,13 @@ The options are:
 
 * `swap_placement_policy` - (Optional) The swap file placement policy for the virtual machine. One of `inherit`, `hostLocal`, or `vmDirectory`. Default: `inherit`.
 
-* `vbs_enabled` - (Optional) Enable Virtualization Based Security. Requires `firmware` to be `efi`. In addition, `vvtd_enabled`, `nested_hv_enabled`, and `efi_secure_boot_enabled` must all have a value of `true`. Supported on vSphere 6.7 and later. Default: `false`.
+* `vbs_enabled` - (Optional) Enable Virtualization Based Security. Requires `firmware` to be `efi`. In addition, `vvtd_enabled`, `nested_hv_enabled`, and `efi_secure_boot_enabled` must all have a value of `true`. Default: `false`.
 
-* `vvtd_enabled` - (Optional) Enable Intel Virtualization Technology for Directed I/O for the virtual machine (_I/O MMU_ in the vSphere Client). Supported on vSphere 6.7 and later. Default: `false`.
+~> **NOTE:** `vbs_enabled` is only available on vSphere 6.7 and later.
+
+* `vvtd_enabled` - (Optional) Enable Intel Virtualization Technology for Directed I/O for the virtual machine (_I/O MMU_ in the vSphere Client). Default: `false`.
+
+~> **NOTE:** `vvtd_enabled`is only available on vSphere 6.7 and later.
 
 * `wait_for_guest_ip_timeout` - (Optional) The amount of time, in minutes, to wait for an available guest IP address on the virtual machine. This should only be used if the version VMware Tools does not allow the [`wait_for_guest_net_timeout`](#wait_for_guest_net_timeout) waiter to be used. A value less than `1` disables the waiter. Default: `0`.
 
@@ -1267,7 +1271,11 @@ The options are:
 
 * `join_domain` - (Optional) The domain name in which to join  the virtual machine. One of this or `workgroup` must be included.
 
-* `domain_ou` - (Optional) The MachineObjectOU which specifies the full LDAP path name of the OU to which the virtual machine belongs.
+* `domain_ou` - (Optional) The `MachineObjectOU` which specifies the full LDAP path name of the OU to which the virtual machine belongs (_e.g._, OU=bar,OU=foo,DC=example,DC=com").
+
+~> **NOTE:** `domain_ou` is only available on vSphere 8.0 Update 2 and later.
+
+~> **NOTE:** `domain_ou` must **not** contain a spaces in the `MachineObjectOU` path (_e.g._, OU=foo bar,DC=example,DC=com").
 
 **Example**:
 
@@ -1294,7 +1302,7 @@ resource "vsphere_virtual_machine" "vm" {
 
 * `full_name` - (Optional) The full name of the organization owner of the virtual machine. This populates the "user" field in the general Windows system information. Default: `Administrator`.
 
-* `organization_name` - (Optional) The name of the organization for the virtual machine.  This option populates the "organization" field in the general Windows system information.  Default: `Managed by Terraform`.
+* `organization_name` - (Optional) The name of the organization for the virtual machine.  This option populates the "organization" field in the general Windows system information. Default: `Managed by Terraform`.
 
 * `product_key` - (Optional) The product key for the virtual machine Windows guest operating system. The default is no key.
 
@@ -1584,7 +1592,6 @@ An existing virtual machine can be [imported][docs-import] into the Terraform st
 **Example**:
 
 ```
-
 terraform import vsphere_virtual_machine.vm /dc-01/vm/foo
 ```
 
