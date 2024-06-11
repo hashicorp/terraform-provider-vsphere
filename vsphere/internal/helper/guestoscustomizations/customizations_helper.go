@@ -7,6 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
+	"regexp"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
@@ -15,8 +18,6 @@ import (
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
-	"net"
-	"regexp"
 )
 
 const (
@@ -441,7 +442,7 @@ func flattenWindowsOptions(customizationPrep *types.CustomizationSysprep, versio
 	}
 	winOptionsData["join_domain"] = customizationPrep.Identification.JoinDomain
 	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 8, Minor: 0, Patch: 2}) {
-		winOptionsData["domain_OU"] = customizationPrep.Identification.DomainOU
+		winOptionsData["domain_ou"] = customizationPrep.Identification.DomainOU
 	}
 	winOptionsData["workgroup"] = customizationPrep.Identification.JoinWorkgroup
 	hostName, err := flattenHostName(customizationPrep.UserData.ComputerName)
