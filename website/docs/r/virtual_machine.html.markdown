@@ -861,10 +861,12 @@ The options are:
 
 ~> **NOTE:** It's recommended that you set the disk label to a format matching `diskN`, where `N` is the number of the disk, starting from disk number 0. This will ensure that your configuration is compatible when importing a virtual machine. See the section on [importing](#importing) for more information.
 
-~> **NOTE:** Do not choose a label that starts with `orphaned_disk_` (_e.g._  `orphaned_disk_0`), as this prefix is reserved for disks that the provider does not recognize. Such as disks that are attached externally. The Terraform provider will issue
+~> **NOTE:** Do not choose a label that starts with `orphaned_disk_` (_e.g._ `orphaned_disk_0`), as this prefix is reserved for disks that the provider does not recognize. Such as disks that are attached externally. The Terraform provider will issue
 an error if you try to label a disk with this prefix.
 
 * `size` - (Required) The size of the disk, in GB. Must be a whole number.
+
+~> **NOTE:** Use the [`api_timeout`](/docs/providers/vsphere/index.html#argument-reference) option to increase the default timeout when creating virtual machines with large disk sizes and avoid "context deadline exceeded" errors.
 
 * `unit_number` - (Optional) The disk number on the storage bus. The maximum value for this setting is the value of the controller count times the controller capacity (15 for SCSI, 30 for SATA, and 2 for IDE). Duplicate unit numbers are not allowed. Default `0`, for which one disk must be set to.
 

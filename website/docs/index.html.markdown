@@ -14,8 +14,8 @@ This provider can be used to manage many aspects of a vSphere environment,
 including virtual machines, standard and distributed switches, datastores,
 content libraries, and more.
 
-[vmware-vcenter]: https://www.vmware.com/products/vcenter-server.html
-[vmware-esxi]: https://www.vmware.com/products/esxi-and-esx.html
+[vmware-vcenter]: https://www.vmware.com/products/vcenter.html
+[vmware-esxi]: https://www.vmware.com/content/vmware/vmware-published-sites/us/products/esxi-and-esx.html.html
 
 Use the navigation to read about the resources and data sources supported by
 this provider.
@@ -46,6 +46,7 @@ provider "vsphere" {
   password             = var.vsphere_password
   vsphere_server       = var.vsphere_server
   allow_unverified_ssl = true
+  api_timeout          = 10
 }
 
 data "vsphere_datacenter" "datacenter" {
@@ -73,7 +74,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = data.vsphere_datastore.datastore.id
   num_cpus         = 1
   memory           = 1024
-  guest_id         = "other3xLinux64Guest"
+  guest_id         = "otherLinux64Guest"
   network_interface {
     network_id = data.vsphere_network.network.id
   }
@@ -110,7 +111,11 @@ The following arguments are used to configure the provider:
   without API interaction do not result in a session timeout. Can also be
   specified with the `VSPHERE_VIM_KEEP_ALIVE` environment variable.
 * `api_timeout` - (Optional) Sets the number of minutes to wait for operations
-  to complete. The default timeout is 5 minutes.
+  to complete. The default timeout is 5 minutes. Can also be
+  specified with the `VSPHERE_API_TIMEOUT` environment variable.
+
+~> **NOTE:** Use of the `api_timeout` option to extend the timeout from the
+default is recommended when creating virtual machines with large disks.
 
 ### Session Persistence Options
 
@@ -233,7 +238,7 @@ below.
 
 #### Using `govc`
 
-[govc][docs-govc] is an vSphere CLI built on [govmomi][docs-govmomi], the
+[`govc`][docs-govc] is an vSphere CLI built on [govmomi][docs-govmomi], the
 vSphere Go SDK. It has a robust inventory browser command that can also be used
 to list managed object IDs.
 
@@ -254,19 +259,16 @@ $ govc ls -i -l -L VirtualMachine:vm-123
 VirtualMachine:vm-123 /dc-01/vm/foo
 ```
 
-For details on setting up govc, see the [GitHub project][docs-govc].
+For details on setting up `govc`, see the [GitHub project][docs-govc].
 
-[docs-govc]: https://github.com/vmware/govmomi/tree/master/govc
+[docs-govc]: https://github.com/vmware/govmomi/tree/main/govc
 [docs-govmomi]: https://github.com/vmware/govmomi
 
 #### Using the vSphere Managed Object Browser (MOB)
 
 The Managed Object Browser (MOB) allows one to browse the entire vSphere
 inventory as it's presented to the API. It's normally accessed using
-`https://<vcenter_fqdn>/mob`. For more information, see
-[here][vsphere-docs-using-mob].
-
-[vsphere-docs-using-mob]: https://developer.vmware.com/doc/PG_Appx_Using_MOB.21.2.html#994699
+`https://<vcenter_fqdn>/mob`.
 
 ~> **NOTE:** The MOB also offers API method invocation capabilities, and for
 security reasons should be used sparingly. Modern vSphere installations may
