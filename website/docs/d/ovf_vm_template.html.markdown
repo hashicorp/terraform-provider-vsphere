@@ -47,12 +47,12 @@ data "vsphere_network" "network" {
 
 ## Remote OVF/OVA Source
 data "vsphere_ovf_vm_template" "ovfRemote" {
-  name              = "Nested-ESXi-7.0-Terraform-Deploy-1"
+  name              = "ubuntu-server-cloud-image-01"
   disk_provisioning = "thin"
   resource_pool_id  = data.vsphere_resource_pool.default.id
   datastore_id      = data.vsphere_datastore.datastore.id
   host_system_id    = data.vsphere_host.host.id
-  remote_ovf_url    = "https://download3.vmware.com/software/vmw-tools/nested-esxi/Nested_ESXi7.0u3_Appliance_Template_v1.ova"
+  remote_ovf_url    = "https://cloud-images.ubuntu.com/releases/xx.xx/release/ubuntu-xx.xx-server-cloudimg-amd64.ova"
   ovf_network_map = {
     "VM Network" : data.vsphere_network.network.id
   }
@@ -60,12 +60,12 @@ data "vsphere_ovf_vm_template" "ovfRemote" {
 
 ## Local OVF/OVA Source
 data "vsphere_ovf_vm_template" "ovfLocal" {
-  name              = "Nested-ESXi-7.0-Terraform-Deploy-2"
+  name              = "ubuntu-server-cloud-image-02"
   disk_provisioning = "thin"
   resource_pool_id  = data.vsphere_resource_pool.default.id
   datastore_id      = data.vsphere_datastore.datastore.id
   host_system_id    = data.vsphere_host.host.id
-  local_ovf_path    = "/Volume/Storage/OVA/Nested_ESXi7.0u3_Appliance_Template_v1.ova"
+  local_ovf_path    = "/Volume/Storage/OVA/ubuntu-xx-xx-server-cloudimg-amd64.ova"
   ovf_network_map = {
     "VM Network" : data.vsphere_network.network.id
   }
@@ -73,7 +73,7 @@ data "vsphere_ovf_vm_template" "ovfLocal" {
 
 ## Deployment of VM from Remote OVF
 resource "vsphere_virtual_machine" "vmFromRemoteOvf" {
-  name                 = "Nested-ESXi-7.0-Terraform-Deploy-1"
+  name                 = "ubuntu-server-cloud-image-01"
   datacenter_id        = data.vsphere_datacenter.datacenter.id
   datastore_id         = data.vsphere_datastore.datastore.id
   host_system_id       = data.vsphere_host.host.id
@@ -84,13 +84,14 @@ resource "vsphere_virtual_machine" "vmFromRemoteOvf" {
   guest_id             = data.vsphere_ovf_vm_template.ovfRemote.guest_id
   firmware             = data.vsphere_ovf_vm_template.ovfRemote.firmware
   scsi_type            = data.vsphere_ovf_vm_template.ovfRemote.scsi_type
-  nested_hv_enabled    = data.vsphere_ovf_vm_template.ovfRemote.nested_hv_enabled
+
   dynamic "network_interface" {
     for_each = data.vsphere_ovf_vm_template.ovfRemote.ovf_network_map
     content {
       network_id = network_interface.value
     }
   }
+
   wait_for_guest_net_timeout = 0
   wait_for_guest_ip_timeout  = 0
 
@@ -101,26 +102,27 @@ resource "vsphere_virtual_machine" "vmFromRemoteOvf" {
     ovf_network_map           = data.vsphere_ovf_vm_template.ovfRemote.ovf_network_map
   }
 
+  ovf_deploy {
+    remote_ovf_url  = "https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.ova"
+    ovf_network_map = data.vsphere_ovf_vm_template.ovfRemote.ovf_network_map
+  }
+
+  cdrom {
+    client_device = true
+  }
+
   vapp {
     properties = {
-      "guestinfo.hostname"  = "nested-esxi-01.example.com",
-      "guestinfo.ipaddress" = "172.16.11.101",
-      "guestinfo.netmask"   = "255.255.255.0",
-      "guestinfo.gateway"   = "172.16.11.1",
-      "guestinfo.dns"       = "172.16.11.4",
-      "guestinfo.domain"    = "example.com",
-      "guestinfo.ntp"       = "ntp.example.com",
-      "guestinfo.password"  = "VMware1!",
-      "guestinfo.ssh"       = "True"
+      "hostname"    = var.remote_ovf_name
+      "instance-id" = var.remote_ovf_uuid
+      "public-keys" = var.remote_ovf_public_keys
+      "password"    = var.remote_ovf_password
+      "user-data"   = base64encode(var.remote_ovf_user_data)
     }
   }
 
   lifecycle {
     ignore_changes = [
-      annotation,
-      disk[0].io_share_count,
-      disk[1].io_share_count,
-      disk[2].io_share_count,
       vapp[0].properties,
     ]
   }
@@ -128,7 +130,7 @@ resource "vsphere_virtual_machine" "vmFromRemoteOvf" {
 
 ## Deployment of VM from Local OVF
 resource "vsphere_virtual_machine" "vmFromLocalOvf" {
-  name                 = "Nested-ESXi-7.0-Terraform-Deploy-2"
+  name                 = "ubuntu-server-cloud-image-02"
   datacenter_id        = data.vsphere_datacenter.datacenter.id
   datastore_id         = data.vsphere_datastore.datastore.id
   host_system_id       = data.vsphere_host.host.id
@@ -139,13 +141,14 @@ resource "vsphere_virtual_machine" "vmFromLocalOvf" {
   guest_id             = data.vsphere_ovf_vm_template.ovfLocal.guest_id
   firmware             = data.vsphere_ovf_vm_template.ovfLocal.firmware
   scsi_type            = data.vsphere_ovf_vm_template.ovfLocal.scsi_type
-  nested_hv_enabled    = data.vsphere_ovf_vm_template.ovfLocal.nested_hv_enabled
+
   dynamic "network_interface" {
     for_each = data.vsphere_ovf_vm_template.ovfLocal.ovf_network_map
     content {
       network_id = network_interface.value
     }
   }
+
   wait_for_guest_net_timeout = 0
   wait_for_guest_ip_timeout  = 0
 
@@ -156,26 +159,22 @@ resource "vsphere_virtual_machine" "vmFromLocalOvf" {
     ovf_network_map           = data.vsphere_ovf_vm_template.ovfLocal.ovf_network_map
   }
 
+  cdrom {
+    client_device = true
+  }
+
   vapp {
     properties = {
-      "guestinfo.hostname"  = "nested-esxi-02.example.com",
-      "guestinfo.ipaddress" = "172.16.11.102",
-      "guestinfo.netmask"   = "255.255.255.0",
-      "guestinfo.gateway"   = "172.16.11.1",
-      "guestinfo.dns"       = "172.16.11.4",
-      "guestinfo.domain"    = "example.com",
-      "guestinfo.ntp"       = "ntp.example.com",
-      "guestinfo.password"  = "VMware1!",
-      "guestinfo.ssh"       = "True"
+      "hostname"    = var.local_ovf_name
+      "instance-id" = var.local_ovf_uuid
+      "public-keys" = var.local_ovf_public_keys
+      "password"    = var.local_ovf_password
+      "user-data"   = base64encode(var.local_ovf_user_data)
     }
   }
 
   lifecycle {
     ignore_changes = [
-      annotation,
-      disk[0].io_share_count,
-      disk[1].io_share_count,
-      disk[2].io_share_count,
       vapp[0].properties,
     ]
   }
