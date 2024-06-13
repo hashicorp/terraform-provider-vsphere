@@ -5,9 +5,13 @@
 
 # Terraform Provider for VMware vSphere
 
-[![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/hashicorp/terraform-provider-vsphere?label=release&style=for-the-badge)](https://github.com/hashicorp/terraform-provider-vsphere/releases/latest) [![License](https://img.shields.io/github/license/hashicorp/terraform-provider-vsphere.svg?style=for-the-badge)](LICENSE)
+[![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/hashicorp/terraform-provider-vsphere?label=release&style=for-the-badge)](https://github.com/hashicorp/terraform-provider-vsphere/releases/latest)
+[![License](https://img.shields.io/github/license/hashicorp/terraform-provider-vsphere.svg?style=for-the-badge)](LICENSE)
 
-The Terraform Provider for VMware vSphere is a plugin for Terraform that allows you to interact with VMware vSphere, notably [vCenter Server][vmware-vcenter] and [ESXi][vmware-esxi]. This provider can be used to manage a VMware vSphere environment, including virtual machines, host and cluster management, inventory, networking, storage, datastores, content libraries, and more.
+The Terraform Provider for VMware vSphere is a plugin for Terraform that allows you to interact with
+VMware vSphere, notably [vCenter Server][vmware-vcenter] and [ESXi][vmware-esxi]. This provider can
+be used to manage a VMware vSphere environment, including virtual machines, host and cluster
+management, inventory, networking, storage, datastores, content libraries, and more.
 
 Learn more:
 
@@ -19,7 +23,8 @@ Learn more:
 
 * [Terraform 0.13+][terraform-install]
 
-    For general information about Terraform, visit [terraform.io][terraform-install] and [the project][terraform-github] on GitHub.
+    For general information about Terraform, visit [developer.hashicorp.com][terraform-install] and
+    [the project][terraform-github] on GitHub.
 
 * [Go 1.22][golang-install]
 
@@ -27,29 +32,31 @@ Learn more:
 
 * [VMware vSphere][vmware-vsphere-documenation]
 
-    The provider supports VMware vSphere versions in accordance with the VMware Product Lifecycle Matrix from General Availability to End of General Support.
-
-    Learn more: [VMware Product Lifecycle Matrix][vmware-product-lifecycle-matrix]
-
-    > **NOTE**
-    >
-    > This provider requires API write access and is therefore **not supported** for use with a free VMware vSphere Hypervisor license.
+    The plugin supports versions in accordance with the
+    [Broadcom Product Lifecycle][product-lifecycle].
 
 ## Using the Provider
 
-The Terraform Provider for VMware vSphere is an official provider. Official providers are maintained by the Terraform team at [HashiCorp][hashicorp] and are listed on the [Terraform Registry][terraform-registry].
+The Terraform Provider for VMware vSphere is an official provider. Official providers are maintained
+by the Terraform team at [HashiCorp][hashicorp] and are listed on the
+[Terraform Registry][terraform-registry].
 
-To use a released version of the Terraform provider in your environment, run `terraform init` and Terraform will automatically install the provider from the Terraform Registry.
+To use a released version of the Terraform provider in your environment, run `terraform init` and
+Terraform will automatically install the provider from the Terraform Registry.
 
-Unless you are contributing to the provider or require a pre-release bugfix or feature, use an **officially** released version of the provider.
+Unless you are contributing to the provider or require a pre-release bugfix or feature, use an
+**officially** released version of the provider.
 
-See [Installing the Terraform Provider for VMware vSphere][provider-install] for additional instructions on automated and manual installation methods and how to control the provider version.
+See [Installing the Terraform Provider for VMware vSphere][provider-install] for additional
+instructions on automated and manual installation methods and how to control the provider version.
 
-For either installation method, documentation about the provider configuration, resources, and data sources can be found on the Terraform Registry.
+For either installation method, documentation about the provider configuration, resources, and data
+sources can be found on the Terraform Registry.
 
 ## Upgrading the Provider
 
-The provider does not upgrade automatically. After each new release, you can run the following command to upgrade the provider:
+The provider does not upgrade automatically. After each new release, you can run the following
+command to upgrade the provider:
 
 ```shell
 terraform init -upgrade
@@ -57,17 +64,22 @@ terraform init -upgrade
 
 ## Contributing
 
-The Terraform Provider for VMware vSphere is the work of many contributors and the project team appreciates your help!
+The Terraform Provider for VMware vSphere is the work of many contributors and the project team
+appreciates your help!
 
-If you discover a bug or would like to suggest an enhancement, submit [an issue][provider-issues]. Once submitted, your issue will follow the [lifecycle][provider-issue-lifecycke] process.
+If you discover a bug or would like to suggest an enhancement, submit [an issue][provider-issues].
+Once submitted, your issue will follow the [lifecycle][provider-issue-lifecycke] process.
 
-If you would like to submit a pull request, please read the [contribution guidelines][provider-contributing] to get started. In case of enhancement or feature contribution, we kindly ask you to open an issue to discuss it beforehand.
+If you would like to submit a pull request, please read the
+[contribution guidelines][provider-contributing] to get started. In case of enhancement or feature
+contribution, we kindly ask you to open an issue to discuss it beforehand.
 
 Learn more in the [Frequently Asked Questions][provider-faq].
 
 ## License
 
-The Terraform Provider for VMware vSphere is available under the [Mozilla Public License, version 2.0][provider-license] license.
+The Terraform Provider for VMware vSphere is available under the
+[Mozilla Public License, version 2.0][provider-license] license.
 
 [golang-install]: https://golang.org/doc/install
 [hashicorp]: https://hashicorp.com
@@ -79,10 +91,10 @@ The Terraform Provider for VMware vSphere is available under the [Mozilla Public
 [provider-issues]: https://github.com/hashicorp/terraform-provider-vsphere/issues/new/choose
 [provider-issue-lifecycke]: docs/ISSUES.md
 [provider-license]: LICENSE
-[terraform-install]: https://www.terraform.io/downloads.html
+[terraform-install]: https://developer.hashicorp.com/terraform/install
 [terraform-github]: https://github.com/hashicorp/terraform
 [terraform-registry]: https://registry.terraform.io
-[vmware-esxi]: https://www.vmware.com/products/esxi-and-esx.html
-[vmware-product-lifecycle-matrix]: https://lifecycle.vmware.com
-[vmware-vcenter]: https://www.vmware.com/products/vcenter-server.html
-[vmware-vsphere-documenation]: https://docs.vmware.com/en/VMware-vSphere
+[vmware-esxi]: https://www.vmware.com/content/vmware/vmware-published-sites/us/products/esxi-and-esx.html
+[product-lifecycle]: https://support.broadcom.com/group/ecx/productlifecycle
+[vmware-vcenter]: https://www.vmware.com/products/vcenter.html
+[vmware-vsphere-documenation]: https://docs.vmware.com/en/VMware-vSphere/index.html

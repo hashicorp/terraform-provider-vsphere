@@ -92,9 +92,6 @@ The following arguments are supported:
 [docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
-~> **NOTE:** Tagging support is unsupported on direct ESXi connections and
-requires vCenter 6.0 or higher.
-
 * `custom_attributes` - (Optional) Map of custom attribute ids to attribute 
   value strings to set on datasource resource. See 
   [here][docs-setting-custom-attributes] for a reference on how to set values 

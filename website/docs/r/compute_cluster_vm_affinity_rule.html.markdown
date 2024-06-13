@@ -25,17 +25,15 @@ that would keep that from happening, depending on the value of the
 [`mandatory`](#mandatory) flag.
 
 -> An affinity rule can only be used to place virtual machines on the same
-_non-specific_ hosts. It cannot be used to pin virtual machines to a host. 
+_non-specific_ hosts. It cannot be used to pin virtual machines to a host.
 To enable this capability, use the
 [`vsphere_compute_cluster_vm_host_rule`][tf-vsphere-cluster-vm-host-rule-resource]
 resource.
 
 [tf-vsphere-cluster-vm-host-rule-resource]: /docs/providers/vsphere/r/compute_cluster_vm_host_rule.html
 
-~> **NOTE:** This resource requires vCenter Server and is not available on
+~> **NOTE:** This resource requires vCenter and is not available on
 direct ESXi host connections.
-
-~> **NOTE:** vSphere DRS requires a vSphere Enterprise Plus license.
 
 ## Example Usage
 
@@ -97,7 +95,7 @@ resource "vsphere_compute_cluster_vm_affinity_rule" "vm_affinity_rule" {
 
 The following example creates an affinity rule for a set of virtual machines
 in the cluster by looking up the virtual machine UUIDs from the
-[`vsphere_virtual_machine`][tf-vsphere-vm-data-source] data source. 
+[`vsphere_virtual_machine`][tf-vsphere-vm-data-source] data source.
 
 [tf-vsphere-vm-data-source]: /docs/providers/vsphere/d/virtual_machine.html
 

@@ -14,7 +14,7 @@ The `vsphere_virtual_machine` resource is used to manage the lifecycle of a virt
 
 For details on working with virtual machines in VMware vSphere, please refer to the [product documentation][vmware-docs-vm-management].
 
-[vmware-docs-vm-management]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-55238059-912E-411F-A0E9-A7A536972A91.html
+[vmware-docs-vm-management]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-vm-administration/GUID-55238059-912E-411F-A0E9-A7A536972A91.html
 
 ## About Working with Virtual Machines in Terraform
 
@@ -473,7 +473,7 @@ This alternate example illustrates how to clone a virtual machine from a templat
 
 [ext-packer-io]: https://www.packer.io/
 [ext-govc]: https://github.com/vmware/govmomi
-[ext-ovftool]: https://developer.vmware.com/web/dp/tool/ovf
+[ext-ovftool]: https://developer.broadcom.com/tools/open-virtualization-format-ovf-tool/latest
 
 **Example**:
 
@@ -646,14 +646,23 @@ The following options are general virtual machine and provider workflow options:
 
 * `folder` - (Optional) The path to the virtual machine folder in which to place the virtual machine, relative to the datacenter path (`/<datacenter-name>/vm`).  For example, `/dc-01/vm/foo`
 
-* `guest_id` - (Optional) The guest ID for the operating system type. For a full list of possible values, see [here][vmware-docs-guest-ids]. Default: `otherGuest64`.
+* `guest_id` - (Optional) The guest ID for the operating system type. Default: `otherGuest64`.
 
-[vmware-docs-guest-ids]: https://vdc-repo.vmware.com/vmwb-repository/dcr-public/184bb3ba-6fa8-4574-a767-d0c96e2a38f4/ba9422ef-405c-47dd-8553-e11b619185b2/SDK/vsphere-ws/docs/ReferenceGuide/vim.vm.GuestOsDescriptor.GuestOsIdentifier.html
+~> **NOTE:** To get a list of supported guest operating system identifiers for your ESXi host, run the following PowerShell command using `VMware.PowerCLI`:
+
+  ```powershell
+  Connect-VIServer -Server "vcenter.example.com" -User "administrator@vsphere.local" -Password "password"
+  $esxiHost = Get-VMHost -Name "esxi-01.example.com"
+  $environmentBrowser = Get-View -Id $esxiHost.ExtensionData.Parent.ExtensionData.ConfigManager.EnvironmentBrowser
+  $vmxVersion = ($environmentBrowser.QueryConfigOptionDescriptor() | Where-Object DefaultConfigOption).Key
+  $osDescriptor = $environmentBrowser.QueryConfigOption($vmxVersion, $null).GuestOSDescriptor
+  $osDescriptor | Select-Object Id, Fullname
+  ```
 
 * `hardware_version` - (Optional) The hardware version number. Valid range is from 4 to 21. The hardware version cannot be downgraded. See virtual machine hardware [versions][virtual-machine-hardware-versions] and [compatibility][virtual-machine-hardware-compatibility] for more information on supported settings.
 
-[virtual-machine-hardware-versions]: https://kb.vmware.com/s/article/1003746
-[virtual-machine-hardware-compatibility]: https://kb.vmware.com/s/article/2007240
+[virtual-machine-hardware-versions]: https://knowledge.broadcom.com/external/article?articleNumber=315655
+[virtual-machine-hardware-compatibility]: https://knowledge.broadcom.com/external/article?articleNumber=312100
 
 * `host_system_id` - (Optional) The [managed object reference ID][docs-about-morefs] of a host on which to place the virtual machine. See the section on [virtual machine migration](#virtual-machine-migration) for more information on modifying this value. When using a vSphere cluster, if a `host_system_id` is not supplied, vSphere will select a host in the cluster to place the virtual machine, according to any defaults or vSphere DRS placement policies.
 
@@ -707,11 +716,11 @@ The following options control CPU and memory settings on a virtual machine:
 
 ~> **NOTE:** CPU and memory hot add options are not available on all guest operating systems. Please refer to the [VMware Guest OS Compatibility Guide][vmware-docs-compat-guide] to which settings are allow for your guest operating system. In addition, at least one `terraform apply` must be run before you are able to use CPU and memory hot add.
 
-[vmware-docs-compat-guide]: http://partnerweb.vmware.com/comp_guide2/pdf/VMware_GOS_Compatibility_Guide.pdf
+[vmware-docs-compat-guide]: https://partnerweb.vmware.com/comp_guide2/pdf/VMware_GOS_Compatibility_Guide.pdf
 
-~> **NOTE:** For Linux 64-bit guest operating systems with less than or equal to 3GB, the virtual machine must powered off to add memory beyond 3GB. Subsequent hot add of memory does not require the virtual machine to be powered-off to apply the plan. Please refer to [VMware KB 2008405][vmware-kb-2008405].
+~> **NOTE:** For Linux 64-bit guest operating systems with less than or equal to 3GB, the virtual machine must powered off to add memory beyond 3GB. Subsequent hot add of memory does not require the virtual machine to be powered-off to apply the plan. Please refer to [KB 2008405][kb-2008405].
 
-[vmware-kb-2008405]: https://kb.vmware.com/s/article/2008405
+[kb-2008405]: https://knowledge.broadcom.com/external/article?articleNumber=343190
 
 * `num_cores_per_socket` - (Optional) The number of cores per socket in the virtual machine. The number of vCPUs on the virtual machine will be `num_cpus` divided by `num_cores_per_socket`. If specified, the value supplied to `num_cpus` must be evenly divisible by this value. Default: `1`.
 
@@ -728,8 +737,6 @@ The following options control boot settings on a virtual machine:
 * `boot_retry_enabled` - (Optional) If set to `true`, a virtual machine that fails to boot will try again after the delay defined in `boot_retry_delay`. Default: `false`.
 
 * `efi_secure_boot_enabled` - (Optional) Use this option to enable EFI secure boot when the `firmware` type is set to is `efi`. Default: `false`.
-
-~> **NOTE:** `efi_secure_boot_enabled` is only available on vSphere 6.5 and later.
 
 ### VMware Tools Options
 
@@ -817,11 +824,7 @@ The options are:
 
 * `vbs_enabled` - (Optional) Enable Virtualization Based Security. Requires `firmware` to be `efi`. In addition, `vvtd_enabled`, `nested_hv_enabled`, and `efi_secure_boot_enabled` must all have a value of `true`. Default: `false`.
 
-~> **NOTE:** `vbs_enabled` is only available on vSphere 6.7 and later.
-
 * `vvtd_enabled` - (Optional) Enable Intel Virtualization Technology for Directed I/O for the virtual machine (_I/O MMU_ in the vSphere Client). Default: `false`.
-
-~> **NOTE:** `vvtd_enabled`is only available on vSphere 6.7 and later.
 
 * `wait_for_guest_ip_timeout` - (Optional) The amount of time, in minutes, to wait for an available guest IP address on the virtual machine. This should only be used if the version VMware Tools does not allow the [`wait_for_guest_net_timeout`](#wait_for_guest_net_timeout) waiter to be used. A value less than `1` disables the waiter. Default: `0`.
 
@@ -884,15 +887,13 @@ an error if you try to label a disk with this prefix.
 
 * `disk_mode` - (Optional) The mode of this this virtual disk for purposes of writes and snapshots. One of `append`, `independent_nonpersistent`, `independent_persistent`, `nonpersistent`, `persistent`, or `undoable`. Default: `persistent`. For more information on these option, please refer to the [product documentation][vmware-docs-disk-mode].
 
-[vmware-docs-disk-mode]: https://vdc-download.vmware.com/vmwb-repository/dcr-public/da47f910-60ac-438b-8b9b-6122f4d14524/16b7274a-bf8b-4b4c-a05e-746f2aa93c8c/doc/vim.vm.device.VirtualDiskOption.DiskMode.html
+[vmware-docs-disk-mode]: https://developer.broadcom.com/xapis/virtual-infrastructure-json-api/latest/data-structures/VirtualDiskMode/enum/
 
 * `eagerly_scrub` - (Optional) If set to `true`, the disk space is zeroed out when the virtual machine is created. This will delay the creation of the virtual disk. Cannot be set to `true` when `thin_provisioned` is `true`.  See the section on [picking a disk type](#picking-a-disk-type) for more information.  Default: `false`.
 
 * `thin_provisioned` - (Optional) If `true`, the disk is thin provisioned, with space for the file being allocated on an as-needed basis. Cannot be set to `true` when `eagerly_scrub` is `true`. See the section on [selecting a disk type](#selecting-a-disk-type) for more information. Default: `true`.
 
 * `disk_sharing` - (Optional) The sharing mode of this virtual disk. One of `sharingMultiWriter` or `sharingNone`. Default: `sharingNone`.
-
-~> **NOTE:** Disk sharing is only available on vSphere 6.0 and later.
 
 * `write_through` - (Optional) If `true`, writes for this disk are sent directly to the filesystem immediately instead of being buffered. Default: `false`.
 
@@ -932,7 +933,7 @@ The options are:
 
 For more information on each provisioning policy, please refer to the [product documentation][docs-vmware-vm-disk-provisioning].
 
-[docs-vmware-vm-disk-provisioning]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-4C0F4D73-82F2-4B81-8AA7-1DD752A8A5AC.html
+[docs-vmware-vm-disk-provisioning]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-vm-administration/GUID-4C0F4D73-82F2-4B81-8AA7-1DD752A8A5AC.html
 
 ~> **NOTE:** Not all provisioning policies are available for all datastore types. Setting and inappropriate provisioning policy for a datastore type may result in a successful initial apply as vSphere will silently correct the options; however, subsequent plans will fail with an appropriate error message until the settings are corrected.
 
@@ -1093,10 +1094,10 @@ The options available in the `clone` block are:
 
 As part of the `clone` operation, a virtual machine can be [customized][vmware-docs-customize] to configure host, network, or licensing settings.
 
-[vmware-docs-customize]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-58E346FF-83AE-42B8-BE58-253641D257BC.html
+[vmware-docs-customize]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-vm-administration/GUID-58E346FF-83AE-42B8-BE58-253641D257BC.html
 
 To perform virtual machine customization as a part of the clone process,
-specify the `customize` block with the respective customization options, nested within the `clone` block. Windows guests are customized using Sysprep, which will result in the machine SID being reset. Before using customization, check is that your source virtual machine meets the [requirements](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-58E346FF-83AE-42B8-BE58-253641D257BC.html) for guest OS customization on vSphere. See the section on [cloning and customization](#cloning-and-customization) for a usage synopsis.
+specify the `customize` block with the respective customization options, nested within the `clone` block. Windows guests are customized using Sysprep, which will result in the machine SID being reset. Before using customization, check is that your source virtual machine meets the [requirements](https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-vm-administration/GUID-58E346FF-83AE-42B8-BE58-253641D257BC.html) for guest OS customization on vSphere. See the section on [cloning and customization](#cloning-and-customization) for a usage synopsis.
 
 The settings for `customize` are as follows:
 
@@ -1229,14 +1230,14 @@ The options are:
 
 * `hw_clock_utc` - (Optional) Tells the operating system that the hardware clock is set to UTC. Default: `true`.
 
-* `script_text` - (Optional) The customization script for the virtual machine that will be applied before and / or after guest customization. For more information on enabling and using a customization script, please refer to [VMware KB 74880][vmware-kb-74880]. The [Heredoc style][tf-heredoc-strings] of string literal is recommended.
+* `script_text` - (Optional) The customization script for the virtual machine that will be applied before and / or after guest customization. For more information on enabling and using a customization script, please refer to [VMware KB 74880][kb-74880]. The [Heredoc style][tf-heredoc-strings] of string literal is recommended.
 
-[vmware-kb-74880]: https://kb.vmware.com/s/article/74880
+[kb-74880]: https://knowledge.broadcom.com/external/article?articleNumber=313048
 [tf-heredoc-strings]: https://www.terraform.io/language/expressions/strings#heredoc-strings
 
-* `time_zone` - (Optional) Sets the time zone. For a list of possible combinations, please refer to [VMware KB 2145518][vmware-kb-2145518]. The default is UTC.
+* `time_zone` - (Optional) Sets the time zone. For a list of possible combinations, please refer to [VMware KB 2145518][kb-2145518]. The default is UTC.
 
-[vmware-kb-2145518]: https://kb.vmware.com/s/article/2145518
+[kb-2145518]: https://knowledge.broadcom.com/external/article?articleNumber=320212
 
 #### Windows Customization Options
 

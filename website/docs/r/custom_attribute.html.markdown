@@ -10,20 +10,20 @@ description: |-
 # vsphere\_custom\_attribute
 
 The `vsphere_custom_attribute` resource can be used to create and manage custom
-attributes, which allow users to associate user-specific meta-information with 
-vSphere managed objects. Custom attribute values must be strings and are stored 
+attributes, which allow users to associate user-specific meta-information with
+vSphere managed objects. Custom attribute values must be strings and are stored
 on the vCenter Server and not the managed object.
 
 For more information about custom attributes, click [here][ext-custom-attributes].
 
-[ext-custom-attributes]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vcenterhost.doc/GUID-73606C4C-763C-4E27-A1DA-032E4C46219D.html
+[ext-custom-attributes]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-vcenter-esxi-management/GUID-73606C4C-763C-4E27-A1DA-032E4C46219D.html
 
-~> **NOTE:** Custom attributes are unsupported on direct ESXi host connections 
+~> **NOTE:** Custom attributes are unsupported on direct ESXi host connections
 and require vCenter Server.
 
 ## Example Usage
 
-This example creates a custom attribute named `terraform-test-attribute`. The 
+This example creates a custom attribute named `terraform-test-attribute`. The
 resulting custom attribute can be assigned to VMs only.
 
 ```hcl
@@ -35,7 +35,7 @@ resource "vsphere_custom_attribute" "attribute" {
 
 ## Using Custom Attributes on a Supported Resource
 
-Custom attributes can be set on supported provider resources using the 
+Custom attributes can be set on supported provider resources using the
 `custom_attributes` argument.
 
 The following example creates both a `vsphere_custom_attribute` resource and a
@@ -56,7 +56,7 @@ resource "vsphere_custom_attribute" "attribute" {
   managed_object_type = "VirtualMachine"
 }
 
-resource "vsphere_virtual_machine" "vm" { 
+resource "vsphere_virtual_machine" "vm" {
   # ... other configuration ...
   custom_attributes = tomap({"${data.vsphere_custom_attribute.attribute.id}" = "John Doe"})
   # ... other configuration ...
@@ -71,7 +71,7 @@ data "vsphere_custom_attribute" "attribute" {
   name = "Owner"
 }
 
-resource "vsphere_virtual_machine" "vm" { 
+resource "vsphere_virtual_machine" "vm" {
   # ... other configuration ...
   custom_attributes = tomap({"${data.vsphere_custom_attribute.attribute.id}" = "John Doe"})
   # ... other configuration ...
@@ -117,7 +117,7 @@ This resource only exports the `id` attribute for the vSphere custom attribute.
 
 ## Importing
 
-An existing custom attribute can be [imported][docs-import] into this resource 
+An existing custom attribute can be [imported][docs-import] into this resource
 via its name, using the following command:
 
 [docs-import]: https://www.terraform.io/docs/import/index.html

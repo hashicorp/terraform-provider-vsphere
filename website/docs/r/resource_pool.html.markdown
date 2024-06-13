@@ -4,7 +4,7 @@ layout: "vsphere"
 page_title: "VMware vSphere: vsphere_resource_pool"
 sidebar_current: "docs-vsphere-resource-compute-resource-pool"
 description: |-
-  Provides a resource for VMware vSphere resource pools. 
+  Provides a resource for VMware vSphere resource pools.
   This can be used to create and manage resource pools.
 ---
 
@@ -16,7 +16,7 @@ resource pools on DRS-enabled vSphere clusters or standalone ESXi hosts.
 For more information on vSphere resource pools, please refer to the
 [product documentation][ref-vsphere-resource_pools].
 
-[ref-vsphere-resource_pools]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.resmgmt.doc/GUID-60077B40-66FF-4625-934A-641703ED7601.html
+[ref-vsphere-resource_pools]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-resource-management/GUID-60077B40-66FF-4625-934A-641703ED7601.html
 
 ## Example Usage
 
@@ -72,7 +72,7 @@ resource "vsphere_resource_pool" "resource_pool_parent" {
 resource "vsphere_resource_pool" "resource_pool_child" {
   name                    = "child"
   parent_resource_pool_id = vsphere_resource_pool.resource_pool_parent.id
-} 
+}
 ```
 
 ## Argument Reference

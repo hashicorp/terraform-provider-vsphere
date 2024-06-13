@@ -27,8 +27,6 @@ to use host groups.
 ~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
 connections.
 
-~> **NOTE:** vSphere DRS requires a vSphere Enterprise Plus license.
-
 ## Example Usage
 
 The example below is the exact same configuration as the

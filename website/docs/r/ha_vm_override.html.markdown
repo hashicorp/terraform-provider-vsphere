@@ -17,7 +17,7 @@ while not affecting the rest of the cluster.
 
 For more information on vSphere HA, see [this page][ref-vsphere-ha-clusters].
 
-[ref-vsphere-ha-clusters]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.avail.doc/GUID-5432CA24-14F1-44E3-87FB-61D937831CF6.html
+[ref-vsphere-ha-clusters]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-availability/GUID-5432CA24-14F1-44E3-87FB-61D937831CF6.html
 
 ~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
 connections.
@@ -118,7 +118,7 @@ defaults. See the individual settings below for more details.
 ~> **NOTE:** The same version restrictions that apply for certain options
 within [`vsphere_compute_cluster`][tf-vsphere-cluster-resource] apply to
 overrides as well. See [here][tf-vsphere-cluster-resource-version-restrictions]
-for an entire list of version restrictions. 
+for an entire list of version restrictions.
 
 [tf-vsphere-cluster-resource-version-restrictions]: /docs/providers/vsphere/r/compute_cluster.html#vsphere-version-requirements
 

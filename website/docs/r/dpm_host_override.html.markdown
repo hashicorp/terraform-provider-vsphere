@@ -17,12 +17,10 @@ at the default power management settings.
 For more information on DPM within vSphere clusters, see [this
 page][ref-vsphere-cluster-dpm].
 
-[ref-vsphere-cluster-dpm]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.resmgmt.doc/GUID-5E5E349A-4644-4C9C-B434-1C0243EBDC80.html
+[ref-vsphere-cluster-dpm]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-resource-management/GUID-5E5E349A-4644-4C9C-B434-1C0243EBDC80.html
 
 ~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
 connections.
-
-~> **NOTE:** vSphere DRS requires a vSphere Enterprise Plus license.
 
 ## Example Usage
 
@@ -91,7 +89,7 @@ The following arguments are supported:
 * `host_system_ids` - (Optional) The [managed object ID][docs-about-morefs] of
   the host to create the override for.
 * `dpm_enabled` - (Optional) Enable DPM support for this host. Default:
-  `false`. 
+  `false`.
 * `dpm_automation_level` - (Optional) The automation level for host power
   operations on this host. Can be one of `manual` or `automated`. Default:
   `manual`.

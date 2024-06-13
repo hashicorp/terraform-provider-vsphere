@@ -17,7 +17,7 @@ by the [`vsphere_compute_cluster`][tf-vsphere-cluster-data-source] data source.
 [tf-vsphere-cluster-resource]: /docs/providers/vsphere/r/compute_cluster.html
 [tf-vsphere-cluster-data-source]: /docs/providers/vsphere/d/compute_cluster.html
 
-An anti-affinity rule places a group of virtual machines across different 
+An anti-affinity rule places a group of virtual machines across different
 hosts within a cluster, and is useful for preventing single points of failure in
 application cluster scenarios. When configured, vSphere DRS will make a best effort
 to ensure that the virtual machines run on different hosts, or prevent any
@@ -32,10 +32,8 @@ resource.
 
 [tf-vsphere-cluster-vm-host-rule-resource]: /docs/providers/vsphere/r/compute_cluster_vm_host_rule.html
 
-~> **NOTE:** This resource requires vCenter Server and is not available on
+~> **NOTE:** This resource requires vCenter and is not available on
 direct ESXi host connections.
-
-~> **NOTE:** vSphere DRS requires a vSphere Enterprise Plus license.
 
 ## Example Usage
 
@@ -92,7 +90,7 @@ resource "vsphere_compute_cluster_vm_anti_affinity_rule" "vm_anti_affinity_rule"
   name                = "vm-anti-affinity-rule"
   compute_cluster_id  = data.vsphere_compute_cluster.cluster.id
   virtual_machine_ids = [for k, v in vsphere_virtual_machine.vm : v.id]
-  
+
   lifecycle {
     replace_triggered_by = [vsphere_virtual_machine.vm]
   }
@@ -100,10 +98,10 @@ resource "vsphere_compute_cluster_vm_anti_affinity_rule" "vm_anti_affinity_rule"
 ```
 
 -> Please note the `lifecycle.replace_triggered_by` (available Terraform >=1.2) usage. Updating the `vsphere_compute_cluster_vm_anti_affinity_rule` in-place may fail sometimes, especially when the VMs are replaced by new ones. This statement asks Terraform to destroy the anti-affinity rule before VMs are replaced, and a create a completely new anti-affinity rule. See [#1362](https://github.com/hashicorp/terraform-provider-vsphere/issues/1362) for more discussion on this.
- 
+
 The following example creates an anti-affinity rule for a set of virtual machines
 in the cluster by looking up the virtual machine UUIDs from the
-[`vsphere_virtual_machine`][tf-vsphere-vm-data-source] data source. 
+[`vsphere_virtual_machine`][tf-vsphere-vm-data-source] data source.
 
 [tf-vsphere-vm-data-source]: /docs/providers/vsphere/d/virtual_machine.html
 

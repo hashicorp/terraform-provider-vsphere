@@ -27,10 +27,10 @@ For an overview on vSphere networking concepts, see
 For more information on the VDS, see [this page][ref-vsphere-vds].
 
 [distributed-port-group]: /docs/providers/vsphere/r/distributed_port_group.html
-[ref-vsphere-net-concepts]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.networking.doc/GUID-2B11DBB8-CB3C-4AFF-8885-EFEA0FC562F4.html
-[ref-vsphere-vds]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.networking.doc/GUID-375B45C7-684C-4C51-BA3C-70E48DFABF04.html
+[ref-vsphere-net-concepts]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-networking/GUID-69933F6E-2442-46CF-AA17-1196CB9A0A09.html
+[ref-vsphere-vds]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-networking/GUID-375B45C7-684C-4C51-BA3C-70E48DFABF04.html
 
-~> **NOTE:** This resource requires vCenter Server and is not available on
+~> **NOTE:** This resource requires vCenter and is not available on
 direct ESXi host connections.
 
 ## Example Usage
@@ -152,8 +152,6 @@ The following arguments are supported:
 
 [docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
 
-~> **NOTE:** Tagging support requires vCenter Server 6.0 or higher.
-
 - `custom_attributes` - (Optional) Map of custom attribute ids to attribute
   value strings to set for VDS. See [here][docs-setting-custom-attributes]
   for a reference on how to set values for custom attributes.
@@ -202,8 +200,7 @@ the VDS:
   active flows are forced to be exported to the collector. Allowed range is
   `60` to `3600`. Default: `60`.
 - `netflow_collector_ip_address` - (Optional) IP address for the Netflow
-  collector, using IPv4 or IPv6. IPv6 is supported in VDS version 6.0 or later.
-  Must be set before Netflow can be enabled.
+  collector, using IPv4 or IPv6. Must be set before Netflow can be enabled.
 - `netflow_collector_port` - (Optional) Port for the Netflow collector. This
   must be set before Netflow can be enabled.
 - `netflow_idle_flow_timeout` - (Optional) The number of seconds after which

@@ -17,12 +17,10 @@ without affecting the rest of the cluster.
 For more information on vSphere clusters and DRS, see [this
 page][ref-vsphere-drs-clusters].
 
-[ref-vsphere-drs-clusters]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.resmgmt.doc/GUID-8ACF3502-5314-469F-8CC9-4A9BD5925BC2.html
+[ref-vsphere-drs-clusters]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-resource-management/GUID-8ACF3502-5314-469F-8CC9-4A9BD5925BC2.html
 
 ~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
 connections.
-
-~> **NOTE:** vSphere DRS requires a vSphere Enterprise Plus license.
 
 ## Example Usage
 

@@ -17,7 +17,7 @@ through Storage DRS.
 For more information on vSphere datastore clusters and Storage DRS, see [this
 page][ref-vsphere-datastore-clusters].
 
-[ref-vsphere-datastore-clusters]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.resmgmt.doc/GUID-598DF695-107E-406B-9C95-0AF961FC227A.html
+[ref-vsphere-datastore-clusters]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-resource-management/GUID-598DF695-107E-406B-9C95-0AF961FC227A.html
 
 ~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
 connections.
@@ -100,8 +100,6 @@ The following arguments are supported:
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 [docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
 
-~> **NOTE:** Tagging support requires vCenter 6.0 or higher.
-
 * `custom_attributes` - (Optional) A map of custom attribute ids to attribute
   value strings to set for the datastore cluster. See
   [here][docs-setting-custom-attributes] for a reference on how to set values
@@ -109,7 +107,7 @@ The following arguments are supported:
 
 [docs-setting-custom-attributes]: /docs/providers/vsphere/r/custom_attribute.html#using-custom-attributes-in-a-supported-resource
 
-~> **NOTE:** Custom attributes are unsupported on direct ESXi connections 
+~> **NOTE:** Custom attributes are unsupported on direct ESXi connections
 and require vCenter.
 
 ### Storage DRS automation options
@@ -145,9 +143,6 @@ use the cluster default automation level.
 The following options control I/O load balancing for Storage DRS on the
 datastore cluster.
 
-~> **NOTE:** All reservable IOPS settings require vSphere 6.0 or higher and are
-ignored on older versions.
-
 * `sdrs_io_load_balance_enabled` - (Optional) Enable I/O load balancing for
   this datastore cluster. Default: `true`.
 * `sdrs_io_latency_threshold` - (Optional) The I/O latency threshold, in
@@ -170,19 +165,14 @@ ignored on older versions.
   threshold setting to use, `sdrs_io_reservable_percent_threshold` in the event
   of `automatic`, or `sdrs_io_reservable_iops_threshold` in the event of
   `manual`. Default: `automatic`.
-* `sdrs_space_utilization_threshold` - (Optional) Runtime thresholds govern 
-  when Storage DRS performs or recommends migrations 
+* `sdrs_space_utilization_threshold` - (Optional) Runtime thresholds govern
+  when Storage DRS performs or recommends migrations
   (based on the selected automation level). Default: `80` percent.
 
 ### Storage DRS disk space load balancing settings
 
 The following options control disk space load balancing for Storage DRS on the
 datastore cluster.
-
-~> **NOTE:** Setting `sdrs_free_space_threshold_mode` to `freeSpace` and using
-the `sdrs_free_space_threshold` setting requires vSphere 6.0 or higher and is
-ignored on older versions. Using these settings on older versions may result in
-spurious diffs in Terraform.
 
 * `sdrs_free_space_utilization_difference` - (Optional) The threshold, in
   percent of used space, that storage DRS uses to make decisions to migrate VMs

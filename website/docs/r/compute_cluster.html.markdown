@@ -29,13 +29,11 @@ For more information on vSphere clusters and DRS, see [this
 page][ref-vsphere-drs-clusters]. For more information on vSphere HA, see [this
 page][ref-vsphere-ha-clusters].
 
-[ref-vsphere-drs-clusters]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.resmgmt.doc/GUID-8ACF3502-5314-469F-8CC9-4A9BD5925BC2.html
-[ref-vsphere-ha-clusters]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.avail.doc/GUID-5432CA24-14F1-44E3-87FB-61D937831CF6.html
+[ref-vsphere-drs-clusters]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-resource-management/GUID-8ACF3502-5314-469F-8CC9-4A9BD5925BC2.html
+[ref-vsphere-ha-clusters]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-availability/GUID-5432CA24-14F1-44E3-87FB-61D937831CF6.html
 
-~> **NOTE:** This resource requires vCenter Server and is not available on
+~> **NOTE:** This resource requires vCenter and is not available on
 direct ESXi connections.
-
-~> **NOTE:** vSphere DRS requires a vSphere Enterprise Plus license.
 
 ## Example Usage
 
@@ -48,7 +46,7 @@ Note that the following example assumes each host has been configured correctly
 according to the requirements of vSphere HA. For more information, click
 [here][ref-vsphere-ha-checklist].
 
-[ref-vsphere-ha-checklist]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.avail.doc/GUID-BA85FEC4-A37C-45BA-938D-37B309010D93.html
+[ref-vsphere-ha-checklist]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-availability/GUID-BA85FEC4-A37C-45BA-938D-37B309010D93.html
 
 ```hcl
 variable "datacenter" {
@@ -175,10 +173,10 @@ The following options control the settings for DRS on the cluster.
 * `drs_enable_vm_overrides` - (Optional) Allow individual DRS overrides to be
   set for virtual machines in the cluster. Default: `true`.
 * `drs_enable_predictive_drs` - (Optional) When `true`, enables DRS to use data
-  from [vRealize Operations Manager][ref-vsphere-vrops] to make proactive DRS
+  from [VMware Aria Operations][ref-vmware-aria-operations] to make proactive DRS
   recommendations. <sup>[\*](#vsphere-version-requirements)</sup>
 
-[ref-vsphere-vrops]: https://docs.vmware.com/en/vRealize-Operations-Manager/index.html
+[ref-vmware-aria-operations]: https://docs.vmware.com/en/VMware-Aria-Operations/index.html
 
 * `drs_scale_descendants_shares` - (Optional) Enable scalable shares for all
   resource pools in the cluster. Can be one of `disabled` or
@@ -194,7 +192,7 @@ cluster to manage host capacity on-demand depending on the needs of the
 cluster, powering on hosts when capacity is needed, and placing hosts in
 standby when there is excess capacity in the cluster.
 
-[ref-vsphere-dpm]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.resmgmt.doc/GUID-5E5E349A-4644-4C9C-B434-1C0243EBDC80.html
+[ref-vsphere-dpm]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-resource-management/GUID-5E5E349A-4644-4C9C-B434-1C0243EBDC80.html
 
 * `dpm_enabled` - (Optional) Enable DPM support for DRS in this cluster.
   Requires [`drs_enabled`](#drs_enabled) to be `true` in order to be effective.
@@ -435,7 +433,7 @@ external providers and make decisions based on the data reported.
 Working with Proactive HA is outside the scope of this document. For more
 details, see the referenced link in the above paragraph.
 
-[ref-vsphere-proactive-ha]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.avail.doc/GUID-3E3B18CC-8574-46FA-9170-CF549B8E55B8.html
+[ref-vsphere-proactive-ha]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-availability/GUID-3E3B18CC-8574-46FA-9170-CF549B8E55B8.html
 
 * `proactive_ha_enabled` - (Optional) Enables Proactive HA. Default: `false`.
   <sup>[\*](#vsphere-version-requirements)</sup>
@@ -554,9 +552,9 @@ After vLCM is enabled on a cluster it is not possible to disable it.
 
 * `host_image` - (Optional) Enables vLCM on the cluster and applies an ESXi image with the provided configuration.
   * `esx_version` - The ESXi version which will be used as a base for the image. See [`host_base_images`][docs-d-host-base-images].
-  * `component` - A custom component to add to the base image. TODO - add link to offline depot resource docs 
+  * `component` - A custom component to add to the base image. TODO - add link to offline depot resource docs
     * `key` - The identifier of the component
-    * `version` - The version of the component 
+    * `version` - The version of the component
 
 ## Attribute Reference
 

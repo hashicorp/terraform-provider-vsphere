@@ -44,9 +44,6 @@ The following arguments are supported:
 
 [docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
 
-~> **NOTE:** Tagging support is unsupported on direct ESXi connections and
-requires vCenter 6.0 or higher.
-
 * `custom_attributes` - (Optional) Map of custom attribute ids to value 
   strings to set for datacenter resource. See 
   [here][docs-setting-custom-attributes] for a reference on how to set values 

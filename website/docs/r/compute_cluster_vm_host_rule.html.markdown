@@ -31,8 +31,6 @@ resources.
 ~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
 connections.
 
-~> **NOTE:** vSphere DRS requires a vSphere Enterprise Plus license.
-
 ## Example Usage
 
 The example below creates a virtual machine in a cluster using the

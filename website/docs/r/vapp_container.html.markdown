@@ -14,7 +14,7 @@ vApps.
 
 For more information on vSphere vApps, see the VMware vSphere [product documentation][ref-vsphere-vapp].
 
-[ref-vsphere-vapp]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-E6E9D2A9-D358-4996-9BC7-F8D9D9645290.html
+[ref-vsphere-vapp]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-vm-administration/GUID-E6E9D2A9-D358-4996-9BC7-F8D9D9645290.html
 
 ## Example Usage
 
@@ -22,7 +22,7 @@ For more information on vSphere vApps, see the VMware vSphere [product documenta
 
 The example below sets up a vSphere vApp container in a compute cluster which uses
 the default settings for CPU and memory reservations, shares, and limits. The compute cluster
-needs to already exist in vSphere.  
+needs to already exist in vSphere.
 
 ```hcl
 data "vsphere_datacenter" "datacenter" {
