@@ -441,9 +441,12 @@ func flattenWindowsOptions(customizationPrep *types.CustomizationSysprep, versio
 		winOptionsData["domain_admin_password"] = customizationPrep.Identification.DomainAdminPassword.Value
 	}
 	winOptionsData["join_domain"] = customizationPrep.Identification.JoinDomain
+
+	// Minimum Supported Version: 8.0.2
 	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 8, Minor: 0, Patch: 2}) {
 		winOptionsData["domain_ou"] = customizationPrep.Identification.DomainOU
 	}
+
 	winOptionsData["workgroup"] = customizationPrep.Identification.JoinWorkgroup
 	hostName, err := flattenHostName(customizationPrep.UserData.ComputerName)
 	if err != nil {
@@ -617,9 +620,12 @@ func expandCustomizationIdentification(d *schema.ResourceData, prefix string, ve
 		JoinDomain:    d.Get(prefix + "join_domain").(string),
 		DomainAdmin:   d.Get(prefix + "domain_admin_user").(string),
 	}
+
+	// Minimum Supported Version: 8.0.2
 	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 8, Minor: 0, Patch: 2}) {
 		obj.DomainOU = d.Get(prefix + "domain_ou").(string)
 	}
+
 	if v, ok := d.GetOk(prefix + "domain_admin_password"); ok {
 		obj.DomainAdminPassword = &types.CustomizationPassword{
 			Value:     v.(string),

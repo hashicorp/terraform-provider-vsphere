@@ -925,20 +925,23 @@ func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.Res
 	log.Printf("[DEBUG] %s: Performing diff customization and validation", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*Client).vimClient
 
-	// Block certain options from being set depending on the vSphere version.
 	version := viapi.ParseVersionFromClient(client)
+
+	// Minimum Supported Version: 6.5.0
 	if d.Get("efi_secure_boot_enabled").(bool) {
 		if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
 			return fmt.Errorf("efi_secure_boot_enabled is only supported on vSphere 6.5 and higher")
 		}
 	}
 
+	// Minimum Supported Version: 6.7.0
 	if d.Get("vbs_enabled").(bool) {
 		if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 7}) {
 			return fmt.Errorf("vbs_enabled is only supported on vSphere 6.7 and higher")
 		}
 	}
 
+	// Minimum Supported Version: 6.7.0
 	if d.Get("vvtd_enabled").(bool) {
 		if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 7}) {
 			return fmt.Errorf("vvtd_enabled is only supported on vSphere 6.7 and higher")

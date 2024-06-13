@@ -6,12 +6,13 @@ package vsphere
 import (
 	"context"
 	"fmt"
-	"github.com/vmware/govmomi/vapi/cis/tasks"
-	"github.com/vmware/govmomi/vapi/esx/settings/clusters"
-	"github.com/vmware/govmomi/vapi/rest"
 	"log"
 	"sort"
 	"strings"
+
+	"github.com/vmware/govmomi/vapi/cis/tasks"
+	"github.com/vmware/govmomi/vapi/esx/settings/clusters"
+	"github.com/vmware/govmomi/vapi/rest"
 
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
@@ -1696,6 +1697,7 @@ func expandClusterConfigSpecEx(d *schema.ResourceData, version viapi.VSphereVers
 		}
 	}
 
+	// Minimum Supported Version: 6.5.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
 		obj.InfraUpdateHaConfig = expandClusterInfraUpdateHaConfigInfo(d)
 		obj.Orchestration = expandClusterOrchestrationInfo(d)
@@ -1877,6 +1879,7 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 	}
 	version := viapi.ParseVersionFromClient(client)
 
+	// Minimum Supported Version: 8.0.0
 	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 8, Minor: 0}) {
 		if !d.Get("vsan_enabled").(bool) && d.Get("vsan_esa_enabled").(bool) {
 			return fmt.Errorf("vSAN ESA service cannot be enabled on cluster due to vSAN is disabled: %s", d.Get("name").(string))
@@ -1904,6 +1907,7 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 		},
 	}
 
+	// Minimum Supported Version: 8.0.0
 	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 8, Minor: 0}) {
 		vsanEsaEnabled := d.Get("vsan_esa_enabled").(bool)
 		conf.VsanClusterConfig.(*vsantypes.VsanClusterConfigInfo).VsanEsaEnabled = &vsanEsaEnabled
@@ -2226,16 +2230,21 @@ func flattenClusterConfigSpecEx(d *schema.ResourceData, obj *types.ClusterConfig
 		}
 	}
 
+	// Minimum Supported Version: 6.5.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
 		if err := flattenClusterInfraUpdateHaConfigInfo(d, obj.InfraUpdateHaConfig); err != nil {
 			return err
 		}
 	}
+
+	// Minimum Supported Version: 6.5.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
 		if err := flattenClusterOrchestrationInfo(d, obj.Orchestration); err != nil {
 			return err
 		}
 	}
+
+	// Minimum Supported Version: 6.5.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
 		return flattenClusterProactiveDrsConfigInfo(d, obj.ProactiveDrsConfig)
 	}
@@ -2267,6 +2276,7 @@ func expandClusterDasConfigInfo(d *schema.ResourceData, version viapi.VSphereVer
 	}
 	obj.AdmissionControlPolicy = expandBaseClusterDasAdmissionControlPolicy(d, policy, version)
 
+	// Minimum Supported Version: 6.0.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
 		obj.VmComponentProtecting = d.Get("ha_vm_component_protection").(string)
 	}
@@ -2300,6 +2310,7 @@ func flattenClusterDasConfigInfo(d *schema.ResourceData, obj types.ClusterDasCon
 		return err
 	}
 
+	// Minimum Supported Version: 6.0.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
 		if err := d.Set("ha_vm_component_protection", obj.VmComponentProtecting); err != nil {
 			return err
@@ -2336,6 +2347,7 @@ func expandBaseClusterDasAdmissionControlPolicy(
 		return nil
 	}
 
+	// Minimum Supported Version: 6.5.0
 	if obj != nil && version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
 		obj.GetClusterDasAdmissionControlPolicy().ResourceReductionToToleratePercent = structure.Int32Ptr(int32(d.Get("ha_admission_control_performance_tolerance").(int)))
 	}
@@ -2387,6 +2399,7 @@ func expandClusterFailoverResourcesAdmissionControlPolicy(
 		MemoryFailoverResourcesPercent: int32(d.Get("ha_admission_control_resource_percentage_memory").(int)),
 	}
 
+	// Minimum Supported Version: 6.5.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
 		obj.AutoComputePercentages = structure.GetBool(d, "ha_admission_control_resource_percentage_auto_compute")
 		obj.FailoverLevel = int32(d.Get("ha_admission_control_host_failure_tolerance").(int))
@@ -2403,10 +2416,9 @@ func flattenClusterFailoverResourcesAdmissionControlPolicy(
 	obj *types.ClusterFailoverResourcesAdmissionControlPolicy,
 	version viapi.VSphereVersion,
 ) error {
-	// AutoComputePercentages is a vSphere >= 6.5 feature, but when it's
-	// enabled the admission control CPU/memory values will be auto-set and
-	// caused spurious diffs, so do a nil check to see if we have the value or
-	// if it's disabled before we set the values.
+	// When AutoComputePercentages is enabled the admission control CPU/memory
+	// values will be auto-set and caused spurious diffs, so do a nil check to
+	// see if we have the value or if it's disabled before we set the values.
 	if obj.AutoComputePercentages == nil || !*obj.AutoComputePercentages {
 		err := structure.SetBatch(d, map[string]interface{}{
 			"ha_admission_control_resource_percentage_cpu":    obj.CpuFailoverResourcesPercent,
@@ -2417,6 +2429,7 @@ func flattenClusterFailoverResourcesAdmissionControlPolicy(
 		}
 	}
 
+	// Minimum Supported Version: 6.5.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
 		return structure.SetBatch(d, map[string]interface{}{
 			"ha_admission_control_resource_percentage_auto_compute": obj.AutoComputePercentages,
@@ -2477,6 +2490,7 @@ func expandClusterFailoverHostAdmissionControlPolicy(
 		),
 	}
 
+	// Minimum Supported Version: 6.5.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
 		obj.FailoverLevel = int32(d.Get("ha_admission_control_host_failure_tolerance").(int))
 	}
@@ -2500,6 +2514,7 @@ func flattenClusterFailoverHostAdmissionControlPolicy(
 		return err
 	}
 
+	// Minimum Supported Version: 6.5.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
 		return d.Set("ha_admission_control_host_failure_tolerance", obj.FailoverLevel)
 	}
@@ -2516,9 +2531,12 @@ func expandClusterDasVMSettings(d *schema.ResourceData, version viapi.VSphereVer
 		VmToolsMonitoringSettings: expandClusterVMToolsMonitoringSettings(d),
 	}
 
+	// Minimum Supported Version: 6.0.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
 		obj.VmComponentProtectionSettings = expandClusterVMComponentProtectionSettings(d)
 	}
+
+	// Minimum Supported Version: 6.5.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
 		obj.RestartPriorityTimeout = int32(d.Get("ha_vm_restart_timeout").(int))
 	}
@@ -2541,11 +2559,14 @@ func flattenClusterDasVMSettings(d *schema.ResourceData, obj *types.ClusterDasVm
 		return err
 	}
 
+	// Minimum Supported Version: 6.0.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
 		if err := flattenClusterVMComponentProtectionSettings(d, obj.VmComponentProtectionSettings); err != nil {
 			return err
 		}
 	}
+
+	// Minimum Supported Version: 6.5.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
 		return d.Set("ha_vm_restart_timeout", obj.RestartPriorityTimeout)
 	}
@@ -2675,6 +2696,7 @@ func expandClusterDrsConfigInfo(d *schema.ResourceData, version viapi.VSphereVer
 		Option:                    expandResourceVSphereComputeClusterDrsAdvancedOptions(d),
 	}
 
+	// Minimum Supported Version: 7.0.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0}) {
 		obj.ScaleDescendantsShares = d.Get("drs_scale_descendants_shares").(string)
 	}
@@ -2695,6 +2717,7 @@ func flattenClusterDrsConfigInfo(d *schema.ResourceData, obj types.ClusterDrsCon
 		return err
 	}
 
+	// Minimum Supported Version: 7.0.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0}) {
 		d.Set("drs_scale_descendants_shares", obj.ScaleDescendantsShares)
 	} else {
