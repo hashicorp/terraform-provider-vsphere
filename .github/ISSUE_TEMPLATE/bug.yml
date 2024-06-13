@@ -9,8 +9,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Before filing an issue, please [search the existing issues](https://github.com/hashicorp/terraform-provider-vsphere/issues?q=is%3Aissue+is%3Aopen+label%3Abug) (open or closed), and use the [reaction](https://blog.github.com/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) feature to add up-votes to existing issues.
-        
+        Before filing an issue, please [search the existing issues](https://github.com/hashicorp/terraform-provider-vsphere/issues?q=is%3Aissue+is%3Aopen+label%3Abug) (open or closed), and use the [reaction](https://github.blog/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) feature to add up-votes to existing issues.
+
         When filing an issue, please include the following information.
   - type: checkboxes
     id: terms
@@ -20,7 +20,7 @@ body:
       options:
         - label: I have read and agree to the [HashiCorp Community Guidelines ](https://www.hashicorp.com/community-guidelines).
           required: true
-        - label: Vote on this issue by adding a 👍 [reaction](https://blog.github.com/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) to the original issue initial description to help the maintainers prioritize.
+        - label: Vote on this issue by adding a 👍 [reaction](https://github.blog/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) to the original issue initial description to help the maintainers prioritize.
           required: false
         - label: Do not leave "+1" or other comments that do not add relevant information or questions.
           required: false
@@ -31,7 +31,7 @@ body:
     attributes:
       label: Terraform
       description: Please provide the Terraform version.
-      placeholder: e.g. v1.2.5
+      placeholder: e.g. x.y.z
     validations:
       required: true
   - type: input
@@ -41,7 +41,7 @@ body:
       description: |
         Please provide the Terraform provider for VMware vSphere version.
         We recommend testing with [the latest version of the provider](https://github.com/hashicorp/terraform-provider-vsphere/releases/latest).
-      placeholder: e.g. v2.2.0
+      placeholder: e.g. x.y.z
     validations:
        required: true
   - type: input
@@ -50,8 +50,8 @@ body:
       label: VMware vSphere
       description: |
         Please provide the VMware vSphere version.
-        The provider supports versions in accordance with the [VMware Product Lifecycle Matrix](https://lifecycle.vmware.com).
-      placeholder: e.g. v7.0.3
+        The provider supports versions in accordance with the [Broadcom Product Lifecycle](https://support.broadcom.com/group/ecx/productlifecycle).
+      placeholder: e.g. x.y.z
     validations:
       required: true
   - type: textarea
@@ -79,7 +79,7 @@ body:
         - Please ensure all secrets and identifiable information is removed.
         - Please format any code in code blocks using the markdown editor.
 
-        Learn more about [Code Formatting](https://help.github.com/articles/basic-writing-and-formatting-syntax/#quoting-code).
+        Learn more about [Quoting Code](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#quoting-code).
       placeholder: |
         Please format any code in code blocks using the markdown editor.
     validations:
@@ -147,7 +147,7 @@ body:
       label: References
       description: |
         Please provide any related GitHub issues or pull requests (open or closed) or documentation.
-        Learn about [Referencing Github Issues](https://help.github.com/articles/basic-writing-and-formatting-syntax/#referencing-issues-and-pull-requests).
+        Learn about [Referencing Github Issues and Pull Requests](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#referencing-issues-and-pull-requests).
       placeholder: |
         #GH-0000
     validations:

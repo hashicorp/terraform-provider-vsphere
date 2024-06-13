@@ -9,8 +9,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Before filing an enhancement or feature, please [search the existing issues](https://github.com/hashicorp/terraform-provider-vsphere/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement) for related requests, and use the [reaction](https://blog.github.com/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) feature to add up-votes to existing requests.
-        
+        Before filing an enhancement or feature, please [search the existing issues](https://github.com/hashicorp/terraform-provider-vsphere/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement) for related requests, and use the [reaction](https://github.blog/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) feature to add up-votes to existing requests.
+
         When filing an enhancement issue, please include the following information.
   - type: checkboxes
     id: terms
@@ -20,7 +20,7 @@ body:
       options:
         - label: I have read and agree to the [HashiCorp Community Guidelines ](https://www.hashicorp.com/community-guidelines).
           required: true
-        - label: Vote on this issue by adding a 👍 [reaction](https://blog.github.com/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) to the original issue initial description to help the maintainers prioritize.
+        - label: Vote on this issue by adding a 👍 [reaction](https://github.blog/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) to the original issue initial description to help the maintainers prioritize.
           required: false
         - label: Do not leave "+1" or other comments that do not add relevant information or questions.
           required: false
@@ -46,7 +46,7 @@ body:
       label: Potential Terraform Provider Configuration
       description: |
         Provide a potential Terraform provider configuration.
-        Learn more about [Code Formatting](https://help.github.com/articles/basic-writing-and-formatting-syntax/#quoting-code).
+        Learn more about [Quoting Code](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#quoting-code).
       placeholder: |
         Please format any code in code blocks using the markdown editor.
     validations:
@@ -57,7 +57,7 @@ body:
       label: References
       description: |
         Please provide any related GitHub issues or pull requests (open or closed) or documentation.
-        Learn about [Referencing Github Issues](https://help.github.com/articles/basic-writing-and-formatting-syntax/#referencing-issues-and-pull-requests).
+        Learn about [Referencing Github Issues and Pull Requests](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#referencing-issues-and-pull-requests).
       placeholder: |
         #GH-0000
     validations:

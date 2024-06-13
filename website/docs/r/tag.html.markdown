@@ -7,7 +7,7 @@ description: |-
   Provides a vSphere tag resource. This can be used to manage tags in vSphere.
 ---
 
-# vsphere\_tag
+# vsphere_tag
 
 The `vsphere_tag` resource can be used to create and manage tags, which allow
 you to attach metadata to objects in the vSphere inventory to make these
@@ -15,10 +15,7 @@ objects more sortable and searchable.
 
 For more information about tags, click [here][ext-tags-general].
 
-[ext-tags-general]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vcenterhost.doc/GUID-E8E854DD-AA97-4E0C-8419-CE84F93C4058.html
-
-~> **NOTE:** Tagging support is unsupported on direct ESXi connections and
-requires vCenter 6.0 or higher.
+[ext-tags-general]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-vcenter-esxi-management/GUID-E8E854DD-AA97-4E0C-8419-CE84F93C4058.html
 
 ## Example Usage
 
@@ -90,11 +87,11 @@ resource "vsphere_virtual_machine" "web" {
 
 The following arguments are supported:
 
-* `name` - (Required) The display name of the tag. The name must be unique
+- `name` - (Required) The display name of the tag. The name must be unique
   within its category.
-* `category_id` - (Required) The unique identifier of the parent category in
+- `category_id` - (Required) The unique identifier of the parent category in
   which this tag will be created. Forces a new resource if changed.
-* `description` - (Optional) A description for the tag.
+- `description` - (Optional) A description for the tag.
 
 ## Attribute Reference
 

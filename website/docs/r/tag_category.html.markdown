@@ -7,21 +7,15 @@ description: |-
   Provides a vSphere tag category resource. This can be used to manage tag categories in vSphere.
 ---
 
-# vsphere\_tag\_category
+# vsphere_tag_category
 
 The `vsphere_tag_category` resource can be used to create and manage tag
 categories, which determine how tags are grouped together and applied to
 specific objects.
 
-For more information about tags, click [here][ext-tags-general]. For more
-information about tag categories specifically, click
-[here][ext-tag-categories].
+For more information about tags, click [here][ext-tags-general].
 
-[ext-tags-general]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vcenterhost.doc/GUID-E8E854DD-AA97-4E0C-8419-CE84F93C4058.html
-[ext-tag-categories]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vcenterhost.doc/GUID-BA3D1794-28F2-43F3-BCE9-3964CB207FB6.html
-
-~> **NOTE:** Tagging support is unsupported on direct ESXi connections and
-requires vCenter 6.0 or higher.
+[ext-tags-general]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-vcenter-esxi-management/GUID-E8E854DD-AA97-4E0C-8419-CE84F93C4058.html
 
 ## Example Usage
 
@@ -47,15 +41,15 @@ resource "vsphere_tag_category" "category" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the category.
-* `cardinality` - (Required) The number of tags that can be assigned from this
+- `name` - (Required) The name of the category.
+- `cardinality` - (Required) The number of tags that can be assigned from this
   category to a single object at once. Can be one of `SINGLE` (object can only
   be assigned one tag in this category), to `MULTIPLE` (object can be assigned
   multiple tags in this category). Forces a new resource if changed.
-* `associable_types` - (Required) A list object types that this category is
+- `associable_types` - (Required) A list object types that this category is
   valid to be assigned to. For a full list, click
   [here](#associable-object-types).
-* `description` - (Optional) A description for the category.
+- `description` - (Optional) A description for the category.
 
 ~> **NOTE:** You can add associable types to a category, but you cannot remove
 them. Attempting to do so will result in an error.

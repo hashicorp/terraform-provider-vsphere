@@ -15,7 +15,7 @@ entity (virtual machine or sub-vApp container) in a vApp container.
 For more information on vSphere vApps, see [this
 page][ref-vsphere-vapp].
 
-[ref-vsphere-vapp]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-2A95EBB8-1779-40FA-B4FB-4D0845750879.html
+[ref-vsphere-vapp]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-vm-administration/GUID-2A95EBB8-1779-40FA-B4FB-4D0845750879.html
 
 ## Example Usage
 
@@ -86,7 +86,7 @@ resource "vsphere_virtual_machine" "vm" {
 The following arguments are supported:
 
 * `target_id` - (Required) [Managed object ID|docs-about-morefs] of the entity
-  to power on or power off. This can be a virtual machine or a vApp. 
+  to power on or power off. This can be a virtual machine or a vApp.
 * `container_id` - (Required) [Managed object ID|docs-about-morefs] of the vApp
   container the entity is a member of.
 * `start_order` - (Optional) Order to start and stop target in vApp. Default: 1
@@ -94,13 +94,13 @@ The following arguments are supported:
   or powerOn. If set to none, then the entity does not participate in auto-start.
   Default: powerOn
 * `start_delay` - (Optional) Delay in seconds before continuing with the next
-  entity in the order of entities to be started. Default: 120 
+  entity in the order of entities to be started. Default: 120
 * `stop_action` - (Optional) Defines the stop action for the entity. Can be set
   to none, powerOff, guestShutdown, or suspend. If set to none, then the entity
-  does not participate in auto-stop. Default: powerOff 
+  does not participate in auto-stop. Default: powerOff
 * `stop_delay` - (Optional) Delay in seconds before continuing with the next
   entity in the order sequence. This is only used if the stopAction is
-  guestShutdown. Default: 120 
+  guestShutdown. Default: 120
 * `wait_for_guest` - (Optional) Determines if the VM should be marked as being
   started when VMware Tools are ready instead of waiting for `start_delay`. This
   property has no effect for vApps. Default: false
@@ -122,7 +122,7 @@ the ID of the vApp Entity.
 [docs-import]: https://www.terraform.io/docs/import/index.html
 
 ```
-terraform import vsphere_vapp_entity.vapp_entity vm-123:res-456 
+terraform import vsphere_vapp_entity.vapp_entity vm-123:res-456
 ```
 
 The above would import the vApp entity that governs the behavior of the virtual

@@ -4,21 +4,21 @@ layout: "vsphere"
 page_title: "VMware vSphere: Entity Permissions"
 sidebar_current: "docs-vsphere-entity-permissions"
 description: |-
-  Provides CRUD operations on a vsphere entity permissions. Permissions can be created on an entity for a given user or 
+  Provides CRUD operations on a vsphere entity permissions. Permissions can be created on an entity for a given user or
   group with the specified roles.
 ---
 
 # vsphere\_entity\_permissions
 
-The `vsphere_entity_permissions` resource can be used to create and manage entity permissions. 
+The `vsphere_entity_permissions` resource can be used to create and manage entity permissions.
 Permissions can be created on an entity for a given user or group with the specified role.
 
 ## Example Usage
 
-This example creates entity permissions on the virtual machine VM1 for the user group DCClients with role Datastore 
+This example creates entity permissions on the virtual machine VM1 for the user group DCClients with role Datastore
 consumer and for user group ExternalIDPUsers with role my_terraform_role. The `entity_id` can be the managed object id
-(or uuid for some resources). The `entity_type` is one of the vmware managed object types which can be found from the 
-managed object types section in [vmware_api_7](https://developer.vmware.com/apis/968/vsphere). Keep the permissions sorted
+(or uuid for some resources). The `entity_type` is one of the managed object types which can be found from the
+managed object types section [here](https://developer.broadcom.com/xapis/vsphere-web-services-api/latest/). Keep the permissions sorted
 alphabetically, ignoring case on `user_or_group` for a better user experience.
 
 
@@ -66,8 +66,8 @@ resource "vsphere_entity_permissions" p1 {
 The following arguments are supported:
 
 * `entity_id`   - (Required) The managed object id (uuid for some entities) on which permissions are to be created.
-* `entity_type` - (Required) The managed object type, types can be found in the managed object type section 
-   [here](https://developer.vmware.com/apis/968/vsphere).
+* `entity_type` - (Required) The managed object type, types can be found in the managed object type section
+   [here](https://developer.broadcom.com/xapis/vsphere-web-services-api/latest/).
 
 * `permissions`     - (Required) The permissions to be given on this entity. Keep the permissions sorted
                        alphabetically on `user_or_group` for a better user experience.

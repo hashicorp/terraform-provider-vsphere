@@ -17,7 +17,7 @@ resource.
 For an overview on vSphere networking concepts, see [the product documentation][ref-vsphere-net-concepts].
 
 [host-virtual-switch]: /docs/providers/vsphere/r/host_virtual_switch.html
-[ref-vsphere-net-concepts]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.networking.doc/GUID-2B11DBB8-CB3C-4AFF-8885-EFEA0FC562F4.html
+[ref-vsphere-net-concepts]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-networking/GUID-8CDF29B2-ABA8-4F34-9FEF-14987BC13265.html
 
 ## Example Usages
 

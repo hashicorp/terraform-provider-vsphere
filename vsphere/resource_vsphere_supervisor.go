@@ -6,11 +6,12 @@ package vsphere
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/vapi/namespace"
-	"time"
 )
 
 func resourceVsphereSupervisor() *schema.Resource {
@@ -252,8 +253,8 @@ func resourceVsphereSupervisorRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	// To fully implement "read" and allow this resource to be imported
-	// the following API has to be added to Govmomi
-	// https://developer.vmware.com/apis/vsphere-automation/latest/vcenter/api/vcenter/namespace-management/clusters/cluster/get/
+	// the following API has to be added to govmomi.
+	// https://developer.broadcom.com/xapis/vsphere-automation-api/latest/vcenter/api/vcenter/namespace-management/clusters/cluster/get/
 	return nil
 }
 

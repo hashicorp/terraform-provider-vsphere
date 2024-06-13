@@ -141,7 +141,7 @@ func schemaVMwareDVSConfigSpec() map[string]*schema.Schema {
 		"netflow_collector_ip_address": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "IP address for the netflow collector, using IPv4 or IPv6. IPv6 is supported in vSphere Distributed Switch Version 6.0 or later.",
+			Description: "IP address for the netflow collector, using IPv4 or IPv6.",
 		},
 		"netflow_collector_port": {
 			Type:         schema.TypeInt,

@@ -20,17 +20,17 @@ the virtual machines to use the networking supplied by a vSphere Distributed
 Switch, with a set of policies that apply to that individual network, if
 desired.
 
-* For an overview on vSphere networking concepts, refer to the vSphere  
+* For an overview on vSphere networking concepts, refer to the vSphere
   [product documentation][ref-vsphere-net-concepts].
 
 * For more information on distributed port groups, refer to the vSphere
   [product documentation][ref-vsphere-dvportgroup].
 
 [distributed-virtual-switch]: /docs/providers/vsphere/r/distributed_virtual_switch.html
-[ref-vsphere-net-concepts]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.networking.doc/GUID-2B11DBB8-CB3C-4AFF-8885-EFEA0FC562F4.html
-[ref-vsphere-dvportgroup]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.networking.doc/GUID-69933F6E-2442-46CF-AA17-1196CB9A0A09.html
+[ref-vsphere-net-concepts]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-networking/GUID-8CDF29B2-ABA8-4F34-9FEF-14987BC13265.html
+[ref-vsphere-dvportgroup]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-networking/GUID-69933F6E-2442-46CF-AA17-1196CB9A0A09.html
 
-~> **NOTE:** This resource requires vCenter Server and is not available on
+~> **NOTE:** This resource requires vCenter and is not available on
 direct ESXi host connections.
 
 ## Example Usage
@@ -188,13 +188,13 @@ specify `number_of_ports`, you may wish to set `auto_expand` to `false`.
   the ports in this port group. See the `portNameFormat` attribute listed
   [here][ext-vsphere-portname-format] for details on the format syntax.
 
-[ext-vsphere-portname-format]: https://vdc-download.vmware.com/vmwb-repository/dcr-public/b50dcbbf-051d-4204-a3e7-e1b618c1e384/538cf2ec-b34f-4bae-a332-3820ef9e7773/vim.dvs.DistributedVirtualPortgroup.ConfigInfo.html#portNameFormat
+[ext-vsphere-portname-format]: https://developer.broadcom.com/xapis/virtual-infrastructure-json-api/latest/data-structures/DVPortgroupConfigInfo/
 
 * `network_resource_pool_key` - (Optional) The key of a network resource pool
   to associate with this port group. The default is `-1`, which implies no
   association.
 * `custom_attributes` (Optional) Map of custom attribute ids to attribute
-  value string to set for port group. See [here][docs-setting-custom-attributes] 
+  value string to set for port group. See [here][docs-setting-custom-attributes]
   for a reference on how to set values for custom attributes.
 
 [docs-setting-custom-attributes]: /docs/providers/vsphere/r/custom_attribute.html#using-custom-attributes-in-a-supported-resource
@@ -205,7 +205,7 @@ connections and require vCenter Server.
 ### Policy options
 
 In addition to the above options, you can configure any policy option that is
-available under the `vsphere_distributed_virtual_switch` 
+available under the `vsphere_distributed_virtual_switch`
 [policy options][vds-default-port-policies] section. Any policy option that is
 not set is inherited from the vSphere Distributed Switch, its options
 propagating to the port group.
@@ -228,7 +228,7 @@ group can be overridden on the individual port:
   resource pool set on this port group to be overridden on an individual port.
 * `port_config_reset_at_disconnect` - (Optional) Reset a port's settings to the
   settings defined on this port group policy when the port disconnects.
-* `security_policy_override_allowed` - (Optional) Allow the 
+* `security_policy_override_allowed` - (Optional) Allow the
   [security policy settings][sec-policy-settings] defined in this port group
   policy to be overridden on an individual port.
 * `shaping_override_allowed` - (Optional) Allow the
