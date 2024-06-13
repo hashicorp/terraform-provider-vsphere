@@ -137,16 +137,16 @@ type VSphereVersion struct {
 	// The product name. Example: "VMware vCenter Server", or "VMware ESXi".
 	Product string
 
-	// The major version. Example: If "6.5.1" is the full version, the major
-	// version is "6".
+	// The major version. Example: If "" is the full version, the major
+	// version is "x".
 	Major int
 
-	// The minor version. Example: If "6.5.1" is the full version, the minor
-	// version is "5".
+	// The minor version. Example: If "x.y.z" is the full version, the minor
+	// version is "y".
 	Minor int
 
-	// The patch version. Example: If "6.5.1" is the full version, the patch
-	// version is "1".
+	// The patch version. Example: If "x.y.z" is the full version, the patch
+	// version is "z".
 	Patch int
 
 	// The build number. This is usually a lengthy integer. This number should

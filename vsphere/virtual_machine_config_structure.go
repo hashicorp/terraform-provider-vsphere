@@ -392,8 +392,10 @@ func expandVirtualMachineBootOptions(d *schema.ResourceData, client *govmomi.Cli
 		BootRetryEnabled: structure.GetBool(d, "boot_retry_enabled"),
 		BootRetryDelay:   int64(d.Get("boot_retry_delay").(int)),
 	}
-	// Only set EFI secure boot if we are on vSphere 6.5 and higher
+
 	version := viapi.ParseVersionFromClient(client)
+
+	// Minimum Supported Version: 6.5.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
 		obj.EfiSecureBootEnabled = getBoolWithRestart(d, "efi_secure_boot_enabled")
 	}
@@ -419,7 +421,10 @@ func expandVirtualMachineFlagInfo(d *schema.ResourceData, client *govmomi.Client
 		VirtualMmuUsage:  getWithRestart(d, "ept_rvi_mode").(string),
 		EnableLogging:    getBoolWithRestart(d, "enable_logging"),
 	}
+
 	version := viapi.ParseVersionFromClient(client)
+
+	// Minimum Supported Version: 6.7.0
 	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 7}) {
 		obj.VbsEnabled = getBoolWithRestart(d, "vbs_enabled")
 		obj.VvtdEnabled = getBoolWithRestart(d, "vvtd_enabled")
@@ -436,6 +441,8 @@ func flattenVirtualMachineFlagInfo(d *schema.ResourceData, obj *types.VirtualMac
 	_ = d.Set("enable_logging", obj.EnableLogging)
 
 	version := viapi.ParseVersionFromClient(client)
+
+	// Minimum Supported Version: 6.0.0
 	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 7}) {
 		_ = d.Set("vbs_enabled", obj.VbsEnabled)
 		_ = d.Set("vvtd_enabled", obj.VvtdEnabled)
@@ -457,6 +464,8 @@ func expandToolsConfigInfo(d *schema.ResourceData, client *govmomi.Client) *type
 	}
 
 	version := viapi.ParseVersionFromClient(client)
+
+	// Minimum Supported Version: 7.0.1
 	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0, Patch: 1}) {
 		obj.SyncTimeWithHostAllowed = structure.GetBool(d, "sync_time_with_host")
 		obj.SyncTimeWithHost = structure.GetBool(d, "sync_time_with_host_periodically")
@@ -476,6 +485,8 @@ func flattenToolsConfigInfo(d *schema.ResourceData, obj *types.ToolsConfigInfo, 
 	_ = d.Set("run_tools_scripts_before_guest_reboot", obj.BeforeGuestReboot)
 
 	version := viapi.ParseVersionFromClient(client)
+
+	// Minimum Supported Version: 7.0.1
 	if version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0, Patch: 1}) {
 		_ = d.Set("sync_time_with_host", obj.SyncTimeWithHostAllowed)
 		_ = d.Set("sync_time_with_host_periodically", obj.SyncTimeWithHost)

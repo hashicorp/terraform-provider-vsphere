@@ -694,6 +694,7 @@ func expandStorageDrsPodConfigSpec(d *schema.ResourceData, version viapi.VSphere
 		Option:                 expandStorageDrsOptionSpec(d),
 	}
 
+	// Minimum Supported Version: 6.0.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
 		obj.AutomationOverrides = expandStorageDrsAutomationConfig(d)
 	}
@@ -729,6 +730,7 @@ func flattenStorageDrsPodConfigInfo(d *schema.ResourceData, obj types.StorageDrs
 		return err
 	}
 
+	// Minimum Supported Version: 6.0.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
 		if err := flattenStorageDrsAutomationConfig(d, obj.AutomationOverrides); err != nil {
 			return err
@@ -777,6 +779,7 @@ func expandStorageDrsIoLoadBalanceConfig(d *schema.ResourceData, version viapi.V
 		IoLoadImbalanceThreshold: int32(d.Get("sdrs_io_load_imbalance_threshold").(int)),
 	}
 
+	// Minimum Supported Version: 6.0.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
 		obj.ReservableIopsThreshold = int32(d.Get("sdrs_io_reservable_iops_threshold").(int))
 		obj.ReservablePercentThreshold = int32(d.Get("sdrs_io_reservable_percent_threshold").(int))
@@ -797,6 +800,8 @@ func flattenStorageDrsIoLoadBalanceConfig(
 		"sdrs_io_latency_threshold":        obj.IoLatencyThreshold,
 		"sdrs_io_load_imbalance_threshold": obj.IoLoadImbalanceThreshold,
 	}
+
+	// Minimum Supported Version: 6.0.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
 		attrs["sdrs_io_reservable_threshold_mode"] = obj.ReservableThresholdMode
 		if obj.ReservableThresholdMode == string(types.StorageDrsPodConfigInfoBehaviorManual) {
@@ -826,6 +831,7 @@ func expandStorageDrsSpaceLoadBalanceConfig(
 		SpaceUtilizationThreshold:     int32(d.Get("sdrs_space_utilization_threshold").(int)),
 	}
 
+	// Minimum Supported Version: 6.0.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
 		obj.FreeSpaceThresholdGB = int32(d.Get("sdrs_free_space_threshold").(int))
 		obj.SpaceThresholdMode = d.Get("sdrs_free_space_threshold_mode").(string)
@@ -846,6 +852,7 @@ func flattenStorageDrsSpaceLoadBalanceConfig(
 		"sdrs_free_space_threshold_mode":         obj.SpaceThresholdMode,
 	}
 
+	// Minimum Supported Version: 6.0.0
 	freeSpaceSupported := version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6})
 	if freeSpaceSupported && obj.SpaceThresholdMode == string(types.StorageDrsSpaceLoadBalanceConfigSpaceThresholdModeFreeSpace) {
 		attrs["sdrs_free_space_threshold"] = obj.FreeSpaceThresholdGB

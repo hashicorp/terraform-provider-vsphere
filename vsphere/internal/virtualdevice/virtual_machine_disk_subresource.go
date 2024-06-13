@@ -1398,8 +1398,7 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	r.Set("disk_mode", b.DiskMode)
 	r.Set("write_through", b.WriteThrough)
 
-	// Only use disk_sharing if we are on vSphere 6.0 and higher. In addition,
-	// skip if the value is unset - this prevents spurious diffs during upgrade
+	// Skip if the value is unset - this prevents spurious diffs during upgrade
 	// situations where the VM hardware version does not actually allow disk
 	// sharing. In this situation, the value will be blank, and setting it will
 	// actually result in an error.
@@ -1657,8 +1656,10 @@ func (r *DiskSubresource) DiffGeneral() error {
 	} else if r.Get("size").(int) < 1 {
 		return fmt.Errorf("size for disk %q: required option not set", name)
 	}
-	// Block certain options from being set depending on the vSphere version.
+
 	version := viapi.ParseVersionFromClient(r.client)
+
+	// Minimum Supported Version: 6.0.0
 	if r.Get("disk_sharing").(string) != string(types.VirtualDiskSharingSharingNone) {
 		if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
 			return fmt.Errorf("multi-writer disk_sharing is only supported on vSphere 6 and higher")
@@ -1833,8 +1834,9 @@ func (r *DiskSubresource) expandDiskSettings(disk *types.VirtualDisk) error {
 	b.DiskMode = r.GetWithRestart("disk_mode").(string)
 	b.WriteThrough = structure.BoolPtr(r.GetWithRestart("write_through").(bool))
 
-	// Only use disk_sharing if we are on vSphere 6.0 and higher
 	version := viapi.ParseVersionFromClient(r.client)
+
+	// Minimum Supported Version: 6.0.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
 		b.Sharing = r.GetWithRestart("disk_sharing").(string)
 	}

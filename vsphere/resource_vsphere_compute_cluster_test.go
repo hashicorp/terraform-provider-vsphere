@@ -711,6 +711,8 @@ func testAccResourceVSphereComputeClusterVSANEsaPreCheck(t *testing.T) {
 	if err != nil {
 		t.Skip("can not get client")
 	}
+
+	// Minimum Supported Version: 8.0.0
 	if version := viapi.ParseVersionFromClient(client); !version.AtLeast(viapi.VSphereVersion{Product: version.Product, Major: 8, Minor: 0}) {
 		t.Skip("vSAN ESA acceptance test should be run on vSphere 8.0 or higher")
 	}
@@ -1280,7 +1282,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   drs_automation_level = "fullyAutomated"
 
   ha_enabled = true
-  
+
 	force_evacuate_on_destroy = true
 }
 `,
@@ -1306,7 +1308,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
   name            = "testacc-compute-cluster"
   datacenter_id   = "${data.vsphere_datacenter.rootdc1.id}"
   host_system_ids = [data.vsphere_host.roothost3.id]
-  
+
   force_evacuate_on_destroy = true
 
   %s

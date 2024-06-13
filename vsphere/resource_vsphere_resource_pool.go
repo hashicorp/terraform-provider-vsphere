@@ -275,6 +275,7 @@ func resourceVSphereResourcePoolIDString(d structure.ResourceIDStringer) string 
 }
 
 func flattenResourcePoolConfigSpec(d *schema.ResourceData, obj types.ResourceConfigSpec, version viapi.VSphereVersion) error {
+	// Minimum Supported Version: 7.0.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0}) {
 		d.Set("scale_descendants_shares", obj.ScaleDescendantsShares)
 	} else {
@@ -312,6 +313,8 @@ func expandResourcePoolConfigSpec(d *schema.ResourceData, version viapi.VSphereV
 		CpuAllocation:    expandResourcePoolCPUAllocation(d),
 		MemoryAllocation: expandResourcePoolMemoryAllocation(d),
 	}
+
+	// Minimum Supported Version: 7.0.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0}) {
 		obj.ScaleDescendantsShares = d.Get("scale_descendants_shares").(string)
 	}

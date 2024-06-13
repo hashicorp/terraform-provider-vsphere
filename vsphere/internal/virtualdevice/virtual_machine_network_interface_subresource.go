@@ -416,7 +416,6 @@ loopInterfaces:
 				"other adapter_types. Please reorder the network_interface sections.")
 		}
 
-		// Relevant SRIOV checks from https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.networking.doc/GUID-898A3D66-9415-4854-8413-B40F2CB6FF8D.html
 		// First check that the host system is known
 		host, err := hostsystem.FromID(c, d.Get("host_system_id").(string))
 		if err != nil {
@@ -831,6 +830,8 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 	}
 
 	version := viapi.ParseVersionFromClient(r.client)
+
+	// Minimum Supported Version: 6.0.0
 	if (version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) && r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov) {
 		bandwidth_limit := structure.Int64Ptr(-1)
 		bandwidth_reservation := structure.Int64Ptr(0)
@@ -940,6 +941,8 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
 	r.Set("mac_address", card.MacAddress)
 
 	version := viapi.ParseVersionFromClient(r.client)
+
+	// Minimum Supported Version: 6.0.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
 		if r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov {
 			if card.ResourceAllocation != nil {
@@ -1070,6 +1073,8 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 	}
 
 	version := viapi.ParseVersionFromClient(r.client)
+
+	// Minimum Supported Version: 6.0.0
 	if (version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) && r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov) {
 		bandwidth_limit := structure.Int64Ptr(-1)
 		bandwidth_reservation := structure.Int64Ptr(0)
@@ -1117,7 +1122,6 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 // Add SRIOV physical function setting the device to a VirtualSriovEthernetCard
 // and by adding VirtualSriovEthernetCardSriovBackingInfo
 func (r *NetworkInterfaceSubresource) addPhysicalFunction(device types.BaseVirtualDevice) (types.BaseVirtualDevice, error) {
-	// Based off https://vdc-download.vmware.com/vmwb-repository/dcr-public/b50dcbbf-051d-4204-a3e7-e1b618c1e384/538cf2ec-b34f-4bae-a332-3820ef9e7773/vim.vm.device.VirtualSriovEthernetCard.SriovBackingInfo.html
 	log.Printf("[DEBUG] physical function detected")
 	var d2 interface{} = device
 
@@ -1194,9 +1198,9 @@ func (r *NetworkInterfaceSubresource) blockBandwidthSettingsSriov() error {
 func (r *NetworkInterfaceSubresource) ValidateDiff() error {
 	log.Printf("[DEBUG] %s: Beginning diff validation", r)
 
-	// Ensure that network resource allocation options are only set on vSphere
-	// 6.0 and higher. They are not relevant for SR-IOV networks in either case.
 	version := viapi.ParseVersionFromClient(r.client)
+
+	// Minimum Supported Version: 6.0.0
 	if (version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6}) &&
 		r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov) {
 		if err := r.restrictResourceAllocationSettings(); err != nil {
