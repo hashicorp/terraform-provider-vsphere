@@ -7,7 +7,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/url"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -149,12 +151,55 @@ func createDirectory(datastoreFileManager *object.DatastoreFileManager, f *file)
 
 // fileUpload - upload file to a vSphere datastore
 func fileUpload(client *govmomi.Client, dc *object.Datacenter, ds *object.Datastore, source, destination string) error {
+	// Define a slice for the special characters.
+	specialChars := []string{"+"}
+
+	// Decode the source path.
+	var err error
+	source, err = url.PathUnescape(source)
+	if err != nil {
+		return err
+	}
+
+	// Clean the source and destination paths.
+	source = filepath.Clean(source)
+	destination = filepath.Clean(destination)
+
+	// Save the original destination for later use.
+	originalDestination := destination
+
+	// Check for special characters in the destination path.
+	for _, char := range specialChars {
+		if strings.Contains(destination, char) {
+			// If it does, replace the special character with its URL-encoded equivalent.
+			destination = strings.ReplaceAll(destination, char, url.QueryEscape(char))
+		}
+	}
+
 	dsurl := ds.NewURL(destination)
 
 	p := soap.DefaultUpload
-	err := client.Client.UploadFile(context.TODO(), source, dsurl, &p)
+	err = client.Client.UploadFile(context.TODO(), source, dsurl, &p)
 	if err != nil {
 		return err
+	}
+
+	// Check for special characters in the original destination path.
+	for _, char := range specialChars {
+		if strings.Contains(originalDestination, char) {
+			// If it does, rename the file to the original destination path.
+			fm := object.NewFileManager(client.Client)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
+			defer cancel()
+			task, err := fm.MoveDatastoreFile(ctx, ds.Path(destination), dc, ds.Path(originalDestination), dc, false)
+			if err != nil {
+				return err
+			}
+			_, err = task.WaitForResult(ctx, nil)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
