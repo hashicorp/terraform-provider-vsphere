@@ -10,7 +10,7 @@ import (
 	"log"
 	"net"
 	"os"
-	"path/filepath"
+	"path"
 	"strings"
 	"time"
 
@@ -1405,7 +1405,7 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 	}
 	searchPath := ovfHelper.Name
 	if ovfHelper.Folder != nil && len(ovfHelper.Folder.InventoryPath) > 0 {
-		searchPath = filepath.Join(ovfHelper.Folder.InventoryPath, searchPath)
+		searchPath = path.Join(ovfHelper.Folder.InventoryPath, searchPath)
 	}
 	vm, err := virtualmachine.FromPath(client, searchPath, datacenterObj)
 	if err != nil {
