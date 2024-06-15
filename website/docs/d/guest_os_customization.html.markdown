@@ -14,13 +14,30 @@ The `vsphere_guest_os_customization` data source can be used to discover the det
 Suggested change
 ~> **NOTE:** The name attribute is the unique identifier for the customization specification per vCenter Server instance.
 
-
 ## Example Usage
 
 ```hcl
-  data "vsphere_guest_os_customization" "gosc1" {
-    name          = "linux-spec"
+data "vsphere_datacenter" "datacenter" {
+  name = "dc-01"
+}
+
+data "vsphere_virtual_machine" "template" {
+  name          = "windows-template"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
+}
+
+data "vsphere_guest_os_customization" "windows" {
+  name = "windows"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  # ... other configuration ...
+  template_uuid = data.vsphere_virtual_machine.template.id
+  customization_spec {
+    id = data.vsphere_guest_os_customization.windows.id
   }
+  # ... other configuration ...
+}
 ```
 
 ## Argument Reference

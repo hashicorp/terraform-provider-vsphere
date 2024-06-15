@@ -4053,13 +4053,13 @@ resource "vsphere_virtual_machine" "vm" {
     unit_number = 16
     size        = 5
   }
-  
+
   disk {
     label       = "disk4"
     unit_number = 30
     size        = 5
   }
-  
+
   disk {
     label       = "disk5"
     unit_number = 31
@@ -4480,7 +4480,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "other3xLinux64Guest"
+  guest_id = "otherLinux64Guest"
 
   wait_for_guest_net_timeout = -1
 
@@ -5798,7 +5798,7 @@ resource "vsphere_virtual_machine" "vm" {
     adapter_type = "sriov"
     physical_function = "%s"
   }
-  
+
   network_interface {
     network_id = "${data.vsphere_network.network1.id}"
     adapter_type = "sriov"
@@ -6761,7 +6761,7 @@ variable "extra_vmdk_name" {
 
 data "vsphere_datastore" "ds" {
   datacenter_id = data.vsphere_datacenter.rootdc1.id
-  name          = var.datastore  
+  name          = var.datastore
 }
 
 resource "vsphere_virtual_disk" "disk" {
@@ -7273,7 +7273,7 @@ resource "vsphere_virtual_machine" "vm" {
   guest_id                   = "other3xLinuxGuest"
 	wait_for_guest_net_timeout = -1
 
-  network_interface { 
+  network_interface {
     network_id = data.vsphere_network.network1.id
   }
     disk {
@@ -7479,7 +7479,7 @@ resource "vsphere_guest_os_customization" "gosc_spec" {
 		}
 		network_interface {}
 	}
-	
+
 }
 
 data "vsphere_virtual_machine" "template" {
