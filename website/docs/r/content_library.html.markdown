@@ -4,7 +4,7 @@ layout: "vsphere"
 page_title: "VMware vSphere: vsphere_content_library"
 sidebar_current: "docs-vsphere-resource-content-library"
 description: |-
-  Provides a vSphere content cibrary. Content libraries allow you to manage and share virtual machines, vApp templates, and other types of files. Content libraries enable you to share content across vCenter Server instances in the same or different locations.
+  Provides a vSphere content library. Content libraries allow you to manage and share virtual machines, vApp templates, and other types of files. Content libraries enable you to share content across vCenter Server instances in the same or different locations.
 ---
 
 # vsphere\_content\_library
