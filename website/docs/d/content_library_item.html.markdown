@@ -46,8 +46,10 @@ data "vsphere_content_library_item" "item" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the content library item.
-* `library_id` - (Required) The ID of the content library in which the item exists.
-* `type` - (Required) The type for the content library item. One of `ovf`, `vm-template`, or `iso`
+* `library_id` - (Required) The ID of the content library in which the item
+  exists.
+* `type` - (Required) The type for the content library item. One of `ovf`,
+  `vm-template`, or `iso`
 
 ## Attribute Reference
 

@@ -10,9 +10,9 @@ description: |-
 
 # vsphere\_distributed\_virtual\_switch
 
-The `vsphere_distributed_virtual_switch` data source can be used to discover
-the ID and uplink data of a of a vSphere distributed switch (VDS). This
-can then be used with resources or data sources that require a VDS, such as the
+The `vsphere_distributed_virtual_switch` data source can be used to discover the
+ID and uplink data of a of a vSphere distributed switch (VDS). This can then be
+used with resources or data sources that require a VDS, such as the
 [`vsphere_distributed_port_group`][distributed-port-group] resource, for which
 an example is shown below.
 
@@ -52,10 +52,11 @@ resource "vsphere_distributed_port_group" "dvpg" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the VDS. This can be a name or path.
-* `datacenter_id` - (Optional) The [managed object reference ID][docs-about-morefs]
-  of the datacenter the VDS is located in. This can be omitted if the search
-  path used in `name` is an absolute path. For default datacenters, use the `id`
-  attribute from an empty `vsphere_datacenter` data source.
+* `datacenter_id` - (Optional) The
+  [managed object reference ID][docs-about-morefs] of the datacenter the VDS is
+  located in. This can be omitted if the search path used in `name` is an
+  absolute path. For default datacenters, use the `id` attribute from an empty
+  `vsphere_datacenter` data source.
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
@@ -64,8 +65,8 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id`: The UUID of the vSphere distributed switch.
-* `uplinks`: The list of the uplinks on this vSphere distributed switch, as per the
-  [`uplinks`][distributed-virtual-switch-uplinks] argument to the
+* `uplinks`: The list of the uplinks on this vSphere distributed switch, as per
+  the [`uplinks`][distributed-virtual-switch-uplinks] argument to the
   [`vsphere_distributed_virtual_switch`][distributed-virtual-switch-resource]
   resource.
 

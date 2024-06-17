@@ -10,8 +10,8 @@ description: |-
 # vsphere\_datastore\_cluster
 
 The `vsphere_datastore_cluster` data source can be used to discover the ID of a
-vSphere datastore cluster object. This can then be used with resources or data sources
-that require a datastore. For example, to assign datastores using the
+vSphere datastore cluster object. This can then be used with resources or data
+sources that require a datastore. For example, to assign datastores using the
 [`vsphere_nas_datastore`][docs-nas-datastore-resource] or
 [`vsphere_vmfs_datastore`][docs-vmfs-datastore-resource] resources, or to create
 virtual machines in using the

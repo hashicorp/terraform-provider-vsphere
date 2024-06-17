@@ -4,11 +4,16 @@ This document assumes the use of Terraform 0.13 or later.
 
 ## Automated Installation (Recommended)
 
-The Terraform Provider for vSphere is an official provider. Official providers are maintained by the Terraform team at [HashiCorp][hashicorp] and are listed on the [Terraform Registry][terraform-registry].
+The Terraform Provider for vSphere is an official provider. Official providers
+are maintained by the Terraform team at [HashiCorp][hashicorp] and are listed on
+the [Terraform Registry][terraform-registry].
 
 ### Configure the Terraform Configuration Files
 
-Providers listed on the Terraform Registry can be automatically downloaded when initializing a working directory with `terraform init`. The Terraform configuration block is used to configure some behaviors of Terraform itself, such as the Terraform version and the required providers and versions.
+Providers listed on the Terraform Registry can be automatically downloaded when
+initializing a working directory with `terraform init`. The Terraform
+configuration block is used to configure some behaviors of Terraform itself,
+such as the Terraform version and the required providers and versions.
 
 **Example**: A Terraform configuration block.
 
@@ -23,7 +28,8 @@ terraform {
 }
 ```
 
-You can use `version` locking and operators to require specific versions of the provider.
+You can use `version` locking and operators to require specific versions of the
+provider.
 
 **Example**: A Terraform configuration block with the provider versions.
 
@@ -39,11 +45,16 @@ terraform {
 }
 ```
 
-To specify a particular provider version when installing released providers, see the Terraform documentation [on provider versioning][terraform-provider-versioning]
+To specify a particular provider version when installing released providers, see
+the Terraform documentation
+[on provider versioning][terraform-provider-versioning]
 
 ### Verify Terraform Initialization Using the Terraform Registry
 
-To verify the initialization, navigate to the working directory for your Terraform configuration and run `terraform init`. You should see a message indicating that Terraform has been successfully initialized and has installed the provider from the Terraform Registry.
+To verify the initialization, navigate to the working directory for your
+Terraform configuration and run `terraform init`. You should see a message
+indicating that Terraform has been successfully initialized and has installed
+the provider from the Terraform Registry.
 
 **Example**: Initialize and Download the Provider.
 
@@ -64,15 +75,20 @@ Terraform has been successfully initialized!
 
 ## Manual Installation
 
-The latest release of the provider can be found on [`releases.hashicorp.com`][releases]. You can download the appropriate version of the provider for your operating system using a command line shell or a browser.
+The latest release of the provider can be found on
+[`releases.hashicorp.com`][releases]. You can download the appropriate version
+of the provider for your operating system using a command line shell or a
+browser.
 
-This can be useful in environments that do not allow direct access to the Internet.
+This can be useful in environments that do not allow direct access to the
+Internet.
 
 ### Linux
 
 The following examples use Bash on Linux (x64).
 
-1. On a Linux operating system with Internet access, download the plugin from GitHub using the shell.
+1. On a Linux operating system with Internet access, download the plugin from
+   GitHub using the shell.
 
    ```console
    RELEASE=x.y.z
@@ -87,17 +103,16 @@ The following examples use Bash on Linux (x64).
 
 3. Create a directory for the provider.
 
-   > **Note**
-   >
-   > The directory hierarchy that Terraform uses to precisely determine the source of each provider it finds locally.
-   >
+   > **Note** The directory hierarchy that Terraform uses to precisely determine
+   > the source of each provider it finds locally.
    > `$PLUGIN_DIRECTORY/$SOURCEHOSTNAME/$SOURCENAMESPACE/$NAME/$VERSION/$OS_$ARCH/`
 
    ```console
    mkdir -p ~/.terraform.d/plugins/local/hashicorp/vsphere/${RELEASE}/linux_amd64
    ```
 
-4. Copy the extracted plugin to a target system and move to the Terraform plugins directory.
+4. Copy the extracted plugin to a target system and move to the Terraform
+   plugins directory.
 
    ```console
    mv terraform-provider-vsphere_${RELEASE}/terraform-provider-vsphere_v${RELEASE} ~/.terraform.d/plugins/local/hashicorp/vsphere/${RELEASE}/linux_amd64
@@ -114,7 +129,8 @@ The following examples use Bash on Linux (x64).
 
 The following example uses Bash (default) on macOS (Intel).
 
-1. On a macOS operating system with Internet access, install wget with [Homebrew](https://brew.sh).
+1. On a macOS operating system with Internet access, install wget with
+   [Homebrew](https://brew.sh).
 
    ```console
    brew install wget
@@ -135,17 +151,16 @@ The following example uses Bash (default) on macOS (Intel).
 
 4. Create a directory for the provider.
 
-   > **Note**
-   >
-   > The directory hierarchy that Terraform uses to precisely determine the source of each provider it finds locally.
-   >
+   > **Note** The directory hierarchy that Terraform uses to precisely determine
+   > the source of each provider it finds locally.
    > `$PLUGIN_DIRECTORY/$SOURCEHOSTNAME/$SOURCENAMESPACE/$NAME/$VERSION/$OS_$ARCH/`
 
    ```console
    mkdir -p ~/.terraform.d/plugins/local/hashicorp/vsphere/${RELEASE}/darwin_amd64
    ```
 
-5. Copy the extracted plugin to a target system and move to the Terraform plugins directory.
+5. Copy the extracted plugin to a target system and move to the Terraform
+   plugins directory.
 
    ```console
    mv terraform-provider-vsphere_${RELEASE}/terraform-provider-vsphere_v${RELEASE} ~/.terraform.d/plugins/local/hashicorp/vsphere/${RELEASE}/darwin_amd64
@@ -162,7 +177,8 @@ The following example uses Bash (default) on macOS (Intel).
 
 The following examples use PowerShell on Windows (x64).
 
-1. On a Windows operating system with Internet access, download the plugin using the PowerShell.
+1. On a Windows operating system with Internet access, download the plugin using
+   the PowerShell.
 
    ```powershell
    $RELEASE="x.y.z"
@@ -177,12 +193,11 @@ The following examples use PowerShell on Windows (x64).
    cd terraform-provider-vsphere_${RELEASE}_windows_amd64
    ```
 
-3. Copy the extracted plugin to a target system and move to the Terraform plugins directory.
+3. Copy the extracted plugin to a target system and move to the Terraform
+   plugins directory.
 
-   > **Note**
-   >
-   > The directory hierarchy that Terraform uses to precisely determine the source of each provider it finds locally.
-   >
+   > **Note** The directory hierarchy that Terraform uses to precisely determine
+   > the source of each provider it finds locally.
    > `$PLUGIN_DIRECTORY/$SOURCEHOSTNAME/$SOURCENAMESPACE/$NAME/$VERSION/$OS_$ARCH/`
 
    ```powershell
@@ -200,7 +215,10 @@ The following examples use PowerShell on Windows (x64).
 
 ### Configure the Terraform Configuration Files
 
-A working directory can be initialized with providers that are installed locally on a system by using `terraform init`. The Terraform configuration block is used to configure some behaviors of Terraform itself, such as the Terraform version and the required providers source and version.
+A working directory can be initialized with providers that are installed locally
+on a system by using `terraform init`. The Terraform configuration block is used
+to configure some behaviors of Terraform itself, such as the Terraform version
+and the required providers source and version.
 
 **Example**: A Terraform configuration block.
 
@@ -218,7 +236,10 @@ terraform {
 
 ### Verify the Terraform Initialization of a Manually Installed Provider
 
-To verify the initialization, navigate to the working directory for your Terraform configuration and run `terraform init`. You should see a message indicating that Terraform has been successfully initialized and the installed version of the Terraform Provider for vSphere.
+To verify the initialization, navigate to the working directory for your
+Terraform configuration and run `terraform init`. You should see a message
+indicating that Terraform has been successfully initialized and the installed
+version of the Terraform Provider for vSphere.
 
 **Example**: Initialize and Use a Manually Installed Provider
 
@@ -238,7 +259,9 @@ Terraform has been successfully initialized!
 
 ## Get the Provider Version
 
-To find the provider version, navigate to the working directory of your Terraform configuration and run `terraform version`. You should see a message indicating the provider version.
+To find the provider version, navigate to the working directory of your
+Terraform configuration and run `terraform version`. You should see a message
+indicating the provider version.
 
 **Example**: Terraform Provider Version from the Terraform Registry
 

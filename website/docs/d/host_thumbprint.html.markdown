@@ -9,10 +9,10 @@ description: |-
 
 # vsphere\_host\_thumbprint
 
-The `vsphere_thumbprint` data source can be used to discover the host
-thumbprint of an ESXi host. This can be used when adding the `vsphere_host`
-resource. If the ESXi host is using a certificate chain, the first one returned
-will be used to generate the thumbprint.
+The `vsphere_thumbprint` data source can be used to discover the host thumbprint
+of an ESXi host. This can be used when adding the `vsphere_host` resource. If
+the ESXi host is using a certificate chain, the first one returned will be used
+to generate the thumbprint.
 
 ## Example Usage
 
@@ -26,13 +26,12 @@ data "vsphere_host_thumbprint" "thumbprint" {
 
 The following arguments are supported:
 
-* `address` - (Required) The address of the ESXi host to retrieve the
-  thumbprint from.
+* `address` - (Required) The address of the ESXi host to retrieve the thumbprint
+  from.
 * `port` - (Optional) The port to use connecting to the ESXi host. Default: 443
 * `insecure` - (Optional) Disables SSL certificate verification.
   Default: `false`
 
 ## Attribute Reference
 
-The only exported attribute is `id`, which is the thumbprint of the ESXi
-host.
+The only exported attribute is `id`, which is the thumbprint of the ESXi host.

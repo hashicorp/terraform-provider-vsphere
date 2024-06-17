@@ -406,7 +406,7 @@ The following settings control specific settings for Admission Control when
 
 #### vSphere HA Datastore Settings
 
-vSphere HA uses datastore heartbeating to determine the health of a particular
+vSphere HA uses datastore heartbeats to determine the health of a particular
 host. Depending on how your datastores are configured, the settings below may
 need to be altered to ensure that specific datastores are used over others.
 
@@ -420,7 +420,7 @@ If you require a user-defined list of datastores, ensure you select either
   `allFeasibleDsWithUserPreference`. Default:
   `allFeasibleDsWithUserPreference`.
 * `ha_heartbeat_datastore_ids` - (Optional) The list of managed object IDs for
-  preferred datastores to use for HA heartbeating. This setting is only useful
+  preferred datastores to use for HA heartbeats. This setting is only useful
   when [`ha_heartbeat_datastore_policy`](#ha_heartbeat_datastore_policy) is set
   to either `userSelectedDs` or `allFeasibleDsWithUserPreference`.
 

@@ -32,18 +32,19 @@ data "vsphere_host_pci_device" "dev" {
   vendor_id = 456
 }
 ```
+
 ## Example Usage with Name Regular Expression
- 
+
  ```hcl
  data "vsphere_datacenter" "datacenter" {
    name = "dc-01"
  }
- 
+
  data "vsphere_host" "host" {
    name          = "esxi-01.example.com"
    datacenter_id = data.vsphere_datacenter.datacenter.id
  }
- 
+
  data "vsphere_host_pci_device" "dev" {
    host_id    = data.vsphere_host.host.id
    name_regex = "MMC"
@@ -54,9 +55,10 @@ data "vsphere_host_pci_device" "dev" {
 
 The following arguments are supported:
 
-* `host_id` - (Required) The [managed object reference ID][docs-about-morefs] of a host.
+* `host_id` - (Required) The [managed object reference ID][docs-about-morefs] of
+  a host.
 * `name_regex` - (Optional) A regular expression that will be used to match the
-   host PCI device name.
+  host PCI device name.
 * `vendor_id` - (Optional) The hexadecimal PCI device vendor ID.
 * `class_id` - (Optional) The hexadecimal PCI device class ID
 

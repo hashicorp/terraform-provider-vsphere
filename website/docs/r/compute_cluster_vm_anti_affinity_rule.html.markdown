@@ -24,7 +24,7 @@ to ensure that the virtual machines run on different hosts, or prevent any
 operation that would keep that from happening, depending on the value of the
 [`mandatory`](#mandatory) flag.
 
--> An anti-affinity rule can only be used to place virtual machines on seperate
+-> An anti-affinity rule can only be used to place virtual machines on separate
 _non-specific_ hosts. Specific hosts cannot be specified with this rule.
 To enable this capability, use VM-Host Groups, see the
 [`vsphere_compute_cluster_vm_host_rule`][tf-vsphere-cluster-vm-host-rule-resource]

@@ -8,55 +8,59 @@
 [![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/hashicorp/terraform-provider-vsphere?label=release&style=for-the-badge)](https://github.com/hashicorp/terraform-provider-vsphere/releases/latest)
 [![License](https://img.shields.io/github/license/hashicorp/terraform-provider-vsphere.svg?style=for-the-badge)](LICENSE)
 
-The Terraform Provider for VMware vSphere is a plugin for Terraform that allows you to interact with
-VMware vSphere, notably [vCenter Server][vmware-vcenter] and [ESXi][vmware-esxi]. This provider can
-be used to manage a VMware vSphere environment, including virtual machines, host and cluster
-management, inventory, networking, storage, datastores, content libraries, and more.
+The Terraform Provider for VMware vSphere is a plugin for Terraform that allows
+you to interact with VMware vSphere, notably [vCenter Server][vmware-vcenter]
+and [ESXi][vmware-esxi]. This provider can be used to manage a VMware vSphere
+environment, including virtual machines, host and cluster management, inventory,
+networking, storage, datastores, content libraries, and more.
 
 Learn more:
 
-* Read the provider [documentation][provider-documentation].
+- Read the provider [documentation][provider-documentation].
 
-* Join the community [discussions][provider-discussions].
+- Join the community [discussions][provider-discussions].
 
 ## Requirements
 
-* [Terraform 0.13+][terraform-install]
+- [Terraform 0.13+][terraform-install]
 
-    For general information about Terraform, visit [developer.hashicorp.com][terraform-install] and
-    [the project][terraform-github] on GitHub.
+  For general information about Terraform, visit
+  [developer.hashicorp.com][terraform-install] and
+  [the project][terraform-github] on GitHub.
 
-* [Go 1.22][golang-install]
+- [Go 1.22][golang-install]
 
-    Required if building the provider.
+  Required if building the provider.
 
-* [VMware vSphere][vmware-vsphere-documenation]
+- [VMware vSphere][vmware-vsphere-documenation]
 
-    The plugin supports versions in accordance with the
-    [Broadcom Product Lifecycle][product-lifecycle].
+  The plugin supports versions in accordance with the
+  [Broadcom Product Lifecycle][product-lifecycle].
 
 ## Using the Provider
 
-The Terraform Provider for VMware vSphere is an official provider. Official providers are maintained
-by the Terraform team at [HashiCorp][hashicorp] and are listed on the
-[Terraform Registry][terraform-registry].
+The Terraform Provider for VMware vSphere is an official provider. Official
+providers are maintained by the Terraform team at [HashiCorp][hashicorp] and are
+listed on the [Terraform Registry][terraform-registry].
 
-To use a released version of the Terraform provider in your environment, run `terraform init` and
-Terraform will automatically install the provider from the Terraform Registry.
+To use a released version of the Terraform provider in your environment, run
+`terraform init` and Terraform will automatically install the provider from the
+Terraform Registry.
 
-Unless you are contributing to the provider or require a pre-release bugfix or feature, use an
-**officially** released version of the provider.
+Unless you are contributing to the provider or require a pre-release bugfix or
+feature, use an **officially** released version of the provider.
 
-See [Installing the Terraform Provider for VMware vSphere][provider-install] for additional
-instructions on automated and manual installation methods and how to control the provider version.
+See [Installing the Terraform Provider for VMware vSphere][provider-install] for
+additional instructions on automated and manual installation methods and how to
+control the provider version.
 
-For either installation method, documentation about the provider configuration, resources, and data
-sources can be found on the Terraform Registry.
+For either installation method, documentation about the provider configuration,
+resources, and data sources can be found on the Terraform Registry.
 
 ## Upgrading the Provider
 
-The provider does not upgrade automatically. After each new release, you can run the following
-command to upgrade the provider:
+The provider does not upgrade automatically. After each new release, you can run
+the following command to upgrade the provider:
 
 ```shell
 terraform init -upgrade
@@ -64,15 +68,17 @@ terraform init -upgrade
 
 ## Contributing
 
-The Terraform Provider for VMware vSphere is the work of many contributors and the project team
-appreciates your help!
+The Terraform Provider for VMware vSphere is the work of many contributors and
+the project team appreciates your help!
 
-If you discover a bug or would like to suggest an enhancement, submit [an issue][provider-issues].
-Once submitted, your issue will follow the [lifecycle][provider-issue-lifecycke] process.
+If you discover a bug or would like to suggest an enhancement, submit
+[an issue][provider-issues]. Once submitted, your issue will follow the
+[lifecycle][provider-issue-lifecycke] process.
 
 If you would like to submit a pull request, please read the
-[contribution guidelines][provider-contributing] to get started. In case of enhancement or feature
-contribution, we kindly ask you to open an issue to discuss it beforehand.
+[contribution guidelines][provider-contributing] to get started. In case of
+enhancement or feature contribution, we kindly ask you to open an issue to
+discuss it beforehand.
 
 Learn more in the [Frequently Asked Questions][provider-faq].
 
@@ -94,7 +100,7 @@ The Terraform Provider for VMware vSphere is available under the
 [terraform-install]: https://developer.hashicorp.com/terraform/install
 [terraform-github]: https://github.com/hashicorp/terraform
 [terraform-registry]: https://registry.terraform.io
-[vmware-esxi]: https://www.vmware.com/content/vmware/vmware-published-sites/us/products/esxi-and-esx.html
+[vmware-esxi]: https://www.vmware.com/products/esxi-and-esx.html.html
 [product-lifecycle]: https://support.broadcom.com/group/ecx/productlifecycle
 [vmware-vcenter]: https://www.vmware.com/products/vcenter.html
 [vmware-vsphere-documenation]: https://docs.vmware.com/en/VMware-vSphere/index.html

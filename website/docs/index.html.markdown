@@ -246,7 +246,7 @@ To get all the necessary data in a single output, use `govc ls -l -i PATH`.
 
 Sample output is below:
 
-```
+```shell
 $ govc ls -l -i /dc-01/vm
 VirtualMachine:vm-123 /dc-01/vm/foobar
 Folder:group-v234 /dc-01/vm/subfolder
@@ -254,7 +254,7 @@ Folder:group-v234 /dc-01/vm/subfolder
 
 To do a reverse search, supply the `-L` switch:
 
-```
+```shell
 $ govc ls -i -l -L VirtualMachine:vm-123
 VirtualMachine:vm-123 /dc-01/vm/foo
 ```

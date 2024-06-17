@@ -4,8 +4,8 @@ layout: "vsphere"
 page_title: "VMware vSphere: vsphere_tag_category"
 sidebar_current: "docs-vsphere-data-source-tag-category"
 description: |-
-  Provides a vSphere tag category data source. This can be used to reference
-  tag categories not managed in Terraform.
+  Provides a vSphere tag category data source.
+  This can be used to reference tag categories not managed in Terraform.
 ---
 
 # vsphere\_tag\_category

@@ -4,8 +4,8 @@ layout: "vsphere"
 page_title: "VMware vSphere: vsphere_license"
 sidebar_current: "docs-vsphere-data-source-admin-license"
 description: |-
-  Provides a VMware vSphere license data source. This can be used to get the
-  general attributes of license keys.
+  Provides a VMware vSphere license data source.
+  This can be used to get the general attributes of license keys.
 ---
 
 # vsphere\_license
@@ -31,7 +31,8 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `labels` - A map of key/value pairs attached as labels (tags) to the license key.
+* `labels` - A map of key/value pairs attached as labels (tags) to the license
+  key.
 * `edition_key` - The product edition of the license key.
 * `total` - Total number of units (example: CPUs) contained in the license.
 * `used` - The number of units (example: CPUs) assigned to this license.

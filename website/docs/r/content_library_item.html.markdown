@@ -100,6 +100,8 @@ The only attribute this resource exports is the `id` of the resource, which is
 a combination of the [managed object reference ID][docs-about-morefs] of the
 cluster, and the name of the virtual machine group.
 
+[docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
+
 ## Importing
 
 An existing content library item can be [imported][docs-import] into this resource by

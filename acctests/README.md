@@ -1,7 +1,9 @@
 # Acceptance Tests
+
 Acceptance testing is undergoing revamping and streamlining. The current process recommends hosting on Equinix Metal and currently is only meant to test vSphere 7 running on an ESXi 7 host (with nested ESXi 7 hosts).
 
 ## Download
+
 1. Log in to VMware Customer Connect.
 2. Navigate to Products and Accounts > All Products.
 3. Find VMware vSphere and click View Download Components.
@@ -10,17 +12,21 @@ Acceptance testing is undergoing revamping and streamlining. The current process
 6. Download the vCenter Server appliance ISO image.
 
 ## Extract
+
 Next you need to mount and extract the contents of the iso to a location on your disk.
 
 ### macOS Users
+
 During the Equinix provisioning, macOS users may get security issues when ovftool is attempting to run, to prevent this issue run the following command:
 
 ```
-$ sudo xattr -r -d com.apple.quarantine {extract_location}/vcsa/ovftool/mac/ovftool
+sudo xattr -r -d com.apple.quarantine {extract_location}/vcsa/ovftool/mac/ovftool
 ```
 
 ## Prepare Environment Variable
+
 Set the following environment variables
+
 ```
 # the prefix is only required to prevent collisions with other users in your equinix project
 export TF_VAR_LAB_PREFIX="your prefix"
@@ -35,35 +41,39 @@ export TF_VAR_VCSA_DEPLOY_PATH="{extract_location}/vcsa-cli-installer/mac/vcsa-d
 ```
 
 ## Provision Equinix Infrastructure
+
 Terraform needs to be run in a few stages. The first, to provision the Equinix infrastructure and deploy the main ESXi host.
 
 ```
-$ cd acctests/equinix
-$ terraform init
-$ terraform apply
+cd acctests/equinix
+terraform init
+terraform apply
 ```
+
 This process will take approximately 1.5h depending on network speeds. Once complete please source the `devrc` containing several key environment variables.
 
 ```
-$ source devrc
+source devrc
 ```
 
 ## Provision vSphere
+
 The vSphere infrastructure is provisioned in 2 steps, base and testrun. The base resources provision some basic cluster, networking and datastores, and adds the physical ESXi host into inventory.
 
 ### Base Step
+
 Prior to applying, visit the physical ESXi web UI and find the unused boot disk, it will have a very long name like t10.ATA___XXX (assuming the use of Equinix c3.medium), and set `TF_VAR_VSPHERE_ESXI1_BOOT_DISK1` to this name and `TF_VAR_VSPHERE_ESXI1_BOOT_DISK1_SIZE` in GB (about half the overall disk size should be plenty, the nested ESXis will also need to use this datastore).
 
 ```
-$ cd ../vsphere/base
-$ terraform init
-$ terraform apply
+cd ../vsphere/base
+terraform init
+terraform apply
 ```
 
 This will create another `devrc` file to source.
 
 ```
-$ source devrc
+source devrc
 ```
 
 A few manual steps need to be taken to privately network the nested ESXis setup in the testrun phase.
@@ -77,36 +87,41 @@ A few manual steps need to be taken to privately network the nested ESXis setup 
 7. OPTIONAL: vCenter ships with a 60 day evaluation license. You could take this opportunity to add a permanent license into inventory, and right click the top-level vCenter instance and assign the license.
 
 ### TestRun Step
+
 This config can be destroyed between full test runs of the provider. It should cover cleaning up of things like the nested ESXis running in the wrong cluster, and cleaning up any leftover files in the NFS. Any lingering resources outside of those may need manual cleanup.
 
 ```
-$ cd ../vsphere/testrun
-$ terraform init
-$ terraform apply
+cd ../vsphere/testrun
+terraform init
+terraform apply
 ```
 
 This will create a final `devrc` file to source.
 
 ```
-$ source devrc
+source devrc
 ```
 
 ## Running tests
+
 Now that you have all the required environment variables set, tests can be ran via regexp pattern. It is generally advisable to run them individually or by resource type. It's common practice to have resource tests contain an underscore in their name to make the whole suite of tests for the resource run.
 
 ```
-$ make testacc TESTARGS="-run=TestAccResourceVSphereVirtualMachine_ -count=1"
+make testacc TESTARGS="-run=TestAccResourceVSphereVirtualMachine_ -count=1"
 ```
 
 `count=1` is just a Golang trick to bust the testcache.
 
 # Nightly GitHub Action
+
 The full suite of acceptance tests run rightly on GH Actions against ESXi/vSphere stood up on Equinix Metal. The `acctests/equinix` and `acctests/vsphere/base` should be long-lived, while `acctests/vsphere/testrun` is brought up and torn down between CI runs.
 
 ## Setup
+
 From a local machine, please follow the instructions seen above up until `acctests/vsphere/base` is successfully applied. Through the GitHub UI, visit the repo settings and visit the "Environments" tab on the left. There should be an existing environment called `acctests` which is restricted to the `main` branch.
 
 Configure the following as Environment variables:
+
 ```
 TF_VAR_VSPHERE_CLUSTER
 TF_VAR_VSPHERE_DATACENTER
@@ -118,6 +133,7 @@ VSPHERE_ALLOW_UNVERIFIED_SSL
 ```
 
 Configure the following as Environment **secrets**:
+
 ```
 TF_VAR_VSPHERE_ESXI1
 TF_VAR_VSPHERE_ESXI1_PW
@@ -139,11 +155,13 @@ With these set, the nightly acceptances tests should run, normally the results o
 * Sometimes the API seems to lockup/crash or lockout the CI client resulting in widespread error 503s.
 
 ### PLEASE NOTE
+
 The current VCSA deployment seen in `acctests/equinix/vcsa_deploy.json` is set to thin provision the primary datastore `datastore1`. It seems that over time the VCSA VM will continue to expand until the datastore is full. There is probably a way to properly configure this in `acctests/equinix/vcsa_deploy.json`. Without this being corrected, or a bare metal server with more primary disk space being chosen, the CI probably needs to be rebuilt from scratch every 45 days.
 
 vSphere vCenter comes with a 60 day evaluation license. Until the space issue is resolved it is not essential that a permanent vCenter license be added. Longterm it would be nice if the entire infrastructure could be brought up and torn down daily, meaning neither issue would need to be addressed.
 
 # Local Testing
+
 The tests and required infrastructure have been heavily streamlined (believe it or not...) however its still expected they run Equinix for now, but it should be theoretically possible to run tests against local hardware (or perhaps totally virtualized). The main requirement is ESXi 7 with the following:
 
 * A lot of memory (20GB or more), ESXi/vCenter will need a lot, and then there will be a few VMs at play for now that probably all need 0.5 to 1GB each.
