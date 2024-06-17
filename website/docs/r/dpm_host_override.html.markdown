@@ -38,30 +38,30 @@ cluster does not need it to service virtual machines.
 
 ```hcl
 variable "datacenter" {
-  default = "dc1"
+  default = "dc-01"
 }
 
 variable "hosts" {
   default = [
-    "esxi1",
-    "esxi2",
-    "esxi3",
+    "esxi-01.example.com,
+    "esxi-02.example.com,
+    "esxi-03.example.com,
   ]
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
+data "vsphere_datacenter" "datacenter" {
+  name = var.datacenter
 }
 
 data "vsphere_host" "hosts" {
-  count         = "${length(var.hosts)}"
-  name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  count         = length(var.hosts)
+  name          = var.hosts[count.index]
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
   name            = "terraform-compute-cluster-test"
-  datacenter_id   = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id   = data.vsphere_datacenter.datacenter.id
   host_system_ids = ["${data.vsphere_host.hosts.*.id}"]
 
   drs_enabled          = true
@@ -69,8 +69,8 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 }
 
 resource "vsphere_dpm_host_override" "dpm_host_override" {
-  compute_cluster_id   = "${vsphere_compute_cluster.compute_cluster.id}"
-  host_system_id       = "${data.vsphere_host.hosts.0.id}"
+  compute_cluster_id   = vsphere_compute_cluster.compute_cluster.id
+  host_system_id       = data.vsphere_host.hosts.0.id
   dpm_enabled          = true
   dpm_automation_level = "automated"
 }

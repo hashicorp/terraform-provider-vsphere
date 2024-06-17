@@ -25,47 +25,47 @@ power on behavior in the vApp container.
 
 ```hcl
 variable "datacenter" {
-  default = "dc1"
+  default = "dc-01"
 }
 
 variable "cluster" {
-  default = "cluster1"
+  default = "cluster-01"
 }
 
-data "vsphere_datacenter" "dc" {
-  name = "${var.datacenter}"
+data "vsphere_datacenter" "datacenter" {
+  name = var.datacenter
 }
 
 data "vsphere_compute_cluster" "compute_cluster" {
-  name          = "${var.cluster}"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = var.cluster
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_network" "network" {
   name          = "network1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_datastore" "datastore" {
   name          = "datastore1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_vapp_container" "vapp_container" {
   name                    = "terraform-vapp-container-test"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.compute_cluster.id}"
+  parent_resource_pool_id = data.vsphere_compute_cluster.compute_cluster.id
 }
 
 resource "vsphere_vapp_entity" "vapp_entity" {
-  target_id    = "${vsphere_virtual_machine.vm.moid}"
-  container_id = "${vsphere_vapp_container.vapp_container.id}"
+  target_id    = vsphere_virtual_machine.vm.moid
+  container_id = vsphere_vapp_container.vapp_container.id
   start_action = "none"
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "terraform-virtual-machine-test"
-  resource_pool_id = "${vsphere_vapp_container.vapp_container.id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  resource_pool_id = vsphere_vapp_container.vapp_container.id
+  datastore_id     = data.vsphere_datastore.datastore.id
   num_cpus         = 2
   memory           = 1024
   guest_id         = "ubuntu64Guest"
@@ -76,7 +76,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = data.vsphere_network.network.id
   }
 }
 ```

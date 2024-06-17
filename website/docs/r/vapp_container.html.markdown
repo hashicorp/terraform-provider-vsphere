@@ -58,7 +58,7 @@ data "vsphere_compute_cluster" "compute_cluster" {
 
 data "vsphere_datastore" "datastore" {
   name          = "datastore-01"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_network" "network" {

@@ -40,42 +40,42 @@ machine, ensuring that it does not move.
 [tf-vsphere-host-data-source]: /docs/providers/vsphere/d/host.html
 
 ```hcl
-data "vsphere_datacenter" "dc" {
-  name = "dc1"
+data "vsphere_datacenter" "datacenter" {
+  name = "dc-01"
 }
 
 data "vsphere_datastore" "datastore" {
   name          = "datastore1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_compute_cluster" "cluster" {
-  name          = "cluster1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "cluster-01"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_host" "host" {
-  name          = "esxi1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "esxi-01.example.com
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_network" "network" {
   name          = "network1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "terraform-test"
-  resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
-  host_system_id   = "${data.vsphere_host.host.id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  resource_pool_id = data.vsphere_compute_cluster.cluster.resource_pool_id
+  host_system_id   = data.vsphere_host.host.id
+  datastore_id     = data.vsphere_datastore.datastore.id
 
   num_cpus = 2
   memory   = 2048
   guest_id = "otherLinux64Guest"
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = data.vsphere_network.network.id
   }
 
   disk {
@@ -85,8 +85,8 @@ resource "vsphere_virtual_machine" "vm" {
 }
 
 resource "vsphere_drs_vm_override" "drs_vm_override" {
-  compute_cluster_id = "${data.vsphere_compute_cluster.cluster.id}"
-  virtual_machine_id = "${vsphere_virtual_machine.vm.id}"
+  compute_cluster_id = data.vsphere_compute_cluster.cluster.id
+  virtual_machine_id = vsphere_virtual_machine.vm.id
   drs_enabled        = false
 }
 ```

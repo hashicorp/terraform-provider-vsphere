@@ -41,37 +41,37 @@ ensuring they will run on different datastores whenever possible.
 [tf-vsphere-vm-resource]: /docs/providers/vsphere/r/virtual_machine.html
 
 ```hcl
-data "vsphere_datacenter" "dc" {
-  name = "dc1"
+data "vsphere_datacenter" "datacenter" {
+  name = "dc-01"
 }
 
 data "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "datastore-cluster1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_compute_cluster" "cluster" {
-  name          = "cluster1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "cluster-01"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_network" "network" {
   name          = "network1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   count                = 2
   name                 = "terraform-test-${count.index}"
-  resource_pool_id     = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
-  datastore_cluster_id = "${data.vsphere_datastore_cluster.datastore_cluster.id}"
+  resource_pool_id     = data.vsphere_compute_cluster.cluster.resource_pool_id
+  datastore_cluster_id = data.vsphere_datastore_cluster.datastore_cluster.id
 
   num_cpus = 2
   memory   = 2048
   guest_id = "otherLinux64Guest"
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = data.vsphere_network.network.id
   }
 
   disk {
@@ -82,7 +82,7 @@ resource "vsphere_virtual_machine" "vm" {
 
 resource "vsphere_datastore_cluster_vm_anti_affinity_rule" "cluster_vm_anti_affinity_rule" {
   name                 = "terraform-test-datastore-cluster-vm-anti-affinity-rule"
-  datastore_cluster_id = "${data.vsphere_datastore_cluster.datastore_cluster.id}"
+  datastore_cluster_id = data.vsphere_datastore_cluster.datastore_cluster.id
   virtual_machine_ids  = ["${vsphere_virtual_machine.vm.*.id}"]
 }
 ```
@@ -124,6 +124,7 @@ not found, or if the rule is of a different type, an error will be returned. An
 example is below:
 
 [docs-import]: https://www.terraform.io/docs/import/index.html
+
 ```
 terraform import vsphere_datastore_cluster_vm_anti_affinity_rule.cluster_vm_anti_affinity_rule \
   '{"compute_cluster_path": "/dc1/datastore/cluster1", \
