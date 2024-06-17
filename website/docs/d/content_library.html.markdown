@@ -9,14 +9,16 @@ description: |-
 
 # vsphere\_content\_library
 
-The `vsphere_content_library` data source can be used to discover the ID of a content library.
+The `vsphere_content_library` data source can be used to discover the ID of a
+content library.
 
-~> **NOTE:** This resource requires vCenter and is not available on direct ESXi host connections.
+~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
+host connections.
 
 ## Example Usage
 
 ```hcl
-data "vsphere_content_library" "library" {
+data "vsphere_content_library" "content_library" {
   name = "Content Library"
 }
 ```

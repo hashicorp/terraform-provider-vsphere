@@ -13,37 +13,37 @@ Provides a VMware vSphere vnic resource.
 
 ## Example Usages
 
-**Create a vnic attached to a distributed virtual switch using the vmotion TCP/IP stack:**
+**Create a vnic attached to a distributed virtual switch using the vMotion TCP/IP stack:**
 
 ```hcl
-data "vsphere_datacenter" "dc" {
-  name = "mydc"
+data "vsphere_datacenter" "datacenter" {
+  name = "dc-01"
 }
 
-data "vsphere_host" "h1" {
-  name          = "esxi1.host.test"
-  datacenter_id = data.vsphere_datacenter.dc.id
+data "vsphere_host" "host" {
+  name          = "esxi-01.example.com"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
-resource "vsphere_distributed_virtual_switch" "d1" {
-  name          = "dc_DVPG0"
-  datacenter_id = data.vsphere_datacenter.dc.id
+resource "vsphere_distributed_virtual_switch" "vds" {
+  name          = "vds-01"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
   host {
-    host_system_id = data.vsphere_host.h1.id
+    host_system_id = data.vsphere_host.host.id
     devices        = ["vnic3"]
   }
 }
 
-resource "vsphere_distributed_port_group" "p1" {
-  name                            = "test-pg"
+resource "vsphere_distributed_port_group" "pg" {
+  name                            = "pg-01"
   vlan_id                         = 1234
-  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.d1.id
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.vds.id
 }
 
-resource "vsphere_vnic" "v1" {
-  host                    = data.vsphere_host.h1.id
-  distributed_switch_port = vsphere_distributed_virtual_switch.d1.id
-  distributed_port_group  = vsphere_distributed_port_group.p1.id
+resource "vsphere_vnic" "vnic" {
+  host                    = data.vsphere_host.host.id
+  distributed_switch_port = vsphere_distributed_virtual_switch.vds.id
+  distributed_port_group  = vsphere_distributed_port_group.pg.id
   ipv4 {
     dhcp = true
   }
@@ -54,32 +54,32 @@ resource "vsphere_vnic" "v1" {
 **Create a vnic attached to a portgroup using the default TCP/IP stack:**
 
 ```hcl
-data "vsphere_datacenter" "dc" {
-  name = "mydc"
+data "vsphere_datacenter" "datacenter" {
+  name = "dc-01"
 }
 
-data "vsphere_host" "h1" {
-  name          = "esxi1.host.test"
-  datacenter_id = data.vsphere_datacenter.dc.id
+data "vsphere_host" "host" {
+  name          = "esxi-01.example.com"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
-resource "vsphere_host_virtual_switch" "hvs1" {
-  name             = "dc_HPG0"
-  host_system_id   = data.vsphere_host.h1.id
+resource "vsphere_host_virtual_switch" "hvs" {
+  name             = "hvs-01"
+  host_system_id   = data.vsphere_host.host.id
   network_adapters = ["vmnic3", "vmnic4"]
   active_nics      = ["vmnic3"]
   standby_nics     = ["vmnic4"]
 }
 
-resource "vsphere_host_port_group" "p1" {
-  name                = "my-pg"
-  virtual_switch_name = vsphere_host_virtual_switch.hvs1.name
-  host_system_id      = data.vsphere_host.h1.id
+resource "vsphere_host_port_group" "pg" {
+  name                = "pg-01"
+  virtual_switch_name = vsphere_host_virtual_switch.hvs.name
+  host_system_id      = data.vsphere_host.host.id
 }
 
-resource "vsphere_vnic" "v1" {
-  host      = data.vsphere_host.h1.id
-  portgroup = vsphere_host_port_group.p1.name
+resource "vsphere_vnic" "vnic" {
+  host      = data.vsphere_host.host.id
+  portgroup = vsphere_host_port_group.pg.name
   ipv4 {
     dhcp = true
   }
@@ -90,7 +90,7 @@ resource "vsphere_vnic" "v1" {
 ## Argument Reference
 
 * `portgroup` - (Optional) Portgroup to attach the nic to. Do not set if you set distributed_switch_port.
-* `distributed_switch_port` - (Optional) UUID of the DVSwitch the nic will be attached to. Do not set if you set portgroup.
+* `distributed_switch_port` - (Optional) UUID of the vdswitch the nic will be attached to. Do not set if you set portgroup.
 * `distributed_port_group` - (Optional) Key of the distributed portgroup the nic will connect to.
 * `ipv4` - (Optional) IPv4 settings. Either this or `ipv6` needs to be set. See [IPv4 options](#ipv4-options) below.
 * `ipv6` - (Optional) IPv6 settings. Either this or `ipv6` needs to be set. See [IPv6 options](#ipv6-options) below.
@@ -129,7 +129,7 @@ via supplying the vNic's ID. An example is below:
 [docs-import]: /docs/import/index.html
 
 ```
-terraform import vsphere_vnic.v1 host-123_vmk2
+terraform import vsphere_vnic.vnic host-123_vmk2
 ```
 
 The above would import the vnic `vmk2` from host with ID `host-123`.
