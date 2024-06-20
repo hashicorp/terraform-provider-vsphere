@@ -40,37 +40,37 @@ then creates a group from these two virtual machines.
 [tf-vsphere-vm-resource]: /docs/providers/vsphere/r/virtual_machine.html
 
 ```hcl
-data "vsphere_datacenter" "dc" {
-  name = "dc1"
+data "vsphere_datacenter" "datacenter" {
+  name = "dc-01"
 }
 
 data "vsphere_datastore" "datastore" {
   name          = "datastore1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_compute_cluster" "cluster" {
-  name          = "cluster1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  name          = "cluster-01"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_network" "network" {
   name          = "network1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   count            = 2
   name             = "terraform-test-${count.index}"
-  resource_pool_id = "${data.vsphere_compute_cluster.cluster.resource_pool_id}"
-  datastore_id     = "${data.vsphere_datastore.datastore.id}"
+  resource_pool_id = data.vsphere_compute_cluster.cluster.resource_pool_id
+  datastore_id     = data.vsphere_datastore.datastore.id
 
   num_cpus = 2
   memory   = 2048
   guest_id = "otherLinux64Guest"
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = data.vsphere_network.network.id
   }
 
   disk {
@@ -81,7 +81,7 @@ resource "vsphere_virtual_machine" "vm" {
 
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
   name                = "terraform-test-cluster-vm-group"
-  compute_cluster_id  = "${data.vsphere_compute_cluster.cluster.id}"
+  compute_cluster_id  = data.vsphere_compute_cluster.cluster.id
   virtual_machine_ids = ["${vsphere_virtual_machine.vm.*.id}"]
 }
 ```

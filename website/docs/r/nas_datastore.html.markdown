@@ -29,23 +29,25 @@ is named `nfs` and has `/export/terraform-test` exported.
 ```hcl
 variable "hosts" {
   default = [
-    "esxi1",
-    "esxi2",
-    "esxi3",
+    "esxi-01.example.com,
+    "esxi-02.example.com,
+    "esxi-03.example.com,
   ]
 }
 
-data "vsphere_datacenter" "datacenter" {}
+data "vsphere_datacenter" "datacenter" {
+  name = "dc-01"
+}
 
-data "vsphere_host" "esxi_hosts" {
-  count         = "${length(var.hosts)}"
-  name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+data "vsphere_host" "hosts" {
+  count         = length(var.hosts)
+  name          = var.hosts[count.index]
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_nas_datastore" "datastore" {
   name            = "terraform-test"
-  host_system_ids = ["${data.vsphere_host.esxi_hosts.*.id}"]
+  host_system_ids = ["${data.vsphere_host.hosts.*.id}"]
 
   type         = "NFS"
   remote_hosts = ["nfs"]
@@ -65,7 +67,7 @@ The following arguments are supported:
   v3) or `NFS41` (to denote NFS v4.1). Default: `NFS`. Forces a new resource if
   changed.
 * `remote_hosts` - (Required) The hostnames or IP addresses of the remote
-  server or servers. Only one element should be present for NFS v3 but multiple
+  servers. Only one element should be present for NFS v3 but multiple
   can be present for NFS v4.1. Forces a new resource if changed.
 * `remote_path` - (Required) The remote path of the mount point. Forces a new
   resource if changed.
@@ -92,14 +94,13 @@ The following arguments are supported:
 [docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
-* `custom_attributes` - (Optional) Map of custom attribute ids to attribute 
-  value strings to set on datasource resource. See 
-  [here][docs-setting-custom-attributes] for a reference on how to set values 
-  for custom attributes.
+* `custom_attributes` - (Optional) Map of custom attribute ids to attribute
+  value strings to set on resource. See [here][docs-setting-custom-attributes]
+  for a reference on how to set values for custom attributes.
 
 [docs-setting-custom-attributes]: /docs/providers/vsphere/r/custom_attribute.html#using-custom-attributes-in-a-supported-resource
 
-~> **NOTE:** Custom attributes are unsupported on direct ESXi connections 
+~> **NOTE:** Custom attributes are unsupported on direct ESXi connections
 and require vCenter.
 
 ## Attribute Reference
@@ -118,7 +119,7 @@ The following attributes are exported:
   potentially used by all virtual machines on this datastore.
 * `url` - The unique locator for the datastore.
 * `protocol_endpoint` - Indicates that this NAS volume is a protocol endpoint.
-  This field is only populated if the host supports virtual datastores. 
+  This field is only populated if the host supports virtual datastores.
 
 ## Importing
 

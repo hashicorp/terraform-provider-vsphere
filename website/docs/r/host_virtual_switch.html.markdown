@@ -26,17 +26,17 @@ page][ref-vsphere-net-concepts].
 
 ```hcl
 data "vsphere_datacenter" "datacenter" {
-  name = "dc1"
+  name = "dc-01"
 }
 
 data "vsphere_host" "host" {
-  name          = "esxi1"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+  name          = "esxi-01.example.com
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
   name           = "vSwitchTerraformTest"
-  host_system_id = "${data.vsphere_host.host.id}"
+  host_system_id = data.vsphere_host.host.id
 
   network_adapters = ["vmnic0", "vmnic1"]
 
@@ -49,17 +49,17 @@ resource "vsphere_host_virtual_switch" "switch" {
 
 ```hcl
 data "vsphere_datacenter" "datacenter" {
-  name = "dc1"
+  name = "dc-01"
 }
 
 data "vsphere_host" "host" {
-  name          = "esxi1"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+  name          = "esxi-01.example.com
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
   name           = "vSwitchTerraformTest"
-  host_system_id = "${data.vsphere_host.host.id}"
+  host_system_id = data.vsphere_host.host.id
 
   network_adapters = ["vmnic0", "vmnic1"]
 
@@ -189,5 +189,5 @@ Import can the be done via the following command:
 terraform import vsphere_host_virtual_switch.switch tf-HostVirtualSwitch:host-10:vSwitchTerraformTest
 ```
 
-The above would import the vSwtich named `vSwitchTerraformTest` that is located in the `host-10`
+The above would import the vSwitch named `vSwitchTerraformTest` that is located in the `host-10`
 vSphere host.

@@ -36,30 +36,30 @@ the datastore cluster.
 ```hcl
 variable "hosts" {
   default = [
-    "esxi1",
-    "esxi2",
-    "esxi3",
+    "esxi-01.example.com,
+    "esxi-02.example.com,
+    "esxi-03.example.com,
   ]
 }
 
 data "vsphere_datacenter" "datacenter" {}
 
-data "vsphere_host" "esxi_hosts" {
-  count         = "${length(var.hosts)}"
-  name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+data "vsphere_host" "hosts" {
+  count         = length(var.hosts)
+  name          = var.hosts[count.index]
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "terraform-datastore-cluster-test"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
   sdrs_enabled  = true
 }
 
 resource "vsphere_nas_datastore" "datastore1" {
   name                 = "terraform-datastore-test1"
-  host_system_ids      = ["${data.vsphere_host.esxi_hosts.*.id}"]
-  datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
+  host_system_ids      = ["${data.vsphere_host.hosts.*.id}"]
+  datastore_cluster_id = vsphere_datastore_cluster.datastore_cluster.id
 
   type         = "NFS"
   remote_hosts = ["nfs"]
@@ -68,8 +68,8 @@ resource "vsphere_nas_datastore" "datastore1" {
 
 resource "vsphere_nas_datastore" "datastore2" {
   name                 = "terraform-datastore-test2"
-  host_system_ids      = ["${data.vsphere_host.esxi_hosts.*.id}"]
-  datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
+  host_system_ids      = ["${data.vsphere_host.hosts.*.id}"]
+  datastore_cluster_id = vsphere_datastore_cluster.datastore_cluster.id
 
   type         = "NFS"
   remote_hosts = ["nfs"]

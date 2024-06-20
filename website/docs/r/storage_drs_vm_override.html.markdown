@@ -39,41 +39,41 @@ the datastore.
 [tf-vsphere-datastore-data-source]: /docs/providers/vsphere/d/datastore.html
 
 ```hcl
-data "vsphere_datacenter" "dc" {
-  name = "dc1"
+data "vsphere_datacenter" "datacenter" {
+  name = "dc-01"
 }
 
 data "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "datastore-cluster1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_datastore" "member_datastore" {
   name          = "datastore-cluster1-member1"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_resource_pool" "pool" {
   name          = "cluster1/Resources"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_network" "network" {
   name          = "public"
-  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "terraform-test"
-  resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
-  datastore_id     = "${data.vsphere_datastore.member_datastore.id}"
+  resource_pool_id = data.vsphere_resource_pool.pool.id
+  datastore_id     = data.vsphere_datastore.member_datastore.id
 
   num_cpus = 2
   memory   = 1024
   guest_id = "otherLinux64Guest"
 
   network_interface {
-    network_id = "${data.vsphere_network.network.id}"
+    network_id = data.vsphere_network.network.id
   }
 
   disk {
@@ -83,8 +83,8 @@ resource "vsphere_virtual_machine" "vm" {
 }
 
 resource "vsphere_storage_drs_vm_override" "drs_vm_override" {
-  datastore_cluster_id = "${data.vsphere_datastore_cluster.datastore_cluster.id}"
-  virtual_machine_id   = "${vsphere_virtual_machine.vm.id}"
+  datastore_cluster_id = data.vsphere_datastore_cluster.datastore_cluster.id
+  virtual_machine_id   = vsphere_virtual_machine.vm.id
   sdrs_enabled         = false
 }
 ```
