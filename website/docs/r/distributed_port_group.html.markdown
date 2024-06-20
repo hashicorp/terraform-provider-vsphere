@@ -41,7 +41,7 @@ adding the `vsphere_distributed_port_group` resource, attaching itself to the
 vSphere Distributed Switch and assigning VLAN ID 1000.
 
 ```hcl
-variable "esxi_hosts" {
+variable "hosts" {
   default = [
     "esxi-01.example.com",
     "esxi-02.example.com",
@@ -63,8 +63,8 @@ data "vsphere_datacenter" "datacenter" {
 }
 
 data "vsphere_host" "host" {
-  count         = length(var.esxi_hosts)
-  name          = var.esxi_hosts[count.index]
+  count         = length(var.hosts)
+  name          = var.hosts[count.index]
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
@@ -104,9 +104,9 @@ resource "vsphere_distributed_port_group" "pg" {
 
 The following options control the VLAN setting. One of these 3 options may be set:
 
-- `vlan_id` - (Optional) The member VLAN for the ports this policy applies to. A
+* `vlan_id` - (Optional) The member VLAN for the ports this policy applies to. A
   value of `0` means no VLAN.
-- `vlan_range` - (Optional) Used to denote VLAN trunking. Use the `min_vlan`
+* `vlan_range` - (Optional) Used to denote VLAN trunking. Use the `min_vlan`
   and `max_vlan` sub-arguments to define the tagged VLAN range. Multiple
   `vlan_range` definitions are allowed, but they must not overlap. Example
   below:
@@ -126,7 +126,8 @@ resource "vsphere_distributed_virtual_switch" "vds" {
   }
 }
 ```
-- `port_private_secondary_vlan_id` - (Optional) Used to define a secondary VLAN
+
+* `port_private_secondary_vlan_id` - (Optional) Used to define a secondary VLAN
   ID when using private VLANs.
 
 ### Overriding VDS policies

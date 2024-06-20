@@ -41,7 +41,7 @@ used as active, and two being used as passive. Note that the NIC failover order
 propagates to any port groups configured on this VDS and can be overridden.
 
 ```hcl
-variable "esxi_hosts" {
+variable "hosts" {
   default = [
     "esxi-01.example.com",
     "esxi-02.example.com",
@@ -63,8 +63,8 @@ data "vsphere_datacenter" "datacenter" {
 }
 
 data "vsphere_host" "host" {
-  count         = length(var.esxi_hosts)
-  name          = var.esxi_hosts[count.index]
+  count         = length(var.hosts)
+  name          = var.hosts[count.index]
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 

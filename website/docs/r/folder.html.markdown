@@ -25,12 +25,12 @@ The basic example below creates a virtual machine folder named
 `terraform-test-folder` in the default datacenter's VM hierarchy.
 
 ```hcl
-data "vsphere_datacenter" "dc" {}
+data "vsphere_datacenter" "datacenter" {}
 
 resource "vsphere_folder" "folder" {
   path          = "terraform-test-folder"
   type          = "vm"
-  datacenter_id = data.vsphere_datacenter.dc.id
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 ```
 
@@ -46,18 +46,18 @@ configuration to this one), your folder will be moved to be under the correct
 parent.
 
 ```hcl
-data "vsphere_datacenter" "dc" {}
+data "vsphere_datacenter" "datacenter" {}
 
 resource "vsphere_folder" "parent" {
   path          = "terraform-test-parent"
   type          = "vm"
-  datacenter_id = data.vsphere_datacenter.dc.id
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_folder" "folder" {
   path          = "${vsphere_folder.parent.path}/terraform-test-folder"
   type          = "vm"
-  datacenter_id = data.vsphere_datacenter.dc.id
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 ```
 
