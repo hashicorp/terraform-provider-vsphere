@@ -16,8 +16,8 @@ The `vsphere_guest_os_customization` resource can be used to a customization spe
 ## Example Usage
 
 ```hcl
-  resource "vsphere_guest_os_customization" "windows_customization" {
-    name = "windows-spec"
+  resource "vsphere_guest_os_customization" "windows" {
+    name = "windows"
     type = "Windows"
     spec {
         windows_options {

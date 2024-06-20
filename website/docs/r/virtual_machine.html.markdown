@@ -99,7 +99,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_id     = data.vsphere_datastore.datastore.id
   num_cpus         = 1
   memory           = 1024
-  guest_id         = "other3xLinux64Guest"
+  guest_id         = "otherLinux64Guest"
   network_interface {
     network_id = data.vsphere_network.network.id
   }
@@ -118,7 +118,9 @@ Building on the above example, the below configuration creates a virtual machine
 
 ~> **NOTE:** Cloning requires vCenter Server and is not supported on direct ESXi host connections.
 
-**Example**:
+**Examples**:
+
+This example clones a Linux template and customizes with the provided settings:
 
 ```hcl
 data "vsphere_datacenter" "datacenter" {
@@ -141,12 +143,12 @@ data "vsphere_network" "network" {
 }
 
 data "vsphere_virtual_machine" "template" {
-  name          = "ubuntu-server-template"
+  name          = "linux-template"
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
-  name             = "hello-world"
+  name             = "foo"
   resource_pool_id = data.vsphere_compute_cluster.cluster.resource_pool_id
   datastore_id     = data.vsphere_datastore.datastore.id
   num_cpus         = 1
@@ -166,16 +168,29 @@ resource "vsphere_virtual_machine" "vm" {
     template_uuid = data.vsphere_virtual_machine.template.id
     customize {
       linux_options {
-        host_name = "hello-world"
+        host_name = "foo"
         domain    = "example.com"
       }
-      network_interface {
-        ipv4_address = "172.16.11.10"
-        ipv4_netmask = 24
-      }
-      ipv4_gateway = "172.16.11.1"
-    }
   }
+}
+```
+
+This example uses the same structure as the previous example, but customizes with an existing guest customization specification:
+
+```hcl
+# ... other configuration ...
+
+data "vsphere_guest_os_customization" "linux" {
+  name = "linux"
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  # ... other configuration ...
+  template_uuid = data.vsphere_virtual_machine.template.id
+  customization_spec {
+    id = data.vsphere_guest_os_customization.linux.id
+  }
+  # ... other configuration ...
 }
 ```
 
@@ -514,7 +529,7 @@ data "vsphere_virtual_machine" "template_from_ovf" {
 }
 
 resource "vsphere_virtual_machine" "vm" {
-  name             = "hello-world"
+  name             = "foo"
   resource_pool_id = data.vsphere_compute_cluster.cluster.resource_pool_id
   datastore_id     = data.vsphere_datastore.datastore.id
   num_cpus         = 2
@@ -535,7 +550,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
   vapp {
     properties = {
-      "guestinfo.hostname"     = "hello-world.example.com",
+      "guestinfo.hostname"     = "foo.example.com",
       "guestinfo.ipaddress"    = "172.16.11.101",
       "guestinfo.netmask"      = "255.255.255.0",
       "guestinfo.gateway"      = "172.16.11.1",
@@ -590,7 +605,7 @@ resource "vsphere_virtual_machine" "vm" {
   datastore_cluster_id = data.vsphere_datastore_cluster.datastore_cluster.id
   num_cpus             = 1
   memory               = 1024
-  guest_id             = "other3xLinux64Guest"
+  guest_id             = "otherLinux64Guest"
   network_interface {
     network_id = data.vsphere_network.network.id
   }
