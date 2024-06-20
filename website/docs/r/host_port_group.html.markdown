@@ -126,8 +126,8 @@ The following attributes are exported:
   The convention is a prefix, the host system ID, and the port group name.
   For example,`tf-HostPortGroup:host-10:portgroup-01`. Tracking a port group
   on a standard switch, which can be created with or without a vCenter Server,
-  is different than then a dvPortGroup which is tracked as a managed object ID
-  in vCemter Server versus a key on a host.
+  is different than a dvPortGroup which is tracked as a managed object ID in
+  vCenter Server versus a key on a host.
 * `computed_policy` - A map with a full set of the [policy
   options][host-vswitch-policy-options] computed from defaults and overrides,
   explaining the effective policy for this port group.

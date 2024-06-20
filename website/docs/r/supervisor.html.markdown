@@ -65,7 +65,7 @@ resource "vsphere_supervisor" "supervisor" {
   namespace {
     name = "custom-namespace"
     content_libraries = []
-    vm_clases = [ "${vsphere_virtual_machine_class.vm_class.id}" ]
+    vm_classes = [ "${vsphere_virtual_machine_class.vm_class.id}" ]
   }
 }
 ```
