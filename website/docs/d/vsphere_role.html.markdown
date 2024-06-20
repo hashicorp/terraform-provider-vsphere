@@ -9,9 +9,8 @@ description: |-
 
 # vsphere\_role
 
-The `vsphere_role` data source can be used to discover the `id` and privileges associated
-with a role given its name or display label.
-
+The `vsphere_role` data source can be used to discover the `id` and privileges
+associated with a role given its name or display label.
 
 ## Example Usage
 

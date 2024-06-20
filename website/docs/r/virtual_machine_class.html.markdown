@@ -24,6 +24,7 @@ resource "vsphere_virtual_machine_class" "basic_class" {
 ```
 
 **Create a class with a vGPU**
+
 ```hcl
 resource "vsphere_virtual_machine_class" "vgp_class" {
   name = "vgpu-class"

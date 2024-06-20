@@ -4,13 +4,13 @@ layout: "vsphere"
 page_title: "VMware vSphere: vm_storage_policy"
 sidebar_current: "docs-vsphere-resource-vm-storage-policy"
 description: |-
-  Storage policies can select the most appropriate datastore for the virtual machine and enforce the required level of service. 
+  Storage policies can select the most appropriate datastore for the virtual machine and enforce the required level of service.
 ---
 
 # vsphere\_vm\_storage\_policy
 
-The `vsphere_vm_storage_policy` resource can be used to create and manage storage 
-policies. Using this resource, tag based placement rules can be created to 
+The `vsphere_vm_storage_policy` resource can be used to create and manage storage
+policies. Using this resource, tag based placement rules can be created to
 place virtual machines on a datastore with matching tags. If storage requirements for the applications on the virtual machine change, you can modify the storage policy that was originally applied to the virtual machine.
 
 ## Example Usage
@@ -139,7 +139,7 @@ resource "vsphere_vm_storage_policy" "dev_silver_nonreplicated" {
 }
 ```
 
-Lasttly, when creating a virtual machine resource, a storage policy can be specificed to direct virtual machine placement to a datastore which matches the policy's `tags_rules`.
+Lastly, when creating a virtual machine resource, a storage policy can be specified to direct virtual machine placement to a datastore which matches the policy's `tags_rules`.
 
 ```hcl
 data "vsphere_storage_policy" "prod_platinum_replicated" {
@@ -168,7 +168,7 @@ resource "vsphere_virtual_machine" "dev_vm" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the storage policy.
-* `description` - (Optional) Description of the storage policy. 
+* `description` - (Optional) Description of the storage policy.
 * `tag_rules` - (Required) List of tag rules. The tag category and tags to be associated to this storage policy.
   * `tag_category` - (Required) Name of the tag category.
   * `tags` - (Required) List of Name of tags to select from the given category.

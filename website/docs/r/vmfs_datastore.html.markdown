@@ -16,11 +16,11 @@ disks presented to a host or multiple hosts over Fibre Channel or iSCSI.
 Devices can be specified manually, or discovered using the
 [`vsphere_vmfs_disks`][data-source-vmfs-disks] data source.
 
-[data-source-vmfs-disks]: /docs/providers/vsphere/d/vmfs_disks.html 
+[data-source-vmfs-disks]: /docs/providers/vsphere/d/vmfs_disks.html
 
 ## Auto-Mounting of Datastores Within vCenter
 
-Note that the current behaviour of this resource will auto-mount any created
+Note that the current behavior of this resource will auto-mount any created
 datastores to any other host within vCenter that has access to the same disk.
 
 Example: You want to create a datastore with a iSCSI LUN that is visible on 3
@@ -30,7 +30,7 @@ create the datastore on `esxi1`, the datastore will be automatically mounted on
 those two hosts.
 
 Future versions of this resource may allow you to control the hosts that a
-datastore is mounted to, but currently, this automatic behaviour cannot be
+datastore is mounted to, but currently, this automatic behavior cannot be
 changed, so keep this in mind when writing your configurations and deploying
 your disks.
 
@@ -58,20 +58,20 @@ datastore with local disks to a single ESXi server.
 ~> **NOTE:** There are some situations where datastore creation will not work
 when working through vCenter (usually when trying to create a datastore on a
 single host with local disks). If you experience trouble creating the datastore
-you need through vCenter, break the datstore off into a different configuration
+you need through vCenter, break the datastore off into a different configuration
 and deploy it using the ESXi server as the provider endpoint, using a similar
 configuration to what is below.
 
 ```hcl
 data "vsphere_datacenter" "datacenter" {}
 
-data "vsphere_host" "esxi_host" {
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+data "vsphere_host" "host" {
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "terraform-test"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  host_system_id = data.vsphere_host.host.id
 
   disks = [
     "mpx.vmhba1:C0:T1:L0",
@@ -94,23 +94,23 @@ into `vsphere_vmfs_datastore`. The datastore is also placed in the
 
 ```hcl
 data "vsphere_datacenter" "datacenter" {
-  name = "dc1"
+  name = "dc-01"
 }
 
-data "vsphere_host" "esxi_host" {
-  name          = "esxi1"
-  datacenter_id = "${data.vsphere_datacenter.datacenter.id}"
+data "vsphere_host" "host" {
+  name          = "esxi-01.example.com"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_vmfs_disks" "available" {
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  host_system_id = data.vsphere_host.host.id
   rescan         = true
   filter         = "naa.60a98000"
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "terraform-test"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  host_system_id = data.vsphere_host.host.id
   folder         = "datastore-folder"
 
   disks = ["${data.vsphere_vmfs_disks.available.disks}"]
@@ -145,14 +145,14 @@ The following arguments are supported:
 [docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
-* `custom_attributes` (Optional) Map of custom attribute ids to attribute 
-   value string to set on datastore resource. See 
-   [here][docs-setting-custom-attributes] for a reference on how to set values 
+* `custom_attributes` (Optional) Map of custom attribute ids to attribute
+   value string to set on datastore resource. See
+   [here][docs-setting-custom-attributes] for a reference on how to set values
    for custom attributes.
 
 [docs-setting-custom-attributes]: /docs/providers/vsphere/r/custom_attribute.html#using-custom-attributes-in-a-supported-resource
 
-~> **NOTE:** Custom attributes are unsupported on direct ESXi connections 
+~> **NOTE:** Custom attributes are unsupported on direct ESXi connections
 and require vCenter.
 
 ## Attribute Reference

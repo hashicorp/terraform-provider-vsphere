@@ -32,7 +32,6 @@ The following arguments are supported:
 * `license_key` - (Required) The license key to add.
 * `labels` - (Optional) A map of key/value pairs to be attached as labels (tags) to the license key.
 
-
 ## Attributes Reference
 
 The following attributes are exported:

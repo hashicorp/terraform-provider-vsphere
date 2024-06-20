@@ -44,14 +44,14 @@ The following arguments are supported:
 
 [docs-applying-tags]: /docs/providers/vsphere/r/tag.html#using-tags-in-a-supported-resource
 
-* `custom_attributes` - (Optional) Map of custom attribute ids to value 
-  strings to set for datacenter resource. See 
-  [here][docs-setting-custom-attributes] for a reference on how to set values 
+* `custom_attributes` - (Optional) Map of custom attribute ids to value
+  strings to set for datacenter resource. See
+  [here][docs-setting-custom-attributes] for a reference on how to set values
   for custom attributes.
 
 [docs-setting-custom-attributes]: /docs/providers/vsphere/r/custom_attribute.html#using-custom-attributes-in-a-supported-resource
 
-~> **NOTE:** Custom attributes are unsupported on direct ESXi connections 
+~> **NOTE:** Custom attributes are unsupported on direct ESXi connections
 and require vCenter.
 
 ## Attribute Reference
@@ -62,7 +62,7 @@ and require vCenter.
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
-## Importing 
+## Importing
 
 An existing datacenter can be [imported][docs-import] into this resource
 via supplying the full path to the datacenter. An example is below:

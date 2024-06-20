@@ -4,8 +4,8 @@ layout: "vsphere"
 page_title: "VMware vSphere: vsphere_vapp_container"
 sidebar_current: "docs-vsphere-data-source-resource-pool"
 description: |-
-  Provides a vSphere vApp container data source. This can be used to return the
-  general attributes of a vSphere vApp container.
+  Provides a vSphere vApp container data source.
+  This can be used to return the general attributes of a vSphere vApp container.
 ---
 
 # vsphere\_resource\_pool
@@ -36,12 +36,13 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the vApp container. This can be a name or
   path.
-* `datacenter_id` - (Required) The [managed object reference ID][docs-about-morefs]
-  of the datacenter in which the vApp container is located.
+* `datacenter_id` - (Required) The
+  [managed object reference ID][docs-about-morefs] of the datacenter in which
+  the vApp container is located.
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
 ## Attribute Reference
 
-The only exported attribute for this data source is `id`, which
-represents the ID of the vApp container that was looked up.
+The only exported attribute for this data source is `id`, which represents the
+ID of the vApp container that was looked up.
