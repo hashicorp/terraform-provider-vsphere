@@ -127,14 +127,14 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 		"hv_mode": {
 			Type:         schema.TypeString,
 			Optional:     true,
-			Default:      string(types.VirtualMachineFlagInfoVirtualExecUsageHvAuto),
+			Computed:     true,
 			Description:  "The (non-nested) hardware virtualization setting for this virtual machine. Can be one of hvAuto, hvOn, or hvOff.",
 			ValidateFunc: validation.StringInSlice(virtualMachineVirtualExecUsageAllowedValues, false),
 		},
 		"ept_rvi_mode": {
 			Type:         schema.TypeString,
 			Optional:     true,
-			Default:      string(types.VirtualMachineFlagInfoVirtualMmuUsageAutomatic),
+			Computed:     true,
 			Description:  "The EPT/RVI (hardware memory virtualization) setting for this virtual machine. Can be one of automatic, on, or off.",
 			ValidateFunc: validation.StringInSlice(virtualMachineVirtualMmuUsageAllowedValues, false),
 		},
