@@ -62,7 +62,7 @@ func FromID(c *rest.Client, id string) (*library.Library, error) {
 }
 
 // CreateLibrary creates a Content Library.
-func CreateLibrary(d *schema.ResourceData, restclient *rest.Client, backings []library.StorageBackings) (string, error) {
+func CreateLibrary(d *schema.ResourceData, restclient *rest.Client, backings []library.StorageBacking) (string, error) {
 	name := d.Get("name").(string)
 	log.Printf("[DEBUG] contentlibrary.CreateLibrary: Creating content library %s", name)
 	clm := library.NewManager(restclient)
@@ -453,15 +453,15 @@ func DeleteLibraryItem(c *rest.Client, item *library.Item) error {
 }
 
 // ExpandStorageBackings takes ResourceData, and returns a list of StorageBackings.
-func ExpandStorageBackings(c *govmomi.Client, d *schema.ResourceData) ([]library.StorageBackings, error) {
+func ExpandStorageBackings(c *govmomi.Client, d *schema.ResourceData) ([]library.StorageBacking, error) {
 	log.Printf("[DEBUG] contentlibrary.ExpandStorageBackings: Expanding OVF storage backing.")
-	sb := []library.StorageBackings{}
+	sb := []library.StorageBacking{}
 	for _, dsID := range d.Get("storage_backing").(*schema.Set).List() {
 		ds, err := datastore.FromID(c, dsID.(string))
 		if err != nil {
 			return nil, provider.Error(d.Id(), "ExpandStorageBackings", err)
 		}
-		sb = append(sb, library.StorageBackings{
+		sb = append(sb, library.StorageBacking{
 			DatastoreID: ds.Reference().Value,
 			Type:        "DATASTORE",
 		})
@@ -502,7 +502,7 @@ func FlattenSubscription(d *schema.ResourceData, subscription *library.Subscript
 }
 
 // FlattenStorageBackings takes a list of StorageBackings, and returns a list of datastore IDs.
-func FlattenStorageBackings(d *schema.ResourceData, sb []library.StorageBackings) error {
+func FlattenStorageBackings(d *schema.ResourceData, sb []library.StorageBacking) error {
 	log.Printf("[DEBUG] contentlibrary.FlattenStorageBackings: Flattening OVF storage backing.")
 	sbl := []string{}
 	for _, backing := range sb {
