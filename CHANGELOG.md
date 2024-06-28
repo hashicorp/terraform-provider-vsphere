@@ -1,18 +1,54 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
-## 2.8.2 (Not Released)
+## 2.8.2 June 28, 2024
 
 BUG FIX:
 
-* `resource/virtual_machine`: Fixes overflow for the disk sub-resource when running a 32-bit version
-  of the provider .Modified the call to `GiBToByte` by passing the parameter as `int64` which forces the
-  function to go through the 64bit case.
+* `resource/file`: Updated to ensure that incoming file names with special characters (`+`,
+  specifically) retain their original name when uploaded.
+  ([#2217](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2217))
+* `resource/virtual_machine`: Updated `searchPath` to use `path` instead of `filepath` since this is
+  a vSphere inventory path (_e.g._, `\Datacenter\vm\<vm_name>`), not a directory path.
+  ([#2216](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2216))
+* `resource/virtual_machine`: Removed the default values for `ept_rvi_mode` and `hv_mode` from the
+  virtual machine configuration.
+  ([#2230](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2230))
+* `resource/virtual_machine`: Fixed overflow for the disk sub-resource when running a 32-bit version
+  of the provider. Modified the call to `GiBToByte` by passing the parameter as `int64` which forces the
+  function to go through the 64-bit case.
   ([#2200](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2200))
 
 FEATURES:
 
-* `data/virtual_machine`: Adds support for `instance_uuid`.
+* `data/virtual_machine`: Added support for `instance_uuid`.
   ([#2198](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2198))
+
+DOCUMENTATION:
+
+* `datasource/ovf_vm_template` and `resource/virtual_machine`: Updated to use a Ubuntu Server cloud
+  image since the nested ESXi OVA images are no longer available for direct download from Flings.
+  ([#2215](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2215))
+* `resource/virtual_machine`: Updated to denote support and limitations for options.
+  ([#2218](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2218))
+* `resource/virtual_machine`: Added examples for the use of guest customization specifications.
+  ([#2218](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2218))
+* Removed deprecated interpolation syntax where it is no longer required.
+  ([#2220](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2220))
+* Updated examples to use the correct syntax, formatting, and alignment with other examples in the
+  docs. ([#2222](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2222))
+* Updated all links in documentation, as necessary.
+  ([#2212](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2212))
+
+CHORE:
+
+* `provider`: Updated `vmware/govmomi` to v0.38.0.
+  ([#2229](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2229))
+* `provider`: Updated `hashicorp/terraform-plugin-sdk` to v2.34.0.
+  ([#2201](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2201))
+* `provider`: Added version tracking (`// Minimum Supported Version: x.y.z`) where there is a version
+  restriction. This is preparation for removing checks and to support only 7.0 and later per the
+  product lifecycle.
+  ([#2213](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2213))
 
 ## 2.8.1 (May 08, 2024)
 
