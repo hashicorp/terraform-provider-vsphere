@@ -32,9 +32,39 @@ func TestAccResourceVSphereVirtualDisk_basic(t *testing.T) {
 		CheckDestroy: testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", false),
 		Steps: []resource.TestStep{
 			{
-				Config: testacccheckvspherevirtuadiskconfigBasic(rString),
+				Config: testacccheckvspherevirtualdiskconfigBasic(rString),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualDisk_extend(t *testing.T) {
+	rString := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualDiskPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", false),
+		Steps: []resource.TestStep{
+			{
+				Config: testacccheckvspherevirtualdiskconfigBasic(rString),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_disk.foo", "size", "1"),
+				),
+			},
+			{
+				Config: testacccheckvspherevirtualdiskconfigExtended(rString),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_disk.foo", "size", "2"),
 				),
 			},
 		},
@@ -177,7 +207,7 @@ func testAccCheckVSphereVirtualDiskIsFileNotFoundError(err error) bool {
 	return false
 }
 
-func testacccheckvspherevirtuadiskconfigBasic(rName string) string {
+func testacccheckvspherevirtualdiskconfigBasic(rName string) string {
 	return fmt.Sprintf(`
 %s
 
@@ -187,6 +217,28 @@ variable "rstring" {
 
 resource "vsphere_virtual_disk" "foo" {
   size         = 1
+  vmdk_path    = "tfTestDisk-${var.rstring}.vmdk"
+  adapter_type = "lsiLogic"
+  type         = "thin"
+  datacenter   = "${data.vsphere_datacenter.rootdc1.name}"
+  datastore    = vsphere_nas_datastore.ds1.name
+}
+`,
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1()),
+		rName,
+	)
+}
+
+func testacccheckvspherevirtualdiskconfigExtended(rName string) string {
+	return fmt.Sprintf(`
+%s
+
+variable "rstring" {
+  default = "%s"
+}
+
+resource "vsphere_virtual_disk" "foo" {
+  size         = 2
   vmdk_path    = "tfTestDisk-${var.rstring}.vmdk"
   adapter_type = "lsiLogic"
   type         = "thin"
