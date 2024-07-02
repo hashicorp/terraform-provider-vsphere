@@ -61,6 +61,12 @@ resource "vsphere_host" "esx-01" {
   license  = "00000-00000-00000-00000-00000"
   thumbprint = data.vsphere_host_thumbprint.thumbprint.id
   cluster  = data.vsphere_compute_cluster.cluster.id
+  services {
+    ntpd {
+      enabled     = true
+      policy      = "on"
+      ntp_servers = ["pool.ntp.org"]
+    }
 }
 ```
 
@@ -102,6 +108,11 @@ The following arguments are supported:
 
 ~> **NOTE:** Tagging support is not supported on direct ESXi host
 connections and require vCenter Server.
+
+* `services` - (Optional) Set Services on host, the settings to be set are based on service being set as part of import.
+    * `ntpd` service has three settings, `enabled` sets service to running or not running, `policy` sets service based on setting of `on` which sets service to "Start and stop with host", `off` which sets service to "Start and stop manually", `automatic` which sets service to "Start and stop with port usage".
+
+~> **NOTE:** `services` only supports ntpd service today.
 
 * `custom_attributes` - (Optional) A map of custom attribute IDs and string
   values to apply to the resource. Please refer to the
