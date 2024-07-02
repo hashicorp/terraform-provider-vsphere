@@ -136,13 +136,14 @@ func resourceVsphereHost() *schema.Resource {
 										Type:         schema.TypeString,
 										Optional:     true,
 										ValidateFunc: validation.StringInSlice(servicesPolicyAllowedValues, false),
-										Description:  "The policy for the NTP service. Valid values are 'Start and stop with host', 'Start and stop manually', 'Start and stop with port usage'.",
+										Description:  "The policy for the service. One of: `on`, `off`, or `automatic`.",
 									},
 									"ntp_servers": {
-										Type:     schema.TypeList,
-										Elem:     &schema.Schema{Type: schema.TypeString},
-										Optional: true,
-										Computed: true,
+										Type:        schema.TypeList,
+										Elem:        &schema.Schema{Type: schema.TypeString},
+										Optional:    true,
+										Computed:    true,
+										Description: "A list of fully qualified domain names and/or IP addresses for NTP servers.",
 									},
 								},
 							},
@@ -932,7 +933,7 @@ func resourceVSphereHostUpdateServices(d *schema.ResourceData, meta interface{},
 	for _, service := range services {
 		serviceMap := service.(map[string]interface{})
 		updatedServiceMap := make(map[string]interface{}) // Prepare to collect updated service configuration
-
+		return fmt.Errorf("error retrieving HostSystem object for host ID %s. Error: %s", hostID, err)
 		if ntpd, ok := serviceMap["ntpd"]; ok {
 			ntpdConfig := ntpd.([]interface{})[0].(map[string]interface{})
 			updatedNtpdConfig := make(map[string]interface{}) // Copy ntpdConfig if needed before modifications
@@ -954,9 +955,8 @@ func resourceVSphereHostUpdateServices(d *schema.ResourceData, meta interface{},
 
 			err := changeHostNtpServers(context.Background(), hostObject, newServers)
 			if err != nil {
-				return fmt.Errorf("error while updating NTP servers for host %s. Error: %s", hostID, err)
+				return fmt.Errorf("error starting ntpd service on host %s: %v", hostID, err)
 			}
-
 			// Update the ntpdConfig map before setting it
 			updatedNtpdConfig["enabled"] = ntpdConfig["enabled"]
 			updatedNtpdConfig["ntp_servers"] = newServers // Updated servers
@@ -966,7 +966,7 @@ func resourceVSphereHostUpdateServices(d *schema.ResourceData, meta interface{},
 			if policy, ok := ntpdConfig["policy"].(string); ok {
 				err := UpdateHostServicePolicy(context.Background(), client, hostObject, "ntpd", policy)
 				if err != nil {
-					return fmt.Errorf("failed to update NTP service policy on host %s: %v", hostID, err)
+					return fmt.Errorf("error updating NTP servers for host %s. Error: %s", hostID, err)
 				}
 			}
 
@@ -979,7 +979,7 @@ func resourceVSphereHostUpdateServices(d *schema.ResourceData, meta interface{},
 
 	// After processing all services, set the entire updated services configuration
 	if err := d.Set("services", updatedServices); err != nil {
-		return fmt.Errorf("error setting updated services configuration: %s", err)
+		return fmt.Errorf("error updating ntpd service policy on host %s: %v", hostID, err)
 	}
 
 	return nil
@@ -988,7 +988,8 @@ func resourceVSphereHostUpdateServices(d *schema.ResourceData, meta interface{},
 func changeHostNtpServers(ctx context.Context, host *object.HostSystem, servers []string) error {
 	s, err := host.ConfigManager().DateTimeSystem(ctx)
 	if err != nil {
-		return err
+		// Handle the error, for example, by returning it
+		return fmt.Errorf("failed to get DateTimeSystem: %v", err)
 	}
 
 	ntpConfig := types.HostNtpConfig{
@@ -1022,7 +1023,7 @@ func readHostNtpServerConfig(ctx context.Context, client *govmomi.Client, hostOb
 
 	// Log the NTP servers found (optional)
 	fmt.Printf("NTP Servers for host: %v\n", hostSystem.Config.DateTimeInfo.NtpConfig.Server)
-
+	return nil, fmt.Errorf("error retrieving host configuration: %v", err)
 	// Return the NTP servers
 	return hostSystem.Config.DateTimeInfo.NtpConfig.Server, nil
 }
@@ -1032,7 +1033,7 @@ func StartHostService(ctx context.Context, client *govmomi.Client, hostObject *o
 	// Retrieve the host's service system
 	serviceSystem, err := hostObject.ConfigManager().ServiceSystem(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get host service system: %v", err)
+		return fmt.Errorf("ntpd configuration is not available for the host")
 	}
 
 	// Directly attempt to start the service without listing all services first
@@ -1049,12 +1050,12 @@ func UpdateHostServicePolicy(ctx context.Context, client *govmomi.Client, hostOb
 	// Retrieve the host's service system
 	serviceSystem, err := hostObject.ConfigManager().ServiceSystem(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get host service system: %v", err)
+		return fmt.Errorf("error retrieving host service system: %v", err)
 	}
 
 	err = serviceSystem.UpdatePolicy(ctx, serviceKey, policy)
 	if err != nil {
-		return fmt.Errorf("failed to update policy for service %s: %v", serviceKey, err)
+		return fmt.Errorf("error starting host service %s: %v", serviceKey, err)
 	}
 	fmt.Printf("Policy for service %s updated successfully on host\n", serviceKey)
 	return nil
@@ -1066,12 +1067,12 @@ func readHostServicePolicy(ctx context.Context, client *govmomi.Client, hostObje
 	var hostSystem mo.HostSystem
 	err := hostObject.Properties(ctx, hostObject.Reference(), []string{"config.service"}, &hostSystem)
 	if err != nil {
-		return "", fmt.Errorf("failed to get host configuration: %v", err)
+		return "", fmt.Errorf("error retrieving the host service system: %v", err)
 	}
 
 	// Check if the service configuration is available
 	if hostSystem.Config == nil || hostSystem.Config.Service == nil {
-		return "", fmt.Errorf("service configuration is not available on host")
+		return "", fmt.Errorf("error updating policy for service %s: %v", serviceKey, err)
 	}
 
 	// Iterate over the services to find the specified service and its policy
@@ -1083,7 +1084,7 @@ func readHostServicePolicy(ctx context.Context, client *govmomi.Client, hostObje
 		}
 	}
 
-	return "", fmt.Errorf("service %s not found on host", serviceKey)
+	return "", fmt.Errorf("error retrieving host configuration: %v", err)
 }
 
 func readHostServiceStatus(ctx context.Context, client *govmomi.Client, hostObject *object.HostSystem, serviceKey string) (bool, error) {
@@ -1108,10 +1109,10 @@ func readHostServiceStatus(ctx context.Context, client *govmomi.Client, hostObje
 		fmt.Printf("Checking service: %s\n", service.Key)
 
 		if service.Key == serviceKey {
-			fmt.Printf("Enabled for service %s is %t\n", serviceKey, service.Running) // Log the running status
+			fmt.Printf("Service %s is enabled: %t\n", serviceKey, service.Running) // Log the running status
 			return service.Running, nil
 		}
 	}
 
-	return false, fmt.Errorf("NTP service not found on host")
+	return false, fmt.Errorf("error finding %s service on host", serviceKey)
 }
