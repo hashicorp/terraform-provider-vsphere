@@ -667,10 +667,8 @@ func expandSliceOfCustomizationAdapterMapping(d *schema.ResourceData, prefix str
 		return nil
 	}
 	result := make([]types.CustomizationAdapterMapping, len(s))
-	var v4gwFound, v6gwFound bool
 	for i := range s {
-		var adapter types.CustomizationIPSettings
-		adapter, v4gwFound, v6gwFound = expandCustomizationIPSettings(d, i, !v4gwFound, !v6gwFound, prefix)
+		adapter := expandCustomizationIPSettings(d, i, prefix)
 		obj := types.CustomizationAdapterMapping{
 			Adapter: adapter,
 		}
@@ -681,8 +679,7 @@ func expandSliceOfCustomizationAdapterMapping(d *schema.ResourceData, prefix str
 
 // expandCustomizationIPSettings reads certain ResourceData keys and
 // returns a CustomizationIPSettings.
-func expandCustomizationIPSettings(d *schema.ResourceData, n int, v4gwAdd, v6gwAdd bool, prefix string) (types.CustomizationIPSettings, bool, bool) {
-	var v4gwFound, v6gwFound bool
+func expandCustomizationIPSettings(d *schema.ResourceData, n int, prefix string) types.CustomizationIPSettings {
 	v4addr, v4addrOk := d.GetOk(netifKey("ipv4_address", n, prefix))
 	v4mask := d.Get(netifKey("ipv4_netmask", n, prefix)).(int)
 	v4gw, v4gwOk := d.Get(prefix + "ipv4_gateway").(string)
@@ -694,26 +691,24 @@ func expandCustomizationIPSettings(d *schema.ResourceData, n int, v4gwAdd, v6gwA
 		}
 		obj.SubnetMask = v4CIDRMaskToDotted(v4mask)
 		// Check for the gateway
-		if v4gwAdd && v4gwOk && matchGateway(v4addr.(string), v4mask, v4gw) {
+		if v4gwOk && matchGateway(v4addr.(string), v4mask, v4gw) {
 			obj.Gateway = []string{v4gw}
-			v4gwFound = true
 		}
 	default:
 		obj.Ip = &types.CustomizationDhcpIpGenerator{}
 	}
 	obj.DnsServerList = structure.SliceInterfacesToStrings(d.Get(netifKey("dns_server_list", n, prefix)).([]interface{}))
 	obj.DnsDomain = d.Get(netifKey("dns_domain", n, prefix)).(string)
-	obj.IpV6Spec, v6gwFound = expandCustomizationIPSettingsIPV6AddressSpec(d, n, v6gwAdd, prefix)
-	return obj, v4gwFound, v6gwFound
+	obj.IpV6Spec = expandCustomizationIPSettingsIPV6AddressSpec(d, n, prefix)
+	return obj
 }
 
 // expandCustomizationIPSettingsIPV6AddressSpec reads certain ResourceData keys and
 // returns a CustomizationIPSettingsIpV6AddressSpec.
-func expandCustomizationIPSettingsIPV6AddressSpec(d *schema.ResourceData, n int, gwAdd bool, prefix string) (*types.CustomizationIPSettingsIpV6AddressSpec, bool) {
+func expandCustomizationIPSettingsIPV6AddressSpec(d *schema.ResourceData, n int, prefix string) *types.CustomizationIPSettingsIpV6AddressSpec {
 	v, ok := d.GetOk(netifKey("ipv6_address", n, prefix))
-	var gwFound bool
 	if !ok {
-		return nil, gwFound
+		return nil
 	}
 	addr := v.(string)
 	mask := d.Get(netifKey("ipv6_netmask", n, prefix)).(int)
@@ -726,11 +721,10 @@ func expandCustomizationIPSettingsIPV6AddressSpec(d *schema.ResourceData, n int,
 			},
 		},
 	}
-	if gwAdd && gwOk && matchGateway(addr, mask, gw) {
+	if gwOk && matchGateway(addr, mask, gw) {
 		obj.Gateway = []string{gw}
-		gwFound = true
 	}
-	return obj, gwFound
+	return obj
 }
 
 func getSchemaPrefix(inVMClone bool) string {
