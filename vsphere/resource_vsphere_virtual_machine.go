@@ -238,10 +238,11 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Elem:        &schema.Resource{Schema: virtualdevice.CdromSubresourceSchema()},
 		},
 		"pci_device_id": {
-			Type:        schema.TypeSet,
-			Optional:    true,
-			Description: "A list of PCI passthrough devices",
-			Elem:        &schema.Schema{Type: schema.TypeString},
+			Type:         schema.TypeSet,
+			Optional:     true,
+			Description:  "A list of PCI passthrough devices",
+			Elem:         &schema.Schema{Type: schema.TypeString},
+			RequiredWith: []string{"host_system_id"},
 		},
 		"clone": {
 			Type:        schema.TypeList,
