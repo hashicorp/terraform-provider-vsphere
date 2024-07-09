@@ -81,7 +81,7 @@ func TestAccResourceVSphereVirtualMachine_basic(t *testing.T) {
 	})
 }
 
-func TestAccResourceVSphereVirtualMachine_TestAccResourceVSphereVirtualMachine_hardwareVersionBare(t *testing.T) {
+func TestAccResourceVSphereVirtualMachine_hardwareVersionBare(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -177,7 +177,7 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionDowngrade(t *testing.T)
 	})
 }
 
-func TestAccResourceVSphereVirtualMachine_TestAccResourceVSphereVirtualMachine_hardwareVersionClone(t *testing.T) {
+func TestAccResourceVSphereVirtualMachine_hardwareVersionClone(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1637,6 +1637,30 @@ func TestAccResourceVSphereVirtualMachine_cloneModifyDiskAndSCSITypeAtSameTime(t
 						}
 						return resource.TestCheckResourceAttr("vsphere_virtual_machine.vm", "scsi_type", expected)(s)
 					},
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_cloneMultiNICWithSameGateway(t *testing.T) {
+	// This test is intentionally disabled by default.
+	// Requires a Windows virtual machine template to run this test.
+	t.Skip()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigCloneMultiNICSameGateway(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
 				),
 			},
 		},
@@ -5674,6 +5698,81 @@ resource "vsphere_virtual_machine" "vm" {
 		testAccResourceVSphereVirtualMachineConfigBase(),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 		os.Getenv("TF_VAR_VSPHERE_USE_LINKED_CLONE"),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigCloneMultiNICSameGateway() string {
+	return fmt.Sprintf(`
+
+
+%s  // Mix and match config
+
+data "vsphere_virtual_machine" "template" {
+  name          = "%s"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "testacc-test"
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = vsphere_nas_datastore.ds1.id
+
+  num_cpus = 4
+  memory   = 4096
+  guest_id = data.vsphere_virtual_machine.template.guest_id
+  firmware = "efi"
+
+  wait_for_guest_net_timeout = 0
+  wait_for_guest_ip_timeout = 0
+  wait_for_guest_net_routable = false
+
+  network_interface {
+    network_id = data.vsphere_network.network1.id
+    adapter_type = "vmxnet3"
+  }
+
+  network_interface {
+    network_id = data.vsphere_network.network1.id
+    adapter_type = "vmxnet3"
+  }
+
+  disk {
+    label            = "disk0"
+    size             = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub    = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = true
+  }
+
+  clone {
+    template_uuid = data.vsphere_virtual_machine.template.id
+
+    customize {
+     windows_options {
+       computer_name  = "test-vm-clone"
+       admin_password = "complexPassword123!"
+       run_once_command_list = []
+     }
+
+     network_interface {
+       ipv4_address    = "10.0.0.10"
+       ipv4_netmask    = 24
+       dns_server_list = []
+     }
+
+     network_interface {
+       ipv4_address    = "10.0.0.11"
+       ipv4_netmask    = 24
+       dns_server_list = []
+     }
+
+     ipv4_gateway = "10.0.0.1"
+    }
+  }
+}
+`,
+
+		testAccResourceVSphereVirtualMachineConfigBase(),
+		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 	)
 }
 
