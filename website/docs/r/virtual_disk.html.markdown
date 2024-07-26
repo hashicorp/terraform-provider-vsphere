@@ -42,16 +42,18 @@ resource "vsphere_virtual_disk" "virtual_disk" {
 
 The following arguments are supported:
 
-~> **NOTE:** All fields in the `vsphere_virtual_disk` resource are currently
+~> **NOTE:** Some fields in the `vsphere_virtual_disk` resource are currently
 immutable and force a new resource if changed.
 
 * `vmdk_path` - (Required) The path, including filename, of the virtual disk to
   be created.  This needs to end in `.vmdk`.
 * `datastore` - (Required) The name of the datastore in which to create the
   disk.
-* `size` - (Required) Size of the disk (in GB).
+* `size` - (Required) Size of the disk (in GB). Decreasing the size of a disk is not possible.
+If a disk of a smaller size is required then the original has to be destroyed along with its data and a new one has to be
+created.
 * `datacenter` - (Optional) The name of the datacenter in which to create the
-  disk. Can be omitted when when ESXi or if there is only one datacenter in
+  disk. Can be omitted when ESXi or if there is only one datacenter in
   your infrastructure.
 * `type` - (Optional) The type of disk to create. Can be one of
   `eagerZeroedThick`, `lazy`, or `thin`. Default: `eagerZeroedThick`. For

@@ -338,7 +338,11 @@ func resourceVSphereVirtualDiskUpdate(d *schema.ResourceData, meta interface{}) 
 	log.Printf("[INFO] Updating Virtual Disk")
 	client := meta.(*Client).vimClient
 
-	// TODO - only allow increase
+	oldSize, newSize := d.GetChange("size")
+	if newSize.(int) < oldSize.(int) {
+		return fmt.Errorf("shrinking a virtual disk is not supported")
+	}
+
 	vDisk := virtualDisk{
 		size: d.Get("size").(int),
 	}
