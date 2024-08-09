@@ -38,6 +38,7 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVSphereVirtualDiskCreate,
 		Read:   resourceVSphereVirtualDiskRead,
+		Update: resourceVSphereVirtualDiskUpdate,
 		Delete: resourceVSphereVirtualDiskDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceVSphereVirtualDiskImport,
@@ -48,7 +49,6 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 			"size": {
 				Type:     schema.TypeInt,
 				Required: true,
-				ForceNew: true, // TODO Can this be optional (resize)?
 			},
 
 			// TODO:
@@ -334,6 +334,51 @@ func resourceVSphereVirtualDiskRead(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
+func resourceVSphereVirtualDiskUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[INFO] Updating Virtual Disk")
+	client := meta.(*Client).vimClient
+
+	oldSize, newSize := d.GetChange("size")
+	if newSize.(int) < oldSize.(int) {
+		return fmt.Errorf("shrinking a virtual disk is not supported")
+	}
+
+	vDisk := virtualDisk{
+		size: d.Get("size").(int),
+	}
+
+	if v, ok := d.GetOk("vmdk_path"); ok {
+		vDisk.vmdkPath = v.(string)
+	}
+
+	if v, ok := d.GetOk("datastore"); ok {
+		vDisk.datastore = v.(string)
+	}
+
+	if v, ok := d.GetOk("datacenter"); ok {
+		vDisk.datacenter = v.(string)
+	}
+
+	finder := find.NewFinder(client.Client, true)
+
+	dc, err := getDatacenter(client, d.Get("datacenter").(string))
+	if err != nil {
+		return fmt.Errorf("error finding Datacenter: %s: %s", vDisk.datacenter, err)
+	}
+	finder = finder.SetDatacenter(dc)
+
+	ds, err := getDatastore(finder, vDisk.datastore)
+	if err != nil {
+		return fmt.Errorf("error finding Datastore: %s: %s", vDisk.datastore, err)
+	}
+
+	if err := extendHardDisk(client, vDisk.size, ds.Path(vDisk.vmdkPath), vDisk.datacenter); err != nil {
+		return err
+	}
+
+	return resourceVSphereVirtualDiskRead(d, meta)
+}
+
 func resourceVSphereVirtualDiskDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client).vimClient
 
@@ -421,6 +466,29 @@ func createHardDisk(client *govmomi.Client, size int, diskPath string, diskType 
 		return err
 	}
 	log.Printf("[INFO] Created disk.")
+
+	return nil
+}
+
+func extendHardDisk(client *govmomi.Client, capacity int, diskPath string, dc string) error {
+	virtualDiskManager := object.NewVirtualDiskManager(client.Client)
+	datacenter, err := getDatacenter(client, dc)
+	if err != nil {
+		return err
+	}
+
+	capacityKb := int64(1024 * 1024 * capacity)
+	task, err := virtualDiskManager.ExtendVirtualDisk(context.TODO(), diskPath, datacenter, capacityKb, nil)
+	if err != nil {
+		return err
+	}
+
+	_, err = task.WaitForResultEx(context.TODO(), nil)
+	if err != nil {
+		log.Printf("[INFO] Failed to extend disk:  %v", err)
+		return err
+	}
+	log.Printf("[INFO] Extended disk.")
 
 	return nil
 }
