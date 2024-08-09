@@ -6,9 +6,11 @@ package vsphere
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
@@ -378,6 +380,118 @@ func checkHostLockdown(client *govmomi.Client, hostID, lockdownMode string) (boo
 	return modeString == lockdownMode, nil
 }
 
+func TestAccResourceVSphereHostNtpService(t *testing.T) {
+	configs := []NtpdServiceConfig{
+		{Enabled: true, Policy: "on"},
+		{Enabled: true, Policy: "off"},
+		{Enabled: true, Policy: "automatic"},
+		{Enabled: false, Policy: "on"},
+		{Enabled: false, Policy: "off"},
+		{Enabled: false, Policy: "automatic"},
+	}
+
+	for _, config := range configs {
+		t.Run(fmt.Sprintf("Enabled=%t,Policy=%s", config.Enabled, config.Policy), func(t *testing.T) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:     func() { testAccPreCheck(t) },
+				Providers:    testAccProviders,
+				CheckDestroy: testAccVSphereHostDestroy,
+				Steps: []resource.TestStep{
+					{
+						Config: testAccVSphereHostConfigNtpdServices(config),
+						Check: resource.ComposeTestCheckFunc(
+							testAccCheckVSphereHostNTPServiceState("vsphere_host.h1", config),
+						),
+					},
+				},
+			})
+		})
+	}
+}
+
+func testAccCheckVSphereHostNTPServiceState(resourceName string, config NtpdServiceConfig) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("Not found: %s", resourceName)
+		}
+
+		actualEnabled := rs.Primary.Attributes["services.0.ntpd.0.enabled"]
+		actualPolicy := rs.Primary.Attributes["services.0.ntpd.0.policy"]
+
+		expectedEnabled := strconv.FormatBool(config.Enabled)
+		expectedPolicy := config.Policy
+
+		if actualEnabled != expectedEnabled {
+			return fmt.Errorf("Expected NTPD service enabled state: %s, got: %s", expectedEnabled, actualEnabled)
+		}
+		if actualPolicy != expectedPolicy {
+			return fmt.Errorf("Expected NTPD policy: %s, got: %s", expectedPolicy, actualPolicy)
+		}
+
+		return nil
+	}
+}
+
+func TestAccResourceVSphereHostNTPServers(t *testing.T) {
+	ntpServersEnv := os.Getenv("NTP_SERVERS")
+	if ntpServersEnv == "" {
+		t.Fatal("NTP_SERVERS environment variable is not set")
+	}
+	// Split the environment variable into a slice of strings
+	ntpServers := strings.Split(ntpServersEnv, ",")
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccCheckEnvVariables(t, []string{"ESX_HOSTNAME", "ESX_USERNAME", "ESX_PASSWORD"})
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccVSphereHostDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccVSphereHostConfigNtpServers(ntpServers),
+				Check: resource.ComposeTestCheckFunc(
+					testAccVSphereHostExists("vsphere_host.h1"),
+					testAccCheckVSphereHostNTPServers("vsphere_host.h1", ntpServers),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckVSphereHostNTPServers(resourceName string, expectedServers []string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("Not found: %s", resourceName)
+		}
+
+		log.Printf("Resource attributes: %+v", rs.Primary.Attributes)
+
+		// Retrieve the number of NTP servers
+		ntpServersCount, err := strconv.Atoi(rs.Primary.Attributes["services.0.ntpd.0.ntp_servers.#"])
+		if err != nil {
+			return fmt.Errorf("Error converting ntp_servers count: %s", err)
+		}
+
+		// Collect actual NTP servers
+		var actualServers []string
+		for i := 0; i < ntpServersCount; i++ {
+			server := rs.Primary.Attributes[fmt.Sprintf("services.0.ntpd.0.ntp_servers.%d", i)]
+			actualServers = append(actualServers, server)
+		}
+
+		expectedServersStr := strings.Join(expectedServers, ",")
+		actualServersStr := strings.Join(actualServers, ",")
+
+		if actualServersStr != expectedServersStr {
+			return fmt.Errorf("Expected NTP servers: %s, got: %s", expectedServersStr, actualServersStr)
+		}
+
+		return nil
+	}
+}
+
 func testAccVSphereHostConfig() string {
 	return fmt.Sprintf(`
 	%s
@@ -560,4 +674,86 @@ func testaccvspherehostconfigLockdown(lockdown string) string {
 		os.Getenv("ESX_PASSWORD"),
 		os.Getenv("TF_VAR_VSPHERE_LICENSE"),
 		lockdown)
+}
+
+type NtpdServiceConfig struct {
+	Enabled bool
+	Policy  string
+}
+
+func testAccVSphereHostConfigNtpdServices(config NtpdServiceConfig) string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_compute_cluster" "c1" {
+  name = "%s"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+data "vsphere_host_thumbprint" "thumbprint" {
+    address = "%s"
+    insecure = true
+}
+
+resource "vsphere_host" "h1" {
+    hostname = "%s"
+    username = "%s"
+    password = "%s"
+    thumbprint = data.vsphere_host_thumbprint.thumbprint.id
+    services {
+        ntpd {
+            enabled = "%s"
+            policy  = "%s"
+        }
+    }
+    cluster = vsphere_compute_cluster.c1.id
+}
+`, testhelper.ConfigDataRootDC1(),
+		"TestCluster",
+		os.Getenv("ESX_HOSTNAME"),
+		os.Getenv("ESX_HOSTNAME"),
+		os.Getenv("ESX_USERNAME"),
+		os.Getenv("ESX_PASSWORD"),
+		strconv.FormatBool(config.Enabled),
+		config.Policy)
+}
+
+func testAccVSphereHostConfigNtpServers(ntpServers []string) string {
+	// Convert the NTP servers slice to a string suitable for interpolation in the Terraform configuration
+	serversStr := strings.Join(ntpServers, "\", \"")
+	config := fmt.Sprintf(`
+%s
+
+resource "vsphere_compute_cluster" "c1" {
+  name = "%s"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
+data "vsphere_host_thumbprint" "thumbprint" {
+    address = "%s"
+    insecure = true
+}
+
+resource "vsphere_host" "h1" {
+    hostname = "%s"
+    username = "%s"
+    password = "%s"
+    thumbprint = data.vsphere_host_thumbprint.thumbprint.id
+    services {
+        ntpd {
+             ntp_servers = ["%s"]
+             enabled = true
+             policy = "on"
+        }
+    }
+    cluster = vsphere_compute_cluster.c1.id
+}`, testhelper.ConfigDataRootDC1(),
+		"TestCluster",
+		os.Getenv("ESX_HOSTNAME"),
+		os.Getenv("ESX_HOSTNAME"),
+		os.Getenv("ESX_USERNAME"),
+		os.Getenv("ESX_PASSWORD"),
+		serversStr)
+	log.Printf("Generated Terraform configuration: %s", config)
+	return config
 }
