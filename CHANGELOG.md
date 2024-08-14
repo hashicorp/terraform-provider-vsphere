@@ -8,6 +8,11 @@ FEATURES:
   service settings and policy to be added to a host resource and future expansion of additional
   services. ([#2232](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2232))
 
+CHORE:
+
+* `provider`: Updated `golang/go` to v1.22.6
+  ([#2247](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2247))
+
 ## 2.8.3 August 13, 2024
 
 BUG FIX:

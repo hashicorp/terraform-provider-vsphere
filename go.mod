@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform-provider-vsphere
 
-go 1.22
+go 1.22.6
 
 require (
 	github.com/davecgh/go-spew v1.1.1
