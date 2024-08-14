@@ -1,5 +1,13 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
+## 2.8.4 (Not Released)
+
+FEATURES:
+
+* `resource/host` - Added support for ntpd for services on `r/vsphere_host`. This allows for ntpd
+  service settings and policy to be added to a host resource and future expansion of additional
+  services. ([#2232](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2232))
+
 ## 2.8.3 August 13, 2024
 
 BUG FIX:
