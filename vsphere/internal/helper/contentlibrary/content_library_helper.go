@@ -223,6 +223,8 @@ func CreateLibraryItem(c *rest.Client, l *library.Library, name string, desc str
 		return &id, uploadSession.deployRemoteOva(file, ovfDescriptor)
 	case !isLocal && !isOva:
 		return &id, uploadSession.deployRemoteOvf(file)
+	case !isLocal && isIso:
+		return &id, uploadSession.deployRemoteIso(file)
 	}
 
 	log.Printf("[DEBUG] contentlibrary.CreateLibraryItem: Successfully created content library item %s.", name)
@@ -253,6 +255,15 @@ func (uploadSession *libraryUploadSession) deployRemoteOva(file string, ovfDescr
 		}
 	}
 	return nil
+}
+
+func (uploadSession *libraryUploadSession) deployRemoteIso(file string) error {
+	ctx := context.TODO()
+	_, err := uploadSession.ContentLibraryManager.AddLibraryItemFileFromURI(ctx, uploadSession.UploadSession, filepath.Base(file), file)
+	if err != nil {
+		return err
+	}
+	return uploadSession.ContentLibraryManager.WaitOnLibraryItemUpdateSession(ctx, uploadSession.UploadSession, time.Second*60, func() { log.Printf("Waiting...") })
 }
 
 func (uploadSession *libraryUploadSession) deployLocalOvf(file string, ovfDescriptor string) error {
