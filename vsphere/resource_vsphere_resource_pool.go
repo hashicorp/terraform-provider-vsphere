@@ -117,7 +117,6 @@ func resourceVSphereResourcePool() *schema.Resource {
 			Type:         schema.TypeString,
 			Description:  "Determines if the shares of all descendants of the resource pool are scaled up or down when the shares of the resource pool are scaled up or down.",
 			Optional:     true,
-			Default:      string(types.ResourceConfigSpecScaleSharesBehaviorDisabled),
 			ValidateFunc: validation.StringInSlice(resourcePoolScaleDescendantsSharesAllowedValues, false),
 		},
 		vSphereTagAttributeKey:    tagsSchema(),

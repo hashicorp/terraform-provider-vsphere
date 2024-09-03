@@ -1,5 +1,13 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
+## 2.9.1 (Not Released)
+
+BUG FIX:
+
+* `resource/vsphere_resource_pool`: Removes the default setting for `scale_descendants_shares` to
+  allows for inheritance from the parent resource pool.
+  ([#2255]https://github.com/hashicorp/terraform-provider-vsphere/pull/2255)
+
 ## 2.9.0 (September 3, 2024)
 
 FEATURES:
