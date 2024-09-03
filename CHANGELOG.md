@@ -1,6 +1,6 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
-## 2.8.4 (Not Released)
+## 2.9.0 (September 3, 2024)
 
 FEATURES:
 
@@ -10,10 +10,12 @@ FEATURES:
 
 CHORE:
 
+* `provider`: Updated `vmware/govmomi` to v0.42.0.
+  ([#2248](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2248))
 * `provider`: Updated `golang/go` to v1.22.6
   ([#2247](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2247))
 
-## 2.8.3 August 13, 2024
+## 2.8.3 (August 13, 2024)
 
 BUG FIX:
 
@@ -33,7 +35,7 @@ CHORES:
 * `provider`: Updated `vmware/govmomi` to v0.39.0.
   ([#2240](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2240))
 
-## 2.8.2 June 28, 2024
+## 2.8.2 (June 28, 2024)
 
 BUG FIX:
 
