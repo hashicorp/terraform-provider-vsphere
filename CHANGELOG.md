@@ -8,6 +8,11 @@ BUG FIX:
   allows for inheritance from the parent resource pool.
   ([#2255]https://github.com/hashicorp/terraform-provider-vsphere/pull/2255)
 
+DOCUMENTATION:
+
+* `resource/vsphere_virtual_machine`: Updates to clarify assignment of `network_interface`.
+  ([#2256]https://github.com/hashicorp/terraform-provider-vsphere/pull/2256)
+
 ## 2.9.0 (September 3, 2024)
 
 FEATURES:

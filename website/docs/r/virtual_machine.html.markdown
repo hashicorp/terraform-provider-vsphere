@@ -964,19 +964,50 @@ Interfaces are assigned to devices in the order declared in the configuration an
 **Example**:
 
 ```hcl
+data "vsphere_network" "routable" {
+  name          = var.routable_network
+  datacenter_id = data.vsphere_datacenter.datacenter.id
+}
+
+data "vsphere_network" "non_routable" {
+  name          = var.non_routable_network
+  datacenter_id = data.vsphere_datacenter.datacenter.id
+}
+
 resource "vsphere_virtual_machine" "vm" {
   # ... other configuration ...
   network_interface {
-    network_id = data.vsphere_network.public.id
+    network_id = data.vsphere_network.routable.id
   }
   network_interface {
-    network_id = data.vsphere_network.private.id
+    network_id = data.vsphere_network.non_routable.id
   }
   # ... other configuration ...
 }
+
+ clone {
+    template_uuid = data.vsphere_virtual_machine.template.id
+    customize {
+      linux_options {
+        host_name = "foo"
+        domain    = "example.com
+      }
+      network_interface {
+        ipv4_address = "10.0.0.10"
+        ipv4_netmask = 24
+      }
+      network_interface {
+        ipv4_address = "172.16.0.10"
+        ipv4_netmask = 24
+      }
+      ipv4_gateway = "10.0.0.1"
+    }
+ }
 ```
 
-In the above example, the first interface is assigned to the `public` network and will also appear first in the interface order. The second interface is assigned to the `private` network. On some Linux distributions, first interface may be presented as `eth0` and the second may be presented as `eth1`.
+In the example above, the first interface is assigned to the `routable` network (_e.g._, `10.0.0.10`) based on the order of sequential assignment. The second interface is assigned to the `non_routable` network (_e.g._, `172.16.0.10`).
+
+On some Linux distributions, the first interface may be presented as `eth0` and the second may be presented as `eth1`.
 
 The options are:
 
