@@ -55,9 +55,9 @@ variable "datacenter" {
 
 variable "hosts" {
   default = [
-    "esxi01.example.com",
-    "esxi02.example.com",
-    "esxi03.example.com",
+    "esxi-01.example.com",
+    "esxi-02.example.com",
+    "esxi-03.example.com",
   ]
 }
 
@@ -66,15 +66,15 @@ data "vsphere_datacenter" "datacenter" {
 }
 
 data "vsphere_host" "host" {
-  count         = length(var.hosts)
-  name          = var.hosts[count.index]
+  for_each      = toset(var.hosts)
+  name          = each.value
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_compute_cluster" "compute_cluster" {
   name            = "terraform-compute-cluster-test"
   datacenter_id   = data.vsphere_datacenter.datacenter.id
-  host_system_ids = [data.vsphere_host.host.*.id]
+  host_system_ids = [for host in data.vsphere_host.host : host.id]
 
   drs_enabled          = true
   drs_automation_level = "fullyAutomated"
@@ -578,7 +578,41 @@ path to the cluster, via the following command:
 
 [docs-import]: https://www.terraform.io/docs/import/index.html
 
+```hcl
+variable "datacenter" {
+  default = "dc-01"
+}
+
+data "vsphere_datacenter" "datacenter" {
+  name = var.datacenter
+}
+
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name            = "cluster-01"
+  datacenter_id   = data.vsphere_datacenter.datacenter.id
+}
 ```
+
+~> **NOTE:** When you import a cluster, all managed settings are returned. Ensure all settings are set correctly in resource. For example:
+
+```hcl
+resource "vsphere_compute_cluster" "compute_cluster" {
+  name                      = "cluster-01"
+  datacenter_id             = data.vsphere_datacenter.datacenter.id
+  vsan_enabled              = true
+  vsan_performance_enabled  = true
+  host_system_ids           = [for host in data.vsphere_host.host : host.id]
+  dpm_automation_level      = "automated"
+  drs_automation_level      = "fullyAutomated"
+  drs_enabled               = true
+  ha_datastore_apd_response = "restartConservative"
+  ha_datastore_pdl_response = "restartAggressive"
+  ... etc.
+```
+
+All information will be added to the Terraform state after import.
+
+```console
 terraform import vsphere_compute_cluster.compute_cluster /dc-01/host/cluster-01
 ```
 

@@ -12,6 +12,10 @@ DOCUMENTATION:
 
 * `resource/vsphere_virtual_machine`: Updates to clarify assignment of `network_interface`.
   ([#2256]https://github.com/hashicorp/terraform-provider-vsphere/pull/2256)
+* `resource/vsphere_host`: Updates to clarify import of `vsphere_hosts`.
+  ([#2257]https://github.com/hashicorp/terraform-provider-vsphere/pull/2257)
+* `resource/vsphere_compute_cluster`: Updates to clarify import of `vsphere_compute_cluster`.
+  ([#2257]https://github.com/hashicorp/terraform-provider-vsphere/pull/2257)
 
 ## 2.9.0 (September 3, 2024)
 
