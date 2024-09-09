@@ -1639,13 +1639,21 @@ An existing virtual machine can be [imported][docs-import] into the Terraform st
 
 [docs-import]: /docs/import/index.html
 
-**Example**:
+**Examples**:
+
+Import a virtual machine resource named `foo` located in the `dc-01` datacenter.
 
 ```
 terraform import vsphere_virtual_machine.vm /dc-01/vm/foo
 ```
 
-In this example, a virtual machine resource named `foo` located in the `dc-01` datacenter is imported.
+~> **NOTE:** The `vm` portion of the path is required by vSphere. If the virtual machine is located in a folder, the folder path needs to be included. This is because vSphere organizes virtual machines within a datacenter under the `vm` folder, and any additional folders created within the `vm` folder must be included in the path.
+
+If the virtual machine `foo` is in a folder named `bar`, the import command would be:
+
+```
+terraform import vsphere_virtual_machine.vm /dc-01/vm/bar/foo
+```
 
 ### Additional Importing Requirements
 
