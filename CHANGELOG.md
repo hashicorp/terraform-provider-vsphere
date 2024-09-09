@@ -1,6 +1,6 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
-## 2.9.1 (Not Released)
+## 2.9.1 (September 9, 2024)
 
 BUG FIX:
 
@@ -10,8 +10,15 @@ BUG FIX:
 
 DOCUMENTATION:
 
-* `resource/vsphere_virtual_machine`: Updates to clarify assignment of `network_interface`.
-  ([#2256]https://github.com/hashicorp/terraform-provider-vsphere/pull/2256)
+* `resource/vsphere_virtual_machine`: Updates to clarify assignment of `network_interface`
+  resources. ([#2256]https://github.com/hashicorp/terraform-provider-vsphere/pull/2256)
+* `resource/vsphere_host`: Updates to clarify import of `vsphere_hosts`.
+  ([#2257]https://github.com/hashicorp/terraform-provider-vsphere/pull/2257)
+* `resource/vsphere_compute_cluster`: Updates to clarify import of `vsphere_compute_cluster`
+  resources. ([#2257]https://github.com/hashicorp/terraform-provider-vsphere/pull/2257)
+* `resource/vsphere_virtual_machine`: Updates to clarify the `vm` path in the import of
+  `virtual_machine` resources.
+  ([#2257]https://github.com/hashicorp/terraform-provider-vsphere/pull/2257)
 
 ## 2.9.0 (September 3, 2024)
 

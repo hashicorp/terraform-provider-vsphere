@@ -23,12 +23,12 @@ data "vsphere_datacenter" "datacenter" {
 }
 
 data "vsphere_host_thumbprint" "thumbprint" {
-  address = "esx-01.example.com"
+  address  = "esx-01.example.com"
   insecure = true
 }
 
 resource "vsphere_host" "esx-01" {
-  hostname = "esx-01.example.com"
+  hostname   = "esx-01.example.com"
   username   = "root"
   password   = "password"
   license    = "00000-00000-00000-00000-00000"
@@ -50,17 +50,17 @@ data "vsphere_compute_cluster" "cluster" {
 }
 
 data "vsphere_host_thumbprint" "thumbprint" {
-  address = "esx-01.example.com"
+  address  = "esx-01.example.com"
   insecure = true
 }
 
 resource "vsphere_host" "esx-01" {
-  hostname = "esx-01.example.com"
-  username = "root"
-  password = "password"
-  license  = "00000-00000-00000-00000-00000"
+  hostname   = "esx-01.example.com"
+  username   = "root"
+  password   = "password"
+  license    = "00000-00000-00000-00000-00000"
   thumbprint = data.vsphere_host_thumbprint.thumbprint.id
-  cluster  = data.vsphere_compute_cluster.cluster.id
+  cluster    = data.vsphere_compute_cluster.cluster.id
   services {
     ntpd {
       enabled     = true
@@ -131,12 +131,71 @@ connections and require vCenter Server.
 ## Importing
 
 An existing host can be [imported][docs-import] into this resource by supplying
-the host's ID. An example is below:
+the host's ID.
 
 [docs-import]: /docs/import/index.html
 
+Obtain the host's ID using the data source. For example:
+
+```hcl
+data "vsphere_datacenter" "datacenter" {
+  name = "dc-01"
+}
+
+data "vsphere_host" "host" {
+  name          = "esx-01.example.com"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
+}
+
+output "host_id" {
+  value = data.vsphere_host.host.id
+}
 ```
+
+Next, create a resource configuration, For example:
+
+```hcl
+data "vsphere_datacenter" "datacenter" {
+  name = "dc-01"
+}
+
+data "vsphere_host_thumbprint" "thumbprint" {
+  address = "esx-01.example.com"
+  insecure = true
+}
+
+resource "vsphere_host" "esx-01" {
+  hostname   = "esx-01.example.com"
+  username   = "root"
+  password   = "password"
+  thumbprint = data.vsphere_host_thumbprint.thumbprint.id
+  datacenter = data.vsphere_datacenter.datacenter.id
+}
+```
+
+~> **NOTE:** When you import hosts, all managed settings are returned. Ensure all settings are set correctly in resource. For example:
+
+```hcl
+resource "vsphere_host" "esx-01" {
+  hostname   = "esx-01.example.com"
+  username   = "root"
+  password   = "password"
+  license    = "00000-00000-00000-00000-00000"
+  thumbprint = data.vsphere_host_thumbprint.thumbprint.id
+  cluster    = data.vsphere_compute_cluster.cluster.id
+  services {
+    ntpd {
+      enabled     = true
+      policy      = "on"
+      ntp_servers = ["pool.ntp.org"]
+    }
+}
+```
+
+All information will be added to the Terraform state after import.
+
+```console
 terraform import vsphere_host.esx-01 host-123
 ```
 
-The above would import the host with ID `host-123`.
+The above would import the host `esx-01.example.com` with the host ID `host-123`.
