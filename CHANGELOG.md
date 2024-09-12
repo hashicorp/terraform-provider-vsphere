@@ -1,5 +1,13 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
+## 2.9.2 (not Released)
+
+BUG FIX:
+
+* `resource/vsphere_compute_cluster_vm_group.go`: Add new code to handle updating existing VM groups. This will need put ran in conjunction with Import.
+([#2260]https://github.com/hashicorp/terraform-provider-vsphere/pull/2260)
+
+
 ## 2.9.1 (September 9, 2024)
 
 BUG FIX:

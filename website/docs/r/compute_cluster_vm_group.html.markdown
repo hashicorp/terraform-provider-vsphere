@@ -108,6 +108,8 @@ resource. Make sure your names are unique across both resources.
 
 [tf-vsphere-cluster-host-group-resource]: /docs/providers/vsphere/r/compute_cluster_host_group.html
 
+** To update a existing group, first import group with imported command in Import section, also note if you import group validate on apply that all groups that are needed to be in the group are added to `virtual_machine_ids`. If you leave any off the list the Virtual Machines will be removed from the group.**
+
 ## Attribute Reference
 
 The only attribute this resource exports is the `id` of the resource, which is

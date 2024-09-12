@@ -4,6 +4,7 @@
 package vsphere
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -61,6 +62,17 @@ func resourceVSphereComputeClusterVMGroupCreate(d *schema.ResourceData, meta int
 	cluster, name, err := resourceVSphereComputeClusterVMGroupObjects(d, meta)
 	if err != nil {
 		return err
+	}
+
+	// Check if the VM group already exists
+	exists, err := resourceVSphereComputeClusterVMGroupFindEntry(cluster, name)
+	if err != nil {
+		return err
+	}
+
+	if exists != nil {
+		log.Printf("[DEBUG] %s: VM group already exists, calling update", exists.Name)
+		return resourceVSphereComputeClusterVMGroupUpdate(d, meta)
 	}
 
 	info, err := expandClusterVMGroup(d, meta, name)
@@ -140,17 +152,82 @@ func resourceVSphereComputeClusterVMGroupUpdate(d *schema.ResourceData, meta int
 		return err
 	}
 
-	info, err := expandClusterVMGroup(d, meta, name)
+	// Retrieve the existing VM group information
+	existingGroup, err := getCurrentVMsInGroup(cluster, name)
 	if err != nil {
 		return err
 	}
+
+	// Check if existingGroup is nil
+	if existingGroup == nil {
+		return fmt.Errorf("VM group %s not found", name)
+	}
+
+	// Expand the new VM group information
+	newInfo, err := expandClusterVMGroup(d, meta, name)
+	if err != nil {
+		return err
+	}
+
+	// Convert existing and new VMs to string slices for diffVMs
+	existingVMs := make([]string, len(existingGroup.Vm))
+	for i, vm := range existingGroup.Vm {
+		existingVMs[i] = vm.Value
+	}
+
+	newVMs := make([]string, len(newInfo.Vm))
+	for i, vm := range newInfo.Vm {
+		newVMs[i] = vm.Value
+	}
+
+	// Use diffVMs to find added and removed VMs
+	addedVMs, removedVMs := diffVMs(existingVMs, newVMs)
+
+	// Log the added and removed VMs
+	log.Printf("[DEBUG] Added VMs: %v", addedVMs)
+	log.Printf("[DEBUG] Removed VMs: %v", removedVMs)
+
+	// Convert addedVMs and removedVMs back to ManagedObjectReference slices
+	addedVMRefs := make([]types.ManagedObjectReference, len(addedVMs))
+	for i, vm := range addedVMs {
+		addedVMRefs[i] = types.ManagedObjectReference{
+			Type:  "VirtualMachine",
+			Value: vm,
+		}
+	}
+
+	removedVMRefs := make([]types.ManagedObjectReference, len(removedVMs))
+	for i, vm := range removedVMs {
+		removedVMRefs[i] = types.ManagedObjectReference{
+			Type:  "VirtualMachine",
+			Value: vm,
+		}
+	}
+
+	// Merge existing VMs with added VMs and remove duplicates
+	mergedVMs := append(existingGroup.Vm, addedVMRefs...)
+	vmMap := make(map[types.ManagedObjectReference]bool)
+	for _, vm := range mergedVMs {
+		vmMap[vm] = true
+	}
+	for _, vm := range removedVMRefs {
+		delete(vmMap, vm)
+	}
+	uniqueVMs := make([]types.ManagedObjectReference, 0, len(vmMap))
+	for vm := range vmMap {
+		uniqueVMs = append(uniqueVMs, vm)
+	}
+
+	// Update the VM group information with the merged list
+	newInfo.Vm = uniqueVMs
+
 	spec := &types.ClusterConfigSpecEx{
 		GroupSpec: []types.ClusterGroupSpec{
 			{
 				ArrayUpdateSpec: types.ArrayUpdateSpec{
 					Operation: types.ArrayUpdateOperationEdit,
 				},
-				Info: info,
+				Info: newInfo,
 			},
 		},
 	}
@@ -396,4 +473,42 @@ func resourceVSphereComputeClusterVMGroupClient(meta interface{}) (*govmomi.Clie
 		return nil, err
 	}
 	return client, nil
+}
+
+func diffVMs(oldVMs, newVMs []string) ([]string, []string) {
+	oldVMMap := make(map[string]bool)
+	for _, vm := range oldVMs {
+		oldVMMap[vm] = true
+	}
+
+	var addedVMs, removedVMs []string
+	for _, vm := range newVMs {
+		if !oldVMMap[vm] {
+			addedVMs = append(addedVMs, vm)
+		}
+		delete(oldVMMap, vm)
+	}
+
+	for vm := range oldVMMap {
+		removedVMs = append(removedVMs, vm)
+	}
+
+	return addedVMs, removedVMs
+}
+
+// getCurrentVMsInGroup retrieves the current VMs in the specified VM group from the vSphere cluster.
+func getCurrentVMsInGroup(cluster *object.ClusterComputeResource, groupName string) (*types.ClusterVmGroup, error) {
+	ctx := context.TODO()
+	groups, err := cluster.Configuration(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, group := range groups.Group {
+		if vmGroup, ok := group.(*types.ClusterVmGroup); ok && vmGroup.Name == groupName {
+			return vmGroup, nil
+		}
+	}
+
+	return nil, fmt.Errorf("VM group %s not found", groupName)
 }
