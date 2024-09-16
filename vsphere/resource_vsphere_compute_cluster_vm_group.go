@@ -152,24 +152,24 @@ func resourceVSphereComputeClusterVMGroupUpdate(d *schema.ResourceData, meta int
 		return err
 	}
 
-	// Retrieve the existing VM group information
+	// Retrieve the existing VM group information.
 	existingGroup, err := getCurrentVMsInGroup(cluster, name)
 	if err != nil {
 		return err
 	}
 
-	// Check if existingGroup is nil
+	// Check if existingGroup is nil.
 	if existingGroup == nil {
 		return fmt.Errorf("VM group %s not found", name)
 	}
 
-	// Expand the new VM group information
+	// Expand the new VM group information.
 	newInfo, err := expandClusterVMGroup(d, meta, name)
 	if err != nil {
 		return err
 	}
 
-	// Convert existing and new VMs to string slices for diffVMs
+	// Convert existing and new virtual machines to string slices for diffVmGroup.
 	existingVMs := make([]string, len(existingGroup.Vm))
 	for i, vm := range existingGroup.Vm {
 		existingVMs[i] = vm.Value
@@ -180,14 +180,10 @@ func resourceVSphereComputeClusterVMGroupUpdate(d *schema.ResourceData, meta int
 		newVMs[i] = vm.Value
 	}
 
-	// Use diffVMs to find added and removed VMs
-	addedVMs, removedVMs := diffVMs(existingVMs, newVMs)
+	// Use diffVmGroup to find added and removed virtual machines from virtual machine group.
+	addedVMs, removedVMs := diffVmGroup(existingVMs, newVMs)
 
-	// Log the added and removed VMs
-	log.Printf("[DEBUG] Added VMs: %v", addedVMs)
-	log.Printf("[DEBUG] Removed VMs: %v", removedVMs)
-
-	// Convert addedVMs and removedVMs back to ManagedObjectReference slices
+	// Convert addedVMs and removedVMs back to ManagedObjectReference slices.
 	addedVMRefs := make([]types.ManagedObjectReference, len(addedVMs))
 	for i, vm := range addedVMs {
 		addedVMRefs[i] = types.ManagedObjectReference{
@@ -204,7 +200,7 @@ func resourceVSphereComputeClusterVMGroupUpdate(d *schema.ResourceData, meta int
 		}
 	}
 
-	// Merge existing VMs with added VMs and remove duplicates
+	// Merge existing virtual machines with added virtual machines and remove duplicates.
 	mergedVMs := append(existingGroup.Vm, addedVMRefs...)
 	vmMap := make(map[types.ManagedObjectReference]bool)
 	for _, vm := range mergedVMs {
@@ -218,7 +214,11 @@ func resourceVSphereComputeClusterVMGroupUpdate(d *schema.ResourceData, meta int
 		uniqueVMs = append(uniqueVMs, vm)
 	}
 
-	// Update the VM group information with the merged list
+	if len(uniqueVMs) == 0 {
+		return fmt.Errorf("the resultant set of virtual machines in the vm group cannot be empty")
+	}
+
+	// Update the VM group information with the merged list.
 	newInfo.Vm = uniqueVMs
 
 	spec := &types.ClusterConfigSpecEx{
@@ -475,7 +475,7 @@ func resourceVSphereComputeClusterVMGroupClient(meta interface{}) (*govmomi.Clie
 	return client, nil
 }
 
-func diffVMs(oldVMs, newVMs []string) ([]string, []string) {
+func diffVmGroup(oldVMs, newVMs []string) ([]string, []string) {
 	oldVMMap := make(map[string]bool)
 	for _, vm := range oldVMs {
 		oldVMMap[vm] = true
