@@ -51,6 +51,12 @@ func resourceVSphereTagCreate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+
+	categoryID := d.Get("category_id").(string)
+	fmt.Printf("categoryID: %s\n", categoryID)
+	if !strings.HasPrefix(categoryID, "urn:vmomi") {
+		return fmt.Errorf("error: ‘category_id’ must start with ‘urn:vmomi’. you can use `vsphere_tag_category` data source to get the category ID")
+	}
 	spec := &tags.Tag{
 		CategoryID:  d.Get("category_id").(string),
 		Description: d.Get("description").(string),
