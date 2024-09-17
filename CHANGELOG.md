@@ -1,5 +1,12 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
+## 2.9.3 (not release)
+
+BUG FIX:
+
+- `r/vsphere_tag_category`: Updates resource not to `ForceNew` for cardinality. This will allow the `tag_category` to updated.
+   [#2263](https://github.com/hashicorp/terraform-provider-vsphere/pull/2263)
+   
 ## 2.9.2 (September 16, 2024)
 
 BUG FIX:

@@ -51,7 +51,6 @@ func resourceVSphereTagCategory() *schema.Resource {
 			"cardinality": {
 				Type:        schema.TypeString,
 				Description: "The associated cardinality of the category. Can be one of SINGLE (object can only be assigned one tag in this category) or MULTIPLE (object can be assigned multiple tags in this category).",
-				ForceNew:    true,
 				Required:    true,
 				ValidateFunc: validation.StringInSlice(
 					[]string{
