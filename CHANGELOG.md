@@ -1,12 +1,17 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
-## 2.9.3 (not release)
+## 2.9.3 (Not Released)
 
 BUG FIX:
 
 - `r/vsphere_tag_category`: Updates resource not to `ForceNew` for cardinality. This will allow the `tag_category` to updated.
-   [#2263](https://github.com/hashicorp/terraform-provider-vsphere/pull/2263)
-   
+  [#2263](https://github.com/hashicorp/terraform-provider-vsphere/pull/2263)
+
+DOCUMENTATION:
+
+- `resource/vsphere_resource_pool`: Updates to include steps to create resource pool on standalone ESXi hosts.
+  [#2264](https://github.com/hashicorp/terraform-provider-vsphere/pull/2264)
+
 ## 2.9.2 (September 16, 2024)
 
 BUG FIX:

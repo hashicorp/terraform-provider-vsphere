@@ -75,6 +75,42 @@ resource "vsphere_resource_pool" "resource_pool_child" {
 }
 ```
 
+The following example set up a parent resource pool on a standalone ESXi host with the default
+settings for CPU and memory reservations, shares, and limits.
+
+```hcl
+data "vsphere_datacenter" "datacenter" {
+  name = "dc-01"
+}
+
+data "vsphere_host_thumbprint" "thumbprint" {
+  address = "esx-01.example.com"
+  insecure = true
+}
+
+resource "vsphere_host" "esx-01" {
+  hostname = "esx-01.example.com"
+  username   = "root"
+  password   = "password"
+  license    = "00000-00000-00000-00000-00000"
+  thumbprint = data.vsphere_host_thumbprint.thumbprint.id
+  datacenter = data.vsphere_datacenter.datacenter.id
+}
+```hcl
+
+After the hosts are added to the datacenter, a resource pool can then be created on the host.
+
+```hcl
+data "vsphere_host" "host" {
+  name          = "esxi-01.example.com"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
+}
+
+resource "vsphere_resource_pool" "resource_pool" {
+  name                    = "site1-resource-pool"
+  parent_resource_pool_id = data.vsphere_host.host.resource_pool_id
+}
+
 ## Argument Reference
 
 The following arguments are supported:
