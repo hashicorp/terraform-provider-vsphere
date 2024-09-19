@@ -79,6 +79,10 @@ The following arguments are supported:
   to the host.
 * `password` - (Required) Password that will be used by vSphere to authenticate
   to the host.
+* `thumbprint` - (Optional) Host's certificate SHA-1 thumbprint. If not set the
+  CA that signed the host's certificate should be trusted. If the CA is not
+  trusted and no thumbprint is set then the operation will fail. See data source
+  [`vsphere_host_thumbprint`][docs-host-thumbprint-data-source].
 * `datacenter` - (Optional) The ID of the datacenter this host should
   be added to. This should not be set if `cluster` is set.
 * `cluster` - (Optional) The ID of the Compute Cluster this host should
@@ -87,10 +91,6 @@ The following arguments are supported:
 * `cluster_managed` - (Optional) Can be set to `true` if compute cluster
   membership will be managed through the `compute_cluster` resource rather
   than the`host` resource. Conflicts with: `cluster`.
-* `thumbprint` - (Optional) Host's certificate SHA-1 thumbprint. If not set the
-  CA that signed the host's certificate should be trusted. If the CA is not
-  trusted and no thumbprint is set then the operation will fail. See data source
-  [`vsphere_host_thumbprint`][docs-host-thumbprint-data-source].
 * `license` - (Optional) The license key that will be applied to the host.
   The license key is expected to be present in vSphere.
 * `force` - (Optional) If set to `true` then it will force the host to be added,
