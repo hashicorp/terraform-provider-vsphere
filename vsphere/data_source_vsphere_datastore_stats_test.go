@@ -24,10 +24,10 @@ func TestAccDataSourceVSphereDatastoreStats_basic(t *testing.T) {
 				Config: testAccDataSourceVSphereDatastoreStatsConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"data.vsphere_datastore_stats.datastore_stats", "datacenter_id", os.Getenv("VSPHERE_DATACENTER"),
+						"data.vsphere_datastore_stats.datastore_stats", "datacenter_id", os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 					),
 					resource.TestCheckResourceAttr(
-						"data.vsphere_datastore_stats.datastore_stats", "id", fmt.Sprintf("%s_stats", os.Getenv("VSPHERE_DATACENTER")),
+						"data.vsphere_datastore_stats.datastore_stats", "id", fmt.Sprintf("%s_stats", os.Getenv("TF_VAR_VSPHERE_DATACENTER")),
 					),
 					testCheckOutputBool("found_free_space", "true"),
 					testCheckOutputBool("found_capacity", "true"),
@@ -40,13 +40,13 @@ func TestAccDataSourceVSphereDatastoreStats_basic(t *testing.T) {
 }
 
 func testAccDataSourceVSphereDatastoreStatsPreCheck(t *testing.T) {
-	if os.Getenv("VSPHERE_DATACENTER") == "" {
+	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_datastore_stats acceptance tests")
 	}
-	if os.Getenv("VSPHERE_USER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_datastore_stats acceptance tests")
+	if os.Getenv("TF_VAR_VSPHERE_USER") == "" {
+		t.Skip("set TF_VAR_VSPHERE_USER to run vsphere_datastore_stats acceptance tests")
 	}
-	if os.Getenv("VSPHERE_PASSWORD") == "" {
+	if os.Getenv("TF_VAR_VSPHERE_PASSWORD") == "" {
 		t.Skip("set TF_VAR_VSPHERE_PASSWORD to run vsphere_datastore_stats acceptance tests")
 	}
 }
@@ -82,5 +82,5 @@ output "capacity_values_exist" {
 		free >= 1
 	])
 }
-`, os.Getenv("VSPHERE_DATACENTER"))
+`, os.Getenv("TF_VAR_VSPHERE_DATACENTER"))
 }
