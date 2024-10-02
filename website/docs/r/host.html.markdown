@@ -23,12 +23,12 @@ data "vsphere_datacenter" "datacenter" {
 }
 
 data "vsphere_host_thumbprint" "thumbprint" {
-  address  = "esx-01.example.com"
+  address  = "esxi-01.example.com"
   insecure = true
 }
 
 resource "vsphere_host" "esx-01" {
-  hostname   = "esx-01.example.com"
+  hostname   = "esxi-01.example.com"
   username   = "root"
   password   = "password"
   license    = "00000-00000-00000-00000-00000"
@@ -50,12 +50,12 @@ data "vsphere_compute_cluster" "cluster" {
 }
 
 data "vsphere_host_thumbprint" "thumbprint" {
-  address  = "esx-01.example.com"
+  address  = "esxi-01.example.com"
   insecure = true
 }
 
 resource "vsphere_host" "esx-01" {
-  hostname   = "esx-01.example.com"
+  hostname   = "esxi-01.example.com"
   username   = "root"
   password   = "password"
   license    = "00000-00000-00000-00000-00000"
@@ -143,7 +143,7 @@ data "vsphere_datacenter" "datacenter" {
 }
 
 data "vsphere_host" "host" {
-  name          = "esx-01.example.com"
+  name          = "esxi-01.example.com"
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
@@ -160,12 +160,12 @@ data "vsphere_datacenter" "datacenter" {
 }
 
 data "vsphere_host_thumbprint" "thumbprint" {
-  address = "esx-01.example.com"
+  address = "esxi-01.example.com"
   insecure = true
 }
 
 resource "vsphere_host" "esx-01" {
-  hostname   = "esx-01.example.com"
+  hostname   = "esxi-01.example.com"
   username   = "root"
   password   = "password"
   thumbprint = data.vsphere_host_thumbprint.thumbprint.id
@@ -177,7 +177,7 @@ resource "vsphere_host" "esx-01" {
 
 ```hcl
 resource "vsphere_host" "esx-01" {
-  hostname   = "esx-01.example.com"
+  hostname   = "esxi-01.example.com"
   username   = "root"
   password   = "password"
   license    = "00000-00000-00000-00000-00000"
@@ -198,4 +198,4 @@ All information will be added to the Terraform state after import.
 terraform import vsphere_host.esx-01 host-123
 ```
 
-The above would import the host `esx-01.example.com` with the host ID `host-123`.
+The above would import the host `esxi-01.example.com` with the host ID `host-123`.
