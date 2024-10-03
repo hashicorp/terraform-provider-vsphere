@@ -4,9 +4,11 @@
 package vsphere
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
 )
 
 func dataSourceVSphereDatastoreCluster() *schema.Resource {
@@ -24,15 +26,39 @@ func dataSourceVSphereDatastoreCluster() *schema.Resource {
 				Optional:    true,
 				Description: "The managed object ID of the datacenter the cluster is located in. Not required if using an absolute path.",
 			},
+			"datastores": {
+				Type:        schema.TypeSet,
+				Computed:    true,
+				Description: "The names of datastores included in the datastore cluster.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
 
 func dataSourceVSphereDatastoreClusterRead(d *schema.ResourceData, meta interface{}) error {
+	ctx := context.Background()
+	client := meta.(*Client).vimClient
 	pod, err := resourceVSphereDatastoreClusterGetPodFromPath(meta, d.Get("name").(string), d.Get("datacenter_id").(string))
 	if err != nil {
 		return fmt.Errorf("error loading datastore cluster: %s", err)
 	}
 	d.SetId(pod.Reference().Value)
+	dsNames := []string{}
+	childDatastores, err := pod.Children(ctx)
+	if err != nil {
+		return fmt.Errorf("error retrieving datastores in datastore cluster: %s", err)
+	}
+	for d := range childDatastores {
+		ds, err := datastore.FromID(client, childDatastores[d].Reference().Value)
+		if err != nil {
+			return fmt.Errorf("error retrieving datastore: %s", err)
+		}
+		dsNames = append(dsNames, ds.Name())
+	}
+	err = d.Set("datastores", dsNames)
+	if err != nil {
+		return fmt.Errorf("cannot set datastores: %s", err)
+	}
 	return nil
 }

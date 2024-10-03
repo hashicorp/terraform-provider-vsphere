@@ -45,9 +45,22 @@ The following arguments are supported:
   For default datacenters, use the id attribute from an empty
   `vsphere_datacenter` data source.
 
+
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
 ## Attribute Reference
 
-The only exported attribute from this data source is `id`, which represents the
-ID of the datastore cluster.
+The following attributes are exported:
+
+* `id` - The [managed objectID][docs-about-morefs] of the vSphere datastore cluster object.
+
+* `datastores` - (Optional) The names of the datastores included in the specific 
+  cluster.
+
+### Example Usage for `datastores` attribute:
+
+```hcl
+output "datastores" {
+  value = data.vsphere_datastore_cluster.datastore_cluster.datastores
+}
+```

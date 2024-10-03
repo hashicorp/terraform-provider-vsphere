@@ -5,6 +5,7 @@ package vsphere
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
@@ -55,6 +56,27 @@ func TestAccDataSourceVSphereDatastoreCluster_absolutePathNoDatacenter(t *testin
 		},
 	})
 }
+func TestAccDataSourceVSphereDatastoreCluster_getDatastores(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccResourceVSphereDatastoreClusterPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereDatastoreClusterGetDatastores(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrPair(
+						"data.vsphere_datastore_cluster.datastore_cluster_data", "id",
+						"vsphere_datastore_cluster.datastore_cluster", "id",
+					),
+				),
+			},
+		},
+	})
+}
 
 func testAccDataSourceVSphereDatastoreClusterConfigBasic() string {
 	return fmt.Sprintf(`
@@ -66,8 +88,8 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
 }
 
 data "vsphere_datastore_cluster" "datastore_cluster_data" {
-  name          = "${vsphere_datastore_cluster.datastore_cluster.name}"
-  datacenter_id = "${vsphere_datastore_cluster.datastore_cluster.datacenter_id}"
+  name          = vsphere_datastore_cluster.datastore_cluster.name
+  datacenter_id = vsphere_datastore_cluster.datastore_cluster.datacenter_id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -88,5 +110,24 @@ data "vsphere_datastore_cluster" "datastore_cluster_data" {
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+	)
+}
+
+func testAccDataSourceVSphereDatastoreClusterGetDatastores() string {
+	return fmt.Sprintf(`
+resource "vsphere_datastore_cluster" "datastore_cluster" {
+  name          = "%s"
+  datacenter_id = "%s"
+}
+
+data "vsphere_datastore_cluster" "datastore_cluster_data" {
+  name          = "${vsphere_datastore_cluster.datastore_cluster.name}"
+  datacenter_id = "${vsphere_datastore_cluster.datastore_cluster.datacenter_id}"
+}
+
+output "found_datastores" {
+	value = "${length(data.vsphere_datastore_cluster.datastore_cluster_data.datastores) >= 1 ? "true" : "false" }"
+}
+`, os.Getenv("TF_VAR_VSPHERE_DATASTORE_CLUSTER_NAME"), os.Getenv("TF_VAR_VSPHERE_DATACENTER_ID"),
 	)
 }
