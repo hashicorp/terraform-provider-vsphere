@@ -66,6 +66,30 @@ func testAccDataSourceVSphereDatacenterPreCheck(t *testing.T) {
 	}
 }
 
+func TestAccDataSourceVSphereDatacenter_getVirtualMachines(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccDataSourceVSphereDatacenterPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereDatacenterConfigGetVirtualMachines(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr(
+						"data.vsphere_datacenter.dc",
+						"id",
+						testAccDataSourceVSphereDatacenterExpectedRegexp,
+					),
+					testCheckOutputBool("found_virtual_machines", "true"),
+				),
+			},
+		},
+	})
+}
+
 func testAccDataSourceVSphereDatacenterConfig() string {
 	return fmt.Sprintf(`
 data "vsphere_datacenter" "dc" {
@@ -77,3 +101,15 @@ data "vsphere_datacenter" "dc" {
 const testAccDataSourceVSphereDatacenterConfigDefault = `
 data "vsphere_datacenter" "dc" {}
 `
+
+func testAccDataSourceVSphereDatacenterConfigGetVirtualMachines() string {
+	return fmt.Sprintf(`
+data "vsphere_datacenter" "dc" {
+  name = "%s"
+}
+output "found_virtual_machines" {
+	value = "${length(data.vsphere_datacenter.dc.virtual_machines) >= 1 ? "true" : "false" }"
+}
+`, os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
+	)
+}
