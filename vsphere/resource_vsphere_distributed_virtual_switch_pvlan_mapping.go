@@ -126,13 +126,17 @@ func resourceVSphereDistributedVirtualSwitchPvlanMappingRead(d *schema.ResourceD
 	}
 	d.Set("distributed_virtual_switch_id", props.Uuid)
 
+	// Loop through the existing mappings on the switch to try and find one matching our spec
 	for _, mapping := range props.Config.(*types.VMwareDVSConfigInfo).PvlanConfig {
+		// Check if the existing mapping matches the one specified by the resource
 		if mapping.PrimaryVlanId == int32(d.Get("primary_vlan_id").(int)) && mapping.SecondaryVlanId == int32(d.Get("secondary_vlan_id").(int)) && mapping.PvlanType == d.Get("pvlan_type").(string) {
 			d.SetId(fmt.Sprintf("dvswitch-%s-mapping-%d-%d-%s", props.Config.(*types.VMwareDVSConfigInfo).Uuid, mapping.PrimaryVlanId, mapping.SecondaryVlanId, mapping.PvlanType))
 			return nil
 		}
 	}
 
+	// If we don't find a mapping on the switch matching the current spec, then tell Terraform
+	//   that the resource no longer exists
 	d.SetId("")
 	return nil
 }
