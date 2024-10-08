@@ -283,6 +283,23 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Computed:    true,
 			Description: "The power state of the virtual machine.",
 		},
+		"vtpm": {
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "A specification for a virtual Trusted Platform Module (TPM) device on the virtual machine.",
+			MaxItems:    1,
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"version": {
+						Type:         schema.TypeString,
+						Optional:     true,
+						Default:      "2.0",
+						Description:  "The version of the TPM device. Default is 2.0.",
+						ValidateFunc: validation.StringInSlice([]string{"1.2", "2.0"}, false),
+					},
+				},
+			},
+		},
 		vSphereTagAttributeKey:    tagsSchema(),
 		customattribute.ConfigKey: customattribute.ConfigSchema(),
 	}
@@ -594,6 +611,24 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		d.Set("power_state", "suspended")
 	}
 
+	// Set the virtual Trusted Platform Module device for the virtual machine.
+	var isVTPMPresent bool
+	for _, dev := range vprops.Config.Hardware.Device {
+		if _, ok := dev.(*types.VirtualTPM); ok {
+			isVTPMPresent = true
+			break
+		}
+	}
+
+	if isVTPMPresent {
+		firmware := vprops.Config.Firmware
+		if isVTPMPresent && firmware != string(types.GuestOsDescriptorFirmwareTypeEfi) {
+			return errors.New("vtpm requires firmware to be set to efi")
+		}
+	}
+
+	_ = d.Set("vtpm_present", isVTPMPresent)
+
 	log.Printf("[DEBUG] %s: Read complete", resourceVSphereVirtualMachineIDString(d))
 	return nil
 }
@@ -708,6 +743,19 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
 		return err
 	}
+
+	if d.HasChange("vtpm") {
+
+		spec.DeviceChange = append(spec.DeviceChange, &types.VirtualDeviceConfigSpec{
+			Operation: types.VirtualDeviceConfigSpecOperationAdd,
+			Device: &types.VirtualTPM{
+				VirtualDevice: types.VirtualDevice{
+					Key: -1,
+				},
+			},
+		})
+	}
+
 	// Only carry out the reconfigure if we actually have a change to process.
 	cv := virtualmachine.GetHardwareVersionNumber(vprops.Config.Version)
 	tv := d.Get("hardware_version").(int)
@@ -1364,6 +1412,17 @@ func resourceVSphereVirtualMachineCreateBareStandard(
 	}
 	spec.Files = &types.VirtualMachineFileInfo{
 		VmPathName: fmt.Sprintf("[%s]", ds.Name()),
+	}
+
+	if vtpms, ok := d.GetOk("vtpm"); ok && len(vtpms.([]interface{})) > 0 {
+		spec.DeviceChange = append(spec.DeviceChange, &types.VirtualDeviceConfigSpec{
+			Operation: types.VirtualDeviceConfigSpecOperationAdd,
+			Device: &types.VirtualTPM{
+				VirtualDevice: types.VirtualDevice{
+					Key: -1,
+				},
+			},
+		})
 	}
 
 	timeout := meta.(*Client).timeout
