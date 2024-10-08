@@ -21,7 +21,7 @@ import (
 
 const (
 	testAccResourceVSphereDistributedVirtualSwitchUpperVersion = "7.0.0"
-	testAccResourceVSphereDistributedVirtualSwitchLowerVersion = "6.5.0"
+	testAccResourceVSphereDistributedVirtualSwitchLowerVersion = "6.6.0"
 )
 
 func TestAccResourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
@@ -436,7 +436,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_multiCustomAttribute(t *test
 
 func testAccResourceVSphereDistributedVirtualSwitchPreCheck(t *testing.T) {
 	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_host_virtual_switch acceptance tests")
+		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_host_virtual_switch acceptance tests")
 	}
 }
 
