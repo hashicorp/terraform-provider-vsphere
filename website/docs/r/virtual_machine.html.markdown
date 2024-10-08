@@ -104,7 +104,7 @@ resource "vsphere_virtual_machine" "vm" {
     network_id = data.vsphere_network.network.id
   }
   disk {
-    label = "disk0"
+    label = "Hard Disk 1"
     size  = 20
   }
 }
@@ -160,7 +160,7 @@ resource "vsphere_virtual_machine" "vm" {
     adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
   disk {
-    label            = "disk0"
+    label            = "Hard Disk 1"
     size             = data.vsphere_virtual_machine.template.disks.0.size
     thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
@@ -541,7 +541,7 @@ resource "vsphere_virtual_machine" "vm" {
     adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
   disk {
-    name             = "disk0"
+    name             = "Hard Disk 1"
     size             = data.vsphere_virtual_machine.template_from_ovf.disks.0.size
     thin_provisioned = data.vsphere_virtual_machine.template_from_ovf.disks.0.thin_provisioned
   }
@@ -610,7 +610,7 @@ resource "vsphere_virtual_machine" "vm" {
     network_id = data.vsphere_network.network.id
   }
   disk {
-    label = "disk0"
+    label = "Hard Disk 1"
     size  = 20
   }
 }
@@ -862,11 +862,11 @@ The following example demonstrates and abridged multi-disk configuration:
 resource "vsphere_virtual_machine" "vm" {
   # ... other configuration ...
   disk {
-    label       = "disk0"
+    label       = "Hard Disk 1"
     size        = "10"
   }
   disk {
-    label       = "disk1"
+    label       = "Hard Disk 2"
     size        = "100"
     unit_number = 1
   }
@@ -1545,12 +1545,12 @@ resource "vsphere_virtual_machine" "vm" {
   # ... other configuration ...
   datastore_id = data.vsphere_datastore.vm_datastore.id
   disk {
-    label = "disk0"
+    label = "Hard Disk 1"
     size  = 10
   }
   disk {
     datastore_id = data.vsphere_datastore.pinned_datastore.id
-    label        = "disk1"
+    label        = "Hard Disk 2"
     size         = 100
     unit_number  = 1
   }
@@ -1661,7 +1661,9 @@ Many of the requirements for [cloning](#additional-requirements-and-notes-for-cl
 
 The following requirements apply to import:
 
-* The disks must have a [`label`](#label) argument assigned in a convention matching `diskN`, starting with disk number 0, based on each virtual disk order on the SCSI bus. As an example, a disk on SCSI controller `0` with a unit number of `0` would be labeled as `disk0`, a disk on the same controller with a unit number of `1` would be `disk1`, but the next disk, which is on SCSI controller `1` with a unit number of `0`, still becomes `disk2`.
+* The disks must have a [`label`](#label) argument assigned in a convention matching `Hard Disk`, starting with disk number 0, based on each virtual disk order on the SCSI bus. As an example, a disk on SCSI controller `0` with a unit number of `0` would be labeled as `Hard Disk 0`, a disk on the same controller with a unit number of `1` would be `Hard Disk 1`, but the next disk, which is on SCSI controller `1` with a unit number of `0`, still becomes `Hard Disk 2`.
+
+~> **NOTE:** Any custom `label` set at deployment of machine through Terraform, on import will not have the custom `label` and will default to `Hard Disk _x_`.
 
 * Disks are always imported with [`keep_on_remove`](#keep_on_remove) enabled until the first `terraform apply` run which will remove the setting for known disks. This process safeguards against naming or accounting mistakes in the disk configuration.
 

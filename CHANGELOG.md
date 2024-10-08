@@ -13,6 +13,8 @@ DOCUMENTATION:
 
 - `resource/vsphere_resource_pool`: Updates to include steps to create resource pool on standalone ESXi hosts.
   ([#2264](https://github.com/hashicorp/terraform-provider-vsphere/pull/2264))
+- `resource/vsphere_virtual_machine`: Updates to fix examples of `disk0` to reflect that during import the disk get set back to default like `Hard Disk 1`.
+  [#2272](https://github.com/hashicorp/terraform-provider-vsphere/pull/2272)
 
 ## 2.9.2 (September 16, 2024)
 
