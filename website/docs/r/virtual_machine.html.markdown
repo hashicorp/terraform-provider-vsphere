@@ -1518,6 +1518,24 @@ When cloning from a template, there are additional requirements in both the reso
 
 You can use the [`vsphere_virtual_machine`][tf-vsphere-virtual-machine-ds] data source, which provides disk attributes, network interface types, SCSI bus types, and the guest ID of the source template, to return this information. See the section on [cloning and customization](#cloning-and-customization) for more information.
 
+## Trusted Platform Module
+
+When creating a virtual machine or cloning one from a template, you have the option to add a virtual Trusted Platform Module device. Refer to the requirements in the VMware vSphere [product documentation](https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-security/GUID-6F811A7A-D58B-47B4-84B4-73391D55C268.html).
+
+**Example**:
+
+```hcl
+resource "vsphere_virtual_machine" "vm" {
+  # ... other configuration ...
+   vtpm {
+    version = "2.0"
+  }
+  # ... other configuration ...
+}
+```
+
+~> **NOTE:** Supported versions include 1.2 or 2.0.
+
 ## Virtual Machine Migration
 
 The `vsphere_virtual_machine` resource supports live migration both on the host and storage level. You can migrate the virtual machine to another host, cluster, resource pool, or datastore. You can also migrate or pin a virtual disk to a specific datastore.
@@ -1602,6 +1620,7 @@ The virtual machine will be rebooted if any of the following parameters are chan
 * `tools_upgrade_policy`
 * `vbs_enabled`
 * `vvtd_enabled`
+* `vtpm`
 
 ## Attribute Reference
 

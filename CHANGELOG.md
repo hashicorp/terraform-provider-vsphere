@@ -16,6 +16,13 @@ DOCUMENTATION:
 - `resource/vsphere_virtual_machine`: Updates to fix examples of `disk0` to reflect that during import the disk get set back to default like `Hard Disk 1`.
   [#2272](https://github.com/hashicorp/terraform-provider-vsphere/pull/2272)
 
+FEATURES:
+
+- `resource/vsphere_virtual_machine`: Adds ability to add `vTPM` to virtual machine on creation or clone.
+  [#2279](https://github.com/hashicorp/terraform-provider-vsphere/pull/2279)
+- `data/vsphere_virtual_machine`: Adds ability read `vTPM` on virtual machine; will return `true` or `false` based on the configuration.
+  [#2279](https://github.com/hashicorp/terraform-provider-vsphere/pull/2279)
+
 ## 2.9.2 (September 16, 2024)
 
 BUG FIX:

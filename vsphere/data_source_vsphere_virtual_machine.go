@@ -165,6 +165,11 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 			Computed:    true,
 			Description: "Instance UUID of this virtual machine.",
 		},
+		"vtpm": {
+			Type:        schema.TypeBool,
+			Computed:    true,
+			Description: "Indicates whether a virtual Trusted Platform Module (TPM) device is present on the virtual machine.",
+		},
 	}
 
 	// Merge the VirtualMachineConfig structure so that we can include the number of
@@ -283,6 +288,16 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 			return fmt.Errorf("error setting guest IP addresses: %s", err)
 		}
 	}
+
+	var isVTPMPresent bool
+	for _, dev := range props.Config.Hardware.Device {
+		if _, ok := dev.(*types.VirtualTPM); ok {
+			isVTPMPresent = true
+			break
+		}
+	}
+	_ = d.Set("vtpm_present", isVTPMPresent)
+
 	log.Printf("[DEBUG] VM search for %q completed successfully (UUID %q)", name, props.Config.Uuid)
 	return nil
 }
