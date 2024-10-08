@@ -1,16 +1,18 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
-## 2.9.3 (Not Released)
+## 2.9.3 (October 8, 2024)
 
 BUG FIX:
 
 - `r/vsphere_tag_category`: Updates resource not to `ForceNew` for cardinality. This will allow the `tag_category` to updated.
-  [#2263](https://github.com/hashicorp/terraform-provider-vsphere/pull/2263)
+  ([#2263](https://github.com/hashicorp/terraform-provider-vsphere/pull/2263))
+- `r/vsphere_host`: Updates resource to check thumbprint of the ESXI host thumbprint before adding the host to a cluster or vCenter Server.
+  ([#2266](https://github.com/hashicorp/terraform-provider-vsphere/pull/2266))
 
 DOCUMENTATION:
 
 - `resource/vsphere_resource_pool`: Updates to include steps to create resource pool on standalone ESXi hosts.
-  [#2264](https://github.com/hashicorp/terraform-provider-vsphere/pull/2264)
+  ([#2264](https://github.com/hashicorp/terraform-provider-vsphere/pull/2264))
 
 ## 2.9.2 (September 16, 2024)
 
@@ -18,12 +20,12 @@ BUG FIX:
 
 - `resource/vsphere_compute_cluster_vm_group`: Updates resource to allow for additional virtual
   machines to be adding or removed from a VM Group. Must be ran in conjunction with and import.
-  ([#2260]https://github.com/hashicorp/terraform-provider-vsphere/pull/2260)
+  ([#2260](https://github.com/hashicorp/terraform-provider-vsphere/pull/2260))
 
 FEATURES:
 
 - `resource\vsphere_tag`: Adds a format validation for `catagory_id`.
-  ([#2261]https://github.com/hashicorp/terraform-provider-vsphere/pull/2261)
+  ([#2261](https://github.com/hashicorp/terraform-provider-vsphere/pull/2261))
 
 ## 2.9.1 (September 9, 2024)
 
@@ -31,19 +33,19 @@ BUG FIX:
 
 - `resource/vsphere_resource_pool`: Removes the default setting for `scale_descendants_shares` to
   allows for inheritance from the parent resource pool.
-  ([#2255]https://github.com/hashicorp/terraform-provider-vsphere/pull/2255)
+  ([#2255](https://github.com/hashicorp/terraform-provider-vsphere/pull/2255))
 
 DOCUMENTATION:
 
 - `resource/vsphere_virtual_machine`: Updates to clarify assignment of `network_interface`
-  resources. ([#2256]https://github.com/hashicorp/terraform-provider-vsphere/pull/2256)
+  resources. ([#2256](https://github.com/hashicorp/terraform-provider-vsphere/pull/2256))
 - `resource/vsphere_host`: Updates to clarify import of `vsphere_hosts`.
-  ([#2257]https://github.com/hashicorp/terraform-provider-vsphere/pull/2257)
+  ([#2257](https://github.com/hashicorp/terraform-provider-vsphere/pull/2257))
 - `resource/vsphere_compute_cluster`: Updates to clarify import of `vsphere_compute_cluster`
-  resources. ([#2257]https://github.com/hashicorp/terraform-provider-vsphere/pull/2257)
+  resources. ([#2257](https://github.com/hashicorp/terraform-provider-vsphere/pull/2257))
 - `resource/vsphere_virtual_machine`: Updates to clarify the `vm` path in the import of
   `virtual_machine` resources.
-  ([#2257]https://github.com/hashicorp/terraform-provider-vsphere/pull/2257)
+  ([#2257](https://github.com/hashicorp/terraform-provider-vsphere/pull/2257))
 
 ## 2.9.0 (September 3, 2024)
 
