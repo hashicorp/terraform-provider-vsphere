@@ -87,8 +87,6 @@ CHORE:
 - `provider`: Updated `golang.org/x/net` to 0.33.0. (#2319)
 - `provider`: Updated `golang.org/x/crypto` to 0.31.0. (#2318)
 
-## v2.10.0
-
 > Release Date: 2024-10-16
 
 FEATURES:
