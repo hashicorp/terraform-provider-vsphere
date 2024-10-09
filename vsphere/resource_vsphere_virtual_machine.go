@@ -283,6 +283,23 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Computed:    true,
 			Description: "The power state of the virtual machine.",
 		},
+		"usb_controller": {
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "A specification for a USB controller on the virtual machine.",
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"usb_version": {
+						Type:         schema.TypeString,
+						Optional:     true,
+						Default:      "2.0",
+						Description:  "The version of the USB controller.",
+						ValidateFunc: validation.StringInSlice([]string{"2.0", "3.1"}, false),
+					},
+				},
+			},
+		},
+
 		vSphereTagAttributeKey:    tagsSchema(),
 		customattribute.ConfigKey: customattribute.ConfigSchema(),
 	}
@@ -594,6 +611,16 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		d.Set("power_state", "suspended")
 	}
 
+	// Get USB Controller information
+	var isUSBPresent bool
+	for _, dev := range vprops.Config.Hardware.Device {
+		if _, ok := dev.(*types.VirtualUSBController); ok {
+			isUSBPresent = true
+			break
+		}
+	}
+	_ = d.Set("usb_controller", isUSBPresent)
+
 	log.Printf("[DEBUG] %s: Read complete", resourceVSphereVirtualMachineIDString(d))
 	return nil
 }
@@ -707,6 +734,57 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
 	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
 		return err
+	}
+
+	// Add USB controller
+	if d.HasChange("usb_controller") {
+		usb := d.Get("usb_controller").([]interface{})
+		if len(usb) == 0 {
+			return fmt.Errorf("usb_controller is empty")
+		}
+
+		// Initialize a key counter
+		keyCounter := -100
+
+		for _, usbControllerInterface := range usb {
+			usbController := usbControllerInterface.(map[string]interface{})
+			usbVersion := usbController["usb_version"].(string)
+
+			var ehciEnabled *bool
+			var device types.BaseVirtualDevice
+
+			switch usbVersion {
+			case "2.0":
+				enabled := true
+				ehciEnabled = &enabled
+				device = &types.VirtualUSBController{
+					VirtualController: types.VirtualController{
+						VirtualDevice: types.VirtualDevice{
+							Key: int32(keyCounter),
+						},
+					},
+					EhciEnabled: ehciEnabled,
+				}
+			case "3.1":
+				device = &types.VirtualUSBXHCIController{
+					VirtualController: types.VirtualController{
+						VirtualDevice: types.VirtualDevice{
+							Key: int32(keyCounter),
+						},
+					},
+				}
+			default:
+				return fmt.Errorf("unsupported USB version: %s", usbVersion)
+			}
+
+			spec.DeviceChange = append(spec.DeviceChange, &types.VirtualDeviceConfigSpec{
+				Operation: types.VirtualDeviceConfigSpecOperationAdd,
+				Device:    device,
+			})
+
+			// Increment the key counter for the next device
+			keyCounter--
+		}
 	}
 	// Only carry out the reconfigure if we actually have a change to process.
 	cv := virtualmachine.GetHardwareVersionNumber(vprops.Config.Version)
@@ -1364,6 +1442,46 @@ func resourceVSphereVirtualMachineCreateBareStandard(
 	}
 	spec.Files = &types.VirtualMachineFileInfo{
 		VmPathName: fmt.Sprintf("[%s]", ds.Name()),
+	}
+
+	// Add USB controller
+	if usb, ok := d.GetOk("usb_controller"); ok && len(usb.([]interface{})) > 0 {
+		for _, usbControllerInterface := range usb.([]interface{}) {
+			usbController := usbControllerInterface.(map[string]interface{})
+			usbVersion := usbController["usb_version"].(string)
+
+			var ehciEnabled *bool
+			var device types.BaseVirtualDevice
+
+			switch usbVersion {
+			case "2.0":
+				enabled := true
+				ehciEnabled = &enabled
+				device = &types.VirtualUSBController{
+					VirtualController: types.VirtualController{
+						VirtualDevice: types.VirtualDevice{
+							Key: -1,
+						},
+					},
+					EhciEnabled: ehciEnabled,
+				}
+			case "3.1":
+				device = &types.VirtualUSBXHCIController{
+					VirtualController: types.VirtualController{
+						VirtualDevice: types.VirtualDevice{
+							Key: -1,
+						},
+					},
+				}
+			default:
+				return nil, fmt.Errorf("unsupported USB version: %s", usbVersion)
+			}
+
+			spec.DeviceChange = append(spec.DeviceChange, &types.VirtualDeviceConfigSpec{
+				Operation: types.VirtualDeviceConfigSpecOperationAdd,
+				Device:    device,
+			})
+		}
 	}
 
 	timeout := meta.(*Client).timeout

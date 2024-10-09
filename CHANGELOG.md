@@ -1,5 +1,14 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
+## 2.10.0 (Not Released)
+
+FEATURES:
+
+- `resource/vsphere_virtual_machine`: Adds ability to add `usb_controller` to virtual machine on creation or clone.
+  [#2280](https://github.com/hashicorp/terraform-provider-vsphere/pull/2280)
+- `data/vsphere_virtual_machine`: Adds ability read `usb_controller` on virtual machine; will return `true` or `false` based on the configuration.
+  [#2280](https://github.com/hashicorp/terraform-provider-vsphere/pull/2280)
+
 ## 2.9.3 (October 8, 2024)
 
 BUG FIX:
