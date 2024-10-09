@@ -23,12 +23,12 @@ data "vsphere_datacenter" "datacenter" {
 }
 
 data "vsphere_host_thumbprint" "thumbprint" {
-  address  = "esx-01.example.com"
+  address  = "esxi-01.example.com"
   insecure = true
 }
 
 resource "vsphere_host" "esx-01" {
-  hostname   = "esx-01.example.com"
+  hostname   = "esxi-01.example.com"
   username   = "root"
   password   = "password"
   license    = "00000-00000-00000-00000-00000"
@@ -50,12 +50,12 @@ data "vsphere_compute_cluster" "cluster" {
 }
 
 data "vsphere_host_thumbprint" "thumbprint" {
-  address  = "esx-01.example.com"
+  address  = "esxi-01.example.com"
   insecure = true
 }
 
 resource "vsphere_host" "esx-01" {
-  hostname   = "esx-01.example.com"
+  hostname   = "esxi-01.example.com"
   username   = "root"
   password   = "password"
   license    = "00000-00000-00000-00000-00000"
@@ -79,6 +79,10 @@ The following arguments are supported:
   to the host.
 * `password` - (Required) Password that will be used by vSphere to authenticate
   to the host.
+* `thumbprint` - (Optional) Host's certificate SHA-1 thumbprint. If not set the
+  CA that signed the host's certificate should be trusted. If the CA is not
+  trusted and no thumbprint is set then the operation will fail. See data source
+  [`vsphere_host_thumbprint`][docs-host-thumbprint-data-source].
 * `datacenter` - (Optional) The ID of the datacenter this host should
   be added to. This should not be set if `cluster` is set.
 * `cluster` - (Optional) The ID of the Compute Cluster this host should
@@ -87,10 +91,6 @@ The following arguments are supported:
 * `cluster_managed` - (Optional) Can be set to `true` if compute cluster
   membership will be managed through the `compute_cluster` resource rather
   than the`host` resource. Conflicts with: `cluster`.
-* `thumbprint` - (Optional) Host's certificate SHA-1 thumbprint. If not set the
-  CA that signed the host's certificate should be trusted. If the CA is not
-  trusted and no thumbprint is set then the operation will fail. See data source
-  [`vsphere_host_thumbprint`][docs-host-thumbprint-data-source].
 * `license` - (Optional) The license key that will be applied to the host.
   The license key is expected to be present in vSphere.
 * `force` - (Optional) If set to `true` then it will force the host to be added,
@@ -143,7 +143,7 @@ data "vsphere_datacenter" "datacenter" {
 }
 
 data "vsphere_host" "host" {
-  name          = "esx-01.example.com"
+  name          = "esxi-01.example.com"
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
@@ -160,12 +160,12 @@ data "vsphere_datacenter" "datacenter" {
 }
 
 data "vsphere_host_thumbprint" "thumbprint" {
-  address = "esx-01.example.com"
+  address = "esxi-01.example.com"
   insecure = true
 }
 
 resource "vsphere_host" "esx-01" {
-  hostname   = "esx-01.example.com"
+  hostname   = "esxi-01.example.com"
   username   = "root"
   password   = "password"
   thumbprint = data.vsphere_host_thumbprint.thumbprint.id
@@ -177,7 +177,7 @@ resource "vsphere_host" "esx-01" {
 
 ```hcl
 resource "vsphere_host" "esx-01" {
-  hostname   = "esx-01.example.com"
+  hostname   = "esxi-01.example.com"
   username   = "root"
   password   = "password"
   license    = "00000-00000-00000-00000-00000"
@@ -198,4 +198,4 @@ All information will be added to the Terraform state after import.
 terraform import vsphere_host.esx-01 host-123
 ```
 
-The above would import the host `esx-01.example.com` with the host ID `host-123`.
+The above would import the host `esxi-01.example.com` with the host ID `host-123`.

@@ -4,10 +4,14 @@
 package vsphere
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha1"
+	"crypto/tls"
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"log"
+
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -25,6 +29,8 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
+
+const defaultHostPort = "443"
 
 var servicesPolicyAllowedValues = []string{
 	string(types.HostServicePolicyOff),
@@ -162,7 +168,10 @@ func resourceVsphereHostCreate(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*Client).vimClient
 
-	hcs := buildHostConnectSpec(d)
+	hcs, err := buildHostConnectSpec(d)
+	if err != nil {
+		return fmt.Errorf("failed to build host connect spec: %v", err)
+	}
 
 	licenseKey := d.Get("license").(string)
 
@@ -714,7 +723,10 @@ func resourceVSphereHostReconnect(d *schema.ResourceData, meta interface{}) erro
 	hostID := d.Id()
 	client := meta.(*Client).vimClient
 	host := object.NewHostSystem(client.Client, types.ManagedObjectReference{Type: "HostSystem", Value: d.Id()})
-	hcs := buildHostConnectSpec(d)
+	hcs, err := buildHostConnectSpec(d)
+	if err != nil {
+		return fmt.Errorf("failed to build host connect spec: %v", err)
+	}
 
 	task, err := host.Reconnect(context.TODO(), &hcs, nil)
 	if err != nil {
@@ -826,15 +838,90 @@ func hostLockdownString(lockdownMode types.HostLockdownMode) (string, error) {
 	return "", fmt.Errorf("unknown Lockdown mode encountered")
 }
 
-func buildHostConnectSpec(d *schema.ResourceData) types.HostConnectSpec {
+func buildHostConnectSpec(d *schema.ResourceData) (types.HostConnectSpec, error) {
+	thumbprint := d.Get("thumbprint").(string)
+	hostname := d.Get("hostname").(string)
+	username := d.Get("username").(string)
+	password := d.Get("password").(string)
+
+	log.Printf("Building HostConnectSpec for host: %s", hostname)
+	// Retrieve the actual thumbprint from the ESXi host.
+	if thumbprint != "" {
+		actualThumbprint, err := getHostThumbprint(d)
+		if err != nil {
+			return types.HostConnectSpec{}, fmt.Errorf("error retrieving host thumbprint: %s", err)
+		}
+
+		// Compare the the provided and returned thumbprints.
+		if thumbprint != actualThumbprint {
+			return types.HostConnectSpec{}, fmt.Errorf("thumbprint mismatch: expected %s, got %s", thumbprint, actualThumbprint)
+		}
+	}
+
 	hcs := types.HostConnectSpec{
-		HostName:      d.Get("hostname").(string),
-		UserName:      d.Get("username").(string),
-		Password:      d.Get("password").(string),
-		SslThumbprint: d.Get("thumbprint").(string),
+		HostName:      hostname,
+		UserName:      username,
+		Password:      password,
+		SslThumbprint: thumbprint,
 		Force:         d.Get("force").(bool),
 	}
-	return hcs
+	return hcs, nil
+}
+
+func getHostThumbprint(d *schema.ResourceData) (string, error) {
+	config := &tls.Config{}
+
+	// Check the hostname.
+	address, ok := d.Get("hostname").(string)
+	if !ok {
+		return "", fmt.Errorf("hostname field is not a string or is nil")
+	}
+
+	// Default port for HTTPS.
+	port := defaultHostPort
+	if p, ok := d.GetOk("port"); ok {
+		if portStr, ok := p.(string); ok {
+			port = portStr
+		} else {
+			return "", fmt.Errorf("port field is not a string")
+		}
+	}
+
+	// Check if allow_unverified_ssl is true. If so, skip the verification.
+	// Otherwise, use the default value of false.
+	if thumbprint, ok := d.Get("thumbprint").(string); ok && thumbprint != "" {
+		return thumbprint, nil
+	} else {
+		if insecure, ok := d.GetOk("allow_unverified_ssl"); ok {
+			if insecureBool, ok := insecure.(bool); ok {
+				config.InsecureSkipVerify = insecureBool
+				if config.InsecureSkipVerify {
+				}
+			} else {
+				config.InsecureSkipVerify = false
+			}
+		} else {
+			config.InsecureSkipVerify = false
+		}
+	}
+
+	conn, err := tls.Dial("tcp", address+":"+port, config)
+	if err != nil {
+		return "", fmt.Errorf("error dialing TLS connection: %w", err)
+	}
+	defer conn.Close()
+
+	cert := conn.ConnectionState().PeerCertificates[0]
+	fingerprint := sha1.Sum(cert.Raw)
+
+	var buf bytes.Buffer
+	for i, f := range fingerprint {
+		if i > 0 {
+			_, _ = fmt.Fprintf(&buf, ":")
+		}
+		_, _ = fmt.Fprintf(&buf, "%02X", f)
+	}
+	return buf.String(), nil
 }
 
 func isLicenseAssigned(client *vim25.Client, hostID, licenseKey string) (bool, error) {

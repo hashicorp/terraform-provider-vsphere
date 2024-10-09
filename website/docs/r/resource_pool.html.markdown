@@ -84,12 +84,12 @@ data "vsphere_datacenter" "datacenter" {
 }
 
 data "vsphere_host_thumbprint" "thumbprint" {
-  address = "esx-01.example.com"
+  address = "esxi-01.example.com"
   insecure = true
 }
 
 resource "vsphere_host" "esx-01" {
-  hostname = "esx-01.example.com"
+  hostname = "esxi-01.example.com"
   username   = "root"
   password   = "password"
   license    = "00000-00000-00000-00000-00000"

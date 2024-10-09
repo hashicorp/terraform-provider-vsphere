@@ -30,6 +30,7 @@ func dataSourceVSphereHostThumbprint() *schema.Resource {
 			"insecure": {
 				Type:        schema.TypeBool,
 				Optional:    true,
+				Default:     false,
 				Description: "Boolean that can be set to true to disable SSL certificate verification.",
 			},
 		},
