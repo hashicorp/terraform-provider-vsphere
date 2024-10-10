@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/network"
 	"github.com/vmware/govmomi/object"
 )
@@ -36,6 +37,21 @@ func dataSourceVSphereNetwork() *schema.Resource {
 				Description: "Id of the distributed virtual switch of which the port group is a part of",
 				Optional:    true,
 			},
+			"filter": {
+				Type:        schema.TypeSet,
+				Description: "Apply a filter for the discovered network.",
+				Optional:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"network_type": {
+							Type:         schema.TypeString,
+							Description:  "The type of the network (e.g., Network, DistributedVirtualPortgroup, OpaqueNetwork)",
+							Optional:     true,
+							ValidateFunc: validation.StringInSlice(network.NetworkType, false),
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -53,9 +69,34 @@ func dataSourceVSphereNetworkRead(d *schema.ResourceData, meta interface{}) erro
 			return fmt.Errorf("cannot locate datacenter: %s", err)
 		}
 	}
-	net, err := network.FromNameAndDVSUuid(client, name, dc, dvSwitchUUID)
-	if err != nil {
-		return fmt.Errorf("error fetching network: %s", err)
+	var net object.NetworkReference
+	var err error
+
+	vimClient := client.Client
+
+	// Read filter from the schema.
+	filters := make(map[string]string)
+	if v, ok := d.GetOk("filter"); ok {
+		filterList := v.(*schema.Set).List()
+		if len(filterList) > 0 {
+			for key, value := range filterList[0].(map[string]interface{}) {
+				filters[key] = value.(string)
+			}
+		}
+	}
+
+	if dvSwitchUUID != "" {
+		// Handle distributed virtual switch port group
+		net, err = network.FromNameAndDVSUuid(client, name, dc, dvSwitchUUID)
+		if err != nil {
+			return fmt.Errorf("error fetching DVS network: %s", err)
+		}
+	} else {
+		// Handle standard switch port group
+		net, err = network.FromName(vimClient, name, dc, filters) // Pass the *vim25.Client
+		if err != nil {
+			return fmt.Errorf("error fetching network: %s", err)
+		}
 	}
 
 	d.SetId(net.Reference().Value)

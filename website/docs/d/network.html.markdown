@@ -29,6 +29,23 @@ data "vsphere_network" "network" {
 }
 ```
 
+## Example Usage
+
+```hcl
+
+data "vsphere_datacenter" "datacenter" {
+  name = "dc-01"
+}
+
+data "vsphere_network" "my_port_group" {
+  datacenter_id = data.vsphere_datacenter.datacenter.id
+  name          = "VM Network"
+  filter {
+     network_type = "Network"
+  }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -43,7 +60,8 @@ The following arguments are supported:
   network objects, the ID of the distributed virtual switch for which the port
   group belongs. It is useful to differentiate port groups with same name using
   the distributed virtual switch ID.
-
+* `filter` - (Optional) Apply a filter for the discovered network.
+  * `network_type`: This is required if you have multiple port groups with the same name. This will be one of `DistributedVirtualPortgroup` for distributed port groups, `Network` for standard (host-based) port groups, or `OpaqueNetwork` for networks managed externally, such as those managed by NSX.
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
 ## Attribute Reference
