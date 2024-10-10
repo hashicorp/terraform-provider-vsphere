@@ -1,5 +1,13 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
+## 2.10.0 (Not Released)
+
+FEATURES:
+
+- `data/vsphere_network`: Adds ability to add `filter` to find port groups based on network type of standard virtual port
+  group, distributed virtual port group, or network port group.
+  [#2281](https://github.com/hashicorp/terraform-provider-vsphere/pull/2281)
+
 ## 2.9.3 (October 8, 2024)
 
 BUG FIX:
