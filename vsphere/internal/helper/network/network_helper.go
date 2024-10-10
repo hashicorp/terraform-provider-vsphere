@@ -12,10 +12,17 @@ import (
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/view"
+	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
+
+var NetworkType = []string{
+	"Network",
+	"DistributedVirtualPortgroup",
+	"OpaqueNetwork",
+}
 
 // FromPath loads a network via its path.
 //
@@ -196,4 +203,57 @@ func dvsFromUUID(client *govmomi.Client, uuid string) (*object.VmwareDistributed
 	}
 
 	return dvsFromMOID(client, resp.Returnval.Reference().Value)
+}
+
+// FromName fetches a network by name and applies additional filters.
+func FromName(client *vim25.Client, name string, dc *object.Datacenter, filters map[string]string) (object.NetworkReference, error) {
+	ctx := context.TODO()
+	finder := find.NewFinder(client, true)
+
+	// Set the datacenter
+	if dc != nil {
+		finder.SetDatacenter(dc)
+	}
+
+	// Find the network by name
+	networks, err := finder.NetworkList(ctx, name)
+	if err != nil {
+		return nil, fmt.Errorf("error finding network %s: %v", name, err)
+	}
+
+	// If multiple networks are found and no filters are specified, return an error
+	if len(networks) > 1 && len(filters) == 0 {
+		return nil, fmt.Errorf("multiple networks found with the name '%s'. Please specify a filter to narrow down the results", name)
+	}
+
+	// Filter networks by additional attributes
+	for _, network := range networks {
+		match := true
+		for key, value := range filters {
+			switch key {
+			case "name":
+				netObj, ok := network.(*object.Network)
+				if !ok {
+					match = false
+					break
+				}
+				networkName, err := netObj.ObjectName(ctx)
+				if err != nil || networkName != value {
+					match = false
+				}
+			case "network_type":
+				if network.Reference().Type != value {
+					match = false
+				}
+			}
+			if !match {
+				break
+			}
+		}
+		if match {
+			return network, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no network found matching the specified criteria")
 }
