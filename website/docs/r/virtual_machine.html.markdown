@@ -854,7 +854,7 @@ Virtual disks are managed by adding one or more instance of the `disk` block.
 
 At a minimum, both the `label` and `size` attributes must be provided.  The `unit_number` is required for any disk other than the first, and there must be at least one resource with the implicit number of `0`.
 
-The following example demonstrates and abridged multi-disk configuration:
+The following example demonstrates an abridged multi-disk configuration:
 
 **Example**:
 
