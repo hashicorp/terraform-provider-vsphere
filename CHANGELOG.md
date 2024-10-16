@@ -1,18 +1,35 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
-## 2.10.0 (Not Released)
+## 2.10.0 (October 16, 2024)
 
 FEATURES:
 
 - `data/vsphere_network`: Adds ability to add `filter` to find port groups based on network type of
   standard virtual port group, distributed virtual port group, or network port group.
-  [#2281](https://github.com/hashicorp/terraform-provider-vsphere/pull/2281)
+  ([#2281](https://github.com/hashicorp/terraform-provider-vsphere/pull/2281))
 - `resource/vsphere_virtual_machine`: Adds ability to add a virtual Trusted Platform Module (`vtpm`)
   to virtual machine on creation or clone.
-  [#2279](https://github.com/hashicorp/terraform-provider-vsphere/pull/2279)
+  ([#2279](https://github.com/hashicorp/terraform-provider-vsphere/pull/2279))
 - `data/vsphere_virtual_machine`: Adds ability read the configuration of a virtual Trusted Platform
   Module (`vtpm`) on virtual machine; will return `true` or `false` based on the configuration.
-  [#2279](https://github.com/hashicorp/terraform-provider-vsphere/pull/2279)
+  ([#2279](https://github.com/hashicorp/terraform-provider-vsphere/pull/2279))
+- `data/vsphere_datastore_stats`: Adds ability to return all data stores, both local and under a
+  datastore cluster, in the datastore list.
+  ([#2273](https://github.com/hashicorp/terraform-provider-vsphere/pull/2273))
+- `data/datasource_cluster`: Adds ability to return datastore names under from a datastore cluster.
+  ([#2274](https://github.com/hashicorp/terraform-provider-vsphere/pull/2274))
+- `data/vsphere_datacenter`: Adds ability to return list of virtual machine names for the specified
+  datacenter. ([#2276](https://github.com/hashicorp/terraform-provider-vsphere/pull/2276))
+
+IMPROVEMENTS:
+
+- `resource/virtual_machine`: Documentation Updated.
+  ([#2285](https://github.com/terraform-providers/terraform-provider-vsphere/pulls/2285))
+
+CHORE:
+
+- `provider`: Updated `vmware/govmomi` to v0.44.1.
+  ([#2282](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2282))
 
 ## 2.9.3 (October 8, 2024)
 
