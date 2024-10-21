@@ -1,5 +1,13 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
+## .Next (Not Released)
+
+CHORE:
+
+- `provider`: Updated `golang/go` to v1.22.8.
+  ([#2289](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2289))
+
+
 ## 2.10.0 (October 16, 2024)
 
 FEATURES:
