@@ -28,7 +28,7 @@ Learn more:
   [developer.hashicorp.com][terraform-install] and
   [the project][terraform-github] on GitHub.
 
-- [Go 1.22.6][golang-install]
+- [Go 1.22.8][golang-install]
 
   Required if building the provider.
 
