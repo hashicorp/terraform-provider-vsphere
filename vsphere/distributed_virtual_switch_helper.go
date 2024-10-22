@@ -145,3 +145,34 @@ func enableDVSNetworkResourceManagement(client *govmomi.Client, dvs *object.Vmwa
 
 	return nil
 }
+
+func updateDVSPvlanMappings(dvs *object.VmwareDistributedVirtualSwitch, pvlanConfig []types.VMwareDVSPvlanConfigSpec) error {
+	// Load current properties, required to get the 'config version' to provide back when updating
+	props, err := dvsProperties(dvs)
+	if err != nil {
+		return fmt.Errorf("cannot read properties of distributed_virtual_switch: %s", err)
+	}
+	dvsConfig := props.Config.(*types.VMwareDVSConfigInfo)
+
+	updateSpec := types.VMwareDVSConfigSpec{
+		DVSConfigSpec: types.DVSConfigSpec{
+			ConfigVersion: dvsConfig.ConfigVersion,
+		},
+		PvlanConfigSpec: pvlanConfig,
+	}
+
+	// Start ReconfigureDvs_Task
+	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer cancel()
+	task, err := dvs.Reconfigure(ctx, &updateSpec)
+	if err != nil {
+		return fmt.Errorf("error reconfiguring DVS: %s", err)
+	}
+
+	// Wait for ReconfigureDvs_Task to finish
+	tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
+	defer tcancel()
+	task.Wait(tctx)
+
+	return nil
+}
