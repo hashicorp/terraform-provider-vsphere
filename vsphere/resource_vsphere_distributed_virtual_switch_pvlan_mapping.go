@@ -70,7 +70,7 @@ func resourceVSphereDistributedVirtualSwitchPvlanMappingOperation(operation stri
 		return fmt.Errorf("cannot locate distributed_virtual_switch: %s", err)
 	}
 
-	// Perform add operation
+	// Perform operation
 	entry := types.VMwareDVSPvlanMapEntry{
 		PrimaryVlanId:   int32(d.Get("primary_vlan_id").(int)),
 		SecondaryVlanId: int32(d.Get("secondary_vlan_id").(int)),
