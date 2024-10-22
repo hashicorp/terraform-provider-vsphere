@@ -44,7 +44,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
 				ResourceName:            "vsphere_distributed_virtual_switch.dvs",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"vlan_range"},
+				ImportStateVerifyIgnore: []string{"vlan_range", "ignore_other_pvlan_mappings"},
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					dvs, err := testGetDVS(s, "dvs")
 					if err != nil {

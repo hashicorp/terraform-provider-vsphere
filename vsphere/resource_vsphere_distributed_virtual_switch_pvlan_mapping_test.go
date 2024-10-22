@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -45,8 +46,20 @@ resource "vsphere_distributed_virtual_switch_pvlan_mapping" "mapping" {
   secondary_vlan_id = 1005
   pvlan_type = "promiscuous"
 }
+
+resource "vsphere_distributed_virtual_switch" "dvs" {
+  name          = "testacc-dvs2"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  ignore_other_pvlan_mappings = true
+
+  host {
+    host_system_id = data.vsphere_host.roothost2.id
+    devices = ["%s"]
+  }
+}
 `,
-		testhelper.CombineConfigs(testAccResourceVSphereDistributedVirtualSwitchConfig()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost2()),
+		testhelper.HostNic0,
 	)
 }
 
@@ -54,6 +67,11 @@ func testAccResourceVSphereDistributedVirtualSwitchPvlanMappingExists(expected b
 	return func(s *terraform.State) error {
 		props, err := testGetDVSProperties(s, "dvs")
 		if err != nil {
+			if viapi.IsAnyNotFoundError(err) && expected == false {
+				// Expected missing
+				return nil
+			}
+
 			return err
 		}
 
