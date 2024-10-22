@@ -54,7 +54,7 @@ func resourceVSphereDistributedVirtualSwitchPvlanMapping() *schema.Resource {
 	}
 }
 
-func resourceVSphereDistributedVirtualSwitchPvlanMappingOperation(operation string, d *schema.ResourceData, meta interface{}) error {
+func resourceVSphereDistributedVirtualSwitchPvlanMappingOperation(operation types.ConfigSpecOperation, d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client).vimClient
 	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return err
@@ -79,7 +79,7 @@ func resourceVSphereDistributedVirtualSwitchPvlanMappingOperation(operation stri
 
 	pvlanConfig := []types.VMwareDVSPvlanConfigSpec{
 		{
-			Operation:  operation,
+			Operation:  string(operation),
 			PvlanEntry: entry,
 		},
 	}
@@ -94,7 +94,7 @@ func resourceVSphereDistributedVirtualSwitchPvlanMappingOperation(operation stri
 }
 
 func resourceVSphereDistributedVirtualSwitchPvlanMappingCreate(d *schema.ResourceData, meta interface{}) error {
-	err := resourceVSphereDistributedVirtualSwitchPvlanMappingOperation("add", d, meta)
+	err := resourceVSphereDistributedVirtualSwitchPvlanMappingOperation(types.ConfigSpecOperationAdd, d, meta)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func resourceVSphereDistributedVirtualSwitchPvlanMappingCreate(d *schema.Resourc
 }
 
 func resourceVSphereDistributedVirtualSwitchPvlanMappingDelete(d *schema.ResourceData, meta interface{}) error {
-	return resourceVSphereDistributedVirtualSwitchPvlanMappingOperation("remove", d, meta)
+	return resourceVSphereDistributedVirtualSwitchPvlanMappingOperation(types.ConfigSpecOperationRemove, d, meta)
 }
 
 func resourceVSphereDistributedVirtualSwitchPvlanMappingRead(d *schema.ResourceData, meta interface{}) error {
