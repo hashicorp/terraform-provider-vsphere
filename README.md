@@ -100,7 +100,7 @@ The Terraform Provider for VMware vSphere is available under the
 [terraform-install]: https://developer.hashicorp.com/terraform/install
 [terraform-github]: https://github.com/hashicorp/terraform
 [terraform-registry]: https://registry.terraform.io
-[vmware-esxi]: https://www.vmware.com/products/esxi-and-esx.html.html
+[vmware-esxi]: https://www.vmware.com/products/cloud-infrastructure/esxi-and-esx
 [product-lifecycle]: https://support.broadcom.com/group/ecx/productlifecycle
 [vmware-vcenter]: https://www.vmware.com/products/vcenter.html
 [vmware-vsphere-documenation]: https://docs.vmware.com/en/VMware-vSphere/index.html

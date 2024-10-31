@@ -15,7 +15,7 @@ including virtual machines, standard and distributed switches, datastores,
 content libraries, and more.
 
 [vmware-vcenter]: https://www.vmware.com/products/vcenter.html
-[vmware-esxi]: https://www.vmware.com/content/vmware/vmware-published-sites/us/products/esxi-and-esx.html
+[vmware-esxi]: https://www.vmware.com/products/cloud-infrastructure/esxi-and-esx
 
 Use the navigation to read about the resources and data sources supported by
 this provider.
