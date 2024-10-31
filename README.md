@@ -9,10 +9,10 @@
 [![License](https://img.shields.io/github/license/hashicorp/terraform-provider-vsphere.svg?style=for-the-badge)](LICENSE)
 
 The Terraform Provider for VMware vSphere is a plugin for Terraform that allows
-you to interact with VMware vSphere, notably [vCenter Server][vmware-vcenter]
-and [ESXi][vmware-esxi]. This provider can be used to manage a VMware vSphere
-environment, including virtual machines, host and cluster management, inventory,
-networking, storage, datastores, content libraries, and more.
+you to interact with VMware vSphere. This provider can be used to manage a
+VMware vSphere environment, including virtual machines, host and cluster
+management, inventory, networking, storage, datastores, content libraries, and
+more.
 
 Learn more:
 
@@ -73,7 +73,7 @@ the project team appreciates your help!
 
 If you discover a bug or would like to suggest an enhancement, submit
 [an issue][provider-issues]. Once submitted, your issue will follow the
-[lifecycle][provider-issue-lifecycke] process.
+[lifecycle][provider-issue-lifecycle] process.
 
 If you would like to submit a pull request, please read the
 [contribution guidelines][provider-contributing] to get started. In case of
@@ -89,18 +89,16 @@ The Terraform Provider for VMware vSphere is available under the
 
 [golang-install]: https://golang.org/doc/install
 [hashicorp]: https://hashicorp.com
+[product-lifecycle]: https://support.broadcom.com/group/ecx/productlifecycle
 [provider-contributing]: docs/CONTRIBUTING.md
-[provider-documentation]: https://registry.terraform.io/providers/hashicorp/vsphere/latest/docs
 [provider-discussions]: https://discuss.hashicorp.com/tags/c/terraform-providers/31/vsphere
+[provider-documentation]: https://registry.terraform.io/providers/hashicorp/vsphere/latest/docs
 [provider-faq]: docs/FAQ.md
 [provider-install]: docs/INSTALL.md
+[provider-issue-lifecycle]: docs/ISSUES.md
 [provider-issues]: https://github.com/hashicorp/terraform-provider-vsphere/issues/new/choose
-[provider-issue-lifecycke]: docs/ISSUES.md
 [provider-license]: LICENSE
-[terraform-install]: https://developer.hashicorp.com/terraform/install
 [terraform-github]: https://github.com/hashicorp/terraform
+[terraform-install]: https://developer.hashicorp.com/terraform/install
 [terraform-registry]: https://registry.terraform.io
-[vmware-esxi]: https://www.vmware.com/products/esxi-and-esx.html.html
-[product-lifecycle]: https://support.broadcom.com/group/ecx/productlifecycle
-[vmware-vcenter]: https://www.vmware.com/products/vcenter.html
 [vmware-vsphere-documenation]: https://docs.vmware.com/en/VMware-vSphere/index.html

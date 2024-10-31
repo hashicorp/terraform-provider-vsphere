@@ -8,20 +8,13 @@ description: |-
 
 # Terraform Provider for VMware vSphere
 
-This provider gives Terraform the ability to work with VMware vSphere,
-notably [vCenter Server][vmware-vcenter] and [ESXi][vmware-esxi].
-This provider can be used to manage many aspects of a vSphere environment,
-including virtual machines, standard and distributed switches, datastores,
-content libraries, and more.
-
-[vmware-vcenter]: https://www.vmware.com/products/vcenter.html
-[vmware-esxi]: https://www.vmware.com/content/vmware/vmware-published-sites/us/products/esxi-and-esx.html
+This provider gives Terraform the ability to work with VMware vSphere. This
+provider can be used to manage many aspects of a vSphere environment, including
+virtual machines, standard and distributed switches, datastores, content
+libraries, and more.
 
 Use the navigation to read about the resources and data sources supported by
 this provider.
-
-~> **NOTE:** This provider requires API write access and hence is not supported
-on a free ESXi license.
 
 ## Example Usage
 
@@ -45,7 +38,7 @@ provider "vsphere" {
   user                 = var.vsphere_user
   password             = var.vsphere_password
   vsphere_server       = var.vsphere_server
-  allow_unverified_ssl = true
+  allow_unverified_ssl  = true
   api_timeout          = 10
 }
 
