@@ -126,7 +126,7 @@ func schemaVMwareDVSConfigSpec() map[string]*schema.Schema {
 		"ignore_other_pvlan_mappings": {
 			Type:        schema.TypeBool,
 			Optional:    true,
-			Description: "Whether to ignore existing PVLAN mappings not managed by this resource. Defaults to false.",
+			Description: "Whether to ignore existing PVLAN mappings not managed by this resource.",
 			Default:     false,
 		},
 

@@ -132,6 +132,7 @@ func resourceVSphereDistributedVirtualSwitchRead(d *schema.ResourceData, meta in
 	if err := viapi.ValidateVirtualCenter(client); err != nil {
 		return err
 	}
+
 	id := d.Id()
 	dvs, err := dvsFromUUID(client, id)
 	if err != nil {
@@ -195,6 +196,8 @@ func resourceVSphereDistributedVirtualSwitchUpdate(d *schema.ResourceData, meta 
 		return err
 	}
 
+	vsphereDistributedVirtualSwitchModificationMutex.Lock()
+
 	id := d.Id()
 	dvs, err := dvsFromUUID(client, id)
 	if err != nil {
@@ -255,6 +258,8 @@ func resourceVSphereDistributedVirtualSwitchUpdate(d *schema.ResourceData, meta 
 			return err
 		}
 	}
+
+	vsphereDistributedVirtualSwitchModificationMutex.Unlock()
 
 	return resourceVSphereDistributedVirtualSwitchRead(d, meta)
 }

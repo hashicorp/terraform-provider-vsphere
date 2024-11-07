@@ -166,7 +166,7 @@ func TestAccResourceVSphereHostVirtualSwitch_removeAllNICs(t *testing.T) {
 
 func testAccResourceVSphereHostVirtualSwitchPreCheck(t *testing.T) {
 	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_host_virtual_switch acceptance tests")
+		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_host_virtual_switch acceptance tests")
 	}
 }
 
