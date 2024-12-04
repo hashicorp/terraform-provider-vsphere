@@ -2,6 +2,10 @@
 
 ## .Next (Not Released)
 
+IMPROVEMENTS:
+
+- `resource/distributed_virtual_switch`: Added support for vSphere distributed switch version `8.0.3` in vSphere 8.0 U3. [(2306](https://github.com/hashicorp/terraform-provider-vsphere/pull/2306))
+
 CHORE:
 
 - `provider`: Updated `golang/go` to v1.22.8.

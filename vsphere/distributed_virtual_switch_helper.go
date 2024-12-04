@@ -27,6 +27,7 @@ var dvsVersions = []string{
 	"7.0.2",
 	"7.0.3",
 	"8.0.0",
+	"8.0.3",
 }
 
 // dvsFromUUID gets a DVS object from its UUID.
