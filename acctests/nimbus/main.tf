@@ -13,6 +13,16 @@ provider "vsphere" {
   allow_unverified_ssl = true
 }
 
+data "vsphere_host_thumbprint" "thumbprint1" {
+  address = var.hosts[0].hostname
+  insecure = true
+}
+
+data "vsphere_host_thumbprint" "thumbprint2" {
+  address = var.hosts[1].hostname
+  insecure = true
+}
+
 resource "vsphere_datacenter" "dc" {
   name = "acc-test-dc"
 }
@@ -22,6 +32,7 @@ resource "vsphere_host" "host1" {
   hostname = var.hosts[0].hostname
   username =  var.hosts[0].username
   password =  var.hosts[0].password
+  thumbprint = data.vsphere_host_thumbprint.thumbprint1.id
 }
 
 resource "vsphere_host" "host2" {
@@ -29,6 +40,7 @@ resource "vsphere_host" "host2" {
   hostname = var.hosts[1].hostname
   username =  var.hosts[1].username
   password =  var.hosts[1].password
+  thumbprint = data.vsphere_host_thumbprint.thumbprint2.id
 }
 
 resource "vsphere_compute_cluster" "cluster" {
