@@ -1,32 +1,44 @@
-*.dll
-*.exe
+# Operating System Files
 .DS_Store
-example.tf
+
+# Terraform State Files
+*.tfstate
+*.backup
 terraform.tfplan
 terraform.tfstate
+.terraform/
+.terraform.lock.hcl
+
+# Terraform Configuration Files
+*.tfvars
+example.tf
+
+# Log Files
+*.log
+*.bak
+*~
+
+# Editor Directories and Files
+.idea/
+.vscode/
+*.iml
+.*.swp
+
+# Build Directories
 bin/
 modules-dev/
-/pkg/
+pkg/
 website/.vagrant
 website/.bundle
 website/build
 website/node_modules
-.vagrant/
-*.backup
-./*.tfstate
-.terraform/
-*.log
-*.bak
-*~
-.*.swp
-.idea
-.vscode
-*.iml
-*.test
-*.tfvars
-
 website/vendor
 
-# Test exclusions
+# Test Exclusions
 !command/test-fixtures/**/*.tfstate
 !command/test-fixtures/**/.terraform/
+
+# Miscellaneous
+*.dll
+*.exe
+.vagrant/
