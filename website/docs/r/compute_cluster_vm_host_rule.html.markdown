@@ -70,7 +70,7 @@ data "vsphere_compute_cluster" "cluster" {
 }
 
 data "vsphere_host" "host" {
-  name          = "esxi-01.example.com
+  name          = "esxi-01.example.com"
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 

@@ -30,7 +30,7 @@ data "vsphere_datacenter" "datacenter" {
 }
 
 data "vsphere_host" "host" {
-  name          = "esxi-01.example.com
+  name          = "esxi-01.example.com"
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
@@ -53,7 +53,7 @@ data "vsphere_datacenter" "datacenter" {
 }
 
 data "vsphere_host" "host" {
-  name          = "esxi-01.example.com
+  name          = "esxi-01.example.com"
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 

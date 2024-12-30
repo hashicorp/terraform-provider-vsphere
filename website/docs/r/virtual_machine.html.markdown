@@ -990,7 +990,7 @@ resource "vsphere_virtual_machine" "vm" {
     customize {
       linux_options {
         host_name = "foo"
-        domain    = "example.com
+        domain    = "example.com"
       }
       network_interface {
         ipv4_address = "10.0.0.10"
@@ -1262,7 +1262,7 @@ resource "vsphere_virtual_machine" "vm" {
       # ... other configuration ...
       linux_options {
         host_name = "foo"
-        domain    = "example.com
+        domain    = "example.com"
       }
     }
   }
