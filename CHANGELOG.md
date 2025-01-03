@@ -1,16 +1,23 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
-## .Next (Not Released)
+## 2.11.0 (Not Released)
 
 IMPROVEMENTS:
 
-- `resource/distributed_virtual_switch`: Added support for vSphere distributed switch version `8.0.3` in vSphere 8.0 U3. [(2306](https://github.com/hashicorp/terraform-provider-vsphere/pull/2306))
+- `resource/distributed_virtual_switch`: Added support for vSphere distributed switch version `8.0.3` in vSphere 8.0 U3.
+  [(2306](https://github.com/hashicorp/terraform-provider-vsphere/pull/2306))
+
+FEATURES:
+
+- `resource/vsphere_virtual_machine`: Adds ability to add `usb_controller` to virtual machine on creation or clone.
+  [#2280](https://github.com/hashicorp/terraform-provider-vsphere/pull/2280)
+- `data/vsphere_virtual_machine`: Adds ability read `usb_controller` on virtual machine; will return `true` or `false` based on the configuration.
+  [#2280](https://github.com/hashicorp/terraform-provider-vsphere/pull/2280)
 
 CHORE:
 
 - `provider`: Updated `golang/go` to v1.22.8.
   ([#2289](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2289))
-
 
 ## 2.10.0 (October 16, 2024)
 
