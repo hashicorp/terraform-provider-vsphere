@@ -27,8 +27,8 @@ desired.
   [product documentation][ref-vsphere-dvportgroup].
 
 [distributed-virtual-switch]: /docs/providers/vsphere/r/distributed_virtual_switch.html
-[ref-vsphere-net-concepts]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-networking/GUID-8CDF29B2-ABA8-4F34-9FEF-14987BC13265.html
-[ref-vsphere-dvportgroup]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-networking/GUID-69933F6E-2442-46CF-AA17-1196CB9A0A09.html
+[ref-vsphere-net-concepts]: hhttps://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/8-0/vsphere-networking-8-0/introduction-to-vsphere-networking.html
+[ref-vsphere-dvportgroup]: https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/8-0/vsphere-networking-8-0/basic-networking-with-vnetwork-distributed-switches/dvport-groups.html
 
 ~> **NOTE:** This resource requires vCenter and is not available on
 direct ESXi host connections.

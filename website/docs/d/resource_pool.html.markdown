@@ -53,7 +53,7 @@ For more information on the root resource pool, see
 [Managing Resource Pools][vmware-docs-resource-pools] in the vSphere
 documentation.
 
-[vmware-docs-resource-pools]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-resource-management/GUID-60077B40-66FF-4625-934A-641703ED7601.html
+[vmware-docs-resource-pools]: https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/8-0/vsphere-resource-management-8-0/managing-resource-pools.html
 
 ## Argument Reference
 

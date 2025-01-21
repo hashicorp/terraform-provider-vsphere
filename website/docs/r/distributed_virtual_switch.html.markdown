@@ -27,8 +27,8 @@ For an overview on vSphere networking concepts, see
 For more information on the VDS, see [this page][ref-vsphere-vds].
 
 [distributed-port-group]: /docs/providers/vsphere/r/distributed_port_group.html
-[ref-vsphere-net-concepts]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-networking/GUID-69933F6E-2442-46CF-AA17-1196CB9A0A09.html
-[ref-vsphere-vds]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-networking/GUID-375B45C7-684C-4C51-BA3C-70E48DFABF04.html
+[ref-vsphere-net-concepts]: https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/8-0/vsphere-networking-8-0/basic-networking-with-vnetwork-distributed-switches/dvport-groups.html
+[ref-vsphere-vds]: https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/8-0/vsphere-networking-8-0/basic-networking-with-vnetwork-distributed-switches.html
 
 ~> **NOTE:** This resource requires vCenter and is not available on
 direct ESXi host connections.

@@ -101,4 +101,4 @@ The Terraform Provider for VMware vSphere is available under the
 [terraform-github]: https://github.com/hashicorp/terraform
 [terraform-install]: https://developer.hashicorp.com/terraform/install
 [terraform-registry]: https://registry.terraform.io
-[vmware-vsphere-documenation]: https://docs.vmware.com/en/VMware-vSphere/index.html
+[vmware-vsphere-documenation]: https://techdocs.broadcom.com/us/en/vmware-cis/vsphere.html

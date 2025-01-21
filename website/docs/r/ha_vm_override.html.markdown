@@ -17,7 +17,7 @@ while not affecting the rest of the cluster.
 
 For more information on vSphere HA, see [this page][ref-vsphere-ha-clusters].
 
-[ref-vsphere-ha-clusters]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-availability/GUID-5432CA24-14F1-44E3-87FB-61D937831CF6.html
+[ref-vsphere-ha-clusters]: https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/8-0/vsphere-availability.html
 
 ~> **NOTE:** This resource requires vCenter and is not available on direct ESXi
 connections.
