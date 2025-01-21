@@ -197,6 +197,13 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			Description:  "The number of SCSI controllers that Terraform manages on this virtual machine. This directly affects the amount of disks you can add to the virtual machine and the maximum disk unit number. Note that lowering this value does not remove controllers.",
 			ValidateFunc: validation.IntBetween(0, 4),
 		},
+		"nvme_controller_count": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Default:      0,
+			Description:  "The number of NVMe controllers that Terraform manages on this virtual machine. This directly affects the amount of disks you can add to the virtual machine and the maximum disk unit number. Note that lowering this value does not remove controllers.",
+			ValidateFunc: validation.IntBetween(0, 4),
+		},
 		"scsi_type": {
 			Type:         schema.TypeString,
 			Optional:     true,
@@ -626,8 +633,6 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 			return errors.New("vtpm requires firmware to be set to efi")
 		}
 	}
-
-	_ = d.Set("vtpm_present", isVTPMPresent)
 
 	log.Printf("[DEBUG] %s: Read complete", resourceVSphereVirtualMachineIDString(d))
 	return nil
@@ -1219,6 +1224,7 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 	scsiBus := make([]bool, 4)
 	sataBus := make([]bool, 4)
 	ideBus := make([]bool, 2)
+	nvmeBus := make([]bool, 4)
 	for _, device := range props.Config.Hardware.Device {
 		switch dev := device.(type) {
 		case types.BaseVirtualSCSIController:
@@ -1227,11 +1233,14 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 			sataBus[dev.GetVirtualSATAController().BusNumber] = true
 		case *types.VirtualIDEController:
 			ideBus[dev.GetVirtualController().BusNumber] = true
+		case *types.VirtualNVMEController:
+			nvmeBus[dev.GetVirtualController().BusNumber] = true
 		}
 	}
 	_ = d.Set("scsi_controller_count", controllerCount(scsiBus))
 	_ = d.Set("sata_controller_count", controllerCount(sataBus))
 	_ = d.Set("ide_controller_count", controllerCount(ideBus))
+	_ = d.Set("nvme_controller_count", controllerCount(nvmeBus))
 
 	// Validate the disks in the VM to make sure that they will work with the
 	// resource. This is mainly ensuring that all disks are SCSI disks, but a

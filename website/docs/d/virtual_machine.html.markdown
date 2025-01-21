@@ -73,6 +73,8 @@ The following arguments are supported:
   data source.
 * `scsi_controller_scan_count` - (Optional) The number of SCSI controllers to
   scan for disk attributes and controller types on. Default: `1`.
+* `nvme_controller_scan_count` - (Optional) The number of NVMe controllers to
+  scan for disk attributes and controller types on. Default: `1`.
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
