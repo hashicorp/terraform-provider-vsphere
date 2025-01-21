@@ -1,15 +1,24 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
-## .Next (Not Released)
+## 2.11.0 (January 21, 2026)
 
 IMPROVEMENTS:
 
 - `resource/distributed_virtual_switch`: Added support for vSphere distributed switch version `8.0.3` in vSphere 8.0 U3. [(2306](https://github.com/hashicorp/terraform-provider-vsphere/pull/2306))
+- `resource/vsphere_distributed_virtual_switch_pvlan_mapping`: New resource added to support management of individual PVLAN mapping records on a distributed switch. [(2291](https://github.com/hashicorp/terraform-provider-vsphere/pull/2291))
+
+DOCUMENTATION:
+
+- Updated documentation links to `techdocs.broadcom.com`, as needed. [(2322](https://github.com/hashicorp/terraform-provider-vsphere/pull/2322))
 
 CHORE:
 
 - `provider`: Updated `golang/go` to v1.22.8.
   ([#2289](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2289))
+- `provider`: Updated `golang.org/x/net` to v0.33.0.
+  ([#2319](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2319))
+- `provider`: Updated `golang.org/x/crypto` to v0.31.0.
+  ([#2318](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2318))
 
 
 ## 2.10.0 (October 16, 2024)
@@ -392,7 +401,7 @@ CHORES:
 
 BUG FIX:
 
-- `resource/compute_cluster`: Added version check for vSphere 7.0.1 or later when enabling vSAN HCI Mesh. ([#1931](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1931))
+- `resource/compute_cluster`: Added version check for [vSphere 7.0.1 or later](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vsan.doc/GUID-9113BBD6-5428-4287-9F61-C8C3EE51E07E.html) when enabling vSAN HCI Mesh. ([#1931](https://github.com/terraform-providers/terraform-provider-vsphere/pull/1931))
 
 ## 2.4.0 (May 5, 2023)
 
