@@ -170,6 +170,20 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 			Computed:    true,
 			Description: "Indicates whether a virtual Trusted Platform Module (TPM) device is present on the virtual machine.",
 		},
+		"usb_controller": {
+			Type:        schema.TypeList,
+			Computed:    true,
+			Description: "List of virtual USB controllers present on the virtual machine, including their versions.",
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"version": {
+						Type:        schema.TypeString,
+						Computed:    true,
+						Description: "The version of the USB controller.",
+					},
+				},
+			},
+		},
 	}
 
 	// Merge the VirtualMachineConfig structure so that we can include the number of
@@ -297,6 +311,24 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 		}
 	}
 	_ = d.Set("vtpm_present", isVTPMPresent)
+
+	var usbControllers []map[string]interface{}
+	for _, dev := range props.Config.Hardware.Device {
+		switch dev.(type) {
+		case *types.VirtualUSBController:
+			usbControllers = append(usbControllers, map[string]interface{}{
+				"version": "2.x",
+			})
+		case *types.VirtualUSBXHCIController:
+			usbControllers = append(usbControllers, map[string]interface{}{
+				"version": "3.x",
+			})
+		}
+	}
+
+	if err := d.Set("usb_controller", usbControllers); err != nil {
+		return fmt.Errorf("error setting usb_controller: %s", err)
+	}
 
 	log.Printf("[DEBUG] VM search for %q completed successfully (UUID %q)", name, props.Config.Uuid)
 	return nil

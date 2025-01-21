@@ -74,6 +74,8 @@ https://www.terraform.io/docs/commands/taint.html
 
 const questionCheckIntervalSecs = 5
 
+var usbControllerVersions = []string{"2.0", "3.1", "3.2"}
+
 func resourceVSphereVirtualMachine() *schema.Resource {
 	s := map[string]*schema.Schema{
 		"resource_pool_id": {
@@ -296,6 +298,22 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						Default:      "2.0",
 						Description:  "The version of the TPM device. Default is 2.0.",
 						ValidateFunc: validation.StringInSlice([]string{"1.2", "2.0"}, false),
+					},
+				},
+			},
+		},
+		"usb_controller": {
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "A specification for a USB controller on the virtual machine.",
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"version": {
+						Type:         schema.TypeString,
+						Optional:     true,
+						Default:      "2.0",
+						Description:  "The version of the USB controller.",
+						ValidateFunc: validation.StringInSlice(usbControllerVersions, false),
 					},
 				},
 			},
@@ -629,6 +647,23 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 
 	_ = d.Set("vtpm_present", isVTPMPresent)
 
+	// Set the USB controllers for the virtual machine.
+	usbControllers := d.Get("usb_controller").([]interface{})
+	var desiredUSBVersions []string
+	for _, usbController := range usbControllers {
+		controller := usbController.(map[string]interface{})
+		desiredUSBVersions = append(desiredUSBVersions, controller["version"].(string))
+	}
+
+	usbControllersState, err := readUSBControllers(vprops.Config, desiredUSBVersions)
+	if err != nil {
+		return fmt.Errorf("error reading USB controllers: %s", err)
+	}
+
+	if err := d.Set("usb_controller", usbControllersState); err != nil {
+		return fmt.Errorf("error setting usb_controller: %s", err)
+	}
+
 	log.Printf("[DEBUG] %s: Read complete", resourceVSphereVirtualMachineIDString(d))
 	return nil
 }
@@ -744,8 +779,8 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		return err
 	}
 
+	// Virtual Trusted Platform Module (vTPM) device.
 	if d.HasChange("vtpm") {
-
 		spec.DeviceChange = append(spec.DeviceChange, &types.VirtualDeviceConfigSpec{
 			Operation: types.VirtualDeviceConfigSpecOperationAdd,
 			Device: &types.VirtualTPM{
@@ -754,6 +789,156 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 				},
 			},
 		})
+	}
+
+	// USB controller devices. Check for changes and apply them.
+	if d.HasChange("usb_controller") {
+		old, new := d.GetChange("usb_controller")
+		oldUSB := old.([]interface{})
+		newUSB := new.([]interface{})
+
+		// Initialize a key counter.
+		keyCounter := -100
+
+		// Initialize controller presence flags.
+		usb2ControllerPresent := false
+		usb3ControllerPresent := false
+
+		// Map to store existing USB controllers and their keys.
+		existingUSBControllers := make(map[string]int32)
+
+		// Check for existing USB controllers and store their keys.
+		for _, dev := range vprops.Config.Hardware.Device {
+			switch controller := dev.(type) {
+			case *types.VirtualUSBController:
+				usb2ControllerPresent = true
+				existingUSBControllers["2.0"] = controller.Key
+			case *types.VirtualUSBXHCIController:
+				usb3ControllerPresent = true
+				existingUSBControllers["3.x"] = controller.Key
+			}
+		}
+
+		// Remove USB controllers that are no longer in the configuration.
+		for _, oldUSBControllerInterface := range oldUSB {
+			oldUSBController := oldUSBControllerInterface.(map[string]interface{})
+			oldUSBVersion := oldUSBController["version"].(string)
+
+			found := false
+			for _, newUSBControllerInterface := range newUSB {
+				newUSBController := newUSBControllerInterface.(map[string]interface{})
+				newUSBVersion := newUSBController["version"].(string)
+				if oldUSBVersion == newUSBVersion {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				var device types.BaseVirtualDevice
+				switch oldUSBVersion {
+				case "2.0":
+					if key, ok := existingUSBControllers["2.0"]; ok {
+						device = &types.VirtualUSBController{
+							VirtualController: types.VirtualController{
+								VirtualDevice: types.VirtualDevice{
+									Key: key,
+								},
+							},
+						}
+					}
+				case "3.1", "3.2":
+					if key, ok := existingUSBControllers["3.x"]; ok {
+						device = &types.VirtualUSBXHCIController{
+							VirtualController: types.VirtualController{
+								VirtualDevice: types.VirtualDevice{
+									Key: key,
+								},
+							},
+						}
+					}
+				default:
+					return fmt.Errorf("unsupported USB version: %s", oldUSBVersion)
+				}
+
+				if device != nil {
+					// Power off the virtual machine before removing the USB controller.
+					if vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOff {
+						log.Printf("[INFO] Powering off virtual machine to remove USB controller: %s", oldUSBVersion)
+						timeout := d.Get("shutdown_wait_timeout").(int)
+						force := d.Get("force_power_off").(bool)
+						if err := virtualmachine.GracefulPowerOff(client, vm, timeout, force); err != nil {
+							return fmt.Errorf("error powering off virtual machine: %s", err)
+						}
+					}
+
+					spec.DeviceChange = append(spec.DeviceChange, &types.VirtualDeviceConfigSpec{
+						Operation: types.VirtualDeviceConfigSpecOperationRemove,
+						Device:    device,
+					})
+					log.Printf("[INFO] Removed USB controller: %s", oldUSBVersion)
+				}
+			}
+		}
+
+		// Add new USB controller devices.
+		for _, usbControllerInterface := range newUSB {
+			usbController := usbControllerInterface.(map[string]interface{})
+			usbVersion := usbController["version"].(string)
+
+			var ehciEnabled *bool
+			var device types.BaseVirtualDevice
+
+			switch usbVersion {
+			case "2.0":
+				if usb2ControllerPresent {
+					log.Printf("[INFO] USB 2.0 controller already exists, skipping addition.")
+					continue
+				}
+				usb2ControllerPresent = true
+				enabled := true
+				ehciEnabled = &enabled
+				device = &types.VirtualUSBController{
+					VirtualController: types.VirtualController{
+						VirtualDevice: types.VirtualDevice{
+							Key: int32(keyCounter),
+						},
+					},
+					EhciEnabled: ehciEnabled,
+				}
+			case "3.1", "3.2":
+				if usb3ControllerPresent {
+					log.Printf("[INFO] USB 3.x controller already exists, skipping addition.")
+					continue
+				}
+				usb3ControllerPresent = true
+				device = &types.VirtualUSBXHCIController{
+					VirtualController: types.VirtualController{
+						VirtualDevice: types.VirtualDevice{
+							Key: int32(keyCounter),
+						},
+					},
+				}
+
+			default:
+				return fmt.Errorf("unsupported USB version: %s", usbVersion)
+			}
+
+			spec.DeviceChange = append(spec.DeviceChange, &types.VirtualDeviceConfigSpec{
+				Operation: types.VirtualDeviceConfigSpecOperationAdd,
+				Device:    device,
+			})
+			log.Printf("[INFO] Added USB controller: %s", usbVersion)
+			keyCounter--
+		}
+
+		// Power on the virtual machine after adding the USB controller devices.
+		if vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOn {
+			log.Printf("[INFO] Powering on virtual machine after USB controller changes.")
+			if err := virtualmachine.PowerOn(vm, timeout); err != nil {
+				return fmt.Errorf("error powering on virtual machine: %s", err)
+			}
+		}
 	}
 
 	// Only carry out the reconfigure if we actually have a change to process.
@@ -1090,6 +1275,8 @@ func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.Res
 				_ = d.ForceNew(k)
 			}
 		}
+
+		return nil
 	}
 
 	// Validate hardware version changes.
@@ -1103,6 +1290,10 @@ func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.Res
 	// Note that for clones the data is prepopulated in
 	// ValidateVirtualMachineClone.
 	if err = virtualdevice.VerifyVAppTransport(d); err != nil {
+		return err
+	}
+
+	if err := resourceVSphereVirtualMachineCustomizeDiffUSBController(d, meta); err != nil {
 		return err
 	}
 
@@ -1414,6 +1605,7 @@ func resourceVSphereVirtualMachineCreateBareStandard(
 		VmPathName: fmt.Sprintf("[%s]", ds.Name()),
 	}
 
+	// Add virtual Trusted Platform Module (vTPM) device.
 	if vtpms, ok := d.GetOk("vtpm"); ok && len(vtpms.([]interface{})) > 0 {
 		spec.DeviceChange = append(spec.DeviceChange, &types.VirtualDeviceConfigSpec{
 			Operation: types.VirtualDeviceConfigSpecOperationAdd,
@@ -1423,6 +1615,56 @@ func resourceVSphereVirtualMachineCreateBareStandard(
 				},
 			},
 		})
+	}
+
+	// Add USB controller devices.
+	if usb, ok := d.GetOk("usb_controller"); ok && len(usb.([]interface{})) > 0 {
+		var usb2ControllerSpecified bool
+		var usb3xControllerSpecified bool
+		for _, usbControllerInterface := range usb.([]interface{}) {
+			usbController := usbControllerInterface.(map[string]interface{})
+			usbVersion := usbController["version"].(string)
+
+			var ehciEnabled *bool
+			var device types.BaseVirtualDevice
+
+			switch usbVersion {
+			case "2.0":
+				if usb2ControllerSpecified {
+					return nil, fmt.Errorf("only one USB 2.0 controller can be specified")
+				}
+				usb2ControllerSpecified = true
+				enabled := true
+				ehciEnabled = &enabled
+				device = &types.VirtualUSBController{
+					VirtualController: types.VirtualController{
+						VirtualDevice: types.VirtualDevice{
+							Key: -1,
+						},
+					},
+					EhciEnabled: ehciEnabled,
+				}
+			case "3.1", "3.2":
+				if usb3xControllerSpecified {
+					return nil, fmt.Errorf("only one USB 3.x controller can be specified")
+				}
+				usb3xControllerSpecified = true
+				device = &types.VirtualUSBXHCIController{
+					VirtualController: types.VirtualController{
+						VirtualDevice: types.VirtualDevice{
+							Key: -1,
+						},
+					},
+				}
+			default:
+				return nil, fmt.Errorf("unsupported USB version: %s", usbVersion)
+			}
+
+			spec.DeviceChange = append(spec.DeviceChange, &types.VirtualDeviceConfigSpec{
+				Operation: types.VirtualDeviceConfigSpecOperationAdd,
+				Device:    device,
+			})
+		}
 	}
 
 	timeout := meta.(*Client).timeout
@@ -2082,4 +2324,127 @@ func NewOvfHelperParamsFromVMResource(d *schema.ResourceData) *ovfdeploy.OvfHelp
 		PoolID:             d.Get("resource_pool_id").(string),
 	}
 	return ovfParams
+}
+
+func readUSBControllers(vprops *types.VirtualMachineConfigInfo, desiredUSBVersions []string) ([]map[string]interface{}, error) {
+	var usbControllers []map[string]interface{}
+	var usb2ControllerPresent bool
+	var usb3ControllerPresent bool
+
+	for _, dev := range vprops.Hardware.Device {
+		switch dev.(type) {
+		case *types.VirtualUSBController:
+			if usb2ControllerPresent {
+				return nil, fmt.Errorf("more than one USB 2.0 controller found")
+			}
+			usb2ControllerPresent = true
+			for _, version := range desiredUSBVersions {
+				if version == "2.0" {
+					usbControllers = append(usbControllers, map[string]interface{}{
+						"version": version,
+					})
+					break
+				}
+			}
+		case *types.VirtualUSBXHCIController:
+			if usb3ControllerPresent {
+				return nil, fmt.Errorf("more than one USB 3.x controller found")
+			}
+			usb3ControllerPresent = true
+			// Use the specific version from desiredUSBVersions
+			for _, version := range desiredUSBVersions {
+				if version == "3.1" || version == "3.2" {
+					usbControllers = append(usbControllers, map[string]interface{}{
+						"version": version,
+					})
+					break
+				}
+			}
+		default:
+			log.Printf("[DEBUG] Found other device type: %T", dev)
+		}
+	}
+
+	// Use the desired USB versions specified.
+	for _, version := range desiredUSBVersions {
+		if version == "2.0" && !usb2ControllerPresent {
+			usbControllers = append(usbControllers, map[string]interface{}{
+				"version": version,
+			})
+		} else if (version == "3.1" || version == "3.2") && !usb3ControllerPresent {
+			usbControllers = append(usbControllers, map[string]interface{}{
+				"version": version,
+			})
+		}
+	}
+
+	return usbControllers, nil
+}
+
+func resourceVSphereVirtualMachineCustomizeDiffUSBController(d *schema.ResourceDiff, meta interface{}) error {
+	client := meta.(*Client).vimClient
+
+	// Check if the virtual machine exists.
+	vm, err := virtualmachine.FromUUID(client, d.Id())
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			log.Printf("[INFO] Virtual machine with UUID %q does not exist, skipping existing USB controller check.", d.Id())
+			vm = nil
+		} else {
+			return fmt.Errorf("error locating virtual machine with UUID %q: %s", d.Id(), err)
+		}
+	}
+
+	var existingUSB2Controller, existingUSB3Controller bool
+
+	if vm != nil {
+		vprops, err := virtualmachine.Properties(vm)
+		if err != nil {
+			return fmt.Errorf("error fetching virtual machine properties: %s", err)
+		}
+
+		// Check for existing USB controllers.
+		for _, dev := range vprops.Config.Hardware.Device {
+			switch dev.(type) {
+			case *types.VirtualUSBController:
+				existingUSB2Controller = true
+			case *types.VirtualUSBXHCIController:
+				existingUSB3Controller = true
+			}
+		}
+	}
+
+	if d.HasChange("usb_controller") {
+		usb := d.Get("usb_controller").([]interface{})
+		if len(usb) == 0 {
+			return fmt.Errorf("usb_controller is empty")
+		}
+
+		// Initialize controller presence flags.
+		usb2ControllerPresent := existingUSB2Controller
+		usb3ControllerPresent := existingUSB3Controller
+
+		for _, usbControllerInterface := range usb {
+			usbController := usbControllerInterface.(map[string]interface{})
+			usbVersion := usbController["version"].(string)
+
+			switch usbVersion {
+			case "2.0":
+				if usb2ControllerPresent {
+					log.Printf("[INFO] USB 2.0 controller already exists, skipping addition.")
+					continue
+				}
+				usb2ControllerPresent = true
+			case "3.1", "3.2":
+				if usb3ControllerPresent {
+					log.Printf("[INFO] USB 3.x controller already exists, skipping addition.")
+					continue
+				}
+				usb3ControllerPresent = true
+			default:
+				return fmt.Errorf("unsupported USB version: %s", usbVersion)
+			}
+		}
+	}
+	return nil
 }
