@@ -201,7 +201,7 @@ func DiskSubresourceSchema() map[string]*schema.Schema {
 			Type:        schema.TypeString,
 			Default:     "scsi",
 			Optional:    true,
-			Description: "The type of controller the disk should be connected to. Must be 'scsi', 'sata', or 'ide'.",
+			Description: "The type of controller the disk should be connected to. Must be 'scsi', 'sata', 'nvme', or 'ide'.",
 		},
 	}
 	structure.MergeSchema(s, subresourceSchema())
@@ -394,7 +394,13 @@ func diskApplyOperationCreateUpdate(
 // returned, all necessary values are just set and committed to state.
 func DiskRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) error {
 	log.Printf("[DEBUG] DiskRefreshOperation: Beginning refresh")
-	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
+	devices := SelectDisks(
+		l,
+		d.Get("scsi_controller_count").(int),
+		d.Get("scsi_controller_count").(int),
+		d.Get("scsi_controller_count").(int),
+		d.Get("nvme_controller_count").(int),
+	)
 	log.Printf("[DEBUG] DiskRefreshOperation: Disk devices located: %s", DeviceListString(devices))
 	curSet := d.Get(subresourceTypeDisk).([]interface{})
 	log.Printf("[DEBUG] DiskRefreshOperation: Current resource set from state: %s", subresourceListString(curSet))
@@ -564,6 +570,7 @@ func DiskDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 	scsiUnits := make(map[int]struct{})
 	sataUnits := make(map[int]struct{})
 	ideUnits := make(map[int]struct{})
+	nvmeUnits := make(map[int]struct{})
 	if len(n.([]interface{})) < 1 {
 		return errors.New("there must be at least one disk specified")
 	}
@@ -610,6 +617,11 @@ func DiskDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 				return fmt.Errorf("disk: duplicate IDE unit_number %d", nm["unit_number"].(int))
 			}
 			ideUnits[nm["unit_number"].(int)] = struct{}{}
+		case "nvme":
+			if _, ok := nvmeUnits[nm["unit_number"].(int)]; ok {
+				return fmt.Errorf("disk: duplicate NVMe unit_number %d", nm["unit_number"].(int))
+			}
+			nvmeUnits[nm["unit_number"].(int)] = struct{}{}
 		}
 		names[name] = struct{}{}
 		r := NewDiskSubresource(c, d, nm, nil, ni)
@@ -620,9 +632,10 @@ func DiskDiffOperation(d *schema.ResourceDiff, c *govmomi.Client) error {
 	_, scsiOk := scsiUnits[0]
 	_, sataOk := sataUnits[0]
 	_, ideOk := ideUnits[1]
+	_, nvmeOk := nvmeUnits[0]
 
-	if !scsiOk && !sataOk && !ideOk {
-		return errors.New("at least one disk must have a unit_number of 0 for SATA or SCSI or 1 for IDE")
+	if !scsiOk && !sataOk && !ideOk && !nvmeOk {
+		return errors.New("at least one disk must have a unit_number of 0 for SATA, SCSI, NVMe or 1 for IDE")
 	}
 
 	// Perform the normalization here.
@@ -716,7 +729,13 @@ nextNew:
 // existing state.
 func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l object.VirtualDeviceList, linked bool) error {
 	log.Printf("[DEBUG] DiskCloneValidateOperation: Checking existing virtual disk configuration")
-	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
+	devices := SelectDisks(
+		l,
+		d.Get("scsi_controller_count").(int),
+		d.Get("sata_controller_count").(int),
+		d.Get("ide_controller_count").(int),
+		d.Get("nvme_controller_count").(int),
+	)
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
 		Sort:       devices,
@@ -802,7 +821,7 @@ func DiskCloneValidateOperation(d *schema.ResourceDiff, c *govmomi.Client, l obj
 		if err != nil {
 			return fmt.Errorf("%s: error parsing device address after reading disk %q: %s", tr.Addr(), targetPath, err)
 		}
-		if ct != SubresourceControllerTypeSCSI && ct != SubresourceControllerTypeSATA && ct != SubresourceControllerTypeIDE {
+		if ct != SubresourceControllerTypeSCSI && ct != SubresourceControllerTypeSATA && ct != SubresourceControllerTypeIDE && ct != SubresourceControllerTypeNVME {
 			return fmt.Errorf("%s: unsupported controller type %s for disk %q", tr.Addr(), ct, targetPath)
 		}
 	}
@@ -894,7 +913,13 @@ func DiskMigrateRelocateOperation(data *schema.ResourceData, client *govmomi.Cli
 // configurations fully in sync with what is defined.
 func DiskCloneRelocateOperation(resourceData *schema.ResourceData, client *govmomi.Client, deviceList object.VirtualDeviceList) ([]types.VirtualMachineRelocateSpecDiskLocator, error) {
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Generating full disk relocate spec list")
-	devices := SelectDisks(deviceList, resourceData.Get("scsi_controller_count").(int), resourceData.Get("sata_controller_count").(int), resourceData.Get("ide_controller_count").(int))
+	devices := SelectDisks(
+		deviceList,
+		resourceData.Get("scsi_controller_count").(int),
+		resourceData.Get("sata_controller_count").(int),
+		resourceData.Get("ide_controller_count").(int),
+		resourceData.Get("nvme_controller_count").(int),
+	)
 	log.Printf("[DEBUG] DiskCloneRelocateOperation: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
@@ -1069,7 +1094,13 @@ func diskDataToSchemaProps(d *schema.ResourceData, deviceIndex int) map[string]i
 // virtual device operations rely pretty heavily on.
 func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList, postOvf bool) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] DiskPostCloneOperation: Looking for disk device changes post-clone")
-	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
+	devices := SelectDisks(
+		l,
+		d.Get("scsi_controller_count").(int),
+		d.Get("sata_controller_count").(int),
+		d.Get("ide_controller_count").(int),
+		d.Get("nvme_controller_count").(int),
+	)
 	log.Printf("[DEBUG] DiskPostCloneOperation: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
@@ -1183,7 +1214,13 @@ func DiskPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.
 // imported device list is sorted by the device's unit number on the controller bus.
 func DiskImportOperation(d *schema.ResourceData, l object.VirtualDeviceList) error {
 	log.Printf("[DEBUG] DiskImportOperation: Performing pre-read import and validation of virtual disks")
-	devices := SelectDisks(l, d.Get("scsi_controller_count").(int), d.Get("sata_controller_count").(int), d.Get("ide_controller_count").(int))
+	devices := SelectDisks(
+		l,
+		d.Get("scsi_controller_count").(int),
+		d.Get("sata_controller_count").(int),
+		d.Get("ide_controller_count").(int),
+		d.Get("nvme_controller_count").(int),
+	)
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
 		Sort:       devices,
@@ -1212,7 +1249,7 @@ func DiskImportOperation(d *schema.ResourceData, l object.VirtualDeviceList) err
 		if err != nil {
 			return fmt.Errorf("disk.%d: error parsing device address %s: %s", i, addr, err)
 		}
-		if ct != SubresourceControllerTypeSCSI && ct != SubresourceControllerTypeSATA && ct != SubresourceControllerTypeIDE {
+		if ct != SubresourceControllerTypeSCSI && ct != SubresourceControllerTypeSATA && ct != SubresourceControllerTypeIDE && ct != SubresourceControllerTypeNVME {
 			return fmt.Errorf("disk.%d: unsupported controller type %s for disk %s", i, ct, addr)
 		}
 		// As one final validation, as we are no longer reading here, validate that
@@ -1270,7 +1307,13 @@ func DiskImportOperation(d *schema.ResourceData, l object.VirtualDeviceList) err
 // order that they would be added in if a clone were to be done.
 func ReadDiskAttrsForDataSource(l object.VirtualDeviceList, d *schema.ResourceData) ([]map[string]interface{}, error) {
 	log.Printf("[DEBUG] ReadDiskAttrsForDataSource: Fetching select attributes for disks")
-	devices := SelectDisks(l, d.Get("scsi_controller_scan_count").(int), d.Get("sata_controller_scan_count").(int), d.Get("ide_controller_scan_count").(int))
+	devices := SelectDisks(
+		l,
+		d.Get("scsi_controller_scan_count").(int),
+		d.Get("sata_controller_scan_count").(int),
+		d.Get("ide_controller_scan_count").(int),
+		d.Get("nvme_controller_scan_count").(int),
+	)
 	log.Printf("[DEBUG] ReadDiskAttrsForDataSource: Disk devices located: %s", DeviceListString(devices))
 	// Sort the device list, in case it's not sorted already.
 	devSort := virtualDeviceListSorter{
@@ -1382,6 +1425,8 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 		r.Set("controller_type", "sata")
 	case *types.VirtualIDEController:
 		r.Set("controller_type", "ide")
+	case *types.VirtualNVMEController:
+		r.Set("controller_type", "nvme")
 	}
 
 	// Fetch disk attachment state in config
@@ -1640,6 +1685,13 @@ func (r *DiskSubresource) DiffGeneral() error {
 		}
 		if currentUnit > maxUnit {
 			return fmt.Errorf("unit_number on disk %q too high (%d) - maximum value is %d with %d IDE controller(s)", name, currentUnit, maxUnit, ctlrCount)
+		}
+	case "nvme":
+		ctlrCount := r.rdd.Get("nvme_controller_count").(int)
+		maxUnit := ctlrCount * 64
+		currentUnit := r.Get("unit_number").(int)
+		if currentUnit > maxUnit {
+			return fmt.Errorf("unit_number on disk %q too high (%d) - maximum value is %d with %d NVMe controller(s)", name, currentUnit, maxUnit, ctlrCount)
 		}
 	}
 	if r.Get("attach").(bool) {
@@ -2054,6 +2106,39 @@ func (r *DiskSubresource) assignDisk(l object.VirtualDeviceList, disk *types.Vir
 		// If we made it this far, we are good to go!
 		disk.ControllerKey = ctlr.GetVirtualController().Key
 		disk.UnitNumber = &unit
+	case "nvme":
+		// Figure out the bus number, and look up the NVMe controller that matches
+		// that. You can attach 64 disks to an NVMe controller.
+		bus := number / 64
+		// Also determine the unit number on that controller.
+		unit := int32(math.Mod(float64(number), 64))
+
+		// Find the controller.
+		ctlr, err = r.ControllerForCreateUpdate(l, SubresourceControllerTypeNVME, bus)
+		if err != nil {
+			return nil, err
+		}
+
+		// Build the unit list.
+		units := make([]bool, 64)
+		// Reserve the NVMe unit number
+		ckey := ctlr.GetVirtualController().Key
+
+		for _, device := range l {
+			d := device.GetVirtualDevice()
+			if d.ControllerKey != ckey || d.UnitNumber == nil {
+				continue
+			}
+			units[*d.UnitNumber] = true
+		}
+
+		if units[unit] {
+			return nil, fmt.Errorf("unit number %d on NVMe bus %d is in use", unit, bus)
+		}
+
+		// If we made it this far, we are good to go!
+		disk.ControllerKey = ctlr.GetVirtualController().Key
+		disk.UnitNumber = &unit
 	}
 	return ctlr, nil
 }
@@ -2084,6 +2169,10 @@ func (r *Subresource) findControllerInfo(l object.VirtualDeviceList, disk *types
 	case *types.VirtualIDEController:
 		unit := *disk.UnitNumber
 		unit += 2 * sc.GetVirtualController().BusNumber
+		return int(unit), ctlr.(types.BaseVirtualController), nil
+	case *types.VirtualNVMEController:
+		unit := *disk.UnitNumber
+		unit += 64 * sc.GetVirtualController().BusNumber
 		return int(unit), ctlr.(types.BaseVirtualController), nil
 	}
 	return 0, nil, fmt.Errorf("unable to locate controller info for disk: %d", disk.Key)
@@ -2178,7 +2267,7 @@ func (s virtualDiskSubresourceSorter) Swap(i, j int) {
 // the number of controllers that Terraform is managing and serves as an upper
 // limit (count - 1) of the SCSI bus number for a controller that eligible
 // disks need to be attached to.
-func SelectDisks(l object.VirtualDeviceList, scsiCount, sataCount, ideCount int) object.VirtualDeviceList {
+func SelectDisks(l object.VirtualDeviceList, scsiCount, sataCount, ideCount, nvmeCount int) object.VirtualDeviceList {
 	devices := l.Select(func(device types.BaseVirtualDevice) bool {
 		if disk, ok := device.(*types.VirtualDisk); ok {
 			ctlr, err := findControllerForDevice(l, disk)
@@ -2190,6 +2279,8 @@ func SelectDisks(l object.VirtualDeviceList, scsiCount, sataCount, ideCount int)
 				count = sataCount
 			case *types.VirtualIDEController:
 				count = ideCount
+			case *types.VirtualNVMEController:
+				count = nvmeCount
 			}
 			if err != nil {
 				log.Printf("[DEBUG] DiskRefreshOperation: Error looking for controller for device %q: %s", l.Name(disk), err)

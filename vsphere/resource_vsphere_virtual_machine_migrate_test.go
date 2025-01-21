@@ -104,7 +104,7 @@ func TestAccResourceVSphereVirtualMachine_migrateStateV3_fromV2(t *testing.T) {
 		t.Fatalf("error fetching virtual machine properties: %s", err)
 	}
 
-	disks := virtualdevice.SelectDisks(object.VirtualDeviceList(props.Config.Hardware.Device), 1, 0, 0)
+	disks := virtualdevice.SelectDisks(object.VirtualDeviceList(props.Config.Hardware.Device), 1, 0, 0, 0)
 	disk := disks[0].(*types.VirtualDisk)
 	backing := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
 	is := &terraform.InstanceState{

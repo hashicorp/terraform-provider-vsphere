@@ -50,6 +50,12 @@ func dataSourceVSphereVirtualMachine() *schema.Resource {
 			Optional:    true,
 			Default:     2,
 		},
+		"nvme_controller_scan_count": {
+			Type:        schema.TypeInt,
+			Description: "The number of NVMe controllers to scan for disk sizes and controller types on.",
+			Optional:    true,
+			Default:     1,
+		},
 		"scsi_type": {
 			Type:        schema.TypeString,
 			Computed:    true,
@@ -296,7 +302,7 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 			break
 		}
 	}
-	_ = d.Set("vtpm_present", isVTPMPresent)
+	_ = d.Set("vtpm", isVTPMPresent)
 
 	log.Printf("[DEBUG] VM search for %q completed successfully (UUID %q)", name, props.Config.Uuid)
 	return nil

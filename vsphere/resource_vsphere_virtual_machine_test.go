@@ -2652,6 +2652,25 @@ func TestAccResourceVSphereVirtualMachine_deployOvfFromUrlMultipleVmsSameName(t 
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_nvmeController(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccResourceVSphereVirtualMachinePreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigNvme(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					resource.TestMatchResourceAttr("vsphere_virtual_machine.vm", "nvme_controller_count", regexp.MustCompile("2")),
+				),
+			},
+		},
+	})
+}
+
 func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 	// Note that TF_VAR_VSPHERE_USE_LINKED_CLONE is also a variable and its presence
 	// speeds up tests greatly, but it's not a necessary variable, so we don't
@@ -3739,6 +3758,41 @@ resource "vsphere_virtual_machine" "vm" {
 		testAccResourceVSphereVirtualMachineConfigBase(),
 		hw,
 	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigNvme() string {
+	return fmt.Sprintf(`
+	%s  // Mix and match config
+	
+	resource "vsphere_virtual_machine" "vm" {
+	 name             = "testacc-vm"
+	 resource_pool_id = vsphere_resource_pool.pool1.id
+	 datastore_id     = data.vsphere_datastore.rootds1.id
+	
+	 num_cpus = 1
+	 memory   = 512
+	 // NVMe controllers are not supported on other3xLinuxGuest
+	 guest_id = "sles16_64Guest"
+	 firmware                = "efi"
+	 enable_disk_uuid = true
+	 wait_for_guest_net_timeout = 0
+	
+	 nvme_controller_count = 2
+	
+	 network_interface {
+	   network_id = data.vsphere_network.network1.id
+	 }
+	
+	 disk {
+	   label = "disk0"
+	   size  = 1
+	   io_reservation = 1
+	   unit_number = 0
+	   controller_type = "nvme"
+	 }
+	}
+	`,
+		testAccResourceVSphereVirtualMachineConfigBase())
 }
 
 func testAccResourceVSphereVirtualMachineConfigBasic() string {
