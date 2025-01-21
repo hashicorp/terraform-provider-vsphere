@@ -4,6 +4,7 @@
 
 IMPROVEMENTS:
 
+- `resource/vsphere_virtual_machine`: - Added support for NVMe controllers. [(2321](https://github.com/hashicorp/terraform-provider-vsphere/pull/2321))
 - `resource/distributed_virtual_switch`: Added support for vSphere distributed switch version `8.0.3` in vSphere 8.0 U3. [(2306](https://github.com/hashicorp/terraform-provider-vsphere/pull/2306))
 - `resource/vsphere_distributed_virtual_switch_pvlan_mapping`: New resource added to support management of individual PVLAN mapping records on a distributed switch. [(2291](https://github.com/hashicorp/terraform-provider-vsphere/pull/2291))
 
