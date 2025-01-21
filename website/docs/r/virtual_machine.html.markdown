@@ -14,7 +14,7 @@ The `vsphere_virtual_machine` resource is used to manage the lifecycle of a virt
 
 For details on working with virtual machines in VMware vSphere, please refer to the [product documentation][vmware-docs-vm-management].
 
-[vmware-docs-vm-management]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-vm-administration/GUID-55238059-912E-411F-A0E9-A7A536972A91.html
+[vmware-docs-vm-management]: https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/8-0/vsphere-virtual-machine-administration-guide-8-0.html
 
 ## About Working with Virtual Machines in Terraform
 
@@ -949,7 +949,7 @@ The options are:
 
 For more information on each provisioning policy, please refer to the [product documentation][docs-vmware-vm-disk-provisioning].
 
-[docs-vmware-vm-disk-provisioning]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-vm-administration/GUID-4C0F4D73-82F2-4B81-8AA7-1DD752A8A5AC.html
+[docs-vmware-vm-disk-provisioning]: https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/8-0/vsphere-single-host-management-vmware-host-client-8-0/virtual-machine-management-with-the-vsphere-host-client-vSphereSingleHostManagementVMwareHostClient/configuring-virtual-machines-in-the-vsphere-host-client-vSphereSingleHostManagementVMwareHostClient/virtual-disk-configuration-vSphereSingleHostManagementVMwareHostClient/about-virtual-disk-provisioning-policies-vSphereSingleHostManagementVMwareHostClient.html
 
 ~> **NOTE:** Not all provisioning policies are available for all datastore types. Setting and inappropriate provisioning policy for a datastore type may result in a successful initial apply as vSphere will silently correct the options; however, subsequent plans will fail with an appropriate error message until the settings are corrected.
 
@@ -1141,10 +1141,12 @@ The options available in the `clone` block are:
 
 As part of the `clone` operation, a virtual machine can be [customized][vmware-docs-customize] to configure host, network, or licensing settings.
 
-[vmware-docs-customize]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-vm-administration/GUID-58E346FF-83AE-42B8-BE58-253641D257BC.html
+[vmware-docs-customize]: https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/8-0/vsphere-virtual-machine-administration-guide-8-0/managing-virtual-machinesvsphere-vm-admin/customizing-guest-operating-systemsvsphere-vm-admin.html
 
 To perform virtual machine customization as a part of the clone process,
-specify the `customize` block with the respective customization options, nested within the `clone` block. Windows guests are customized using Sysprep, which will result in the machine SID being reset. Before using customization, check is that your source virtual machine meets the [requirements](https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-vm-administration/GUID-58E346FF-83AE-42B8-BE58-253641D257BC.html) for guest OS customization on vSphere. See the section on [cloning and customization](#cloning-and-customization) for a usage synopsis.
+specify the `customize` block with the respective customization options, nested within the `clone` block. Windows guests are customized using Sysprep, which will result in the machine SID being reset. Before using customization, check is that your source virtual machine meets the [requirements](https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/8-0/vsphere-virtual-machine-administration-guide-8-0/managing-virtual-machinesvsphere-vm-admin/customizing-guest-operating-systemsvsphere-vm-admin.html) for guest OS customization on vSphere. See the section on [cloning and customization](#cloning-and-customization) for a usage synopsis.
+
+
 
 The settings for `customize` are as follows:
 
@@ -1520,7 +1522,7 @@ You can use the [`vsphere_virtual_machine`][tf-vsphere-virtual-machine-ds] data 
 
 ## Trusted Platform Module
 
-When creating a virtual machine or cloning one from a template, you have the option to add a virtual Trusted Platform Module device. Refer to the requirements in the VMware vSphere [product documentation](https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-security/GUID-6F811A7A-D58B-47B4-84B4-73391D55C268.html).
+When creating a virtual machine or cloning one from a template, you have the option to add a virtual Trusted Platform Module device. Refer to the requirements in the VMware vSphere [product documentation](https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/8-0/vsphere-virtual-machine-administration-guide-8-0/configuring-virtual-machine-hardwarevsphere-vm-admin/securing-virtual-machines-with-virtual-trusted-platform-modulevsphere-vm-admin/vtpm-overviewvsphere-vm-admin.html).
 
 **Example**:
 

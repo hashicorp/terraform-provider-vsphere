@@ -166,7 +166,7 @@ to work with. Read-only access should be sufficient when only using data
 sources on some features. You can read more about vSphere permissions and user
 management [here][vsphere-docs-user-management].
 
-[vsphere-docs-user-management]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-security/GUID-5372F580-5C23-4E9C-8A4E-EF1B4DD9033E.html
+[vsphere-docs-user-management]: https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/8-0/vsphere-security-8-0/vsphere-permissions-and-user-management-tasks.html
 
 There are a some notable exceptions to keep in mind when setting up a restricted
 provisioning user:
@@ -177,7 +177,7 @@ The provider will always attempt to read [tags][vsphere-docs-tags] from a
 resource, even if you do not have any tags defined. Ensure that your user has
 access to read tags.
 
-[vsphere-docs-tags]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-vcenter-esxi-management/GUID-E8E854DD-AA97-4E0C-8419-CE84F93C4058.html
+[vsphere-docs-tags]: https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/8-0/vsphere-tags-and-attributes.html
 
 ### Events
 
@@ -269,7 +269,7 @@ have the MOB disabled by default, at the very least on ESXi systems. For more
 information on current security best practices related to the MOB on ESXi,
 click [here][vsphere-docs-esxi-mob].
 
-[vsphere-docs-esxi-mob]: https://docs.vmware.com/en/VMware-vSphere/8.0/vsphere-security/GUID-0EF83EA7-277C-400B-B697-04BDC9173EA3.html
+[vsphere-docs-esxi-mob]: https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/8-0/vsphere-security-8-0/securing-esxi-hosts/general-security-recommendations/disable-the-managed-object-browser.html
 
 ## Bug Reports and Contributing
 
