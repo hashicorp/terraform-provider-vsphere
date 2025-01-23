@@ -54,6 +54,22 @@ func resourceVsphereSupervisor() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+			"main_ntp": {
+				Type:        schema.TypeList,
+				Required:    true,
+				Description: "List of NTP servers to use on the Kubernetes API server.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"worker_ntp": {
+				Type:        schema.TypeList,
+				Required:    true,
+				Description: "List of NTP servers to use on the worker nodes.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},				
 			"worker_dns": {
 				Type:        schema.TypeList,
 				Required:    true,
@@ -61,7 +77,7 @@ func resourceVsphereSupervisor() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-			},
+			},					
 			"edge_cluster": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -327,9 +343,12 @@ func buildClusterEnableSpec(d *schema.ResourceData) *namespace.EnableClusterSpec
 	contentLib := d.Get("content_library").(string)
 	mainDns := d.Get("main_dns").([]interface{})
 	workerDns := d.Get("worker_dns").([]interface{})
+	mainNtp := d.Get("main_ntp").([]interface{})
+	workerNtp := d.Get("worker_ntp").([]interface{})
 	dnsSearchDomains := d.Get("search_domains").([]interface{})
 	storagePolicy := d.Get("storage_policy").(string)
 	serviceCidrs := d.Get("service_cidr").([]interface{})
+	
 
 	spec := &namespace.EnableClusterSpec{
 		EphemeralStoragePolicy: storagePolicy,
@@ -343,6 +362,8 @@ func buildClusterEnableSpec(d *schema.ResourceData) *namespace.EnableClusterSpec
 		NcpClusterNetworkSpec:                  &ncpNetworkSpec,
 		MasterDNS:                              structure.SliceInterfacesToStrings(mainDns),
 		WorkerDNS:                              structure.SliceInterfacesToStrings(workerDns),
+		MasterNTPServers:						structure.SliceInterfacesToStrings(mainNtp),
+		WorkloadNTPServers:						structure.SliceInterfacesToStrings(workerNtp),
 		DefaultKubernetesServiceContentLibrary: contentLib,
 		MasterDNSSearchDomains:                 structure.SliceInterfacesToStrings(dnsSearchDomains),
 	}

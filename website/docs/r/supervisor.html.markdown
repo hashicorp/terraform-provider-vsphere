@@ -83,6 +83,8 @@ resource "vsphere_supervisor" "supervisor" {
 * `content_library` - The identifier of the subscribed content library.
 * `main_dns` - The list of addresses of the primary DNS servers.
 * `worker_dns` - The list of addresses of the DNS servers to use for the worker nodes.
+* `main_ntp` - The list of addresses of the primary NTP servers.
+* `worker_ntp` - The list of addresses of the NTP servers to use for the worker nodes.
 * `edge_cluster` - The identifier of the NSX Edge Cluster.
 * `dvs_uuid` - The UUID of the distributed switch.
 * `sizing_hint` - The size of the Kubernetes API server.
