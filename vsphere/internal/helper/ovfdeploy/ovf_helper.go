@@ -515,7 +515,7 @@ func NewOvfHelper(client *govmomi.Client, o *OvfHelperParams) (*OvfHelper, error
 
 func (o *OvfHelper) GetImportSpec(client *govmomi.Client) (*types.OvfCreateImportSpecResult, error) {
 	hsRef := o.HostSystem.Reference()
-	importSpecParam := types.OvfCreateImportSpecParams{
+	importSpecParam := &types.OvfCreateImportSpecParams{
 		EntityName:         o.Name,
 		HostSystem:         &hsRef,
 		NetworkMapping:     o.NetworkMapping,
