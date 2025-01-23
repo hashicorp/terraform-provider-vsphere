@@ -69,7 +69,7 @@ func resourceVsphereSupervisor() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-			},				
+			},
 			"worker_dns": {
 				Type:        schema.TypeList,
 				Required:    true,
@@ -77,7 +77,7 @@ func resourceVsphereSupervisor() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-			},					
+			},
 			"edge_cluster": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -348,7 +348,6 @@ func buildClusterEnableSpec(d *schema.ResourceData) *namespace.EnableClusterSpec
 	dnsSearchDomains := d.Get("search_domains").([]interface{})
 	storagePolicy := d.Get("storage_policy").(string)
 	serviceCidrs := d.Get("service_cidr").([]interface{})
-	
 
 	spec := &namespace.EnableClusterSpec{
 		EphemeralStoragePolicy: storagePolicy,
@@ -362,8 +361,8 @@ func buildClusterEnableSpec(d *schema.ResourceData) *namespace.EnableClusterSpec
 		NcpClusterNetworkSpec:                  &ncpNetworkSpec,
 		MasterDNS:                              structure.SliceInterfacesToStrings(mainDns),
 		WorkerDNS:                              structure.SliceInterfacesToStrings(workerDns),
-		MasterNTPServers:						structure.SliceInterfacesToStrings(mainNtp),
-		WorkloadNTPServers:						structure.SliceInterfacesToStrings(workerNtp),
+		MasterNTPServers:                       structure.SliceInterfacesToStrings(mainNtp),
+		WorkloadNTPServers:                     structure.SliceInterfacesToStrings(workerNtp),
 		DefaultKubernetesServiceContentLibrary: contentLib,
 		MasterDNSSearchDomains:                 structure.SliceInterfacesToStrings(dnsSearchDomains),
 	}
