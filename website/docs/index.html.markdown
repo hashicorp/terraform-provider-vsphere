@@ -134,9 +134,11 @@ will no longer need them.
 #### Session Interoperability for vmware/govc and the Provider
 
 The session format used to save VIM SOAP sessions is the same used
-with [vmware/govc][docs-govc]. If you use govc as part of your provisioning
+with [`vmware/govc`][docs-govc]. If you use `govc` as part of your provisioning
 process, Terraform will use the saved session if present and if
 `persist_session` is enabled.
+
+~> **NOTE:** If using v2.11.1 or later of the provider, use `vmware/govc` v0.48.0 or later.
 
 ### Debugging Options
 

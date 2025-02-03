@@ -1,16 +1,28 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
-## 2.11.0 (January 21, 2026)
+## 2.11.1 (February 03, 2025)
 
 IMPROVEMENTS:
 
-- `resource/vsphere_virtual_machine`: - Added support for NVMe controllers. [(2321](https://github.com/hashicorp/terraform-provider-vsphere/pull/2321))
-- `resource/distributed_virtual_switch`: Added support for vSphere distributed switch version `8.0.3` in vSphere 8.0 U3. [(2306](https://github.com/hashicorp/terraform-provider-vsphere/pull/2306))
-- `resource/vsphere_distributed_virtual_switch_pvlan_mapping`: New resource added to support management of individual PVLAN mapping records on a distributed switch. [(2291](https://github.com/hashicorp/terraform-provider-vsphere/pull/2291))
+- `resource/vsphere_supervisor`: - Added support for `main_ntp` and `worker_ntp`. [(#2326](https://github.com/hashicorp/terraform-provider-vsphere/pull/23261))
+-  Updates the session file formatter string to `"%064x"` from `"%040x"` to match `vmware/govc` v0.48.0 and later. [(#2329](https://github.com/hashicorp/terraform-provider-vsphere/pull/2329))
+
+CHORE:
+
+- `provider`: Updated `vmware/govmomi` to v0.48.0.
+  ([#2325](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2325), [#2329](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2329))
+
+## 2.11.0 (January 21, 2025)
+
+IMPROVEMENTS:
+
+- `resource/vsphere_virtual_machine`: - Added support for NVMe controllers. [(#2321](https://github.com/hashicorp/terraform-provider-vsphere/pull/2321))
+- `resource/distributed_virtual_switch`: Added support for vSphere distributed switch version `8.0.3` in vSphere 8.0 U3. [(#2306](https://github.com/hashicorp/terraform-provider-vsphere/pull/2306))
+- `resource/vsphere_distributed_virtual_switch_pvlan_mapping`: New resource added to support management of individual PVLAN mapping records on a distributed switch. [(#2291](https://github.com/hashicorp/terraform-provider-vsphere/pull/2291))
 
 DOCUMENTATION:
 
-- Updated documentation links to `techdocs.broadcom.com`, as needed. [(2322](https://github.com/hashicorp/terraform-provider-vsphere/pull/2322))
+- Updated documentation links to `techdocs.broadcom.com`, as needed. [(#2322](https://github.com/hashicorp/terraform-provider-vsphere/pull/2322))
 
 CHORE:
 
