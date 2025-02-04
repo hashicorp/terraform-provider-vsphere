@@ -2,7 +2,7 @@ package vsphere
 
 import (
 	"bytes"
-	"crypto/sha256"
+	"crypto/sha1"
 	"crypto/tls"
 	"fmt"
 
@@ -41,7 +41,7 @@ func dataSourceVSphereHostThumbprintRead(d *schema.ResourceData, _ interface{}) 
 		return err
 	}
 	cert := conn.ConnectionState().PeerCertificates[0]
-	fingerprint := sha256.Sum224(cert.Raw)
+	fingerprint := sha1.Sum(cert.Raw)
 
 	var buf bytes.Buffer
 	for i, f := range fingerprint {
