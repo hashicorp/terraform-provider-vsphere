@@ -80,3 +80,11 @@ resource "vsphere_compute_cluster" "cluster" {
     vsphere_host.host4.id
   ]
 }
+
+resource "vsphere_nas_datastore" "nfs" {
+  name            = "acc-test-nfs"
+  host_system_ids = [vsphere_host.host1.id, vsphere_host.host2.id]
+  type            = "NFS"
+  remote_hosts    = [var.nfs_host]
+  remote_path     = "/store"
+}
