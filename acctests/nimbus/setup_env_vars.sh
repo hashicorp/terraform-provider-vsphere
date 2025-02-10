@@ -1,0 +1,18 @@
+export TF_ACC=true
+export TF_LOG=INFO
+export TF_VAR_STORAGE_POLICY=vSAN Default Storage Policy
+export TF_VAR_VSPHERE_CLUSTER=acc-test-cluster
+export TF_VAR_VSPHERE_DATACENTER=acc-test-dc
+export TF_VAR_VSPHERE_ESXI1=10.161.120.32
+export TF_VAR_VSPHERE_ESXI2=10.161.207.136
+export TF_VAR_VSPHERE_ESXI3=10.161.187.55
+export TF_VAR_VSPHERE_ESXI4=10.70.176.235
+export TF_VAR_VSPHERE_NAS_HOST=10.162.86.23
+export TF_VAR_VSPHERE_NFS_DS_NAME="acc-test-nfs"
+export TF_VAR_VSPHERE_PG_NAME='VM Network'
+export TF_VAR_VSPHERE_RESOURCE_POOL=New Resource Pool
+export VSPHERE_ALLOW_UNVERIFIED_SSL=true
+export VSPHERE_PASSWORD=GXGAkm7Yivd.c-J0
+export VSPHERE_SERVER=10.160.250.24
+export VSPHERE_USER=administrator@vsphere.local
+

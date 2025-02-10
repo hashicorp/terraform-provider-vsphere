@@ -20,3 +20,8 @@ variable "hosts" {
     username = string
   }))
 }
+
+variable "nfs_host" {
+  description = "Hostname of the NFS server"
+  type = string
+}
