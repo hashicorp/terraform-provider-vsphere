@@ -23,6 +23,16 @@ data "vsphere_host_thumbprint" "thumbprint2" {
   insecure = true
 }
 
+data "vsphere_host_thumbprint" "thumbprint3" {
+  address = var.hosts[2].hostname
+  insecure = true
+}
+
+data "vsphere_host_thumbprint" "thumbprint4" {
+  address = var.hosts[3].hostname
+  insecure = true
+}
+
 resource "vsphere_datacenter" "dc" {
   name = "acc-test-dc"
 }
@@ -43,12 +53,30 @@ resource "vsphere_host" "host2" {
   thumbprint = data.vsphere_host_thumbprint.thumbprint2.id
 }
 
+resource "vsphere_host" "host3" {
+  datacenter = vsphere_datacenter.dc.moid
+  hostname = var.hosts[2].hostname
+  username =  var.hosts[2].username
+  password =  var.hosts[2].password
+  thumbprint = data.vsphere_host_thumbprint.thumbprint3.id
+}
+
+resource "vsphere_host" "host4" {
+  datacenter = vsphere_datacenter.dc.moid
+  hostname = var.hosts[3].hostname
+  username =  var.hosts[3].username
+  password =  var.hosts[3].password
+  thumbprint = data.vsphere_host_thumbprint.thumbprint4.id
+}
+
 resource "vsphere_compute_cluster" "cluster" {
   datacenter_id = vsphere_datacenter.dc.moid
   name          = "acc-test-cluster"
 
   host_system_ids = [
     vsphere_host.host1.id,
-    vsphere_host.host2.id
+    vsphere_host.host2.id,
+    vsphere_host.host3.id,
+    vsphere_host.host4.id
   ]
 }
