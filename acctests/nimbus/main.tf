@@ -73,6 +73,8 @@ resource "vsphere_compute_cluster" "cluster" {
   datacenter_id = vsphere_datacenter.dc.moid
   name          = "acc-test-cluster"
 
+  ha_enabled = true
+
   host_system_ids = [
     vsphere_host.host1.id,
     vsphere_host.host2.id,
