@@ -2157,9 +2157,6 @@ func (r *Subresource) findControllerInfo(l object.VirtualDeviceList, disk *types
 	switch sc := ctlr.(type) {
 	case types.BaseVirtualSCSIController:
 		unit := *disk.UnitNumber
-		if unit > sc.GetVirtualSCSIController().ScsiCtlrUnitNumber {
-			unit--
-		}
 		unit += 15 * sc.GetVirtualSCSIController().BusNumber
 		return int(unit), ctlr.(types.BaseVirtualController), nil
 	case types.BaseVirtualSATAController:
