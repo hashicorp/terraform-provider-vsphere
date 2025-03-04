@@ -24,7 +24,31 @@ func TestAccDataSourceVSphereNetwork_dvsPortgroup(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDataSourceVSphereNetworkConfigDVSPortgroup(),
+				Config: testAccDataSourceVSphereNetworkConfigDVSPortgroup(false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.vsphere_network.net", "type", "DistributedVirtualPortgroup"),
+					resource.TestCheckResourceAttrPair(
+						"data.vsphere_network.net", "id",
+						"vsphere_distributed_port_group.pg", "id",
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDataSourceVSphereNetwork_withTimeout(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+			testAccDataSourceVSphereNetworkPreCheck(t)
+			testAccSkipIfEsxi(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceVSphereNetworkConfigDVSPortgroup(true),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.vsphere_network.net", "type", "DistributedVirtualPortgroup"),
 					resource.TestCheckResourceAttrPair(
@@ -86,7 +110,11 @@ func testAccDataSourceVSphereNetworkPreCheck(t *testing.T) {
 	}
 }
 
-func testAccDataSourceVSphereNetworkConfigDVSPortgroup() string {
+func testAccDataSourceVSphereNetworkConfigDVSPortgroup(withTimeout bool) string {
+	additionalConfig := ""
+	if withTimeout {
+		additionalConfig = `retry_timeout = 180`
+	}
 	return fmt.Sprintf(`
 %s
 
@@ -104,10 +132,10 @@ data "vsphere_network" "net" {
   name          = "${vsphere_distributed_port_group.pg.name}"
   datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
   distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
+  %s
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
-	)
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), additionalConfig)
 }
 
 func testAccDataSourceVSphereNetworkConfigDVSPortgroupAbsolute() string {

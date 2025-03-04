@@ -62,6 +62,8 @@ The following arguments are supported:
   the distributed virtual switch ID.
 * `filter` - (Optional) Apply a filter for the discovered network.
   * `network_type`: This is required if you have multiple port groups with the same name. This will be one of `DistributedVirtualPortgroup` for distributed port groups, `Network` for standard (host-based) port groups, or `OpaqueNetwork` for networks managed externally, such as those managed by NSX.
+* `retry_timeout` - (Optional) The timeout duration in seconds for the data source to retry read operations.
+* `retry_interval` - (Optional) The interval in milliseconds to retry the read operation if `retry_timeout` is set. Default: 500.
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
 ## Attribute Reference
