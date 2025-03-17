@@ -126,6 +126,9 @@ func (p *DiffProcessor) ProcessDiff(subject object.Reference) error {
 }
 
 func GetDiffProcessorIfAttributesDefined(client *govmomi.Client, d *schema.ResourceData) (*DiffProcessor, error) {
+	if !d.HasChange(ConfigKey) {
+		return nil, nil
+	}
 	old, newValue := d.GetChange(ConfigKey)
 	if len(old.(map[string]interface{})) > 0 || len(newValue.(map[string]interface{})) > 0 {
 		if err := VerifySupport(client); err != nil {
