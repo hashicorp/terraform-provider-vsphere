@@ -24,6 +24,19 @@ var NetworkType = []string{
 	"OpaqueNetwork",
 }
 
+type NetworkNotFoundError struct {
+	Name string
+	ID   string
+}
+
+func (e NetworkNotFoundError) Error() string {
+	if len(e.ID) > 0 {
+		return fmt.Sprintf("Network with ID %s not found", e.ID)
+	}
+
+	return fmt.Sprintf("Network %s not found", e.Name)
+}
+
 // FromPath loads a network via its path.
 //
 // A network is a usually one of three kinds of networks: a DVS port group, a
@@ -57,7 +70,7 @@ func FromNameAndDVSUuid(client *govmomi.Client, name string, dc *object.Datacent
 		return nil, err
 	}
 	if len(networks) == 0 {
-		return nil, fmt.Errorf("%s %s not found", "Network", name)
+		return nil, NetworkNotFoundError{Name: name}
 	}
 
 	switch {
@@ -90,7 +103,7 @@ func FromNameAndDVSUuid(client *govmomi.Client, name string, dc *object.Datacent
 		}
 		return nil, fmt.Errorf("error while getting Network with name %s and Distributed virtual switch %s", name, dvsUUID)
 	}
-	return nil, fmt.Errorf("%s %s not found", "Network", name)
+	return nil, NetworkNotFoundError{Name: name}
 }
 
 func List(client *govmomi.Client) ([]*object.VmwareDistributedVirtualSwitch, error) {
@@ -169,7 +182,7 @@ func FromID(client *govmomi.Client, id string) (object.NetworkReference, error) 
 			return nref.(object.NetworkReference), nil
 		}
 	}
-	return nil, fmt.Errorf("could not find network with ID %q", id)
+	return nil, NetworkNotFoundError{ID: id}
 }
 
 func dvsFromMOID(client *govmomi.Client, id string) (*object.VmwareDistributedVirtualSwitch, error) {
@@ -218,7 +231,7 @@ func FromName(client *vim25.Client, name string, dc *object.Datacenter, filters 
 	// Find the network by name
 	networks, err := finder.NetworkList(ctx, name)
 	if err != nil {
-		return nil, fmt.Errorf("error finding network %s: %v", name, err)
+		return nil, NetworkNotFoundError{Name: name}
 	}
 
 	// If multiple networks are found and no filters are specified, return an error
@@ -255,5 +268,5 @@ func FromName(client *vim25.Client, name string, dc *object.Datacenter, filters 
 		}
 	}
 
-	return nil, fmt.Errorf("no network found matching the specified criteria")
+	return nil, NetworkNotFoundError{Name: name}
 }
