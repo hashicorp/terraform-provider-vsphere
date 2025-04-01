@@ -1033,7 +1033,6 @@ func virtualDiskToSchemaPropsMap(disk *types.VirtualDisk) map[string]interface{}
 		m["thin_provisioned"] = backing.ThinProvisioned
 		m["write_through"] = backing.WriteThrough
 	} else if backing, ok := disk.Backing.(*types.VirtualDiskFlatVer1BackingInfo); ok {
-		m["uuid"] = backing.Uuid
 		m["datastore_id"] = backing.Datastore.Value
 		m["disk_mode"] = backing.DiskMode
 		m["write_through"] = backing.WriteThrough
@@ -1052,7 +1051,6 @@ func virtualDiskToSchemaPropsMap(disk *types.VirtualDisk) map[string]interface{}
 		m["disk_mode"] = backing.DiskMode
 		m["write_through"] = backing.WriteThrough
 	} else if backing, ok := disk.Backing.(*types.VirtualDiskSparseVer1BackingInfo); ok {
-		m["uuid"] = backing.Uuid
 		m["datastore_id"] = backing.Datastore.Value
 		m["disk_mode"] = backing.DiskMode
 		m["write_through"] = backing.WriteThrough
@@ -1441,11 +1439,13 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 		attach = r.Get("attach").(bool)
 	}
 	// Save disk backing settings
-	b, ok := virtualDiskToSchemaPropsMap(disk)
+	b := virtualDiskToSchemaPropsMap(disk)
+	
+	uuid, ok := b["uuid"]
 	if !ok {
 		return fmt.Errorf("disk backing at %s is of an unsupported type (type %T)", r.Get("device_address").(string), disk.Backing)
 	}
-	r.Set("uuid", b.uuid)
+	r.Set("uuid", uuid)
 	r.Set("disk_mode", b.disk_mode)
 	r.Set("write_through", b.Write_through)
 
