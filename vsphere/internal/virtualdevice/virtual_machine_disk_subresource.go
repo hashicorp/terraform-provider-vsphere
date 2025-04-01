@@ -1026,27 +1026,33 @@ func shouldAddRelocateSpec(d *schema.ResourceData, disk *types.VirtualDisk, sche
 func virtualDiskToSchemaPropsMap(disk *types.VirtualDisk) map[string]interface{} {
 	m := make(map[string]interface{})
 	if backing, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo); ok {
+		m["uuid"] = backing.Uuid
 		m["datastore_id"] = backing.Datastore.Value
 		m["disk_mode"] = backing.DiskMode
 		m["eagerly_scrub"] = backing.EagerlyScrub
 		m["thin_provisioned"] = backing.ThinProvisioned
 		m["write_through"] = backing.WriteThrough
 	} else if backing, ok := disk.Backing.(*types.VirtualDiskFlatVer1BackingInfo); ok {
+		m["uuid"] = backing.Uuid
 		m["datastore_id"] = backing.Datastore.Value
 		m["disk_mode"] = backing.DiskMode
 		m["write_through"] = backing.WriteThrough
 	} else if backing, ok := disk.Backing.(*types.VirtualDiskLocalPMemBackingInfo); ok {
+		m["uuid"] = backing.Uuid
 		m["datastore_id"] = backing.Datastore.Value
 		m["disk_mode"] = backing.DiskMode
 	} else if backing, ok := disk.Backing.(*types.VirtualDiskSeSparseBackingInfo); ok {
+		m["uuid"] = backing.Uuid
 		m["datastore_id"] = backing.Datastore.Value
 		m["disk_mode"] = backing.DiskMode
 		m["write_through"] = backing.WriteThrough
-	} else if backing, ok := disk.Backing.(*types.VirtualDiskSeSparseBackingInfo); ok {
+	} else if backing, ok := disk.Backing.(*types.VirtualDiskSparseVer2BackingInfo); ok {
+		m["uuid"] = backing.Uuid
 		m["datastore_id"] = backing.Datastore.Value
 		m["disk_mode"] = backing.DiskMode
 		m["write_through"] = backing.WriteThrough
 	} else if backing, ok := disk.Backing.(*types.VirtualDiskSparseVer1BackingInfo); ok {
+		m["uuid"] = backing.Uuid
 		m["datastore_id"] = backing.Datastore.Value
 		m["disk_mode"] = backing.DiskMode
 		m["write_through"] = backing.WriteThrough
@@ -1435,13 +1441,13 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 		attach = r.Get("attach").(bool)
 	}
 	// Save disk backing settings
-	b, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+	b, ok := virtualDiskToSchemaPropsMap(disk)
 	if !ok {
 		return fmt.Errorf("disk backing at %s is of an unsupported type (type %T)", r.Get("device_address").(string), disk.Backing)
 	}
-	r.Set("uuid", b.Uuid)
-	r.Set("disk_mode", b.DiskMode)
-	r.Set("write_through", b.WriteThrough)
+	r.Set("uuid", b.uuid)
+	r.Set("disk_mode", b.disk_mode)
+	r.Set("write_through", b.Write_through)
 
 	// Skip if the value is unset - this prevents spurious diffs during upgrade
 	// situations where the VM hardware version does not actually allow disk
