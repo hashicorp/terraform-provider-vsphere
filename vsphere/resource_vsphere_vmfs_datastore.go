@@ -378,7 +378,7 @@ func resourceVSphereVmfsDatastoreDelete(d *schema.ResourceData, meta interface{}
 		Pending:    []string{retryDeletePending},
 		Target:     []string{retryDeleteCompleted},
 		Refresh:    deleteRetryFunc,
-		Timeout:    30 * time.Second,
+		Timeout:    defaultAPITimeout,
 		MinTimeout: 2 * time.Second,
 		Delay:      2 * time.Second,
 	}

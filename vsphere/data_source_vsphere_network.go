@@ -5,11 +5,21 @@ package vsphere
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/network"
+
 	"github.com/vmware/govmomi/object"
+)
+
+const (
+	waitForNetworkPending   = "waitForNetworkPending"
+	waitForNetworkCompleted = "waitForNetworkCompleted"
+	waitForNetworkError     = "waitForNetworkError"
 )
 
 func dataSourceVSphereNetwork() *schema.Resource {
@@ -52,6 +62,18 @@ func dataSourceVSphereNetwork() *schema.Resource {
 					},
 				},
 			},
+			"retry_timeout": {
+				Type:        schema.TypeInt,
+				Description: "Timeout (in seconds) if network is not present yet",
+				Optional:    true,
+				Default:     0,
+			},
+			"retry_interval": {
+				Type:        schema.TypeInt,
+				Description: "Retry interval (in milliseconds) when probing the network",
+				Optional:    true,
+				Default:     500,
+			},
 		},
 	}
 }
@@ -69,8 +91,6 @@ func dataSourceVSphereNetworkRead(d *schema.ResourceData, meta interface{}) erro
 			return fmt.Errorf("cannot locate datacenter: %s", err)
 		}
 	}
-	var net object.NetworkReference
-	var err error
 
 	vimClient := client.Client
 
@@ -85,19 +105,65 @@ func dataSourceVSphereNetworkRead(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 
-	if dvSwitchUUID != "" {
-		// Handle distributed virtual switch port group
-		net, err = network.FromNameAndDVSUuid(client, name, dc, dvSwitchUUID)
-		if err != nil {
-			return fmt.Errorf("error fetching DVS network: %s", err)
+	readRetryFunc := func() (interface{}, string, error) {
+		var net interface{}
+		var err error
+		if dvSwitchUUID != "" {
+			// Handle distributed virtual switch port group
+			net, err = network.FromNameAndDVSUuid(client, name, dc, dvSwitchUUID)
+			if err != nil {
+				if _, ok := err.(network.NetworkNotFoundError); ok {
+					return struct{}{}, waitForNetworkPending, nil
+				}
+
+				return struct{}{}, waitForNetworkError, err
+			}
+			return net, waitForNetworkCompleted, nil
 		}
-	} else {
 		// Handle standard switch port group
 		net, err = network.FromName(vimClient, name, dc, filters) // Pass the *vim25.Client
 		if err != nil {
-			return fmt.Errorf("error fetching network: %s", err)
+			if _, ok := err.(network.NetworkNotFoundError); ok {
+				return struct{}{}, waitForNetworkPending, nil
+			}
+			return struct{}{}, waitForNetworkError, err
 		}
+		return net, waitForNetworkCompleted, nil
+
 	}
+
+	var net object.NetworkReference
+	var netObj interface{}
+	var err error
+	var state string
+
+	retryTimeout := d.Get("retry_timeout").(int)
+	retryInterval := d.Get("retry_interval").(int)
+
+	if retryTimeout == 0 {
+		// no retry
+		netObj, state, err = readRetryFunc()
+	} else {
+
+		deleteRetry := &resource.StateChangeConf{
+			Pending:    []string{waitForNetworkPending},
+			Target:     []string{waitForNetworkCompleted},
+			Refresh:    readRetryFunc,
+			Timeout:    time.Duration(retryTimeout) * time.Second,
+			MinTimeout: time.Duration(retryInterval) * time.Millisecond,
+		}
+
+		netObj, err = deleteRetry.WaitForState()
+	}
+
+	if state == waitForNetworkPending {
+		err = fmt.Errorf("network %s not found", name)
+	}
+
+	if err != nil {
+		return err
+	}
+	net = netObj.(object.NetworkReference)
 
 	d.SetId(net.Reference().Value)
 	_ = d.Set("type", net.Reference().Type)
