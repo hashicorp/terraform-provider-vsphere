@@ -93,9 +93,9 @@ The Terraform Provider for VMware vSphere is available under the
 [provider-contributing]: docs/CONTRIBUTING.md
 [provider-discussions]: https://discuss.hashicorp.com/tags/c/terraform-providers/31/vsphere
 [provider-documentation]: https://registry.terraform.io/providers/hashicorp/vsphere/latest/docs
-[provider-faq]: docs/FAQ.md
-[provider-install]: docs/INSTALL.md
-[provider-issue-lifecycle]: docs/ISSUES.md
+[provider-faq]: docs/faq.md
+[provider-install]: docs/install.md
+[provider-issue-lifecycle]: docs/issues.md
 [provider-issues]: https://github.com/hashicorp/terraform-provider-vsphere/issues/new/choose
 [provider-license]: LICENSE
 [terraform-github]: https://github.com/hashicorp/terraform
