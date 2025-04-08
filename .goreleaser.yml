@@ -1,12 +1,13 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+version: 2
 archives:
   - files:
       # Ensure only built binary and license file are archived
       - src: 'LICENSE'
-        dst: 'LICENSE.txt'    
-    format: zip
+        dst: 'LICENSE.txt'
+    formats: ['zip']
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
 builds:
   - # Special binary naming is only necessary for Terraform CLI 0.12
@@ -85,4 +86,4 @@ signs:
       --out ${signature}
     artifacts: checksum
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  version_template: "{{ .Tag }}-next"
