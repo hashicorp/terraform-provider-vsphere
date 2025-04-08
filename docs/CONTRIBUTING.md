@@ -13,8 +13,8 @@ It's the best entry point if you are new to contributing to this provider.
 To learn more about how to create issues and pull requests in this repository,
 and what happens after they are created, you may refer to the resources below:
 
-- [Issue Creation and Lifecycle](ISSUES.md)
-- [Pull Request Creation and Lifecycle](PULL_REQUESTS.md)
+- [Issue Creation and Lifecycle](issues.md)
+- [Pull Request Creation and Lifecycle](pull_requests.md)
 
 ## Cloning the Project
 
