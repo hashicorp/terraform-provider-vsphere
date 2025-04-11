@@ -106,7 +106,7 @@ resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
 resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
   name               = "terraform-test-cluster-vm-group"
   compute_cluster_id = data.vsphere_compute_cluster.cluster.id
-  host_system_ids    = ["${data.vsphere_host.host.id}"]
+  host_system_ids    = [data.vsphere_host.host.id]
 }
 
 resource "vsphere_compute_cluster_vm_host_rule" "cluster_vm_host_rule" {
