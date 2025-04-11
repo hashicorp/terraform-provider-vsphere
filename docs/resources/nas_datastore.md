@@ -46,7 +46,7 @@ data "vsphere_host" "hosts" {
 
 resource "vsphere_nas_datastore" "datastore" {
   name            = "terraform-test"
-  host_system_ids = ["${data.vsphere_host.hosts.*.id}"]
+  host_system_ids = [data.vsphere_host.hosts.*.id]
 
   type         = "NFS"
   remote_hosts = ["nfs"]
