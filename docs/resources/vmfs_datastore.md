@@ -112,7 +112,7 @@ resource "vsphere_vmfs_datastore" "datastore" {
   host_system_id = data.vsphere_host.host.id
   folder         = "datastore-folder"
 
-  disks = ["${data.vsphere_vmfs_disks.available.disks}"]
+  disks = [data.vsphere_vmfs_disks.available.disks]
 }
 ```
 

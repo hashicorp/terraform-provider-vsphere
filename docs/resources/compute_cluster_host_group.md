@@ -62,7 +62,7 @@ data "vsphere_host" "hosts" {
 resource "vsphere_compute_cluster" "compute_cluster" {
   name            = "terraform-compute-cluster-test"
   datacenter_id   = data.vsphere_datacenter.datacenter.id
-  host_system_ids = ["${data.vsphere_host.hosts.*.id}"]
+  host_system_ids = [data.vsphere_host.hosts.*.id]
 
   drs_enabled          = true
   drs_automation_level = "fullyAutomated"
@@ -73,7 +73,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
   name               = "terraform-test-cluster-host-group"
   compute_cluster_id = vsphere_compute_cluster.compute_cluster.id
-  host_system_ids    = ["${data.vsphere_host.hosts.*.id}"]
+  host_system_ids    = [data.vsphere_host.hosts.*.id]
 }
 ```
 

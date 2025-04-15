@@ -57,7 +57,7 @@ resource "vsphere_custom_attribute" "attribute" {
 
 resource "vsphere_virtual_machine" "vm" {
   # ... other configuration ...
-  custom_attributes = tomap({ "${data.vsphere_custom_attribute.attribute.id}" = "John Doe" })
+  custom_attributes = tomap({ data.vsphere_custom_attribute.attribute.id = "John Doe" })
   # ... other configuration ...
 }
 ```
@@ -73,7 +73,7 @@ data "vsphere_custom_attribute" "attribute" {
 
 resource "vsphere_virtual_machine" "vm" {
   # ... other configuration ...
-  custom_attributes = tomap({ "${data.vsphere_custom_attribute.attribute.id}" = "John Doe" })
+  custom_attributes = tomap({ data.vsphere_custom_attribute.attribute.id = "John Doe" })
   # ... other configuration ...
 }
 ```
