@@ -1,0 +1,183 @@
+---
+version: "2"
+
+output:
+  formats:
+    text:
+      path: stdout
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - gosec
+    - govet
+    - ineffassign
+    - misspell
+    - revive
+    - staticcheck
+    - unconvert
+    - unused
+  settings:
+    errcheck:
+      exclude-functions:
+        - github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema:ForceNew|Set
+        - fmt:.*
+        - io:Close
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      # TODO: Setting temporary exclusions for specific linters.
+      - linters:
+          - errcheck
+        text: Error return value of `d.Set` is not checked
+      - linters:
+          - gosec
+        text: G107
+      - linters:
+          - gosec
+        text: G109
+      - linters:
+          - gosec
+        text: G115
+      - linters:
+          - gosec
+        text: G401
+      - linters:
+          - gosec
+        text: G402
+      - linters:
+          - gosec
+        text: G505
+      - linters:
+          - ineffassign
+        text: ineffectual assignment
+      - linters:
+          - revive
+        text: redefines-builtin-id
+      - linters:
+          - revive
+        text: unused-parameter
+      - linters:
+          - revive
+        text: var-naming
+      - linters:
+          - revive
+        text: superfluous-else
+      - linters:
+          - staticcheck
+        text: S1002
+      - linters:
+          - staticcheck
+        text: S1007
+      - linters:
+          - staticcheck
+        text: ST1007
+      - linters:
+          - staticcheck
+        text: SA1019
+      - linters:
+          - staticcheck
+        text: SA1040
+      - linters:
+          - staticcheck
+        text: SA9003
+      - linters:
+          - staticcheck
+        text: ST1005
+      - linters:
+          - staticcheck
+        text: QF1002
+      - linters:
+          - staticcheck
+        text: QF1005
+      - linters:
+          - unconvert
+        text: unnecessary conversion
+      - linters:
+          - unused
+        text: is unused
+      - linters:
+          - revive
+        text: indent-error-flow
+      - linters:
+          - revive
+        text: error-strings
+      - linters:
+          - revive
+        text: range
+      - linters:
+          - revive
+        text: exported
+      - linters:
+          - revive
+        text: empty-block
+      - linters:
+          - staticcheck
+        text: QF1008
+      - linters:
+          - staticcheck
+        text: QF1012
+      - linters:
+          - staticcheck
+        text: QF1003
+      - linters:
+          - staticcheck
+        text: SA1006
+      - linters:
+          - staticcheck
+        text: SA4006
+      - linters:
+          - staticcheck
+        text: S1009
+      - linters:
+          - staticcheck
+        text: S1017
+      - linters:
+          - staticcheck
+        text: S1039
+      - linters:
+          - staticcheck
+        text: S1040
+      - linters:
+          - staticcheck
+        text: S1005
+      - linters:
+          - goimports
+        text: File is not properly formatted
+      - linters:
+          - errcheck
+        path: vsphere/data_source_vsphere_datacenter.go
+        text: Error return value of `view.Destroy` is not checked
+      - linters:
+          - errcheck
+        path: vsphere/distributed_virtual_switch_helper.go
+        text: Error return value of `task.Wait` is not checked
+      - linters:
+          - gofmt
+        path: vsphere/resource_vsphere_compute_cluster.go
+        text: File is not properly formatted
+
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+
+issues:
+  max-same-issues: 0
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
