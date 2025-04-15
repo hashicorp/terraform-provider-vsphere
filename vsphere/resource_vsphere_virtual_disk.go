@@ -9,6 +9,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"errors"
 	"path"
@@ -173,16 +174,27 @@ func resourceVSphereVirtualDiskCreate(d *schema.ResourceData, meta interface{}) 
 		if directoryPathIndex > 0 {
 			vmdkPath := vDisk.vmdkPath[0:directoryPathIndex]
 			log.Printf("[DEBUG] Creating parent directories: %v", ds.Path(vmdkPath))
-			err = fm.MakeDirectory(context.TODO(), ds.Path(vmdkPath), dc, true)
-			if err != nil && !isAlreadyExists(err) {
-				log.Printf("[DEBUG] Failed to create parent directories:  %v", err)
-				return err
+			makeDirectoryErr := fm.MakeDirectory(context.TODO(), ds.Path(vmdkPath), dc, true)
+			if makeDirectoryErr != nil {
+				// MakeDirectory can fail with a number of different errors if the directory is
+				// already in the process of being created. To avoid the need to handle each of
+				// these errors individually, the error is not returned here and the call to
+				// searchForDirectory below is used to determine if the directory is present.
+				// If the directory is in the process of being created, that will need to complete
+				// in order for the search to find the new directory, so sleep for a couple of
+				// seconds to allow that.
+				log.Printf("[DEBUG] Error hit when creating parent directories:  %v", makeDirectoryErr)
+				time.Sleep(2 * time.Second)
 			}
 
 			err = searchForDirectory(client, vDisk.datacenter, vDisk.datastore, vmdkPath)
 			if err != nil {
 				log.Printf("[DEBUG] Failed to find newly created parent directories:  %v", err)
-				return err
+				if makeDirectoryErr != nil {
+					return makeDirectoryErr
+				} else {
+					return err
+				}
 			}
 		}
 	}
@@ -422,11 +434,6 @@ func resourceVSphereVirtualDiskDelete(d *schema.ResourceData, meta interface{}) 
 	log.Printf("[INFO] Deleted disk: %v", diskPath)
 	d.SetId("")
 	return nil
-}
-
-func isAlreadyExists(err error) bool {
-	return strings.HasPrefix(err.Error(), "Cannot complete the operation because the file or folder") &&
-		strings.HasSuffix(err.Error(), "already exists")
 }
 
 // createHardDisk creates a new Hard Disk.
