@@ -1,7 +1,0 @@
-Administration
-Host and Cluster Management
-Inventory
-Networking
-Security
-Storage
-Virtual Machine

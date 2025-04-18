@@ -310,7 +310,7 @@ FEATURES:
 
 DOCUMENTATION:
 
-- Updated `INSTALL.md` use use `unzip` for Linux and macOS examples.
+- Updated `install.md` use use `unzip` for Linux and macOS examples.
   ([#2105](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2105))
 
 CHORES:
