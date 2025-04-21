@@ -818,7 +818,7 @@ The options are:
 
 * `ignored_guest_ips` - (Optional) List of IP addresses and CIDR networks to ignore while waiting for an available IP address using either of the waiters. Any IP addresses in this list will be ignored so that the waiter will continue to wait for a valid IP address. Default: `[]`.
 
-* `latency_sensitivity` - (Optional) Controls the scheduling delay of the virtual machine. Use a higher sensitivity for applications that require lower latency, such as VOIP, media player applications, or applications that require frequent access to mouse or keyboard devices. One of `low`, `normal`, `medium`, or `high`.
+* `latency_sensitivity` - (Optional) Controls the scheduling delay of the virtual machine. Use a higher sensitivity for applications that require lower latency, such as VOIP, media player applications, or applications that require frequent access to mouse or keyboard devices. One of `low`, `normal`, `medium`, `high`, or `high-hyperthreading`.
 
 ~> **NOTE:** On higher sensitivities, you may need to adjust the [`memory_reservation`](#memory_reservation) to the full amount of memory provisioned for the virtual machine.
 
