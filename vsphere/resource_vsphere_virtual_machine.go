@@ -348,7 +348,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 }
 
 func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Beginning create", resourceVSphereVirtualMachineIDString(d))
+	log.Printf("[INFO] %s: Beginning create", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*Client).vimClient
 	tagsClient, err := tagsManagerIfDefined(d, meta)
 	if err != nil {
@@ -446,12 +446,12 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 	}
 
 	// All done!
-	log.Printf("[DEBUG] %s: Create complete", resourceVSphereVirtualMachineIDString(d))
+	log.Printf("[INFO] %s: Create complete", resourceVSphereVirtualMachineIDString(d))
 	return resourceVSphereVirtualMachineRead(d, meta)
 }
 
 func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Reading state of virtual machine", resourceVSphereVirtualMachineIDString(d))
+	log.Printf("[INFO] %s: Reading state of virtual machine", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*Client).vimClient
 	id := d.Id()
 	vm, err := virtualmachine.FromUUID(client, id)
@@ -473,7 +473,6 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	// Set the managed object id.
 	moid := vm.Reference().Value
 	_ = d.Set("moid", moid)
-	log.Printf("[DEBUG] MOID for VM %q is %q", vm.InventoryPath, moid)
 
 	// Reset reboot_required. This is an update only variable and should not be
 	// set across TF runs.
@@ -579,10 +578,8 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	for _, dev := range vprops.Config.Hardware.Device {
 		if pci, ok := dev.(*types.VirtualPCIPassthrough); ok {
 			if pciBacking, ok := pci.Backing.(*types.VirtualPCIPassthroughDeviceBackingInfo); ok {
-				devID := pciBacking.Id
-				pciDevs = append(pciDevs, devID)
-			} else {
-				log.Printf("[DEBUG] %s: PCI passthrough device %q has no backing ID", resourceVSphereVirtualMachineIDString(d), pci.GetVirtualDevice().DeviceInfo.GetDescription())
+				devId := pciBacking.Id
+				pciDevs = append(pciDevs, devId)
 			}
 		}
 	}
@@ -675,12 +672,12 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("error setting usb_controller: %s", err)
 	}
 
-	log.Printf("[DEBUG] %s: Read complete", resourceVSphereVirtualMachineIDString(d))
+	log.Printf("[INFO] %s: Read complete", resourceVSphereVirtualMachineIDString(d))
 	return nil
 }
 
 func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Performing update", resourceVSphereVirtualMachineIDString(d))
+	log.Printf("[INFO] %s: Performing update", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*Client).vimClient
 	timeout := meta.(*Client).timeout
 	tagsClient, err := tagsManagerIfDefined(d, meta)
@@ -792,14 +789,14 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 
 	// USB controller devices. Check for changes and apply them.
 	if d.HasChange("usb_controller") {
-		old, new := d.GetChange("usb_controller")
-		oldUSB := old.([]interface{})
-		newUSB := new.([]interface{})
+		o, n := d.GetChange("usb_controller")
+		oldUSB, okOld := o.([]interface{})
+		newUSB, okNew := n.([]interface{})
+		if !okOld || !okNew {
+			return fmt.Errorf("usb_controller change is not a []interface{}: o=%T n=%T", o, n)
+		}
 
-		// Initialize a key counter.
 		keyCounter := -100
-
-		// Initialize controller presence flags.
 		usb2ControllerPresent := false
 		usb3ControllerPresent := false
 
@@ -818,15 +815,29 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 			}
 		}
 
+		rebootRequired := false
+
 		// Remove USB controllers that are no longer in the configuration.
 		for _, oldUSBControllerInterface := range oldUSB {
-			oldUSBController := oldUSBControllerInterface.(map[string]interface{})
-			oldUSBVersion := oldUSBController["version"].(string)
+			oldUSBController, ok := oldUSBControllerInterface.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			oldUSBVersion, ok := oldUSBController["version"].(string)
+			if !ok {
+				continue
+			}
 
 			found := false
 			for _, newUSBControllerInterface := range newUSB {
-				newUSBController := newUSBControllerInterface.(map[string]interface{})
-				newUSBVersion := newUSBController["version"].(string)
+				newUSBController, ok := newUSBControllerInterface.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				newUSBVersion, ok := newUSBController["version"].(string)
+				if !ok {
+					continue
+				}
 				if oldUSBVersion == newUSBVersion {
 					found = true
 					break
@@ -834,10 +845,12 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 			}
 
 			if !found {
-				var device types.BaseVirtualDevice
-				switch oldUSBVersion {
-				case "2.0":
-					if key, ok := existingUSBControllers["2.0"]; ok {
+				key, exists := existingUSBControllers[oldUSBVersion]
+				if exists {
+					var device types.BaseVirtualDevice
+
+					switch oldUSBVersion {
+					case "2.0":
 						device = &types.VirtualUSBController{
 							VirtualController: types.VirtualController{
 								VirtualDevice: types.VirtualDevice{
@@ -845,9 +858,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 								},
 							},
 						}
-					}
-				case "3.1", "3.2":
-					if key, ok := existingUSBControllers["3.x"]; ok {
+					case "3.1", "3.2":
 						device = &types.VirtualUSBXHCIController{
 							VirtualController: types.VirtualController{
 								VirtualDevice: types.VirtualDevice{
@@ -856,87 +867,71 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 							},
 						}
 					}
-				default:
-					return fmt.Errorf("unsupported USB version: %s", oldUSBVersion)
-				}
 
-				if device != nil {
-					// Power off the virtual machine before removing the USB controller.
-					if vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOff {
-						log.Printf("[INFO] Powering off virtual machine to remove USB controller: %s", oldUSBVersion)
-						timeout := d.Get("shutdown_wait_timeout").(int)
-						force := d.Get("force_power_off").(bool)
-						if err := virtualmachine.GracefulPowerOff(client, vm, timeout, force); err != nil {
-							return fmt.Errorf("error powering off virtual machine: %s", err)
-						}
+					if device != nil {
+						spec.DeviceChange = append(spec.DeviceChange, &types.VirtualDeviceConfigSpec{
+							Operation: types.VirtualDeviceConfigSpecOperationRemove,
+							Device:    device,
+						})
+						rebootRequired = true
 					}
-
-					spec.DeviceChange = append(spec.DeviceChange, &types.VirtualDeviceConfigSpec{
-						Operation: types.VirtualDeviceConfigSpecOperationRemove,
-						Device:    device,
-					})
-					log.Printf("[INFO] Removed USB controller: %s", oldUSBVersion)
 				}
 			}
 		}
 
 		// Add new USB controller devices.
 		for _, usbControllerInterface := range newUSB {
-			usbController := usbControllerInterface.(map[string]interface{})
-			usbVersion := usbController["version"].(string)
+			usbController, ok := usbControllerInterface.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			usbVersion, ok := usbController["version"].(string)
+			if !ok {
+				continue
+			}
 
-			var ehciEnabled *bool
 			var device types.BaseVirtualDevice
 
 			switch usbVersion {
 			case "2.0":
-				if usb2ControllerPresent {
-					log.Printf("[INFO] USB 2.0 controller already exists, skipping addition.")
-					continue
-				}
-				usb2ControllerPresent = true
-				enabled := true
-				ehciEnabled = &enabled
-				device = &types.VirtualUSBController{
-					VirtualController: types.VirtualController{
-						VirtualDevice: types.VirtualDevice{
-							Key: int32(keyCounter),
+				if !usb2ControllerPresent {
+					usb2ControllerPresent = true
+					enabled := true // directly create a boolean variable
+					device = &types.VirtualUSBController{
+						VirtualController: types.VirtualController{
+							VirtualDevice: types.VirtualDevice{
+								Key: int32(keyCounter),
+							},
 						},
-					},
-					EhciEnabled: ehciEnabled,
+						EhciEnabled: &enabled, // assign address directly
+					}
+					rebootRequired = true
 				}
 			case "3.1", "3.2":
-				if usb3ControllerPresent {
-					log.Printf("[INFO] USB 3.x controller already exists, skipping addition.")
-					continue
-				}
-				usb3ControllerPresent = true
-				device = &types.VirtualUSBXHCIController{
-					VirtualController: types.VirtualController{
-						VirtualDevice: types.VirtualDevice{
-							Key: int32(keyCounter),
+				if !usb3ControllerPresent {
+					usb3ControllerPresent = true
+					device = &types.VirtualUSBXHCIController{
+						VirtualController: types.VirtualController{
+							VirtualDevice: types.VirtualDevice{
+								Key: int32(keyCounter),
+							},
 						},
-					},
+					}
+					rebootRequired = true
 				}
-
-			default:
-				return fmt.Errorf("unsupported USB version: %s", usbVersion)
 			}
 
-			spec.DeviceChange = append(spec.DeviceChange, &types.VirtualDeviceConfigSpec{
-				Operation: types.VirtualDeviceConfigSpecOperationAdd,
-				Device:    device,
-			})
-			log.Printf("[INFO] Added USB controller: %s", usbVersion)
-			keyCounter--
+			if device != nil {
+				spec.DeviceChange = append(spec.DeviceChange, &types.VirtualDeviceConfigSpec{
+					Operation: types.VirtualDeviceConfigSpecOperationAdd,
+					Device:    device,
+				})
+				keyCounter--
+			}
 		}
 
-		// Power on the virtual machine after adding the USB controller devices.
-		if vprops.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOn {
-			log.Printf("[INFO] Powering on virtual machine after USB controller changes.")
-			if err := virtualmachine.PowerOn(vm, timeout); err != nil {
-				return fmt.Errorf("error powering on virtual machine: %s", err)
-			}
+		if rebootRequired {
+			_ = d.Set("reboot_required", true)
 		}
 	}
 
@@ -976,25 +971,19 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 				default:
 					vprops, err := virtualmachine.Properties(vm)
 					if err != nil {
-						log.Printf("[DEBUG] Error while retrieving VM properties. Error: %s", err)
 						continue
 					}
 					q := vprops.Runtime.Question
 					if q != nil {
-						log.Printf("[DEBUG] Question: %#v", q)
 						if len(q.Message) < 1 {
-							log.Printf("[DEBUG] No messages found")
 							continue
 						}
 						qMsg := q.Message[0].Id
 						if response, ok := questions[qMsg]; ok {
 							if err = vm.Answer(context.TODO(), q.Id, response); err != nil {
-								log.Printf("[DEBUG] Failed to answer question. Error: %s", err)
 								break
 							}
 						}
-					} else {
-						log.Printf("[DEBUG] No questions found")
 					}
 				}
 			}
@@ -1069,7 +1058,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	// All done with updates.
-	log.Printf("[DEBUG] %s: Update complete", resourceVSphereVirtualMachineIDString(d))
+	log.Printf("[INFO] %s: Update complete", resourceVSphereVirtualMachineIDString(d))
 	return resourceVSphereVirtualMachineRead(d, meta)
 }
 
@@ -1087,7 +1076,6 @@ func resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(
 	// update through SDRS without any disk creation operations will fail.
 	timeout := meta.(*Client).timeout
 	if !storagepod.HasDiskCreationOperations(spec.DeviceChange) {
-		log.Printf("[DEBUG] No disk operations for reconfiguration of VM %q, deferring to standard API", vm.InventoryPath)
 		return virtualmachine.Reconfigure(vm, spec, timeout)
 	}
 
@@ -1096,7 +1084,6 @@ func resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(
 		return fmt.Errorf("connection ineligible to use datastore_cluster_id: %s", err)
 	}
 
-	log.Printf("[DEBUG] %s: Reconfiguring virtual machine through Storage DRS API", resourceVSphereVirtualMachineIDString(d))
 	pod, err := storagepod.FromID(client, d.Get("datastore_cluster_id").(string))
 	if err != nil {
 		return fmt.Errorf("error getting datastore cluster: %s", err)
@@ -1110,7 +1097,7 @@ func resourceVSphereVirtualMachineUpdateReconfigureWithSDRS(
 }
 
 func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Performing delete", resourceVSphereVirtualMachineIDString(d))
+	log.Printf("[INFO] %s: Performing delete", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*Client).vimClient
 	timeout := meta.(*Client).timeout
 	id := d.Id()
@@ -1150,12 +1137,12 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("error destroying virtual machine: %s", err)
 	}
 	d.SetId("")
-	log.Printf("[DEBUG] %s: Delete complete", resourceVSphereVirtualMachineIDString(d))
+	log.Printf("[INFO] %s: Delete complete", resourceVSphereVirtualMachineIDString(d))
 	return nil
 }
 
 func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.ResourceDiff, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Performing diff customization and validation", resourceVSphereVirtualMachineIDString(d))
+	log.Printf("[INFO] %s: Performing diff customization and validation", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*Client).vimClient
 
 	if len(d.Get("ovf_deploy").([]interface{})) == 0 && len(d.Get("network_interface").([]interface{})) == 0 {
@@ -1272,16 +1259,12 @@ func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.Res
 		return err
 	}
 
-	log.Printf("[DEBUG] %s: Diff customization and validation complete", resourceVSphereVirtualMachineIDString(d))
+	log.Printf("[INFO] %s: Diff customization and validation complete", resourceVSphereVirtualMachineIDString(d))
 	return nil
 }
 
 func resourceVSphereVirtualMachineCustomizeDiffResourcePoolOperation(d *schema.ResourceDiff) error {
 	if d.HasChange("resource_pool_id") && !d.HasChange("host_system_id") {
-		log.Printf(
-			"[DEBUG] %s: resource_pool_id modified without change to host_system_id, marking as computed",
-			resourceVSphereVirtualMachineIDString(d),
-		)
 		if err := d.SetNewComputed("host_system_id"); err != nil {
 			return err
 		}
@@ -1291,7 +1274,6 @@ func resourceVSphereVirtualMachineCustomizeDiffResourcePoolOperation(d *schema.R
 
 func datastoreClusterDiffOperation(d *schema.ResourceDiff, client *govmomi.Client) error {
 	if !structure.ValuesAvailable("", []string{"datastore_cluster_id", "datastore_id"}, d) {
-		log.Printf("[DEBUG] DatastoreClusterDiffOperation: datastore_id or datastore_cluster_id value depends on a computed value from another resource. Skipping validation.")
 		return nil
 	}
 	podID, podOk := d.GetOk("datastore_cluster_id")
@@ -1313,7 +1295,6 @@ func datastoreClusterDiffOperation(d *schema.ResourceDiff, client *govmomi.Clien
 		return nil
 	case !podKnown:
 		// Datastore cluster ID changing but we don't know it yet. Mark the datastore ID as computed
-		log.Printf("[DEBUG] %s: Datastore cluster ID unknown, marking VM datastore as computed", resourceVSphereVirtualMachineIDString(d))
 		return d.SetNewComputed("datastore_id")
 	}
 
@@ -1321,8 +1302,6 @@ func datastoreClusterDiffOperation(d *schema.ResourceDiff, client *govmomi.Clien
 }
 
 func datastoreClusterDiffOperationCheckMembership(d *schema.ResourceDiff, client *govmomi.Client, podID, dsID string) error {
-	log.Printf("[DEBUG] %s: Checking VM datastore cluster membership", resourceVSphereVirtualMachineIDString(d))
-
 	// Determine if the current datastore from state is a member of the current
 	// datastore cluster.
 	pod, err := storagepod.FromID(client, podID)
@@ -1343,12 +1322,6 @@ func datastoreClusterDiffOperationCheckMembership(d *schema.ResourceDiff, client
 		// If the current datastore in state is not a member of the cluster, we
 		// need to trigger a migration. Do this by setting the datastore ID to
 		// computed so that it's picked up in the next update.
-		log.Printf(
-			"[DEBUG] %s: Datastore %q not a member of cluster %q, marking VM datastore as computed",
-			resourceVSphereVirtualMachineIDString(d),
-			ds.Name(),
-			pod.Name(),
-		)
 		return d.SetNewComputed("datastore_id")
 	}
 
@@ -1363,7 +1336,6 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 		return nil, fmt.Errorf("path cannot be empty")
 	}
 
-	log.Printf("[DEBUG] Looking for VM by name/path %q", name)
 	vm, err := virtualmachine.FromPath(client, name, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching virtual machine: %s", err)
@@ -1381,7 +1353,6 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 	// Quickly walk the storage busses and determine the number of contiguous
 	// controllers starting from bus number 0. This becomes the current
 	// controller count. Anything past this is managed by config.
-	log.Printf("[DEBUG] Determining number of controllers for VM %q", name)
 	scsiBus := make([]bool, 4)
 	sataBus := make([]bool, 4)
 	ideBus := make([]bool, 2)
@@ -1410,7 +1381,6 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 		return nil, err
 	}
 	// The VM should be ready for reading now
-	log.Printf("[DEBUG] VM UUID for %q is %q", name, props.Config.Uuid)
 	d.SetId(props.Config.Uuid)
 	_ = d.Set("imported", true)
 
@@ -1426,7 +1396,6 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 	_ = d.Set("poweron_timeout", rs["poweron_timeout"].Default)
 	_ = d.Set("extra_config_reboot_required", rs["extra_config_reboot_required"].Default)
 
-	log.Printf("[DEBUG] %s: Import complete, resource is ready for read", resourceVSphereVirtualMachineIDString(d))
 	return []*schema.ResourceData{d}, nil
 }
 
@@ -1444,7 +1413,6 @@ func controllerCount(bus []bool) int {
 // resourceVSphereVirtualMachineCreateBare contains the "bare metal" VM
 // deploy path. The VM is returned.
 func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interface{}) (*object.VirtualMachine, error) {
-	log.Printf("[DEBUG] %s: VM being created from scratch", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*Client).vimClient
 	poolID := d.Get("resource_pool_id").(string)
 	pool, err := resourcepool.FromID(client, poolID)
@@ -1492,7 +1460,6 @@ func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interf
 	if err != nil {
 		return nil, fmt.Errorf("error loading default device list: %s", err)
 	}
-	log.Printf("[DEBUG] Default devices: %s", virtualdevice.DeviceListString(devices))
 
 	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
 		return nil, err
@@ -1516,7 +1483,6 @@ func resourceVSphereVirtualMachineCreateBare(d *schema.ResourceData, meta interf
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch properties of created virtual machine: %s", err)
 	}
-	log.Printf("[DEBUG] VM %q - UUID is %q", vm.InventoryPath, vprops.Config.Uuid)
 	d.SetId(vprops.Config.Uuid)
 
 	pTimeoutStr := fmt.Sprintf("%ds", d.Get("poweron_timeout").(int))
@@ -1548,7 +1514,6 @@ func resourceVSphereVirtualMachineCreateBareWithSDRS(
 		return nil, fmt.Errorf("connection ineligible to use datastore_cluster_id: %s", err)
 	}
 
-	log.Printf("[DEBUG] %s: Creating virtual machine through Storage DRS API", resourceVSphereVirtualMachineIDString(d))
 	pod, err := storagepod.FromID(client, d.Get("datastore_cluster_id").(string))
 	if err != nil {
 		return nil, fmt.Errorf("error getting datastore cluster: %s", err)
@@ -1608,7 +1573,6 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 		return nil, fmt.Errorf("while retrieving ovf import spec from the API: %s", err)
 	}
 
-	log.Print(" [DEBUG] start deploying from ovf/ova Template")
 	err = ovfHelper.DeployOvf(client, ovfImportspec)
 	if err != nil {
 		return nil, fmt.Errorf("error while importing ovf/ova template, %s", err)
@@ -1637,7 +1601,6 @@ func resourceVsphereMachineDeployOvfAndOva(d *schema.ResourceData, meta interfac
 		return nil, fmt.Errorf("cannot fetch properties of created virtual machine: %s", err)
 	}
 
-	log.Printf("[DEBUG] VM %q - UUID is %q", vm.InventoryPath, vprops.Config.Uuid)
 	d.SetId(vprops.Config.Uuid)
 	// update vapp properties
 	vappConfig, err := expandVAppConfig(d, client)
@@ -1697,7 +1660,6 @@ func createVCenterDeploy(d *schema.ResourceData, meta interface{}) (*virtualmach
 // resourceVSphereVirtualMachineCreateClone contains the clone VM deploy
 // path. The VM is returned.
 func resourceVSphereVirtualMachineCreateClone(d *schema.ResourceData, meta interface{}) (*object.VirtualMachine, error) {
-	log.Printf("[DEBUG] %s: VM being created from clone", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*Client).vimClient
 
 	// Find the folder based off the path to the resource pool. Basically what we
@@ -1782,7 +1744,6 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			fmt.Errorf("cannot fetch properties of created virtual machine: %s", err),
 		)
 	}
-	log.Printf("[DEBUG] VM %q - UUID is %q", vm.InventoryPath, vprops.Config.Uuid)
 	d.SetId(vprops.Config.Uuid)
 
 	// To apply device changes, we need the current devicecfgSpec from the config
@@ -1826,9 +1787,6 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 		)
 	}
 
-	// The VM has been reconfigured, we need to refresh some objects holding
-	// The current state of the vm
-
 	vm, err = virtualmachine.FromUUID(client, vprops.Config.Uuid)
 	if err != nil {
 		return resourceVSphereVirtualMachineRollbackCreate(
@@ -1847,7 +1805,6 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			fmt.Errorf("cannot fetch properties of created virtual machine: %s", err),
 		)
 	}
-	log.Printf("[DEBUG] VM %q - UUID is %q", vm.InventoryPath, vprops.Config.Uuid)
 	d.SetId(vprops.Config.Uuid)
 
 	// Before starting or proceeding any further, we need to normalize the
@@ -2002,7 +1959,6 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 	}
 	// If we customized, wait on customization.
 	if cw != nil {
-		log.Printf("[DEBUG] %s: Waiting for VM customization to complete", resourceVSphereVirtualMachineIDString(d))
 		<-cw.Done()
 		if err := cw.Err(); err != nil {
 			return fmt.Errorf(formatVirtualMachineCustomizationWaitError, vm.InventoryPath, err)
@@ -2029,7 +1985,6 @@ func resourceVSphereVirtualMachineCreateCloneWithSDRS(
 		return nil, fmt.Errorf("connection ineligible to use datastore_cluster_id: %s", err)
 	}
 
-	log.Printf("[DEBUG] %s: Cloning virtual machine through Storage DRS API", resourceVSphereVirtualMachineIDString(d))
 	pod, err := storagepod.FromID(client, d.Get("datastore_cluster_id").(string))
 	if err != nil {
 		return nil, fmt.Errorf("error getting datastore cluster: %s", err)
@@ -2075,7 +2030,6 @@ func resourceVSphereVirtualMachineRollbackCreate(
 // This function is responsible for building the top-level relocate spec. For
 // disks, we call out to relocate functionality in the disk sub-resource.
 func resourceVSphereVirtualMachineUpdateLocation(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[DEBUG] %s: Checking for pending migration operations", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*Client).vimClient
 
 	// A little bit of duplication of VM object data is done here to keep the
@@ -2098,10 +2052,8 @@ func resourceVSphereVirtualMachineUpdateLocation(d *schema.ResourceData, meta in
 	}
 	// If we don't have any changes, stop here.
 	if !d.HasChange("resource_pool_id") && !d.HasChange("host_system_id") && !d.HasChange("datastore_id") && !diskRelocateOK {
-		log.Printf("[DEBUG] %s: No migration operations found", resourceVSphereVirtualMachineIDString(d))
 		return nil
 	}
-	log.Printf("[DEBUG] %s: Migration operations found, proceeding with migration", resourceVSphereVirtualMachineIDString(d))
 
 	// Fetch and validate pool and host
 	poolID := d.Get("resource_pool_id").(string)
@@ -2170,7 +2122,6 @@ func resourceVSphereVirtualMachineUpdateLocationRelocateWithSDRS(
 		return fmt.Errorf("connection ineligible to use datastore_cluster_id: %s", err)
 	}
 
-	log.Printf("[DEBUG] %s: Running virtual machine relocate Storage DRS API", resourceVSphereVirtualMachineIDString(d))
 	pod, err := storagepod.FromID(client, d.Get("datastore_cluster_id").(string))
 	if err != nil {
 		return fmt.Errorf("error getting datastore cluster: %s", err)
@@ -2197,7 +2148,6 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 		return nil, err
 	}
 	if len(delta) > 0 {
-		log.Printf("[DEBUG] %s: SCSI bus has changed and requires a VM restart", resourceVSphereVirtualMachineIDString(d))
 		_ = d.Set("reboot_required", true)
 	}
 	spec = virtualdevice.AppendDeviceChangeSpec(spec, delta...)
@@ -2297,7 +2247,6 @@ func readUSBControllers(vprops *types.VirtualMachineConfigInfo, desiredUSBVersio
 				}
 			}
 		default:
-			log.Printf("[DEBUG] Found other device type: %T", dev)
 		}
 	}
 
@@ -2324,7 +2273,6 @@ func resourceVSphereVirtualMachineCustomizeDiffUSBController(d *schema.ResourceD
 	vm, err := virtualmachine.FromUUID(client, d.Id())
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			log.Printf("[INFO] Virtual machine with UUID %q does not exist, skipping existing USB controller check.", d.Id())
 			vm = nil
 		} else {
 			return fmt.Errorf("error locating virtual machine with UUID %q: %s", d.Id(), err)
@@ -2367,13 +2315,11 @@ func resourceVSphereVirtualMachineCustomizeDiffUSBController(d *schema.ResourceD
 			switch usbVersion {
 			case "2.0":
 				if usb2ControllerPresent {
-					log.Printf("[INFO] USB 2.0 controller already exists, skipping addition.")
 					continue
 				}
 				usb2ControllerPresent = true
 			case "3.1", "3.2":
 				if usb3ControllerPresent {
-					log.Printf("[INFO] USB 3.x controller already exists, skipping addition.")
 					continue
 				}
 				usb3ControllerPresent = true
