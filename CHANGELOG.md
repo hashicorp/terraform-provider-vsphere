@@ -1,5 +1,42 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
+## 2.12.0 (April 22, 2025)
+
+IMPROVEMENTS:
+
+- `d/vsphere_network`: AddED `retry_timeout` and `retry_interval` attributes that enable retry if network is not found.
+  [(#2349](https://github.com/hashicorp/terraform-provider-vsphere/pull/2349))
+- `r/vpshere_host_port_group`: Fixed `null` reference panic during resource import.
+  [(#2377](https://github.com/hashicorp/terraform-provider-vsphere/pull/2377))
+- `r/vsphere_vmfs_datastore` Fixed error during resource deletion.
+  [(#2360](https://github.com/hashicorp/terraform-provider-vsphere/pull/2360))
+
+CHORE:
+
+- `provider`: Updated `go` to v1.23.8.
+  ([#2372](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2372))
+- `provider`: Updated `golang.org/x/net` to 0.38.0.
+  ([#2358](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2358), [#2378](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2378))
+- `provider`: Updated `golang.org/x/text` to v0.22.0.
+  ([#2350](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2350))
+- `provider`: Updated `golang.org/x/sys` to v0.30.0.
+  ([#2350](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2350))
+- `provider`: Updated `golang.org/x/sync` to v0.11.0.
+  ([#2350](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2350))
+- `provider`: Updated `golang.org/x/crypto` to v0.35.0.
+  ([#2350](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2350))
+- `provider`: Updated `github.com/hashicorp/terraform-plugin-sdk/v2` to v0.1.2.
+  ([#2346](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2346))
+- `provider`: Updated `github.com/hashicorp/yamux` to v2.36.1.
+  ([#2334](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2334))
+- `provider`: Updated `vmware/govmomi` to v0.49.0.
+  ([#2342](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2342), [#2357](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2357))
+
+DOCUMENTATION:
+
+- Migrated documentation from legacy path.
+  ([#2370](https://github.com/terraform-providers/terraform-provider-vsphere/pull/2370))
+
 ## 2.11.1 (February 03, 2025)
 
 IMPROVEMENTS:
