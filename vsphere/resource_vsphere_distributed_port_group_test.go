@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/vim25/types"
@@ -347,7 +347,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 		min_vlan = 1000
 		max_vlan = 1999
 	}
-  
+
 	vlan_range {
 		min_vlan = 3000
 		max_vlan = 3999
@@ -398,7 +398,7 @@ func testAccResourceVSphereDistributedPortGroupConfigOverrideVLAN() string {
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs"
   datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-  
+
 	vlan_range {
 		min_vlan = 1000
 		max_vlan = 1999
@@ -504,7 +504,7 @@ func testAccResourceVSphereDistributedPortGroupConfigSingleCustomAttribute() str
 
 resource "vsphere_custom_attribute" "testacc-attribute" {
   name                = "testacc-attribute"
-  managed_object_type = "DistributedVirtualPortgroup" 
+  managed_object_type = "DistributedVirtualPortgroup"
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {

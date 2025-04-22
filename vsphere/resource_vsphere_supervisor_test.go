@@ -5,11 +5,12 @@ package vsphere
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
+
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccResourceVSphereSupervisor_basic(t *testing.T) {
@@ -93,7 +94,7 @@ resource "vsphere_supervisor" "supervisor" {
 	edge_cluster = "%s"
 	dvs_uuid = "${data.vsphere_distributed_virtual_switch.dvs.id}"
 	sizing_hint = "SMALL"
-	
+
 	management_network {
 		network = "${data.vsphere_network.mgmt_net.id}"
 		subnet_mask = "255.255.255.0"
@@ -182,7 +183,7 @@ resource "vsphere_supervisor" "supervisor" {
 	edge_cluster = "%s"
 	dvs_uuid = "${data.vsphere_distributed_virtual_switch.dvs.id}"
 	sizing_hint = "SMALL"
-	
+
 	management_network {
 		network = "${data.vsphere_network.mgmt_net.id}"
 		subnet_mask = "255.255.255.0"
