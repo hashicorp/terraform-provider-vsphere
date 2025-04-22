@@ -1436,10 +1436,48 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 		attach = r.Get("attach").(bool)
 	}
 	// Save disk backing settings
-	b, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
-	if !ok {
+	if b, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo); ok {
+		if err := r.setFlatBackingProperties(b, disk, attach); err != nil {
+			return err
+		}
+	} else if b, ok := disk.Backing.(*types.VirtualDiskSparseVer2BackingInfo); ok {
+		if err := r.setSparseBackingProperties(b, disk, attach); err != nil {
+			return err
+		}
+	} else {
 		return fmt.Errorf("disk backing at %s is of an unsupported type (type %T)", r.Get("device_address").(string), disk.Backing)
 	}
+
+	if allocation := disk.StorageIOAllocation; allocation != nil {
+		r.Set("io_limit", allocation.Limit)
+		r.Set("io_reservation", allocation.Reservation)
+		if shares := allocation.Shares; shares != nil {
+			r.Set("io_share_level", string(shares.Level))
+			r.Set("io_share_count", shares.Shares)
+		}
+	}
+
+	if spbm.IsSupported(r.client) {
+		// Set storage policy if the VM exists.
+		vmUUID := r.rdd.Id()
+		if vmUUID != "" {
+			result, err := virtualmachine.MOIDForUUID(r.client, vmUUID)
+			if err != nil {
+				return err
+			}
+			polID, err := spbm.PolicyIDByVirtualDisk(r.client, result.MOID, r.Get("key").(int))
+			if err != nil {
+				return err
+			}
+			r.Set("storage_policy_id", polID)
+		}
+	}
+
+	log.Printf("[DEBUG] %s: Read finished (key and device address may have changed)", r)
+	return nil
+}
+
+func (r *DiskSubresource) setFlatBackingProperties(b *types.VirtualDiskFlatVer2BackingInfo, disk *types.VirtualDisk, attach bool) error {
 	r.Set("uuid", b.Uuid)
 	r.Set("disk_mode", b.DiskMode)
 	r.Set("write_through", b.WriteThrough)
@@ -1469,29 +1507,24 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 		r.Set("size", diskCapacityInGiB(disk))
 	}
 
-	if allocation := disk.StorageIOAllocation; allocation != nil {
-		r.Set("io_limit", allocation.Limit)
-		r.Set("io_reservation", allocation.Reservation)
-		if shares := allocation.Shares; shares != nil {
-			r.Set("io_share_level", string(shares.Level))
-			r.Set("io_share_count", shares.Shares)
-		}
-	}
+	return nil
+}
 
-	if spbm.IsSupported(r.client) {
-		// Set storage policy if the VM exists.
-		vmUUID := r.rdd.Id()
-		if vmUUID != "" {
-			result, err := virtualmachine.MOIDForUUID(r.client, vmUUID)
-			if err != nil {
-				return err
-			}
-			polID, err := spbm.PolicyIDByVirtualDisk(r.client, result.MOID, r.Get("key").(int))
-			if err != nil {
-				return err
-			}
-			r.Set("storage_policy_id", polID)
+func (r *DiskSubresource) setSparseBackingProperties(b *types.VirtualDiskSparseVer2BackingInfo, disk *types.VirtualDisk, attach bool) error {
+	r.Set("uuid", b.Uuid)
+	r.Set("disk_mode", b.DiskMode)
+	r.Set("write_through", b.WriteThrough)
+
+	r.Set("datastore_id", b.Datastore.Value)
+
+	// Disk settings
+	if !attach {
+		dp := &object.DatastorePath{}
+		if ok := dp.FromString(b.FileName); !ok {
+			return fmt.Errorf("could not parse path from filename: %s", b.FileName)
 		}
+		r.Set("path", dp.Path)
+		r.Set("size", diskCapacityInGiB(disk))
 	}
 
 	log.Printf("[DEBUG] %s: Read finished (key and device address may have changed)", r)
@@ -2364,14 +2397,15 @@ func diskUUIDMatch(device types.BaseVirtualDevice, uuid string) bool {
 	if !ok {
 		return false
 	}
-	backing, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
-	if !ok {
-		return false
+
+	if backing, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo); ok {
+		return backing.Uuid == uuid
 	}
-	if backing.Uuid != uuid {
-		return false
+	if backing, ok := disk.Backing.(*types.VirtualDiskSparseVer2BackingInfo); ok {
+		return backing.Uuid == uuid
 	}
-	return true
+
+	return false
 }
 
 // diskCapacityInGiB reports the supplied disk's capacity, by first checking
