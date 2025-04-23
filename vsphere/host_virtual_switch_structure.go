@@ -58,10 +58,11 @@ func schemaHostVirtualSwitchBondBridge() map[string]*schema.Schema {
 
 		// HostVirtualSwitchBondBridge
 		"network_adapters": {
-			Type:        schema.TypeList,
-			Required:    true,
-			Description: "The list of network adapters to bind to this virtual switch.",
-			Elem:        &schema.Schema{Type: schema.TypeString},
+			Type:             schema.TypeList,
+			Required:         true,
+			Description:      "The list of network adapters to bind to this virtual switch.",
+			Elem:             &schema.Schema{Type: schema.TypeString},
+			DiffSuppressFunc: networkAdaptersSupressDiff,
 		},
 	}
 }
@@ -198,4 +199,40 @@ func splitHostVirtualSwitchID(raw string) (string, string, error) {
 // splitHostVirtualSwitchID.
 func virtualSwitchIDsFromResourceID(d *schema.ResourceData) (string, string, error) {
 	return splitHostVirtualSwitchID(d.Id())
+}
+
+// networkAdaptersSupressDiff checks if the 'network_adapters' set has changed, ignoring and difference
+// in the order of elements.
+func networkAdaptersSupressDiff(_, _, _ string, d *schema.ResourceData) bool {
+	o, n := d.GetChange("network_adapters")
+	oldAdapters := o.([]interface{})
+	newAdapters := n.([]interface{})
+
+	if len(oldAdapters) != len(newAdapters) {
+		return false
+	}
+
+	for _, oldAdapter := range oldAdapters {
+		if found := isAdapterFound(oldAdapter, newAdapters); !found {
+			return false
+		}
+	}
+
+	for _, newAdapter := range newAdapters {
+		if found := isAdapterFound(newAdapter, oldAdapters); !found {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isAdapterFound(adapter interface{}, set []interface{}) bool {
+	for _, v := range set {
+		if adapter == v {
+			return true
+		}
+	}
+
+	return false
 }
