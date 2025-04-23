@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package testhelper
@@ -211,7 +212,7 @@ func ConfigDSClusterData() string {
 	  name          = "%s"
 	  datacenter_id = data.vsphere_datacenter.rootdc1.id
 	}
- 
+
 `, os.Getenv("TF_VAR_VSPHERE_DS_CLUSTER1"))
 }
 
