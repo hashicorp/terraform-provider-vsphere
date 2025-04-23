@@ -1,9 +1,12 @@
 ---
-name: Manage Stale Items
+name: Stale
 
 on:
   schedule:
     - cron: 00 00 * * *
+
+permissions:
+  contents: read
 
 jobs:
   stale:
@@ -12,33 +15,35 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-      - uses: actions/stale@28ca1036281a5e5922ead5184a1bbf96e5fc984e # v9.0.0
+      - uses: actions/stale@5bef64f19d7facfb25b37b414482c7164d639639 # v9.1.0
         with:
-          repo-token: '${{ secrets.GITHUB_TOKEN }}'
-          days-before-stale: 180
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          days-before-stale: 360
           days-before-close: 30
-          exempt-issue-labels: 'needs-triage, acknowledged, in-progress'
-          exempt-pr-labels: 'needs-review, under-review, acknowledged, planned'
+          exempt-issue-labels: needs-triage
+          exempt-pr-labels: needs-review
           remove-stale-when-updated: true
           delete-branch: false
           stale-issue-label: stale
           stale-issue-message: >
-            Marking this issue as stale due to inactivity in the past 180 days.
-            This helps us focus on the active issues. If this issue is
-            reproducible with the [latest](https://github.com/hashicorp/terraform-provider-vsphere/releases/latest)
-            version of the provider, please comment. If this issue receives no
-            comments in the next 30 days it will automatically be closed.
+            'Marking this issue as stale due to inactivity. This helps us focus
+            on the active issues. If this issue receives no comments in the next
+            30 days it will automatically be closed.
+
 
             If this issue was automatically closed and you feel this issue
             should be reopened, we encourage creating a new issue linking back
-            to this one for added context. Thank you!
+            to this one for added context.
+
+            Thank you!'
           stale-pr-label: stale
           stale-pr-message: >
-            Marking this pull request as stale due to inactivity in the past
-            180 days. This helps us focus on the active pull requests. If this
-            pull request receives no comments in the next 30 days it will
-            automatically be closed.
+            'Marking this pull request as stale due to inactivity. This helps us
+            focus on the active pull requests. If this pull request receives no
+            comments in the next 30 days it will automatically be closed.
 
-            If this pull request was automatically closed and you feel this
-            pull request should be reopened, we encourage creating a new pull
-            request linking back to this one for added context. Thank you!
+            If this pull request was automatically closed and you feel this pull
+            request should be reopened, we encourage creating a new pull request
+            linking back to this one for added context.
+
+            Thank you!'
