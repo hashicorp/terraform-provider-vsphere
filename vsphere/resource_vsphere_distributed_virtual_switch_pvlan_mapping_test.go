@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/vim25/types"
@@ -41,7 +41,7 @@ func testAccResourceVSphereDistributedVirtualSwitchPvlanMappingConfig() string {
 
 resource "vsphere_distributed_virtual_switch_pvlan_mapping" "mapping" {
   distributed_virtual_switch_id = vsphere_distributed_virtual_switch.dvs.id
-  
+
   primary_vlan_id = 1005
   secondary_vlan_id = 1005
   pvlan_type = "promiscuous"

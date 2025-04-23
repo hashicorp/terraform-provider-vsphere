@@ -13,8 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"github.com/vmware/govmomi"
 )
@@ -385,13 +385,13 @@ func testaccvspherevnicconfigHvs(netConfig string) string {
 	  name          = "%s"
 	  datacenter_id = data.vsphere_datacenter.rootdc1.id
 	}
-	
+
 	resource "vsphere_host_port_group" "p1" {
 	  name                     = "ko-pg"
 	  virtual_switch_name = "vSwitch0"
 	  host_system_id   = data.vsphere_host.h1.id
 	}
-	
+
 	resource "vsphere_vnic" "v1" {
 	  host      = data.vsphere_host.h1.id
 	  portgroup = vsphere_host_port_group.p1.name
@@ -414,13 +414,13 @@ func testaccvspherevnicconfigDvs(netConfig string) string {
 		devices        = ["%s"]
 	  }
 	}
-	
+
 	resource "vsphere_distributed_port_group" "p1" {
 	  name                            = "ko-pg"
 	  vlan_id                         = 1234
 	  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.d1.id
 	}
-	
+
 	resource "vsphere_vnic" "v1" {
 	  host                    = data.vsphere_host.roothost2.id
 	  distributed_switch_port = vsphere_distributed_virtual_switch.d1.id

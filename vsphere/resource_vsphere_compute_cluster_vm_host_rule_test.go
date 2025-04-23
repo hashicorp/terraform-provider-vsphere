@@ -14,8 +14,8 @@ import (
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi/vim25/types"
@@ -322,7 +322,7 @@ resource "vsphere_virtual_machine" "vm" {
 resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
   name               = "terraform-test-cluster-host-group"
   compute_cluster_id = data.vsphere_compute_cluster.rootcompute_cluster1.id
-  host_system_ids    = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id] 
+  host_system_ids    = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
 }
 
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
@@ -377,7 +377,7 @@ resource "vsphere_virtual_machine" "vm" {
 resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
   name               = "terraform-test-cluster-host-group"
   compute_cluster_id = data.vsphere_compute_cluster.rootcompute_cluster1.id
-  host_system_ids    = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id] 
+  host_system_ids    = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
 }
 
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
@@ -432,7 +432,7 @@ resource "vsphere_virtual_machine" "vm" {
 resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
   name               = "terraform-test-cluster-host-group"
   compute_cluster_id = data.vsphere_compute_cluster.rootcompute_cluster1.id
-  host_system_ids    = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id] 
+  host_system_ids    = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
 }
 
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
