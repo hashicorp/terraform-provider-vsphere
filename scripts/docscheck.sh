@@ -2,7 +2,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-docs=$(find ../docs -type f -name "*.md")
+docs=$(find ./docs -type f -name "*.md")
 error=false
 
 for doc in $docs; do
@@ -44,4 +44,5 @@ if $error; then
   exit 1
 fi
 
+echo "==> Done."
 exit 0
