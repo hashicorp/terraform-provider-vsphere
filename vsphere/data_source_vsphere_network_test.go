@@ -9,9 +9,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
-
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 )
 
 func TestAccDataSourceVSphereNetwork_dvsPortgroup(t *testing.T) {

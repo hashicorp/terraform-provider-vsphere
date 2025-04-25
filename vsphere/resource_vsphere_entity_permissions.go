@@ -14,10 +14,10 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/administrationroles"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/utils"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/administrationroles"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/utils"
 )
 
 func resourceVsphereEntityPermissions() *schema.Resource {

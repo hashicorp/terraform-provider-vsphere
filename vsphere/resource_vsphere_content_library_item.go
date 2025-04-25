@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 )
 
 func resourceVSphereContentLibraryItem() *schema.Resource {
