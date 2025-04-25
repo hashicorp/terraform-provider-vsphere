@@ -70,9 +70,6 @@ linters:
           - revive
         text: var-naming
       - linters:
-          - revive
-        text: superfluous-else
-      - linters:
           - staticcheck
         text: S1002
       - linters:
