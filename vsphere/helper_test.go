@@ -364,7 +364,7 @@ func testPowerOffVM(s *terraform.State, resourceName string) error {
 
 // testRenameVMFirstDisk renames the first disk in a virtual machine
 // configuration and re-attaches it to the virtual machine under the new name.
-func testRenameVMFirstDisk(s *terraform.State, resourceName string, new string) error {
+func testRenameVMFirstDisk(s *terraform.State, resourceName string, newDiskName string) error {
 	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_virtual_machine.%s", resourceName))
 	if err != nil {
 		return err
@@ -396,7 +396,7 @@ func testRenameVMFirstDisk(s *terraform.State, resourceName string, new string) 
 				tVars.client,
 				oldDisk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).FileName,
 				dc,
-				new,
+				newDiskName,
 				nil,
 			)
 			if err != nil {

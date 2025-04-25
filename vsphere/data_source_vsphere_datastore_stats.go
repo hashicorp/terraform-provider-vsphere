@@ -78,9 +78,9 @@ func dataSourceVSphereDatastoreStatsRead(d *schema.ResourceData, meta interface{
 		if err != nil {
 			return fmt.Errorf("error getting properties for datastore ID %q: %s", ds.Reference().Value, err)
 		}
-		cap := d.Get("capacity").(map[string]interface{})
-		cap[dss[i].Name()] = fmt.Sprintf("%v", props.Summary.Capacity)
-		d.Set("capacity", cap)
+		capacityMap := d.Get("capacity").(map[string]interface{})
+		capacityMap[dss[i].Name()] = fmt.Sprintf("%v", props.Summary.Capacity)
+		d.Set("capacity", capacityMap)
 		fr := d.Get("free_space").(map[string]interface{})
 		fr[dss[i].Name()] = fmt.Sprintf("%v", props.Summary.FreeSpace)
 		d.Set("free_space", fr)

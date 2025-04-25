@@ -258,11 +258,11 @@ func expandVmwareDistributedVirtualSwitchTrunkVlanSpec(d *schema.ResourceData) *
 	for _, v := range data {
 		log.Printf("[DEBUG] processing range: %#v", v)
 		r := v.(map[string]interface{})
-		min := r["min_vlan"].(int)
-		max := r["max_vlan"].(int)
+		minVlan := r["min_vlan"].(int)
+		maxVlan := r["max_vlan"].(int)
 		rng := types.NumericRange{
-			Start: int32(min),
-			End:   int32(max),
+			Start: int32(minVlan),
+			End:   int32(maxVlan),
 		}
 		ranges = append(ranges, rng)
 	}

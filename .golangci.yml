@@ -62,9 +62,6 @@ linters:
         text: ineffectual assignment
       - linters:
           - revive
-        text: redefines-builtin-id
-      - linters:
-          - revive
         text: unused-parameter
       - linters:
           - revive

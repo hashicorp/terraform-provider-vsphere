@@ -95,10 +95,10 @@ func IsResourceInUseError(err error) bool {
 }
 
 // RenameObject renames a MO and tracks the task to make sure it completes.
-func RenameObject(client *govmomi.Client, ref types.ManagedObjectReference, new string) error {
+func RenameObject(client *govmomi.Client, ref types.ManagedObjectReference, newObjectName string) error {
 	req := types.Rename_Task{
 		This:    ref,
-		NewName: new,
+		NewName: newObjectName,
 	}
 
 	rctx, rcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)

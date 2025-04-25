@@ -142,7 +142,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "Enable logging on this virtual machine.",
-			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			DiffSuppressFunc: func(k, oldSetting, newSetting string, d *schema.ResourceData) bool {
 				return len(d.Get("ovf_deploy").([]interface{})) > 0
 			},
 		},
@@ -280,13 +280,13 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Optional:    true,
 			Computed:    true,
 			Description: "The guest ID for the operating system.",
-			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			DiffSuppressFunc: func(k, oldSetting, newSetting string, d *schema.ResourceData) bool {
 				ovf, ok := d.GetOk("ovf_deploy")
 				if !ok {
 					return false
 				}
 
-				if items, ok := ovf.([]interface{}); ok && len(items) > 0 && new == "" {
+				if items, ok := ovf.([]interface{}); ok && len(items) > 0 && newSetting == "" {
 					return true
 				}
 
