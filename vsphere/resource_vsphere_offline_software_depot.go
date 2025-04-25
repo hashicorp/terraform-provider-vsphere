@@ -113,9 +113,9 @@ func resourceVsphereOfflineSoftwareDepotDelete(d *schema.ResourceData, meta inte
 	client := meta.(*Client).restClient
 	m := depots.NewManager(client)
 
-	if taskId, err := m.DeleteOfflineDepot(d.Id()); err != nil {
+	if taskID, err := m.DeleteOfflineDepot(d.Id()); err != nil {
 		return err
-	} else if _, err = tasks.NewManager(client).WaitForCompletion(context.Background(), taskId); err != nil {
+	} else if _, err = tasks.NewManager(client).WaitForCompletion(context.Background(), taskID); err != nil {
 		return err
 	}
 	return nil

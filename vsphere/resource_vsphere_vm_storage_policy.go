@@ -133,9 +133,9 @@ func resourceVMStoragePolicyRead(d *schema.ResourceData, meta interface{}) error
 	profileID := types2.PbmProfileId{
 		UniqueId: d.Id(),
 	}
-	pbmProfileIds := []types2.PbmProfileId{profileID}
+	pbmProfileIDs := []types2.PbmProfileId{profileID}
 
-	vmStoragePolicies, err := pbmClient.RetrieveContent(context.Background(), pbmProfileIds)
+	vmStoragePolicies, err := pbmClient.RetrieveContent(context.Background(), pbmProfileIDs)
 	if err != nil {
 		if strings.Contains(err.Error(), "Profile not found") {
 			log.Printf("[DEBUG] storage policy profile %s: Resource has been deleted", d.Id())
@@ -282,13 +282,13 @@ func resourceVMStoragePolicyDelete(d *schema.ResourceData, meta interface{}) err
 	if err != nil {
 		return fmt.Errorf("error while creating pbm client %s", err)
 	}
-	var policyIdsToDelete []types2.PbmProfileId
-	policyIdsToDelete = append(policyIdsToDelete, types2.PbmProfileId{
+	var policyIDsToDelete []types2.PbmProfileId
+	policyIDsToDelete = append(policyIDsToDelete, types2.PbmProfileId{
 		UniqueId: d.Id(),
 	})
 
 	var deleteProfileOutcome []types2.PbmProfileOperationOutcome
-	deleteProfileOutcome, err = pbmClient.DeleteProfile(context.Background(), policyIdsToDelete)
+	deleteProfileOutcome, err = pbmClient.DeleteProfile(context.Background(), policyIDsToDelete)
 	if err != nil {
 		return fmt.Errorf("error while deleting policy with ID %s %s", d.Id(), err)
 	}

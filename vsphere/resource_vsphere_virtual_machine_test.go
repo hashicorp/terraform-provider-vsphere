@@ -3479,8 +3479,8 @@ func testAccResourceVSphereVirtualMachineCheckVmdkDatastore(diskIndex int, expec
 		for _, dev := range props.Config.Hardware.Device {
 			if disk, ok := dev.(*types.VirtualDisk); ok {
 				if info, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo); ok {
-					currentDiskUuid := info.Uuid
-					if currentDiskUuid == uuidToLookFor {
+					currentDiskUUID := info.Uuid
+					if currentDiskUUID == uuidToLookFor {
 						var dsPath object.DatastorePath
 						if ok := dsPath.FromString(info.FileName); !ok {
 							return fmt.Errorf("could not parse datastore path %q", info.FileName)

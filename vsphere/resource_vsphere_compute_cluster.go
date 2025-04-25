@@ -1165,12 +1165,12 @@ func resourceVSphereComputeClusterApplyHostImage(
 		}
 	}
 
-	draftId, err := m.CreateSoftwareDraft(d.Id())
+	draftID, err := m.CreateSoftwareDraft(d.Id())
 	if err != nil {
 		return err
 	}
 
-	if err := m.SetSoftwareDraftBaseImage(d.Id(), draftId, d.Get("host_image.0.esx_version").(string)); err != nil {
+	if err := m.SetSoftwareDraftBaseImage(d.Id(), draftID, d.Get("host_image.0.esx_version").(string)); err != nil {
 		return err
 	}
 
@@ -1182,19 +1182,19 @@ func resourceVSphereComputeClusterApplyHostImage(
 	spec.ComponentsToSet = getComponentsToAdd(oldComponentsMap, newComponentsMap)
 	componentsToRemove := getComponentsToRemove(oldComponentsMap, newComponentsMap)
 
-	if err = m.UpdateSoftwareDraftComponents(d.Id(), draftId, spec); err != nil {
+	if err = m.UpdateSoftwareDraftComponents(d.Id(), draftID, spec); err != nil {
 		return err
 	}
 
 	if len(componentsToRemove) > 0 {
 		for _, componentId := range componentsToRemove {
-			if err := m.RemoveSoftwareDraftComponents(d.Id(), draftId, componentId); err != nil {
+			if err := m.RemoveSoftwareDraftComponents(d.Id(), draftID, componentId); err != nil {
 				return err
 			}
 		}
 	}
 
-	taskId, err := m.CommitSoftwareDraft(d.Id(), draftId, clusters.SettingsClustersSoftwareDraftsCommitSpec{})
+	taskId, err := m.CommitSoftwareDraft(d.Id(), draftID, clusters.SettingsClustersSoftwareDraftsCommitSpec{})
 	if err != nil {
 		return err
 	}

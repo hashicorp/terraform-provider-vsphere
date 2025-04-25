@@ -15,7 +15,7 @@ func TestAccResourceVSphereVmClass_basic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVSphereVmClassConfig(),
+				Config: testAccVSphereVMClassConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("vsphere_virtual_machine_class.vm_class_1", "id"),
 				),
@@ -29,7 +29,7 @@ func TestAccResourceVSphereVmClass_vgpu(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVSphereVmClassConfig_vgpu(),
+				Config: testAccVSphereVMClassConfigVgpu(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("vsphere_virtual_machine_class.vm_class_1", "id"),
 				),
@@ -38,7 +38,7 @@ func TestAccResourceVSphereVmClass_vgpu(t *testing.T) {
 	})
 }
 
-func testAccVSphereVmClassConfig() string {
+func testAccVSphereVMClassConfig() string {
 	return `
 		resource "vsphere_virtual_machine_class" "vm_class_1" {
 			name = "test-class-11"
@@ -49,7 +49,7 @@ func testAccVSphereVmClassConfig() string {
 `
 }
 
-func testAccVSphereVmClassConfig_vgpu() string {
+func testAccVSphereVMClassConfigVgpu() string {
 	return `
 		resource "vsphere_virtual_machine_class" "vm_class_1" {
 			name = "test-class-11"

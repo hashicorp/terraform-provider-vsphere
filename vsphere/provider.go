@@ -133,7 +133,7 @@ func Provider() *schema.Provider {
 			"vsphere_tag_category":                             resourceVSphereTagCategory(),
 			"vsphere_virtual_disk":                             resourceVSphereVirtualDisk(),
 			"vsphere_virtual_machine":                          resourceVSphereVirtualMachine(),
-			"vsphere_virtual_machine_class":                    resourceVsphereVmClass(),
+			"vsphere_virtual_machine_class":                    resourceVsphereVMClass(),
 			"vsphere_virtual_machine_snapshot":                 resourceVSphereVirtualMachineSnapshot(),
 			"vsphere_nas_datastore":                            resourceVSphereNasDatastore(),
 			"vsphere_storage_drs_vm_override":                  resourceVSphereStorageDrsVMOverride(),

@@ -153,7 +153,7 @@ func resourceVsphereNicRead(d *schema.ResourceData, meta interface{}) error {
 	var services []string
 	for _, netConfig := range hostVnicMgrInfo.NetConfig {
 		for _, vnic := range netConfig.SelectedVnic {
-			if isNicIdContained := strings.Contains(vnic, nicID); isNicIdContained {
+			if isNicIDContained := strings.Contains(vnic, nicID); isNicIDContained {
 				services = append(services, netConfig.NicType)
 			}
 		}

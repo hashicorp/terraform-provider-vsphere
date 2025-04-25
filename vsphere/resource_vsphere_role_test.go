@@ -127,8 +127,8 @@ func TestAccResourceVsphereRole_importSystemRoleShouldError(t *testing.T) {
 				ResourceName:      "vsphere_role." + RoleResource,
 				ImportState:       true,
 				ImportStateVerify: true,
-				ImportStateId:     NoAccessRoleId,
-				ExpectError:       regexp.MustCompile(fmt.Sprintf("error specified role with id %s is a system role. System roles are not supported for this operation", NoAccessRoleId)),
+				ImportStateId:     NoAccessRoleID,
+				ExpectError:       regexp.MustCompile(fmt.Sprintf("error specified role with id %s is a system role. System roles are not supported for this operation", NoAccessRoleID)),
 			},
 		},
 	})

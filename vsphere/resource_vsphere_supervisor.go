@@ -232,15 +232,15 @@ func resourceVsphereSupervisorCreate(d *schema.ResourceData, meta interface{}) e
 	c := meta.(*Client).restClient
 	m := namespace.NewManager(c)
 
-	clusterId := d.Get("cluster").(string)
+	clusterID := d.Get("cluster").(string)
 
 	spec := buildClusterEnableSpec(d)
 
-	if err := m.EnableCluster(context.Background(), clusterId, spec); err != nil {
+	if err := m.EnableCluster(context.Background(), clusterID, spec); err != nil {
 		return err
 	}
 
-	d.SetId(clusterId)
+	d.SetId(clusterID)
 
 	if err := waitForSupervisorEnable(m, d); err != nil {
 		return err
@@ -263,7 +263,7 @@ func resourceVsphereSupervisorRead(d *schema.ResourceData, meta interface{}) err
 	c := meta.(*Client).restClient
 	m := namespace.NewManager(c)
 
-	cluster := getClusterById(m, d.Id())
+	cluster := getClusterByID(m, d.Id())
 
 	if cluster == nil {
 		return fmt.Errorf("could not find cluster %s", cluster.ID)
@@ -342,8 +342,8 @@ func buildClusterEnableSpec(d *schema.ResourceData) *namespace.EnableClusterSpec
 	}
 
 	contentLib := d.Get("content_library").(string)
-	mainDns := d.Get("main_dns").([]interface{})
-	workerDns := d.Get("worker_dns").([]interface{})
+	mainDNS := d.Get("main_dns").([]interface{})
+	workerDNS := d.Get("worker_dns").([]interface{})
 	mainNtp := d.Get("main_ntp").([]interface{})
 	workerNtp := d.Get("worker_ntp").([]interface{})
 	dnsSearchDomains := d.Get("search_domains").([]interface{})
@@ -360,8 +360,8 @@ func buildClusterEnableSpec(d *schema.ResourceData) *namespace.EnableClusterSpec
 		MasterManagementNetwork:                getMgmtNetwork(d),
 		ImageStorage:                           namespace.ImageStorageSpec{StoragePolicy: storagePolicy},
 		NcpClusterNetworkSpec:                  &ncpNetworkSpec,
-		MasterDNS:                              structure.SliceInterfacesToStrings(mainDns),
-		WorkerDNS:                              structure.SliceInterfacesToStrings(workerDns),
+		MasterDNS:                              structure.SliceInterfacesToStrings(mainDNS),
+		WorkerDNS:                              structure.SliceInterfacesToStrings(workerDNS),
 		MasterNTPServers:                       structure.SliceInterfacesToStrings(mainNtp),
 		WorkloadNTPServers:                     structure.SliceInterfacesToStrings(workerNtp),
 		DefaultKubernetesServiceContentLibrary: contentLib,
@@ -420,7 +420,7 @@ func waitForSupervisorEnable(m *namespace.Manager, d *schema.ResourceData) error
 		select {
 		case <-context.Background().Done():
 		case <-ticker.C:
-			cluster := getClusterById(m, d.Id())
+			cluster := getClusterByID(m, d.Id())
 
 			if cluster == nil {
 				return fmt.Errorf("could not find cluster %s", cluster.ID)
@@ -452,7 +452,7 @@ func waitForSupervisorDisable(m *namespace.Manager, d *schema.ResourceData) erro
 		select {
 		case <-context.Background().Done():
 		case <-ticker.C:
-			cluster := getClusterById(m, d.Id())
+			cluster := getClusterByID(m, d.Id())
 
 			if cluster == nil {
 				return nil
@@ -465,7 +465,7 @@ func waitForSupervisorDisable(m *namespace.Manager, d *schema.ResourceData) erro
 	}
 }
 
-func getClusterById(m *namespace.Manager, id string) *namespace.ClusterSummary {
+func getClusterByID(m *namespace.Manager, id string) *namespace.ClusterSummary {
 	clusters, err := m.ListClusters(context.Background())
 
 	if err != nil {

@@ -11,12 +11,12 @@ import (
 	"github.com/vmware/govmomi/vapi/namespace"
 )
 
-func resourceVsphereVmClass() *schema.Resource {
+func resourceVsphereVMClass() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceVsphereVmClassCreate,
-		Read:   resourceVsphereVmClassRead,
-		Update: resourceVsphereVmClassUpdate,
-		Delete: resourceVsphereVmClassDelete,
+		Create: resourceVsphereVMClassCreate,
+		Read:   resourceVsphereVMClassRead,
+		Update: resourceVsphereVMClassUpdate,
+		Delete: resourceVsphereVMClassDelete,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -55,7 +55,7 @@ func resourceVsphereVmClass() *schema.Resource {
 	}
 }
 
-func resourceVsphereVmClassCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceVsphereVMClassCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client).restClient
 	m := namespace.NewManager(c)
 
@@ -85,7 +85,7 @@ func resourceVsphereVmClassCreate(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceVsphereVmClassRead(d *schema.ResourceData, meta interface{}) error {
+func resourceVsphereVMClassRead(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client).restClient
 	m := namespace.NewManager(c)
 
@@ -94,7 +94,7 @@ func resourceVsphereVmClassRead(d *schema.ResourceData, meta interface{}) error 
 	return err
 }
 
-func resourceVsphereVmClassUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceVsphereVMClassUpdate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client).restClient
 	m := namespace.NewManager(c)
 
@@ -118,7 +118,7 @@ func resourceVsphereVmClassUpdate(d *schema.ResourceData, meta interface{}) erro
 	return m.UpdateVmClass(context.Background(), d.Id(), vmClassSpec)
 }
 
-func resourceVsphereVmClassDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceVsphereVMClassDelete(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client).restClient
 	m := namespace.NewManager(c)
 

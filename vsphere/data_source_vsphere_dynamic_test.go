@@ -25,7 +25,7 @@ func TestAccDataSourceVSphereDynamic_regexAndTag(t *testing.T) {
 			{
 				Config: testAccDataSourceVSphereConfigRegexAndTag(),
 				Check: resource.ComposeTestCheckFunc(
-					testMatchDatacenterIds("vsphere_datacenter.dc2", "data.vsphere_dynamic.dyn1"),
+					testMatchDatacenterIDs("vsphere_datacenter.dc2", "data.vsphere_dynamic.dyn1"),
 				),
 			},
 			{
@@ -46,7 +46,7 @@ func TestAccDataSourceVSphereDynamic_multiTag(t *testing.T) {
 			{
 				Config: testAccDataSourceVSphereConfigMultiTag(),
 				Check: resource.ComposeTestCheckFunc(
-					testMatchDatacenterIds("vsphere_datacenter.dc1", "data.vsphere_dynamic.dyn2"),
+					testMatchDatacenterIDs("vsphere_datacenter.dc1", "data.vsphere_dynamic.dyn2"),
 				),
 			},
 			{
@@ -83,7 +83,7 @@ func TestAccDataSourceVSphereDynamic_typeFilter(t *testing.T) {
 			{
 				Config: testAccDataSourceVSphereConfigType(),
 				Check: resource.ComposeTestCheckFunc(
-					testMatchDatacenterIds("vsphere_datacenter.dc1", "data.vsphere_dynamic.dyn4"),
+					testMatchDatacenterIDs("vsphere_datacenter.dc1", "data.vsphere_dynamic.dyn4"),
 				),
 			},
 			{
@@ -93,7 +93,7 @@ func TestAccDataSourceVSphereDynamic_typeFilter(t *testing.T) {
 	})
 }
 
-func testMatchDatacenterIds(a, b string) resource.TestCheckFunc {
+func testMatchDatacenterIDs(a, b string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		ida := s.RootModule().Resources[a].Primary.Attributes["moid"]
 		idb := s.RootModule().Resources[b].Primary.ID
