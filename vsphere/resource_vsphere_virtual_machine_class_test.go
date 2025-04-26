@@ -4,7 +4,6 @@
 package vsphere
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -39,18 +38,18 @@ func TestAccResourceVSphereVmClass_vgpu(t *testing.T) {
 }
 
 func testAccVSphereVmClassConfig() string {
-	return fmt.Sprintf(`
+	return `
 		resource "vsphere_virtual_machine_class" "vm_class_1" {
 			name = "test-class-11"
 			cpus = 4
 			memory = 4096
 			memory_reservation = 100
 		}
-`)
+`
 }
 
 func testAccVSphereVmClassConfig_vgpu() string {
-	return fmt.Sprintf(`
+	return `
 		resource "vsphere_virtual_machine_class" "vm_class_1" {
 			name = "test-class-11"
 			cpus = 4
@@ -58,5 +57,5 @@ func testAccVSphereVmClassConfig_vgpu() string {
 			memory_reservation = 100
 			vgpu_devices = [ "mockup-vmiop" ]
 		}
-`)
+`
 }
