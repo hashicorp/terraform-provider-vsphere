@@ -1010,8 +1010,12 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 		if err != nil {
 			return nil, err
 		}
+
 		if len(r.Get("physical_function").(string)) > 0 {
 			newDevice, err = r.addPhysicalFunction(newDevice)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		r.Set("key", l.NewKey())
