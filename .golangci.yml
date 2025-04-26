@@ -151,9 +151,6 @@ linters:
           - staticcheck
         text: S1005
       - linters:
-          - goimports
-        text: File is not properly formatted
-      - linters:
           - errcheck
         path: vsphere/data_source_vsphere_datacenter.go
         text: Error return value of `view.Destroy` is not checked
@@ -161,10 +158,6 @@ linters:
           - errcheck
         path: vsphere/distributed_virtual_switch_helper.go
         text: Error return value of `task.Wait` is not checked
-      - linters:
-          - gofmt
-        path: vsphere/resource_vsphere_compute_cluster.go
-        text: File is not properly formatted
 
     paths:
       - third_party$
