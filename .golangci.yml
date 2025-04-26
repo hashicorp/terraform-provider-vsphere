@@ -131,9 +131,6 @@ linters:
         text: QF1003
       - linters:
           - staticcheck
-        text: SA1006
-      - linters:
-          - staticcheck
         text: SA4006
       - linters:
           - staticcheck
