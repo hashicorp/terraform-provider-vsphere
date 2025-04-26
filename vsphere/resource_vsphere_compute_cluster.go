@@ -1861,7 +1861,7 @@ func buildVsanRemoveWitnessHostReq(d *schema.ResourceData, cluster types.Managed
 
 	res, err := vsanclient.GetWitnessHosts(client, cluster.Reference())
 	if err != nil {
-		return nil, fmt.Errorf("failed to get witness_node when removing witness!")
+		return nil, fmt.Errorf("failed to get witness node when removing witness")
 	}
 
 	return &vsantypes.VSANVcRemoveWitnessHost{
