@@ -338,6 +338,7 @@ func (uploadSession libraryUploadSession) uploadLocalFile(file string) error {
 }
 
 func openLocalFile(file string) (*io.Reader, *int64, error) {
+	file = filepath.Clean(file)
 	openFile, err := os.Open(file)
 	if err != nil {
 		return nil, nil, err

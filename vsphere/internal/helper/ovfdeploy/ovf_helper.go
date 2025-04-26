@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -193,6 +194,7 @@ func uploadDisksFromLocal(client *govmomi.Client, filePath string, ovfFileItem t
 	}
 	vmdkFilePath := absoluteFilePath + ovfFileItem.Path
 	log.Print(" [DEBUG] Absolute vmdk path: " + vmdkFilePath)
+	vmdkFilePath = filepath.Clean(vmdkFilePath)
 	file, err := os.Open(vmdkFilePath)
 	if err != nil {
 		return err
@@ -268,6 +270,7 @@ func GetOvfDescriptor(filePath string, deployOva bool, fromLocal bool, allowUnve
 	ovfDescriptor := ""
 	if !deployOva {
 		if fromLocal {
+			filePath = filepath.Clean(filePath)
 			fileBuffer, err := os.ReadFile(filePath)
 			if err != nil {
 				return "", err
@@ -293,6 +296,7 @@ func GetOvfDescriptor(filePath string, deployOva bool, fromLocal bool, allowUnve
 		}
 	} else {
 		if fromLocal {
+			filePath = filepath.Clean(filePath)
 			ovaFile, err := os.Open(filePath)
 			if err != nil {
 				return "", err
