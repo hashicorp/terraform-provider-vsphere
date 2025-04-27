@@ -15,7 +15,7 @@ import (
 	"github.com/vmware/govmomi/object"
 )
 
-// Basic file creation (upload to vSphere)
+// TestAccResourceVSphereFile_basic verifies the basic functionality of the resource.
 func TestAccResourceVSphereFile_basic(t *testing.T) {
 	testFileData := []byte("test file data")
 	testFile := "/tmp/tf_test.txt"
@@ -60,7 +60,8 @@ func TestAccResourceVSphereFile_basic(t *testing.T) {
 	_ = os.Remove(testFile)
 }
 
-// Test file creation (upload to vSphere) in non-existing folders with create_directories set to True
+// TestAccResourceVSphereFile_uploadWithCreateDirectories verifies uploading files with nested directories.
+// creation.
 func TestAccResourceVSphereFile_uploadWithCreateDirectories(t *testing.T) {
 	testFileData := []byte("test file data")
 	testFile := "/tmp/tf_test.txt"
@@ -126,7 +127,7 @@ func TestAccResourceVSphereFile_uploadWithCreateDirectories(t *testing.T) {
 	_ = os.Remove(testFile)
 }
 
-// Basic file copy within vSphere
+// TestAccResourceVSphereFile_basicUploadAndCopy verifies uploading and copying files.
 func TestAccResourceVSphereFile_basicUploadAndCopy(t *testing.T) {
 	testFileData := []byte("test file data")
 	sourceFile := "/tmp/tf_test.txt"
@@ -183,7 +184,7 @@ func TestAccResourceVSphereFile_basicUploadAndCopy(t *testing.T) {
 	_ = os.Remove(sourceFile)
 }
 
-// file creation followed by a rename of file (update)
+// TestAccResourceVSphereFile_renamePostCreation verifies the renaming of a resource during creation and update phases.
 func TestAccResourceVSphereFile_renamePostCreation(t *testing.T) {
 	testFileData := []byte("test file data")
 	testFile := "/tmp/tf_test.txt"
@@ -245,7 +246,7 @@ func TestAccResourceVSphereFile_renamePostCreation(t *testing.T) {
 	_ = os.Remove(testFile)
 }
 
-// file upload, then copy, finally the copy is renamed (moved) (update)
+// TestAccResourceVSphereFile_uploadAndCopyAndUpdate verifies uploading, copying, and updating files.
 func TestAccResourceVSphereFile_uploadAndCopyAndUpdate(t *testing.T) {
 	testFileData := []byte("test file data")
 	sourceFile := "/tmp/tf_test.txt"
@@ -327,6 +328,7 @@ func TestAccResourceVSphereFile_uploadAndCopyAndUpdate(t *testing.T) {
 	_ = os.Remove(sourceFile)
 }
 
+// testAccCheckVSphereFileDestroy verifies deleting files.
 func testAccCheckVSphereFileDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*Client).vimClient
 	finder := find.NewFinder(client.Client, true)
@@ -364,6 +366,7 @@ func testAccCheckVSphereFileDestroy(s *terraform.State) error {
 	return nil
 }
 
+// testAccCheckVSphereFileExists verifies the existence or non-existence of a specified file.
 func testAccCheckVSphereFileExists(n string, df string, exists bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -405,6 +408,7 @@ func testAccCheckVSphereFileExists(n string, df string, exists bool) resource.Te
 	}
 }
 
+// testAccCheckVSphereFileConfig defines a configuration for creating or managing the resource.
 const testAccCheckVSphereFileConfig = `
 resource "vsphere_file" "%s" {
 	datacenter       = "%s"
@@ -413,6 +417,8 @@ resource "vsphere_file" "%s" {
 	destination_file = "%s"
 }
 `
+
+// testAccCheckVSphereFileCopyConfig defines a configuration for uploading and copying the resource.
 const testAccCheckVSphereFileCopyConfig = `
 resource "vsphere_file" "%s" {
 	datacenter       = "%s"
@@ -429,6 +435,8 @@ resource "vsphere_file" "%s" {
 	destination_file  = "%s"
 }
 `
+
+// testAccCheckVSphereFileCreateFolderConfig defines a configuration for testing file uploads with directory creation.
 const testAccCheckVSphereFileCreateFolderConfig = `
 resource "vsphere_file" "%s" {
 	datacenter       = "%s"

@@ -60,21 +60,20 @@ will copy from within specified locations in vSphere.
 
 The following arguments are supported:
 
-* `source_file` - (Required) The path to the file being uploaded from the
-  Terraform host to the vSphere environment or copied within vSphere
-  environment. Forces a new resource if changed.
-* `destination_file` - (Required) The path to where the file should be uploaded
-  or copied to on the destination `datastore` in vSphere.
-* `source_datacenter` - (Optional) The name of a datacenter from which the file
-  will be copied. Forces a new resource if changed.
-* `datacenter` - (Optional) The name of a datacenter to which the file will be
-  uploaded.
-* `source_datastore` - (Optional) The name of the datastore from which file will
-  be copied. Forces a new resource if changed.
 * `datastore` - (Required) The name of the datastore to which to upload the
   file.
-* `create_directories` - (Optional) Create directories in `destination_file`
-  path parameter on first apply if any are missing for copy operation.
+* `source_file` - (Required) The path to the file being uploaded from or copied.
+  Forces a new resource if changed.
+* `destination_file` - (Required) The path to where the file should be uploaded
+  or copied to on the destination datastore.
+* `source_datastore` - (Optional) The name of the datastore from which file will
+  be copied. Forces a new resource if changed.
+* `datacenter` - (Optional) The name of a datacenter to which the file will be
+  uploaded.
+* `source_datacenter` - (Optional) The name of a datacenter from which the file
+  will be copied. Forces a new resource if changed.
+  * `create_directories` - (Optional) Specifies whether to create the parent directories
+  of the destination file if they do not exist..
 
 ~> **NOTE:** Any directory created as part of the `create_directories` argument
   will not be deleted when the resource is destroyed. New directories are not
