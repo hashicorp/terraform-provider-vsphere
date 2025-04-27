@@ -68,34 +68,43 @@ func resourceVsphereOfflineSoftwareDepotCreate(d *schema.ResourceData, meta inte
 
 	m := depots.NewManager(client)
 
-	if taskId, err := m.CreateOfflineDepot(spec); err != nil {
+	taskId, err := m.CreateOfflineDepot(spec)
+	if err != nil {
 		return err
-	} else if _, err = tasks.NewManager(client).WaitForCompletion(context.Background(), taskId); err != nil {
-		return err
-	} else if offlineDepots, err := m.GetOfflineDepots(); err != nil {
-		return err
-	} else {
-		for id, depot := range offlineDepots {
-			if depot.Location == location {
-				d.SetId(id)
-				return resourceVsphereOfflineSoftwareDepotRead(d, meta)
-			}
-		}
-
-		return errors.New("failed to create offline software depot")
 	}
+
+	_, err = tasks.NewManager(client).WaitForCompletion(context.Background(), taskId)
+	if err != nil {
+		return err
+	}
+
+	offlineDepots, err := m.GetOfflineDepots()
+	if err != nil {
+		return err
+	}
+
+	for id, depot := range offlineDepots {
+		if depot.Location == location {
+			d.SetId(id)
+			return resourceVsphereOfflineSoftwareDepotRead(d, meta)
+		}
+	}
+
+	return errors.New("failed to create offline software depot")
+
 }
 
 func resourceVsphereOfflineSoftwareDepotRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client).restClient
 	m := depots.NewManager(client)
 
-	if data, err := m.GetOfflineDepotContent(d.Id()); err != nil {
+	data, err := m.GetOfflineDepotContent(d.Id())
+	if err != nil {
 		return err
-	} else {
-		d.SetId(d.Id())
-		return d.Set("component", readComponents(data))
 	}
+
+	d.SetId(d.Id())
+	return d.Set("component", readComponents(data))
 }
 
 func resourceVsphereOfflineSoftwareDepotDelete(d *schema.ResourceData, meta interface{}) error {
@@ -106,9 +115,8 @@ func resourceVsphereOfflineSoftwareDepotDelete(d *schema.ResourceData, meta inte
 		return err
 	} else if _, err = tasks.NewManager(client).WaitForCompletion(context.Background(), taskId); err != nil {
 		return err
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func readComponents(data depots.SettingsDepotsOfflineContentInfo) []map[string]interface{} {
