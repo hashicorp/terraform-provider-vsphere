@@ -25,15 +25,17 @@ func dataSourceVSphereHostBaseImages() *schema.Resource {
 
 func dataSourceVSphereHostBaseImagesRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client).restClient
-	if images, err := depots.NewManager(client).ListBaseImages(); err != nil {
-		return err
-	} else {
-		versions := make([]string, len(images))
-		for i, image := range images {
-			versions[i] = image.Version
-		}
 
-		d.SetId(versions[0])
-		return d.Set("version", versions)
+	images, err := depots.NewManager(client).ListBaseImages()
+	if err != nil {
+		return err
 	}
+
+	versions := make([]string, len(images))
+	for i, image := range images {
+		versions[i] = image.Version
+	}
+
+	d.SetId(versions[0])
+	return d.Set("version", versions)
 }
