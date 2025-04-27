@@ -3111,23 +3111,23 @@ func testAccResourceVSphereVirtualMachineCheckMultiDevice(expectedD, expectedN [
 
 		for _, dev := range props.Config.Hardware.Device {
 			if disk, ok := dev.(*types.VirtualDisk); ok {
-				switch {
-				case disk.CapacityInBytes == expectedDisk0Size:
+				switch disk.CapacityInBytes {
+				case expectedDisk0Size:
 					actualD[0] = true
-				case disk.CapacityInBytes == expectedDisk1Size:
+				case expectedDisk1Size:
 					actualD[1] = true
-				case disk.CapacityInBytes == expectedDisk2Size:
+				case expectedDisk2Size:
 					actualD[2] = true
 				}
 			}
 			if bvec, ok := dev.(types.BaseVirtualEthernetCard); ok {
 				card := bvec.GetVirtualEthernetCard()
-				switch {
-				case card.ResourceAllocation.Share.Level == expectedNet0Level:
+				switch card.ResourceAllocation.Share.Level {
+				case expectedNet0Level:
 					actualN[0] = true
-				case card.ResourceAllocation.Share.Level == expectedNet1Level:
+				case expectedNet1Level:
 					actualN[1] = true
-				case card.ResourceAllocation.Share.Level == expectedNet2Level:
+				case expectedNet2Level:
 					actualN[2] = true
 				}
 			}
