@@ -202,7 +202,7 @@ func parseVersionFromAboutInfo(info types.AboutInfo) VSphereVersion {
 // ParseVersionFromClient returns a populated VSphereVersion from a client
 // connection.
 func ParseVersionFromClient(client *govmomi.Client) VSphereVersion {
-	return parseVersionFromAboutInfo(client.Client.ServiceContent.About)
+	return parseVersionFromAboutInfo(client.ServiceContent.About)
 }
 
 // String implements stringer for VSphereVersion.

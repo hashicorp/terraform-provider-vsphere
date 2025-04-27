@@ -514,8 +514,8 @@ func newClientWithKeepAlive(ctx context.Context, u *url.URL, insecure bool, keep
 		SessionManager: session.NewManager(vimClient),
 	}
 
-	k := session.KeepAlive(c.Client.RoundTripper, time.Duration(keepAlive)*time.Minute)
-	c.Client.RoundTripper = k
+	k := session.KeepAlive(c.RoundTripper, time.Duration(keepAlive)*time.Minute)
+	c.RoundTripper = k
 
 	// Only login if the URL contains user information.
 	if u.User != nil {

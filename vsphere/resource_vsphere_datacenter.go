@@ -252,7 +252,7 @@ func resourceVSphereDatacenterDelete(d *schema.ResourceData, meta interface{}) e
 	}
 
 	req := &types.Destroy_Task{
-		This: dc.Common.Reference(),
+		This: dc.Reference(),
 	}
 
 	_, err = methods.Destroy_Task(context.TODO(), client, req)
