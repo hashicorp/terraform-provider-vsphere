@@ -5,6 +5,7 @@
 package vsphere
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/vmware/govmomi/license"
+	helper "github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/license"
 )
 
 const testAccVSphereLicenseInvalidConfig = `
@@ -97,9 +99,8 @@ func TestAccResourceVSphereLicense_withLabelsOnESXiServer(t *testing.T) {
 		CheckDestroy: testAccVSphereLicenseDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVSphereLicenseWithLabelConfig(),
-				// This error will be thrown when ran against an ESXi server.
-				ExpectError: regexp.MustCompile("Labels are not allowed in ESXi"),
+				Config:      testAccVSphereLicenseWithLabelConfig(),
+				ExpectError: regexp.MustCompile("Labels are not allowed for unmanaged ESX hosts."),
 			},
 		},
 	})
@@ -142,7 +143,8 @@ func testAccVSphereLicenseDestroy(s *terraform.State) error {
 		}
 
 		key := rs.Primary.ID
-		if isKeyPresent(key, manager) {
+		ctx := context.Background()
+		if helper.KeyExists(ctx, key, manager) {
 			message += fmt.Sprintf("%s is still present on the server", key)
 		}
 	}
@@ -162,8 +164,9 @@ func testAccVSphereLicenseExists(name string) resource.TestCheckFunc {
 
 		client := testAccProvider.Meta().(*Client).vimClient
 		manager := license.NewManager(client.Client)
+		ctx := context.Background()
 
-		if !isKeyPresent(rs.Primary.ID, manager) {
+		if !helper.KeyExists(ctx, rs.Primary.ID, manager) {
 			return fmt.Errorf("%s key not found on the server", rs.Primary.ID)
 		}
 
@@ -199,12 +202,18 @@ func testAccVSphereLicenseWithLabelExists(name string) resource.TestCheckFunc {
 
 		client := testAccProvider.Meta().(*Client).vimClient
 		manager := license.NewManager(client.Client)
+		ctx := context.Background()
 
-		if !isKeyPresent(rs.Primary.ID, manager) {
+		if !helper.KeyExists(ctx, rs.Primary.ID, manager) {
 			return fmt.Errorf("%s key not found on the server", rs.Primary.ID)
 		}
 
-		info := getLicenseInfoFromKey(rs.Primary.ID, manager)
+		info := helper.GetLicenseInfoFromKey(ctx, rs.Primary.ID, manager)
+
+		if info == nil {
+			maskedKey := helper.MaskLicenseKey(rs.Primary.ID)
+			return fmt.Errorf("License key %s not found", maskedKey)
+		}
 
 		if len(info.Labels) == 0 {
 			return fmt.Errorf("The labels were not set for the key %s", info.LicenseKey)
