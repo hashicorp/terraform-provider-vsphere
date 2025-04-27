@@ -464,7 +464,7 @@ loopInterfaces:
 				// Check for the SriovEnabled property of the SRIOV PCIPassthrough
 				if nicType.Id == sriovPhysicalAdapters[adapterIdx] {
 					foundAdapter = true
-					if nicType.SriovEnabled == true {
+					if nicType.SriovEnabled {
 						foundSriovEnabled = true
 						log.Printf("[DEBUG] found SR-IOV enabled NIC with name %s", sriovPhysicalAdapters[adapterIdx])
 						adapterIdx++
