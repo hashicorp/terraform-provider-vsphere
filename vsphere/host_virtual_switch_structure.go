@@ -79,6 +79,9 @@ func expandHostVirtualSwitchBeaconConfig(d *schema.ResourceData) *types.HostVirt
 // flattenHostVirtualSwitchBeaconConfig reads various fields from a
 // HostVirtualSwitchBeaconConfig into the passed in ResourceData.
 func flattenHostVirtualSwitchBeaconConfig(d *schema.ResourceData, obj *types.HostVirtualSwitchBeaconConfig) error {
+	if obj == nil {
+		return nil
+	}
 	_ = d.Set("beacon_interval", obj.Interval)
 	return nil
 }
@@ -96,6 +99,9 @@ func expandLinkDiscoveryProtocolConfig(d *schema.ResourceData) *types.LinkDiscov
 // flattenLinkDiscoveryProtocolConfig reads various fields from a
 // LinkDiscoveryProtocolConfig into the passed in ResourceData.
 func flattenLinkDiscoveryProtocolConfig(d *schema.ResourceData, obj *types.LinkDiscoveryProtocolConfig) error {
+	if obj == nil {
+		return nil
+	}
 	_ = d.Set("link_discovery_operation", obj.Operation)
 	_ = d.Set("link_discovery_protocol", obj.Protocol)
 	return nil
@@ -115,6 +121,9 @@ func expandHostVirtualSwitchBondBridge(d *schema.ResourceData) *types.HostVirtua
 // flattenHostVirtualSwitchBondBridge reads various fields from a
 // HostVirtualSwitchBondBridge into the passed in ResourceData.
 func flattenHostVirtualSwitchBondBridge(d *schema.ResourceData, obj *types.HostVirtualSwitchBondBridge) error {
+	if obj == nil {
+		return nil
+	}
 	_ = d.Set("network_adapters", structure.SliceStringsToInterfaces(obj.NicDevice))
 	if err := flattenHostVirtualSwitchBeaconConfig(d, obj.Beacon); err != nil {
 		return err
@@ -167,6 +176,9 @@ func expandHostVirtualSwitchSpec(d *schema.ResourceData) *types.HostVirtualSwitc
 // flattenHostVirtualSwitchSpec reads various fields from a
 // HostVirtualSwitchSpec into the passed in ResourceData.
 func flattenHostVirtualSwitchSpec(d *schema.ResourceData, obj *types.HostVirtualSwitchSpec) error {
+	if obj == nil {
+		return nil
+	}
 	_ = d.Set("mtu", obj.Mtu)
 	_ = d.Set("number_of_ports", obj.NumPorts)
 	if obj.Bridge != nil {
