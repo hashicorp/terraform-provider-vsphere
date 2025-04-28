@@ -79,29 +79,37 @@ func NewCdromSubresource(client *govmomi.Client, rdd resourceDataDiff, d, old ma
 // slice of BaseVirtualDeviceConfigSpec.
 func CdromApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	log.Printf("[DEBUG] CdromApplyOperation: Beginning apply operation")
-	// While we are currently only restricting CD devices to one device, we have
-	// to actually account for the fact that someone could add multiple CD drives
-	// out of band. So this workflow is similar to the multi-device workflow that
-	// exists for network devices.
 	o, n := d.GetChange(subresourceTypeCdrom)
 	ods := o.([]interface{})
 	nds := n.([]interface{})
 
 	var spec []types.BaseVirtualDeviceConfigSpec
 
-	// Our old and new sets now have an accurate description of devices that may
-	// have been added, removed, or changed. Look for removed devices first.
 	log.Printf("[DEBUG] CdromApplyOperation: Looking for resources to delete")
 nextOld:
-	for n, oe := range ods {
+	for idxOld, oe := range ods {
+		if oe == nil {
+			log.Printf("[WARN] CdromApplyOperation: Found nil item in old device list (ods) at index %d during delete check. Skipping.", idxOld)
+			continue
+		}
 		om := oe.(map[string]interface{})
+
 		for _, ne := range nds {
+			if ne == nil {
+				log.Printf("[WARN] CdromApplyOperation: Found nil item in new device list (nds) during delete check for old index %d. Skipping comparison.", idxOld)
+				continue
+			}
 			nm := ne.(map[string]interface{})
-			if om["key"] == nm["key"] {
+
+			oldKey, oldOk := om["key"].(int)
+			newKey, newOk := nm["key"].(int)
+			if oldOk && newOk && oldKey == newKey {
 				continue nextOld
 			}
 		}
-		r := NewCdromSubresource(c, d, om, nil, n)
+
+		log.Printf("[DEBUG] CdromApplyOperation: Deleting resource: old index %d, key %v", idxOld, om["key"])
+		r := NewCdromSubresource(c, d, om, nil, idxOld)
 		dspec, err := r.Delete(l)
 		if err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -110,37 +118,50 @@ nextOld:
 		spec = append(spec, dspec...)
 	}
 
-	// Now check for creates and updates. The results of this operation are
-	// committed to state after the operation completes.
 	var updates []interface{}
 	log.Printf("[DEBUG] CdromApplyOperation: Looking for resources to create or update")
-	for n, ne := range nds {
-		nm := ne.(map[string]interface{})
-		if n < len(ods) {
-			// This is an update
-			oe := ods[n]
-			om := oe.(map[string]interface{})
-			if nm["key"] != om["key"] {
-				return nil, nil, fmt.Errorf("key mismatch on %s.%d (old: %d, new: %d). This is a bug with the provider, please report it", subresourceTypeCdrom, n, nm["key"].(int), om["key"].(int))
-			}
-			if reflect.DeepEqual(nm, om) {
-				// no change is a no-op
-				updates = append(updates, nm)
-				log.Printf("[DEBUG] CdromApplyOperation: No-op resource: key %d", nm["key"].(int))
-				continue
-			}
-			r := NewCdromSubresource(c, d, nm, om, n)
-			uspec, err := r.Update(l)
-			if err != nil {
-				return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
-			}
-			l = applyDeviceChange(l, uspec)
-			spec = append(spec, uspec...)
-			updates = append(updates, r.Data())
+	for idxNew, ne := range nds {
+		if ne == nil {
+			log.Printf("[WARN] CdromApplyOperation: Found nil item in new device list (nds) at index %d during create/update. Skipping.", idxNew)
 			continue
 		}
-		// New device
-		r := NewCdromSubresource(c, d, nm, nil, n)
+		nm := ne.(map[string]interface{})
+
+		if idxNew < len(ods) {
+			oe := ods[idxNew]
+			if oe == nil {
+				log.Printf("[WARN] CdromApplyOperation: Found nil corresponding item in old device list (ods) at index %d during update. Treating as create.", idxNew)
+			} else {
+				om := oe.(map[string]interface{})
+				oldKey, oldOk := om["key"].(int)
+				newKey, newOk := nm["key"].(int)
+				if !oldOk || !newOk || oldKey != newKey {
+					log.Printf("[ERROR] CdromApplyOperation: Key mismatch on potential update for index %d (old: %v, new: %v). Skipping update.", idxNew, om["key"], nm["key"])
+					updates = append(updates, nm)
+					continue
+				}
+
+				if reflect.DeepEqual(nm, om) {
+					updates = append(updates, nm)
+					log.Printf("[DEBUG] CdromApplyOperation: No-op resource: index %d, key %v", idxNew, nm["key"])
+					continue
+				}
+
+				log.Printf("[DEBUG] CdromApplyOperation: Updating resource: index %d, key %v", idxNew, nm["key"])
+				r := NewCdromSubresource(c, d, nm, om, idxNew)
+				uspec, err := r.Update(l)
+				if err != nil {
+					return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
+				}
+				l = applyDeviceChange(l, uspec)
+				spec = append(spec, uspec...)
+				updates = append(updates, r.Data())
+				continue
+			}
+		}
+
+		log.Printf("[DEBUG] CdromApplyOperation: Creating resource: index %d, data %v", idxNew, nm)
+		r := NewCdromSubresource(c, d, nm, nil, idxNew)
 		cspec, err := r.Create(l)
 		if err != nil {
 			return nil, nil, fmt.Errorf("%s: %s", r.Addr(), err)
@@ -151,9 +172,8 @@ nextOld:
 	}
 
 	log.Printf("[DEBUG] CdromApplyOperation: Post-apply final resource list: %s", subresourceListString(updates))
-	// We are now done! Return the updated device list and config spec. Save updates as well.
 	if err := d.Set(subresourceTypeCdrom, updates); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to set updated cdrom state: %w", err)
 	}
 	log.Printf("[DEBUG] CdromApplyOperation: Device list at end of operation: %s", DeviceListString(l))
 	log.Printf("[DEBUG] CdromApplyOperation: Device config operations from apply: %s", DeviceChangeString(spec))
@@ -181,31 +201,78 @@ func CdromRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.V
 	log.Printf("[DEBUG] CdromRefreshOperation: CDROM devices located: %s", DeviceListString(devices))
 	curSet := d.Get(subresourceTypeCdrom).([]interface{})
 	log.Printf("[DEBUG] CdromRefreshOperation: Current resource set from state: %s", subresourceListString(curSet))
-	var newSet []interface{}
-	// First check for negative keys. These are freshly added devices that are
-	// usually coming into read post-create.
-	//
-	// If we find what we are looking for, we remove the device from the working
-	// set so that we don't try and process it in the next few passes.
+
+	if len(devices) == 0 && len(curSet) == 1 {
+		if entry, ok := curSet[0].(map[string]interface{}); ok {
+			isEmpty := true
+			for k, v := range entry {
+				if k != "key" && k != "device_address" {
+					switch v := v.(type) {
+					case bool:
+						if v {
+							isEmpty = false
+						}
+					case string:
+						if v != "" {
+							isEmpty = false
+						}
+					default:
+						isEmpty = false
+					}
+				}
+			}
+			if isEmpty {
+				log.Printf("[DEBUG] CdromRefreshOperation: Preserving empty CDROM block in state")
+				return d.Set(subresourceTypeCdrom, curSet)
+			}
+		}
+	}
+
+	var newSet = []interface{}{}
+
 	log.Printf("[DEBUG] CdromRefreshOperation: Looking for freshly-created resources to read in")
 	for n, item := range curSet {
+		if item == nil {
+			log.Printf("[WARN] CdromRefreshOperation: Found nil item in curSet at index %d during freshly-created check. Skipping.", n)
+			continue
+		}
 		m := item.(map[string]interface{})
-		if m["key"].(int) < 1 {
+		keyVal, keyOk := m["key"]
+		if !keyOk {
+			log.Printf("[WARN] CdromRefreshOperation: Item in curSet at index %d missing 'key'. Skipping.", n)
+			continue
+		}
+		key, intOk := keyVal.(int)
+		if !intOk {
+			log.Printf("[WARN] CdromRefreshOperation: Item 'key' in curSet at index %d is not an int (%T). Skipping.", n, keyVal)
+			continue
+		}
+
+		if key < 1 {
 			r := NewCdromSubresource(c, d, m, nil, n)
 			if err := r.Read(l); err != nil {
 				return fmt.Errorf("%s: %s", r.Addr(), err)
 			}
-			if r.Get("key").(int) < 1 {
-				// This should not have happened - if it did, our device
-				// creation/update logic failed somehow that we were not able to track.
-				return fmt.Errorf("device %d with address %s still unaccounted for after update/read", r.Get("key").(int), r.Get("device_address").(string))
+			rKeyVal := r.Get("key")
+			if rKeyVal == nil {
+				log.Printf("[WARN] CdromRefreshOperation: Read for item at index %d (original key %d) failed to return a key. Skipping add to newSet.", n, key)
+				continue
+			}
+			rKey, rKeyIntOk := rKeyVal.(int)
+			if !rKeyIntOk {
+				log.Printf("[WARN] CdromRefreshOperation: Read for item at index %d returned non-int key (%T). Skipping add to newSet.", n, rKeyVal)
+				continue
+			}
+			if rKey < 1 {
+				return fmt.Errorf("device %d with address %s still unaccounted for after update/read", rKey, r.Get("device_address").(string))
 			}
 			newSet = append(newSet, r.Data())
 			for i := 0; i < len(devices); i++ {
 				device := devices[i]
-				if device.GetVirtualDevice().Key == int32(r.Get("key").(int)) {
+				if device.GetVirtualDevice().Key == int32(rKey) {
 					devices = append(devices[:i], devices[i+1:]...)
 					i--
+					break
 				}
 			}
 		}
@@ -213,64 +280,82 @@ func CdromRefreshOperation(d *schema.ResourceData, c *govmomi.Client, l object.V
 	log.Printf("[DEBUG] CdromRefreshOperation: CDROM devices after freshly-created device search: %s", DeviceListString(devices))
 	log.Printf("[DEBUG] CdromRefreshOperation: Resource set to write after freshly-created device search: %s", subresourceListString(newSet))
 
-	// Go over the remaining devices, refresh via key, and then remove their
-	// entries as well.
 	log.Printf("[DEBUG] CdromRefreshOperation: Looking for devices known in state")
-	for i := 0; i < len(devices); i++ {
+	i := 0
+	processedKeys := make(map[int]struct{})
+
+	for i < len(devices) {
 		device := devices[i]
-		for n, item := range curSet {
-			m := item.(map[string]interface{})
-			if m["key"].(int) < 0 {
-				// Skip any of these keys as we won't be matching any of those anyway here
-				continue
-			}
-			if device.GetVirtualDevice().Key != int32(m["key"].(int)) {
-				// Skip any device that doesn't match key as well
-				continue
-			}
-			// We should have our device -> resource match, so read now.
-			r := NewCdromSubresource(c, d, m, nil, n)
-			vApp, err := verifyVAppCdromIso(d, device.(*types.VirtualCdrom))
-			if err != nil {
-				return err
-			}
-			if vApp && r.Get("client_device") == true {
-				log.Printf("[DEBUG] CdromRefreshOperation: %s: Skipping read since CDROM is in use for vApp ISO transport", r)
-				// Set the CDROM properties to match a client device so there won't be a diff.
-				r.Set("client_device", true)
-				r.Set("datastore_id", "")
-				r.Set("path", "")
-			} else if err := r.Read(l); err != nil {
-				return fmt.Errorf("%s: %s", r.Addr(), err)
-			}
-			// Done reading, push this onto our new set and remove the device from
-			// the list
-			newSet = append(newSet, r.Data())
-			devices = append(devices[:i], devices[i+1:]...)
-			i--
+		deviceKey := int(device.GetVirtualDevice().Key)
+
+		if _, ok := processedKeys[deviceKey]; ok {
+			i++
+			continue
 		}
+
+		foundInState := false
+		for n, item := range curSet {
+			if item == nil {
+				continue
+			}
+			m := item.(map[string]interface{})
+			keyVal, keyOk := m["key"]
+			if !keyOk {
+				continue
+			}
+			key, intOk := keyVal.(int)
+			if !intOk || key < 0 {
+				continue
+			}
+
+			if deviceKey == key {
+				foundInState = true
+				processedKeys[deviceKey] = struct{}{}
+
+				r := NewCdromSubresource(c, d, m, nil, n)
+				cdromDevice, ok := device.(*types.VirtualCdrom)
+				if !ok {
+					log.Printf("[WARN] CdromRefreshOperation: Device key %d not a VirtualCdrom. Skipping.", deviceKey)
+					break
+				}
+
+				vApp, err := verifyVAppCdromIso(d, cdromDevice)
+				if err != nil {
+					return err
+				}
+				clientDevice := r.Get("client_device")
+				if vApp && clientDevice != nil && clientDevice.(bool) == true {
+					log.Printf("[DEBUG] CdromRefreshOperation: %s: Skipping read for vApp ISO transport", r.Addr())
+					r.Set("client_device", true)
+					r.Set("datastore_id", "")
+					r.Set("path", "")
+				} else if err := r.Read(l); err != nil {
+					return fmt.Errorf("%s: %s", r.Addr(), err)
+				}
+
+				newSet = append(newSet, r.Data())
+
+				devices = append(devices[:i], devices[i+1:]...)
+				goto nextDevice
+			}
+		}
+
+		if !foundInState {
+			i++
+		}
+	nextDevice:
 	}
+
 	log.Printf("[DEBUG] CdromRefreshOperation: Resource set to write after known device search: %s", subresourceListString(newSet))
 	log.Printf("[DEBUG] CdromRefreshOperation: Probable orphaned CDROM devices: %s", DeviceListString(devices))
 
-	// Finally, any device that is still here is orphaned. They should be added
-	// as new devices.
-	for n, device := range devices {
+	for _, device := range devices {
 		m := make(map[string]interface{})
 		vd := device.GetVirtualDevice()
-		ctlr := l.FindByKey(vd.ControllerKey)
-		if ctlr == nil {
-			return fmt.Errorf("could not find controller with key %d", vd.Key)
-		}
 		m["key"] = int(vd.Key)
-		var err error
-		m["device_address"], err = computeDevAddr(vd, ctlr.(types.BaseVirtualController))
-		if err != nil {
-			return fmt.Errorf("error computing device address: %s", err)
-		}
-		r := NewCdromSubresource(c, d, m, nil, n)
+		r := NewCdromSubresource(c, d, m, nil, len(newSet))
 		if err := r.Read(l); err != nil {
-			return fmt.Errorf("%s: %s", r.Addr(), err)
+			return fmt.Errorf("%s (orphaned): %s", r.Addr(), err)
 		}
 		newSet = append(newSet, r.Data())
 	}
@@ -599,17 +684,49 @@ func VerifyVAppTransport(d *schema.ResourceDiff) error {
 	log.Printf("[DEBUG] VAppDiffOperation: Verifying configuration meets requirements for vApp transport")
 	// Check if there is a client CDROM device configured.
 	cl := d.Get("cdrom")
-	for _, c := range cl.([]interface{}) {
-		if c.(map[string]interface{})["client_device"].(bool) {
-			// There is a device configured that can support vApp ISO transport if needed
-			log.Printf("[DEBUG] VAppDiffOperation: Client CDROM device exists which can support ISO transport")
-			return nil
+	// Check if cl is nil before trying to cast it
+	if cl != nil {
+		cdromList, ok := cl.([]interface{})
+		if ok {
+			for _, c := range cdromList {
+				if c == nil {
+					continue
+				}
+				cdrom, ok := c.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				clientDevice, ok := cdrom["client_device"]
+				if !ok {
+					continue
+				}
+				clientDeviceBool, ok := clientDevice.(bool)
+				if ok && clientDeviceBool {
+					// There is a device configured that can support vApp ISO transport if needed
+					log.Printf("[DEBUG] VAppDiffOperation: Client CDROM device exists which can support ISO transport")
+					return nil
+				}
+			}
 		}
 	}
 	// Iterate over each transport and see if ISO transport is supported.
-	tm := d.Get("vapp_transport").([]interface{})
-	for _, m := range tm {
-		if m.(string) == vAppTransportIso && len(tm) == 1 {
+	tm := d.Get("vapp_transport")
+	if tm == nil {
+		return nil
+	}
+	tmList, ok := tm.([]interface{})
+	if !ok {
+		return nil
+	}
+	for _, m := range tmList {
+		if m == nil {
+			continue
+		}
+		mStr, ok := m.(string)
+		if !ok {
+			continue
+		}
+		if mStr == vAppTransportIso && len(tmList) == 1 {
 			return fmt.Errorf("this virtual machine requires a client CDROM device to deliver vApp properties")
 		}
 	}
