@@ -1237,7 +1237,7 @@ func getComponentsToAdd(old, new map[string]interface{}) map[string]string {
 func getComponentsToRemove(old, new map[string]interface{}) []string {
 	result := make([]string, 0)
 
-	for k, _ := range old {
+	for k := range old {
 		if _, contains := new[k]; !contains {
 			result = append(result, k)
 		}
