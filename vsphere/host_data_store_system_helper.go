@@ -34,13 +34,13 @@ func availableScsiDisk(dss *object.HostDatastoreSystem, name string) (*types.Hos
 	defer cancel()
 	disks, err := dss.QueryAvailableDisksForVmfs(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("cannot query available disks: %s", err)
+		return nil, fmt.Errorf("cannot query available disks: %w", err) // Consider %w for error wrapping
 	}
 
 	var disk *types.HostScsiDisk
-	for _, d := range disks {
+	for i, d := range disks {
 		if d.CanonicalName == name {
-			disk = &d
+			disk = &disks[i]
 			break
 		}
 	}
@@ -66,12 +66,13 @@ func diskSpecForCreate(dss *object.HostDatastoreSystem, name string) (*types.Vmf
 		return nil, fmt.Errorf("could not get disk creation options for %q: %s", name, err)
 	}
 	var option *types.VmfsDatastoreOption
-	for _, o := range options {
+	for i, o := range options {
 		if _, ok := o.Info.(*types.VmfsDatastoreAllExtentOption); ok {
-			option = &o
+			option = &options[i]
 			break
 		}
 	}
+
 	if option == nil {
 		return nil, fmt.Errorf("device %q is not available as a new whole-disk device for datastore", name)
 	}
@@ -100,9 +101,9 @@ func diskSpecForExtend(dss *object.HostDatastoreSystem, ds *object.Datastore, na
 		return nil, fmt.Errorf("could not get disk extension options for %q: %s", name, err)
 	}
 	var option *types.VmfsDatastoreOption
-	for _, o := range options {
+	for i, o := range options {
 		if _, ok := o.Info.(*types.VmfsDatastoreAllExtentOption); ok {
-			option = &o
+			option = &options[i]
 			break
 		}
 	}
