@@ -1,14 +1,54 @@
 version: 2
 updates:
-- package-ecosystem: gomod
-  directory: "/"
-  ignore:
-  - dependency-name: "golang.org/x/tools"
-  - dependency-name: "google.golang.org/grpc"
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 5
-- package-ecosystem: "github-actions"
-  directory: "/"
-  schedule:
-      interval: "daily"
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - chore
+      - github-actions
+    commit-message:
+      prefix: "chore(gh):"
+      include:
+        - dependency-name
+        - new-version
+      separator: " "
+  - package-ecosystem: gomod
+    directory: /
+    groups:
+      terraform:
+        patterns:
+          - github.com/hashicorp/terraform-plugin-*
+      golang-x:
+        patterns:
+          - golang.org/x/*
+      google-golang:
+        patterns:
+          - google.golang.org/*
+    ignore:
+      # go-cty should only be updated via terraform-plugin-sdk
+      - dependency-name: github.com/hashicorp/go-cty
+      # hcl/v2 should only be updated via terraform-plugin-sdk
+      - dependency-name: github.com/hashicorp/hcl/v2
+      # terraform-plugin-go should only be updated via terraform-plugin-framework
+      - dependency-name: github.com/hashicorp/terraform-plugin-go
+      # terraform-plugin-log should only be updated via terraform-plugin-framework
+      - dependency-name: github.com/hashicorp/terraform-plugin-log
+      # go-hclog should only be updated via terraform-plugin-log
+      - dependency-name: github.com/hashicorp/go-hclog
+      # grpc should only be updated via terraform-plugin-go/terraform-plugin-framework
+      - dependency-name: google.golang.org/grpc
+      # protobuf should only be updated via terraform-plugin-go/terraform-plugin-framework
+      - dependency-name: google.golang.org/protobuf
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 30
+    labels:
+      - chore
+      - dependencies
+    commit-message:
+      prefix: "chore(deps):"
+      include:
+        - dependency-name
+        - new-version
+      separator: " "
