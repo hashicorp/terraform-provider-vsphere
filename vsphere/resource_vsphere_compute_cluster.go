@@ -1167,38 +1167,42 @@ func resourceVSphereComputeClusterApplyHostImage(
 		}
 	}
 
-	if draftId, err := m.CreateSoftwareDraft(d.Id()); err != nil {
+	draftId, err := m.CreateSoftwareDraft(d.Id())
+	if err != nil {
 		return err
-	} else {
-		if err := m.SetSoftwareDraftBaseImage(d.Id(), draftId, d.Get("host_image.0.esx_version").(string)); err != nil {
-			return err
-		}
+	}
 
-		spec := clusters.SoftwareComponentsUpdateSpec{ComponentsToSet: make(map[string]string)}
-		oldComponents, newComponents := d.GetChange("host_image.0.component")
-		oldComponentsMap := getComponentsMap(oldComponents.([]interface{}))
-		newComponentsMap := getComponentsMap(newComponents.([]interface{}))
+	if err := m.SetSoftwareDraftBaseImage(d.Id(), draftId, d.Get("host_image.0.esx_version").(string)); err != nil {
+		return err
+	}
 
-		spec.ComponentsToSet = getComponentsToAdd(oldComponentsMap, newComponentsMap)
-		componentsToRemove := getComponentsToRemove(oldComponentsMap, newComponentsMap)
+	spec := clusters.SoftwareComponentsUpdateSpec{ComponentsToSet: make(map[string]string)}
+	oldComponents, newComponents := d.GetChange("host_image.0.component")
+	oldComponentsMap := getComponentsMap(oldComponents.([]interface{}))
+	newComponentsMap := getComponentsMap(newComponents.([]interface{}))
 
-		if err = m.UpdateSoftwareDraftComponents(d.Id(), draftId, spec); err != nil {
-			return err
-		} else if len(componentsToRemove) > 0 {
-			for _, componentId := range componentsToRemove {
-				if err := m.RemoveSoftwareDraftComponents(d.Id(), draftId, componentId); err != nil {
-					return err
-				}
+	spec.ComponentsToSet = getComponentsToAdd(oldComponentsMap, newComponentsMap)
+	componentsToRemove := getComponentsToRemove(oldComponentsMap, newComponentsMap)
+
+	if err = m.UpdateSoftwareDraftComponents(d.Id(), draftId, spec); err != nil {
+		return err
+	}
+
+	if len(componentsToRemove) > 0 {
+		for _, componentId := range componentsToRemove {
+			if err := m.RemoveSoftwareDraftComponents(d.Id(), draftId, componentId); err != nil {
+				return err
 			}
 		}
-
-		if taskId, err := m.CommitSoftwareDraft(d.Id(), draftId, clusters.SettingsClustersSoftwareDraftsCommitSpec{}); err != nil {
-			return err
-		} else {
-			_, err := tasks.NewManager(client).WaitForCompletion(context.Background(), taskId)
-			return err
-		}
 	}
+
+	taskId, err := m.CommitSoftwareDraft(d.Id(), draftId, clusters.SettingsClustersSoftwareDraftsCommitSpec{})
+	if err != nil {
+		return err
+	}
+
+	_, err = tasks.NewManager(client).WaitForCompletion(context.Background(), taskId)
+	return err
 }
 
 func resourceVsphereComputeClusterEnableSoftwareManagement(d *schema.ResourceData, client *rest.Client) error {
@@ -1216,9 +1220,8 @@ func resourceVsphereComputeClusterEnableSoftwareManagement(d *schema.ResourceDat
 		return err
 	} else if _, err := tasks.NewManager(client).WaitForCompletion(context.Background(), taskId); err != nil {
 		return err
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func getComponentsToAdd(old, new map[string]interface{}) map[string]string {
@@ -1965,8 +1968,6 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 
 			if err := vsanclient.ConvertToStretchedCluster(meta.(*Client).vsanClient, meta.(*Client).vimClient, *req); err != nil {
 				return fmt.Errorf("cannot stretch cluster %s with spec: %#v\n, err: %#v", d.Get("name").(string), *req, err)
-			} else {
-				log.Printf("[DEBUG] stretching cluster %s with spec: %#v", d.Get("name").(string), *req)
 			}
 		}
 
@@ -1979,8 +1980,6 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 
 			if err := vsanclient.RemoveWitnessHost(meta.(*Client).vsanClient, meta.(*Client).vimClient, *req); err != nil {
 				return fmt.Errorf("cannot disable stretched cluster %s with spec: %#v", d.Get("name").(string), *req)
-			} else {
-				log.Printf("[DEBUG] disabling stretched cluster %s with spec: %#v", d.Get("name").(string), *req)
 			}
 		}
 	}
@@ -2206,9 +2205,8 @@ func flattenVsanStretchedCluster(client *vsan.Client, d *schema.ResourceData, cl
 			})
 		}
 		return d.Set("vsan_stretched_cluster", conf)
-	} else {
-		return fmt.Errorf("error getting witness node for cluster %s, agent address was unexpectedly empty", d.Get("name").(string))
 	}
+	return fmt.Errorf("error getting witness node for cluster %s, agent address was unexpectedly empty", d.Get("name").(string))
 }
 
 // flattenClusterConfigSpecEx saves a ClusterConfigSpecEx into the supplied
