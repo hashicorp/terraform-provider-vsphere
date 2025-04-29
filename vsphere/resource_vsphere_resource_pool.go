@@ -159,6 +159,10 @@ func resourceVSphereResourcePoolCreate(d *schema.ResourceData, meta interface{})
 	}
 	version := viapi.ParseVersionFromClient(client)
 	rpSpec := expandResourcePoolConfigSpec(d, version)
+	err = reconcileScaleDescendantsShares(version, rpSpec, prp)
+	if err != nil {
+		return err
+	}
 	rp, err := resourcepool.Create(prp, d.Get("name").(string), rpSpec)
 	if err != nil {
 		return err
@@ -237,6 +241,14 @@ func resourceVSphereResourcePoolUpdate(d *schema.ResourceData, meta interface{})
 	}
 	version := viapi.ParseVersionFromClient(client)
 	rpSpec := expandResourcePoolConfigSpec(d, version)
+	prp, err := resourcepool.FromID(client, d.Get("parent_resource_pool_id").(string))
+	if err != nil {
+		return err
+	}
+	err = reconcileScaleDescendantsShares(version, rpSpec, prp)
+	if err != nil {
+		return err
+	}
 	err = resourcepool.Update(rp, d.Get("name").(string), rpSpec)
 	if err != nil {
 		return err
@@ -365,7 +377,7 @@ func resourceVSphereResourcePoolValidateEmpty(rp *object.ResourcePool) error {
 }
 
 // resourceVSphereResourcePoolApplyTags processes the tags step for both create
-// and update for vsphere_resource_pool.
+// and update for a resource pool.
 func resourceVSphereResourcePoolApplyTags(d *schema.ResourceData, meta interface{}, rp *object.ResourcePool) error {
 	tagsClient, err := tagsManagerIfDefined(d, meta)
 	if err != nil {
@@ -382,8 +394,7 @@ func resourceVSphereResourcePoolApplyTags(d *schema.ResourceData, meta interface
 	return processTagDiff(tagsClient, d, rp)
 }
 
-// resourceVSphereResourcePoolReadTags reads the tags for
-// vsphere_resource_pool.
+// resourceVSphereResourcePoolReadTags reads the tags for a resource pool.
 func resourceVSphereResourcePoolReadTags(d *schema.ResourceData, meta interface{}, rp *object.ResourcePool) error {
 	if tagsClient, _ := meta.(*Client).TagsManager(); tagsClient != nil {
 		log.Printf("[DEBUG] %s: Reading tags", resourceVSphereResourcePoolIDString(d))
@@ -392,6 +403,24 @@ func resourceVSphereResourcePoolReadTags(d *schema.ResourceData, meta interface{
 		}
 	} else {
 		log.Printf("[DEBUG] %s: Tags unsupported on this connection, skipping tag read", resourceVSphereResourcePoolIDString(d))
+	}
+	return nil
+}
+
+// reconcileScaleDescendantsShares reconciles the scale descendants shares setting for a resource pool. If the parent
+// resource pool has scale descendants shares set to scale CPU and memory shares, the child resource pool shares will
+// inherit the parent resource pool setting.
+func reconcileScaleDescendantsShares(version viapi.VSphereVersion, obj *types.ResourceConfigSpec, prp *object.ResourcePool) error {
+	// Minimum Supported Version: 7.0.0
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0}) {
+		prpProp, err := resourcepool.Properties(prp)
+		if err != nil {
+			return fmt.Errorf("error getting properties of resource pool: %s", err)
+		}
+		prpDrsConfig := prpProp.Config
+		if prpDrsConfig.ScaleDescendantsShares == string(types.ResourceConfigSpecScaleSharesBehaviorScaleCpuAndMemoryShares) {
+			obj.ScaleDescendantsShares = ""
+		}
 	}
 	return nil
 }
