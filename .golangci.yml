@@ -113,9 +113,6 @@ linters:
         text: range
       - linters:
           - revive
-        text: exported
-      - linters:
-          - revive
         text: empty-block
       - linters:
           - staticcheck
