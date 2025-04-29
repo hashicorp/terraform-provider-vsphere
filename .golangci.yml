@@ -97,9 +97,6 @@ linters:
           - staticcheck
         text: QF1005
       - linters:
-          - unconvert
-        text: unnecessary conversion
-      - linters:
           - unused
         text: is unused
       - linters:

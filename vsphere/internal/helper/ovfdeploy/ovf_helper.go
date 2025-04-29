@@ -187,9 +187,9 @@ func upload(ctx context.Context, client *govmomi.Client, item types.OvfFileItem,
 }
 
 func uploadDisksFromLocal(client *govmomi.Client, filePath string, ovfFileItem types.OvfFileItem, deviceObj types.HttpNfcLeaseDeviceUrl, currBytesRead *int64) error {
-	absoluteFilePath := ""
+	var absoluteFilePath string
 	if strings.Contains(filePath, string(os.PathSeparator)) {
-		absoluteFilePath = string(filePath[0 : strings.LastIndex(filePath, string(os.PathSeparator))+1])
+		absoluteFilePath = filePath[:strings.LastIndex(filePath, string(os.PathSeparator))+1]
 	}
 	vmdkFilePath := absoluteFilePath + ovfFileItem.Path
 	log.Print(" [DEBUG] Absolute vmdk path: " + vmdkFilePath)
@@ -210,9 +210,9 @@ func uploadDisksFromLocal(client *govmomi.Client, filePath string, ovfFileItem t
 
 func uploadDisksFromURL(client *govmomi.Client, filePath string, ovfFileItem types.OvfFileItem, deviceObj types.HttpNfcLeaseDeviceUrl, currBytesRead *int64,
 	allowUnverifiedSSL bool) error {
-	absoluteFilePath := ""
+	var absoluteFilePath string
 	if strings.Contains(filePath, "/") {
-		absoluteFilePath = string(filePath[0 : strings.LastIndex(filePath, "/")+1])
+		absoluteFilePath = filePath[:strings.LastIndex(filePath, "/")+1]
 	}
 	vmdkFilePath := absoluteFilePath + ovfFileItem.Path
 	httpClient := getClient(allowUnverifiedSSL)
