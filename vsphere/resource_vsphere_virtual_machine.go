@@ -467,14 +467,16 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	if vprops.ResourcePool != nil {
 		_ = d.Set("resource_pool_id", vprops.ResourcePool.Value)
 	}
+
 	// If the VM is part of a vApp, InventoryPath will point to a host path
 	// rather than a VM path, so this step must be skipped.
 	var vmContainer string
 	if vprops.ParentVApp != nil {
 		vmContainer = vprops.ParentVApp.Value
-	} else {
+	} else if vprops.ResourcePool != nil {
 		vmContainer = vprops.ResourcePool.Value
 	}
+
 	if !vappcontainer.IsVApp(client, vmContainer) {
 		f, err := folder.RootPathParticleVM.SplitRelativeFolder(vm.InventoryPath)
 		if err != nil {
