@@ -1077,7 +1077,7 @@ func getMemoryReservationLockedToMax(d *schema.ResourceData) *bool {
 		return structure.BoolPtr(false)
 	}
 
-	if memory == memoryReservation && memoryLockMax == true {
+	if memory == memoryReservation && memoryLockMax {
 		return structure.BoolPtr(true)
 	}
 
