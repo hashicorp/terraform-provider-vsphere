@@ -8,8 +8,6 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/mitchellh/copystructure"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -17,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
+	"github.com/mitchellh/copystructure"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -274,6 +273,12 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Optional:    true,
 			Computed:    true,
 			Description: "User-provided description of the virtual machine.",
+			DiffSuppressFunc: func(k, oldAnnotation, newAnnotation string, d *schema.ResourceData) bool {
+				normalizedOld := virtualmachine.NormalizeAnnotation(oldAnnotation)
+				normalizedNew := virtualmachine.NormalizeAnnotation(newAnnotation)
+				normalizedMatch := normalizedOld == normalizedNew
+				return normalizedMatch
+			},
 		},
 		"guest_id": {
 			Type:        schema.TypeString,

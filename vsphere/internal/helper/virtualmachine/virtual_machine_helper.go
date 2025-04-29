@@ -1062,3 +1062,13 @@ func ValidateHardwareVersion(current, target int) error {
 	}
 	return nil
 }
+
+// NormalizeAnnotation normalizes a string by replacing Windows newlines with Unix newlines and trimming leading and/or
+// trailing whitespace.
+func NormalizeAnnotation(s string) string {
+	// Replace Windows newlines with Unix newlines
+	normalized := strings.ReplaceAll(s, "\r\n", "\n")
+	// Trim leading/trailing whitespace from the entire block
+	normalized = strings.TrimSpace(normalized)
+	return normalized
+}
