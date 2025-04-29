@@ -549,12 +549,14 @@ func (o *OvfHelper) GetImportSpec(client *govmomi.Client) (*types.OvfCreateImpor
 		return nil, fmt.Errorf("while getting ovf import spec: %s", err)
 	}
 	if len(is.Error) > 0 {
-		out := "while creating import spec: \n"
+		errs := make([]error, 0, len(is.Error))
 		for _, e := range is.Error {
-			out = fmt.Sprintf("%s\n- %s", out, e.LocalizedMessage)
+			errs = append(errs, errors.New(e.LocalizedMessage))
 		}
-		return nil, fmt.Errorf(out)
+		allErrors := errors.Join(errs...)
+		return nil, fmt.Errorf("while creating import spec: %w", allErrors)
 	}
+
 	return is, nil
 }
 
