@@ -318,7 +318,8 @@ func FlattenGuestOsCustomizationSpec(d *schema.ResourceData, specItem *types.Cus
 	specData["dns_server_list"] = specItem.Spec.GlobalIPSettings.DnsServerList
 	specData["dns_suffix_list"] = specItem.Spec.GlobalIPSettings.DnsSuffixList
 
-	if specItem.Info.Type == GuestOsCustomizationTypeLinux {
+	switch specItem.Info.Type {
+	case GuestOsCustomizationTypeLinux:
 		linuxPrep := specItem.Spec.Identity.(*types.CustomizationLinuxPrep)
 		linuxOptions, err := flattenLinuxOptions(linuxPrep)
 		if err != nil {
@@ -326,7 +327,7 @@ func FlattenGuestOsCustomizationSpec(d *schema.ResourceData, specItem *types.Cus
 		}
 
 		specData["linux_options"] = linuxOptions
-	} else if specItem.Info.Type == GuestOsCustomizationTypeWindows {
+	case GuestOsCustomizationTypeWindows:
 		sysprepText := flattenSysprepText(specItem.Spec.Identity)
 		if len(sysprepText) > 0 {
 			specData["windows_sysprep_text"] = sysprepText
