@@ -709,13 +709,11 @@ powerLoop:
 				}
 				err = task.WaitEx(ctx)
 				if err != nil {
-					if err.Error() == "The operation is not allowed in the current state." {
+					if err != nil && err.Error() == "The operation is not allowed in the current state." {
 						log.Printf("[DEBUG] vm %q cannot be powered on in the current state", vmPath)
 						continue powerLoop
-					} else {
-						log.Printf("[DEBUG] PowerOn task for vm %q failed. Error: %s", vmPath, err)
-						return fmt.Errorf("powerOn task for vm %q failed: %s", vmPath, err)
 					}
+					return fmt.Errorf("powerOn task for vm %q failed: %w", vmPath, err)
 				}
 				log.Printf("[DEBUG] PowerOn task for VM %q was successful.", vmPath)
 				break powerLoop
