@@ -44,7 +44,9 @@ resource "vsphere_virtual_machine" "vm" {
 The following arguments are supported:
 
 - `name` - (Required) The name of the customization specification is the unique
-  identifier per vCenter Server instance. ## Attribute Reference
+  identifier per vCenter Server instance. 
+
+## Attribute Reference
 
 - `type` - The type of customization specification: One among: Windows, Linux.
 - `description` - The description for the customization specification.

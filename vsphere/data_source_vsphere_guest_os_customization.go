@@ -131,15 +131,15 @@ func dataSourceVSphereGuestOSCustomization() *schema.Resource {
 										Computed:    true,
 										Description: "The Active Directory domain for the virtual machine to join.",
 									},
-									"domain_admin_user": {
-										Type:        schema.TypeString,
-										Computed:    true,
-										Description: "The user account of the domain administrator used to join this virtual machine to the domain.",
-									},
 									"domain_ou": {
 										Type:        schema.TypeString,
 										Computed:    true,
 										Description: "The MachineObjectOU which specifies the full LDAP path name of the OU to which the virtual machine belongs.",
+									},
+									"domain_admin_user": {
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "The user account of the domain administrator used to join this virtual machine to the domain.",
 									},
 									"domain_admin_password": {
 										Type:        schema.TypeString,
@@ -156,6 +156,21 @@ func dataSourceVSphereGuestOSCustomization() *schema.Resource {
 										Type:        schema.TypeString,
 										Computed:    true,
 										Description: "The hostname for this virtual machine.",
+									},
+									"full_name": {
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "The full name of the user of this virtual machine.",
+									},
+									"organization_name": {
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "The organization name this virtual machine is being installed for.",
+									},
+									"product_key": {
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "The product key for this virtual machine.",
 									},
 								},
 							},
