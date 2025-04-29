@@ -107,9 +107,6 @@ linters:
         text: indent-error-flow
       - linters:
           - revive
-        text: error-strings
-      - linters:
-          - revive
         text: range
       - linters:
           - revive
