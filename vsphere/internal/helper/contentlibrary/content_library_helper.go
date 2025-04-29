@@ -371,16 +371,19 @@ func (uploadSession libraryUploadSession) uploadOvaDisksFromLocal(ovaFilePath st
 func (uploadSession libraryUploadSession) uploadOvaDisksFromURL(ovfFilePath string, diskName string, size int64) error {
 	resp, err := http.Get(ovfFilePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("error performing GET request to %s: %w", ovfFilePath, err)
 	}
-	if resp.StatusCode == http.StatusOK {
-		err = uploadSession.findAndUploadDiskFromOva(resp.Body, diskName, size)
-		if err != nil {
-			return err
-		}
-	} else {
-		return fmt.Errorf("got status %d while getting the file from remote url %s ", resp.StatusCode, ovfFilePath)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("got status %d (%s) while getting file from %s", resp.StatusCode, http.StatusText(resp.StatusCode), ovfFilePath)
 	}
+
+	err = uploadSession.findAndUploadDiskFromOva(resp.Body, diskName, size)
+	if err != nil {
+		return fmt.Errorf("error processing OVA data for disk %s: %w", diskName, err)
+	}
+
 	return nil
 }
 
