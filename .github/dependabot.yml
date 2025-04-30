@@ -8,11 +8,8 @@ updates:
       - chore
       - github-actions
     commit-message:
-      prefix: "chore(gh):"
-      include:
-        - dependency-name
-        - new-version
-      separator: " "
+      prefix: "chore(gh)"
+      include: "scope"
   - package-ecosystem: gomod
     directory: /
     groups:
@@ -47,8 +44,5 @@ updates:
       - chore
       - dependencies
     commit-message:
-      prefix: "chore(deps):"
-      include:
-        - dependency-name
-        - new-version
-      separator: " "
+      prefix: "chore(deps)"
+      include: "scope"
