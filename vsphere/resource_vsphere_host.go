@@ -891,17 +891,13 @@ func getHostThumbprint(d *schema.ResourceData) (string, error) {
 	// Otherwise, use the default value of false.
 	if thumbprint, ok := d.Get("thumbprint").(string); ok && thumbprint != "" {
 		return thumbprint, nil
-	} else {
-		if insecure, ok := d.GetOk("allow_unverified_ssl"); ok {
-			if insecureBool, ok := insecure.(bool); ok {
-				config.InsecureSkipVerify = insecureBool
-				if config.InsecureSkipVerify {
-				}
-			} else {
-				config.InsecureSkipVerify = false
-			}
-		} else {
-			config.InsecureSkipVerify = false
+	}
+
+	config.InsecureSkipVerify = false
+
+	if insecure, ok := d.GetOk("allow_unverified_ssl"); ok {
+		if insecureBool, typeOk := insecure.(bool); typeOk {
+			config.InsecureSkipVerify = insecureBool
 		}
 	}
 
