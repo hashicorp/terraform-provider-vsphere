@@ -173,7 +173,10 @@ func updateDVSPvlanMappings(dvs *object.VmwareDistributedVirtualSwitch, pvlanCon
 	// Wait for ReconfigureDvs_Task to finish
 	tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer tcancel()
-	task.Wait(tctx)
+	err = task.Wait(tctx)
+	if err != nil {
+		return fmt.Errorf("error waiting for reconfigure DVS task to finish: %s", err)
+	}
 
 	return nil
 }

@@ -137,7 +137,6 @@ linters:
           - errcheck
         path: vsphere/distributed_virtual_switch_helper.go
         text: Error return value of `task.Wait` is not checked
-
     paths:
       - third_party$
       - builtin$
