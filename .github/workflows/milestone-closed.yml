@@ -1,3 +1,4 @@
+---
 name: Closed Milestones
 
 on:
@@ -5,16 +6,18 @@ on:
     types: [closed]
 
 permissions:
-  issues: write
-  pull-requests: write
+  contents: read
 
 jobs:
-  Comment:
+  comment:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
     steps:
       - uses: bflad/action-milestone-comment@4618cbf8bf938d31af1c576beeaaa77f486f5af3 # v2.0.0
         with:
           body: |
-            This functionality has been released in [${{ github.event.milestone.title }} of the Terraform Provider](https://github.com/${{ github.repository }}/blob/${{ github.event.milestone.title }}/CHANGELOG.md).  Please see the [Terraform documentation on provider versioning](https://www.terraform.io/docs/configuration/providers.html#provider-versions) or reach out if you need any assistance upgrading.
+            This functionality has been released in [${{ github.event.milestone.title }} of the Terraform Provider](https://github.com/${{ github.repository }}/blob/${{ github.event.milestone.title }}/CHANGELOG.md).  Please see the [Terraform documentation on provider versioning](https://developer.hashicorp.com/terraform/language/providers/configuration#provider-versions) or reach out if you need any assistance upgrading.
 
             For further feature requests or bug reports with this functionality, please create a [new GitHub issue](https://github.com/${{ github.repository }}/issues/new/choose) following the template. Thank you!
