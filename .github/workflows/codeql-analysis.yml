@@ -23,7 +23,7 @@ jobs:
       # Workaround for Go 1.21 compatibility.
       # TODO: Remove when GitHub Action runners Support Go 1.21+.
       - name: Setup Go
-        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5.4.0
         with:
           go-version-file: "go.mod"
           cache: false
