@@ -12,6 +12,9 @@ on:
       - edited
       - ready_for_review
 
+permissions:
+  contents: read
+
 jobs:
   labeler:
     name: Labeler
