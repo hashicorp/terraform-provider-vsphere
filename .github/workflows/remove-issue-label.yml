@@ -1,16 +1,22 @@
+---
 name: Remove Labels
 
 on:
-  # This file is reused, and called from other workflows
+  # This file is reused, and called from other workflows.
   workflow_call:
       inputs:
         label-name:
           required: true
           type: string
 
+permissions:
+  contents: read
+
 jobs:
   remove-label:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
       - uses: actions/github-script@e69ef5462fd455e02edcaf4dd7708eda96b9eda0 # v7.0.0
         env:
