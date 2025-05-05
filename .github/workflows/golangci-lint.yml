@@ -4,10 +4,24 @@ name: golangci-lint
 on:
   pull_request:
     paths-ignore:
+      - '.github/**'
+      - '/*'
+      - '!main.go'
+      - 'acctests/**'
+      - 'docs/**'
       - README.md
+      - 'scripts/**'
   push:
     paths-ignore:
+      - '.github/**'
+      - '/*'
+      - '!main.go'
+      - 'acctests/**'
+      - 'docs/**'
       - README.md
+      - 'scripts/**'
+  schedule:
+    - cron: 30 00 * * 1
 
 permissions:
   contents: read
