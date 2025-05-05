@@ -16,18 +16,20 @@ and network folders.
 Paths are always relative to the specific type of folder you are creating.
 A subfolder is discovered by parsing the relative path specified in `path`, so
 `foo/bar` will create a folder named `bar` in the parent folder `foo`, as long
-as that folder exists.
+as the folder `foo` exists.
 
 ## Example Usage
 
 The basic example below creates a virtual machine folder named
-`terraform-test-folder` in the default datacenter's VM hierarchy.
+`example-vm-folder` in the default datacenter's VM hierarchy.
 
 ```hcl
-data "vsphere_datacenter" "datacenter" {}
+data "vsphere_datacenter" "datacenter" {
+  name = var.vsphere_datacenter
+}
 
-resource "vsphere_folder" "folder" {
-  path          = "terraform-test-folder"
+resource "vsphere_folder" "vm_folder" {
+  path          = "example-vm-folder"
   type          = "vm"
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
@@ -36,7 +38,7 @@ resource "vsphere_folder" "folder" {
 ### Example with Sub-folders
 
 The below example builds off of the above by first creating a folder named
-`terraform-test-parent`, and then locating `terraform-test-folder` in that
+`example-parent-vm-folder`, and then locating `example-child-vm-folder` in that
 folder. To ensure the parent is created first, we create an interpolation
 dependency off the parent's `path` attribute.
 
@@ -45,16 +47,18 @@ configuration to this one), your folder will be moved to be under the correct
 parent.
 
 ```hcl
-data "vsphere_datacenter" "datacenter" {}
+data "vsphere_datacenter" "datacenter" {
+  name = var.vsphere_datacenter
+}
 
 resource "vsphere_folder" "parent" {
-  path          = "terraform-test-parent"
+  path          = "example-parent-vm-folder"
   type          = "vm"
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
-resource "vsphere_folder" "folder" {
-  path          = "${vsphere_folder.parent.path}/terraform-test-folder"
+resource "vsphere_folder" "child" {
+  path          = "${vsphere_folder.parent.path}/example-child-vm-folder"
   type          = "vm"
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
@@ -68,8 +72,12 @@ The following arguments are supported:
   the root of the type of folder you are creating, and the supplied datacenter.
   For example, given a default datacenter of `default-dc`, a folder of type
   `vm` (denoting a virtual machine folder), and a supplied folder of
-  `terraform-test-folder`, the resulting path would be
-  `/default-dc/vm/terraform-test-folder`.
+  `example-vm-folder`, the resulting path would be
+  `/default-dc/vm/example-vm-folder`.
+
+  When working with nested datacenters, note that references to these folders in data sources
+  will require the full path including the parent datacenter folder path, as shown in the
+  nested datacenter example above.
 
 ~> **NOTE:** `path` can be modified - the resulting behavior is dependent on
 what section of `path` you are modifying. If you are modifying the parent (so
@@ -112,9 +120,9 @@ its full path, via the following command:
 [docs-import]: https://developer.hashicorp.com/terraform/cli/import
 
 ```shell
-terraform import vsphere_folder.folder /default-dc/vm/terraform-test-folder
+terraform import vsphere_folder.folder /default-dc/vm/example-vm-folder
 ```
 
 The above command would import the folder from our examples above, the VM
-folder named `terraform-test-folder` located in the datacenter named
+folder named `example-vm-folder` located in the datacenter named
 `default-dc`.
