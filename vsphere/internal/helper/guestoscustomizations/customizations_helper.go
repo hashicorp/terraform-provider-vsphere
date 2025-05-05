@@ -172,6 +172,20 @@ func SpecSchema(isVM bool) map[string]*schema.Schema {
 				},
 
 				// CustomizationIdentification
+				"join_domain": {
+					Type:          schema.TypeString,
+					Optional:      true,
+					ConflictsWith: []string{prefix + "windows_options.0.workgroup"},
+					Description:   "The domain that the virtual machine should join.",
+					RequiredWith:  []string{prefix + "windows_options.0.domain_admin_user", prefix + "windows_options.0.domain_admin_password"},
+				},
+				"domain_ou": {
+					Type:          schema.TypeString,
+					Optional:      true,
+					ConflictsWith: []string{prefix + "windows_options.0.workgroup"},
+					Description:   "The MachineObjectOU which specifies the full LDAP path name of the OU to which the virtual machine belongs.",
+					RequiredWith:  []string{prefix + "windows_options.0.join_domain"},
+				},
 				"domain_admin_user": {
 					Type:          schema.TypeString,
 					Optional:      true,
@@ -185,20 +199,6 @@ func SpecSchema(isVM bool) map[string]*schema.Schema {
 					Sensitive:     true,
 					ConflictsWith: []string{prefix + "windows_options.0.workgroup"},
 					Description:   "The password of the domain administrator used to join this virtual machine to the domain.",
-					RequiredWith:  []string{prefix + "windows_options.0.join_domain"},
-				},
-				"join_domain": {
-					Type:          schema.TypeString,
-					Optional:      true,
-					ConflictsWith: []string{prefix + "windows_options.0.workgroup"},
-					Description:   "The domain that the virtual machine should join.",
-					RequiredWith:  []string{prefix + "windows_options.0.domain_admin_user", prefix + "windows_options.0.domain_admin_password"},
-				},
-				"domain_ou": {
-					Type:          schema.TypeString,
-					Optional:      true,
-					ConflictsWith: []string{prefix + "windows_options.0.workgroup"},
-					Description:   "The MachineObjectOU which specifies the full LDAP path name of the OU to which the virtual machine belongs.",
 					RequiredWith:  []string{prefix + "windows_options.0.join_domain"},
 				},
 				"workgroup": {
@@ -426,6 +426,7 @@ func ValidateCustomizationSpec(d *schema.ResourceDiff, family string, isVM bool)
 	}
 	return nil
 }
+
 func flattenWindowsOptions(customizationPrep *types.CustomizationSysprep, version viapi.VSphereVersion) ([]map[string]interface{}, error) {
 	winOptionsData := make(map[string]interface{})
 	if customizationPrep.GuiRunOnce != nil {
