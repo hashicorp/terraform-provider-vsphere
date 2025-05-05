@@ -1,15 +1,23 @@
-name: Issue Comment Created Triage
+---
+name: Issue Comment
 
 on:
   issue_comment:
     types: [created]
 
+permissions:
+  contents: read
+
 jobs:
-  remove-foobar:
+  remove-if-waiting:
     uses: ./.github/workflows/remove-issue-label.yml
+    permissions:
+      issues: write
     with:
-      label-name: "waiting-response"
-  remove-stale:
+      label-name: "awaiting-response"
+  remove-if-stale:
     uses: ./.github/workflows/remove-issue-label.yml
+    permissions:
+      issues: write
     with:
       label-name: "stale"
