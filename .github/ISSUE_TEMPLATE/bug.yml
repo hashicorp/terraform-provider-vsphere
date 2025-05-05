@@ -1,26 +1,24 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
-name: "Bug Report"
+---
+name: Bug Report
 description: Is something not working as expected? Submit a bug.
-title: "REPLACE WITH A SHORT DESCRIPTION"
-labels: [bug, needs-triage]
+labels:
+  - [bug, needs-triage]
 body:
   - type: markdown
     attributes:
       value: |
-        Before filing an issue, please [search the existing issues](https://github.com/hashicorp/terraform-provider-vsphere/issues?q=is%3Aissue+is%3Aopen+label%3Abug) (open or closed), and use the [reaction](https://github.blog/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) feature to add up-votes to existing issues.
+        Before filing an issue, please [search the existing issues](https://github.com/vmware/terraform-provider-vsphere/issues?q=is%3Aissue+is%3Aopen+label%3Abug) (open or closed), and use the [reaction](https://blog.github.com/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) feature to add up-votes to existing issues.
 
         When filing an issue, please include the following information.
   - type: checkboxes
     id: terms
     attributes:
-      label: Community Guidelines
-      description: The HashiCorp Community Guidelines apply to you when interacting with the community here on GitHub and contributing code.
+      label: Code of Conduct
+      description: The Code of Conduct applies to you when interacting with the community here on GitHub and contributing code.
       options:
-        - label: I have read and agree to the [HashiCorp Community Guidelines ](https://www.hashicorp.com/community-guidelines).
+        - label: I have read and agree to the [Code of Conduct](https://github.com/vmware/terraform-provider-vsphere/blob/main/CODE_OF_CONDUCT.md).
           required: true
-        - label: Vote on this issue by adding a 👍 [reaction](https://github.blog/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) to the original issue initial description to help the maintainers prioritize.
+        - label: Vote on this issue by adding a 👍 [reaction](https://blog.github.com/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) to the original issue initial description to help the maintainers prioritize.
           required: false
         - label: Do not leave "+1" or other comments that do not add relevant information or questions.
           required: false
@@ -35,25 +33,24 @@ body:
     validations:
       required: true
   - type: input
-    id: version-terraform-provider-vsphere
+    id: version-provider
     attributes:
       label: Terraform Provider
       description: |
-        Please provide the Terraform provider for VMware vSphere version.
-        We recommend testing with [the latest version of the provider](https://github.com/hashicorp/terraform-provider-vsphere/releases/latest).
-      placeholder: e.g. x.y.z
+        Please provide the provider version.
+        We recommend testing with [the latest version of the provider](https://github.com/vmware/terraform-provider-vsphere/releases/latest).
+      placeholder: e.g. x.y.x
     validations:
-       required: true
+      required: true
   - type: input
-    id: version-vsphere
+    id: version-vmc
     attributes:
       label: VMware vSphere
       description: |
         Please provide the VMware vSphere version.
-        The provider supports versions in accordance with the [Broadcom Product Lifecycle](https://support.broadcom.com/group/ecx/productlifecycle).
       placeholder: e.g. x.y.z
     validations:
-      required: true
+      required: false
   - type: textarea
     id: description
     attributes:
@@ -67,7 +64,7 @@ body:
       label: Affected Resources or Data Sources
       description: Please provide the affected resources or data sources as a list.
       placeholder: |
-        e.g. `resource/vsphere_distributed_virtual_switch`
+        e.g. `resource/example` or `datasource/example`
     validations:
       required: true
   - type: textarea
@@ -79,7 +76,7 @@ body:
         - Please ensure all secrets and identifiable information is removed.
         - Please format any code in code blocks using the markdown editor.
 
-        Learn more about [Quoting Code](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#quoting-code).
+        Learn more about [Code Formatting](https://help.github.com/articles/basic-writing-and-formatting-syntax/#quoting-code).
       placeholder: |
         Please format any code in code blocks using the markdown editor.
     validations:
@@ -147,7 +144,7 @@ body:
       label: References
       description: |
         Please provide any related GitHub issues or pull requests (open or closed) or documentation.
-        Learn about [Referencing Github Issues and Pull Requests](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#referencing-issues-and-pull-requests).
+        Learn about [Referencing Github Issues](https://help.github.com/articles/basic-writing-and-formatting-syntax/#referencing-issues-and-pull-requests).
       placeholder: |
         #GH-0000
     validations:
