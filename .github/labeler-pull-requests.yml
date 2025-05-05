@@ -1,27 +1,23 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
+---
 chore:
   - changed-files:
       - any-glob-to-any-file:
           - ".github/**/*"
           - ".gitignore"
-          - ".release"
           - "scripts/**/*"
-          - ".go-version"
           - "go.mod"
           - "go.sum"
 dependencies:
   - changed-files:
       - any-glob-to-any-file:
-          - ".go-version"
           - "go.mod"
           - "go.sum"
 documentation:
   - changed-files:
       - any-glob-to-any-file:
           - "**/*.md"
-          - "website/**/*"
+          - "docs/**/*"
+          - "examples/**/*"
 github-actions:
   - changed-files:
       - any-glob-to-any-file:
@@ -33,9 +29,7 @@ needs-review:
 provider:
   - changed-files:
       - any-glob-to-any-file:
-          - "acctests/**/*"
           - "vsphere/**/*"
-          - ".go-version"
           - "GNUmakefile"
           - "go.mod"
           - "go.sum"
