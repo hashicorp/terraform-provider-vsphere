@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Copyright (c) HashiCorp, Inc.
+# © Broadcom. All Rights Reserved.
+# The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: MPL-2.0
 
 docs=$(find ./docs -type f -name "*.md")
