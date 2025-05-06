@@ -5,9 +5,8 @@
 package vsphere
 
 import (
-	"github.com/vmware/govmomi/vapi/esx/settings/depots"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/vmware/govmomi/vapi/esx/settings/depots"
 )
 
 func dataSourceVSphereHostBaseImages() *schema.Resource {

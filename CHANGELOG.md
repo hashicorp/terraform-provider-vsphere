@@ -543,7 +543,7 @@ BUG FIX:
 BREAKING CHANGES:
 
 - `provider`: Moving forward this provider will only work with Terraform version v0.12 and later.
-- `r/virtual_machine`: [Deprecated attribute `name`](https://github.com/hashicorp/terraform-provider-vsphere/blob/main/CHANGELOG.md#130-january-26-2018) has been removed from the `disk` subresource.
+- `r/virtual_machine`: [Deprecated attribute `name`](https://github.com/vmware/terraform-provider-vsphere/blob/main/CHANGELOG.md#130-january-26-2018) has been removed from the `disk` subresource.
 
 BUG FIX:
 
