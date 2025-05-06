@@ -96,7 +96,7 @@ resource "vsphere_compute_cluster_vm_anti_affinity_rule" "vm_anti_affinity_rule"
 }
 ```
 
--> Please note the `lifecycle.replace_triggered_by` (available Terraform >=1.2) usage. Updating the `vsphere_compute_cluster_vm_anti_affinity_rule` in-place may fail sometimes, especially when the VMs are replaced by new ones. This statement asks Terraform to destroy the anti-affinity rule before VMs are replaced, and a create a completely new anti-affinity rule. See [#1362](https://github.com/hashicorp/terraform-provider-vsphere/issues/1362) for more discussion on this.
+-> Please note the `lifecycle.replace_triggered_by` (available Terraform >=1.2) usage. Updating the `vsphere_compute_cluster_vm_anti_affinity_rule` in-place may fail sometimes, especially when the VMs are replaced by new ones. This statement asks Terraform to destroy the anti-affinity rule before VMs are replaced, and a create a completely new anti-affinity rule. See [#1362](https://github.com/vmware/terraform-provider-vsphere/issues/1362) for more discussion on this.
 
 The following example creates an anti-affinity rule for a set of virtual machines
 in the cluster by looking up the virtual machine UUIDs from the

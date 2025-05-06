@@ -12,10 +12,10 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 )
 
 // resourceVSphereVirtualMachineMigrateState is the main state migration function for

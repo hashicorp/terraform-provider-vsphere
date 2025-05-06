@@ -7,9 +7,9 @@ package vsphere
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
 )
 
 // hostStorageSystemFromHostSystemID locates a HostStorageSystem from a

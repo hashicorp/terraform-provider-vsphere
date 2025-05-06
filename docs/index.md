@@ -278,4 +278,4 @@ For more information how how to submit bug reports, feature requests, or
 details on how to make your own contributions to the provider, see the vSphere
 provider [project page][tf-vsphere-project-page].
 
-[tf-vsphere-project-page]: https://github.com/hashicorp/terraform-provider-vsphere
+[tf-vsphere-project-page]: https://github.com/vmware/terraform-provider-vsphere

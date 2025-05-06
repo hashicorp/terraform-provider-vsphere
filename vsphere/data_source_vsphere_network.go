@@ -11,10 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/network"
-
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/network"
 )
 
 const (
