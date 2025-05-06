@@ -1760,12 +1760,13 @@ func flattenClusterVsanHostConfigInfo(d *schema.ResourceData, obj []types.VsanHo
 		if vsanHost.FaultDomainInfo.Name != "" {
 			name := vsanHost.FaultDomainInfo.Name
 			if hostIds, ok := fdMap[name]; ok {
-				hostIds = append(hostIds.([]string), vsanHost.HostSystem.Value)
+				fdMap[name] = append(hostIds.([]string), vsanHost.HostSystem.Value)
 			} else {
 				fdMap[name] = []string{vsanHost.HostSystem.Value}
 			}
 		}
 	}
+
 	var faultDomainList []interface{}
 	for fdName, hostIds := range fdMap {
 		faultDomainList = append(faultDomainList, map[string]interface{}{
