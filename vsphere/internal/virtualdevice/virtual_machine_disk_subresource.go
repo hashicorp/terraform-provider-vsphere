@@ -995,7 +995,7 @@ func shouldAddRelocateSpec(d *schema.ResourceData, disk *types.VirtualDisk, sche
 		"write_through",
 	}
 
-	diskProps := virtualdisk.VirtualDiskToSchemaPropsMap(disk.Backing)
+	diskProps := virtualdisk.ToSchemaPropsMap(disk.Backing)
 	canonizedDiskProps := make(map[string]interface{})
 	if v, ok := diskProps["VirtualDeviceFileBackingInfo"]; ok {
 		canonizedDiskProps["datastore_id"] = v.(types.VirtualDeviceFileBackingInfo).Datastore.Value
@@ -1314,7 +1314,7 @@ func ReadDiskAttrsForDataSource(l object.VirtualDeviceList, d *schema.ResourceDa
 	var out []map[string]interface{}
 	for i, device := range devices {
 		disk := device.(*types.VirtualDisk)
-		backing := virtualdisk.VirtualDiskToSchemaPropsMap(disk.Backing)
+		backing := virtualdisk.ToSchemaPropsMap(disk.Backing)
 		m := make(map[string]interface{})
 		var eager, thin bool
 		if backing["EagerlyScrub"] != nil {
@@ -1420,7 +1420,7 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 		attach = r.Get("attach").(bool)
 	}
 	// Save disk backing settings
-	b := virtualdisk.VirtualDiskToSchemaPropsMap(disk.Backing)
+	b := virtualdisk.ToSchemaPropsMap(disk.Backing)
 
 	uuid, ok := b["Uuid"]
 	if !ok {
@@ -2351,7 +2351,7 @@ func diskUUIDMatch(device types.BaseVirtualDevice, uuid string) bool {
 	if !ok {
 		return false
 	}
-	backing := virtualdisk.VirtualDiskToSchemaPropsMap(disk.Backing)
+	backing := virtualdisk.ToSchemaPropsMap(disk.Backing)
 	diskUuid, ok := backing["Uuid"].(string)
 	if !ok {
 		return false

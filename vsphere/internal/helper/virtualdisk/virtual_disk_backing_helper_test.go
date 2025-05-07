@@ -4,13 +4,14 @@
 package virtualdisk
 
 import (
-	"github.com/vmware/govmomi/vim25/types"
 	"reflect"
 	"testing"
+
+	"github.com/vmware/govmomi/vim25/types"
 )
 
 func TestVirtualDiskToSchemaPropsMap_WithNilBacking(t *testing.T) {
-	result := VirtualDiskToSchemaPropsMap(nil)
+	result := ToSchemaPropsMap(nil)
 	if len(result) != 0 {
 		t.Fatalf("expected empty map for nil backing, got map with %d elements", len(result))
 	}
@@ -25,7 +26,7 @@ func TestVirtualDiskToSchemaPropsMap_WithDiskBacking(t *testing.T) {
 		DiskMode:        "persistent",
 		ThinProvisioned: types.NewBool(true),
 	}
-	result := VirtualDiskToSchemaPropsMap(&diskBacking)
+	result := ToSchemaPropsMap(&diskBacking)
 
 	// Verify expected fields exist in the result
 	expectedFields := []string{"DiskMode", "ThinProvisioned"}
@@ -53,7 +54,7 @@ func TestVirtualDiskToSchemaPropsMap_WithEmptyBacking(t *testing.T) {
 	// Create empty backing object
 	emptyBacking := &types.VirtualDeviceFileBackingInfo{}
 
-	result := VirtualDiskToSchemaPropsMap(emptyBacking)
+	result := ToSchemaPropsMap(emptyBacking)
 
 	// Should have some fields but they might be zero values
 	if len(result) == 0 {

@@ -4,11 +4,12 @@
 package virtualdisk
 
 import (
-	"github.com/vmware/govmomi/vim25/types"
 	"reflect"
+
+	"github.com/vmware/govmomi/vim25/types"
 )
 
-func VirtualDiskToSchemaPropsMap(backing types.BaseVirtualDeviceBackingInfo) map[string]interface{} {
+func ToSchemaPropsMap(backing types.BaseVirtualDeviceBackingInfo) map[string]interface{} {
 	m := make(map[string]interface{})
 
 	if backing == nil {
