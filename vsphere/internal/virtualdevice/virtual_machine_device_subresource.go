@@ -1078,11 +1078,11 @@ func (c *pciApplyConfig) modifyVirtualPciDevices(devList *schema.Set, op types.V
 // virtual machine.
 func PciPassthroughApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	old, newValue := d.GetChange("pci_device_id")
-	oldDevIds := old.(*schema.Set)
-	newDevIds := newValue.(*schema.Set)
+	oldDevIDs := old.(*schema.Set)
+	newDevIDs := newValue.(*schema.Set)
 
-	delDevs := oldDevIds.Difference(newDevIds)
-	addDevs := newDevIds.Difference(oldDevIds)
+	delDevs := oldDevIDs.Difference(newDevIDs)
+	addDevs := newDevIDs.Difference(oldDevIDs)
 	applyConfig := &pciApplyConfig{
 		Client:        c,
 		ResourceData:  d,
@@ -1118,11 +1118,11 @@ func PciPassthroughApplyOperation(d *schema.ResourceData, c *govmomi.Client, l o
 // operations. It also sets the state in advance of the post-create read.
 func PciPassthroughPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	old, newValue := d.GetChange("pci_device_id")
-	oldDevIds := old.(*schema.Set)
-	newDevIds := newValue.(*schema.Set)
+	oldDevIDs := old.(*schema.Set)
+	newDevIDs := newValue.(*schema.Set)
 
-	delDevs := oldDevIds.Difference(newDevIds)
-	addDevs := newDevIds.Difference(oldDevIds)
+	delDevs := oldDevIDs.Difference(newDevIDs)
+	addDevs := newDevIDs.Difference(oldDevIDs)
 	applyConfig := &pciApplyConfig{
 		Client:        c,
 		ResourceData:  d,

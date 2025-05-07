@@ -54,7 +54,7 @@ func TestAccResourceVSphereSupervisor_full(t *testing.T) {
 			{
 				// You can change the network settings in the configuration
 				// so that they fit your environment
-				Config: testAccVSphereSupervisorConfig_withVmClasses(),
+				Config: testAccVSphereSupervisorConfigWithVMClasses(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("vsphere_supervisor.supervisor", "id"),
 				),
@@ -139,7 +139,7 @@ resource "vsphere_supervisor" "supervisor" {
 		os.Getenv("TF_VAR_EDGE_CLUSTER"))
 }
 
-func testAccVSphereSupervisorConfig_withVmClasses() string {
+func testAccVSphereSupervisorConfigWithVMClasses() string {
 	return fmt.Sprintf(`
 %s
 

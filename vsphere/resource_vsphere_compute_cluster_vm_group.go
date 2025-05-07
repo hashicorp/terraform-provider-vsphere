@@ -170,7 +170,7 @@ func resourceVSphereComputeClusterVMGroupUpdate(d *schema.ResourceData, meta int
 		return err
 	}
 
-	// Convert existing and new virtual machines to string slices for diffVmGroup.
+	// Convert existing and new virtual machines to string slices for diffVMGroup.
 	existingVMs := make([]string, len(existingGroup.Vm))
 	for i, vm := range existingGroup.Vm {
 		existingVMs[i] = vm.Value
@@ -181,8 +181,8 @@ func resourceVSphereComputeClusterVMGroupUpdate(d *schema.ResourceData, meta int
 		newVMs[i] = vm.Value
 	}
 
-	// Use diffVmGroup to find added and removed virtual machines from virtual machine group.
-	addedVMs, removedVMs := diffVmGroup(existingVMs, newVMs)
+	// Use diffVMGroup to find added and removed virtual machines from virtual machine group.
+	addedVMs, removedVMs := diffVMGroup(existingVMs, newVMs)
 
 	// Convert addedVMs and removedVMs back to ManagedObjectReference slices.
 	addedVMRefs := make([]types.ManagedObjectReference, len(addedVMs))
@@ -476,7 +476,7 @@ func resourceVSphereComputeClusterVMGroupClient(meta interface{}) (*govmomi.Clie
 	return client, nil
 }
 
-func diffVmGroup(oldVMs, newVMs []string) ([]string, []string) {
+func diffVMGroup(oldVMs, newVMs []string) ([]string, []string) {
 	oldVMMap := make(map[string]bool)
 	for _, vm := range oldVMs {
 		oldVMMap[vm] = true

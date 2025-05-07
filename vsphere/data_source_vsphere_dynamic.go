@@ -46,8 +46,8 @@ func dataSourceVSphereDynamicRead(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return err
 	}
-	tagIds := d.Get("filter").(*schema.Set).List()
-	matches, err := filterObjectsByTag(tm, tagIds)
+	tagIDs := d.Get("filter").(*schema.Set).List()
+	matches, err := filterObjectsByTag(tm, tagIDs)
 	if err != nil {
 		return err
 	}
@@ -95,11 +95,11 @@ func filterObjectsByName(d *schema.ResourceData, meta interface{}, matches []tag
 
 func filterObjectsByTag(tm *tags.Manager, t []interface{}) ([]tags.AttachedObjects, error) {
 	log.Printf("[DEBUG] dataSourceDynamic: Filtering objects by tags.")
-	var tagIds []string
+	var tagIDs []string
 	for _, ti := range t {
-		tagIds = append(tagIds, ti.(string))
+		tagIDs = append(tagIDs, ti.(string))
 	}
-	matches, err := tm.GetAttachedObjectsOnTags(context.TODO(), tagIds)
+	matches, err := tm.GetAttachedObjectsOnTags(context.TODO(), tagIDs)
 	if err != nil {
 		return nil, err
 	}

@@ -71,11 +71,11 @@ func resourceRoleCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceRoleRead(d *schema.ResourceData, meta interface{}) error {
-	return roleById(d, false, meta)
+	return getRoleByID(d, false, meta)
 }
 
 func resourceRoleImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	err := roleById(d, true, meta)
+	err := getRoleByID(d, true, meta)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func resourceRoleImport(d *schema.ResourceData, meta interface{}) ([]*schema.Res
 	return []*schema.ResourceData{d}, nil
 }
 
-func roleById(d *schema.ResourceData, excludeSystem bool, meta interface{}) error {
+func getRoleByID(d *schema.ResourceData, excludeSystem bool, meta interface{}) error {
 	log.Printf("[DEBUG] Reading vm role with id %s", d.Id())
 	client := meta.(*Client).vimClient
 	authorizationManager := object.NewAuthorizationManager(client.Client)

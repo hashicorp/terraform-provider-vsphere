@@ -560,8 +560,8 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	for _, dev := range vprops.Config.Hardware.Device {
 		if pci, ok := dev.(*types.VirtualPCIPassthrough); ok {
 			if pciBacking, ok := pci.Backing.(*types.VirtualPCIPassthroughDeviceBackingInfo); ok {
-				devId := pciBacking.Id
-				pciDevs = append(pciDevs, devId)
+				devID := pciBacking.Id
+				pciDevs = append(pciDevs, devID)
 			} else {
 				log.Printf("[DEBUG] %s: PCI passthrough device %q has no backing ID", resourceVSphereVirtualMachineIDString(d), pci.GetVirtualDevice().DeviceInfo.GetDescription())
 			}
@@ -1819,7 +1819,7 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 				return err
 			}
 
-			if !guestoscustomizations.IsSpecOsApplicableToVmOs(types.VirtualMachineGuestOsFamily(family), specItem.Info.Type) {
+			if !guestoscustomizations.IsSpecOsApplicableToVMOs(types.VirtualMachineGuestOsFamily(family), specItem.Info.Type) {
 				return fmt.Errorf("customization specification type %s is not applicable to OS family %s", specItem.Info.Type, family)
 			}
 

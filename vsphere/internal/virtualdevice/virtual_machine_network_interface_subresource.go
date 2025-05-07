@@ -834,25 +834,25 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 
 	// Minimum Supported Version: 6.0.0
 	if (version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) && r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov) {
-		bandwidth_limit := structure.Int64Ptr(-1)
-		bandwidth_reservation := structure.Int64Ptr(0)
-		bandwidth_share_level := types.SharesLevelNormal
+		bandwidthLimit := structure.Int64Ptr(-1)
+		bandwidthReservation := structure.Int64Ptr(0)
+		bandwidthShareLevel := types.SharesLevelNormal
 		if r.Get("bandwidth_limit") != nil {
-			bandwidth_limit = structure.Int64Ptr(int64(r.Get("bandwidth_limit").(int)))
+			bandwidthLimit = structure.Int64Ptr(int64(r.Get("bandwidth_limit").(int)))
 		}
 		if r.Get("bandwidth_reservation") != nil {
-			bandwidth_reservation = structure.Int64Ptr(int64(r.Get("bandwidth_reservation").(int)))
+			bandwidthReservation = structure.Int64Ptr(int64(r.Get("bandwidth_reservation").(int)))
 		}
 		if r.Get("bandwidth_share_level") != nil {
-			bandwidth_share_level = types.SharesLevel(r.Get("bandwidth_share_level").(string))
+			bandwidthShareLevel = types.SharesLevel(r.Get("bandwidth_share_level").(string))
 		}
 
 		alloc := &types.VirtualEthernetCardResourceAllocation{
-			Limit:       bandwidth_limit,
-			Reservation: bandwidth_reservation,
+			Limit:       bandwidthLimit,
+			Reservation: bandwidthReservation,
 			Share: types.SharesInfo{
 				Shares: int32(r.Get("bandwidth_share_count").(int)),
-				Level:  bandwidth_share_level,
+				Level:  bandwidthShareLevel,
 			},
 		}
 		card.ResourceAllocation = alloc
@@ -1081,25 +1081,25 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 
 	// Minimum Supported Version: 6.0.0
 	if (version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) && r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov) {
-		bandwidth_limit := structure.Int64Ptr(-1)
-		bandwidth_reservation := structure.Int64Ptr(0)
-		bandwidth_share_level := types.SharesLevelNormal
+		bandwidthLimit := structure.Int64Ptr(-1)
+		bandwidthReservation := structure.Int64Ptr(0)
+		bandwidthShareLevel := types.SharesLevelNormal
 		if r.Get("bandwidth_limit") != nil {
-			bandwidth_limit = structure.Int64Ptr(int64(r.Get("bandwidth_limit").(int)))
+			bandwidthLimit = structure.Int64Ptr(int64(r.Get("bandwidth_limit").(int)))
 		}
 		if r.Get("bandwidth_reservation") != nil {
-			bandwidth_reservation = structure.Int64Ptr(int64(r.Get("bandwidth_reservation").(int)))
+			bandwidthReservation = structure.Int64Ptr(int64(r.Get("bandwidth_reservation").(int)))
 		}
 		if r.Get("bandwidth_share_level") != nil {
-			bandwidth_share_level = types.SharesLevel(r.Get("bandwidth_share_level").(string))
+			bandwidthShareLevel = types.SharesLevel(r.Get("bandwidth_share_level").(string))
 		}
 
 		alloc := &types.VirtualEthernetCardResourceAllocation{
-			Limit:       bandwidth_limit,
-			Reservation: bandwidth_reservation,
+			Limit:       bandwidthLimit,
+			Reservation: bandwidthReservation,
 			Share: types.SharesInfo{
 				Shares: int32(r.Get("bandwidth_share_count").(int)),
-				Level:  bandwidth_share_level,
+				Level:  bandwidthShareLevel,
 			},
 		}
 		card.ResourceAllocation = alloc
@@ -1132,19 +1132,19 @@ func (r *NetworkInterfaceSubresource) addPhysicalFunction(device types.BaseVirtu
 
 	// These seem to be the correct DeviceId, SystemId and VendorId settings if you
 	// investigate a manually created vSphere SRIOV network interface
-	physical_function_conf := &types.VirtualPCIPassthroughDeviceBackingInfo{
+	physicalFunctionConf := &types.VirtualPCIPassthroughDeviceBackingInfo{
 		Id:       r.Get("physical_function").(string),
 		DeviceId: "0",
 		SystemId: "BYPASS",
 		VendorId: 0,
 	}
-	sriov_conf := &types.VirtualSriovEthernetCardSriovBackingInfo{
-		PhysicalFunctionBacking: physical_function_conf,
+	sriovConf := &types.VirtualSriovEthernetCardSriovBackingInfo{
+		PhysicalFunctionBacking: physicalFunctionConf,
 	}
 
 	device = &types.VirtualSriovEthernetCard{
 		VirtualEthernetCard: *d2.(types.BaseVirtualEthernetCard).GetVirtualEthernetCard(),
-		SriovBacking:        sriov_conf,
+		SriovBacking:        sriovConf,
 	}
 
 	return device, nil

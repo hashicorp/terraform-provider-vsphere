@@ -380,7 +380,7 @@ func FlattenGuestOsCustomizationSpec(d *schema.ResourceData, specItem *types.Cus
 	return nil
 }
 
-func IsSpecOsApplicableToVmOs(vmOsFamily types.VirtualMachineGuestOsFamily, specType string) bool {
+func IsSpecOsApplicableToVMOs(vmOsFamily types.VirtualMachineGuestOsFamily, specType string) bool {
 	if specType == GuestOsCustomizationTypeWindows && vmOsFamily == types.VirtualMachineGuestOsFamilyWindowsGuest {
 		return true
 	}

@@ -977,10 +977,10 @@ func DiskCloneRelocateOperation(resourceData *schema.ResourceData, client *govmo
 Sets the value of the VM datastore
 */
 func addDiskDatastore(r *DiskSubresource, d *schema.ResourceData) *DiskSubresource {
-	diskDsId := r.Get("datastore_id")
-	dataDsId := d.Get("datastore_id")
-	if (diskDsId == "" || diskDsId == diskDatastoreComputedName) && dataDsId != "" {
-		r.Set("datastore_id", dataDsId)
+	diskDsID := r.Get("datastore_id")
+	dataDsID := d.Get("datastore_id")
+	if (diskDsID == "" || diskDsID == diskDatastoreComputedName) && dataDsID != "" {
+		r.Set("datastore_id", dataDsID)
 	}
 
 	return r
@@ -1000,8 +1000,8 @@ func shouldAddRelocateSpec(d *schema.ResourceData, disk *types.VirtualDisk, sche
 
 	// If the VM is cloned to a datastore cluster and no datastore is specified for the disk
 	// it should not be added to the relocate spec
-	diskDataStoreId, _ := dataProps["datastore_id"].(string)
-	diskDsIsEmpty := diskDataStoreId == "" || diskDataStoreId == diskDatastoreComputedName
+	diskDataStoreID, _ := dataProps["datastore_id"].(string)
+	diskDsIsEmpty := diskDataStoreID == "" || diskDataStoreID == diskDatastoreComputedName
 	if d.Get("datastore_id") == "" && d.Get("datastore_cluster_id") != "" && diskDsIsEmpty {
 		return false
 	}
@@ -1059,8 +1059,8 @@ func virtualDiskToSchemaPropsMap(disk *types.VirtualDisk) map[string]interface{}
 func diskDataToSchemaProps(d *schema.ResourceData, deviceIndex int) map[string]interface{} {
 	m := make(map[string]interface{})
 	datastoreKey := fmt.Sprintf("disk.%d.datastore_id", deviceIndex)
-	if datastoreId, ok := d.GetOk(datastoreKey); ok {
-		m["datastore_id"] = datastoreId
+	if datastoreID, ok := d.GetOk(datastoreKey); ok {
+		m["datastore_id"] = datastoreID
 	}
 
 	diskModeKey := fmt.Sprintf("disk.%d.disk_mode", deviceIndex)

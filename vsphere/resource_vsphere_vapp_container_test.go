@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	testAccResourceVSphereVappContainerClonedVmDiskSize = "20"
+	testAccResourceVSphereVappContainerClonedVMDiskSize = "20"
 )
 
 func TestAccResourceVSphereVAppContainer_basic(t *testing.T) {
@@ -772,7 +772,7 @@ resource "vsphere_virtual_machine" "vm" {
 			testhelper.ConfigResResourcePool1(),
 			testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
-		testAccResourceVSphereVappContainerClonedVmDiskSize,
+		testAccResourceVSphereVappContainerClonedVMDiskSize,
 	)
 }
 
