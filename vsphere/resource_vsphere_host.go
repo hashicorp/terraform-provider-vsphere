@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -11,14 +12,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/clustercomputeresource"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/license"
 	"github.com/vmware/govmomi/object"
@@ -28,6 +23,11 @@ import (
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/clustercomputeresource"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/provider"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
 
 const defaultHostPort = "443"
@@ -891,17 +891,13 @@ func getHostThumbprint(d *schema.ResourceData) (string, error) {
 	// Otherwise, use the default value of false.
 	if thumbprint, ok := d.Get("thumbprint").(string); ok && thumbprint != "" {
 		return thumbprint, nil
-	} else {
-		if insecure, ok := d.GetOk("allow_unverified_ssl"); ok {
-			if insecureBool, ok := insecure.(bool); ok {
-				config.InsecureSkipVerify = insecureBool
-				if config.InsecureSkipVerify {
-				}
-			} else {
-				config.InsecureSkipVerify = false
-			}
-		} else {
-			config.InsecureSkipVerify = false
+	}
+
+	config.InsecureSkipVerify = false
+
+	if insecure, ok := d.GetOk("allow_unverified_ssl"); ok {
+		if insecureBool, typeOk := insecure.(bool); typeOk {
+			config.InsecureSkipVerify = insecureBool
 		}
 	}
 

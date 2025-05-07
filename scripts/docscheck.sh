@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Copyright (c) HashiCorp, Inc.
+# © Broadcom. All Rights Reserved.
+# The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: MPL-2.0
 
-
-docs=$(ls website/docs/**/*.markdown)
+docs=$(find ./docs -type f -name "*.md")
 error=false
 
 for doc in $docs; do
@@ -17,7 +17,7 @@ for doc in $docs; do
       continue
       ;;
 
-    "d")
+    "data-sources")
       # Data sources require a subcategory.
       grep "^subcategory: " "$doc" > /dev/null
       if [[ "$?" == "1" ]]; then
@@ -26,7 +26,7 @@ for doc in $docs; do
       fi
       ;;
 
-		"r")
+		"resources")
       # Resources require a subcategory.
       grep "^subcategory: " "$doc" > /dev/null
       if [[ "$?" == "1" ]]; then
@@ -36,10 +36,7 @@ for doc in $docs; do
       ;;
 
     *)
-      # Docs
-      error=true
-      echo "Unknown category \"$category\". " \
-        "Documentation can only exist in r/, d/, or guides/ directories."
+      continue
       ;;
   esac
 done
@@ -48,4 +45,5 @@ if $error; then
   exit 1
 fi
 
+echo "==> Done."
 exit 0

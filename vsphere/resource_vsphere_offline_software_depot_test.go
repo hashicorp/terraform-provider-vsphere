@@ -1,15 +1,17 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 	"os"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 )
 
 func TestAccResourceVSphereOfflineSoftwareDepot_basic(t *testing.T) {
@@ -33,14 +35,15 @@ func TestAccResourceVSphereOfflineSoftwareDepot_basic(t *testing.T) {
 
 func testAccResourceVSphereOfflineSoftwareDepotCheckFunc() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if tVars, err := testClientVariablesForResource(s, "vsphere_offline_software_depot.depot"); err != nil {
+		tVars, err := testClientVariablesForResource(s, "vsphere_offline_software_depot.depot")
+		if err != nil {
 			return err
-		} else {
-			location, _ := tVars.resourceAttributes["location"]
-			expected := os.Getenv("TF_VAR_VSPHERE_SOFTWARE_DEPOT_LOCATION")
-			if location != expected {
-				return fmt.Errorf("depot location is incorrect. Expected %s but got %s", expected, location)
-			}
+		}
+
+		location, _ := tVars.resourceAttributes["location"]
+		expected := os.Getenv("TF_VAR_VSPHERE_SOFTWARE_DEPOT_LOCATION")
+		if location != expected {
+			return fmt.Errorf("depot location is incorrect. Expected %s but got %s", expected, location)
 		}
 
 		return nil

@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -7,7 +8,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/folder"
 )
 
 // resourceVSphereFolderMigrateState is the main state migration function for

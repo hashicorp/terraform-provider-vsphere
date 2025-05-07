@@ -1,26 +1,29 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
-name: "Enhancement Request"
-description: Is something critical missing? Suggest an enhancement or feature.
-title: "Add support for [REPLACE WITH SHORT DESCRIPTION]"
-labels: [enhancement]
+---
+name: Enhancement Request
+description: Is something critical missing? Suggest an enhancement.
+labels:
+  - [enhancement, needs-review]
 body:
   - type: markdown
     attributes:
-      value: |
-        Before filing an enhancement or feature, please [search the existing issues](https://github.com/hashicorp/terraform-provider-vsphere/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement) for related requests, and use the [reaction](https://github.blog/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) feature to add up-votes to existing requests.
+      value: >
+        Before filing an enhancement, please search the existing issues and use the
+        [reaction](https://blog.github.com/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/)
+        feature to add up-votes to existing requests.
 
-        When filing an enhancement issue, please include the following information.
+
+        When filing an enhancement, please include the following information.
   - type: checkboxes
     id: terms
     attributes:
-      label: Community Guidelines
-      description: The HashiCorp Community Guidelines apply to you when interacting with the community here on GitHub and contributing code.
+      label: Code of Conduct
+      description: >-
+        This project has a [Code of Conduct](https://github.com/vmware/terraform-provider-vsphere/blob/main/CODE_OF_CONDUCT.md)
+        that all participants are expected to understand and follow.
       options:
-        - label: I have read and agree to the [HashiCorp Community Guidelines ](https://www.hashicorp.com/community-guidelines).
+        - label: I have read and agree to the project's Code of Conduct.
           required: true
-        - label: Vote on this issue by adding a 👍 [reaction](https://github.blog/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) to the original issue initial description to help the maintainers prioritize.
+        - label: Vote on this issue by adding a 👍 [reaction](https://blog.github.com/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) to the original issue initial description to help the maintainers prioritize.
           required: false
         - label: Do not leave "+1" or other comments that do not add relevant information or questions.
           required: false
@@ -30,35 +33,27 @@ body:
     id: description
     attributes:
       label: Description
-      description: A written overview of the enhancement or feature.
+      description: A written overview of the enhancement.
     validations:
       required: true
   - type: textarea
     id: use-case
     attributes:
       label: Use Case(s)
-      description: Please provide a use case or scenario.
+      description: Any relevant use-cases that you see.
     validations:
       required: true
   - type: textarea
-    id: configuration
+    id: potential-configuration
     attributes:
-      label: Potential Terraform Provider Configuration
-      description: |
-        Provide a potential Terraform provider configuration.
-        Learn more about [Quoting Code](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#quoting-code).
-      placeholder: |
-        Please format any code in code blocks using the markdown editor.
+      label: Potential Configuration
+      description: Provide a potential configuration.
     validations:
-      required: false
+      required: true
   - type: textarea
     id: references
     attributes:
       label: References
-      description: |
-        Please provide any related GitHub issues or pull requests (open or closed) or documentation.
-        Learn about [Referencing Github Issues and Pull Requests](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#referencing-issues-and-pull-requests).
-      placeholder: |
-        #GH-0000
+      description: Provide any references.
     validations:
       required: false

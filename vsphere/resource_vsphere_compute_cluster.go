@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -10,30 +11,27 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/vmware/govmomi"
+	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vapi/cis/tasks"
 	"github.com/vmware/govmomi/vapi/esx/settings/clusters"
 	"github.com/vmware/govmomi/vapi/rest"
-
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/vsanclient"
-
 	"github.com/vmware/govmomi/vim25/mo"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/clustercomputeresource"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/vsansystem"
-	"github.com/vmware/govmomi"
-	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 	"github.com/vmware/govmomi/vsan"
 	vsantypes "github.com/vmware/govmomi/vsan/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/clustercomputeresource"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/provider"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/viapi"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/vsanclient"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/vsansystem"
 )
 
 const resourceVSphereComputeClusterName = "vsphere_compute_cluster"
@@ -1167,38 +1165,42 @@ func resourceVSphereComputeClusterApplyHostImage(
 		}
 	}
 
-	if draftId, err := m.CreateSoftwareDraft(d.Id()); err != nil {
+	draftId, err := m.CreateSoftwareDraft(d.Id())
+	if err != nil {
 		return err
-	} else {
-		if err := m.SetSoftwareDraftBaseImage(d.Id(), draftId, d.Get("host_image.0.esx_version").(string)); err != nil {
-			return err
-		}
+	}
 
-		spec := clusters.SoftwareComponentsUpdateSpec{ComponentsToSet: make(map[string]string)}
-		oldComponents, newComponents := d.GetChange("host_image.0.component")
-		oldComponentsMap := getComponentsMap(oldComponents.([]interface{}))
-		newComponentsMap := getComponentsMap(newComponents.([]interface{}))
+	if err := m.SetSoftwareDraftBaseImage(d.Id(), draftId, d.Get("host_image.0.esx_version").(string)); err != nil {
+		return err
+	}
 
-		spec.ComponentsToSet = getComponentsToAdd(oldComponentsMap, newComponentsMap)
-		componentsToRemove := getComponentsToRemove(oldComponentsMap, newComponentsMap)
+	spec := clusters.SoftwareComponentsUpdateSpec{ComponentsToSet: make(map[string]string)}
+	oldComponents, newComponents := d.GetChange("host_image.0.component")
+	oldComponentsMap := getComponentsMap(oldComponents.([]interface{}))
+	newComponentsMap := getComponentsMap(newComponents.([]interface{}))
 
-		if err = m.UpdateSoftwareDraftComponents(d.Id(), draftId, spec); err != nil {
-			return err
-		} else if len(componentsToRemove) > 0 {
-			for _, componentId := range componentsToRemove {
-				if err := m.RemoveSoftwareDraftComponents(d.Id(), draftId, componentId); err != nil {
-					return err
-				}
+	spec.ComponentsToSet = getComponentsToAdd(oldComponentsMap, newComponentsMap)
+	componentsToRemove := getComponentsToRemove(oldComponentsMap, newComponentsMap)
+
+	if err = m.UpdateSoftwareDraftComponents(d.Id(), draftId, spec); err != nil {
+		return err
+	}
+
+	if len(componentsToRemove) > 0 {
+		for _, componentId := range componentsToRemove {
+			if err := m.RemoveSoftwareDraftComponents(d.Id(), draftId, componentId); err != nil {
+				return err
 			}
 		}
-
-		if taskId, err := m.CommitSoftwareDraft(d.Id(), draftId, clusters.SettingsClustersSoftwareDraftsCommitSpec{}); err != nil {
-			return err
-		} else {
-			_, err := tasks.NewManager(client).WaitForCompletion(context.Background(), taskId)
-			return err
-		}
 	}
+
+	taskId, err := m.CommitSoftwareDraft(d.Id(), draftId, clusters.SettingsClustersSoftwareDraftsCommitSpec{})
+	if err != nil {
+		return err
+	}
+
+	_, err = tasks.NewManager(client).WaitForCompletion(context.Background(), taskId)
+	return err
 }
 
 func resourceVsphereComputeClusterEnableSoftwareManagement(d *schema.ResourceData, client *rest.Client) error {
@@ -1216,15 +1218,14 @@ func resourceVsphereComputeClusterEnableSoftwareManagement(d *schema.ResourceDat
 		return err
 	} else if _, err := tasks.NewManager(client).WaitForCompletion(context.Background(), taskId); err != nil {
 		return err
-	} else {
-		return nil
 	}
+	return nil
 }
 
-func getComponentsToAdd(old, new map[string]interface{}) map[string]string {
+func getComponentsToAdd(old, newComponents map[string]interface{}) map[string]string {
 	result := make(map[string]string)
 
-	for k, v := range new {
+	for k, v := range newComponents {
 		if _, contains := old[k]; !contains {
 			version, _ := v.(map[string]interface{})["version"].(string)
 			result[k] = version
@@ -1234,11 +1235,11 @@ func getComponentsToAdd(old, new map[string]interface{}) map[string]string {
 	return result
 }
 
-func getComponentsToRemove(old, new map[string]interface{}) []string {
+func getComponentsToRemove(old, newComponents map[string]interface{}) []string {
 	result := make([]string, 0)
 
-	for k, _ := range old {
-		if _, contains := new[k]; !contains {
+	for k := range old {
+		if _, contains := newComponents[k]; !contains {
 			result = append(result, k)
 		}
 	}
@@ -1759,12 +1760,13 @@ func flattenClusterVsanHostConfigInfo(d *schema.ResourceData, obj []types.VsanHo
 		if vsanHost.FaultDomainInfo.Name != "" {
 			name := vsanHost.FaultDomainInfo.Name
 			if hostIds, ok := fdMap[name]; ok {
-				hostIds = append(hostIds.([]string), vsanHost.HostSystem.Value)
+				fdMap[name] = append(hostIds.([]string), vsanHost.HostSystem.Value)
 			} else {
 				fdMap[name] = []string{vsanHost.HostSystem.Value}
 			}
 		}
 	}
+
 	var faultDomainList []interface{}
 	for fdName, hostIds := range fdMap {
 		faultDomainList = append(faultDomainList, map[string]interface{}{
@@ -1861,7 +1863,7 @@ func buildVsanRemoveWitnessHostReq(d *schema.ResourceData, cluster types.Managed
 
 	res, err := vsanclient.GetWitnessHosts(client, cluster.Reference())
 	if err != nil {
-		return nil, fmt.Errorf("failed to get witness_node when removing witness!")
+		return nil, fmt.Errorf("failed to get witness node when removing witness")
 	}
 
 	return &vsantypes.VSANVcRemoveWitnessHost{
@@ -1965,8 +1967,6 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 
 			if err := vsanclient.ConvertToStretchedCluster(meta.(*Client).vsanClient, meta.(*Client).vimClient, *req); err != nil {
 				return fmt.Errorf("cannot stretch cluster %s with spec: %#v\n, err: %#v", d.Get("name").(string), *req, err)
-			} else {
-				log.Printf("[DEBUG] stretching cluster %s with spec: %#v", d.Get("name").(string), *req)
 			}
 		}
 
@@ -1979,8 +1979,6 @@ func resourceVSphereComputeClusterApplyVsanConfig(d *schema.ResourceData, meta i
 
 			if err := vsanclient.RemoveWitnessHost(meta.(*Client).vsanClient, meta.(*Client).vimClient, *req); err != nil {
 				return fmt.Errorf("cannot disable stretched cluster %s with spec: %#v", d.Get("name").(string), *req)
-			} else {
-				log.Printf("[DEBUG] disabling stretched cluster %s with spec: %#v", d.Get("name").(string), *req)
 			}
 		}
 	}
@@ -2000,22 +1998,22 @@ func vsanDiskMapKey(d interface{}) string {
 func updateVsanDisks(d *schema.ResourceData, cluster *object.ClusterComputeResource, meta interface{}) error {
 	client := meta.(*Client).vimClient
 	o, n := d.GetChange("vsan_disk_group")
-	old := o.([]interface{})
-	new := n.([]interface{})
+	oldDisks := o.([]interface{})
+	newDisks := n.([]interface{})
 
 	oldMap := make(map[string]bool)
 	newMap := make(map[string]bool)
 
-	for _, d := range old {
+	for _, d := range oldDisks {
 		oldMap[vsanDiskMapKey(d)] = true
 	}
-	for _, d := range new {
+	for _, d := range newDisks {
 		newMap[vsanDiskMapKey(d)] = true
 	}
 
 	// build list to add
 	var addSet []interface{}
-	for _, d := range new {
+	for _, d := range newDisks {
 		if !oldMap[vsanDiskMapKey(d)] {
 			addSet = append(addSet, d)
 		}
@@ -2023,7 +2021,7 @@ func updateVsanDisks(d *schema.ResourceData, cluster *object.ClusterComputeResou
 
 	// build list to delete
 	var delSet []interface{}
-	for _, d := range old {
+	for _, d := range oldDisks {
 		if !newMap[vsanDiskMapKey(d)] {
 			delSet = append(delSet, d)
 		}
@@ -2206,9 +2204,8 @@ func flattenVsanStretchedCluster(client *vsan.Client, d *schema.ResourceData, cl
 			})
 		}
 		return d.Set("vsan_stretched_cluster", conf)
-	} else {
-		return fmt.Errorf("error getting witness node for cluster %s, agent address was unexpectedly empty", d.Get("name").(string))
 	}
+	return fmt.Errorf("error getting witness node for cluster %s, agent address was unexpectedly empty", d.Get("name").(string))
 }
 
 // flattenClusterConfigSpecEx saves a ClusterConfigSpecEx into the supplied

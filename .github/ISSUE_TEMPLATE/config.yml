@@ -1,14 +1,12 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
+---
 blank_issues_enabled: false
 contact_links:
   - name: Community Discussions
-    url: https://discuss.hashicorp.com/tags/c/terraform-providers/31/vsphere
+    url: https://github.com/vmware/terraform-provider-vsphere/discussions
     about: Need some help? Join the community discussions.
   - name: Terraform Provider Documentation
-    url: https://registry.terraform.io/providers/hashicorp/vsphere/latest/docs
+    url: https://registry.terraform.io/providers/vmware/vsphere/latest/docs
     about: Having trouble with this Terraform provider? Check out the provider documentation.
   - name: Terraform Documentation
-    url: https://terraform.io/docs/
+    url: https://developer.hashicorp.com/terraform/docs
     about: Having trouble with Terraform? Check out the product documentation.

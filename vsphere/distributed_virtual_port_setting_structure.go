@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -8,8 +9,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/structure"
 )
 
 var vmwareUplinkLacpPolicyModeAllowedValues = []string{
@@ -258,11 +259,11 @@ func expandVmwareDistributedVirtualSwitchTrunkVlanSpec(d *schema.ResourceData) *
 	for _, v := range data {
 		log.Printf("[DEBUG] processing range: %#v", v)
 		r := v.(map[string]interface{})
-		min := r["min_vlan"].(int)
-		max := r["max_vlan"].(int)
+		minVlan := r["min_vlan"].(int)
+		maxVlan := r["max_vlan"].(int)
 		rng := types.NumericRange{
-			Start: int32(min),
-			End:   int32(max),
+			Start: int32(minVlan),
+			End:   int32(maxVlan),
 		}
 		ranges = append(ranges, rng)
 	}

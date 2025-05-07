@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -9,8 +10,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/structure"
 )
 
 const hostVirtualSwitchIDPrefix = "tf-HostVirtualSwitch"
@@ -58,10 +59,11 @@ func schemaHostVirtualSwitchBondBridge() map[string]*schema.Schema {
 
 		// HostVirtualSwitchBondBridge
 		"network_adapters": {
-			Type:        schema.TypeList,
-			Required:    true,
-			Description: "The list of network adapters to bind to this virtual switch.",
-			Elem:        &schema.Schema{Type: schema.TypeString},
+			Type:             schema.TypeList,
+			Required:         true,
+			Description:      "The list of network adapters to bind to this virtual switch.",
+			Elem:             &schema.Schema{Type: schema.TypeString},
+			DiffSuppressFunc: networkAdaptersSupressDiff,
 		},
 	}
 }
@@ -78,6 +80,9 @@ func expandHostVirtualSwitchBeaconConfig(d *schema.ResourceData) *types.HostVirt
 // flattenHostVirtualSwitchBeaconConfig reads various fields from a
 // HostVirtualSwitchBeaconConfig into the passed in ResourceData.
 func flattenHostVirtualSwitchBeaconConfig(d *schema.ResourceData, obj *types.HostVirtualSwitchBeaconConfig) error {
+	if obj == nil {
+		return nil
+	}
 	_ = d.Set("beacon_interval", obj.Interval)
 	return nil
 }
@@ -95,6 +100,9 @@ func expandLinkDiscoveryProtocolConfig(d *schema.ResourceData) *types.LinkDiscov
 // flattenLinkDiscoveryProtocolConfig reads various fields from a
 // LinkDiscoveryProtocolConfig into the passed in ResourceData.
 func flattenLinkDiscoveryProtocolConfig(d *schema.ResourceData, obj *types.LinkDiscoveryProtocolConfig) error {
+	if obj == nil {
+		return nil
+	}
 	_ = d.Set("link_discovery_operation", obj.Operation)
 	_ = d.Set("link_discovery_protocol", obj.Protocol)
 	return nil
@@ -114,6 +122,9 @@ func expandHostVirtualSwitchBondBridge(d *schema.ResourceData) *types.HostVirtua
 // flattenHostVirtualSwitchBondBridge reads various fields from a
 // HostVirtualSwitchBondBridge into the passed in ResourceData.
 func flattenHostVirtualSwitchBondBridge(d *schema.ResourceData, obj *types.HostVirtualSwitchBondBridge) error {
+	if obj == nil {
+		return nil
+	}
 	_ = d.Set("network_adapters", structure.SliceStringsToInterfaces(obj.NicDevice))
 	if err := flattenHostVirtualSwitchBeaconConfig(d, obj.Beacon); err != nil {
 		return err
@@ -166,6 +177,9 @@ func expandHostVirtualSwitchSpec(d *schema.ResourceData) *types.HostVirtualSwitc
 // flattenHostVirtualSwitchSpec reads various fields from a
 // HostVirtualSwitchSpec into the passed in ResourceData.
 func flattenHostVirtualSwitchSpec(d *schema.ResourceData, obj *types.HostVirtualSwitchSpec) error {
+	if obj == nil {
+		return nil
+	}
 	_ = d.Set("mtu", obj.Mtu)
 	_ = d.Set("number_of_ports", obj.NumPorts)
 	if obj.Bridge != nil {
@@ -198,4 +212,40 @@ func splitHostVirtualSwitchID(raw string) (string, string, error) {
 // splitHostVirtualSwitchID.
 func virtualSwitchIDsFromResourceID(d *schema.ResourceData) (string, string, error) {
 	return splitHostVirtualSwitchID(d.Id())
+}
+
+// networkAdaptersSupressDiff checks if the 'network_adapters' set has changed, ignoring and difference
+// in the order of elements.
+func networkAdaptersSupressDiff(_, _, _ string, d *schema.ResourceData) bool {
+	o, n := d.GetChange("network_adapters")
+	oldAdapters := o.([]interface{})
+	newAdapters := n.([]interface{})
+
+	if len(oldAdapters) != len(newAdapters) {
+		return false
+	}
+
+	for _, oldAdapter := range oldAdapters {
+		if found := isAdapterFound(oldAdapter, newAdapters); !found {
+			return false
+		}
+	}
+
+	for _, newAdapter := range newAdapters {
+		if found := isAdapterFound(newAdapter, oldAdapters); !found {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isAdapterFound(adapter interface{}, set []interface{}) bool {
+	for _, v := range set {
+		if adapter == v {
+			return true
+		}
+	}
+
+	return false
 }

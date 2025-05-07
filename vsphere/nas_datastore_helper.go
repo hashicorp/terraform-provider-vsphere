@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -7,11 +8,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
 
 // nasDatastoreMountProcessor is an object that wraps the "complex" mounting

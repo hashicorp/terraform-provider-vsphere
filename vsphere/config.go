@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -16,21 +17,20 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/vmware/govmomi/vapi/rest"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/pbm"
 	"github.com/vmware/govmomi/session"
 	"github.com/vmware/govmomi/session/cache"
 	"github.com/vmware/govmomi/session/keepalive"
+	"github.com/vmware/govmomi/vapi/rest"
 	"github.com/vmware/govmomi/vapi/tags"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/debug"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
 	"github.com/vmware/govmomi/vsan"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
 
 // Client is the client connection manager for the vSphere provider. It
@@ -514,8 +514,8 @@ func newClientWithKeepAlive(ctx context.Context, u *url.URL, insecure bool, keep
 		SessionManager: session.NewManager(vimClient),
 	}
 
-	k := session.KeepAlive(c.Client.RoundTripper, time.Duration(keepAlive)*time.Minute)
-	c.Client.RoundTripper = k
+	k := session.KeepAlive(c.RoundTripper, time.Duration(keepAlive)*time.Minute)
+	c.RoundTripper = k
 
 	// Only login if the URL contains user information.
 	if u.User != nil {

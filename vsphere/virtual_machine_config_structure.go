@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -8,17 +9,16 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/mitchellh/copystructure"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/spbm"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
+	"github.com/mitchellh/copystructure"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/spbm"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/viapi"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 )
 
 var virtualMachineResourceAllocationTypeValues = []string{"cpu", "memory"}
@@ -142,7 +142,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "Enable logging on this virtual machine.",
-			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			DiffSuppressFunc: func(k, oldSetting, newSetting string, d *schema.ResourceData) bool {
 				return len(d.Get("ovf_deploy").([]interface{})) > 0
 			},
 		},
@@ -280,13 +280,13 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Optional:    true,
 			Computed:    true,
 			Description: "The guest ID for the operating system.",
-			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			DiffSuppressFunc: func(k, oldSetting, newSetting string, d *schema.ResourceData) bool {
 				ovf, ok := d.GetOk("ovf_deploy")
 				if !ok {
 					return false
 				}
 
-				if items, ok := ovf.([]interface{}); ok && len(items) > 0 && new == "" {
+				if items, ok := ovf.([]interface{}); ok && len(items) > 0 && newSetting == "" {
 					return true
 				}
 
@@ -1077,7 +1077,7 @@ func getMemoryReservationLockedToMax(d *schema.ResourceData) *bool {
 		return structure.BoolPtr(false)
 	}
 
-	if memory == memoryReservation && memoryLockMax == true {
+	if memory == memoryReservation && memoryLockMax {
 		return structure.BoolPtr(true)
 	}
 

@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package viapi
@@ -10,13 +11,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/provider"
 )
 
 // ManagedObject allows for working generically with managed objects.
@@ -95,10 +96,10 @@ func IsResourceInUseError(err error) bool {
 }
 
 // RenameObject renames a MO and tracks the task to make sure it completes.
-func RenameObject(client *govmomi.Client, ref types.ManagedObjectReference, new string) error {
+func RenameObject(client *govmomi.Client, ref types.ManagedObjectReference, newObjectName string) error {
 	req := types.Rename_Task{
 		This:    ref,
-		NewName: new,
+		NewName: newObjectName,
 	}
 
 	rctx, rcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
@@ -202,7 +203,7 @@ func parseVersionFromAboutInfo(info types.AboutInfo) VSphereVersion {
 // ParseVersionFromClient returns a populated VSphereVersion from a client
 // connection.
 func ParseVersionFromClient(client *govmomi.Client) VSphereVersion {
-	return parseVersionFromAboutInfo(client.Client.ServiceContent.About)
+	return parseVersionFromAboutInfo(client.ServiceContent.About)
 }
 
 // String implements stringer for VSphereVersion.

@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -6,6 +7,7 @@ package vsphere
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/vmware/govmomi/find"
@@ -50,7 +52,11 @@ func dataSourceVSphereDatacenterRead(d *schema.ResourceData, meta interface{}) e
 	if err != nil {
 		return fmt.Errorf("error fetching datacenter: %s", err)
 	}
-	defer view.Destroy(ctx)
+	defer func() {
+		if err := view.Destroy(ctx); err != nil {
+			log.Printf("[WARN] Error destroying view during cleanup: %v", err)
+		}
+	}()
 	var vms []mo.VirtualMachine
 	err = view.Retrieve(ctx, []string{"VirtualMachine"}, []string{"name"}, &vms)
 	if err != nil {

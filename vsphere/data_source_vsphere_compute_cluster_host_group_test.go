@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -8,8 +9,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 )
 
 func TestAccDataSourceVSphereComputeClusterHostGroup_basic(t *testing.T) {
@@ -40,7 +41,7 @@ variable hosts {
   default = [ %q, %q ]
 }
 
-%s 
+%s
 
 data "vsphere_host" "hosts" {
   count         = %d

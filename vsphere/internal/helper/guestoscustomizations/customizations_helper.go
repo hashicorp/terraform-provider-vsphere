@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package guestoscustomizations
@@ -12,12 +13,12 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/provider"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
 
 const (
@@ -172,6 +173,20 @@ func SpecSchema(isVM bool) map[string]*schema.Schema {
 				},
 
 				// CustomizationIdentification
+				"join_domain": {
+					Type:          schema.TypeString,
+					Optional:      true,
+					ConflictsWith: []string{prefix + "windows_options.0.workgroup"},
+					Description:   "The domain that the virtual machine should join.",
+					RequiredWith:  []string{prefix + "windows_options.0.domain_admin_user", prefix + "windows_options.0.domain_admin_password"},
+				},
+				"domain_ou": {
+					Type:          schema.TypeString,
+					Optional:      true,
+					ConflictsWith: []string{prefix + "windows_options.0.workgroup"},
+					Description:   "The MachineObjectOU which specifies the full LDAP path name of the OU to which the virtual machine belongs.",
+					RequiredWith:  []string{prefix + "windows_options.0.join_domain"},
+				},
 				"domain_admin_user": {
 					Type:          schema.TypeString,
 					Optional:      true,
@@ -185,20 +200,6 @@ func SpecSchema(isVM bool) map[string]*schema.Schema {
 					Sensitive:     true,
 					ConflictsWith: []string{prefix + "windows_options.0.workgroup"},
 					Description:   "The password of the domain administrator used to join this virtual machine to the domain.",
-					RequiredWith:  []string{prefix + "windows_options.0.join_domain"},
-				},
-				"join_domain": {
-					Type:          schema.TypeString,
-					Optional:      true,
-					ConflictsWith: []string{prefix + "windows_options.0.workgroup"},
-					Description:   "The domain that the virtual machine should join.",
-					RequiredWith:  []string{prefix + "windows_options.0.domain_admin_user", prefix + "windows_options.0.domain_admin_password"},
-				},
-				"domain_ou": {
-					Type:          schema.TypeString,
-					Optional:      true,
-					ConflictsWith: []string{prefix + "windows_options.0.workgroup"},
-					Description:   "The MachineObjectOU which specifies the full LDAP path name of the OU to which the virtual machine belongs.",
 					RequiredWith:  []string{prefix + "windows_options.0.join_domain"},
 				},
 				"workgroup": {
@@ -318,7 +319,8 @@ func FlattenGuestOsCustomizationSpec(d *schema.ResourceData, specItem *types.Cus
 	specData["dns_server_list"] = specItem.Spec.GlobalIPSettings.DnsServerList
 	specData["dns_suffix_list"] = specItem.Spec.GlobalIPSettings.DnsSuffixList
 
-	if specItem.Info.Type == GuestOsCustomizationTypeLinux {
+	switch specItem.Info.Type {
+	case GuestOsCustomizationTypeLinux:
 		linuxPrep := specItem.Spec.Identity.(*types.CustomizationLinuxPrep)
 		linuxOptions, err := flattenLinuxOptions(linuxPrep)
 		if err != nil {
@@ -326,7 +328,7 @@ func FlattenGuestOsCustomizationSpec(d *schema.ResourceData, specItem *types.Cus
 		}
 
 		specData["linux_options"] = linuxOptions
-	} else if specItem.Info.Type == GuestOsCustomizationTypeWindows {
+	case GuestOsCustomizationTypeWindows:
 		sysprepText := flattenSysprepText(specItem.Spec.Identity)
 		if len(sysprepText) > 0 {
 			specData["windows_sysprep_text"] = sysprepText
@@ -425,6 +427,7 @@ func ValidateCustomizationSpec(d *schema.ResourceDiff, family string, isVM bool)
 	}
 	return nil
 }
+
 func flattenWindowsOptions(customizationPrep *types.CustomizationSysprep, version viapi.VSphereVersion) ([]map[string]interface{}, error) {
 	winOptionsData := make(map[string]interface{})
 	if customizationPrep.GuiRunOnce != nil {

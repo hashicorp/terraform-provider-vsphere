@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package virtualdevice
@@ -13,17 +14,17 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/network"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/nsx"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/mitchellh/copystructure"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/network"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/nsx"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/provider"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
 
 const maxNetworkInterfaceCount = 10
@@ -464,7 +465,7 @@ loopInterfaces:
 				// Check for the SriovEnabled property of the SRIOV PCIPassthrough
 				if nicType.Id == sriovPhysicalAdapters[adapterIdx] {
 					foundAdapter = true
-					if nicType.SriovEnabled == true {
+					if nicType.SriovEnabled {
 						foundSriovEnabled = true
 						log.Printf("[DEBUG] found SR-IOV enabled NIC with name %s", sriovPhysicalAdapters[adapterIdx])
 						adapterIdx++
@@ -1009,8 +1010,12 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 		if err != nil {
 			return nil, err
 		}
+
 		if len(r.Get("physical_function").(string)) > 0 {
 			newDevice, err = r.addPhysicalFunction(newDevice)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		r.Set("key", l.NewKey())

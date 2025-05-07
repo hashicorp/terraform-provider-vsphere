@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -11,10 +12,9 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 )
 
 func TestAccResourceVSphereContentLibraryItem_localOva(t *testing.T) {
@@ -246,7 +246,7 @@ func testaccresourcevspherecontentlibraryitemconfigRemoteovf() string {
 %s
 
 variable "file" {
-  default = "%s" 
+  default = "%s"
 }
 
 resource "vsphere_content_library" "library" {
@@ -273,7 +273,7 @@ func testaccresourcevspherecontentlibraryitemconfigRemoteova() string {
 %s
 
 variable "file" {
-  default = "%s" 
+  default = "%s"
 }
 
 resource "vsphere_content_library" "library" {

@@ -1,12 +1,14 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package main
 
 import (
 	"flag"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere"
+	"github.com/vmware/terraform-provider-vsphere/vsphere"
 )
 
 func main() {
@@ -20,7 +22,7 @@ func main() {
 
 	if debugMode {
 		opts.Debug = true
-		opts.ProviderAddr = "hashicorp/vsphere"
+		opts.ProviderAddr = "vmware/vsphere"
 	}
 
 	plugin.Serve(opts)

@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package network
@@ -7,7 +8,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -16,6 +16,7 @@ import (
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/provider"
 )
 
 var NetworkType = []string{
@@ -24,12 +25,12 @@ var NetworkType = []string{
 	"OpaqueNetwork",
 }
 
-type NetworkNotFoundError struct {
+type NotFoundError struct {
 	Name string
 	ID   string
 }
 
-func (e NetworkNotFoundError) Error() string {
+func (e NotFoundError) Error() string {
 	if len(e.ID) > 0 {
 		return fmt.Sprintf("Network with ID %s not found", e.ID)
 	}
@@ -70,7 +71,7 @@ func FromNameAndDVSUuid(client *govmomi.Client, name string, dc *object.Datacent
 		return nil, err
 	}
 	if len(networks) == 0 {
-		return nil, NetworkNotFoundError{Name: name}
+		return nil, NotFoundError{Name: name}
 	}
 
 	switch {
@@ -103,7 +104,7 @@ func FromNameAndDVSUuid(client *govmomi.Client, name string, dc *object.Datacent
 		}
 		return nil, fmt.Errorf("error while getting Network with name %s and Distributed virtual switch %s", name, dvsUUID)
 	}
-	return nil, NetworkNotFoundError{Name: name}
+	return nil, NotFoundError{Name: name}
 }
 
 func List(client *govmomi.Client) ([]*object.VmwareDistributedVirtualSwitch, error) {
@@ -182,7 +183,7 @@ func FromID(client *govmomi.Client, id string) (object.NetworkReference, error) 
 			return nref.(object.NetworkReference), nil
 		}
 	}
-	return nil, NetworkNotFoundError{ID: id}
+	return nil, NotFoundError{ID: id}
 }
 
 func dvsFromMOID(client *govmomi.Client, id string) (*object.VmwareDistributedVirtualSwitch, error) {
@@ -231,7 +232,7 @@ func FromName(client *vim25.Client, name string, dc *object.Datacenter, filters 
 	// Find the network by name
 	networks, err := finder.NetworkList(ctx, name)
 	if err != nil {
-		return nil, NetworkNotFoundError{Name: name}
+		return nil, NotFoundError{Name: name}
 	}
 
 	// If multiple networks are found and no filters are specified, return an error
@@ -268,5 +269,5 @@ func FromName(client *vim25.Client, name string, dc *object.Datacenter, filters 
 		}
 	}
 
-	return nil, NetworkNotFoundError{Name: name}
+	return nil, NotFoundError{Name: name}
 }

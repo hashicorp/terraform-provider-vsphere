@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -7,13 +8,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/network"
-
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/network"
 )
 
 const (
@@ -112,7 +111,7 @@ func dataSourceVSphereNetworkRead(d *schema.ResourceData, meta interface{}) erro
 			// Handle distributed virtual switch port group
 			net, err = network.FromNameAndDVSUuid(client, name, dc, dvSwitchUUID)
 			if err != nil {
-				if _, ok := err.(network.NetworkNotFoundError); ok {
+				if _, ok := err.(network.NotFoundError); ok {
 					return struct{}{}, waitForNetworkPending, nil
 				}
 
@@ -123,7 +122,7 @@ func dataSourceVSphereNetworkRead(d *schema.ResourceData, meta interface{}) erro
 		// Handle standard switch port group
 		net, err = network.FromName(vimClient, name, dc, filters) // Pass the *vim25.Client
 		if err != nil {
-			if _, ok := err.(network.NetworkNotFoundError); ok {
+			if _, ok := err.(network.NotFoundError); ok {
 				return struct{}{}, waitForNetworkPending, nil
 			}
 			return struct{}{}, waitForNetworkError, err

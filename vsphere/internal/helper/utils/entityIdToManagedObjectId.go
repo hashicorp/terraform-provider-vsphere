@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package utils
@@ -7,10 +8,10 @@ import (
 	"context"
 	"log"
 
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
 )
 
 const VM = "VirtualMachine"

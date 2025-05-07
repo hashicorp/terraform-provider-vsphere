@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -8,9 +9,9 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
 )
 
 func dataSourceVSphereDatastoreStats() *schema.Resource {
@@ -78,9 +79,9 @@ func dataSourceVSphereDatastoreStatsRead(d *schema.ResourceData, meta interface{
 		if err != nil {
 			return fmt.Errorf("error getting properties for datastore ID %q: %s", ds.Reference().Value, err)
 		}
-		cap := d.Get("capacity").(map[string]interface{})
-		cap[dss[i].Name()] = fmt.Sprintf("%v", props.Summary.Capacity)
-		d.Set("capacity", cap)
+		capacityMap := d.Get("capacity").(map[string]interface{})
+		capacityMap[dss[i].Name()] = fmt.Sprintf("%v", props.Summary.Capacity)
+		d.Set("capacity", capacityMap)
 		fr := d.Get("free_space").(map[string]interface{})
 		fr[dss[i].Name()] = fmt.Sprintf("%v", props.Summary.FreeSpace)
 		d.Set("free_space", fr)

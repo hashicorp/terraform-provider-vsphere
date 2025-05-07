@@ -1,255 +1,250 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"log"
 
-	"context"
-
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/vmware/govmomi/license"
-	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/types"
+	helper "github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/license"
 )
 
 var (
-	// ErrNoSuchKeyFound is an error primarily thrown by the Read method of the resource.
-	// The error doesn't display the key itself for security reasons.
-	ErrNoSuchKeyFound = errors.New("The key was not found")
-	// ErrKeyCannotBeDeleted is an error which occurs when a key that is used by VMs is
-	// being removed
-	ErrKeyCannotBeDeleted = errors.New("The key wasn't deleted")
+	// ErrKeyNotFound is an error primarily thrown by the Read method of the resource.
+	ErrKeyNotFound = errors.New("the license key was not found")
+	// ErrKeyNotDeleted is an error which occurs when a license key that is being removed.
+	ErrKeyNotDeleted = errors.New("the license key was not deleted")
 )
 
 func resourceVSphereLicense() *schema.Resource {
 	return &schema.Resource{
-
 		SchemaVersion: 1,
 
-		Create: resourceVSphereLicenseCreate,
-		Read:   resourceVSphereLicenseRead,
-		Update: resourceVSphereLicenseUpdate,
-		Delete: resourceVSphereLicenseDelete,
+		CreateContext: resourceVSphereLicenseCreate,
+		ReadContext:   resourceVSphereLicenseRead,
+		UpdateContext: resourceVSphereLicenseUpdate,
+		DeleteContext: resourceVSphereLicenseDelete,
 
 		Schema: map[string]*schema.Schema{
 			"license_key": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Description: "The license key value.",
+				Required:    true,
+				ForceNew:    true,
 			},
 			"labels": {
-				Type:     schema.TypeMap,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Type:        schema.TypeMap,
+				Description: "A map of labels to be applied to the license key.",
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
-
-			// computed properties returned by the API
 			"edition_key": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Description: "The product edition of the license key.",
+				Computed:    true,
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Description: "The display name for the license key.",
+				Computed:    true,
 			},
 			"total": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Description: "The total number of units contained in the license key.",
+				Computed:    true,
 			},
 			"used": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Description: "The number of units assigned to this license key.",
+				Computed:    true,
 			},
 		},
 	}
 }
 
-func resourceVSphereLicenseCreate(d *schema.ResourceData, meta interface{}) error {
-	log.Println("[INFO] Running the create method")
-
+// resourceVSphereLicenseCreate creates a new license using the provided license key and optional labels.
+func resourceVSphereLicenseCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Client).vimClient
 	manager := license.NewManager(client.Client)
 
 	key := d.Get("license_key").(string)
 
-	log.Println(" [INFO] Reading the key from the resource data")
+	helper.MaskedLicenseKeyLogOperation(ctx, "Creating license resource", key, nil)
+
 	var labelMap map[string]interface{}
 	if labels, ok := d.GetOk("labels"); ok {
 		labelMap = labels.(map[string]interface{})
+		tflog.Debug(ctx, "Found labels for license", map[string]interface{}{
+			"labelCount": len(labelMap),
+		})
 	}
 
 	var info types.LicenseManagerLicenseInfo
 	var err error
 	switch t := client.ServiceContent.About.ApiType; t {
 	case "HostAgent":
-		// Labels are not allowed in ESXi
 		if len(labelMap) != 0 {
-			return errors.New("Labels are not allowed in ESXi")
+			tflog.Error(ctx, "Labels are not allowed for unmanaged ESX hosts")
+			return diag.FromErr(errors.New("labels are not allowed for unmanaged ESX hosts"))
 		}
-		info, err = manager.Update(context.TODO(), key, nil)
+		tflog.Debug(ctx, "Updating license for ESX host.")
+		info, err = manager.Update(ctx, key, nil)
 
 	case "VirtualCenter":
-		info, err = manager.Add(context.TODO(), key, nil)
+		tflog.Debug(ctx, "Adding license to vCenter instance.")
+		info, err = manager.Add(ctx, key, nil)
 		if err != nil {
-			return err
+			tflog.Error(ctx, "Failed to add license to vCenter instance", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return diag.FromErr(err)
 		}
-		err = updateLabels(manager, key, labelMap)
+		tflog.Debug(ctx, "License added successfully, updating labels if any.")
+		err = helper.UpdateLabels(ctx, manager, key, labelMap)
 
 	default:
-		return fmt.Errorf("unsupported ApiType: %s", t)
+		tflog.Error(ctx, "Unsupported API type", map[string]interface{}{"apiType": t})
+		return diag.FromErr(fmt.Errorf("unsupported ApiType: %s", t))
 	}
 
 	if err != nil {
-		return err
+		tflog.Error(ctx, "Error creating license", map[string]interface{}{"error": err.Error()})
+		return diag.FromErr(err)
 	}
 
-	if err = DecodeError(info); err != nil {
-		return err
+	if err = helper.DiagnosticError(ctx, info); err != nil {
+		tflog.Error(ctx, "License diagnostic error", map[string]interface{}{"error": err.Error()})
+		return diag.FromErr(err)
 	}
 
-	// This can be used in the read method to set the computed parameters
 	d.SetId(info.LicenseKey)
+	tflog.Debug(ctx, "License created successfully, proceeding to Read")
 
-	return resourceVSphereLicenseRead(d, meta)
+	return resourceVSphereLicenseRead(ctx, d, meta)
 }
 
-func resourceVSphereLicenseRead(d *schema.ResourceData, meta interface{}) error {
-	log.Println("[INFO] Running the read method")
-
+// resourceVSphereLicenseRead retrieves license information and populates the resource data with its attributes.
+func resourceVSphereLicenseRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
 	client := meta.(*Client).vimClient
 	manager := license.NewManager(client.Client)
+	licenseKey := d.Id()
 
-	if info := getLicenseInfoFromKey(d.Get("license_key").(string), manager); info != nil {
-		log.Println("[INFO] Setting the values")
-		_ = d.Set("edition_key", info.EditionKey)
-		_ = d.Set("total", info.Total)
-		_ = d.Set("used", info.Used)
-		_ = d.Set("name", info.Name)
-		_ = d.Set("labels", keyValuesToMap(info.Labels))
-	} else {
-		return ErrNoSuchKeyFound
-	}
+	tflog.Debug(ctx, "Reading license")
 
-	return nil
-}
-
-// resourceVSphereLicenseUpdate check for change in labels of the key and updates them.
-func resourceVSphereLicenseUpdate(d *schema.ResourceData, meta interface{}) error {
-	log.Println("[INFO] Running the update method")
-
-	client := meta.(*Client).vimClient
-	manager := license.NewManager(client.Client)
-
-	if key, ok := d.GetOk("license_key"); ok {
-		licenseKey := key.(string)
-		if !isKeyPresent(licenseKey, manager) {
-			return ErrNoSuchKeyFound
-		}
-
-		if d.HasChange("labels") {
-			labelMap := d.Get("labels").(map[string]interface{})
-
-			err := updateLabels(manager, licenseKey, labelMap)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return resourceVSphereLicenseRead(d, meta)
-}
-
-func updateLabels(manager *license.Manager, licenseKey string, labelMap map[string]interface{}) error {
-	for key, value := range labelMap {
-		err := UpdateLabel(context.TODO(), manager, licenseKey, key, value.(string))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func resourceVSphereLicenseDelete(d *schema.ResourceData, meta interface{}) error {
-	log.Println("[INFO] Running the delete method")
-
-	client := meta.(*Client).vimClient
-	manager := license.NewManager(client.Client)
-
-	if key := d.Get("license_key").(string); isKeyPresent(key, manager) {
-		err := manager.Remove(context.TODO(), key)
-
-		if err != nil {
-			return err
-		}
-
-		// if the key is still present
-		if isKeyPresent(key, manager) {
-			return ErrKeyCannotBeDeleted
-		}
+	info := helper.GetLicenseInfoFromKey(ctx, licenseKey, manager)
+	if info == nil {
+		tflog.Warn(ctx, "license not found, removing from state")
 		d.SetId("")
-		return nil
+		return diags
 	}
-	return ErrNoSuchKeyFound
+
+	tflog.Debug(ctx, "Found license, setting attributes")
+
+	if err := d.Set("labels", helper.KeyValuesToMap(ctx, info.Labels)); err != nil {
+		tflog.Error(ctx, "Failed to set 'labels' attribute", map[string]interface{}{"error": err.Error()})
+		return diag.FromErr(fmt.Errorf("error setting license labels: %w", err))
+	}
+	if err := d.Set("license_key", licenseKey); err != nil {
+		tflog.Error(ctx, "Failed to set 'license_key' attribute", map[string]interface{}{"error": err.Error()})
+		return diag.FromErr(fmt.Errorf("error setting license key attribute: %w", err))
+	}
+	if err := d.Set("edition_key", info.EditionKey); err != nil {
+		tflog.Error(ctx, "Failed to set 'edition_key' attribute", map[string]interface{}{"error": err.Error()})
+		return diag.FromErr(fmt.Errorf("error setting license edition_key: %w", err))
+	}
+	if err := d.Set("name", info.Name); err != nil {
+		tflog.Error(ctx, "Failed to set 'name' attribute", map[string]interface{}{"error": err.Error()})
+		return diag.FromErr(fmt.Errorf("error setting license name: %w", err))
+	}
+	if err := d.Set("total", info.Total); err != nil {
+		tflog.Error(ctx, "Failed to set 'total' attribute", map[string]interface{}{"error": err.Error()})
+		return diag.FromErr(fmt.Errorf("error setting license total: %w", err))
+	}
+	if err := d.Set("used", info.Used); err != nil {
+		tflog.Error(ctx, "Failed to set 'used' attribute", map[string]interface{}{"error": err.Error()})
+		return diag.FromErr(fmt.Errorf("error setting license used: %w", err))
+	}
+
+	tflog.Debug(ctx, "Successfully finished reading vSphere license")
+	return diags
 }
 
-func getLicenseInfoFromKey(key string, manager *license.Manager) *types.LicenseManagerLicenseInfo {
-	// Use of decode is not returning labels so using list instead
-	// Issue - https://github.com/vmware/govmomi/issues/797
-	infoList, _ := manager.List(context.TODO())
-	for _, info := range infoList {
-		if info.LicenseKey == key {
-			return &info
+// resourceVSphereLicenseUpdate updates an existing license by modifying its labels or attributes as needed.
+func resourceVSphereLicenseUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*Client).vimClient
+	manager := license.NewManager(client.Client)
+	resourceID := d.Id()
+
+	helper.MaskedLicenseKeyLogOperation(ctx, "Updating license resource", resourceID, nil)
+
+	if d.HasChange("labels") {
+		tflog.Debug(ctx, "Labels have changed, updating.")
+
+		if !helper.KeyExists(ctx, resourceID, manager) {
+			tflog.Error(ctx, "vSphere license key specified by resource ID not found during update")
+			return diag.Errorf("license key not found on vSphere, cannot update labels")
 		}
-	}
-	return nil
-}
 
-// isKeyPresent iterates over the InfoList to check if the license is present or not.
-func isKeyPresent(key string, manager *license.Manager) bool {
-	infoList, _ := manager.List(context.TODO())
+		labelMap := d.Get("labels").(map[string]interface{})
 
-	for _, info := range infoList {
-		if info.LicenseKey == key {
-			return true
+		err := helper.UpdateLabels(ctx, manager, resourceID, labelMap)
+		if err != nil {
+			tflog.Error(ctx, "Failed to update license labels", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return diag.FromErr(fmt.Errorf("error updating labels for license resource: %w", err))
 		}
+		tflog.Debug(ctx, "Successfully updated labels")
+	} else {
+		tflog.Debug(ctx, "No change detected in labels")
 	}
 
-	return false
+	tflog.Debug(ctx, "Update actions complete, proceeding to Read")
+
+	return resourceVSphereLicenseRead(ctx, d, meta)
 }
 
-// UpdateLabel provides a wrapper around the UpdateLabel data objects
-func UpdateLabel(ctx context.Context, m *license.Manager, licenseKey string, key string, val string) error {
-	req := types.UpdateLicenseLabel{
-		This:       m.Reference(),
-		LicenseKey: licenseKey,
-		LabelKey:   key,
-		LabelValue: val,
+// resourceVSphereLicenseDelete removes a license key from the license manager, performing validation post-deletion.
+func resourceVSphereLicenseDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+	client := meta.(*Client).vimClient
+	manager := license.NewManager(client.Client)
+	licenseKey := d.Id()
+
+	tflog.Debug(ctx, "Deleting vSphere license resource", map[string]interface{}{"resourceId": licenseKey})
+
+	if !helper.KeyExists(ctx, licenseKey, manager) {
+		tflog.Warn(ctx, "License key not found during delete operation, assuming already deleted", map[string]interface{}{"resourceId": licenseKey})
+		d.SetId("")
+		return diags
 	}
 
-	_, err := methods.UpdateLicenseLabel(ctx, m.Client(), &req)
-	return err
-}
+	tflog.Debug(ctx, "License found, proceeding with removal via API", map[string]interface{}{"resourceId": licenseKey})
 
-// DecodeError tries to find a specific error which occurs when an invalid key is passed
-// to the server
-func DecodeError(info types.LicenseManagerLicenseInfo) error {
-	for _, property := range info.Properties {
-		if property.Key == "diagnostic" {
-			return errors.New(property.Value.(string))
-		}
+	err := manager.Remove(ctx, licenseKey)
+	if err != nil {
+		tflog.Error(ctx, "Failed to remove license via API", map[string]interface{}{
+			"resourceId": licenseKey,
+			"error":      err.Error(),
+		})
+		return diag.FromErr(fmt.Errorf("error removing license %s: %w", licenseKey, err))
 	}
 
-	return nil
-}
-
-func keyValuesToMap(keyValues []types.KeyValue) map[string]interface{} {
-	KVMap := make(map[string]interface{})
-	for _, keyValue := range keyValues {
-		KVMap[keyValue.Key] = keyValue.Value
+	if helper.KeyExists(ctx, licenseKey, manager) {
+		tflog.Error(ctx, "License key still exists after deletion attempt", map[string]interface{}{"resourceId": licenseKey})
+		return diag.FromErr(ErrKeyNotDeleted)
 	}
-	return KVMap
+
+	d.SetId("")
+	tflog.Debug(ctx, "Successfully deleted vSphere license resource", map[string]interface{}{"resourceId": licenseKey})
+	return diags
 }

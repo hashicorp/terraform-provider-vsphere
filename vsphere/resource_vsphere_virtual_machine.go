@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -16,26 +17,26 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/guestoscustomizations"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/ovfdeploy"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/spbm"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/virtualdevice"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/vmworkflow"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vapi/vcenter"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/customattribute"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/guestoscustomizations"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/ovfdeploy"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/spbm"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/viapi"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/virtualdevice"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/vmworkflow"
 )
 
 // formatVirtualMachinePostCloneRollbackError defines the verbose error when
@@ -467,14 +468,16 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	if vprops.ResourcePool != nil {
 		_ = d.Set("resource_pool_id", vprops.ResourcePool.Value)
 	}
+
 	// If the VM is part of a vApp, InventoryPath will point to a host path
 	// rather than a VM path, so this step must be skipped.
 	var vmContainer string
 	if vprops.ParentVApp != nil {
 		vmContainer = vprops.ParentVApp.Value
-	} else {
+	} else if vprops.ResourcePool != nil {
 		vmContainer = vprops.ResourcePool.Value
 	}
+
 	if !vappcontainer.IsVApp(client, vmContainer) {
 		f, err := folder.RootPathParticleVM.SplitRelativeFolder(vm.InventoryPath)
 		if err != nil {
@@ -1654,7 +1657,7 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			fmt.Errorf("error in virtual machine configuration: %s", err),
 		)
 	}
-	devices, delta, err = virtualdevice.NormalizeBus(devices, d)
+	devices, delta, err = virtualdevice.NormalizeBus(devices, d) //nolint:ineffassign
 	if err != nil {
 		return resourceVSphereVirtualMachineRollbackCreate(
 			d,

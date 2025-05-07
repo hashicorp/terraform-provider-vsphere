@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -13,10 +14,10 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/administrationroles"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/utils"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/administrationroles"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/utils"
 )
 
 func resourceVsphereEntityPermissions() *schema.Resource {
@@ -24,11 +25,13 @@ func resourceVsphereEntityPermissions() *schema.Resource {
 		"entity_id": {
 			Type:        schema.TypeString,
 			Required:    true,
+			ForceNew:    true,
 			Description: "The managed object id or uuid of the entity.",
 		},
 		"entity_type": {
 			Type:        schema.TypeString,
 			Required:    true,
+			ForceNew:    true,
 			Description: "The entity managed object type.",
 		},
 		"permissions": {
@@ -42,12 +45,11 @@ func resourceVsphereEntityPermissions() *schema.Resource {
 	}
 
 	return &schema.Resource{
-		Create:        resourceEntityPermissionsCreate,
-		Read:          resourceEntityPermissionsRead,
-		Update:        resourceEntityPermissionsUpdate,
-		Delete:        resourceEntityPermissionsDelete,
-		CustomizeDiff: resourceVSphereEntityPermissionsCustomizeDiff,
-		Schema:        sch,
+		Create: resourceEntityPermissionsCreate,
+		Read:   resourceEntityPermissionsRead,
+		Update: resourceEntityPermissionsUpdate,
+		Delete: resourceEntityPermissionsDelete,
+		Schema: sch,
 	}
 }
 
@@ -213,22 +215,6 @@ func resourceEntityPermissionsDelete(d *schema.ResourceData, meta interface{}) e
 	}
 	d.SetId("")
 	log.Printf("[DEBUG] %s: Delete complete for Entity Permissions", d.Id())
-	return nil
-}
-
-func resourceVSphereEntityPermissionsCustomizeDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
-	if d.HasChange("entity_id") {
-		oldEntityID, newEntityID := d.GetChange("entity_id")
-		if oldEntityID.(string) != "" {
-			return fmt.Errorf("change %s in entity id is not allowed post creation", newEntityID)
-		}
-	}
-	if d.HasChange("entity_type") {
-		oldEntityType, newEntityType := d.GetChange("entity_type")
-		if oldEntityType.(string) != "" {
-			return fmt.Errorf("change in entity type %s is not allowed post creation", newEntityType)
-		}
-	}
 	return nil
 }
 

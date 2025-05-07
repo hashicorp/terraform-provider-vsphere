@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -7,15 +8,12 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/ovfdeploy"
-
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
-
-	"github.com/vmware/govmomi/vim25/types"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/vmworkflow"
+	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/ovfdeploy"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/vmworkflow"
 )
 
 func dataSourceVSphereOvfVMTemplate() *schema.Resource {

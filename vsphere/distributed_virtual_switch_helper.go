@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -7,13 +8,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/network"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/network"
 )
 
 var dvsVersions = []string{
@@ -173,7 +174,10 @@ func updateDVSPvlanMappings(dvs *object.VmwareDistributedVirtualSwitch, pvlanCon
 	// Wait for ReconfigureDvs_Task to finish
 	tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer tcancel()
-	task.Wait(tctx)
+	err = task.Wait(tctx)
+	if err != nil {
+		return fmt.Errorf("error waiting for reconfigure DVS task to finish: %s", err)
+	}
 
 	return nil
 }

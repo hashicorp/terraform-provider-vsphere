@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package contentlibrary
@@ -17,16 +18,16 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/ovfdeploy"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/ovf"
 	"github.com/vmware/govmomi/vapi/library"
 	"github.com/vmware/govmomi/vapi/rest"
 	"github.com/vmware/govmomi/vapi/vcenter"
 	"github.com/vmware/govmomi/vim25/soap"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/ovfdeploy"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/provider"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/structure"
 )
 
 // FromName accepts a Content Library name and returns a Library object.
@@ -338,6 +339,7 @@ func (uploadSession libraryUploadSession) uploadLocalFile(file string) error {
 }
 
 func openLocalFile(file string) (*io.Reader, *int64, error) {
+	file = filepath.Clean(file)
 	openFile, err := os.Open(file)
 	if err != nil {
 		return nil, nil, err
@@ -370,16 +372,19 @@ func (uploadSession libraryUploadSession) uploadOvaDisksFromLocal(ovaFilePath st
 func (uploadSession libraryUploadSession) uploadOvaDisksFromURL(ovfFilePath string, diskName string, size int64) error {
 	resp, err := http.Get(ovfFilePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("error performing GET request to %s: %w", ovfFilePath, err)
 	}
-	if resp.StatusCode == http.StatusOK {
-		err = uploadSession.findAndUploadDiskFromOva(resp.Body, diskName, size)
-		if err != nil {
-			return err
-		}
-	} else {
-		return fmt.Errorf("got status %d while getting the file from remote url %s ", resp.StatusCode, ovfFilePath)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("got status %d (%s) while getting file from %s", resp.StatusCode, http.StatusText(resp.StatusCode), ovfFilePath)
 	}
+
+	err = uploadSession.findAndUploadDiskFromOva(resp.Body, diskName, size)
+	if err != nil {
+		return fmt.Errorf("error processing OVA data for disk %s: %w", diskName, err)
+	}
+
 	return nil
 }
 

@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -15,25 +16,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/clustercomputeresource"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datacenter"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/network"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/spbm"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualdisk"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/virtualdevice"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vapi/library"
@@ -42,6 +26,23 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	"github.com/vmware/govmomi/vsan"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/clustercomputeresource"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/contentlibrary"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/datacenter"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/dvportgroup"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/network"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/spbm"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/storagepod"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/viapi"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/virtualdisk"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 )
 
 // testAccResourceVSphereEmpty provides an empty provider config to pass some
@@ -364,7 +365,7 @@ func testPowerOffVM(s *terraform.State, resourceName string) error {
 
 // testRenameVMFirstDisk renames the first disk in a virtual machine
 // configuration and re-attaches it to the virtual machine under the new name.
-func testRenameVMFirstDisk(s *terraform.State, resourceName string, new string) error {
+func testRenameVMFirstDisk(s *terraform.State, resourceName string, newDiskName string) error {
 	tVars, err := testClientVariablesForResource(s, fmt.Sprintf("vsphere_virtual_machine.%s", resourceName))
 	if err != nil {
 		return err
@@ -396,7 +397,7 @@ func testRenameVMFirstDisk(s *terraform.State, resourceName string, new string) 
 				tVars.client,
 				oldDisk.Backing.(*types.VirtualDiskFlatVer2BackingInfo).FileName,
 				dc,
-				new,
+				newDiskName,
 				nil,
 			)
 			if err != nil {

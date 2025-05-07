@@ -1,8 +1,9 @@
+export GOPATH_BIN := $(shell go env GOPATH)/bin
+export PATH := $(GOPATH_BIN):$(PATH)
+
 TEST?=$$(go list ./... |grep -v 'vendor')
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
-WEBSITE_REPO=github.com/hashicorp/terraform-website
 PKG_NAME=vsphere
-
 
 default: build
 
@@ -20,9 +21,6 @@ testacc: fmtcheck
 fmt:
 	gofmt -w $(GOFMT_FILES)
 
-docscheck:
-	@sh -c "'$(CURDIR)/scripts/docscheck.sh'"
-
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
 
@@ -34,19 +32,20 @@ test-compile:
 	fi
 	go test -c $(TEST) $(TESTARGS)
 
-website:
-ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
-	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
-	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
-endif
-	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
+tools:
+	go install -mod=mod github.com/katbyte/terrafmt
 
-website-test:
-ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
-	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
-	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
-endif
-	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
+docs-check:
+	@echo "==> Checking structure..."
+	@sh -c "'$(CURDIR)/scripts/docscheck.sh'"
 
-.PHONY: build test testacc docscheck fmt fmtcheck test-compile website website-test
+docs-hcl-lint: tools
+	@echo "==> Checking HCL formatting..."
+	@$(GOPATH_BIN)/terrafmt diff ./docs --check --pattern '*.md' --quiet || (echo; echo "Unexpected HCL differences. Run 'make docs-hcl-fix'."; exit 1)
+
+docs-hcl-fix: tools
+	@echo "==> Applying HCL formatting..."
+	@$(GOPATH_BIN)/terrafmt fmt ./docs --pattern '*.md'
+
+.PHONY: build test testacc fmt fmtcheck test-compile tools docs-check docs-hcl-lint docs-hcl-fix
 

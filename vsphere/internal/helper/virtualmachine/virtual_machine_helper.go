@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package virtualmachine
@@ -13,23 +14,22 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vmware/govmomi/vapi/library"
-	"github.com/vmware/govmomi/vapi/vcenter"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
+	"github.com/vmware/govmomi/vapi/library"
+	"github.com/vmware/govmomi/vapi/vcenter"
 	"github.com/vmware/govmomi/view"
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/provider"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/vappcontainer"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
 
 var errGuestShutdownTimeout = errors.New("the VM did not power off within the specified amount of time")
@@ -709,13 +709,11 @@ powerLoop:
 				}
 				err = task.WaitEx(ctx)
 				if err != nil {
-					if err.Error() == "The operation is not allowed in the current state." {
+					if err != nil && err.Error() == "The operation is not allowed in the current state." {
 						log.Printf("[DEBUG] vm %q cannot be powered on in the current state", vmPath)
 						continue powerLoop
-					} else {
-						log.Printf("[DEBUG] PowerOn task for vm %q failed. Error: %s", vmPath, err)
-						return fmt.Errorf("powerOn task for vm %q failed: %s", vmPath, err)
 					}
+					return fmt.Errorf("powerOn task for vm %q failed: %w", vmPath, err)
 				}
 				log.Printf("[DEBUG] PowerOn task for VM %q was successful.", vmPath)
 				break powerLoop

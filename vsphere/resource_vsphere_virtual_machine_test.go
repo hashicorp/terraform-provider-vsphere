@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -15,20 +16,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/computeresource"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/structure"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/virtualdisk"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/virtualdevice"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/computeresource"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/structure"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/virtualdisk"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 )
 
 const (
@@ -3111,23 +3111,23 @@ func testAccResourceVSphereVirtualMachineCheckMultiDevice(expectedD, expectedN [
 
 		for _, dev := range props.Config.Hardware.Device {
 			if disk, ok := dev.(*types.VirtualDisk); ok {
-				switch {
-				case disk.CapacityInBytes == expectedDisk0Size:
+				switch disk.CapacityInBytes {
+				case expectedDisk0Size:
 					actualD[0] = true
-				case disk.CapacityInBytes == expectedDisk1Size:
+				case expectedDisk1Size:
 					actualD[1] = true
-				case disk.CapacityInBytes == expectedDisk2Size:
+				case expectedDisk2Size:
 					actualD[2] = true
 				}
 			}
 			if bvec, ok := dev.(types.BaseVirtualEthernetCard); ok {
 				card := bvec.GetVirtualEthernetCard()
-				switch {
-				case card.ResourceAllocation.Share.Level == expectedNet0Level:
+				switch card.ResourceAllocation.Share.Level {
+				case expectedNet0Level:
 					actualN[0] = true
-				case card.ResourceAllocation.Share.Level == expectedNet1Level:
+				case expectedNet1Level:
 					actualN[1] = true
-				case card.ResourceAllocation.Share.Level == expectedNet2Level:
+				case expectedNet2Level:
 					actualN[2] = true
 				}
 			}
@@ -3763,12 +3763,12 @@ resource "vsphere_virtual_machine" "vm" {
 func testAccResourceVSphereVirtualMachineConfigNvme() string {
 	return fmt.Sprintf(`
 	%s  // Mix and match config
-	
+
 	resource "vsphere_virtual_machine" "vm" {
 	 name             = "testacc-vm"
 	 resource_pool_id = vsphere_resource_pool.pool1.id
 	 datastore_id     = data.vsphere_datastore.rootds1.id
-	
+
 	 num_cpus = 1
 	 memory   = 512
 	 // NVMe controllers are not supported on other3xLinuxGuest
@@ -3776,13 +3776,13 @@ func testAccResourceVSphereVirtualMachineConfigNvme() string {
 	 firmware                = "efi"
 	 enable_disk_uuid = true
 	 wait_for_guest_net_timeout = 0
-	
+
 	 nvme_controller_count = 2
-	
+
 	 network_interface {
 	   network_id = data.vsphere_network.network1.id
 	 }
-	
+
 	 disk {
 	   label = "disk0"
 	   size  = 1

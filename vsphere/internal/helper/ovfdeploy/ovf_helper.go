@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package ovfdeploy
@@ -13,21 +14,21 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/datastore"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/folder"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
-
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/network"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/ovf"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/datastore"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/folder"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/hostsystem"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/network"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/resourcepool"
 )
 
 func getTotalBytesRead(totalBytes *int64) int64 {
@@ -126,7 +127,7 @@ func DeployOvfAndGetResult(client *govmomi.Client, ovfCreateImportSpecResult *ty
 }
 
 func upload(ctx context.Context, client *govmomi.Client, item types.OvfFileItem, f io.Reader, rawUrl string, size int64, totalBytesRead *int64) error {
-	u, err := client.Client.ParseURL(rawUrl)
+	u, err := client.ParseURL(rawUrl)
 	if err != nil {
 		return err
 	}
@@ -187,12 +188,13 @@ func upload(ctx context.Context, client *govmomi.Client, item types.OvfFileItem,
 }
 
 func uploadDisksFromLocal(client *govmomi.Client, filePath string, ovfFileItem types.OvfFileItem, deviceObj types.HttpNfcLeaseDeviceUrl, currBytesRead *int64) error {
-	absoluteFilePath := ""
+	var absoluteFilePath string
 	if strings.Contains(filePath, string(os.PathSeparator)) {
-		absoluteFilePath = string(filePath[0 : strings.LastIndex(filePath, string(os.PathSeparator))+1])
+		absoluteFilePath = filePath[:strings.LastIndex(filePath, string(os.PathSeparator))+1]
 	}
 	vmdkFilePath := absoluteFilePath + ovfFileItem.Path
 	log.Print(" [DEBUG] Absolute vmdk path: " + vmdkFilePath)
+	vmdkFilePath = filepath.Clean(vmdkFilePath)
 	file, err := os.Open(vmdkFilePath)
 	if err != nil {
 		return err
@@ -210,9 +212,9 @@ func uploadDisksFromLocal(client *govmomi.Client, filePath string, ovfFileItem t
 
 func uploadDisksFromURL(client *govmomi.Client, filePath string, ovfFileItem types.OvfFileItem, deviceObj types.HttpNfcLeaseDeviceUrl, currBytesRead *int64,
 	allowUnverifiedSSL bool) error {
-	absoluteFilePath := ""
+	var absoluteFilePath string
 	if strings.Contains(filePath, "/") {
-		absoluteFilePath = string(filePath[0 : strings.LastIndex(filePath, "/")+1])
+		absoluteFilePath = filePath[:strings.LastIndex(filePath, "/")+1]
 	}
 	vmdkFilePath := absoluteFilePath + ovfFileItem.Path
 	httpClient := getClient(allowUnverifiedSSL)
@@ -268,6 +270,7 @@ func GetOvfDescriptor(filePath string, deployOva bool, fromLocal bool, allowUnve
 	ovfDescriptor := ""
 	if !deployOva {
 		if fromLocal {
+			filePath = filepath.Clean(filePath)
 			fileBuffer, err := os.ReadFile(filePath)
 			if err != nil {
 				return "", err
@@ -293,6 +296,7 @@ func GetOvfDescriptor(filePath string, deployOva bool, fromLocal bool, allowUnve
 		}
 	} else {
 		if fromLocal {
+			filePath = filepath.Clean(filePath)
 			ovaFile, err := os.Open(filePath)
 			if err != nil {
 				return "", err
@@ -549,12 +553,14 @@ func (o *OvfHelper) GetImportSpec(client *govmomi.Client) (*types.OvfCreateImpor
 		return nil, fmt.Errorf("while getting ovf import spec: %s", err)
 	}
 	if len(is.Error) > 0 {
-		out := "while creating import spec: \n"
+		errs := make([]error, 0, len(is.Error))
 		for _, e := range is.Error {
-			out = fmt.Sprintf("%s\n- %s", out, e.LocalizedMessage)
+			errs = append(errs, errors.New(e.LocalizedMessage))
 		}
-		return nil, fmt.Errorf(out)
+		allErrors := errors.Join(errs...)
+		return nil, fmt.Errorf("while creating import spec: %w", allErrors)
 	}
+
 	return is, nil
 }
 

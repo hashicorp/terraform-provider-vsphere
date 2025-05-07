@@ -1,16 +1,18 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
 
 import (
 	"context"
+	"log"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/guestoscustomizations"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/vmware/govmomi/object"
-	"log"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/guestoscustomizations"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/provider"
 )
 
 func resourceVSphereGuestOsCustomization() *schema.Resource {

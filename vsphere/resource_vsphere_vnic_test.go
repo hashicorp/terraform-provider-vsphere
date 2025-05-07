@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -13,10 +14,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/vmware/govmomi"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/testhelper"
 )
 
 // TODO: move away from tests being composed in this manner
@@ -385,13 +386,13 @@ func testaccvspherevnicconfigHvs(netConfig string) string {
 	  name          = "%s"
 	  datacenter_id = data.vsphere_datacenter.rootdc1.id
 	}
-	
+
 	resource "vsphere_host_port_group" "p1" {
 	  name                     = "ko-pg"
 	  virtual_switch_name = "vSwitch0"
 	  host_system_id   = data.vsphere_host.h1.id
 	}
-	
+
 	resource "vsphere_vnic" "v1" {
 	  host      = data.vsphere_host.h1.id
 	  portgroup = vsphere_host_port_group.p1.name
@@ -414,13 +415,13 @@ func testaccvspherevnicconfigDvs(netConfig string) string {
 		devices        = ["%s"]
 	  }
 	}
-	
+
 	resource "vsphere_distributed_port_group" "p1" {
 	  name                            = "ko-pg"
 	  vlan_id                         = 1234
 	  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.d1.id
 	}
-	
+
 	resource "vsphere_vnic" "v1" {
 	  host                    = data.vsphere_host.roothost2.id
 	  distributed_switch_port = vsphere_distributed_virtual_switch.d1.id

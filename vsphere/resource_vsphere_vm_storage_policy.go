@@ -1,4 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
+// © Broadcom. All Rights Reserved.
+// The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 // SPDX-License-Identifier: MPL-2.0
 
 package vsphere
@@ -10,10 +11,10 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 	"github.com/vmware/govmomi/pbm"
 	types2 "github.com/vmware/govmomi/pbm/types"
 	"github.com/vmware/govmomi/vapi/tags"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/virtualdevice"
 )
 
 const TagNamespace = "http://www.vmware.com/storage/tag"
