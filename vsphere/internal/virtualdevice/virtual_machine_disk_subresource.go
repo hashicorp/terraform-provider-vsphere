@@ -997,24 +997,24 @@ func shouldAddRelocateSpec(d *schema.ResourceData, disk *types.VirtualDisk, sche
 	}
 
 	diskProps := virtualdisk.ToSchemaPropsMap(disk.Backing)
-	canonizedDiskProps := make(map[string]interface{})
+	normalizedDiskProps := make(map[string]interface{})
 	if v, ok := diskProps["VirtualDeviceFileBackingInfo"]; ok {
-		canonizedDiskProps["datastore_id"] = v.(types.VirtualDeviceFileBackingInfo).Datastore.Value
+		normalizedDiskProps["datastore_id"] = v.(types.VirtualDeviceFileBackingInfo).Datastore.Value
 	}
 	if v, ok := diskProps["DiskMode"]; ok {
-		canonizedDiskProps["disk_mode"] = v.(string)
+		normalizedDiskProps["disk_mode"] = v.(string)
 	}
 	if v, ok := diskProps["Sharing"]; ok {
-		canonizedDiskProps["disk_sharing"] = v.(string)
+		normalizedDiskProps["disk_sharing"] = v.(string)
 	}
 	if v, ok := diskProps["EagerlyScrub"]; ok {
-		canonizedDiskProps["eagerly_scrub"] = v.(bool)
+		normalizedDiskProps["eagerly_scrub"] = v.(bool)
 	}
 	if v, ok := diskProps["ThinProvisioned"]; ok {
-		canonizedDiskProps["thin_provisioned"] = v.(bool)
+		normalizedDiskProps["thin_provisioned"] = v.(bool)
 	}
 	if v, ok := diskProps["WriteThrough"]; ok {
-		canonizedDiskProps["write_through"] = v.(bool)
+		normalizedDiskProps["write_through"] = v.(bool)
 	}
 	dataProps := diskDataToSchemaProps(d, schemaDiskIndex)
 
@@ -1435,8 +1435,7 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	// situations where the VM hardware version does not actually allow disk
 	// sharing. In this situation, the value will be blank, and setting it will
 	// actually result in an error.
-	version := viapi.ParseVersionFromClient(r.client)
-	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) && (b["Sharing"] != nil || b["Sharing"] != "") {
+	if b["Sharing"] != nil || b["Sharing"] != "" {
 		r.Set("disk_sharing", b["Sharing"])
 	}
 
