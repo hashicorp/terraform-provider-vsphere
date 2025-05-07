@@ -55,6 +55,9 @@ linters:
           - gosec
         text: G505
       - linters:
+          - ineffassign
+        text: ineffectual assignment
+      - linters:
           - revive
         text: unused-parameter
       - linters:
