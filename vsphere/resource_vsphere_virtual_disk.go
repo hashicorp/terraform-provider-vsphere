@@ -156,13 +156,13 @@ func resourceVSphereVirtualDiskCreate(d *schema.ResourceData, meta interface{}) 
 
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
-		return fmt.Errorf("Error finding Datacenter: %s: %s", vDisk.datacenter, err)
+		return fmt.Errorf("error finding datacenter: %s: %s", vDisk.datacenter, err)
 	}
 	finder = finder.SetDatacenter(dc)
 
 	ds, err := getDatastore(finder, vDisk.datastore)
 	if err != nil {
-		return fmt.Errorf("Error finding Datastore: %s: %s", vDisk.datastore, err)
+		return fmt.Errorf("error finding datastore: %s: %s", vDisk.datastore, err)
 	}
 
 	fm := object.NewFileManager(client.Client)
@@ -292,7 +292,7 @@ func resourceVSphereVirtualDiskRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if len(res.File) != 1 {
-		return errors.New("Datastore search did not return exactly one result")
+		return errors.New("datastore search did not return exactly one result")
 	}
 
 	fileInfo := res.File[0]
@@ -315,7 +315,7 @@ func resourceVSphereVirtualDiskRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if err != nil {
-		return errors.New("Failed to query disk type")
+		return errors.New("failed to query disk type")
 	}
 
 	// adapter_type is deprecated, so just default.
@@ -499,13 +499,13 @@ func searchForDirectory(client *govmomi.Client, datacenter string, datastore str
 
 	dc, err := getDatacenter(client, datacenter)
 	if err != nil {
-		return fmt.Errorf("Error finding Datacenter: %s: %s", datacenter, err)
+		return fmt.Errorf("error finding datacenter: %s: %s", datacenter, err)
 	}
 	finder = finder.SetDatacenter(dc)
 
 	ds, err := finder.Datastore(context.TODO(), datastore)
 	if err != nil {
-		return fmt.Errorf("Error finding Datastore: %s: %s", datastore, err)
+		return fmt.Errorf("error finding datastore: %s: %s", datastore, err)
 	}
 
 	ctx := context.TODO()
@@ -555,7 +555,7 @@ func searchForDirectory(client *govmomi.Client, datacenter string, datastore str
 	}
 
 	if len(res.File) != 1 {
-		return errors.New("Datastore search did not return exactly one result")
+		return errors.New("datastore search did not return exactly one result")
 	}
 
 	fileInfo := res.File[0]
@@ -605,7 +605,7 @@ func resourceVSphereVirtualDiskImport(d *schema.ResourceData, meta interface{}) 
 
 	dp, success := virtualdisk.DatastorePathFromString(di.Name)
 	if !success {
-		return nil, fmt.Errorf("Invalid datastore path '%s'", di.Name)
+		return nil, fmt.Errorf("invalid datastore path '%s'", di.Name)
 	}
 
 	//addrParts[2] is in form: [<datastore>]path/to/vmdk

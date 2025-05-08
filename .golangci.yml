@@ -62,28 +62,10 @@ linters:
         text: var-naming
       - linters:
           - staticcheck
-        text: S1002
-      - linters:
-          - staticcheck
         text: S1007
       - linters:
           - staticcheck
-        text: ST1007
-      - linters:
-          - staticcheck
         text: SA1019
-      - linters:
-          - staticcheck
-        text: SA1040
-      - linters:
-          - staticcheck
-        text: SA9003
-      - linters:
-          - staticcheck
-        text: ST1005
-      - linters:
-          - staticcheck
-        text: QF1002
       - linters:
           - staticcheck
         text: QF1005
@@ -91,23 +73,11 @@ linters:
           - unused
         text: is unused
       - linters:
-          - revive
-        text: indent-error-flow
-      - linters:
-          - revive
-        text: range
-      - linters:
-          - revive
-        text: empty-block
-      - linters:
           - staticcheck
         text: QF1008
       - linters:
           - staticcheck
         text: QF1012
-      - linters:
-          - staticcheck
-        text: QF1003
       - linters:
           - staticcheck
         text: SA4006
@@ -123,14 +93,6 @@ linters:
       - linters:
           - staticcheck
         text: S1005
-      - linters:
-          - errcheck
-        path: vsphere/data_source_vsphere_datacenter.go
-        text: Error return value of `view.Destroy` is not checked
-      - linters:
-          - errcheck
-        path: vsphere/distributed_virtual_switch_helper.go
-        text: Error return value of `task.Wait` is not checked
     paths:
       - third_party$
       - builtin$

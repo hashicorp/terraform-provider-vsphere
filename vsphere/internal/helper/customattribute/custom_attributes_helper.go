@@ -48,7 +48,7 @@ func ConfigSchema() *schema.Schema {
 
 func VerifySupport(client *govmomi.Client) error {
 	if err := viapi.ValidateVirtualCenter(client); err != nil {
-		return errors.New("Custom attributes are only supported on vCenter")
+		return errors.New("custom attributes are only supported on vCenter")
 	}
 	return nil
 }

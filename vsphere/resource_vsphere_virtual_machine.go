@@ -41,37 +41,38 @@ import (
 
 // formatVirtualMachinePostCloneRollbackError defines the verbose error when
 // rollback fails on a post-clone virtual machine operation.
-const formatVirtualMachinePostCloneRollbackError = `
-WARNING:
-There was an error performing post-clone changes to virtual machine %q:
-%s
-Additionally, there was an error removing the cloned virtual machine:
-%s
+const formatVirtualMachinePostCloneRollbackError = `warning:
 
-The virtual machine may still exist in Terraform state. If it does, the
-resource will need to be tainted before trying again. For more information on
-how to do this, see the following page:
-https://www.terraform.io/docs/commands/taint.html
+There was an error performing post-clone changes to virtual machine %q: %s. 
 
-If the virtual machine does not exist in state, manually delete it to try again.
-`
+Additionally, there was an error removing the cloned virtual machine: %s. 
+
+The virtual machine may still exist in state. 
+
+If it does, the resource will need to be tainted before trying again. 
+
+If the virtual machine does not exist in state, manually delete it to try again
+
+Reference: https://developer.hashicorp.com/terraform/cli/commands/taint`
 
 // formatVirtualMachineCustomizationWaitError defines the verbose error that is
 // sent when the customization waiter returns an error. This can either be due
 // to timeout waiting for respective events or a guest-specific customization
 // error. The resource does not roll back in this case, to assist with
 // troubleshooting.
-const formatVirtualMachineCustomizationWaitError = `
-Virtual machine customization failed on %q:
+const formatVirtualMachineCustomizationWaitError = `warning:
+
+The virtual machine customization failed on %q:
 
 %s
 
-The virtual machine has not been deleted to assist with troubleshooting. If
-corrective steps are taken without modifying the "customize" block of the
+The virtual machine has not been deleted to assist with troubleshooting.
+
+If corrective steps are taken without modifying the "customize" block of the
 resource configuration, the resource will need to be tainted before trying
-again. For more information on how to do this, see the following page:
-https://www.terraform.io/docs/commands/taint.html
-`
+again.
+
+Reference: https://developer.hashicorp.com/terraform/cli/commands/taint`
 
 const questionCheckIntervalSecs = 5
 
