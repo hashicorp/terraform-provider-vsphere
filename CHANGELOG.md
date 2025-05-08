@@ -18,6 +18,8 @@ DOCUMENTATION:
 
 - `d/folder`/`r/folder`: Updated documentation. (#2459)
 - `d/license`/`r/flicense`: Updated documentation. (#2435)
+- `r/virtual_machine`: Updated documentation. (#2480)
+- `d/ovf_vm_template`: Updated documentation. (#2480)
 
 CHORE:
 
