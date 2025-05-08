@@ -1,5 +1,31 @@
 # <!-- markdownlint-disable first-line-h1 no-inline-html -->
 
+## v2.13.0
+
+> Release Date: Not Released
+
+IMPROVEMENTS:
+
+- `r/entity_permission`: Changes to `entity_id` and `entity_type` will now force resource re-creation. (#2387)
+- `r/host_virtual_switch`: Added a diff suppression to ignore ordering changes for `network_adapters`. (#2388)
+- `r/host_virtual_switch`: Resolved panic when an operation is called with a `nil` result. (#2445)
+- `d/guest_os_customization`: Added missing schema options. (#2447)
+- `r/resource_pool`: Updated to reconcile the scale descendants shares setting for a resource pool. (#2429)
+- `r/virtual_machine`: Resolved panic when both parent vApp and resource pool are `nil`. (#2444)
+- `r/license`/`d/flicense`: Refactored logging implementation and masked sensitive data. (#2436)
+
+DOCUMENTATION:
+
+- `d/folder`/`r/folder`: Updated documentation. (#2459)
+- `d/license`/`r/flicense`: Updated documentation. (#2435)
+
+CHORE:
+
+- `provider`: Updated `vmware/govmomi` to 0.50.0. (#2382)
+- `provider`: Migrated provider testing from `hashicorp/terraform-plugin-sdk` to `hashicorp/terraform-plugin-testing`. (#2381)
+- `workflows`: Updated, added, and removed GitHub Actions workflows. (#2390, #2391, #2392, #2393, #2395, #2437, #2449, #2450, #2456, #2463, #2464, #2465, #2466, #2467, #2468)
+- `technical-debt`: Code quality improvements including resolving lint warnings, correcting error handling, simplifying control flow, improving naming consistency, cleaning code formatting, and refactoring for clearer and more maintainable code. (#2415, #2416, #2417, #2418, #2419, #2420, #2421, #2422, #2423, #2424, #2425, #2426, #2427, #2428, #2430, #2431, #2432, #2433, #2434, #2439, #2440, #2441)
+
 ## v2.12.0
 
 > Release Date: 2025-04-22
