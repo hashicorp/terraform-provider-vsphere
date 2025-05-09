@@ -18,14 +18,34 @@ that you want to use to create virtual machines in using the
 
 ## Example Usage
 
+### Find a Resource Pool by Path
+
 ```hcl
 data "vsphere_datacenter" "datacenter" {
   name = "dc-01"
 }
 
 data "vsphere_resource_pool" "pool" {
-  name          = "resource-pool-01"
+  name          = "cluster-01/Resources"
   datacenter_id = data.vsphere_datacenter.datacenter.id
+}
+```
+
+### Find a Child Resource Pool Using the Parent ID
+
+```hcl
+data "vsphere_datacenter" "datacenter" {
+  name = "dc-01"
+}
+
+data "vsphere_resource_pool" "parent_pool" {
+  name          = "cluster-01/Resources"
+  datacenter_id = data.vsphere_datacenter.datacenter.id
+}
+
+data "vsphere_resource_pool" "child_pool" {
+  name                    = "example"
+  parent_resource_pool_id = data.vsphere_resource_pool.parent_pool.id
 }
 ```
 
@@ -65,6 +85,9 @@ The following arguments are supported:
   the resource pool is located. This can be omitted if the search path used in
   `name` is an absolute path. For default datacenters, use the id attribute from
   an empty `vsphere_datacenter` data source.
+* `parent_resource_pool_id` - (Optional) The [managed object ID][docs-about-morefs]
+  of the parent resource pool. When specified, the `name` parameter is used to find 
+  a child resource pool with the given name under this parent resource pool.
 
 [docs-about-morefs]: /docs/providers/vsphere/index.html#use-of-managed-object-references-by-the-vsphere-provider
 
@@ -74,5 +97,5 @@ load the ESXi host's root resource pool.
 
 ## Attribute Reference
 
-Currently, the only exported attribute from this data source is `id`, which
-represents the ID of the resource pool.
+The only exported attribute from this data source is `id`, which represents the
+ID of the resource pool.
