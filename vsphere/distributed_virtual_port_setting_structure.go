@@ -313,9 +313,9 @@ func flattenVmwareDistributedVirtualSwitchPvlanSpec(d *schema.ResourceData, obj 
 func expandBaseVmwareDistributedVirtualSwitchVlanSpec(d *schema.ResourceData) types.BaseVmwareDistributedVirtualSwitchVlanSpec {
 	var obj types.BaseVmwareDistributedVirtualSwitchVlanSpec
 
-	_, ide := d.GetOkExists("vlan_id")
-	_, pvid := d.GetOkExists("port_private_secondary_vlan_id")
-	vteList, vteOK := d.GetOkExists("vlan_range")
+	_, ide := d.GetOk("vlan_id")
+	_, pvid := d.GetOk("port_private_secondary_vlan_id")
+	vteList, vteOK := d.GetOk("vlan_range")
 	vte := vteOK && len(vteList.(*schema.Set).List()) > 0
 	switch {
 	case vte:
