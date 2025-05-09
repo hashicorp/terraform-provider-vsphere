@@ -33,14 +33,16 @@ const (
 
 // formatVmfsDatastoreCreateRollbackErrorUpdate defines the verbose error for extending a
 // disk on creation where rollback is not possible.
-const formatVmfsDatastoreCreateRollbackErrorUpdate = `
-WARNING: Dangling resource!
+const formatVmfsDatastoreCreateRollbackErrorUpdate = `warning:
 There was an error extending your datastore with disk: %q:
+
 %s
+
 Additionally, there was an error removing the created datastore:
+
 %s
-You will need to remove this datastore manually before trying again.
-`
+
+You will need to remove this datastore manually before trying again`
 
 func resourceVSphereVmfsDatastore() *schema.Resource {
 	s := map[string]*schema.Schema{

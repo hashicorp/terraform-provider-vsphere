@@ -142,7 +142,7 @@ func NewConfig(d *schema.ResourceData) (*Config, error) {
 func (c *Config) vimURL() (*url.URL, error) {
 	u, err := url.Parse("https://" + c.VSphereServer + "/sdk")
 	if err != nil {
-		return nil, fmt.Errorf("Error parse url: %s", err)
+		return nil, fmt.Errorf("error parse url: %s", err)
 	}
 
 	u.User = url.UserPassword(c.User, c.Password)
@@ -156,12 +156,12 @@ func (c *Config) Client() (*Client, error) {
 
 	u, err := c.vimURL()
 	if err != nil {
-		return nil, fmt.Errorf("Error generating SOAP endpoint url: %s", err)
+		return nil, fmt.Errorf("error generating SOAP endpoint url: %s", err)
 	}
 
 	err = c.EnableDebug()
 	if err != nil {
-		return nil, fmt.Errorf("Error setting up client debug: %s", err)
+		return nil, fmt.Errorf("error setting up client debug: %s", err)
 	}
 
 	// Set up the VIM/govmomi client connection, or load a previous session

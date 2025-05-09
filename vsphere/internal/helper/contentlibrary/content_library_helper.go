@@ -40,7 +40,7 @@ func FromName(c *rest.Client, name string) (*library.Library, error) {
 		return nil, provider.Error(name, "FromName", err)
 	}
 	if lib == nil {
-		return nil, provider.Error(name, "FromName", fmt.Errorf("Unable to find content library (%s)", name))
+		return nil, provider.Error(name, "FromName", fmt.Errorf("unable to find content library (%s)", name))
 	}
 	log.Printf("[DEBUG] contentlibrary.FromName: Successfully retrieved content library %s", name)
 	return lib, nil
@@ -56,7 +56,7 @@ func FromID(c *rest.Client, id string) (*library.Library, error) {
 		return nil, provider.Error(id, "FromID", err)
 	}
 	if lib == nil {
-		return nil, fmt.Errorf("Unable to find content library (%s)", id)
+		return nil, fmt.Errorf("unable to find content library (%s)", id)
 	}
 	log.Printf("[DEBUG] contentlibrary.FromID: Successfully retrieved content library %s", id)
 	return lib, nil
@@ -131,7 +131,7 @@ func ItemFromName(c *rest.Client, l *library.Library, name string) (*library.Ite
 		return nil, provider.Error(name, "ItemFromName", err)
 	}
 	if len(items) < 1 {
-		return nil, fmt.Errorf("Unable to find content library item (%s)", name)
+		return nil, fmt.Errorf("unable to find content library item (%s)", name)
 	}
 	item, err := clm.GetLibraryItem(ctx, items[0])
 	if err != nil {
@@ -319,7 +319,7 @@ func (uploadSession libraryUploadSession) cloneTemplate(moid string, name string
 		}
 		return &id, nil
 	}
-	return nil, fmt.Errorf("Unsupported template type. Only ovf can be used when cloning from vCenter")
+	return nil, fmt.Errorf("unsupported template type. Only ovf can be used when cloning from vCenter")
 }
 
 func (uploadSession libraryUploadSession) uploadString(data string, name string) error {

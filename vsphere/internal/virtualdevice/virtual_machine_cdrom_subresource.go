@@ -410,9 +410,9 @@ func (r *CdromSubresource) ValidateDiff() error {
 	clientDevice := r.Get("client_device").(bool)
 	switch {
 	case clientDevice && (dsID != "" || path != ""):
-		return fmt.Errorf("Cannot have both client_device parameter and ISO file parameters (datastore_id, path) set")
+		return fmt.Errorf("cannot have both client_device parameter and ISO file parameters (datastore_id, path) set")
 	case !clientDevice && (dsID == "" || path == ""):
-		return fmt.Errorf("Either client_device or datastore_id and path must be set")
+		return fmt.Errorf("either client_device or datastore_id and path must be set")
 	}
 	log.Printf("[DEBUG] %s: Config validation complete", r)
 	return nil

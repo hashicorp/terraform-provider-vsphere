@@ -404,8 +404,8 @@ loopInterfaces:
 
 	// Explicitly check for too many interfaces, as the schema MaxItems doesn't differentiate between non-SRIOV and SRIOV
 	if countSriov > maxNetworkInterfaceCount || countNonSriov > maxNetworkInterfaceCount {
-		return fmt.Errorf("network_interface list exceeded max items of %d non-sriov adapter_types and %d sriov adapter_types."+
-			" Config has %d and %d declared.", maxNetworkInterfaceCount, maxNetworkInterfaceCount, countNonSriov, countSriov)
+		return fmt.Errorf("network_interface list exceeded max items of %d non-sriov adapter_types and %d sriov adapter_types"+
+			" Config has %d and %d declared", maxNetworkInterfaceCount, maxNetworkInterfaceCount, countNonSriov, countSriov)
 	}
 
 	if countSriov > 0 {
@@ -414,7 +414,7 @@ loopInterfaces:
 			log.Printf("[DEBUG] network_interfaces out of order. First SRIOV index %d, Last non-SRIOV index %d", minSriovIndex, maxNonSriovIndex)
 			return fmt.Errorf("network_interfaces out of order.\n" +
 				"network_interfaces with adapter_type 'sriov' must be declared after all network_interfaces with " +
-				"other adapter_types. Please reorder the network_interface sections.")
+				"other adapter_types. Please reorder the network_interface sections")
 		}
 
 		// First check that the host system is known

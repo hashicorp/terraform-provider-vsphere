@@ -68,9 +68,6 @@ linters:
         text: SA1019
       - linters:
           - staticcheck
-        text: ST1005
-      - linters:
-          - staticcheck
         text: QF1005
       - linters:
           - unused

@@ -1001,7 +1001,7 @@ func (c *pciApplyConfig) getHostPciDevice(id string) (*types.HostPciDevice, erro
 			return &hostPci, nil
 		}
 	}
-	return nil, fmt.Errorf("Unable to locate PCI device: %s", id)
+	return nil, fmt.Errorf("unable to locate PCI device: %s", id)
 }
 
 // getPciSysId fetchs the PCI SystemId of a host. The SystemId is required for
