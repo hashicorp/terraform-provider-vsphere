@@ -6,6 +6,7 @@ package storagepod
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -394,36 +395,43 @@ func recommendSDRS(client *govmomi.Client, sps types.StoragePlacementSpec, timeo
 }
 
 func applySDRS(client *govmomi.Client, placement *types.StoragePlacementResult, timeout time.Duration) (*object.VirtualMachine, error) {
-	log.Printf("[DEBUG] Applying Storage DRS recommendations (type: %q)", placement.Recommendations[0].Type)
+	if len(placement.Recommendations) == 0 {
+		return nil, fmt.Errorf("received StoragePlacementResult with no recommendations to apply")
+	}
+
+	var recommendationKeys []string
+	for _, rec := range placement.Recommendations {
+		recommendationKeys = append(recommendationKeys, rec.Key)
+	}
+
 	srm := object.NewStorageResourceManager(client.Client)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	// Apply the first recommendation
-	task, err := srm.ApplyStorageDrsRecommendation(ctx, []string{placement.Recommendations[0].Key})
+
+	task, err := srm.ApplyStorageDrsRecommendation(ctx, recommendationKeys)
 	if err != nil {
-		return nil, err
-	}
-	result, err := task.WaitForResultEx(ctx, nil)
-	if err != nil {
-		// Provide a friendly error message for timeouts
-		if ctx.Err() == context.DeadlineExceeded {
-			return nil, fmt.Errorf("timeout waiting for Storage DRS operation to complete (type: %q)", placement.Recommendations[0].Type)
-		}
-		return nil, err
+		return nil, fmt.Errorf("failed to apply Storage DRS recommendations: %w", err)
 	}
 
-	// If the outer caller was for an operation that could produce a virtual
-	// machine, we want to return a full helper object. Check the result and
-	// fetch the VM if a reference exists.
+	result, err := task.WaitForResultEx(ctx, nil)
+	if err != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return nil, fmt.Errorf("timeout waiting for Storage DRS operation to complete (recommendation count: %d)", len(recommendationKeys))
+		}
+		return nil, fmt.Errorf("failed waiting for Storage DRS task result: %w", err)
+	}
+
 	var vm *object.VirtualMachine
-	vmRef := result.Result.(types.ApplyStorageRecommendationResult).Vm
-	if vmRef != nil {
-		log.Printf("[DEBUG] Storage DRS operation returned virtual machine reference: %s", vmRef)
-		vm, err = virtualmachine.FromMOID(client, vmRef.Value)
-		if err != nil {
-			return nil, err
+	if applyResult, ok := result.Result.(types.ApplyStorageRecommendationResult); ok {
+		vmRef := applyResult.Vm
+		if vmRef != nil {
+			vm, err = virtualmachine.FromMOID(client, vmRef.Value)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get virtual machine object from MOID %s: %w", vmRef.Value, err)
+			}
 		}
 	}
+
 	return vm, nil
 }
 
@@ -488,14 +496,16 @@ func expandVMPodConfigForPlacement(dc []types.BaseVirtualDeviceConfigSpec, pod *
 			continue
 		}
 
+		// Create individual PodDiskLocator for this disk
+		diskLocator := types.PodDiskLocator{
+			DiskId:          d.Key,
+			DiskBackingInfo: d.Backing,
+		}
+
+		// Create separate config for each disk to encourage distribution
 		podConfigForPlacement := types.VmPodConfigForPlacement{
 			StoragePod: pod.Reference(),
-			Disk: []types.PodDiskLocator{
-				{
-					DiskId:          d.Key,
-					DiskBackingInfo: d.Backing,
-				},
-			},
+			Disk:       []types.PodDiskLocator{diskLocator},
 		}
 
 		initialVMConfig = append(initialVMConfig, podConfigForPlacement)
