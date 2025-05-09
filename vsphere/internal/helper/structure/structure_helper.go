@@ -108,7 +108,7 @@ func BoolPtr(v bool) *bool {
 // GetBoolPtr reads a ResourceData and returns an appropriate *bool for the
 // state of the definition. nil is returned if it does not exist.
 func GetBoolPtr(d *schema.ResourceData, key string) *bool {
-	v, e := d.GetOkExists(key)
+	v, e := d.GetOk(key)
 	if e {
 		return BoolPtr(v.(bool))
 	}
@@ -222,7 +222,7 @@ func Int32Ptr(v int32) *int32 {
 // GetInt64Ptr reads a ResourceData and returns an appropriate *int64 for the
 // state of the definition. nil is returned if it does not exist.
 func GetInt64Ptr(d *schema.ResourceData, key string) *int64 {
-	v, e := d.GetOkExists(key)
+	v, e := d.GetOk(key)
 	if e {
 		return Int64Ptr(int64(v.(int)))
 	}
@@ -303,7 +303,7 @@ func BoolPolicy(b bool) *types.BoolPolicy {
 // GetBoolPolicy reads a ResourceData and returns an appropriate BoolPolicy for
 // the state of the definition. nil is returned if it does not exist.
 func GetBoolPolicy(d *schema.ResourceData, key string) *types.BoolPolicy {
-	v, e := d.GetOkExists(key)
+	v, e := d.GetOk(key)
 	if e {
 		return BoolPolicy(v.(bool))
 	}
@@ -322,7 +322,7 @@ func SetBoolPolicy(d *schema.ResourceData, key string, val *types.BoolPolicy) er
 
 // GetBoolPolicyReverse acts like GetBoolPolicy, but the value is inverted.
 func GetBoolPolicyReverse(d *schema.ResourceData, key string) *types.BoolPolicy {
-	v, e := d.GetOkExists(key)
+	v, e := d.GetOk(key)
 	if e {
 		return BoolPolicy(!v.(bool))
 	}
@@ -349,7 +349,7 @@ func StringPolicy(s string) *types.StringPolicy {
 // GetStringPolicy reads a ResourceData and returns an appropriate StringPolicy
 // for the state of the definition. nil is returned if it does not exist.
 func GetStringPolicy(d *schema.ResourceData, key string) *types.StringPolicy {
-	v, e := d.GetOkExists(key)
+	v, e := d.GetOk(key)
 	if e {
 		return StringPolicy(v.(string))
 	}
@@ -398,7 +398,7 @@ func LongPolicy(n interface{}) *types.LongPolicy {
 // GetLongPolicy reads a ResourceData and returns an appropriate LongPolicy
 // for the state of the definition. nil is returned if it does not exist.
 func GetLongPolicy(d *schema.ResourceData, key string) *types.LongPolicy {
-	v, e := d.GetOkExists(key)
+	v, e := d.GetOk(key)
 	if e {
 		return LongPolicy(v)
 	}

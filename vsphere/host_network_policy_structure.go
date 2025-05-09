@@ -112,7 +112,7 @@ func schemaHostNetworkPolicy() map[string]*schema.Schema {
 func expandHostNicFailureCriteria(d *schema.ResourceData) *types.HostNicFailureCriteria {
 	obj := &types.HostNicFailureCriteria{}
 
-	if v, ok := d.GetOkExists("check_beacon"); ok {
+	if v, ok := d.GetOk("check_beacon"); ok {
 		obj.CheckBeacon = structure.BoolPtr(v.(bool))
 	}
 
@@ -141,8 +141,8 @@ func flattenHostNicFailureCriteria(d *schema.ResourceData, obj *types.HostNicFai
 // HostNicOrderPolicy.
 func expandHostNicOrderPolicy(d *schema.ResourceData) *types.HostNicOrderPolicy {
 	obj := &types.HostNicOrderPolicy{}
-	activeNics, activeOk := d.GetOkExists("active_nics")
-	standbyNics, standbyOk := d.GetOkExists("standby_nics")
+	activeNics, activeOk := d.GetOk("active_nics")
+	standbyNics, standbyOk := d.GetOk("standby_nics")
 	if !activeOk && !standbyOk {
 		return nil
 	}
@@ -168,10 +168,10 @@ func expandHostNicTeamingPolicy(d *schema.ResourceData) *types.HostNicTeamingPol
 	obj := &types.HostNicTeamingPolicy{
 		Policy: d.Get("teaming_policy").(string),
 	}
-	if v, ok := d.GetOkExists("failback"); ok {
+	if v, ok := d.GetOk("failback"); ok {
 		obj.RollingOrder = structure.BoolPtr(!v.(bool))
 	}
-	if v, ok := d.GetOkExists("notify_switches"); ok {
+	if v, ok := d.GetOk("notify_switches"); ok {
 		obj.NotifySwitches = structure.BoolPtr(v.(bool))
 	}
 	obj.FailureCriteria = expandHostNicFailureCriteria(d)
@@ -206,13 +206,13 @@ func flattenHostNicTeamingPolicy(d *schema.ResourceData, obj *types.HostNicTeami
 // a HostNetworkSecurityPolicy.
 func expandHostNetworkSecurityPolicy(d *schema.ResourceData) *types.HostNetworkSecurityPolicy {
 	obj := &types.HostNetworkSecurityPolicy{}
-	if v, ok := d.GetOkExists("allow_promiscuous"); ok {
+	if v, ok := d.GetOk("allow_promiscuous"); ok {
 		obj.AllowPromiscuous = structure.BoolPtr(v.(bool))
 	}
-	if v, ok := d.GetOkExists("allow_forged_transmits"); ok {
+	if v, ok := d.GetOk("allow_forged_transmits"); ok {
 		obj.ForgedTransmits = structure.BoolPtr(v.(bool))
 	}
-	if v, ok := d.GetOkExists("allow_mac_changes"); ok {
+	if v, ok := d.GetOk("allow_mac_changes"); ok {
 		obj.MacChanges = structure.BoolPtr(v.(bool))
 	}
 	return obj
@@ -241,7 +241,7 @@ func expandHostNetworkTrafficShapingPolicy(d *schema.ResourceData) *types.HostNe
 		BurstSize:        int64(d.Get("shaping_burst_size").(int)),
 		PeakBandwidth:    int64(d.Get("shaping_peak_bandwidth").(int)),
 	}
-	if v, ok := d.GetOkExists("shaping_enabled"); ok {
+	if v, ok := d.GetOk("shaping_enabled"); ok {
 		obj.Enabled = structure.BoolPtr(v.(bool))
 	}
 	return obj
