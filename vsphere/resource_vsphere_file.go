@@ -458,7 +458,7 @@ func fileUpload(client *govmomi.Client, dc *object.Datacenter, ds *object.Datast
 	dsurl := ds.NewURL(destination)
 
 	p := soap.DefaultUpload
-	err = client.Client.UploadFile(context.TODO(), source, dsurl, &p)
+	err = client.UploadFile(context.TODO(), source, dsurl, &p)
 	if err != nil {
 		return err
 	}
