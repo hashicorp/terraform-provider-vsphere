@@ -4,7 +4,8 @@ name: Release
 on:
   push:
     tags:
-      - v*
+      - 'v*.*.*'    # Match stable releases. e.g. v1.2.3
+      - 'v*.*.*-*'  # Match pre-releases. e.g. v1.2.3-beta, v1.2.3-rc.1
 
 permissions:
   contents: read
