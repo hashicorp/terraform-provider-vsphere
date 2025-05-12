@@ -84,9 +84,6 @@ linters:
       - linters:
           - staticcheck
         text: S1009
-      - linters:
-          - staticcheck
-        text: S1017
     paths:
       - third_party$
       - builtin$

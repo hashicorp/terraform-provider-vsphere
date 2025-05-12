@@ -43,13 +43,13 @@ import (
 // rollback fails on a post-clone virtual machine operation.
 const formatVirtualMachinePostCloneRollbackError = `warning:
 
-There was an error performing post-clone changes to virtual machine %q: %s. 
+There was an error performing post-clone changes to virtual machine %q: %s.
 
-Additionally, there was an error removing the cloned virtual machine: %s. 
+Additionally, there was an error removing the cloned virtual machine: %s.
 
-The virtual machine may still exist in state. 
+The virtual machine may still exist in state.
 
-If it does, the resource will need to be tainted before trying again. 
+If it does, the resource will need to be tainted before trying again.
 
 If the virtual machine does not exist in state, manually delete it to try again
 
@@ -1088,9 +1088,8 @@ func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.Res
 			// For most cases (all non-imported workflows), any changed attribute in
 			// the clone configuration namespace is a ForceNew. Flag those now.
 			for _, k := range d.GetChangedKeysPrefix("clone.0") {
-				if strings.HasSuffix(k, ".#") {
-					k = strings.TrimSuffix(k, ".#")
-				}
+				k = strings.TrimSuffix(k, ".#")
+
 				// To maintain consistency with other timeout options, timeout does not
 				// need to ForceNew
 				if k == "clone.0.timeout" {
