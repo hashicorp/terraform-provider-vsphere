@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -19,7 +20,12 @@ import (
 	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/provider"
 )
 
-// FromPathOrDefault returns a ResourcePool via its supplied path.
+// List retrieves all resource pools.
+func List(client *govmomi.Client) ([]*object.ResourcePool, error) {
+	return FromPath(client, "/*")
+}
+
+// FromPathOrDefault retrieves a resource pool using its supplied path.
 func FromPathOrDefault(client *govmomi.Client, name string, dc *object.Datacenter) (*object.ResourcePool, error) {
 	finder := find.NewFinder(client.Client, false)
 
@@ -46,11 +52,86 @@ func FromPathOrDefault(client *govmomi.Client, name string, dc *object.Datacente
 	return nil, fmt.Errorf("unsupported ApiType: %s", t)
 }
 
-func List(client *govmomi.Client) ([]*object.ResourcePool, error) {
-	return resourcepoolsByPath(client, "/*")
+// FromParentAndName retrieves a resource pool by its name and the ID of its parent resource pool.
+func FromParentAndName(client *govmomi.Client, parentID string, name string) (*object.ResourcePool, error) {
+	if strings.Contains(name, "/") {
+		return nil, fmt.Errorf("argument 'name' cannot be a path when 'parent_resource_pool_id' is specified, use the simple resource pool name")
+	}
+
+	finder := find.NewFinder(client.Client, false)
+	parentRef := types.ManagedObjectReference{
+		Type:  "ResourcePool",
+		Value: parentID,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	parentObj, err := finder.ObjectReference(ctx, parentRef)
+	defer cancel()
+	if err != nil {
+		return nil, fmt.Errorf("could not find parent resource pool with ID %q: %w", parentID, err)
+	}
+
+	parentRP, ok := parentObj.(*object.ResourcePool)
+	if !ok {
+		return nil, fmt.Errorf("object with ID %q is not a ResourcePool", parentID)
+	}
+
+	ctx, cancel = context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+	var parentMo mo.ResourcePool
+	err = parentRP.Properties(ctx, parentRP.Reference(), []string{"resourcePool"}, &parentMo)
+	defer cancel()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get properties for parent resource pool %q: %w", parentID, err)
+	}
+
+	var errorMessages []string
+	for _, childRef := range parentMo.ResourcePool {
+		ctx, cancel = context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
+		var childMo mo.ResourcePool
+		childRP := object.NewResourcePool(client.Client, childRef)
+		err = childRP.Properties(ctx, childRef, []string{"name"}, &childMo)
+		defer cancel()
+		if err != nil {
+			errorMessages = append(errorMessages, fmt.Sprintf("could not get properties for child resource pool %s: %s", childRef.Value, err))
+			continue
+		}
+
+		if childMo.Name == name {
+			return childRP, nil
+		}
+	}
+
+	if len(errorMessages) > 0 {
+		var msg strings.Builder
+
+		_, err := fmt.Fprintf(&msg, "resource pool %q not found under parent resource pool %q. Errors encountered during search:", name, parentID)
+		if err != nil {
+			return nil, fmt.Errorf("error building error message: %w", err)
+		}
+
+		for i, errMsg := range errorMessages {
+			if i < 5 {
+				_, err := fmt.Fprintf(&msg, "\n- %s", errMsg)
+				if err != nil {
+					return nil, fmt.Errorf("error building error message: %w", err)
+				}
+			} else {
+				_, err := fmt.Fprintf(&msg, "\n- and %d more errors...", len(errorMessages)-5)
+				if err != nil {
+					return nil, fmt.Errorf("error building error message: %w", err)
+				}
+				break
+			}
+		}
+
+		return nil, fmt.Errorf("%s", msg.String())
+	}
+
+	return nil, fmt.Errorf("resource pool %q not found under parent resource pool %q", name, parentID)
 }
 
-func resourcepoolsByPath(client *govmomi.Client, path string) ([]*object.ResourcePool, error) {
+// FromPath retrieves all resource pools recursively from the specified inventory path.
+func FromPath(client *govmomi.Client, path string) ([]*object.ResourcePool, error) {
 	ctx := context.TODO()
 	var rps []*object.ResourcePool
 	finder := find.NewFinder(client.Client, false)
@@ -67,7 +148,7 @@ func resourcepoolsByPath(client *govmomi.Client, path string) ([]*object.Resourc
 			rps = append(rps, ds)
 		}
 		if id.Object.Reference().Type == "Folder" || id.Object.Reference().Type == "ClusterComputeResource" || id.Object.Reference().Type == "ResourcePool" {
-			newRPs, err := resourcepoolsByPath(client, id.Path)
+			newRPs, err := FromPath(client, id.Path)
 			if err != nil {
 				return nil, err
 			}
@@ -77,7 +158,7 @@ func resourcepoolsByPath(client *govmomi.Client, path string) ([]*object.Resourc
 	return rps, nil
 }
 
-// FromID locates a ResourcePool by its managed object reference ID.
+// FromID retrieves a resource pool by its managed object reference ID.
 func FromID(client *govmomi.Client, id string) (*object.ResourcePool, error) {
 	log.Printf("[DEBUG] Locating resource pool with ID %s", id)
 	finder := find.NewFinder(client.Client, false)
@@ -97,8 +178,7 @@ func FromID(client *govmomi.Client, id string) (*object.ResourcePool, error) {
 	return obj.(*object.ResourcePool), nil
 }
 
-// Properties returns the ResourcePool managed object from its higher-level
-// object.
+// Properties retrieves the resource pool managed object from its higher-level object.
 func Properties(obj *object.ResourcePool) (*mo.ResourcePool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
@@ -109,14 +189,7 @@ func Properties(obj *object.ResourcePool) (*mo.ResourcePool, error) {
 	return &props, nil
 }
 
-// ValidateHost checks to see if a HostSystem is a member of a ResourcePool
-// through cluster membership, or if the HostSystem ID matches the ID of a
-// standalone host ComputeResource. An error is returned if it is not a member
-// of the cluster to which the resource pool belongs, or if there was some sort
-// of other error with checking.
-//
-// This is used as an extra validation before a VM creation happens, or vMotion
-// to a specific host is attempted.
+// ValidateHost verifies if the specified host is a member of the given resource pool.
 func ValidateHost(client *govmomi.Client, pool *object.ResourcePool, host *object.HostSystem) error {
 	if host == nil {
 		// Nothing to validate here, move along
@@ -141,8 +214,7 @@ func ValidateHost(client *govmomi.Client, pool *object.ResourcePool, host *objec
 	return fmt.Errorf("host ID %q is not a member of resource pool %q", host.Reference().Value, pool.Reference().Value)
 }
 
-// DefaultDevices loads a default VirtualDeviceList for a supplied pool
-// and guest ID (guest OS type).
+// DefaultDevices retrieves the default virtual device list for a given resource pool and guest OS type.
 func DefaultDevices(client *govmomi.Client, pool *object.ResourcePool, guest string) (object.VirtualDeviceList, error) {
 	log.Printf("[DEBUG] Fetching default device list for resource pool %q for OS type %q", pool.Reference().Value, guest)
 	pprops, err := Properties(pool)
@@ -152,9 +224,7 @@ func DefaultDevices(client *govmomi.Client, pool *object.ResourcePool, guest str
 	return computeresource.DefaultDevicesFromReference(client, pprops.Owner, guest)
 }
 
-// OSFamily uses the resource pool's environment browser to get the OS family
-// for a specific guest ID. The list of supported OS is dependent on the hardware version of the vm/template
-// so that is also passed to the environment browser.
+// OSFamily determines the operating system family for a given guest ID based on the resource pool and hardware version.
 func OSFamily(client *govmomi.Client, pool *object.ResourcePool, guest string, hardwareVersion int) (string, error) {
 	log.Printf("[DEBUG] Looking for OS family for guest ID %q", guest)
 	pprops, err := Properties(pool)
@@ -164,7 +234,7 @@ func OSFamily(client *govmomi.Client, pool *object.ResourcePool, guest string, h
 	return computeresource.OSFamily(client, pprops.Owner, guest, hardwareVersion)
 }
 
-// Create creates a ResourcePool.
+// Create creates a resource pool.
 func Create(rp *object.ResourcePool, name string, spec *types.ResourceConfigSpec) (*object.ResourcePool, error) {
 	log.Printf("[DEBUG] Creating resource pool %q", fmt.Sprintf("%s/%s", rp.InventoryPath, name))
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
@@ -176,7 +246,7 @@ func Create(rp *object.ResourcePool, name string, spec *types.ResourceConfigSpec
 	return nrp, nil
 }
 
-// Update updates a ResourcePool.
+// Update updates a resource pool.
 func Update(rp *object.ResourcePool, name string, spec *types.ResourceConfigSpec) error {
 	log.Printf("[DEBUG] Updating resource pool %q", rp.InventoryPath)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
@@ -184,7 +254,7 @@ func Update(rp *object.ResourcePool, name string, spec *types.ResourceConfigSpec
 	return rp.UpdateConfig(ctx, name, spec)
 }
 
-// Delete destroys a ResourcePool.
+// Delete destroys a resource pool.
 func Delete(rp *object.ResourcePool) error {
 	log.Printf("[DEBUG] Deleting resource pool %q", rp.InventoryPath)
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
@@ -196,8 +266,7 @@ func Delete(rp *object.ResourcePool) error {
 	return task.WaitEx(ctx)
 }
 
-// MoveIntoResourcePool moves a virtual machine, resource pool, or
-// vApp into the specified ResourcePool.
+// MoveIntoResourcePool moves a virtual machine, resource pool, or vApp into the specified resource pool.
 func MoveIntoResourcePool(p *object.ResourcePool, c types.ManagedObjectReference) error {
 	req := types.MoveIntoResourcePool{
 		This: p.Reference(),
@@ -209,11 +278,9 @@ func MoveIntoResourcePool(p *object.ResourcePool, c types.ManagedObjectReference
 	return err
 }
 
-// HasChildren checks to see if a resource pool has any child items (virtual
-// machines, vApps, or resource pools) and returns true if that is the case.
-// This is useful when checking to see if a resource pool is safe to delete.
-// Destroying a resource pool in vSphere destroys *all* children if at all
-// possible, so extra verification is necessary to prevent accidental removal.
+// HasChildren checks to see if a resource pool has any child items and returns true if that is the case.
+// This is useful when checking to see if a resource pool is safe to delete. Destroying a resource pool destroys all
+// children if at all possible, so extra verification is necessary to prevent accidental removal.
 func HasChildren(rp *object.ResourcePool) (bool, error) {
 	props, err := Properties(rp)
 	if err != nil {
