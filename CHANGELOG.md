@@ -2,7 +2,7 @@
 
 ## v2.13.0
 
-> Release Date: Not Released
+> Release Date: 2025-05-12
 
 IMPROVEMENTS:
 
@@ -12,12 +12,12 @@ IMPROVEMENTS:
 - `d/guest_os_customization`: Added missing schema options. (#2447)
 - `r/resource_pool`: Updated to reconcile the scale descendants shares setting for a resource pool. (#2429)
 - `r/virtual_machine`: Resolved panic when both parent vApp and resource pool are `nil`. (#2444)
-- `r/license`/`d/flicense`: Refactored logging implementation and masked sensitive data. (#2436)
+- `r/license`/`d/license`: Refactored logging implementation and masked sensitive data. (#2436)
 
 DOCUMENTATION:
 
 - `d/folder`/`r/folder`: Updated documentation. (#2459)
-- `d/license`/`r/flicense`: Updated documentation. (#2435)
+- `r/license`/`d/license`: Updated documentation. (#2435)
 - `r/virtual_machine`: Updated documentation. (#2480)
 - `d/ovf_vm_template`: Updated documentation. (#2480)
 
