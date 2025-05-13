@@ -1488,7 +1488,7 @@ func TestAccResourceVSphereVirtualMachine_createIntoEmptyClusterNoEnvironmentBro
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigBasicEmptyCluster(),
-				ExpectError: regexp.MustCompile("compute resource .* is missing an Environment Browser\\. Check host, cluster, and vSphere license health of all associated resources and try again"),
+				ExpectError: regexp.MustCompile(`compute resource .* is missing an Environment Browser\. Check host, cluster, and vSphere license health of all associated resources and try again`),
 			},
 		},
 	})
@@ -1845,8 +1845,7 @@ func TestAccResourceVSphereVirtualMachine_cloneIntoEmptyCluster(t *testing.T) {
 			},
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigCloneEmptyCluster(),
-				ExpectError: regexp.MustCompile("compute resource .* is missing an Environment Browser\\. Check host, cluster, and vSphere license health of all associated resources and try again"),
-				//PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`compute resource .* is missing an Environment Browser\. Check host, cluster, and vSphere license health of all associated resources and try again`),
 			},
 		},
 	})
@@ -3245,8 +3244,8 @@ func testAccResourceVSphereVirtualMachinePersistentDiskInfo(disks *[]map[string]
 func testAccResourceVSphereVirtualMachineDeletePersistentDisks(disks *[]map[string]string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*Client).vimClient
-		reFlat := regexp.MustCompile("\\.vmdk$")
-		reVM := regexp.MustCompile("\\/.*?\\.vmdk$")
+		reFlat := regexp.MustCompile(`\.vmdk$`)
+		reVM := regexp.MustCompile(`/.*?\.vmdk$`)
 		var vmFolder string
 		var dsID string
 		for _, disk := range *disks {

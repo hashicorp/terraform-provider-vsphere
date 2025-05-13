@@ -62,9 +62,6 @@ linters:
         text: var-naming
       - linters:
           - staticcheck
-        text: S1007
-      - linters:
-          - staticcheck
         text: SA1019
       - linters:
           - staticcheck

@@ -696,7 +696,7 @@ func testCheckResourceNotAttr(name, key, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		err := resource.TestCheckResourceAttr(name, key, value)(s)
 		if err != nil {
-			if regexp.MustCompile("[-_.a-zA-Z0-9]\\: Attribute '.*' expected .*, got .*").MatchString(err.Error()) {
+			if regexp.MustCompile(`[-_.a-zA-Z0-9]\: Attribute '.*' expected .*, got .*`).MatchString(err.Error()) {
 				return nil
 			}
 			return err
