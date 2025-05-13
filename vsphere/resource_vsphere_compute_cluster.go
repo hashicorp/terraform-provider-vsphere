@@ -1519,7 +1519,7 @@ func resourceVSphereComputeClusterDeleteProcessForceRemoveFaultDomain(
 		return nil
 	}
 
-	if spec.VsanHostConfigSpec == nil || len(spec.VsanHostConfigSpec) == 0 {
+	if len(spec.VsanHostConfigSpec) == 0 {
 		return nil
 	}
 
