@@ -1625,39 +1625,39 @@ func resourceVSphereComputeClusterFlattenData(
 		return fmt.Errorf("error getting vsan information for cluster %s, response object was unexpectedly nil", d.Get("name").(string))
 	}
 
-	d.Set("vsan_enabled", structure.BoolNilFalse(vsanConfig.Enabled))
-	d.Set("vsan_esa_enabled", structure.BoolNilFalse(vsanConfig.VsanEsaEnabled))
+	_ = d.Set("vsan_enabled", structure.BoolNilFalse(vsanConfig.Enabled))
+	_ = d.Set("vsan_esa_enabled", structure.BoolNilFalse(vsanConfig.VsanEsaEnabled))
 
 	if vsanConfig.DataEfficiencyConfig != nil {
-		d.Set("vsan_dedup_enabled", vsanConfig.DataEfficiencyConfig.DedupEnabled)
-		d.Set("vsan_compression_enabled", structure.BoolNilFalse(vsanConfig.DataEfficiencyConfig.CompressionEnabled))
+		_ = d.Set("vsan_dedup_enabled", vsanConfig.DataEfficiencyConfig.DedupEnabled)
+		_ = d.Set("vsan_compression_enabled", structure.BoolNilFalse(vsanConfig.DataEfficiencyConfig.CompressionEnabled))
 	} else {
-		d.Set("vsan_dedup_enabled", false)
-		d.Set("vsan_compression_enabled", false)
+		_ = d.Set("vsan_dedup_enabled", false)
+		_ = d.Set("vsan_compression_enabled", false)
 	}
 
 	if vsanConfig.PerfsvcConfig != nil {
-		d.Set("vsan_performance_enabled", vsanConfig.PerfsvcConfig.Enabled)
-		d.Set("vsan_verbose_mode_enabled", structure.BoolNilFalse(vsanConfig.PerfsvcConfig.VerboseMode))
-		d.Set("vsan_network_diagnostic_mode_enabled", structure.BoolNilFalse(vsanConfig.PerfsvcConfig.DiagnosticMode))
+		_ = d.Set("vsan_performance_enabled", vsanConfig.PerfsvcConfig.Enabled)
+		_ = d.Set("vsan_verbose_mode_enabled", structure.BoolNilFalse(vsanConfig.PerfsvcConfig.VerboseMode))
+		_ = d.Set("vsan_network_diagnostic_mode_enabled", structure.BoolNilFalse(vsanConfig.PerfsvcConfig.DiagnosticMode))
 	} else {
-		d.Set("vsan_performance_enabled", false)
-		d.Set("vsan_verbose_mode_enabled", false)
-		d.Set("vsan_network_diagnostic_mode_enabled", false)
+		_ = d.Set("vsan_performance_enabled", false)
+		_ = d.Set("vsan_verbose_mode_enabled", false)
+		_ = d.Set("vsan_network_diagnostic_mode_enabled", false)
 	}
 
 	if vsanConfig.UnmapConfig != nil {
-		d.Set("vsan_unmap_enabled", vsanConfig.UnmapConfig.Enable)
+		_ = d.Set("vsan_unmap_enabled", vsanConfig.UnmapConfig.Enable)
 	} else {
-		d.Set("vsan_unmap_enabled", false)
+		_ = d.Set("vsan_unmap_enabled", false)
 	}
 
 	if vsanConfig.DataInTransitEncryptionConfig != nil {
-		d.Set("vsan_dit_encryption_enabled", structure.BoolNilFalse(vsanConfig.DataInTransitEncryptionConfig.Enabled))
-		d.Set("vsan_dit_rekey_interval", int(vsanConfig.DataInTransitEncryptionConfig.RekeyInterval))
+		_ = d.Set("vsan_dit_encryption_enabled", structure.BoolNilFalse(vsanConfig.DataInTransitEncryptionConfig.Enabled))
+		_ = d.Set("vsan_dit_rekey_interval", int(vsanConfig.DataInTransitEncryptionConfig.RekeyInterval))
 	} else {
-		d.Set("vsan_dit_encryption_enabled", false)
-		d.Set("vsan_dit_rekey_interval", 0)
+		_ = d.Set("vsan_dit_encryption_enabled", false)
+		_ = d.Set("vsan_dit_rekey_interval", 0)
 	}
 
 	var dsIDs []string
@@ -2716,9 +2716,9 @@ func flattenClusterDrsConfigInfo(d *schema.ResourceData, obj types.ClusterDrsCon
 
 	// Minimum Supported Version: 7.0.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0}) {
-		d.Set("drs_scale_descendants_shares", obj.ScaleDescendantsShares)
+		_ = d.Set("drs_scale_descendants_shares", obj.ScaleDescendantsShares)
 	} else {
-		d.Set("drs_scale_descendants_shares", string(types.ResourceConfigSpecScaleSharesBehaviorDisabled))
+		_ = d.Set("drs_scale_descendants_shares", string(types.ResourceConfigSpecScaleSharesBehaviorDisabled))
 	}
 
 	return flattenResourceVSphereComputeClusterDrsAdvancedOptions(d, obj.Option)

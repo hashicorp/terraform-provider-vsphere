@@ -34,9 +34,6 @@ linters:
     rules:
       # TODO: Setting temporary exclusions for specific linters.
       - linters:
-          - errcheck
-        text: Error return value of `d.Set` is not checked
-      - linters:
           - gosec
         text: G107
       - linters:
@@ -60,9 +57,6 @@ linters:
       - linters:
           - revive
         text: var-naming
-      - linters:
-          - staticcheck
-        text: S1007
       - linters:
           - staticcheck
         text: SA1019

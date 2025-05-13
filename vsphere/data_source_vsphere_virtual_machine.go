@@ -242,7 +242,7 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 	}
 
 	// Set the managed object id.
-	d.Set("moid", vm.Reference().Value)
+	_ = d.Set("moid", vm.Reference().Value)
 
 	props, err := virtualmachine.Properties(vm)
 	if err != nil {

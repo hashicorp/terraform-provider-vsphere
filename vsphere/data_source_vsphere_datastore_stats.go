@@ -81,10 +81,10 @@ func dataSourceVSphereDatastoreStatsRead(d *schema.ResourceData, meta interface{
 		}
 		capacityMap := d.Get("capacity").(map[string]interface{})
 		capacityMap[dss[i].Name()] = fmt.Sprintf("%v", props.Summary.Capacity)
-		d.Set("capacity", capacityMap)
+		_ = d.Set("capacity", capacityMap)
 		fr := d.Get("free_space").(map[string]interface{})
 		fr[dss[i].Name()] = fmt.Sprintf("%v", props.Summary.FreeSpace)
-		d.Set("free_space", fr)
+		_ = d.Set("free_space", fr)
 	}
 	d.SetId(fmt.Sprintf("%s_stats", dc.Reference().Value))
 	return nil

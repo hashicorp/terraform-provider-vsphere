@@ -125,7 +125,7 @@ func resourceVSphereDistributedVirtualSwitchPvlanMappingRead(d *schema.ResourceD
 	if err != nil {
 		return fmt.Errorf("cannot read properties of distributed_virtual_switch: %s", err)
 	}
-	d.Set("distributed_virtual_switch_id", props.Uuid)
+	_ = d.Set("distributed_virtual_switch_id", props.Uuid)
 
 	// Loop through the existing mappings on the switch to try and find one matching our spec
 	for _, mapping := range props.Config.(*types.VMwareDVSConfigInfo).PvlanConfig {
