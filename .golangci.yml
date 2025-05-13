@@ -74,9 +74,6 @@ linters:
         text: is unused
       - linters:
           - staticcheck
-        text: QF1008
-      - linters:
-          - staticcheck
         text: SA4006
     paths:
       - third_party$
