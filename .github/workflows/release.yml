@@ -6,6 +6,7 @@ on:
     tags:
       - 'v*.*.*'    # Match stable releases. e.g. v1.2.3
       - 'v*.*.*-*'  # Match pre-releases. e.g. v1.2.3-beta, v1.2.3-rc.1
+  workflow_dispatch:
 
 permissions:
   contents: read
