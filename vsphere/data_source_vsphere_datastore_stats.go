@@ -73,11 +73,15 @@ func dataSourceVSphereDatastoreStatsRead(d *schema.ResourceData, meta interface{
 	for i := range dss {
 		ds, err := datastore.FromPath(client, dss[i].Name(), dc)
 		if err != nil {
-			return fmt.Errorf("error fetching datastore: %s", err)
+			// Skip inaccessible datastores.
+			fmt.Printf("[WARN] Skipping inaccessible datastore %q: %s\n", dss[i].Name(), err)
+			continue
 		}
 		props, err := datastore.Properties(ds)
 		if err != nil {
-			return fmt.Errorf("error getting properties for datastore ID %q: %s", ds.Reference().Value, err)
+			// Skip datastores with inaccessible properties.
+			fmt.Printf("[WARN] Skipping inaccessible datastore %q: %s\n", ds.Reference().Value, err)
+			continue
 		}
 		capacityMap := d.Get("capacity").(map[string]interface{})
 		capacityMap[dss[i].Name()] = fmt.Sprintf("%v", props.Summary.Capacity)
