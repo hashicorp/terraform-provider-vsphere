@@ -168,7 +168,7 @@ func migrateVSphereVirtualMachineStateV2(is *terraform.InstanceState, meta inter
 	maxBus := diskCnt / 15
 	l := object.VirtualDeviceList(props.Config.Hardware.Device)
 	for k, v := range is.Attributes {
-		if !regexp.MustCompile("disk\\.[0-9]+\\.key").MatchString(k) {
+		if !regexp.MustCompile(`disk\.[0-9]+\.key`).MatchString(k) {
 			continue
 		}
 		key, err := strconv.ParseInt(v, 10, 32)
