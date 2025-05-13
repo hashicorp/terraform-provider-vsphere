@@ -768,9 +768,9 @@ func ReadSCSIBusSharing(l object.VirtualDeviceList, count int) string {
 	if len(ctlrs) == 0 || ctlrs[0] == nil {
 		return subresourceControllerSharingUnknown
 	}
-	last := ctlrs[0].(types.BaseVirtualSCSIController).GetVirtualSCSIController().SharedBus
+	last := ctlrs[0].GetVirtualSCSIController().SharedBus
 	for _, ctlr := range ctlrs[1:] {
-		if ctlr == nil || ctlr.(types.BaseVirtualSCSIController).GetVirtualSCSIController().SharedBus != last {
+		if ctlr == nil || ctlr.GetVirtualSCSIController().SharedBus != last {
 			return subresourceControllerSharingMixed
 		}
 	}
