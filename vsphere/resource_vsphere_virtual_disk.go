@@ -13,7 +13,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	"time"
+	"sync"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/vmware/govmomi"
@@ -22,6 +22,8 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/virtualdisk"
 )
+
+var vsphereVirtualDiskMakeDirectoryMutex sync.Mutex
 
 type virtualDisk struct {
 	size              int
@@ -171,29 +173,23 @@ func resourceVSphereVirtualDiskCreate(d *schema.ResourceData, meta interface{}) 
 	if vDisk.createDirectories {
 		directoryPathIndex := strings.LastIndex(vDisk.vmdkPath, "/")
 		if directoryPathIndex > 0 {
+			// Only allow one MakeDirectory operation at a time in order to avoid
+			// overlapping attempts to create the same directory, which can result
+			// in some of the attempts failing.
+			vsphereVirtualDiskMakeDirectoryMutex.Lock()
 			vmdkPath := vDisk.vmdkPath[0:directoryPathIndex]
 			log.Printf("[DEBUG] Creating parent directories: %v", ds.Path(vmdkPath))
-			makeDirectoryErr := fm.MakeDirectory(context.TODO(), ds.Path(vmdkPath), dc, true)
-			if makeDirectoryErr != nil {
-				// MakeDirectory can fail with a number of different errors if the directory is
-				// already in the process of being created. To avoid the need to handle each of
-				// these errors individually, the error is not returned here and the call to
-				// searchForDirectory below is used to determine if the directory is present.
-				// If the directory is in the process of being created, that will need to complete
-				// in order for the search to find the new directory, so sleep for a couple of
-				// seconds to allow that.
-				log.Printf("[DEBUG] Error hit when creating parent directories:  %v", makeDirectoryErr)
-				time.Sleep(2 * time.Second)
+			err = fm.MakeDirectory(context.TODO(), ds.Path(vmdkPath), dc, true)
+			vsphereVirtualDiskMakeDirectoryMutex.Unlock()
+			if err != nil && !isAlreadyExists(err) {
+				log.Printf("[DEBUG] Failed to create parent directories:  %v", err)
+				return err
 			}
 
 			err = searchForDirectory(client, vDisk.datacenter, vDisk.datastore, vmdkPath)
 			if err != nil {
 				log.Printf("[DEBUG] Failed to find newly created parent directories:  %v", err)
-				if makeDirectoryErr != nil {
-					return makeDirectoryErr
-				} else {
-					return err
-				}
+				return err
 			}
 		}
 	}
@@ -433,6 +429,11 @@ func resourceVSphereVirtualDiskDelete(d *schema.ResourceData, meta interface{}) 
 	log.Printf("[INFO] Deleted disk: %v", diskPath)
 	d.SetId("")
 	return nil
+}
+
+func isAlreadyExists(err error) bool {
+	return strings.HasPrefix(err.Error(), "Cannot complete the operation because the file or folder") &&
+		strings.HasSuffix(err.Error(), "already exists")
 }
 
 // createHardDisk creates a new Hard Disk.
