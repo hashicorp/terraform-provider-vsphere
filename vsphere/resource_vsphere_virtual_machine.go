@@ -537,7 +537,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 				return fmt.Errorf("could not read managed object reference (datastore cluster): %s", dsProps.Parent.Value)
 			}
 
-			d.Set("datastore_cluster_id", cluster.Reference().Value)
+			_ = d.Set("datastore_cluster_id", cluster.Reference().Value)
 		}
 
 	}
@@ -553,7 +553,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		if err != nil {
 			return err
 		}
-		d.Set("storage_policy_id", polID)
+		_ = d.Set("storage_policy_id", polID)
 	}
 
 	// Read the virtual machine PCI passthrough devices
@@ -615,11 +615,11 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	// Get the power state for the virtual machine.
 	switch vprops.Runtime.PowerState {
 	case types.VirtualMachinePowerStatePoweredOn:
-		d.Set("power_state", "on")
+		_ = d.Set("power_state", "on")
 	case types.VirtualMachinePowerStatePoweredOff:
-		d.Set("power_state", "off")
+		_ = d.Set("power_state", "off")
 	case types.VirtualMachinePowerStateSuspended:
-		d.Set("power_state", "suspended")
+		_ = d.Set("power_state", "suspended")
 	}
 
 	// Set the virtual Trusted Platform Module device for the virtual machine.
