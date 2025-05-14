@@ -271,7 +271,7 @@ func ByteToMB(n interface{}) interface{} {
 func ByteToGiB(n interface{}) int {
 	switch n.(type) {
 	case int, int32, int64:
-		return int(math.Ceil(float64(n.(int64)) / math.Pow(1024, 3)))
+		return int(math.Ceil(float64(n.(int64)) / float64(1024*1024*1024)))
 	}
 	panic(fmt.Errorf("non-integer type %T for value", n))
 }
@@ -283,11 +283,11 @@ func ByteToGiB(n interface{}) int {
 func GiBToByte(n interface{}) int64 {
 	switch v := n.(type) {
 	case int:
-		return int64(v * int(math.Pow(1024, 3)))
+		return int64(v * int(float64(1024*1024*1024)))
 	case int32:
-		return int64(v * int32(math.Pow(1024, 3)))
+		return int64(v * int32(float64(1024*1024*1024)))
 	case int64:
-		return v * int64(math.Pow(1024, 3))
+		return v * int64(float64(1024*1024*1024))
 	}
 	panic(fmt.Errorf("non-integer type %T for value", n))
 }
