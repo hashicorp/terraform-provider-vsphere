@@ -14,17 +14,17 @@ provider "vsphere" {
 }
 
 data "vsphere_host_thumbprint" "thumbprint1" {
-  address = var.hosts[0].hostname
+  address  = var.hosts[0].hostname
   insecure = true
 }
 
 data "vsphere_host_thumbprint" "thumbprint2" {
-  address = var.hosts[1].hostname
+  address  = var.hosts[1].hostname
   insecure = true
 }
 
 data "vsphere_host_thumbprint" "thumbprint3" {
-  address = var.hosts[2].hostname
+  address  = var.hosts[2].hostname
   insecure = true
 }
 
@@ -34,25 +34,25 @@ resource "vsphere_datacenter" "dc" {
 
 resource "vsphere_host" "host1" {
   datacenter = vsphere_datacenter.dc.moid
-  hostname = var.hosts[0].hostname
-  username =  var.hosts[0].username
-  password =  var.hosts[0].password
+  hostname   = var.hosts[0].hostname
+  username   = var.hosts[0].username
+  password   = var.hosts[0].password
   thumbprint = data.vsphere_host_thumbprint.thumbprint1.id
 }
 
 resource "vsphere_host" "host2" {
   datacenter = vsphere_datacenter.dc.moid
-  hostname = var.hosts[1].hostname
-  username =  var.hosts[1].username
-  password =  var.hosts[1].password
+  hostname   = var.hosts[1].hostname
+  username   = var.hosts[1].username
+  password   = var.hosts[1].password
   thumbprint = data.vsphere_host_thumbprint.thumbprint2.id
 }
 
 resource "vsphere_host" "host3" {
   datacenter = vsphere_datacenter.dc.moid
-  hostname = var.hosts[2].hostname
-  username =  var.hosts[2].username
-  password =  var.hosts[2].password
+  hostname   = var.hosts[2].hostname
+  username   = var.hosts[2].username
+  password   = var.hosts[2].password
   thumbprint = data.vsphere_host_thumbprint.thumbprint3.id
 }
 
