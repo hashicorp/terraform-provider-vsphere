@@ -197,7 +197,7 @@ func BoolStringPtrState(v interface{}) string {
 // systemic issue that affects reading, writing, and diffing of these values.
 // These issues will eventually be addressed in HCL2.
 func ValidateBoolStringPtr() schema.SchemaValidateFunc {
-	return func(i interface{}, k string) (s []string, es []error) {
+	return func(i interface{}, _ string) (s []string, es []error) {
 		v := i.(string)
 		if v == "" {
 			return

@@ -3242,7 +3242,7 @@ func testAccResourceVSphereVirtualMachinePersistentDiskInfo(disks *[]map[string]
 // the disks will also be deleted. If the folder is not empty, all remaining
 // files will be deleted.
 func testAccResourceVSphereVirtualMachineDeletePersistentDisks(disks *[]map[string]string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
+	return func(_ *terraform.State) error {
 		client := testAccProvider.Meta().(*Client).vimClient
 		reFlat := regexp.MustCompile(`\.vmdk$`)
 		reVM := regexp.MustCompile(`/.*?\.vmdk$`)

@@ -59,7 +59,7 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (warns []string, errors []error) {
+				ValidateFunc: func(v interface{}, _ string) (warns []string, errors []error) {
 					if !strings.HasSuffix(v.(string), ".vmdk") {
 						errors = append(errors, fmt.Errorf("vmdk_path must end with '.vmdk'"))
 					}
@@ -78,7 +78,7 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Default:  "eagerZeroedThick",
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+				ValidateFunc: func(v interface{}, _ string) (ws []string, errors []error) {
 					value := v.(string)
 					if value != "thin" && value != "eagerZeroedThick" && value != "lazy" {
 						errors = append(errors, fmt.Errorf(
@@ -95,7 +95,7 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 				Default:  "lsiLogic",
 				// TODO: Move this to removed after we remove the support to specify this in later versions
 				Deprecated: "this attribute has no effect on controller types - please use scsi_type in vsphere_virtual_machine instead",
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+				ValidateFunc: func(v interface{}, _ string) (ws []string, errors []error) {
 					value := v.(string)
 					if value != "ide" && value != "busLogic" && value != "lsiLogic" {
 						errors = append(errors, fmt.Errorf(

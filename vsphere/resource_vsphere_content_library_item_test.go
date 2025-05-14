@@ -165,7 +165,7 @@ func testAccResourceVSphereContentLibraryItemGetFile(url, file string) error {
 }
 
 func testAccResourceVSphereContentLibraryItemDestroyFile(file string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
+	return func(_ *terraform.State) error {
 		_ = os.Remove(file)
 		return nil
 	}
@@ -181,8 +181,8 @@ func testAccResourceVSphereContentLibraryItemPreCheck(t *testing.T) {
 }
 
 func testAccResourceVSphereContentLibraryItemDescription(expected *regexp.Regexp) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		library, err := testGetContentLibraryItem(s, "item")
+	return func(_ *terraform.State) error {
+		library, err := testGetContentLibraryItem(nil, "item")
 		if err != nil {
 			return err
 		}
@@ -194,8 +194,8 @@ func testAccResourceVSphereContentLibraryItemDescription(expected *regexp.Regexp
 }
 
 func testAccResourceVSphereContentLibraryItemName(expected *regexp.Regexp) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		library, err := testGetContentLibraryItem(s, "item")
+	return func(_ *terraform.State) error {
+		library, err := testGetContentLibraryItem(nil, "item")
 		if err != nil {
 			return err
 		}
@@ -207,8 +207,8 @@ func testAccResourceVSphereContentLibraryItemName(expected *regexp.Regexp) resou
 }
 
 func testAccResourceVSphereContentLibraryItemType(expected *regexp.Regexp) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		library, err := testGetContentLibraryItem(s, "item")
+	return func(_ *terraform.State) error {
+		library, err := testGetContentLibraryItem(nil, "item")
 		if err != nil {
 			return err
 		}
@@ -300,8 +300,8 @@ func testaccresourcevspherecontentlibraryitemconfigBase() string {
 }
 
 func testAccResourceVSphereContentLibraryItemCheckExists(expected bool) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		_, err := testGetContentLibraryItem(s, "item")
+	return func(_ *terraform.State) error {
+		_, err := testGetContentLibraryItem(nil, "item")
 		if err != nil {
 			missingState, _ := regexp.MatchString("not found in state", err.Error())
 			missingVSphere, _ := regexp.MatchString("404 Not Found", err.Error())
