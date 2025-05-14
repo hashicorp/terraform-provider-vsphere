@@ -806,6 +806,9 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 	// Add SRIOV physical function if this network interface resource has it defined
 	if len(r.Get("physical_function").(string)) > 0 {
 		device, err = r.addPhysicalFunction(device)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// SRIOV device creation requires a restart

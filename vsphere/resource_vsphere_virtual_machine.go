@@ -1657,7 +1657,7 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			fmt.Errorf("error in virtual machine configuration: %s", err),
 		)
 	}
-	devices, delta, err = virtualdevice.NormalizeBus(devices, d) //nolint:ineffassign
+	devices, delta, err = virtualdevice.NormalizeBus(devices, d) //nolint
 	if err != nil {
 		return resourceVSphereVirtualMachineRollbackCreate(
 			d,

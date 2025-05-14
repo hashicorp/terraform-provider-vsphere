@@ -66,9 +66,6 @@ linters:
       - linters:
           - unused
         text: is unused
-      - linters:
-          - staticcheck
-        text: SA4006
     paths:
       - third_party$
       - builtin$
