@@ -1,16 +1,16 @@
 variable "vcenter_username" {
   description = "Username used to authenticate against the vCenter Server"
-  type = string
+  type        = string
 }
 
 variable "vcenter_password" {
   description = "Password used to authenticate against the vCenter Server"
-  type = string
+  type        = string
 }
 
 variable "vcenter_server" {
   description = "FQDN or IP Address of the vCenter Server"
-  type = string
+  type        = string
 }
 
 variable "hosts" {
@@ -23,5 +23,5 @@ variable "hosts" {
 
 variable "nfs_host" {
   description = "Hostname of the NFS server"
-  type = string
+  type        = string
 }
