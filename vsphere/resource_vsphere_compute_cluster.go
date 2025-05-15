@@ -1144,7 +1144,7 @@ func resourceVSphereComputeClusterApplyCustomAttributes(
 func resourceVSphereComputeClusterApplyHostImage(
 	d *schema.ResourceData,
 	meta interface{},
-	cluster *object.ClusterComputeResource,
+	_ *object.ClusterComputeResource,
 ) error {
 	if !d.HasChange("host_image") {
 		return nil
@@ -1858,7 +1858,7 @@ func buildVsanStretchedClusterReq(d *schema.ResourceData, cluster types.ManagedO
 	}, nil
 }
 
-func buildVsanRemoveWitnessHostReq(d *schema.ResourceData, cluster types.ManagedObjectReference, client *vsan.Client) (*vsantypes.VSANVcRemoveWitnessHost, error) {
+func buildVsanRemoveWitnessHostReq(_ *schema.ResourceData, cluster types.ManagedObjectReference, client *vsan.Client) (*vsantypes.VSANVcRemoveWitnessHost, error) {
 	log.Printf("[DEBUG] building vsan remove witness request...")
 
 	res, err := vsanclient.GetWitnessHosts(client, cluster.Reference())
