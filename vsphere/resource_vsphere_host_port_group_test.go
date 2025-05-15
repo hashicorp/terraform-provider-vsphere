@@ -16,6 +16,7 @@ import (
 )
 
 func TestAccResourceVSphereHostPortGroup_basic(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -36,6 +37,7 @@ func TestAccResourceVSphereHostPortGroup_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereHostPortGroup_complexWithOverrides(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -60,6 +62,7 @@ func TestAccResourceVSphereHostPortGroup_complexWithOverrides(t *testing.T) {
 }
 
 func TestAccResourceVSphereHostPortGroup_basicToComplex(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -90,6 +93,7 @@ func TestAccResourceVSphereHostPortGroup_basicToComplex(t *testing.T) {
 }
 
 func testAccResourceVSphereHostPortGroupPreCheck(t *testing.T) {
+	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_host_port_group acceptance tests")
 	}

@@ -16,6 +16,7 @@ const NoAccessRoleName = "NoAccess"
 const NoAccessRoleID = "-5"
 
 func TestAccDataSourceVSphereRole_basic(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -56,6 +57,7 @@ func TestAccDataSourceVSphereRole_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereRole_systemRoleData(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)

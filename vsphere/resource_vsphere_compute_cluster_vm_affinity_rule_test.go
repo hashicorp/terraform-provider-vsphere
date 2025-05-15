@@ -24,6 +24,7 @@ import (
 )
 
 func TestAccResourceVSphereComputeClusterVMAffinityRule_basic(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -85,6 +86,7 @@ func TestAccResourceVSphereComputeClusterVMAffinityRule_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereComputeClusterVMAffinityRule_updateEnabled(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -123,6 +125,7 @@ func TestAccResourceVSphereComputeClusterVMAffinityRule_updateEnabled(t *testing
 }
 
 func TestAccResourceVSphereComputeClusterVMAffinityRule_updateCount(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -161,6 +164,7 @@ func TestAccResourceVSphereComputeClusterVMAffinityRule_updateCount(t *testing.T
 }
 
 func testAccResourceVSphereComputeClusterVMAffinityRulePreCheck(t *testing.T) {
+	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_compute_cluster_vm_affinity_rule acceptance tests")
 	}

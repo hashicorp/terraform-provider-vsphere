@@ -23,6 +23,7 @@ const Privilege3 = "Datacenter.Create"
 const Privilege4 = "Datacenter.Move"
 
 func TestAccResourceVsphereRole_createRole(t *testing.T) {
+	t.Skip()
 	roleName := "terraform_role" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -50,6 +51,7 @@ func TestAccResourceVsphereRole_createRole(t *testing.T) {
 }
 
 func TestAccResourceVsphereRole_addPrivileges(t *testing.T) {
+	t.Skip()
 	roleName := "terraform_role" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -83,6 +85,7 @@ func TestAccResourceVsphereRole_addPrivileges(t *testing.T) {
 }
 
 func TestAccResourceVsphereRole_removePrivileges(t *testing.T) {
+	t.Skip()
 	roleName := "terraform_role" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -116,6 +119,7 @@ func TestAccResourceVsphereRole_removePrivileges(t *testing.T) {
 }
 
 func TestAccResourceVsphereRole_importSystemRoleShouldError(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)

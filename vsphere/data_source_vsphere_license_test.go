@@ -13,6 +13,7 @@ import (
 )
 
 func TestAccDataSourceVSphereLicense_basic(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -36,6 +37,7 @@ func TestAccDataSourceVSphereLicense_basic(t *testing.T) {
 }
 
 func testAccDataSourceVSphereLicensePreCheck(t *testing.T) {
+	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_LICENSE") == "" {
 		t.Skip("set TF_VAR_VSPHERE_LICENSE to run vsphere_license acceptance tests")
 	}

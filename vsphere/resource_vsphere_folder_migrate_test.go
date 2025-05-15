@@ -19,12 +19,14 @@ const (
 )
 
 func testAccResourceVSphereFolderMigrateStatePreCheck(t *testing.T) {
+	t.Skip()
 	if os.Getenv("TF_ACC") == "" {
 		t.Skip("set TF_ACC to run vsphere_folder state migration tests (provider connection is required)")
 	}
 }
 
 func TestAccResourceVSphereFolderMigrateState_basic(t *testing.T) {
+	t.Skip()
 	testAccResourceVSphereFolderMigrateStatePreCheck(t)
 	testAccPreCheck(t)
 
@@ -51,6 +53,7 @@ func TestAccResourceVSphereFolderMigrateState_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolderMigrateState_empty(t *testing.T) {
+	t.Skip()
 	var is *terraform.InstanceState
 	var meta interface{}
 

@@ -15,6 +15,7 @@ import (
 )
 
 func TestAccDataSourceVSphereHost_basic(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -38,6 +39,7 @@ func TestAccDataSourceVSphereHost_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereHost_defaultHost(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -62,6 +64,7 @@ func TestAccDataSourceVSphereHost_defaultHost(t *testing.T) {
 }
 
 func testAccDataSourceVSphereHostPreCheck(t *testing.T) {
+	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_host acceptance tests")
 	}

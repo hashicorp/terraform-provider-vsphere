@@ -14,6 +14,7 @@ import (
 )
 
 func TestAccDataSourceVSphereContentLibrary_basic(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

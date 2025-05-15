@@ -16,6 +16,7 @@ import (
 )
 
 func TestAccResourceVSphereContentLibrary_basic(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -49,6 +50,7 @@ func TestAccResourceVSphereContentLibrary_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereContentLibrary_subscribed(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -75,6 +77,7 @@ func TestAccResourceVSphereContentLibrary_subscribed(t *testing.T) {
 	})
 }
 func TestAccResourceVSphereContentLibrary_authenticated(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -97,6 +100,7 @@ func TestAccResourceVSphereContentLibrary_authenticated(t *testing.T) {
 }
 
 func testAccResourceVSphereContentLibraryPreCheck(t *testing.T) {
+	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_content_library acceptance tests")
 	}

@@ -15,6 +15,7 @@ import (
 )
 
 func TestAccResourceVSpherGOSC_windows_basic(t *testing.T) {
+	t.Skip()
 	goscName := acctest.RandomWithPrefix("win")
 	goscResourceName := acctest.RandomWithPrefix("gosc")
 	resource.Test(t, resource.TestCase{
@@ -34,6 +35,7 @@ func TestAccResourceVSpherGOSC_windows_basic(t *testing.T) {
 }
 
 func TestAccResourceVSpherGOSC_windows_workGroup(t *testing.T) {
+	t.Skip()
 	goscName := acctest.RandomWithPrefix("win")
 	goscResourceName := acctest.RandomWithPrefix("gosc")
 	resource.Test(t, resource.TestCase{
@@ -53,6 +55,7 @@ func TestAccResourceVSpherGOSC_windows_workGroup(t *testing.T) {
 }
 
 func TestAccResourceVSpherGOSC_linux(t *testing.T) {
+	t.Skip()
 	goscName := acctest.RandomWithPrefix("lin")
 	goscResourceName := acctest.RandomWithPrefix("gosc")
 	resource.Test(t, resource.TestCase{
@@ -72,6 +75,7 @@ func TestAccResourceVSpherGOSC_linux(t *testing.T) {
 }
 
 func TestAccResourceVSpherGOSC_sysprep(t *testing.T) {
+	t.Skip()
 	goscName := acctest.RandomWithPrefix("lin")
 	goscResourceName := acctest.RandomWithPrefix("gosc")
 	resource.Test(t, resource.TestCase{

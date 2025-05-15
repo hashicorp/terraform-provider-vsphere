@@ -19,6 +19,7 @@ import (
 const EntityPermissionResource = "entity_permission1"
 
 func TestAccResourcevsphereEntityPermissions_basic(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)

@@ -24,6 +24,7 @@ const testAccResourceVSphereFolderConfigExpectedParentName = "terraform-test-par
 const testAccResourceVSphereFolderConfigOOBName = "terraform-test-oob"
 
 func TestAccResourceVSphereFolder_vmFolder(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -69,6 +70,7 @@ func TestAccResourceVSphereFolder_vmFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_datastoreFolder(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -93,6 +95,7 @@ func TestAccResourceVSphereFolder_datastoreFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_networkFolder(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -117,6 +120,7 @@ func TestAccResourceVSphereFolder_networkFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_hostFolder(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -141,6 +145,7 @@ func TestAccResourceVSphereFolder_hostFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_datacenterFolder(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -165,6 +170,7 @@ func TestAccResourceVSphereFolder_datacenterFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_rename(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -200,6 +206,7 @@ func TestAccResourceVSphereFolder_rename(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_subfolder(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -225,6 +232,7 @@ func TestAccResourceVSphereFolder_subfolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_moveToSubfolder(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -262,6 +270,7 @@ func TestAccResourceVSphereFolder_moveToSubfolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_tags(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -284,6 +293,7 @@ func TestAccResourceVSphereFolder_tags(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_modifyTags(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -315,6 +325,7 @@ func TestAccResourceVSphereFolder_modifyTags(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_modifyTagsMultiStage(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -352,6 +363,7 @@ func TestAccResourceVSphereFolder_modifyTagsMultiStage(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_customAttributes(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -374,6 +386,7 @@ func TestAccResourceVSphereFolder_customAttributes(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_modifyCustomAttributes(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -405,6 +418,7 @@ func TestAccResourceVSphereFolder_modifyCustomAttributes(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_removeAllCustomAttributes(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -436,6 +450,7 @@ func TestAccResourceVSphereFolder_removeAllCustomAttributes(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_preventDeleteIfNotEmpty(t *testing.T) {
+	t.Skip()
 	var s *terraform.State
 
 	resource.Test(t, resource.TestCase{

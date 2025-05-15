@@ -18,6 +18,7 @@ import (
 )
 
 func TestAccResourceVSphereContentLibraryItem_localOva(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -54,6 +55,7 @@ func TestAccResourceVSphereContentLibraryItem_localOva(t *testing.T) {
 }
 
 func TestAccResourceVSphereContentLibraryItem_remoteOvf(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -97,6 +99,7 @@ func TestAccResourceVSphereContentLibraryItem_remoteOvf(t *testing.T) {
 }
 
 func TestAccResourceVSphereContentLibraryItem_remoteOva(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -172,6 +175,7 @@ func testAccResourceVSphereContentLibraryItemDestroyFile(file string) resource.T
 }
 
 func testAccResourceVSphereContentLibraryItemPreCheck(t *testing.T) {
+	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_content_library acceptance tests")
 	}

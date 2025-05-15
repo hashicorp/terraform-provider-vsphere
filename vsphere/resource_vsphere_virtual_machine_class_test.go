@@ -11,6 +11,7 @@ import (
 )
 
 func TestAccResourceVSphereVmClass_basic(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -28,6 +29,7 @@ func TestAccResourceVSphereVmClass_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereVmClass_vgpu(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)

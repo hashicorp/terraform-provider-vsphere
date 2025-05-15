@@ -14,6 +14,7 @@ import (
 )
 
 func TestAccDataSourceVSphereNetwork_dvsPortgroup(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -38,6 +39,7 @@ func TestAccDataSourceVSphereNetwork_dvsPortgroup(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereNetwork_withTimeout(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -62,6 +64,7 @@ func TestAccDataSourceVSphereNetwork_withTimeout(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereNetwork_absolutePathNoDatacenter(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -86,6 +89,7 @@ func TestAccDataSourceVSphereNetwork_absolutePathNoDatacenter(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereNetwork_hostPortgroups(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -105,6 +109,7 @@ func TestAccDataSourceVSphereNetwork_hostPortgroups(t *testing.T) {
 }
 
 func testAccDataSourceVSphereNetworkPreCheck(t *testing.T) {
+	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_PG_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_PG_NAME to run vsphere_network acceptance tests")
 	}

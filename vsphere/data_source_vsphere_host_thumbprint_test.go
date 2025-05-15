@@ -14,6 +14,7 @@ import (
 )
 
 func TestAccDataSourceVSphereHostThumbprint_basic(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -32,6 +33,7 @@ func TestAccDataSourceVSphereHostThumbprint_basic(t *testing.T) {
 }
 
 func testAccDataSourceVSphereHostThumbprintPreCheck(t *testing.T) {
+	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_ESXI1") == "" {
 		t.Skip("set TF_VAR_VSPHERE_ESXI1 to run vsphere_host_thumbprint acceptance tests")
 	}

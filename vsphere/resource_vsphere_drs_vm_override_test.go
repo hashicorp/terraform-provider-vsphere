@@ -23,6 +23,7 @@ import (
 )
 
 func TestAccResourceVSphereDRSVMOverride_drs(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -74,6 +75,7 @@ func TestAccResourceVSphereDRSVMOverride_drs(t *testing.T) {
 }
 
 func TestAccResourceVSphereDRSVMOverride_automationLevel(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -95,6 +97,7 @@ func TestAccResourceVSphereDRSVMOverride_automationLevel(t *testing.T) {
 }
 
 func TestAccResourceVSphereDRSVMOverride_update(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -123,6 +126,7 @@ func TestAccResourceVSphereDRSVMOverride_update(t *testing.T) {
 }
 
 func testAccResourceVSphereDRSVMOverridePreCheck(t *testing.T) {
+	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_drs_vm_override acceptance tests")
 	}

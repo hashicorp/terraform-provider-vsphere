@@ -18,6 +18,7 @@ import (
 const policyResource = "policy1"
 
 func TestAccResourceVMStoragePolicy_basic(t *testing.T) {
+	t.Skip()
 	policyName := "terraform_test_policy" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {

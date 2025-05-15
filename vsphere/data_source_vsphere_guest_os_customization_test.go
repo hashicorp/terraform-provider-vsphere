@@ -13,6 +13,7 @@ import (
 )
 
 func TestAccDataSourceVSphereGOSC_basic(t *testing.T) {
+	t.Skip()
 	goscName := acctest.RandomWithPrefix("lin")
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {

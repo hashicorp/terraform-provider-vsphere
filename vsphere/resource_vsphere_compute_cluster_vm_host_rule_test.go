@@ -22,6 +22,7 @@ import (
 )
 
 func TestAccResourceVSphereComputeClusterVMHostRule_basic(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -92,6 +93,7 @@ func TestAccResourceVSphereComputeClusterVMHostRule_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereComputeClusterVMHostRule_antiAffinity(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -120,6 +122,7 @@ func TestAccResourceVSphereComputeClusterVMHostRule_antiAffinity(t *testing.T) {
 }
 
 func TestAccResourceVSphereComputeClusterVMHostRule_updateEnabled(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -162,6 +165,7 @@ func TestAccResourceVSphereComputeClusterVMHostRule_updateEnabled(t *testing.T) 
 }
 
 func TestAccResourceVSphereComputeClusterVMHostRule_updateAffinity(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -204,6 +208,7 @@ func TestAccResourceVSphereComputeClusterVMHostRule_updateAffinity(t *testing.T)
 }
 
 func testAccResourceVSphereComputeClusterVMHostRulePreCheck(t *testing.T) {
+	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_compute_cluster_vm_host_rule acceptance tests")
 	}

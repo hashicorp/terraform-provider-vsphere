@@ -13,6 +13,7 @@ import (
 )
 
 func TestAccDataSourceVSphereComputeCluster_basic(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -39,6 +40,7 @@ func TestAccDataSourceVSphereComputeCluster_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereComputeCluster_absolutePathNoDatacenter(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

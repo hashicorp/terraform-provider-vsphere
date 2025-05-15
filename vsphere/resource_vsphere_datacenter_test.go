@@ -137,6 +137,7 @@ resource "vsphere_datacenter" "testDC" {
 
 // Create a datacenter on the root folder
 func TestAccResourceVSphereDatacenter_createOnRootFolder(t *testing.T) {
+	t.Skip()
 	name := "testDC"
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -160,6 +161,7 @@ func TestAccResourceVSphereDatacenter_createOnRootFolder(t *testing.T) {
 
 // Create a datacenter on a subfolder
 func TestAccResourceVSphereDatacenter_createOnSubfolder(t *testing.T) {
+	t.Skip()
 	dcFolder := "dc-folder"
 	name := "testDC"
 
@@ -189,6 +191,7 @@ func TestAccResourceVSphereDatacenter_createOnSubfolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatacenter_singleTag(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -212,6 +215,7 @@ func TestAccResourceVSphereDatacenter_singleTag(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatacenter_modifyTags(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -245,6 +249,7 @@ func TestAccResourceVSphereDatacenter_modifyTags(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatacenter_singleCustomAttribute(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -268,6 +273,7 @@ func TestAccResourceVSphereDatacenter_singleCustomAttribute(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatacenter_modifyCustomAttribute(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

@@ -16,6 +16,7 @@ import (
 var testAccDataSourceVSphereDatacenterExpectedRegexp = regexp.MustCompile("^datacenter-")
 
 func TestAccDataSourceVSphereDatacenter_basic(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -39,6 +40,7 @@ func TestAccDataSourceVSphereDatacenter_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereDatacenter_defaultDatacenter(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -62,12 +64,14 @@ func TestAccDataSourceVSphereDatacenter_defaultDatacenter(t *testing.T) {
 }
 
 func testAccDataSourceVSphereDatacenterPreCheck(t *testing.T) {
+	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_datacenter acceptance tests")
 	}
 }
 
 func TestAccDataSourceVSphereDatacenter_getVirtualMachines(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

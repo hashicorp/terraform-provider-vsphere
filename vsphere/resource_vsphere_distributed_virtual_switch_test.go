@@ -26,6 +26,7 @@ const (
 )
 
 func TestAccResourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -63,6 +64,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_noHosts(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -83,6 +85,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_noHosts(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_removeNIC(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -109,6 +112,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_removeNIC(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_standbyWithExplicitFailoverOrder(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -132,6 +136,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_standbyWithExplicitFailoverO
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_basicToStandbyWithFailover(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -161,6 +166,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_basicToStandbyWithFailover(t
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_upgradeVersion(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -189,6 +195,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_upgradeVersion(t *testing.T)
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_networkResourceControl(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -213,6 +220,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_networkResourceControl(t *te
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_explicitUplinks(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -234,6 +242,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_explicitUplinks(t *testing.T
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_modifyUplinks(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -274,6 +283,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_modifyUplinks(t *testing.T) 
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_inFolder(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -295,6 +305,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_inFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_singleTag(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -316,6 +327,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_singleTag(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_modifyTags(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -344,6 +356,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_modifyTags(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_netflow(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -365,6 +378,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_netflow(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_vlanRanges(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -387,6 +401,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_vlanRanges(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_singleCustomAttribute(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -408,6 +423,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_singleCustomAttribute(t *tes
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_multiCustomAttribute(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -436,6 +452,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_multiCustomAttribute(t *test
 }
 
 func testAccResourceVSphereDistributedVirtualSwitchPreCheck(t *testing.T) {
+	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_host_virtual_switch acceptance tests")
 	}

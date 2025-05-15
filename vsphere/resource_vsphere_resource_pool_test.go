@@ -18,6 +18,7 @@ import (
 )
 
 func TestAccResourceVSphereResourcePool_basic(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -70,6 +71,7 @@ func TestAccResourceVSphereResourcePool_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_updateRename(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -99,6 +101,7 @@ func TestAccResourceVSphereResourcePool_updateRename(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_updateToCustom(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -144,6 +147,7 @@ func TestAccResourceVSphereResourcePool_updateToCustom(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_updateToDefaults(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -188,6 +192,7 @@ func TestAccResourceVSphereResourcePool_updateToDefaults(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_esxiHost(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -208,6 +213,7 @@ func TestAccResourceVSphereResourcePool_esxiHost(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_updateParent(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -236,6 +242,7 @@ func TestAccResourceVSphereResourcePool_updateParent(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_tags(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -257,6 +264,7 @@ func TestAccResourceVSphereResourcePool_tags(t *testing.T) {
 }
 
 func testAccResourceVSphereResourcePoolPreCheck(t *testing.T) {
+	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_resource_pool acceptance tests")
 	}

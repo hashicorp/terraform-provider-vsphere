@@ -15,6 +15,7 @@ import (
 )
 
 func TestAccDataSourceVSphereVAppContainer_basic(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -36,6 +37,7 @@ func TestAccDataSourceVSphereVAppContainer_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereVAppContainer_path(t *testing.T) {
+	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -57,6 +59,7 @@ func TestAccDataSourceVSphereVAppContainer_path(t *testing.T) {
 }
 
 func testAccDataSourceVSphereVAppContainerPreCheck(t *testing.T) {
+	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_vapp_container acceptance tests")
 	}

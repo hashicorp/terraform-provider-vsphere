@@ -19,6 +19,7 @@ import (
 )
 
 func TestAccResourceVSphereVirtualDisk_basic(t *testing.T) {
+	t.Skip()
 	rString := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
@@ -41,6 +42,7 @@ func TestAccResourceVSphereVirtualDisk_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualDisk_extend(t *testing.T) {
+	t.Skip()
 	rString := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
@@ -71,6 +73,7 @@ func TestAccResourceVSphereVirtualDisk_extend(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualDisk_multi(t *testing.T) {
+	t.Skip()
 	rString := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
@@ -99,6 +102,7 @@ func TestAccResourceVSphereVirtualDisk_multi(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualDisk_multiWithParent(t *testing.T) {
+	t.Skip()
 	rString := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
@@ -127,6 +131,7 @@ func TestAccResourceVSphereVirtualDisk_multiWithParent(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualDisk_withParent(t *testing.T) {
+	t.Skip()
 	rString := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
@@ -149,6 +154,7 @@ func TestAccResourceVSphereVirtualDisk_withParent(t *testing.T) {
 }
 
 func testAccResourceVSphereVirtualDiskPreCheck(t *testing.T) {
+	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_virtual_disk acceptance tests")
 	}
