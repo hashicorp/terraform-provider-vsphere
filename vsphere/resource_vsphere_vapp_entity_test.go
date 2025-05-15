@@ -320,55 +320,54 @@ func testAccResourceVSphereVAppEntityConfigBasic() string {
 
 resource "vsphere_resource_pool" "parent_resource_pool" {
   name                    = "terraform-resource-pool-test-parent"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
+  parent_resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
 }
 
 resource "vsphere_folder" "parent_folder" {
-	path = "parent_folder"
-	type = "vm"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  path          = "parent_folder"
+  type          = "vm"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_vapp_container" "vapp_container" {
   name                    = "terraform-resource-pool-test"
-  parent_resource_pool_id = "${vsphere_resource_pool.parent_resource_pool.id}"
-  parent_folder_id        = "${vsphere_folder.parent_folder.id}"
+  parent_resource_pool_id = vsphere_resource_pool.parent_resource_pool.id
+  parent_folder_id        = vsphere_folder.parent_folder.id
 }
 
 resource "vsphere_vapp_entity" "vapp_entity" {
-	target_id    = "${vsphere_virtual_machine.vm.moid}"
-	container_id = "${vsphere_vapp_container.vapp_container.id}"
+  target_id    = vsphere_virtual_machine.vm.moid
+  container_id = vsphere_vapp_container.vapp_container.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
-	name = "terraform-virtual-machine-test"
-	resource_pool_id = "${vsphere_vapp_container.vapp_container.id}"
-	datastore_id = vsphere_nas_datastore.ds1.id
+  name             = "terraform-virtual-machine-test"
+  resource_pool_id = vsphere_vapp_container.vapp_container.id
+  datastore_id     = vsphere_nas_datastore.ds1.id
 
-	num_cpus = 2
-	memory   = 2048
-	guest_id = "other3xLinuxGuest"
-	wait_for_guest_net_timeout = -1
+  num_cpus                   = 2
+  memory                     = 2048
+  guest_id                   = "other3xLinuxGuest"
+  wait_for_guest_net_timeout = -1
 
 
-	disk {
-		label = "disk0"
-		size = "1"
-	}
+  disk {
+    label = "disk0"
+    size  = "1"
+  }
 
-	network_interface {
-		network_id = "${data.vsphere_network.network1.id}"
-	}
+  network_interface {
+    network_id = data.vsphere_network.network1.id
+  }
 }
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2(),
-			testhelper.ConfigResDS1(),
-			testhelper.ConfigDataRootComputeCluster1(),
-			testhelper.ConfigResResourcePool1(),
-			testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootHost2(),
+		testhelper.ConfigResDS1(),
+		testhelper.ConfigDataRootComputeCluster1(),
+		testhelper.ConfigResResourcePool1(),
+		testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
@@ -378,35 +377,35 @@ func testAccResourceVSphereVAppEntityConfigNonDefault() string {
 
 resource "vsphere_resource_pool" "parent_resource_pool" {
   name                    = "terraform-resource-pool-test-parent"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
+  parent_resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
 }
 
 resource "vsphere_folder" "parent_folder" {
   path          = "parent_folder"
   type          = "vm"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_vapp_container" "vapp_container" {
   name                    = "terraform-resource-pool-test"
-  parent_resource_pool_id = "${vsphere_resource_pool.parent_resource_pool.id}"
-  parent_folder_id        = "${vsphere_folder.parent_folder.id}"
+  parent_resource_pool_id = vsphere_resource_pool.parent_resource_pool.id
+  parent_folder_id        = vsphere_folder.parent_folder.id
 }
 
 resource "vsphere_vapp_entity" "vapp_entity" {
-  target_id      = "${vsphere_virtual_machine.vm.moid}"
-  container_id   = "${vsphere_vapp_container.vapp_container.id}"
-	start_action   = "none"
-	start_delay    = 5
-	stop_action    = "guestShutdown"
-	stop_delay     = 5
-	start_order    = 1
-	wait_for_guest = true
+  target_id      = vsphere_virtual_machine.vm.moid
+  container_id   = vsphere_vapp_container.vapp_container.id
+  start_action   = "none"
+  start_delay    = 5
+  stop_action    = "guestShutdown"
+  stop_delay     = 5
+  start_order    = 1
+  wait_for_guest = true
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "terraform-virtual-machine-test"
-  resource_pool_id = "${vsphere_vapp_container.vapp_container.id}"
+  resource_pool_id = vsphere_vapp_container.vapp_container.id
   datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus                   = 2
@@ -420,11 +419,10 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
@@ -434,34 +432,34 @@ func testAccResourceVSphereVAppEntityConfigMultipleDefault() string {
 
 resource "vsphere_resource_pool" "parent_resource_pool" {
   name                    = "terraform-resource-pool-test-parent"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
+  parent_resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
 }
 
 resource "vsphere_folder" "parent_folder" {
   path          = "parent_folder"
   type          = "vm"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_vapp_container" "vapp_container" {
   name                    = "terraform-resource-pool-test"
-  parent_resource_pool_id = "${vsphere_resource_pool.parent_resource_pool.id}"
-  parent_folder_id        = "${vsphere_folder.parent_folder.id}"
+  parent_resource_pool_id = vsphere_resource_pool.parent_resource_pool.id
+  parent_folder_id        = vsphere_folder.parent_folder.id
 }
 
 resource "vsphere_vapp_entity" "vapp_entity1" {
-  target_id      = "${vsphere_virtual_machine.vm1.moid}"
-  container_id   = "${vsphere_vapp_container.vapp_container.id}"
+  target_id    = vsphere_virtual_machine.vm1.moid
+  container_id = vsphere_vapp_container.vapp_container.id
 }
 
 resource "vsphere_vapp_entity" "vapp_entity2" {
-  target_id      = "${vsphere_virtual_machine.vm2.moid}"
-  container_id   = "${vsphere_vapp_container.vapp_container.id}"
+  target_id    = vsphere_virtual_machine.vm2.moid
+  container_id = vsphere_vapp_container.vapp_container.id
 }
 
 resource "vsphere_virtual_machine" "vm1" {
   name             = "terraform-virtual-machine-test-1"
-  resource_pool_id = "${vsphere_vapp_container.vapp_container.id}"
+  resource_pool_id = vsphere_vapp_container.vapp_container.id
   datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus                   = 2
@@ -475,13 +473,13 @@ resource "vsphere_virtual_machine" "vm1" {
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 }
 
 resource "vsphere_virtual_machine" "vm2" {
   name             = "terraform-virtual-machine-test-2"
-  resource_pool_id = "${vsphere_vapp_container.vapp_container.id}"
+  resource_pool_id = vsphere_vapp_container.vapp_container.id
   datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus                   = 2
@@ -495,11 +493,10 @@ resource "vsphere_virtual_machine" "vm2" {
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 func testAccResourceVSphereVAppEntityConfigMultipleNonDefault() string {
@@ -508,46 +505,46 @@ func testAccResourceVSphereVAppEntityConfigMultipleNonDefault() string {
 
 resource "vsphere_resource_pool" "parent_resource_pool" {
   name                    = "terraform-resource-pool-test-parent"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
+  parent_resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
 }
 
 resource "vsphere_folder" "parent_folder" {
   path          = "parent_folder"
   type          = "vm"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_vapp_container" "vapp_container" {
   name                    = "terraform-resource-pool-test"
-  parent_resource_pool_id = "${vsphere_resource_pool.parent_resource_pool.id}"
-  parent_folder_id        = "${vsphere_folder.parent_folder.id}"
+  parent_resource_pool_id = vsphere_resource_pool.parent_resource_pool.id
+  parent_folder_id        = vsphere_folder.parent_folder.id
 }
 
 resource "vsphere_vapp_entity" "vapp_entity1" {
-  target_id      = "${vsphere_virtual_machine.vm1.moid}"
-  container_id   = "${vsphere_vapp_container.vapp_container.id}"
-	start_action   = "none"
-	start_delay    = 5
-	stop_action    = "guestShutdown"
-	stop_delay     = 5
-	start_order    = 2
-	wait_for_guest = true
+  target_id      = vsphere_virtual_machine.vm1.moid
+  container_id   = vsphere_vapp_container.vapp_container.id
+  start_action   = "none"
+  start_delay    = 5
+  stop_action    = "guestShutdown"
+  stop_delay     = 5
+  start_order    = 2
+  wait_for_guest = true
 }
 
 resource "vsphere_vapp_entity" "vapp_entity2" {
-  target_id      = "${vsphere_virtual_machine.vm2.moid}"
-  container_id   = "${vsphere_vapp_container.vapp_container.id}"
-	start_action   = "none"
-	start_delay    = 5
-	stop_action    = "guestShutdown"
-	stop_delay     = 5
-	start_order    = 1
-	wait_for_guest = true
+  target_id      = vsphere_virtual_machine.vm2.moid
+  container_id   = vsphere_vapp_container.vapp_container.id
+  start_action   = "none"
+  start_delay    = 5
+  stop_action    = "guestShutdown"
+  stop_delay     = 5
+  start_order    = 1
+  wait_for_guest = true
 }
 
 resource "vsphere_virtual_machine" "vm1" {
   name             = "terraform-virtual-machine-test-1"
-  resource_pool_id = "${vsphere_vapp_container.vapp_container.id}"
+  resource_pool_id = vsphere_vapp_container.vapp_container.id
   datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus                   = 2
@@ -561,13 +558,13 @@ resource "vsphere_virtual_machine" "vm1" {
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 }
 
 resource "vsphere_virtual_machine" "vm2" {
   name             = "terraform-virtual-machine-test-2"
-  resource_pool_id = "${vsphere_vapp_container.vapp_container.id}"
+  resource_pool_id = vsphere_vapp_container.vapp_container.id
   datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus                   = 2
@@ -581,10 +578,9 @@ resource "vsphere_virtual_machine" "vm2" {
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }

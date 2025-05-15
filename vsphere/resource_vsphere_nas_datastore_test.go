@@ -442,8 +442,8 @@ resource "vsphere_nas_datastore" "datastore" {
   host_system_ids = [data.vsphere_host.roothost1.id]
 
   type         = "NFS"
-  remote_hosts = ["${var.nfs_host}"]
-  remote_path  = "${var.nfs_path}"
+  remote_hosts = [var.nfs_host]
+  remote_path  = var.nfs_path
 }
 `, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 		testhelper.NfsPath2,
@@ -473,8 +473,8 @@ resource "vsphere_nas_datastore" "datastore" {
   host_system_ids = [data.vsphere_host.roothost1.id, data.vsphere_host.roothost2.id]
 
   type         = "NFS"
-  remote_hosts = ["${var.nfs_host}"]
-  remote_path  = "${var.nfs_path}"
+  remote_hosts = [var.nfs_host]
+  remote_path  = var.nfs_path
 }
 `, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 		testhelper.NfsPath2,
@@ -504,8 +504,8 @@ resource "vsphere_nas_datastore" "datastore" {
   host_system_ids = [data.vsphere_host.roothost1.id]
 
   type         = "NFS"
-  remote_hosts = ["${var.nfs_host}"]
-  remote_path  = "${var.nfs_path}"
+  remote_hosts = [var.nfs_host]
+  remote_path  = var.nfs_path
 }
 `, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), testhelper.NfsPath2,
 		testhelper.CombineConfigs(
@@ -545,8 +545,8 @@ resource "vsphere_nas_datastore" "datastore" {
   folder          = vsphere_folder.folder.path
 
   type         = "NFS"
-  remote_hosts = ["${var.nfs_host}"]
-  remote_path  = "${var.nfs_path}"
+  remote_hosts = [var.nfs_host]
+  remote_path  = var.nfs_path
 }
 `, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 		testhelper.NfsPath2,
@@ -582,7 +582,7 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_nas_datastore" "datastore" {
@@ -590,10 +590,10 @@ resource "vsphere_nas_datastore" "datastore" {
   host_system_ids = [data.vsphere_host.roothost1.id]
 
   type         = "NFS"
-  remote_hosts = ["${var.nfs_host}"]
-  remote_path  = "${var.nfs_path}"
+  remote_hosts = [var.nfs_host]
+  remote_path  = var.nfs_path
 
-  tags = ["${vsphere_tag.testacc-tag.id}"]
+  tags = [vsphere_tag.testacc-tag.id]
 }
 `, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 		testhelper.NfsPath2,
@@ -635,13 +635,13 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_tag" "testacc-tags-alt" {
-  count       = "${length(var.extra_tags)}"
-  name        = "${var.extra_tags[count.index]}"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  count       = length(var.extra_tags)
+  name        = var.extra_tags[count.index]
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_nas_datastore" "datastore" {
@@ -649,10 +649,10 @@ resource "vsphere_nas_datastore" "datastore" {
   host_system_ids = [data.vsphere_host.roothost1.id]
 
   type         = "NFS"
-  remote_hosts = ["${var.nfs_host}"]
-  remote_path  = "${var.nfs_path}"
+  remote_hosts = [var.nfs_host]
+  remote_path  = var.nfs_path
 
-  tags = "${vsphere_tag.testacc-tags-alt.*.id}"
+  tags = vsphere_tag.testacc-tags-alt.*.id
 }
 `, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 		testhelper.NfsPath2,
@@ -683,7 +683,7 @@ resource "vsphere_custom_attribute" "testacc-attribute" {
 
 locals {
   nas_attrs = {
-    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
+    vsphere_custom_attribute.testacc-attribute.id = "value"
   }
 }
 
@@ -692,10 +692,10 @@ resource "vsphere_nas_datastore" "datastore" {
   host_system_ids = [data.vsphere_host.roothost1.id]
 
   type         = "NFS"
-  remote_hosts = ["${var.nfs_host}"]
-  remote_path  = "${var.nfs_path}"
+  remote_hosts = [var.nfs_host]
+  remote_path  = var.nfs_path
 
-  custom_attributes = "${local.nas_attrs}"
+  custom_attributes = local.nas_attrs
 }
 `, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), testhelper.NfsPath2,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
@@ -729,8 +729,8 @@ resource "vsphere_custom_attribute" "testacc-attribute-2" {
 
 locals {
   nas_attrs = {
-    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
-    "${vsphere_custom_attribute.testacc-attribute-2.id}" = "value-2"
+    vsphere_custom_attribute.testacc-attribute.id   = "value"
+    vsphere_custom_attribute.testacc-attribute-2.id = "value-2"
   }
 }
 
@@ -739,10 +739,10 @@ resource "vsphere_nas_datastore" "datastore" {
   host_system_ids = [data.vsphere_host.roothost1.id]
 
   type         = "NFS"
-  remote_hosts = ["${var.nfs_host}"]
-  remote_path  = "${var.nfs_path}"
+  remote_hosts = [var.nfs_host]
+  remote_path  = var.nfs_path
 
-  custom_attributes = "${local.nas_attrs}"
+  custom_attributes = local.nas_attrs
 }
 `, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"), testhelper.NfsPath2,
 		testhelper.CombineConfigs(
@@ -773,17 +773,17 @@ variable "folder" {
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_nas_datastore" "datastore" {
-  name            = "%s"
-  host_system_ids = [data.vsphere_host.roothost1.id]
-  datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
+  name                 = "%s"
+  host_system_ids      = [data.vsphere_host.roothost1.id]
+  datastore_cluster_id = vsphere_datastore_cluster.datastore_cluster.id
 
   type         = "NFS"
-  remote_hosts = ["${var.nfs_host}"]
-  remote_path  = "${var.nfs_path}"
+  remote_hosts = [var.nfs_host]
+  remote_path  = var.nfs_path
 }
 `, os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 		testhelper.NfsPath2,

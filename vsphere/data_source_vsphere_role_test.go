@@ -76,15 +76,14 @@ func TestAccDataSourceVSphereRole_systemRoleData(t *testing.T) {
 func testAccDataSourceVSphereRoleConfig() string {
 	return fmt.Sprintf(`
 resource "vsphere_role" test-role {
-  name = "terraform-test-role1"
-  role_privileges = ["%s", "%s","%s","%s"]
+  name            = "terraform-test-role1"
+  role_privileges = ["%s", "%s", "%s", "%s"]
 }
 
 data "vsphere_role" "role1" {
   label = vsphere_role.test-role.label
 }
-`,
-		Privilege1,
+`, Privilege1,
 		Privilege2,
 		Privilege3,
 		Privilege4,

@@ -109,7 +109,7 @@ data "vsphere_datacenter" "dc" {
   name = "%s"
 }
 output "found_virtual_machines" {
-	value = "${length(data.vsphere_datacenter.dc.virtual_machines) >= 1 ? "true" : "false" }"
+  value = length(data.vsphere_datacenter.dc.virtual_machines) >= 1 ? "true" : "false"
 }
 `, os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)

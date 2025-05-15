@@ -648,15 +648,14 @@ func testAccResourceVSphereDistributedVirtualSwitchConfig() string {
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs1"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 
   host {
     host_system_id = data.vsphere_host.roothost2.id
-    devices = ["%s"]
+    devices        = ["%s"]
   }
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost2()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost2()),
 		testhelper.HostNic0,
 	)
 }
@@ -677,19 +676,18 @@ variable "dvs_version" {
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs1"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-  version       = "${var.dvs_version}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+  version       = var.dvs_version
 
   host {
-    host_system_id = "${data.vsphere_host.roothost1.id}"
-    devices = "${var.network_interfaces}"
+    host_system_id = data.vsphere_host.roothost1.id
+    devices        = var.network_interfaces
   }
 }
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootPortGroup1(),
-			testhelper.ConfigDataRootHost1()),
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootPortGroup1(),
+		testhelper.ConfigDataRootHost1()),
 		testhelper.HostNic0,
 		version,
 	)
@@ -707,25 +705,24 @@ variable "network_interfaces" {
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs1"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 
   host {
-    host_system_id = "${data.vsphere_host.roothost1.id}"
-    devices = "${var.network_interfaces}"
+    host_system_id = data.vsphere_host.roothost1.id
+    devices        = var.network_interfaces
   }
 
   host {
-    host_system_id = "${data.vsphere_host.roothost2.id}"
-    devices = "${var.network_interfaces}"
+    host_system_id = data.vsphere_host.roothost2.id
+    devices        = var.network_interfaces
   }
 }
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootPortGroup1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2(),
-		),
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootPortGroup1(),
+		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootHost2(),
+	),
 		testhelper.HostNic0,
 	)
 }
@@ -743,27 +740,26 @@ variable "network_interfaces" {
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs1"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 
   network_resource_control_enabled = true
   network_resource_control_version = "version3"
 
   host {
-    host_system_id = "${data.vsphere_host.roothost1.id}"
-    devices = "${var.network_interfaces}"
+    host_system_id = data.vsphere_host.roothost1.id
+    devices        = var.network_interfaces
   }
 
   host {
-    host_system_id = "${data.vsphere_host.roothost2.id}"
-    devices = "${var.network_interfaces}"
+    host_system_id = data.vsphere_host.roothost2.id
+    devices        = var.network_interfaces
   }
 }
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootPortGroup1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2()),
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootPortGroup1(),
+		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootHost2()),
 		testhelper.HostNic0,
 	)
 }
@@ -781,26 +777,25 @@ variable "network_interfaces" {
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs1"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 
   uplinks = var.network_interfaces
 
   host {
-    host_system_id = "${data.vsphere_host.roothost1.id}"
-    devices = "${var.network_interfaces}"
+    host_system_id = data.vsphere_host.roothost1.id
+    devices        = var.network_interfaces
   }
 
   host {
-    host_system_id = "${data.vsphere_host.roothost2.id}"
-    devices = "${var.network_interfaces}"
+    host_system_id = data.vsphere_host.roothost2.id
+    devices        = var.network_interfaces
   }
 }
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootPortGroup1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2()),
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootPortGroup1(),
+		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootHost2()),
 		testhelper.HostNic0,
 		testhelper.HostNic1,
 	)
@@ -813,33 +808,32 @@ func testAccResourceVSphereDistributedVirtualSwitchConfigStandbyLink() string {
 variable "network_interfaces" {
   default = [
     "%s",
-	"%s"
+    "%s"
   ]
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs1"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 
   uplinks         = var.network_interfaces
   active_uplinks  = [var.network_interfaces.0]
   standby_uplinks = [var.network_interfaces.1]
 
   host {
-    host_system_id = "${data.vsphere_host.roothost1.id}"
-    devices = "${var.network_interfaces}"
+    host_system_id = data.vsphere_host.roothost1.id
+    devices        = var.network_interfaces
   }
 
   host {
-    host_system_id = "${data.vsphere_host.roothost2.id}"
-    devices = "${var.network_interfaces}"
+    host_system_id = data.vsphere_host.roothost2.id
+    devices        = var.network_interfaces
   }
 }
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2()),
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootHost2()),
 		testhelper.HostNic0,
 		testhelper.HostNic1,
 	)
@@ -851,7 +845,7 @@ func testAccResourceVSphereDistributedVirtualSwitchConfigNoHosts() string {
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs1"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -865,13 +859,13 @@ func testAccResourceVSphereDistributedVirtualSwitchConfigInFolder() string {
 resource "vsphere_folder" "folder" {
   path          = "tf-network-folder"
   type          = "network"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs1"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-  folder        = "${vsphere_folder.folder.path}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+  folder        = vsphere_folder.folder.path
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -893,16 +887,15 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs1"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-  tags          = ["${vsphere_tag.testacc-tag.id}"]
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+  tags          = [vsphere_tag.testacc-tag.id]
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
@@ -928,19 +921,19 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_tag" "testacc-tags-alt" {
-  count       = "${length(var.extra_tags)}"
-  name        = "${var.extra_tags[count.index]}"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  count       = length(var.extra_tags)
+  name        = var.extra_tags[count.index]
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs1"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-  tags          = "${vsphere_tag.testacc-tags-alt.*.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+  tags          = vsphere_tag.testacc-tags-alt.*.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -953,7 +946,7 @@ func testAccResourceVSphereDistributedVirtualSwitchConfigNetflow() string {
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs1"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 
   ipv4_address                  = "10.0.0.100"
   netflow_enabled               = true
@@ -976,7 +969,7 @@ func testAccResourceVSphereDistributedVirtualSwitchConfigMultiVlanRange() string
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs1"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 
   vlan_range {
     min_vlan = 1000
@@ -1004,15 +997,15 @@ resource "vsphere_custom_attribute" "testacc-attribute" {
 
 locals {
   vs_attrs = {
-    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
+    vsphere_custom_attribute.testacc-attribute.id = "value"
   }
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs1"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 
-  custom_attributes = "${local.vs_attrs}"
+  custom_attributes = local.vs_attrs
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -1036,25 +1029,24 @@ resource "vsphere_custom_attribute" "testacc-attribute" {
 }
 
 resource "vsphere_custom_attribute" "testacc-attribute-alt" {
-  count               = "${length(var.custom_attrs)}"
-  name                = "${var.custom_attrs[count.index]}"
+  count               = length(var.custom_attrs)
+  name                = var.custom_attrs[count.index]
   managed_object_type = "VmwareDistributedVirtualSwitch"
 }
 
 locals {
   vs_attrs = {
-    "${vsphere_custom_attribute.testacc-attribute-alt.0.id}" = "value"
-    "${vsphere_custom_attribute.testacc-attribute-alt.1.id}" = "value-2"
+    vsphere_custom_attribute.testacc-attribute-alt.0.id = "value"
+    vsphere_custom_attribute.testacc-attribute-alt.1.id = "value-2"
   }
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs1"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 
-  custom_attributes = "${local.vs_attrs}"
+  custom_attributes = local.vs_attrs
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }

@@ -223,8 +223,8 @@ variable hosts {
 
 data "vsphere_host" "hosts" {
   count         = %d
-  name          = "${var.hosts[count.index]}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  name          = var.hosts[count.index]
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_compute_cluster_host_group" "cluster_host_group" {

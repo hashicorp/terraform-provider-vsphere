@@ -195,14 +195,13 @@ func testAccResourceVSphereDPMHostOverrideConfigDefaults() string {
 %s
 
 resource "vsphere_dpm_host_override" "dpm_host_override" {
-  compute_cluster_id   = "${data.vsphere_compute_cluster.rootcompute_cluster1.id}"
-  host_system_id       = "${data.vsphere_host.roothost1.id}"
+  compute_cluster_id = data.vsphere_compute_cluster.rootcompute_cluster1.id
+  host_system_id     = data.vsphere_host.roothost1.id
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootComputeCluster1(),
-		),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootComputeCluster1(),
+	),
 	)
 }
 
@@ -212,7 +211,7 @@ func testAccResourceVSphereDPMHostOverrideConfigOverrides() string {
 
 
 resource "vsphere_dpm_host_override" "dpm_host_override" {
-  compute_cluster_id   = "${data.vsphere_compute_cluster.rootcompute_cluster1.id}"
+  compute_cluster_id   = data.vsphere_compute_cluster.rootcompute_cluster1.id
   host_system_id       = data.vsphere_host.roothost1.id
   dpm_enabled          = true
   dpm_automation_level = "automated"

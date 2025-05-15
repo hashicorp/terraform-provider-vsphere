@@ -323,25 +323,25 @@ variable "nfs_path" {
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
   sdrs_enabled  = true
 }
 
 resource "vsphere_nas_datastore" "datastore" {
   name                 = "testacc-nas"
   host_system_ids      = [data.vsphere_host.roothost1.id]
-  datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
+  datastore_cluster_id = vsphere_datastore_cluster.datastore_cluster.id
 
   type         = "NFS"
-  remote_hosts = ["${var.nfs_host}"]
-  remote_path  = "${var.nfs_path}"
+  remote_hosts = [var.nfs_host]
+  remote_path  = var.nfs_path
 }
 
 resource "vsphere_virtual_machine" "vm" {
-  count                = "${var.vm_count}"
+  count                = var.vm_count
   name                 = "terraform-test-${count.index}"
-  resource_pool_id     = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
-  datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
+  resource_pool_id     = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+  datastore_cluster_id = vsphere_datastore_cluster.datastore_cluster.id
 
   num_cpus = 2
   memory   = 2048
@@ -350,7 +350,7 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
@@ -358,17 +358,16 @@ resource "vsphere_virtual_machine" "vm" {
     size  = 20
   }
 
-	depends_on = ["vsphere_nas_datastore.datastore"]
+  depends_on = ["vsphere_nas_datastore.datastore"]
 }
 
 resource "vsphere_datastore_cluster_vm_anti_affinity_rule" "cluster_vm_anti_affinity_rule" {
   name                 = "terraform-test-datastore-cluster-anti-affinity-rule"
-  datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
-  virtual_machine_ids  = "${vsphere_virtual_machine.vm.*.id}"
+  datastore_cluster_id = vsphere_datastore_cluster.datastore_cluster.id
+  virtual_machine_ids  = vsphere_virtual_machine.vm.*.id
   enabled              = %t
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigDataRootDS1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigDataRootVMNet()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1(), testhelper.ConfigDataRootDS1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigDataRootVMNet()),
 		count,
 		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 		testhelper.NfsPath2,

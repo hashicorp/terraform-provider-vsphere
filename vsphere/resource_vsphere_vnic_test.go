@@ -382,22 +382,22 @@ func testaccvspherevnicconfigHvs(netConfig string) string {
 	return fmt.Sprintf(`
 %s
 
-	data "vsphere_host" "h1" {
-	  name          = "%s"
-	  datacenter_id = data.vsphere_datacenter.rootdc1.id
-	}
+data "vsphere_host" "h1" {
+  name          = "%s"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
 
-	resource "vsphere_host_port_group" "p1" {
-	  name                     = "ko-pg"
-	  virtual_switch_name = "vSwitch0"
-	  host_system_id   = data.vsphere_host.h1.id
-	}
+resource "vsphere_host_port_group" "p1" {
+  name                = "ko-pg"
+  virtual_switch_name = "vSwitch0"
+  host_system_id      = data.vsphere_host.h1.id
+}
 
-	resource "vsphere_vnic" "v1" {
-	  host      = data.vsphere_host.h1.id
-	  portgroup = vsphere_host_port_group.p1.name
+resource "vsphere_vnic" "v1" {
+  host      = data.vsphere_host.h1.id
+  portgroup = vsphere_host_port_group.p1.name
 	  %s
-	}
+}
 	`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_ESXI3"),
 		netConfig)
@@ -407,27 +407,27 @@ func testaccvspherevnicconfigDvs(netConfig string) string {
 	return fmt.Sprintf(`
 %s
 
-	resource "vsphere_distributed_virtual_switch" "d1" {
-	  name          = "hashi-dc_DVPG0"
-	  datacenter_id = data.vsphere_datacenter.rootdc1.id
-	  host {
-		host_system_id = data.vsphere_host.roothost2.id
-		devices        = ["%s"]
-	  }
-	}
+resource "vsphere_distributed_virtual_switch" "d1" {
+  name          = "hashi-dc_DVPG0"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+  host {
+    host_system_id = data.vsphere_host.roothost2.id
+    devices        = ["%s"]
+  }
+}
 
-	resource "vsphere_distributed_port_group" "p1" {
-	  name                            = "ko-pg"
-	  vlan_id                         = 1234
-	  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.d1.id
-	}
+resource "vsphere_distributed_port_group" "p1" {
+  name                            = "ko-pg"
+  vlan_id                         = 1234
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.d1.id
+}
 
-	resource "vsphere_vnic" "v1" {
-	  host                    = data.vsphere_host.roothost2.id
-	  distributed_switch_port = vsphere_distributed_virtual_switch.d1.id
-	  distributed_port_group  = vsphere_distributed_port_group.p1.id
+resource "vsphere_vnic" "v1" {
+  host                    = data.vsphere_host.roothost2.id
+  distributed_switch_port = vsphere_distributed_virtual_switch.d1.id
+  distributed_port_group  = vsphere_distributed_port_group.p1.id
 	  %s
-	}
+}
 	`, testhelper.CombineConfigs(
 		testhelper.ConfigDataRootDC1(),
 		testhelper.ConfigDataRootHost2(),

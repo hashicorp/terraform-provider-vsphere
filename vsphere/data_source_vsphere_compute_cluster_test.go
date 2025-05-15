@@ -70,12 +70,12 @@ func testAccDataSourceVSphereComputeClusterConfigBasic() string {
 
 resource "vsphere_compute_cluster" "compute_cluster" {
   name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 data "vsphere_compute_cluster" "compute_cluster_data" {
-  name          = "${vsphere_compute_cluster.compute_cluster.name}"
-  datacenter_id = "${vsphere_compute_cluster.compute_cluster.datacenter_id}"
+  name          = vsphere_compute_cluster.compute_cluster.name
+  datacenter_id = vsphere_compute_cluster.compute_cluster.datacenter_id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -88,13 +88,12 @@ func testAccDataSourceVSphereComputeClusterConfigAbsolutePath() string {
 
 resource "vsphere_compute_cluster" "compute_cluster" {
   name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 data "vsphere_compute_cluster" "compute_cluster_data" {
-  name          = "/${data.vsphere_datacenter.rootdc1.name}/host/${vsphere_compute_cluster.compute_cluster.name}"
+  name = "/${data.vsphere_datacenter.rootdc1.name}/host/${vsphere_compute_cluster.compute_cluster.name}"
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }

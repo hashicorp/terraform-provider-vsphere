@@ -60,27 +60,26 @@ func testAccResourceVsphereEntityPermissionsConfigBasic() string {
 	return fmt.Sprintf(`
 %s
 
-	data "vsphere_virtual_machine" "vm" {
-		datacenter_id = data.vsphere_datacenter.rootdc1.id
-        name          = "%s"
-	}
+data "vsphere_virtual_machine" "vm" {
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+  name          = "%s"
+}
 
-	data "vsphere_role" "role1" {
-	  label = "Administrator"
-	}
+data "vsphere_role" "role1" {
+  label = "Administrator"
+}
 
-   resource vsphere_entity_permissions "%s" {
-	   entity_id = data.vsphere_virtual_machine.vm.id
-	   entity_type = "VirtualMachine"
-	   permissions {
-		 user_or_group = "%s"
-		 propagate = true
-		 is_group = true
-		 role_id = data.vsphere_role.role1.id
-	   }
-   }
-`,
-		testhelper.ConfigDataRootDC1(),
+resource vsphere_entity_permissions "%s" {
+  entity_id   = data.vsphere_virtual_machine.vm.id
+  entity_type = "VirtualMachine"
+  permissions {
+    user_or_group = "%s"
+    propagate     = true
+    is_group      = true
+    role_id       = data.vsphere_role.role1.id
+  }
+}
+`, testhelper.ConfigDataRootDC1(),
 		os.Getenv("TF_VAR_VSPHERE_VM_V1_PATH"),
 		EntityPermissionResource,
 		"root",

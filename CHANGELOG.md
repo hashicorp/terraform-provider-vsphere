@@ -1226,11 +1226,11 @@ To transition to the new syntax, any `disk` sub-resource in a `vsphere_virtual_m
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
-  ...
+  # ... other configuration ...
 
   disk {
     name = "terraform-test.vmdk"
-    size = "${data.vsphere_virtual_machine.template.disk_sizes[0]}"
+    size = data.vsphere_virtual_machine.template.disk_sizes[0]
   }
 }
 ```
@@ -1239,11 +1239,11 @@ Should be changed to:
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
-  ...
+  # ... other configuration ...
 
   disk {
     name = "terraform-test.vmdk"
-    size = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
   }
 }
 ```
@@ -1252,13 +1252,11 @@ If you are using `linked_clone`, add the new settings for `eagerly_scrub` and `t
 
 ```hcl
 resource "vsphere_virtual_machine" "vm" {
-  ...
+  # ... other configuration ...
 
   disk {
     name             = "terraform-test.vmdk"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 }
 ```

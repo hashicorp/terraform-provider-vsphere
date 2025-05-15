@@ -219,7 +219,7 @@ resource "vsphere_virtual_disk" "foo" {
   vmdk_path    = "tfTestDisk-${var.rstring}.vmdk"
   adapter_type = "lsiLogic"
   type         = "thin"
-  datacenter   = "${data.vsphere_datacenter.rootdc1.name}"
+  datacenter   = data.vsphere_datacenter.rootdc1.name
   datastore    = vsphere_nas_datastore.ds1.name
 }
 `,
@@ -241,7 +241,7 @@ resource "vsphere_virtual_disk" "foo" {
   vmdk_path    = "tfTestDisk-${var.rstring}.vmdk"
   adapter_type = "lsiLogic"
   type         = "thin"
-  datacenter   = "${data.vsphere_datacenter.rootdc1.name}"
+  datacenter   = data.vsphere_datacenter.rootdc1.name
   datastore    = vsphere_nas_datastore.ds1.name
 }
 `,
@@ -260,7 +260,7 @@ variable "rstring" {
 
 data "vsphere_datastore" "ds" {
   name          = vsphere_nas_datastore.ds1.name
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_virtual_disk" "foo" {
@@ -269,8 +269,8 @@ resource "vsphere_virtual_disk" "foo" {
   vmdk_path    = "tfTestDisk-${var.rstring}-${count.index}.vmdk"
   adapter_type = "lsiLogic"
   type         = "thin"
-  datacenter   = "${data.vsphere_datacenter.rootdc1.name}"
-  datastore    = "${data.vsphere_datastore.ds.name}"
+  datacenter   = data.vsphere_datacenter.rootdc1.name
+  datastore    = data.vsphere_datastore.ds.name
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
@@ -288,7 +288,7 @@ variable "rstring" {
 
 data "vsphere_datastore" "ds" {
   name          = vsphere_nas_datastore.ds1.name
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_virtual_disk" "foo" {
@@ -297,8 +297,8 @@ resource "vsphere_virtual_disk" "foo" {
   vmdk_path          = "tfTestParent/tfTestDisk-${var.rstring}-${count.index}.vmdk"
   adapter_type       = "lsiLogic"
   type               = "thin"
-  datacenter         = "${data.vsphere_datacenter.rootdc1.name}"
-  datastore          = "${data.vsphere_datastore.ds.name}"
+  datacenter         = data.vsphere_datacenter.rootdc1.name
+  datastore          = data.vsphere_datastore.ds.name
   create_directories = true
 }
 `,
@@ -317,7 +317,7 @@ variable "rstring" {
 
 data "vsphere_datastore" "ds" {
   name          = vsphere_nas_datastore.ds1.name
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_virtual_disk" "foo" {
@@ -325,8 +325,8 @@ resource "vsphere_virtual_disk" "foo" {
   vmdk_path          = "tfTestParent-${var.rstring}/tfTestDisk-${var.rstring}.vmdk"
   adapter_type       = "lsiLogic"
   type               = "thin"
-  datacenter         = "${data.vsphere_datacenter.rootdc1.name}"
-  datastore          = "${data.vsphere_datastore.ds.name}"
+  datacenter         = data.vsphere_datacenter.rootdc1.name
+  datastore          = data.vsphere_datastore.ds.name
   create_directories = true
 }
 `,

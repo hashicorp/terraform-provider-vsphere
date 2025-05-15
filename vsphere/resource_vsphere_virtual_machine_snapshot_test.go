@@ -165,53 +165,51 @@ variable "snapshot_enabled" {
 }
 
 data "vsphere_resource_pool" "pool" {
-  name          = "${var.resource_pool}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  name          = var.resource_pool
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 data "vsphere_virtual_machine" "template" {
-  name          = "${var.template}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  name          = var.template
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
+  resource_pool_id = vsphere_resource_pool.pool1.id
   datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus = 2
   memory   = 1024
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id   = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label = "disk0"
-    size  = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    size  = data.vsphere_virtual_machine.template.disks.0.size
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    template_uuid = data.vsphere_virtual_machine.template.id
     linked_clone  = true
 
-
-
       network_interface {
-        ipv4_address = "${var.ipv4_address}"
-        ipv4_netmask = "${var.ipv4_netmask}"
+        ipv4_address = var.ipv4_address
+        ipv4_netmask = var.ipv4_netmask
       }
 
-      ipv4_gateway = "${var.ipv4_gateway}"
+      ipv4_gateway = var.ipv4_gateway
     }
   }
 }
 
 resource "vsphere_virtual_machine_snapshot" "snapshot" {
-  count                = "${var.snapshot_enabled == "true" ? 1 : 0 }"
-  virtual_machine_uuid = "${vsphere_virtual_machine.vm.uuid}"
+  count                = var.snapshot_enabled == "true" ? 1 : 0 
+  virtual_machine_uuid = vsphere_virtual_machine.vm.uuid
   snapshot_name        = "terraform-test-snapshot"
   description          = "Managed by Terraform"
   memory               = true

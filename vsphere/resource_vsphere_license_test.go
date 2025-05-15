@@ -21,7 +21,7 @@ import (
 
 const testAccVSphereLicenseInvalidConfig = `
 resource "vsphere_license" "foo" {
- license_key = "HN422-47193-58V7M-03086-0JAN2"
+  license_key = "HN422-47193-58V7M-03086-0JAN2"
 }
 `
 
@@ -116,10 +116,10 @@ func testAccVspherePreLicenseESXiServerIsNotSetCheck(t *testing.T) {
 func testAccVSphereLicenseWithLabelConfig() string {
 	return fmt.Sprintf(`
 resource "vsphere_license" "foo" {
- license_key = "%s"
+  license_key = "%s"
   labels = {
-   VpxClientLicenseLabel = "Hello World"
-   TestTitle = "fooBar"
+    VpxClientLicenseLabel = "Hello World"
+    TestTitle             = "fooBar"
   }
 }
 `, os.Getenv("TF_VAR_VSPHERE_LICENSE"))
@@ -128,7 +128,7 @@ resource "vsphere_license" "foo" {
 func testAccVSphereLicenseBasicConfig() string {
 	return fmt.Sprintf(`
 resource "vsphere_license" "foo" {
- license_key = "%s"
+  license_key = "%s"
 }
 `, os.Getenv("TF_VAR_VSPHERE_LICENSE"))
 }

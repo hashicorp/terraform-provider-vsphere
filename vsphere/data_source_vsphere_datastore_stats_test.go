@@ -55,33 +55,33 @@ func testAccDataSourceVSphereDatastoreStatsPreCheck(t *testing.T) {
 func testAccDataSourceVSphereDatastoreStatsConfig() string {
 	return fmt.Sprintf(`
 variable "datacenter_id" {
-	default = "%s"
+  default = "%s"
 }
 
 data "vsphere_datastore_stats" "datastore_stats" {
-  datacenter_id = "${var.datacenter_id}"
+  datacenter_id = var.datacenter_id
 }
 
 output "found_free_space" {
-	value = "${length(data.vsphere_datastore_stats.datastore_stats.free_space) >= 1 ? "true" : "false" }"
+  value = length(data.vsphere_datastore_stats.datastore_stats.free_space) >= 1 ? "true" : "false"
 }
 
 output "found_capacity" {
-	value = "${length(data.vsphere_datastore_stats.datastore_stats.capacity) >= 1 ? "true" : "false" }"
+  value = length(data.vsphere_datastore_stats.datastore_stats.capacity) >= 1 ? "true" : "false"
 }
 
 output "free_values_exist" {
-	value = alltrue([
-		for free in values(data.vsphere_datastore_stats.datastore_stats.free_space):
-		free >= 1
-	])
+  value = alltrue([
+    for free in values(data.vsphere_datastore_stats.datastore_stats.free_space) :
+    free >= 1
+  ])
 }
 
 output "capacity_values_exist" {
-	value = alltrue([
-		for free in values(data.vsphere_datastore_stats.datastore_stats.capacity):
-		free >= 1
-	])
+  value = alltrue([
+    for free in values(data.vsphere_datastore_stats.datastore_stats.capacity) :
+    free >= 1
+  ])
 }
 `, os.Getenv("TF_VAR_VSPHERE_DATACENTER"))
 }
