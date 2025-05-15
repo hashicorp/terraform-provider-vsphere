@@ -31,7 +31,9 @@ var fallbackNtpServers = []string{
 }
 
 func TestAccResourceVSphereHost_basic(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -80,7 +82,9 @@ func TestAccResourceVSphereHost_rootFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereHost_connection(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -109,7 +113,9 @@ func TestAccResourceVSphereHost_connection(t *testing.T) {
 }
 
 func TestAccResourceVSphereHost_maintenance(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -138,7 +144,9 @@ func TestAccResourceVSphereHost_maintenance(t *testing.T) {
 }
 
 func TestAccResourceVSphereHost_lockdown(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -174,7 +182,9 @@ func TestAccResourceVSphereHost_lockdown(t *testing.T) {
 }
 
 func TestAccResourceVSphereHost_lockdown_invalid(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -193,7 +203,9 @@ func TestAccResourceVSphereHost_lockdown_invalid(t *testing.T) {
 }
 
 func TestAccResourceVSphereHost_emptyLicense(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -390,7 +402,9 @@ func checkHostLockdown(client *govmomi.Client, hostID, lockdownMode string) (boo
 }
 
 func TestAccResourceVSphereHostNtpService(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	configs := []NtpdServiceConfig{
 		{Enabled: true, Policy: "on"},
 		{Enabled: true, Policy: "off"},
@@ -402,7 +416,9 @@ func TestAccResourceVSphereHostNtpService(t *testing.T) {
 
 	for _, config := range configs {
 		t.Run(fmt.Sprintf("Enabled=%t,Policy=%s", config.Enabled, config.Policy), func(t *testing.T) {
-			t.Skip()
+			if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+				t.Skip()
+			}
 			resource.Test(t, resource.TestCase{
 				PreCheck:     func() { testAccPreCheck(t) },
 				Providers:    testAccProviders,
@@ -445,7 +461,9 @@ func testAccCheckVSphereHostNTPServiceState(resourceName string, config NtpdServ
 }
 
 func TestAccResourceVSphereHostNTPServers(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	ntpServers := os.Getenv("NTP_SERVERS")
 	if ntpServers == "" {
 		t.Log("NTP_SERVERS environment variable is not set, using fallback value")

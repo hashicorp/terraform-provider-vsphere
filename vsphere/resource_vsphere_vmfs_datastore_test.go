@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -58,7 +59,9 @@ func TestAccResourceVSphereVmfsDatastore_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereVmfsDatastore_multiDisk(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -79,7 +82,9 @@ func TestAccResourceVSphereVmfsDatastore_multiDisk(t *testing.T) {
 }
 
 func TestAccResourceVSphereVmfsDatastore_discoveryViaDatasource(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -100,7 +105,9 @@ func TestAccResourceVSphereVmfsDatastore_discoveryViaDatasource(t *testing.T) {
 }
 
 func TestAccResourceVSphereVmfsDatastore_addDisksThroughUpdate(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -127,7 +134,9 @@ func TestAccResourceVSphereVmfsDatastore_addDisksThroughUpdate(t *testing.T) {
 }
 
 func TestAccResourceVSphereVmfsDatastore_renameDatastore(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -155,7 +164,9 @@ func TestAccResourceVSphereVmfsDatastore_renameDatastore(t *testing.T) {
 }
 
 func TestAccResourceVSphereVmfsDatastore_withFolder(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -183,7 +194,9 @@ func TestAccResourceVSphereVmfsDatastore_withFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereVmfsDatastore_moveToFolderAfter(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -212,7 +225,9 @@ func TestAccResourceVSphereVmfsDatastore_moveToFolderAfter(t *testing.T) {
 }
 
 func TestAccResourceVSphereVmfsDatastore_withDatastoreCluster(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -235,7 +250,9 @@ func TestAccResourceVSphereVmfsDatastore_withDatastoreCluster(t *testing.T) {
 }
 
 func TestAccResourceVSphereVmfsDatastore_moveToDatastoreClusterAfter(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -263,7 +280,9 @@ func TestAccResourceVSphereVmfsDatastore_moveToDatastoreClusterAfter(t *testing.
 }
 
 func TestAccResourceVSphereVmfsDatastore_singleTag(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -285,7 +304,9 @@ func TestAccResourceVSphereVmfsDatastore_singleTag(t *testing.T) {
 }
 
 func TestAccResourceVSphereVmfsDatastore_modifyTags(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -314,7 +335,9 @@ func TestAccResourceVSphereVmfsDatastore_modifyTags(t *testing.T) {
 }
 
 func TestAccResourceVSphereVmfsDatastore_badDiskEntry(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -338,7 +361,9 @@ func TestAccResourceVSphereVmfsDatastore_badDiskEntry(t *testing.T) {
 }
 
 func TestAccResourceVSphereVmfsDatastore_duplicateDiskEntry(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -362,7 +387,9 @@ func TestAccResourceVSphereVmfsDatastore_duplicateDiskEntry(t *testing.T) {
 }
 
 func TestAccResourceVSphereVmfsDatastore_singleCustomAttribute(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -384,7 +411,9 @@ func TestAccResourceVSphereVmfsDatastore_singleCustomAttribute(t *testing.T) {
 }
 
 func TestAccResourceVSphereVmfsDatastore_multiCustomAttribute(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

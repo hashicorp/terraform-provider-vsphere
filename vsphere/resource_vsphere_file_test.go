@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -18,7 +19,9 @@ import (
 
 // TestAccResourceVSphereFile_basic verifies the basic functionality of the resource.
 func TestAccResourceVSphereFile_basic(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	testFileData := []byte("test file data")
 	testFile := "/tmp/tf_test.txt"
 	err := os.WriteFile(testFile, testFileData, 0600)
@@ -65,7 +68,9 @@ func TestAccResourceVSphereFile_basic(t *testing.T) {
 // TestAccResourceVSphereFile_uploadWithCreateDirectories verifies uploading files with nested directories.
 // creation.
 func TestAccResourceVSphereFile_uploadWithCreateDirectories(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	testFileData := []byte("test file data")
 	testFile := "/tmp/tf_test.txt"
 	err := os.WriteFile(testFile, testFileData, 0600)
@@ -132,7 +137,9 @@ func TestAccResourceVSphereFile_uploadWithCreateDirectories(t *testing.T) {
 
 // TestAccResourceVSphereFile_basicUploadAndCopy verifies uploading and copying files.
 func TestAccResourceVSphereFile_basicUploadAndCopy(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	testFileData := []byte("test file data")
 	sourceFile := "/tmp/tf_test.txt"
 	uploadResourceName := "myfileupload"
@@ -190,7 +197,9 @@ func TestAccResourceVSphereFile_basicUploadAndCopy(t *testing.T) {
 
 // TestAccResourceVSphereFile_renamePostCreation verifies the renaming of a resource during creation and update phases.
 func TestAccResourceVSphereFile_renamePostCreation(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	testFileData := []byte("test file data")
 	testFile := "/tmp/tf_test.txt"
 	err := os.WriteFile(testFile, testFileData, 0600)
@@ -253,7 +262,9 @@ func TestAccResourceVSphereFile_renamePostCreation(t *testing.T) {
 
 // TestAccResourceVSphereFile_uploadAndCopyAndUpdate verifies uploading, copying, and updating files.
 func TestAccResourceVSphereFile_uploadAndCopyAndUpdate(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	testFileData := []byte("test file data")
 	sourceFile := "/tmp/tf_test.txt"
 	uploadResourceName := "myfileupload"

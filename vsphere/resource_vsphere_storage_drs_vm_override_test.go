@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -22,7 +23,9 @@ import (
 )
 
 func TestAccResourceVSphereStorageDrsVMOverride_basic(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -74,7 +77,9 @@ func TestAccResourceVSphereStorageDrsVMOverride_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereStorageDrsVMOverride_overrides(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -96,7 +101,9 @@ func TestAccResourceVSphereStorageDrsVMOverride_overrides(t *testing.T) {
 }
 
 func TestAccResourceVSphereStorageDrsVMOverride_update(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

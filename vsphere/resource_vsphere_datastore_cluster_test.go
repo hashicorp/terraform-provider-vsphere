@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -27,7 +28,9 @@ const (
 )
 
 func TestAccResourceVSphereDatastoreCluster_basic(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -67,7 +70,9 @@ func TestAccResourceVSphereDatastoreCluster_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_sdrsEnabled(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -89,7 +94,9 @@ func TestAccResourceVSphereDatastoreCluster_sdrsEnabled(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_rename(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -118,7 +125,9 @@ func TestAccResourceVSphereDatastoreCluster_rename(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_inFolder(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -140,7 +149,9 @@ func TestAccResourceVSphereDatastoreCluster_inFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_moveToFolder(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -169,7 +180,9 @@ func TestAccResourceVSphereDatastoreCluster_moveToFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_sdrsOverrides(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -193,7 +206,9 @@ func TestAccResourceVSphereDatastoreCluster_sdrsOverrides(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_miscTweaks(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -221,7 +236,9 @@ func TestAccResourceVSphereDatastoreCluster_miscTweaks(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_reservableIops(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -258,7 +275,9 @@ func TestAccResourceVSphereDatastoreCluster_reservableIops(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_freeSpace(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -295,7 +314,9 @@ func TestAccResourceVSphereDatastoreCluster_freeSpace(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_singleTag(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -317,7 +338,9 @@ func TestAccResourceVSphereDatastoreCluster_singleTag(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_multipleTags(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -339,7 +362,9 @@ func TestAccResourceVSphereDatastoreCluster_multipleTags(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_switchTags(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -368,7 +393,9 @@ func TestAccResourceVSphereDatastoreCluster_switchTags(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_singleCustomAttribute(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -390,7 +417,9 @@ func TestAccResourceVSphereDatastoreCluster_singleCustomAttribute(t *testing.T) 
 }
 
 func TestAccResourceVSphereDatastoreCluster_multipleCustomAttribute(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -412,7 +441,9 @@ func TestAccResourceVSphereDatastoreCluster_multipleCustomAttribute(t *testing.T
 }
 
 func TestAccResourceVSphereDatastoreCluster_switchCustomAttribute(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

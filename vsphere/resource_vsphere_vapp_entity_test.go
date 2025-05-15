@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -17,7 +18,9 @@ import (
 )
 
 func TestAccResourceVSphereVAppEntity_basic(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -49,7 +52,9 @@ func TestAccResourceVSphereVAppEntity_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereVAppEntity_nonDefault(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -76,7 +81,9 @@ func TestAccResourceVSphereVAppEntity_nonDefault(t *testing.T) {
 }
 
 func TestAccResourceVSphereVAppEntity_update(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -115,7 +122,9 @@ func TestAccResourceVSphereVAppEntity_update(t *testing.T) {
 }
 
 func TestAccResourceVSphereVAppEntity_multi(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -152,7 +161,9 @@ func TestAccResourceVSphereVAppEntity_multi(t *testing.T) {
 }
 
 func TestAccResourceVSphereVAppEntity_multiUpdate(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -207,7 +218,9 @@ func TestAccResourceVSphereVAppEntity_multiUpdate(t *testing.T) {
 }
 
 func testAccResourceVSphereVAppEntityPreCheck(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_vapp_entity acceptance tests")
 	}

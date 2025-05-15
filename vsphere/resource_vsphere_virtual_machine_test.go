@@ -81,7 +81,9 @@ func TestAccResourceVSphereVirtualMachine_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_hardwareVersionBare(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -103,7 +105,9 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionBare(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_hardwareVersionUpgrade(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -132,7 +136,9 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionUpgrade(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_hardwareVersionInvalidVersion(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -155,7 +161,9 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionInvalidVersion(t *testi
 }
 
 func TestAccResourceVSphereVirtualMachine_hardwareVersionDowngrade(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -181,7 +189,9 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionDowngrade(t *testing.T)
 }
 
 func TestAccResourceVSphereVirtualMachine_hardwareVersionClone(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -203,7 +213,9 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionClone(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachineContentLibrary_basic(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -225,7 +237,9 @@ func TestAccResourceVSphereVirtualMachineContentLibrary_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_ignoreValidationOnComputedValue(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -245,7 +259,9 @@ func TestAccResourceVSphereVirtualMachine_ignoreValidationOnComputedValue(t *tes
 }
 
 func TestAccResourceVSphereVirtualMachine_highLatencySensitivity(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -267,7 +283,9 @@ func TestAccResourceVSphereVirtualMachine_highLatencySensitivity(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_ESXiOnly(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -289,7 +307,9 @@ func TestAccResourceVSphereVirtualMachine_ESXiOnly(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_shutdownOK(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	var state *terraform.State
 
 	resource.Test(t, resource.TestCase{
@@ -322,7 +342,9 @@ func TestAccResourceVSphereVirtualMachine_shutdownOK(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_reCreateOnDeletion(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	var state *terraform.State
 
 	resource.Test(t, resource.TestCase{
@@ -361,7 +383,9 @@ func TestAccResourceVSphereVirtualMachine_reCreateOnDeletion(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_multiDevice(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -383,7 +407,9 @@ func TestAccResourceVSphereVirtualMachine_multiDevice(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_addDevices(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -411,7 +437,9 @@ func TestAccResourceVSphereVirtualMachine_addDevices(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_removeMiddleDevices(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	var state *terraform.State
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -452,7 +480,9 @@ func TestAccResourceVSphereVirtualMachine_removeMiddleDevices(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_removeMiddleDevicesChangeDiskUnit(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -481,7 +511,9 @@ func TestAccResourceVSphereVirtualMachine_removeMiddleDevicesChangeDiskUnit(t *t
 }
 
 func TestAccResourceVSphereVirtualMachine_highDiskUnitNumbers(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -508,7 +540,9 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitNumbers(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_highDiskUnitInsufficientBus(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -527,7 +561,9 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitInsufficientBus(t *testing
 }
 
 func TestAccResourceVSphereVirtualMachine_highDiskUnitsToRegularSingleController(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -560,7 +596,9 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitsToRegularSingleController
 }
 
 func TestAccResourceVSphereVirtualMachine_scsiBusSharing(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -582,7 +620,9 @@ func TestAccResourceVSphereVirtualMachine_scsiBusSharing(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_scsiBusSharingUpdate(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -611,7 +651,9 @@ func TestAccResourceVSphereVirtualMachine_scsiBusSharingUpdate(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_disksKeepOnRemove(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	var disks []map[string]string
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -641,7 +683,9 @@ func TestAccResourceVSphereVirtualMachine_disksKeepOnRemove(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cdromClientMapping(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -663,7 +707,9 @@ func TestAccResourceVSphereVirtualMachine_cdromClientMapping(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppIsoBasic(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -685,7 +731,9 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoBasic(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppIsoNoVApp(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -709,7 +757,9 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoNoVApp(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppIsoNoCdrom(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -732,7 +782,9 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoNoCdrom(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppIsoConfigIsoIgnored(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -756,7 +808,9 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoConfigIsoIgnored(t *testing.T) 
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppIsoChangeCdromBacking(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	var state *terraform.State
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -786,7 +840,9 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoChangeCdromBacking(t *testing.T
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppIsoPoweredOffCdromRead(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	var state *terraform.State
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -820,7 +876,9 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoPoweredOffCdromRead(t *testing.
 }
 
 func TestAccResourceVSphereVirtualMachine_vvtdAndVbs(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -840,7 +898,9 @@ func TestAccResourceVSphereVirtualMachine_vvtdAndVbs(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cdromNoParameters(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -862,7 +922,9 @@ func TestAccResourceVSphereVirtualMachine_cdromNoParameters(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cdromIsoBacking(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -882,7 +944,9 @@ func TestAccResourceVSphereVirtualMachine_cdromIsoBacking(t *testing.T) {
 	})
 }
 func TestAccResourceVSphereVirtualMachine_cdromConflictingParameters(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -901,7 +965,9 @@ func TestAccResourceVSphereVirtualMachine_cdromConflictingParameters(t *testing.
 }
 
 func TestAccResourceVSphereVirtualMachine_maximumNumberOfNICs(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -923,7 +989,9 @@ func TestAccResourceVSphereVirtualMachine_maximumNumberOfNICs(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_upgradeCPUAndRam(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -955,7 +1023,9 @@ func TestAccResourceVSphereVirtualMachine_upgradeCPUAndRam(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_modifyAnnotation(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -984,7 +1054,9 @@ func TestAccResourceVSphereVirtualMachine_modifyAnnotation(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_growDisk(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1013,7 +1085,9 @@ func TestAccResourceVSphereVirtualMachine_growDisk(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_swapSCSIBus(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1042,7 +1116,9 @@ func TestAccResourceVSphereVirtualMachine_swapSCSIBus(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_extraConfig(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1072,7 +1148,9 @@ func TestAccResourceVSphereVirtualMachine_extraConfig(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_extraConfigSwapKeys(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1102,7 +1180,9 @@ func TestAccResourceVSphereVirtualMachine_extraConfigSwapKeys(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_attachExistingVmdk(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1124,7 +1204,9 @@ func TestAccResourceVSphereVirtualMachine_attachExistingVmdk(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_attachExistingVmdkTaint(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1154,7 +1236,9 @@ func TestAccResourceVSphereVirtualMachine_attachExistingVmdkTaint(t *testing.T) 
 }
 
 func TestAccResourceVSphereVirtualMachine_resourcePoolMove(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1183,7 +1267,9 @@ func TestAccResourceVSphereVirtualMachine_resourcePoolMove(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppContainerAndFolder(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1202,7 +1288,9 @@ func TestAccResourceVSphereVirtualMachine_vAppContainerAndFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppContainerMove(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1238,7 +1326,9 @@ func TestAccResourceVSphereVirtualMachine_vAppContainerMove(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_inFolder(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1260,7 +1350,9 @@ func TestAccResourceVSphereVirtualMachine_inFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_moveToFolder(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1288,7 +1380,9 @@ func TestAccResourceVSphereVirtualMachine_moveToFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_staticMAC(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1310,7 +1404,9 @@ func TestAccResourceVSphereVirtualMachine_staticMAC(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_singleTag(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1332,7 +1428,9 @@ func TestAccResourceVSphereVirtualMachine_singleTag(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_multipleTags(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1354,7 +1452,9 @@ func TestAccResourceVSphereVirtualMachine_multipleTags(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_switchTags(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1383,7 +1483,9 @@ func TestAccResourceVSphereVirtualMachine_switchTags(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_renamedDiskInPlaceOfExisting(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	var state *terraform.State
 
 	resource.Test(t, resource.TestCase{
@@ -1436,7 +1538,9 @@ func TestAccResourceVSphereVirtualMachine_renamedDiskInPlaceOfExisting(t *testin
 }
 
 func TestAccResourceVSphereVirtualMachine_blockComputedDiskName(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1461,7 +1565,9 @@ func TestAccResourceVSphereVirtualMachine_blockComputedDiskName(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_blockVAppSettingsOnNonClones(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1480,7 +1586,9 @@ func TestAccResourceVSphereVirtualMachine_blockVAppSettingsOnNonClones(t *testin
 }
 
 func TestAccResourceVSphereVirtualMachine_blockVAppSettingsOnNonClonesAfterCreation(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1511,7 +1619,9 @@ func TestAccResourceVSphereVirtualMachine_blockVAppSettingsOnNonClonesAfterCreat
 }
 
 func TestAccResourceVSphereVirtualMachine_blockDiskLabelStartingWithOrphanedPrefix(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1531,7 +1641,9 @@ func TestAccResourceVSphereVirtualMachine_blockDiskLabelStartingWithOrphanedPref
 }
 
 func TestAccResourceVSphereVirtualMachine_createIntoEmptyClusterNoEnvironmentBrowser(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1550,7 +1662,9 @@ func TestAccResourceVSphereVirtualMachine_createIntoEmptyClusterNoEnvironmentBro
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneFromTemplate(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1571,7 +1685,9 @@ func TestAccResourceVSphereVirtualMachine_cloneFromTemplate(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_clonePoweredOn(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1592,7 +1708,9 @@ func TestAccResourceVSphereVirtualMachine_clonePoweredOn(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneCustomizeWithNewResourcePool(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1613,7 +1731,9 @@ func TestAccResourceVSphereVirtualMachine_cloneCustomizeWithNewResourcePool(t *t
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneCustomizeForceNewWithDatastore(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	var state *terraform.State
 
 	resource.Test(t, resource.TestCase{
@@ -1665,7 +1785,9 @@ func TestAccResourceVSphereVirtualMachine_cloneCustomizeForceNewWithDatastore(t 
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneModifyDiskAndSCSITypeAtSameTime(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	var state *terraform.State
 
 	resource.Test(t, resource.TestCase{
@@ -1704,10 +1826,14 @@ func TestAccResourceVSphereVirtualMachine_cloneModifyDiskAndSCSITypeAtSameTime(t
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneMultiNICWithSameGateway(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	// This test is intentionally disabled by default.
 	// Requires a Windows virtual machine template to run this test.
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -1729,7 +1855,9 @@ func TestAccResourceVSphereVirtualMachine_cloneMultiNICWithSameGateway(t *testin
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneMultiNICFromSingleNICTemplate(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1750,7 +1878,9 @@ func TestAccResourceVSphereVirtualMachine_cloneMultiNICFromSingleNICTemplate(t *
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneMultiNICSRIOVFromVMXNET3Template(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1771,7 +1901,9 @@ func TestAccResourceVSphereVirtualMachine_cloneMultiNICSRIOVFromVMXNET3Template(
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneWithDifferentTimezone(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1792,7 +1924,9 @@ func TestAccResourceVSphereVirtualMachine_cloneWithDifferentTimezone(t *testing.
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneBlockESXi(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1817,7 +1951,9 @@ func TestAccResourceVSphereVirtualMachine_cloneBlockESXi(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneWithBadTimezone(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1860,7 +1996,9 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadTimezone(t *testing.T) {
 //}
 
 func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithLinkedClone(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1880,7 +2018,9 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithLinkedClone(t *tes
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithoutLinkedClone(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1900,7 +2040,9 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithoutLinkedClone(t *
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneIntoEmptyCluster(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -1921,7 +2063,9 @@ func TestAccResourceVSphereVirtualMachine_cloneIntoEmptyCluster(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneWithDifferentHostname(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1942,7 +2086,9 @@ func TestAccResourceVSphereVirtualMachine_cloneWithDifferentHostname(t *testing.
 	})
 }
 func TestAccResourceVSphereVirtualMachine_cloneWithDiskTypeChange(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1964,7 +2110,9 @@ func TestAccResourceVSphereVirtualMachine_cloneWithDiskTypeChange(t *testing.T) 
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneOnDsCuster(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1986,7 +2134,9 @@ func TestAccResourceVSphereVirtualMachine_cloneOnDsCuster(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cpuHotAdd(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2018,7 +2168,9 @@ func TestAccResourceVSphereVirtualMachine_cpuHotAdd(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_memoryHotAdd(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2050,7 +2202,9 @@ func TestAccResourceVSphereVirtualMachine_memoryHotAdd(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_dualStackIPv4AndIPv6(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2072,7 +2226,9 @@ func TestAccResourceVSphereVirtualMachine_dualStackIPv4AndIPv6(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_hostCheck(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2101,7 +2257,9 @@ func TestAccResourceVSphereVirtualMachine_hostCheck(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_hostVMotion(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2130,7 +2288,9 @@ func TestAccResourceVSphereVirtualMachine_hostVMotion(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_resourcePoolVMotion(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2159,7 +2319,9 @@ func TestAccResourceVSphereVirtualMachine_resourcePoolVMotion(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_storageVMotionGlobalSetting(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2196,7 +2358,9 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionGlobalSetting(t *testing
 }
 
 func TestAccResourceVSphereVirtualMachine_storageVMotionSingleDisk(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2232,7 +2396,9 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionSingleDisk(t *testing.T)
 }
 
 func TestAccResourceVSphereVirtualMachine_storageVMotionPinDatastore(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2268,7 +2434,9 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionPinDatastore(t *testing.
 }
 
 func TestAccResourceVSphereVirtualMachine_storageVMotionRenamedVirtualMachine(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2310,7 +2478,9 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionRenamedVirtualMachine(t 
 }
 
 func TestAccResourceVSphereVirtualMachine_storageVMotionLinkedClones(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	var state *terraform.State
 
 	resource.Test(t, resource.TestCase{
@@ -2352,7 +2522,9 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionLinkedClones(t *testing.
 }
 
 func TestAccResourceVSphereVirtualMachine_storageVMotionBlockExternallyAttachedDisks(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2384,7 +2556,9 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionBlockExternallyAttachedD
 }
 
 func TestAccResourceVSphereVirtualMachine_singleCustomAttribute(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2406,7 +2580,9 @@ func TestAccResourceVSphereVirtualMachine_singleCustomAttribute(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_multiCustomAttribute(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2428,7 +2604,9 @@ func TestAccResourceVSphereVirtualMachine_multiCustomAttribute(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_switchCustomAttribute(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2457,7 +2635,9 @@ func TestAccResourceVSphereVirtualMachine_switchCustomAttribute(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_multipleDisksAtDifferentSCSISlotsImport(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2499,7 +2679,9 @@ func TestAccResourceVSphereVirtualMachine_multipleDisksAtDifferentSCSISlotsImpor
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneImport(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2582,7 +2764,9 @@ func TestAccResourceVSphereVirtualMachine_cloneImport(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_interpolatedDisk(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2606,7 +2790,9 @@ func TestAccResourceVSphereVirtualMachine_interpolatedDisk(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_deployOvfFromUrl(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	vmName := "terraform_test_vm_" + acctest.RandStringFromCharSet(4, acctest.CharSetAlphaNum)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -2629,7 +2815,9 @@ func TestAccResourceVSphereVirtualMachine_deployOvfFromUrl(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_deployOvaFromUrl(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	vmName := "terraform_test_vm_" + acctest.RandStringFromCharSet(4, acctest.CharSetAlphaNum)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -2654,7 +2842,9 @@ func TestAccResourceVSphereVirtualMachine_deployOvaFromUrl(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneWithCustomizationSpec(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	goscName := acctest.RandomWithPrefix("gosc")
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -2676,7 +2866,9 @@ func TestAccResourceVSphereVirtualMachine_cloneWithCustomizationSpec(t *testing.
 }
 
 func TestAccResourceVSphereVirtualMachine_SRIOV(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2698,7 +2890,9 @@ func TestAccResourceVSphereVirtualMachine_SRIOV(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_createMemoryReservationLockedToMax(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2720,7 +2914,9 @@ func TestAccResourceVSphereVirtualMachine_createMemoryReservationLockedToMax(t *
 }
 
 func TestAccResourceVSphereVirtualMachine_deployOvfFromUrlMultipleVmsSameName(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	ovfNameTpl := "terraform_test_vm_" + acctest.RandStringFromCharSet(4, acctest.CharSetAlphaNum)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -2748,7 +2944,9 @@ func TestAccResourceVSphereVirtualMachine_deployOvfFromUrlMultipleVmsSameName(t 
 }
 
 func TestAccResourceVSphereVirtualMachine_nvmeController(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2813,14 +3011,18 @@ func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
 }
 
 func testAccDsClusterRequiredPreCheck(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	if os.Getenv("TF_VAR_VSPHERE_DS_CLUSTER1") == "" {
 		t.Skip("TF_VAR_VSPHERE_DS_CLUSTER1 must be set with a name of a DS cluster in order to run tests which require DS cluster ")
 	}
 }
 
 func testAccSriovPreCheck(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	skipTxt := `TF_VAR_VSPHERE_SRIOV_HOST, TF_VAR_VSPHERE_SRIOV_HOST_VMFS and TF_VAR_VSPHERE_SRIOV_PHYSICAL_FUNCTION variables must be set to run SRIOV test`
 	if os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST") == "" ||
 		os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST_VMFS") == "" ||

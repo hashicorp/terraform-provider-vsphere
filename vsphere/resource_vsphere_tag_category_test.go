@@ -7,9 +7,11 @@ package vsphere
 import (
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -18,7 +20,9 @@ import (
 )
 
 func TestAccResourceVSphereTagCategory_basic(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -59,7 +63,9 @@ func TestAccResourceVSphereTagCategory_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereTagCategory_addType(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -92,7 +98,9 @@ func TestAccResourceVSphereTagCategory_addType(t *testing.T) {
 }
 
 func TestAccResourceVSphereTagCategory_removeTypeShouldError(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -116,7 +124,9 @@ func TestAccResourceVSphereTagCategory_removeTypeShouldError(t *testing.T) {
 }
 
 func TestAccResourceVSphereTagCategory_invalidTypeShouldError(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -134,7 +144,9 @@ func TestAccResourceVSphereTagCategory_invalidTypeShouldError(t *testing.T) {
 }
 
 func TestAccResourceVSphereTagCategory_rename(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -161,7 +173,9 @@ func TestAccResourceVSphereTagCategory_rename(t *testing.T) {
 }
 
 func TestAccResourceVSphereTagCategory_singleCardinality(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -182,7 +196,9 @@ func TestAccResourceVSphereTagCategory_singleCardinality(t *testing.T) {
 }
 
 func TestAccResourceVSphereTagCategory_multiCardinality(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

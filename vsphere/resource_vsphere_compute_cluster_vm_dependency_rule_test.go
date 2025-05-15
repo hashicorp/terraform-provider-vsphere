@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -22,7 +23,9 @@ import (
 )
 
 func TestAccResourceVSphereComputeClusterVMDependencyRule_basic(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -91,7 +94,9 @@ func TestAccResourceVSphereComputeClusterVMDependencyRule_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereComputeClusterVMDependencyRule_altGroup(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -119,7 +124,9 @@ func TestAccResourceVSphereComputeClusterVMDependencyRule_altGroup(t *testing.T)
 }
 
 func TestAccResourceVSphereComputeClusterVMDependencyRule_updateEnabled(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -160,7 +167,9 @@ func TestAccResourceVSphereComputeClusterVMDependencyRule_updateEnabled(t *testi
 }
 
 func TestAccResourceVSphereComputeClusterVMDependencyRule_updateGroup(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

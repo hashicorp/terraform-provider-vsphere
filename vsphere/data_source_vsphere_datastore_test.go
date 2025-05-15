@@ -7,6 +7,7 @@ package vsphere
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -14,7 +15,9 @@ import (
 )
 
 func TestAccDataSourceVSphereDatastore_basic(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -37,7 +40,9 @@ func TestAccDataSourceVSphereDatastore_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereDatastore_noDatacenterAndAbsolutePath(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -60,7 +65,9 @@ func TestAccDataSourceVSphereDatastore_noDatacenterAndAbsolutePath(t *testing.T)
 }
 
 func TestAccDataSourceVSphereDatastore_getStats(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -83,7 +90,9 @@ func TestAccDataSourceVSphereDatastore_getStats(t *testing.T) {
 }
 
 func testAccDataSourceVSphereDatastorePreCheck(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_nas_datastore acceptance tests")
 	}

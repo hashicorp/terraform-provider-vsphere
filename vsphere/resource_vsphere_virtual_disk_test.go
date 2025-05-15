@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -40,7 +41,9 @@ func TestAccResourceVSphereVirtualDisk_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualDisk_extend(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	rString := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
@@ -71,7 +74,9 @@ func TestAccResourceVSphereVirtualDisk_extend(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualDisk_multi(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	rString := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
@@ -100,7 +105,9 @@ func TestAccResourceVSphereVirtualDisk_multi(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualDisk_multiWithParent(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	rString := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
@@ -129,7 +136,9 @@ func TestAccResourceVSphereVirtualDisk_multiWithParent(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualDisk_withParent(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	rString := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{

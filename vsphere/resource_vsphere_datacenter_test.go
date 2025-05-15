@@ -7,7 +7,9 @@ package vsphere
 import (
 	"context"
 	"fmt"
+	"os"
 	"path"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -160,7 +162,9 @@ func TestAccResourceVSphereDatacenter_createOnRootFolder(t *testing.T) {
 
 // Create a datacenter on a subfolder
 func TestAccResourceVSphereDatacenter_createOnSubfolder(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	dcFolder := "dc-folder"
 	name := "testDC"
 
@@ -190,7 +194,9 @@ func TestAccResourceVSphereDatacenter_createOnSubfolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatacenter_singleTag(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -214,7 +220,9 @@ func TestAccResourceVSphereDatacenter_singleTag(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatacenter_modifyTags(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -248,7 +256,9 @@ func TestAccResourceVSphereDatacenter_modifyTags(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatacenter_singleCustomAttribute(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -272,7 +282,9 @@ func TestAccResourceVSphereDatacenter_singleCustomAttribute(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatacenter_modifyCustomAttribute(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

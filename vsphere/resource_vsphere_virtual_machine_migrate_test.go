@@ -28,7 +28,9 @@ func testAccResourceVSphereVirtualMachineMigrateStatePreCheck(t *testing.T) {
 }
 
 func TestVSphereVirtualMachine_migrateStateV1(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	cases := map[string]struct {
 		Attributes map[string]string
 		Expected   map[string]string
@@ -83,7 +85,9 @@ func TestVSphereVirtualMachine_migrateStateV1(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_migrateStateV3_fromV2(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	testAccResourceVSphereVirtualMachineMigrateStatePreCheck(t)
 	testAccPreCheck(t)
 
@@ -127,7 +131,9 @@ func TestAccResourceVSphereVirtualMachine_migrateStateV3_fromV2(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_migrateStateV3FromV1(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	testAccResourceVSphereVirtualMachineMigrateStatePreCheck(t)
 	testAccPreCheck(t)
 
@@ -186,7 +192,9 @@ func TestAccResourceVSphereVirtualMachine_migrateStateV3FromV1(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_migrateStateV2(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	testAccResourceVSphereVirtualMachineMigrateStatePreCheck(t)
 	testAccPreCheck(t)
 
@@ -247,7 +255,9 @@ func TestAccResourceVSphereVirtualMachine_migrateStateV2(t *testing.T) {
 }
 
 func TestComputeInstanceMigrateState_empty(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	var is *terraform.InstanceState
 	var meta interface{}
 

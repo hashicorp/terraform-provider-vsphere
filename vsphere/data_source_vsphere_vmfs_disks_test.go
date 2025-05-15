@@ -7,6 +7,7 @@ package vsphere
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -15,7 +16,9 @@ import (
 )
 
 func TestAccDataSourceVSphereVmfsDisks_basic(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -35,7 +38,9 @@ func TestAccDataSourceVSphereVmfsDisks_basic(t *testing.T) {
 }
 
 func testAccDataSourceVSphereVmfsDisksPreCheck(t *testing.T) {
-	t.Skip()
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
+	}
 	if os.Getenv("TF_VAR_VSPHERE_ESXI1") == "" {
 		t.Skip("set TF_VAR_VSPHERE_ESXI1 to run vsphere_vmfs_disks acceptance tests")
 	}
