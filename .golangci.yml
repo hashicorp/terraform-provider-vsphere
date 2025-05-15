@@ -35,9 +35,6 @@ linters:
       # TODO: Setting temporary exclusions for specific linters.
       - linters:
           - gosec
-        text: G107
-      - linters:
-          - gosec
         text: G115
       - linters:
           - gosec

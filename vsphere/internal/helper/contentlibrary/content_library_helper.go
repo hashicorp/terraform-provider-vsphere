@@ -370,7 +370,12 @@ func (uploadSession libraryUploadSession) uploadOvaDisksFromLocal(ovaFilePath st
 }
 
 func (uploadSession libraryUploadSession) uploadOvaDisksFromURL(ovfFilePath string, diskName string, size int64) error {
-	resp, err := http.Get(ovfFilePath)
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", ovfFilePath, nil)
+	if err != nil {
+		return fmt.Errorf("error creating request for %s: %w", ovfFilePath, err)
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("error performing GET request to %s: %w", ovfFilePath, err)
 	}
