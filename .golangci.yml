@@ -40,9 +40,6 @@ linters:
           - gosec
         text: G401
       - linters:
-          - gosec
-        text: G402
-      - linters:
           - staticcheck
         text: SA1019
       - linters:
