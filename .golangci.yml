@@ -29,7 +29,7 @@ linters:
       # Exclude specific rules to suppress false positives or acceptable issues.
       - linters:
           - gosec
-        text: G115|G401|G402
+        text: G115|G401
       - linters:
           - staticcheck
         text: SA1019
