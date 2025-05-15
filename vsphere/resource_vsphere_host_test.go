@@ -61,12 +61,10 @@ func TestAccResourceVSphereHost_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereHost_rootFolder(t *testing.T) {
-	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccCheckEnvVariables(t, []string{"ESX_HOSTNAME", "ESX_USERNAME", "ESX_PASSWORD"})
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccVSphereHostDestroy,
@@ -541,21 +539,28 @@ func testaccvspherehostconfigRootfolder() string {
 	return fmt.Sprintf(`
 	%s
 
-	resource "vsphere_host" "h1" {
-	  # Useful only for connection
-	  hostname = "%s"
-	  username = "%s"
-	  password = "%s"
-	  thumbprint = data.vsphere_host_thumbprint.id
-
-	  # Makes sense to update
-	  license = "%s"
-	  datacenter = data.vsphere_datacenter.rootdc1.id
+	data "vsphere_host_thumbprint" "thumbprint1" {
+	  address = "%s"
+	  insecure = true
 	}
-	`, testhelper.ConfigDataRootDC1(), os.Getenv("ESX_HOSTNAME"),
-		os.Getenv("ESX_USERNAME"),
-		os.Getenv("ESX_PASSWORD"),
-		os.Getenv("TF_VAR_VSPHERE_LICENSE"))
+
+	resource "vsphere_host" "h1" {
+	  hostname = "%s"
+	  username = "root"
+	  password = "%s"
+	  thumbprint = data.vsphere_host_thumbprint.thumbprint1.id
+
+	  datacenter = data.vsphere_datacenter.rootdc1.id
+
+	  lifecycle {
+		  ignore_changes = ["services"]
+	  }
+
+	}
+	`, testhelper.ConfigDataRootDC1(),
+		os.Getenv("TF_VAR_VSPHERE_ESXI4"), // for thumbprint retrieval
+		os.Getenv("TF_VAR_VSPHERE_ESXI4"), // for connection config
+		os.Getenv("TF_VAR_VSPHERE_ESXI4_PASSWORD"))
 }
 
 func testaccvspherehostconfigEmptylicense() string {

@@ -362,7 +362,6 @@ func TestAccResourceVSphereNasDatastore_multiCustomAttribute(t *testing.T) {
 }
 
 func testAccResourceVSphereNasDatastorePreCheck(t *testing.T) {
-	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_vmfs_disks acceptance tests")
 	}

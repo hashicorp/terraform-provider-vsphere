@@ -18,12 +18,10 @@ import (
 )
 
 func TestAccResourceVSphereResourcePool_basic(t *testing.T) {
-	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereResourcePoolCheckExists(false),
@@ -264,7 +262,6 @@ func TestAccResourceVSphereResourcePool_tags(t *testing.T) {
 }
 
 func testAccResourceVSphereResourcePoolPreCheck(t *testing.T) {
-	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_resource_pool acceptance tests")
 	}

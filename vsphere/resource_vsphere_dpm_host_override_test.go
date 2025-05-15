@@ -125,7 +125,6 @@ func TestAccResourceVSphereDPMHostOverride_update(t *testing.T) {
 }
 
 func testAccResourceVSphereDPMHostOverridePreCheck(t *testing.T) {
-	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_compute_cluster acceptance tests")
 	}

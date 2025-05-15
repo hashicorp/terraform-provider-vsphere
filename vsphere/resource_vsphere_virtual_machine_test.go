@@ -40,12 +40,10 @@ const (
 )
 
 func TestAccResourceVSphereVirtualMachine_basic(t *testing.T) {
-	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
@@ -2770,7 +2768,6 @@ func TestAccResourceVSphereVirtualMachine_nvmeController(t *testing.T) {
 }
 
 func testAccResourceVSphereVirtualMachinePreCheck(t *testing.T) {
-	t.Skip()
 	// Note that TF_VAR_VSPHERE_USE_LINKED_CLONE is also a variable and its presence
 	// speeds up tests greatly, but it's not a necessary variable, so we don't
 	// enforce it here.
@@ -3734,7 +3731,6 @@ func testAccResourceVSphereVirtualMachineConfigBase() string {
 		testhelper.ConfigDataRootHost1(),
 		testhelper.ConfigDataRootHost2(),
 		testhelper.ConfigDataRootDS1(),
-		testhelper.ConfigResDS1(),
 		testhelper.ConfigDataRootComputeCluster1(),
 		testhelper.ConfigResResourcePool1(),
 		testhelper.ConfigDataRootPortGroup1())
@@ -3905,7 +3901,7 @@ func testAccResourceVSphereVirtualMachineConfigBasic() string {
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
   resource_pool_id = vsphere_resource_pool.pool1.id
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -3920,6 +3916,7 @@ resource "vsphere_virtual_machine" "vm" {
   disk {
     label = "disk0"
     size  = 20
+    io_reservation = 1
   }
 }
 `,

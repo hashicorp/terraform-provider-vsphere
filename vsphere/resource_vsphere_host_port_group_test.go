@@ -93,7 +93,6 @@ func TestAccResourceVSphereHostPortGroup_basicToComplex(t *testing.T) {
 }
 
 func testAccResourceVSphereHostPortGroupPreCheck(t *testing.T) {
-	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_host_port_group acceptance tests")
 	}

@@ -145,7 +145,6 @@ func TestAccResourceVSphereFolder_hostFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_datacenterFolder(t *testing.T) {
-	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

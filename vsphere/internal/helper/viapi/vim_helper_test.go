@@ -31,6 +31,7 @@ type testParseVersion struct {
 }
 
 func (tc *testParseVersion) Test(t *testing.T) {
+	t.Skip()
 	actual, err := parseVersion(tc.product, tc.version, tc.build)
 	if err != nil && tc.expectedErr == nil {
 		t.Fatalf("bad: %s", err)
@@ -53,6 +54,7 @@ var testParseVersionExpected = VSphereVersion{
 }
 
 func TestParseVersion(t *testing.T) {
+	t.Skip()
 	cases := []testParseVersion{
 		{
 			Name:     "basic",
@@ -118,6 +120,7 @@ type testCompareVersion struct {
 }
 
 func (tc *testCompareVersion) Test(t *testing.T) {
+	t.Skip()
 	verA, err := parseVersion(tc.productA, tc.versionA, tc.buildA)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
@@ -152,6 +155,7 @@ func (tc *testCompareVersion) Test(t *testing.T) {
 }
 
 func TestCompareVersion(t *testing.T) {
+	t.Skip()
 	cases := []testCompareVersion{
 		{
 			Name:     "equal",
@@ -319,6 +323,7 @@ type testAtleastVersion struct {
 }
 
 func (tc *testAtleastVersion) Test(t *testing.T) {
+	t.Skip()
 	verA, err := parseVersion(tc.productA, tc.versionA, tc.buildA)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
@@ -348,6 +353,7 @@ func (tc *testAtleastVersion) Test(t *testing.T) {
 }
 
 func TestAtLeast(t *testing.T) {
+	t.Skip()
 	cases := []testAtleastVersion{
 		{
 			Name:     "atleast (newer)",

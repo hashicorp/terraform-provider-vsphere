@@ -109,7 +109,6 @@ func TestAccDataSourceVSphereNetwork_hostPortgroups(t *testing.T) {
 }
 
 func testAccDataSourceVSphereNetworkPreCheck(t *testing.T) {
-	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_PG_NAME") == "" {
 		t.Skip("set TF_VAR_VSPHERE_PG_NAME to run vsphere_network acceptance tests")
 	}

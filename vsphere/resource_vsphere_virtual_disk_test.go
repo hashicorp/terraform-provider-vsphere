@@ -19,14 +19,12 @@ import (
 )
 
 func TestAccResourceVSphereVirtualDisk_basic(t *testing.T) {
-	t.Skip()
 	rString := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualDiskPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", false),
@@ -154,7 +152,6 @@ func TestAccResourceVSphereVirtualDisk_withParent(t *testing.T) {
 }
 
 func testAccResourceVSphereVirtualDiskPreCheck(t *testing.T) {
-	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_virtual_disk acceptance tests")
 	}
@@ -226,10 +223,14 @@ resource "vsphere_virtual_disk" "foo" {
   adapter_type = "lsiLogic"
   type         = "thin"
   datacenter   = "${data.vsphere_datacenter.rootdc1.name}"
-  datastore    = vsphere_nas_datastore.ds1.name
+  datastore    = data.vsphere_datastore.rootds1.name
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1()),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2(),
+			testhelper.ConfigDataRootDS1()),
 		rName,
 	)
 }

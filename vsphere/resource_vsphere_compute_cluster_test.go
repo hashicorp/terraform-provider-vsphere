@@ -27,12 +27,10 @@ const (
 )
 
 func TestAccResourceVSphereComputeCluster_basic(t *testing.T) {
-	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereComputeClusterCheckExists(false),
@@ -711,7 +709,6 @@ func TestAccResourceVSphereComputeCluster_switchCustomAttribute(t *testing.T) {
 }
 
 func testAccResourceVSphereComputeClusterPreCheck(t *testing.T) {
-	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_compute_cluster acceptance tests")
 	}

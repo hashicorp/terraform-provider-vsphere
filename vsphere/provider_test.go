@@ -39,14 +39,6 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("VSPHERE_SERVER"); v == "" {
 		t.Fatal("VSPHERE_SERVER must be set for acceptance tests")
 	}
-
-	testAccCheckTestSuite(t)
-}
-
-func testAccCheckTestSuite(t *testing.T) {
-	if v := os.Getenv("TF_VAR_VSPHERE_TESTSUITE"); v != "" && v != os.Getenv("TESTSUITE") {
-		t.Skip()
-	}
 }
 
 func testAccCheckEnvVariables(t *testing.T, variableNames []string) {

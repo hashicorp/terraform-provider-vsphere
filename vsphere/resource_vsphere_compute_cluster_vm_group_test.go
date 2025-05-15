@@ -110,7 +110,6 @@ func TestAccResourceVSphereComputeClusterVMGroup_update(t *testing.T) {
 }
 
 func testAccResourceVSphereComputeClusterVMGroupPreCheck(t *testing.T) {
-	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_compute_cluster_vm_group acceptance tests")
 	}

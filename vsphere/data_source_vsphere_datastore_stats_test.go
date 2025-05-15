@@ -42,7 +42,6 @@ func TestAccDataSourceVSphereDatastoreStats_basic(t *testing.T) {
 }
 
 func testAccDataSourceVSphereDatastoreStatsPreCheck(t *testing.T) {
-	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_datastore_stats acceptance tests")
 	}

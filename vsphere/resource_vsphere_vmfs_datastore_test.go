@@ -24,12 +24,10 @@ const (
 )
 
 func TestAccResourceVSphereVmfsDatastore_basic(t *testing.T) {
-	t.Skip()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVmfsDatastorePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVmfsDatastoreExists(false),
@@ -415,7 +413,6 @@ func TestAccResourceVSphereVmfsDatastore_multiCustomAttribute(t *testing.T) {
 }
 
 func testAccResourceVSphereVmfsDatastorePreCheck(t *testing.T) {
-	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_VMFS_REGEXP") == "" {
 		t.Skip("set TF_VAR_VSPHERE_VMFS_REGEXP to run vsphere_vmfs_datastore acceptance tests")
 	}
@@ -496,7 +493,6 @@ variable "disk0" {
 }
 
 %s
-
 
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "%s"

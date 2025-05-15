@@ -201,7 +201,6 @@ func TestAccResourceVSphereComputeClusterVMDependencyRule_updateGroup(t *testing
 }
 
 func testAccResourceVSphereComputeClusterVMDependencyRulePreCheck(t *testing.T) {
-	t.Skip()
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_compute_cluster_vm_dependency_rule acceptance tests")
 	}

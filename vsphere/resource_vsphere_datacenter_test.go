@@ -137,7 +137,6 @@ resource "vsphere_datacenter" "testDC" {
 
 // Create a datacenter on the root folder
 func TestAccResourceVSphereDatacenter_createOnRootFolder(t *testing.T) {
-	t.Skip()
 	name := "testDC"
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },

@@ -19,7 +19,6 @@ import (
 )
 
 func testAccResourceVSphereVirtualMachineMigrateStatePreCheck(t *testing.T) {
-	t.Skip()
 	if os.Getenv("TF_ACC") == "" {
 		t.Skip("set TF_ACC to run vsphere_virtual_machine state migration tests (provider connection is required)")
 	}
