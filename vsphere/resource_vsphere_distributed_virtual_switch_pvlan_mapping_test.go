@@ -81,18 +81,22 @@ func testAccResourceVSphereDistributedVirtualSwitchPvlanMappingExists(expected b
 			return fmt.Errorf("could not find pvlan mapping resource: %s", err)
 		}
 
-		primaryVlanID, err := strconv.Atoi(mappingToSearchFor.resourceAttributes["primaryVlanID"])
+		primaryVlanIDInt64, err := strconv.ParseInt(mappingToSearchFor.resourceAttributes["primaryVlanID"], 10, 32)
 		if err != nil {
 			return err
 		}
-		secondaryVlanID, err := strconv.Atoi(mappingToSearchFor.resourceAttributes["secondaryVlanID"])
+		primaryVlanID := int32(primaryVlanIDInt64)
+
+		secondaryVlanIDInt64, err := strconv.ParseInt(mappingToSearchFor.resourceAttributes["secondaryVlanID"], 10, 32)
 		if err != nil {
 			return err
 		}
+		secondaryVlanID := int32(secondaryVlanIDInt64)
+
 		pvlanType := mappingToSearchFor.resourceAttributes["pvlanType"]
 
 		for _, mapping := range props.Config.(*types.VMwareDVSConfigInfo).PvlanConfig {
-			if mapping.PrimaryVlanId == int32(primaryVlanID) && mapping.SecondaryVlanId == int32(secondaryVlanID) && mapping.PvlanType == pvlanType {
+			if mapping.PrimaryVlanId == primaryVlanID && mapping.SecondaryVlanId == secondaryVlanID && mapping.PvlanType == pvlanType {
 				if !expected {
 					return fmt.Errorf("found PVLAN mapping when not expecting to")
 				}
