@@ -7,7 +7,9 @@ package vsphere
 import (
 	"bytes"
 	"context"
-	"crypto/sha1"
+
+	// TODO: Transition to crypto/sha256 in next major release.
+	"crypto/sha1" //nolint
 	"crypto/tls"
 	"fmt"
 	"log"
