@@ -18,12 +18,6 @@ linters:
     - staticcheck
     - unconvert
     - unused
-  settings:
-    errcheck:
-      exclude-functions:
-        - github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema:ForceNew|Set
-        - fmt:.*
-        - io:Close
   exclusions:
     generated: lax
     presets:
@@ -32,22 +26,13 @@ linters:
       - legacy
       - std-error-handling
     rules:
-      # TODO: Setting temporary exclusions for specific linters.
+      # Exclude specific rules to suppress false positives or acceptable issues.
       - linters:
           - gosec
-        text: G115
-      - linters:
-          - gosec
-        text: G401
-      - linters:
-          - gosec
-        text: G402
+        text: G115|G401|G402
       - linters:
           - staticcheck
         text: SA1019
-      - linters:
-          - unused
-        text: is unused
     paths:
       - third_party$
       - builtin$
