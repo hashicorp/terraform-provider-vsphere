@@ -34,9 +34,6 @@ func TestDatastorePathFromString(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-				t.Skip()
-			}
 			actual, success := DatastorePathFromString(tc.subject)
 			if !reflect.DeepEqual(tc.expected, actual) {
 				t.Fatalf("expected %+v, got %+v", tc.expected, actual)
@@ -73,9 +70,6 @@ func TestIsVmdkDatastorePath(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-				t.Skip()
-			}
 			actual := IsVmdkDatastorePath(tc.subject)
 			if tc.expected != actual {
 				t.Fatalf("expected %t, got %t", tc.expected, actual)
@@ -125,9 +119,6 @@ func TestDstDataStorePathFromLocalSrc(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-				t.Skip()
-			}
 			actual := dstDataStorePathFromLocalSrc(tc.src, tc.dst)
 			if tc.expected != actual {
 				t.Fatalf("expected %q, got %q", tc.expected, actual)

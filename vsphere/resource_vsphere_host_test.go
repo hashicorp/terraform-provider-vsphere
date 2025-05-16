@@ -401,9 +401,6 @@ func TestAccResourceVSphereHostNtpService(t *testing.T) {
 
 	for _, config := range configs {
 		t.Run(fmt.Sprintf("Enabled=%t,Policy=%s", config.Enabled, config.Policy), func(t *testing.T) {
-			if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-				t.Skip()
-			}
 			testAccSkipUnstable(t)
 			resource.Test(t, resource.TestCase{
 				PreCheck:     func() { testAccPreCheck(t) },

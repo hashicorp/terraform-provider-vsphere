@@ -6,6 +6,7 @@ package vsphere
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -13,12 +14,10 @@ import (
 )
 
 func TestAccDataSourceVSphereComputeCluster_basic(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -70,17 +69,13 @@ func testAccDataSourceVSphereComputeClusterConfigBasic() string {
 	return fmt.Sprintf(`
 %s
 
-resource "vsphere_compute_cluster" "compute_cluster" {
-  name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-}
-
 data "vsphere_compute_cluster" "compute_cluster_data" {
-  name          = "${vsphere_compute_cluster.compute_cluster.name}"
+  name          = "%s"
   datacenter_id = "${vsphere_compute_cluster.compute_cluster.datacenter_id}"
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
 	)
 }
 

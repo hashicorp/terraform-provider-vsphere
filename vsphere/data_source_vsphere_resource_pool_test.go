@@ -15,12 +15,10 @@ import (
 )
 
 func TestAccDataSourceVSphereResourcePool_basic(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereResourcePoolPreCheck(t)
 			testAccSkipIfEsxi(t)
 		},
 		Providers: testAccProviders,
@@ -217,18 +215,17 @@ func testAccDataSourceVSphereResourcePoolConfig() string {
 	return fmt.Sprintf(`
 %s
 
-variable "resource_pool_name" {
-  description = "The name of the child resource pool to find (relative to cluster Resources)"
-  default     = "%s"
+resource "vsphere_resource_pool" "resource_pool" {
+  name                    = "terraform-test-resource-pool"
+  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
 }
 
 data "vsphere_resource_pool" "pool" {
-  name          = "${data.vsphere_compute_cluster.rootcompute_cluster1.name}/Resources/${var.resource_pool_name}"
+  name          = vsphere_resource_pool.resource_pool.name
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
-		os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL"),
 	)
 }
 

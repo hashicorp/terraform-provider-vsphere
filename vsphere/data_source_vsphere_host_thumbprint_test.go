@@ -14,11 +14,9 @@ import (
 )
 
 func TestAccDataSourceVSphereHostThumbprint_basic(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccDataSourceVSphereHostThumbprintPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -30,12 +28,6 @@ func TestAccDataSourceVSphereHostThumbprint_basic(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccDataSourceVSphereHostThumbprintPreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_ESXI1") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI1 to run vsphere_host_thumbprint acceptance tests")
-	}
 }
 
 func testAccDataSourceVSphereHostThumbprintConfig() string {

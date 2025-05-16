@@ -49,9 +49,6 @@ func TestDiskCapacityInGiB(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-				t.Skip()
-			}
 			actual := diskCapacityInGiB(tc.subject)
 			if tc.expected != actual {
 				t.Fatalf("expected %d, got %d", tc.expected, actual)
