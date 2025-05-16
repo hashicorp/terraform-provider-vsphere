@@ -301,8 +301,8 @@ variable "template" {
 }
 
 data "vsphere_virtual_machine" "template" {
-  name          = "${var.template}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  name          = var.template
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -331,37 +331,39 @@ func testAccDataSourceVirtualMachineFolder() string {
 	return fmt.Sprintf(`
 	%s
 
-	resource "vsphere_folder" "new_vm_folder" {
-		path		  = "new-vm-folder"
-		datacenter_id = data.vsphere_datacenter.rootdc1.id
-		type		  = "vm"
+resource "vsphere_folder" "new_vm_folder" {
+  path          = "new-vm-folder"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+  type          = "vm"
 
-	}
+}
 
-	resource "vsphere_virtual_machine" "vm" {
-	  name             = "foo"
-	  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
-	  folder 		   = vsphere_folder.new_vm_folder.path
-	  datastore_id     = data.vsphere_datastore.rootds1.id
-	  num_cpus         = 1
-	  memory           = 1024
-	  guest_id         = "otherLinux64Guest"
-	  network_interface {
-		network_id = data.vsphere_network.network1.id
-	  }
-	  disk {
-		label = "disk0"
-		size  = 10
-	  }
-	 wait_for_guest_ip_timeout = 0
-	 wait_for_guest_net_timeout  = 0
-	}
+resource "vsphere_virtual_machine" "vm" {
+  name             = "foo"
+  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+  folder           = vsphere_folder.new_vm_folder.path
+  datastore_id     = data.vsphere_datastore.rootds1.id
+  num_cpus         = 1
+  memory           = 1024
+  guest_id         = "otherLinux64Guest"
+  network_interface {
+    network_id = data.vsphere_network.network1.id
+  }
+  disk {
+    label = "disk0"
+    size  = 10
+  }
+  wait_for_guest_ip_timeout  = 0
+  wait_for_guest_net_timeout = 0
+}
 
-	data vsphere_virtual_machine "vm1" {
-		name 		  = vsphere_virtual_machine.vm.name
-		datacenter_id = data.vsphere_datacenter.rootdc1.id
-		folder 		  = vsphere_folder.new_vm_folder.path
-	}
+data vsphere_virtual_machine "vm1" {
+  name          = vsphere_virtual_machine.vm.name
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+  folder        = vsphere_folder.new_vm_folder.path
+}
+
+
 
 
 `, testhelper.CombineConfigs(

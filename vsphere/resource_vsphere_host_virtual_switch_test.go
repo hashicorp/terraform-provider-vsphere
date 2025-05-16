@@ -245,12 +245,12 @@ variable "host_nic1" {
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
   name           = "vSwitchTerraformTest2"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  host_system_id = data.vsphere_host.esxi_host.id
 
   network_adapters = [var.host_nic0, var.host_nic1]
 
@@ -273,16 +273,16 @@ variable "host_nic0" {
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
   name           = "vSwitchTerraformTest2"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  host_system_id = data.vsphere_host.esxi_host.id
 
-  network_adapters = ["${var.host_nic0}"]
+  network_adapters = [var.host_nic0]
 
-  active_nics  = ["${var.host_nic0}"]
+  active_nics = [var.host_nic0]
 }
 `, testhelper.HostNic0,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -299,12 +299,12 @@ variable "host_nic0" {
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
   name           = "vSwitchTerraformTest2"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  host_system_id = data.vsphere_host.esxi_host.id
 
   network_adapters = []
 
@@ -326,16 +326,16 @@ variable "host_nic0" {
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
   name           = "vSwitchTerraformTest2"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  host_system_id = data.vsphere_host.esxi_host.id
 
   network_adapters = []
 
-  active_nics  = ["${var.host_nic0}"]
+  active_nics  = [var.host_nic0]
   standby_nics = []
 }
 `, testhelper.HostNic1,
@@ -353,17 +353,17 @@ variable "host_nic0" {
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
   name           = "vSwitchTerraformTest2"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  host_system_id = data.vsphere_host.esxi_host.id
 
   network_adapters = []
 
   active_nics  = []
-  standby_nics = ["${var.host_nic0}"]
+  standby_nics = [var.host_nic0]
 }
 `, testhelper.HostNic1,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),

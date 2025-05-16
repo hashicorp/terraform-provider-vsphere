@@ -386,7 +386,7 @@ func resourceVSphereVmfsDatastoreDelete(d *schema.ResourceData, meta interface{}
 		Delay:      2 * time.Second,
 	}
 
-	_, err = deleteRetry.WaitForState()
+	_, err = deleteRetry.WaitForStateContext(context.Background())
 	if err != nil {
 		return fmt.Errorf("could not delete datastore: %s", err)
 	}

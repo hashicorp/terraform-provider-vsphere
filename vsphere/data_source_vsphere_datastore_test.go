@@ -116,18 +116,18 @@ data "vsphere_datastore" "datastore_data" {
 func testAccDataSourceVSphereDatastoreConfigGetStats() string {
 	return fmt.Sprintf(`
 variable "datastore_name" {
-	default = "%s"
+  default = "%s"
 }
 variable "datacenter_id" {
-	default = "%s"
+  default = "%s"
 }
 data "vsphere_datastore" "datastore_data" {
-  name = "${var.datastore_name}"
-  datacenter_id = "${var.datacenter_id}"
+  name          = var.datastore_name
+  datacenter_id = var.datacenter_id
 }
 
 output "found_stats" {
-	value = "${length(data.vsphere_datastore.datastore_data.stats) >= 1 ? "true" : "false" }"
+  value = length(data.vsphere_datastore.datastore_data.stats) >= 1 ? "true" : "false"
 }
 `, os.Getenv("VSPHERE_DATASTORE_NAME"), os.Getenv("VSPHERE_DATACENTER"),
 	)

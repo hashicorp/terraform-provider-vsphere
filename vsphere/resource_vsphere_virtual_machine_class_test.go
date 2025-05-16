@@ -40,23 +40,23 @@ func TestAccResourceVSphereVmClass_vgpu(t *testing.T) {
 
 func testAccVSphereVMClassConfig() string {
 	return `
-		resource "vsphere_virtual_machine_class" "vm_class_1" {
-			name = "test-class-11"
-			cpus = 4
-			memory = 4096
-			memory_reservation = 100
-		}
+resource "vsphere_virtual_machine_class" "vm_class_1" {
+  name               = "test-class-11"
+  cpus               = 4
+  memory             = 4096
+  memory_reservation = 100
+}
 `
 }
 
 func testAccVSphereVMClassConfigVgpu() string {
 	return `
-		resource "vsphere_virtual_machine_class" "vm_class_1" {
-			name = "test-class-11"
-			cpus = 4
-			memory = 4096
-			memory_reservation = 100
-			vgpu_devices = [ "mockup-vmiop" ]
-		}
+resource "vsphere_virtual_machine_class" "vm_class_1" {
+  name               = "test-class-11"
+  cpus               = 4
+  memory             = 4096
+  memory_reservation = 100
+  vgpu_devices       = ["mockup-vmiop"]
+}
 `
 }

@@ -153,8 +153,8 @@ func testAccResourceVsphereRoleCheckExists(expected bool) resource.TestCheckFunc
 
 func testAccResourceVsphereRoleConfigBasic(roleName string) string {
 	return fmt.Sprintf(`
-  resource "vsphere_role" "%s" {
-  name = "%s"
+resource "vsphere_role" "%s" {
+  name            = "%s"
   role_privileges = ["%s", "%s"]
 }
 `, RoleResource,
@@ -166,9 +166,9 @@ func testAccResourceVsphereRoleConfigBasic(roleName string) string {
 
 func testAccResourceVsphereRoleConfigAdditionalPrivileges(roleName string) string {
 	return fmt.Sprintf(`
-  resource "vsphere_role" "%s" {
-  name = "%s"
-  role_privileges = ["%s", "%s","%s","%s"]
+resource "vsphere_role" "%s" {
+  name            = "%s"
+  role_privileges = ["%s", "%s", "%s", "%s"]
 }
 `, RoleResource,
 		roleName,
@@ -181,8 +181,8 @@ func testAccResourceVsphereRoleConfigAdditionalPrivileges(roleName string) strin
 
 func testAccResourceVsphereRoleConfigSystemRole() string {
 	return fmt.Sprintf(`
-  resource "vsphere_role" "%s" {
-  name = "NoAccess"
+resource "vsphere_role" "%s" {
+  name            = "NoAccess"
   role_privileges = []
 }
 `, RoleResource)

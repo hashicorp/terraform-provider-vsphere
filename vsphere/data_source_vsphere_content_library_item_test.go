@@ -49,7 +49,7 @@ data "vsphere_datastore" "ds" {
 
 resource "vsphere_content_library" "library" {
   name            = "ContentLibrary_test"
-  storage_backing = [ data.vsphere_datastore.ds.id ]
+  storage_backing = [data.vsphere_datastore.ds.id]
   description     = "Library Description"
 }
 
@@ -66,8 +66,7 @@ data "vsphere_content_library_item" "item" {
   library_id = vsphere_content_library.library.id
   type       = "ovf"
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 		testhelper.ContentLibraryFiles,
 	)
 }

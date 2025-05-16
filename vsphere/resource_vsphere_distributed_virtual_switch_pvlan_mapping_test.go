@@ -43,23 +43,22 @@ func testAccResourceVSphereDistributedVirtualSwitchPvlanMappingConfig() string {
 resource "vsphere_distributed_virtual_switch_pvlan_mapping" "mapping" {
   distributed_virtual_switch_id = vsphere_distributed_virtual_switch.dvs.id
 
-  primary_vlan_id = 1005
+  primary_vlan_id   = 1005
   secondary_vlan_id = 1005
-  pvlan_type = "promiscuous"
+  pvlan_type        = "promiscuous"
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "testacc-dvs2"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  name                        = "testacc-dvs2"
+  datacenter_id               = data.vsphere_datacenter.rootdc1.id
   ignore_other_pvlan_mappings = true
 
   host {
     host_system_id = data.vsphere_host.roothost2.id
-    devices = ["%s"]
+    devices        = ["%s"]
   }
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost2()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost2()),
 		testhelper.HostNic0,
 	)
 }

@@ -225,7 +225,7 @@ func testaccresourcevspherecontentlibraryitemconfigLocalova() string {
 
 resource "vsphere_content_library" "library" {
   name            = "testacc_content_library"
-  storage_backing = [ data.vsphere_datastore.rootds1.id ]
+  storage_backing = [data.vsphere_datastore.rootds1.id]
   description     = "Library Description"
 }
 
@@ -236,8 +236,7 @@ resource "vsphere_content_library_item" "item" {
   type        = "ovf"
   file_url    = "./testdata/test.ova"
 }
-`,
-		testaccresourcevspherecontentlibraryitemconfigBase(),
+`, testaccresourcevspherecontentlibraryitemconfigBase(),
 	)
 }
 
@@ -251,7 +250,7 @@ variable "file" {
 
 resource "vsphere_content_library" "library" {
   name            = "testacc_content_library"
-  storage_backing = [ data.vsphere_datastore.rootds1.id ]
+  storage_backing = [data.vsphere_datastore.rootds1.id]
   description     = "Library Description"
 }
 
@@ -262,8 +261,7 @@ resource "vsphere_content_library_item" "item" {
   type        = "ovf"
   file_url    = var.file
 }
-`,
-		testaccresourcevspherecontentlibraryitemconfigBase(),
+`, testaccresourcevspherecontentlibraryitemconfigBase(),
 		os.Getenv("TF_VAR_VSPHERE_TEST_OVF"),
 	)
 }
@@ -278,7 +276,7 @@ variable "file" {
 
 resource "vsphere_content_library" "library" {
   name            = "testacc_content_library"
-  storage_backing = [ data.vsphere_datastore.rootds1.id ]
+  storage_backing = [data.vsphere_datastore.rootds1.id]
   description     = "Library Description"
 }
 
@@ -289,8 +287,7 @@ resource "vsphere_content_library_item" "item" {
   type        = "ovf"
   file_url    = var.file
 }
-`,
-		testaccresourcevspherecontentlibraryitemconfigBase(),
+`, testaccresourcevspherecontentlibraryitemconfigBase(),
 		testhelper.TestOva,
 	)
 }

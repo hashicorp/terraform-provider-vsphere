@@ -696,7 +696,7 @@ func testAccResourceVSphereDatastoreClusterConfigBasic() string {
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -709,7 +709,7 @@ func testAccResourceVSphereDatastoreClusterConfigSDRSBasic() string {
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
   sdrs_enabled  = true
 }
 `,
@@ -723,7 +723,7 @@ func testAccResourceVSphereDatastoreClusterConfigWithName(name string) string {
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -740,15 +740,15 @@ variable "folder" {
 }
 
 resource "vsphere_folder" "datastore_cluster_folder" {
-  path          = "${var.folder}"
+  path          = var.folder
   type          = "datastore"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-  folder        = "${vsphere_folder.datastore_cluster_folder.path}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+  folder        = vsphere_folder.datastore_cluster_folder.path
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -762,7 +762,7 @@ func testAccResourceVSphereDatastoreClusterConfigSDRSOverrides() string {
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name                                     = "testacc-datastore-cluster"
-  datacenter_id                            = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id                            = data.vsphere_datacenter.rootdc1.id
   sdrs_enabled                             = true
   sdrs_automation_level                    = "manual"
   sdrs_space_balance_automation_level      = "automated"
@@ -782,7 +782,7 @@ func testAccResourceVSphereDatastoreClusterConfigSDRSMiscTweaks() string {
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name                             = "testacc-datastore-cluster"
-  datacenter_id                    = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id                    = data.vsphere_datacenter.rootdc1.id
   sdrs_enabled                     = true
   sdrs_default_intra_vm_affinity   = false
   sdrs_io_latency_threshold        = 5
@@ -799,7 +799,7 @@ func testAccResourceVSphereDatastoreClusterConfigReservableIopsManual() string {
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name                              = "testacc-datastore-cluster"
-  datacenter_id                     = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id                     = data.vsphere_datacenter.rootdc1.id
   sdrs_enabled                      = true
   sdrs_io_reservable_threshold_mode = "manual"
   sdrs_io_reservable_iops_threshold = 5000
@@ -815,7 +815,7 @@ func testAccResourceVSphereDatastoreClusterConfigReservableIopsAutomatic() strin
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name                                 = "testacc-datastore-cluster"
-  datacenter_id                        = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id                        = data.vsphere_datacenter.rootdc1.id
   sdrs_enabled                         = true
   sdrs_io_reservable_percent_threshold = 40
 }
@@ -830,7 +830,7 @@ func testAccResourceVSphereDatastoreClusterConfigSpaceManual() string {
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name                           = "testacc-datastore-cluster"
-  datacenter_id                  = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id                  = data.vsphere_datacenter.rootdc1.id
   sdrs_enabled                   = true
   sdrs_free_space_threshold_mode = "freeSpace"
   sdrs_free_space_threshold      = 500
@@ -855,16 +855,14 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 
-  tags = [
-    "${vsphere_tag.testacc-tag.id}",
-  ]
+  tags = [vsphere_tag.testacc-tag.id]
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -893,20 +891,20 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_tag" "testacc-tags-alt" {
-  count       = "${length(var.extra_tags)}"
-  name        = "${var.extra_tags[count.index]}"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  count       = length(var.extra_tags)
+  name        = var.extra_tags[count.index]
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 
-  tags = "${vsphere_tag.testacc-tags-alt.*.id}"
+  tags = vsphere_tag.testacc-tags-alt.*.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -924,15 +922,15 @@ resource "vsphere_custom_attribute" "testacc-attribute" {
 
 locals {
   attrs = {
-    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
+    vsphere_custom_attribute.testacc-attribute.id = "value"
   }
 }
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 
-  custom_attributes = "${local.attrs}"
+  custom_attributes = local.attrs
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -955,18 +953,17 @@ resource "vsphere_custom_attribute" "testacc-attribute-2" {
 
 locals {
   attrs = {
-    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
-    "${vsphere_custom_attribute.testacc-attribute-2.id}" = "value-2"
+    vsphere_custom_attribute.testacc-attribute.id   = "value"
+    vsphere_custom_attribute.testacc-attribute-2.id = "value-2"
   }
 }
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 
-  custom_attributes = "${local.attrs}"
+  custom_attributes = local.attrs
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }

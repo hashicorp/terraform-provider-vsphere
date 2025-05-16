@@ -127,13 +127,13 @@ func testAccDataSourceVSphereDistributedVirtualSwitchConfig() string {
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
   uplinks       = ["%s", "%s"]
 }
 
 data "vsphere_distributed_virtual_switch" "dvs-data" {
-  name          = "${vsphere_distributed_virtual_switch.dvs.name}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  name          = vsphere_distributed_virtual_switch.dvs.name
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -148,21 +148,21 @@ func testAccDataSourceVSphereDistributedVirtualSwitchConfigWithPortgroup() strin
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
   uplinks       = ["%s", "%s"]
 }
 
 data "vsphere_distributed_virtual_switch" "dvs-data" {
-  name          = "${vsphere_distributed_virtual_switch.dvs.name}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  name          = vsphere_distributed_virtual_switch.dvs.name
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_distributed_port_group" "pg" {
   name                            = "terraform-test-pg"
-  distributed_virtual_switch_uuid = "${data.vsphere_distributed_virtual_switch.dvs-data.id}"
+  distributed_virtual_switch_uuid = data.vsphere_distributed_virtual_switch.dvs-data.id
 
-  active_uplinks  = ["${data.vsphere_distributed_virtual_switch.dvs-data.uplinks[0]}"]
-  standby_uplinks = ["${data.vsphere_distributed_virtual_switch.dvs-data.uplinks[1]}"]
+  active_uplinks  = [data.vsphere_distributed_virtual_switch.dvs-data.uplinks[0]]
+  standby_uplinks = [data.vsphere_distributed_virtual_switch.dvs-data.uplinks[1]]
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -177,15 +177,14 @@ func testAccDataSourceVSphereDistributedVirtualSwitchConfigAbsolute() string {
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
   uplinks       = ["%s", "%s"]
 }
 
 data "vsphere_distributed_virtual_switch" "dvs-data" {
-  name          = "/${data.vsphere_datacenter.rootdc1.name}/network/${vsphere_distributed_virtual_switch.dvs.name}"
+  name = "/${data.vsphere_datacenter.rootdc1.name}/network/${vsphere_distributed_virtual_switch.dvs.name}"
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		testhelper.HostNic0,
 		testhelper.HostNic1,
 	)

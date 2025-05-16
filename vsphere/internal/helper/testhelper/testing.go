@@ -46,7 +46,7 @@ func ConfigResDC2() string {
 	return `
 resource "vsphere_datacenter" "dc2" {
   name = "testacc-dc2"
-  tags = [ vsphere_tag.tag1.id, vsphere_tag.tag3.id ]
+  tags = [vsphere_tag.tag1.id, vsphere_tag.tag3.id]
 }
 `
 }
@@ -90,28 +90,28 @@ data "vsphere_datastore" "rootds1"{
 
 func ConfigResTag1() string {
 	return `
-	resource "vsphere_tag" "tag1" {
-	  name        = "testacc-tag1"
-	  category_id = vsphere_tag_category.category1.id
-	}
+resource "vsphere_tag" "tag1" {
+  name        = "testacc-tag1"
+  category_id = vsphere_tag_category.category1.id
+}
 	`
 }
 
 func ConfigResTag2() string {
 	return `
-	resource "vsphere_tag" "tag2" {
-	  name        = "testacc-tag2"
-	  category_id = vsphere_tag_category.category2.id
-	}
+resource "vsphere_tag" "tag2" {
+  name        = "testacc-tag2"
+  category_id = vsphere_tag_category.category2.id
+}
 	`
 }
 
 func ConfigResTag3() string {
 	return `
-	resource "vsphere_tag" "tag3" {
-	  name        = "testacc-tag2"
-	  category_id = vsphere_tag_category.category1.id
-	}`
+resource "vsphere_tag" "tag3" {
+  name        = "testacc-tag2"
+  category_id = vsphere_tag_category.category1.id
+}`
 }
 
 func ConfigDataRootDC1() string {
@@ -173,18 +173,18 @@ resource "vsphere_nas_datastore" "ds1" {
 func ConfigDataRootComputeCluster1() string {
 	return fmt.Sprintf(`
 data "vsphere_compute_cluster" "rootcompute_cluster1" {
-	name          = "%s"
-	datacenter_id = data.vsphere_datacenter.rootdc1.id
+  name          = "%s"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 `, os.Getenv("TF_VAR_VSPHERE_CLUSTER"))
 }
 
 func ConfigResResourcePool1() string {
 	return `
-	resource "vsphere_resource_pool" "pool1" {
-	  name                    = "testacc-resource-pool1"
-	  parent_resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
-	}
+resource "vsphere_resource_pool" "pool1" {
+  name                    = "testacc-resource-pool1"
+  parent_resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+}
 	`
 }
 
@@ -199,19 +199,20 @@ data "vsphere_network" "network1" {
 
 func ConfigDataRootVMNet() string {
 	return `
-	data "vsphere_network" "vmnet" {
-	  name          = "VM Network"
-	  datacenter_id = data.vsphere_datacenter.rootdc1.id
-	}
+data "vsphere_network" "vmnet" {
+  name          = "VM Network"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
 	`
 }
 
 func ConfigDSClusterData() string {
 	return fmt.Sprintf(`
-	data "vsphere_datastore_cluster" "ds_cluster1" {
-	  name          = "%s"
-	  datacenter_id = data.vsphere_datacenter.rootdc1.id
-	}
+data "vsphere_datastore_cluster" "ds_cluster1" {
+  name          = "%s"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+}
+
 
 `, os.Getenv("TF_VAR_VSPHERE_DS_CLUSTER1"))
 }

@@ -120,22 +120,21 @@ func testAccDataSourceVSphereNetworkConfigDVSPortgroup(withTimeout bool) string 
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_distributed_port_group" "pg" {
   name                            = "terraform-test-pg"
-  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.dvs.id
 }
 
 data "vsphere_network" "net" {
-  name          = "${vsphere_distributed_port_group.pg.name}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
+  name                            = vsphere_distributed_port_group.pg.name
+  datacenter_id                   = data.vsphere_datacenter.rootdc1.id
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.dvs.id
   %s
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), additionalConfig)
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), additionalConfig)
 }
 
 func testAccDataSourceVSphereNetworkConfigDVSPortgroupAbsolute() string {
@@ -144,19 +143,18 @@ func testAccDataSourceVSphereNetworkConfigDVSPortgroupAbsolute() string {
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_distributed_port_group" "pg" {
   name                            = "terraform-test-pg"
-  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.dvs.id
 }
 
 data "vsphere_network" "net" {
-  name          = "/${data.vsphere_datacenter.rootdc1.name}/network/${vsphere_distributed_port_group.pg.name}"
+  name = "/${data.vsphere_datacenter.rootdc1.name}/network/${vsphere_distributed_port_group.pg.name}"
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 

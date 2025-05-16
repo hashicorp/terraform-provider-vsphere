@@ -484,10 +484,10 @@ variable "disk0" {
 
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "%s"
-  host_system_id = "${data.vsphere_host.roothost1.id}"
+  host_system_id = data.vsphere_host.roothost1.id
 
   disks = [
-    "${var.disk0}",
+    var.disk0
   ]
 }
 `, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"),
@@ -508,10 +508,10 @@ variable "disk0" {
 
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "%s-renamed"
-  host_system_id = "${data.vsphere_host.roothost1.id}"
+  host_system_id = data.vsphere_host.roothost1.id
 
   disks = [
-    "${var.disk0}",
+    var.disk0
   ]
 }
 `, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"),
@@ -538,11 +538,11 @@ variable "disk1" {
 
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "%s"
-  host_system_id = "${data.vsphere_host.roothost1.id}"
+  host_system_id = data.vsphere_host.roothost1.id
 
   disks = [
-    "${var.disk0}",
-    "${var.disk1}",
+    var.disk0,
+    var.disk1
   ]
 }
 `, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"),
@@ -564,16 +564,16 @@ variable "regexp" {
 %s
 
 data "vsphere_vmfs_disks" "available" {
-  host_system_id = "${data.vsphere_host.roothost1.id}"
+  host_system_id = data.vsphere_host.roothost1.id
   rescan         = true
-  filter         = "${var.regexp}"
+  filter         = var.regexp
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "%s"
-  host_system_id = "${data.vsphere_host.roothost1.id}"
+  host_system_id = data.vsphere_host.roothost1.id
 
-  disks = "${data.vsphere_vmfs_disks.available.disks}"
+  disks = data.vsphere_vmfs_disks.available.disks
 }
 `, os.Getenv("TF_VAR_VSPHERE_VMFS_REGEXP"),
 		testhelper.CombineConfigs(
@@ -598,18 +598,18 @@ variable "folder" {
 %s
 
 resource "vsphere_folder" "folder" {
-  path = var.folder
-  type = "datastore"
+  path          = var.folder
+  type          = "datastore"
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "%s"
-  host_system_id = "${data.vsphere_host.roothost1.id}"
+  host_system_id = data.vsphere_host.roothost1.id
   folder         = vsphere_folder.folder.path
 
   disks = [
-    "${var.disk0}",
+    var.disk0
   ]
 }
 `, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"),
@@ -641,18 +641,18 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "%s"
-  host_system_id = "${data.vsphere_host.roothost1.id}"
+  host_system_id = data.vsphere_host.roothost1.id
 
   disks = [
-    "${var.disk0}",
+    var.disk0
   ]
 
-  tags = ["${vsphere_tag.testacc-tag.id}"]
+  tags = [vsphere_tag.testacc-tag.id]
 }
 `, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"),
 		testhelper.CombineConfigs(
@@ -689,24 +689,24 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_tag" "testacc-tags-alt" {
-  count       = "${length(var.extra_tags)}"
-  name        = "${var.extra_tags[count.index]}"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  count       = length(var.extra_tags)
+  name        = var.extra_tags[count.index]
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "%s"
-  host_system_id = "${data.vsphere_host.roothost1.id}"
+  host_system_id = data.vsphere_host.roothost1.id
 
   disks = [
-    "${var.disk0}",
+    var.disk0
   ]
 
-  tags = "${vsphere_tag.testacc-tags-alt.*.id}"
+  tags = vsphere_tag.testacc-tags-alt.*.id
 }
 `, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"),
 		testhelper.CombineConfigs(
@@ -732,11 +732,11 @@ variable "disk1" {
 
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "%s"
-  host_system_id = "${data.vsphere_host.roothost1.id}"
+  host_system_id = data.vsphere_host.roothost1.id
 
   disks = [
-    "${var.disk0}",
-    "${var.disk1}",
+    var.disk0,
+    var.disk1,
     "",
   ]
 }
@@ -764,12 +764,12 @@ variable "disk1" {
 
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "%s"
-  host_system_id = "${data.vsphere_host.roothost1.id}"
+  host_system_id = data.vsphere_host.roothost1.id
 
   disks = [
-    "${var.disk0}",
-    "${var.disk1}",
-    "${var.disk1}",
+    var.disk0,
+    var.disk1,
+    var.disk1,
   ]
 }
 `, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"), os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK1"),
@@ -796,19 +796,19 @@ resource "vsphere_custom_attribute" "testacc-attribute" {
 
 locals {
   vmfs_attrs = {
-    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
+    vsphere_custom_attribute.testacc-attribute.id = "value"
   }
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "%s"
-  host_system_id = "${data.vsphere_host.roothost1.id}"
+  host_system_id = data.vsphere_host.roothost1.id
 
   disks = [
-    "${var.disk0}",
+    var.disk0
   ]
 
-  custom_attributes = "${local.vmfs_attrs}"
+  custom_attributes = local.vmfs_attrs
 }
 `, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"),
 		testhelper.CombineConfigs(
@@ -839,20 +839,20 @@ resource "vsphere_custom_attribute" "testacc-attribute-2" {
 
 locals {
   vmfs_attrs = {
-    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
-    "${vsphere_custom_attribute.testacc-attribute-2.id}" = "value-2"
+    vsphere_custom_attribute.testacc-attribute.id   = "value"
+    vsphere_custom_attribute.testacc-attribute-2.id = "value-2"
   }
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
   name           = "%s"
-  host_system_id = "${data.vsphere_host.roothost1.id}"
+  host_system_id = data.vsphere_host.roothost1.id
 
   disks = [
-    "${var.disk0}",
+    var.disk0
   ]
 
-  custom_attributes = "${local.vmfs_attrs}"
+  custom_attributes = local.vmfs_attrs
 }
 `, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"),
 		testhelper.CombineConfigs(
@@ -877,16 +877,16 @@ variable "folder" {
 %s
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_vmfs_datastore" "datastore" {
   name                 = "%s"
-  host_system_id       = "${data.vsphere_host.roothost1.id}"
-  datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
+  host_system_id       = data.vsphere_host.roothost1.id
+  datastore_cluster_id = vsphere_datastore_cluster.datastore_cluster.id
 
   disks = [
-    "${var.disk0}",
+    var.disk0
   ]
 }
 `, os.Getenv("TF_VAR_VSPHERE_DS_VMFS_ESXI1_DISK0"), testhelper.DsFolder,

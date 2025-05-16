@@ -51,12 +51,12 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_datacenter" "testDC" {
   name = "testDC"
-  tags = ["${vsphere_tag.testacc-tag.id}"]
+  tags = [vsphere_tag.testacc-tag.id]
 }
 `
 
@@ -79,18 +79,18 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_tag" "testacc-tags-alt" {
-  count       = "${length(var.extra_tags)}"
-  name        = "${var.extra_tags[count.index]}"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  count       = length(var.extra_tags)
+  name        = var.extra_tags[count.index]
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_datacenter" "testDC" {
   name = "testDC"
-  tags = "${vsphere_tag.testacc-tags-alt.*.id}"
+  tags = vsphere_tag.testacc-tags-alt.*.id
 }
 `
 
@@ -102,13 +102,13 @@ resource "vsphere_custom_attribute" "testacc-attribute" {
 
 locals {
   dc_attrs = {
-    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
+    vsphere_custom_attribute.testacc-attribute.id = "value"
   }
 }
 
 resource "vsphere_datacenter" "testDC" {
-  name = "testDC"
-  custom_attributes = "${local.dc_attrs}"
+  name              = "testDC"
+  custom_attributes = local.dc_attrs
 }
 `
 const testAccCheckVSphereDatacenterConfigMultiCustomAttributes = `
@@ -124,14 +124,14 @@ resource "vsphere_custom_attribute" "testacc-attribute-2" {
 
 locals {
   dc_attrs = {
-    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
-    "${vsphere_custom_attribute.testacc-attribute-2.id}" = "value-2"
+    vsphere_custom_attribute.testacc-attribute.id   = "value"
+    vsphere_custom_attribute.testacc-attribute-2.id = "value-2"
   }
 }
 
 resource "vsphere_datacenter" "testDC" {
-  name = "testDC"
-  custom_attributes = "${local.dc_attrs}"
+  name              = "testDC"
+  custom_attributes = local.dc_attrs
 }
 `
 

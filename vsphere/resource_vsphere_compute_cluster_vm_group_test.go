@@ -230,9 +230,9 @@ variable "vm_count" {
 }
 
 resource "vsphere_virtual_machine" "vm" {
-  count            = "${var.vm_count}"
+  count            = var.vm_count
   name             = "terraform-test-${count.index}"
-  resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
+  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
   datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus = 2
@@ -242,7 +242,7 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
@@ -253,18 +253,17 @@ resource "vsphere_virtual_machine" "vm" {
 
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
   name                = "terraform-test-cluster-group"
-  compute_cluster_id  = "${data.vsphere_compute_cluster.rootcompute_cluster1.id}"
-  virtual_machine_ids = "${vsphere_virtual_machine.vm.*.id}"
+  compute_cluster_id  = data.vsphere_compute_cluster.rootcompute_cluster1.id
+  virtual_machine_ids = vsphere_virtual_machine.vm.*.id
 }
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2(),
-			testhelper.ConfigResDS1(),
-			testhelper.ConfigDataRootComputeCluster1(),
-			testhelper.ConfigResResourcePool1(),
-			testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootHost2(),
+		testhelper.ConfigResDS1(),
+		testhelper.ConfigDataRootComputeCluster1(),
+		testhelper.ConfigResResourcePool1(),
+		testhelper.ConfigDataRootPortGroup1()),
 		count,
 	)
 }

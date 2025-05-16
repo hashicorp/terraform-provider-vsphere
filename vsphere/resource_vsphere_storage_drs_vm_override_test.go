@@ -208,24 +208,24 @@ variable "nfs_path" {
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
   sdrs_enabled  = true
 }
 
 resource "vsphere_nas_datastore" "datastore" {
   name                 = "%s"
   host_system_ids      = [data.vsphere_host.roothost1.id]
-  datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
+  datastore_cluster_id = vsphere_datastore_cluster.datastore_cluster.id
 
   type         = "NFS"
-  remote_hosts = ["${var.nfs_host}"]
-  remote_path  = "${var.nfs_path}"
+  remote_hosts = [var.nfs_host]
+  remote_path  = var.nfs_path
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
-  datastore_id     = "${vsphere_nas_datastore.datastore.id}"
+  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+  datastore_id     = vsphere_nas_datastore.datastore.id
 
   num_cpus = 2
   memory   = 2048
@@ -234,7 +234,7 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
@@ -244,17 +244,16 @@ resource "vsphere_virtual_machine" "vm" {
 }
 
 resource "vsphere_storage_drs_vm_override" "drs_vm_override" {
-  datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
-  virtual_machine_id   = "${vsphere_virtual_machine.vm.id}"
+  datastore_cluster_id = vsphere_datastore_cluster.datastore_cluster.id
+  virtual_machine_id   = vsphere_virtual_machine.vm.id
   sdrs_enabled         = false
 }
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootComputeCluster1(),
-			testhelper.ConfigResResourcePool1(),
-			testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootComputeCluster1(),
+		testhelper.ConfigResResourcePool1(),
+		testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 		testhelper.NfsPath2,
 		testhelper.NfsDsName2,
@@ -275,24 +274,24 @@ variable "nfs_path" {
 
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
   sdrs_enabled  = true
 }
 
 resource "vsphere_nas_datastore" "datastore" {
   name                 = "testacc-nas"
   host_system_ids      = [data.vsphere_host.roothost1.id]
-  datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
+  datastore_cluster_id = vsphere_datastore_cluster.datastore_cluster.id
 
   type         = "NFS"
-  remote_hosts = ["${var.nfs_host}"]
-  remote_path  = "${var.nfs_path}"
+  remote_hosts = [var.nfs_host]
+  remote_path  = var.nfs_path
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name                 = "testacc-test"
-  resource_pool_id     = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
-  datastore_cluster_id = "${vsphere_datastore_cluster.datastore_cluster.id}"
+  resource_pool_id     = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+  datastore_cluster_id = vsphere_datastore_cluster.datastore_cluster.id
 
   num_cpus = 2
   memory   = 2048
@@ -301,7 +300,7 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
@@ -313,18 +312,17 @@ resource "vsphere_virtual_machine" "vm" {
 }
 
 resource "vsphere_storage_drs_vm_override" "drs_vm_override" {
-  datastore_cluster_id   = "${vsphere_datastore_cluster.datastore_cluster.id}"
-  virtual_machine_id     = "${vsphere_virtual_machine.vm.id}"
+  datastore_cluster_id   = vsphere_datastore_cluster.datastore_cluster.id
+  virtual_machine_id     = vsphere_virtual_machine.vm.id
   sdrs_automation_level  = "automated"
   sdrs_intra_vm_affinity = false
 }
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootComputeCluster1(),
-			testhelper.ConfigResResourcePool1(),
-			testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootComputeCluster1(),
+		testhelper.ConfigResResourcePool1(),
+		testhelper.ConfigDataRootPortGroup1()),
 		os.Getenv("TF_VAR_VSPHERE_NAS_HOST"),
 		testhelper.NfsPath2,
 	)

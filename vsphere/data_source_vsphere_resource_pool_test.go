@@ -214,7 +214,7 @@ variable "resource_pool_name" {
 }
 
 data "vsphere_resource_pool" "pool" {
-  name          = "${data.vsphere_compute_cluster.rootcompute_cluster1.name}/Resources/${var.resource_pool_name}"
+  name          = data.vsphere_compute_cluster.rootcompute_cluster1.name + "/Resources/" + var.resource_pool_name
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 `,
@@ -251,7 +251,7 @@ variable "resource_pool_name" {
 }
 
 data "vsphere_resource_pool" "parent_pool" {
-  name          = "${data.vsphere_compute_cluster.rootcompute_cluster1.name}/Resources"
+  name          = data.vsphere_compute_cluster.rootcompute_cluster1.name + "/Resources"
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
@@ -271,7 +271,7 @@ func testAccDataSourceVSphereResourcePoolConfigWithParentAndNamePath() string {
 %s
 
 data "vsphere_resource_pool" "parent_pool" {
-  name          = "${data.vsphere_compute_cluster.rootcompute_cluster1.name}/Resources"
+  name          = data.vsphere_compute_cluster.rootcompute_cluster1.name + "/Resources"
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
@@ -290,7 +290,7 @@ func testAccDataSourceVSphereResourcePoolConfigWithParentAndMissingName() string
 %s
 
 data "vsphere_resource_pool" "parent_pool" {
-  name          = "${data.vsphere_compute_cluster.rootcompute_cluster1.name}/Resources"
+  name          = data.vsphere_compute_cluster.rootcompute_cluster1.name + "/Resources"
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
@@ -328,7 +328,7 @@ func testAccDataSourceVSphereResourcePoolConfigWithParentAndNotFoundName() strin
 %s
 
 data "vsphere_resource_pool" "parent_pool" {
-  name          = "${data.vsphere_compute_cluster.rootcompute_cluster1.name}/Resources"
+  name          = data.vsphere_compute_cluster.rootcompute_cluster1.name + "/Resources"
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 

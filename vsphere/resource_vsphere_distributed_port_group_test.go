@@ -276,12 +276,12 @@ func testAccResourceVSphereDistributedPortGroupConfig() string {
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_distributed_port_group" "pg" {
   name                            = "terraform-test-pg"
-  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.dvs.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1()),
@@ -294,7 +294,7 @@ func testAccResourceVSphereDistributedPortGroupConfigPolicyInherit() string {
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 
   vlan_id = 1000
 
@@ -329,7 +329,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 
 resource "vsphere_distributed_port_group" "pg" {
   name                            = "terraform-test-pg"
-  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.dvs.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -342,17 +342,17 @@ func testAccResourceVSphereDistributedPortGroupConfigPolicyInheritVLANRange() st
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 
   vlan_range {
-		min_vlan = 1000
-		max_vlan = 1999
-	}
+    min_vlan = 1000
+    max_vlan = 1999
+  }
 
-	vlan_range {
-		min_vlan = 3000
-		max_vlan = 3999
-	}
+  vlan_range {
+    min_vlan = 3000
+    max_vlan = 3999
+  }
 
   active_uplinks  = ["uplink1", "uplink2"]
   standby_uplinks = ["uplink3", "uplink4"]
@@ -385,10 +385,9 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 
 resource "vsphere_distributed_port_group" "pg" {
   name                            = "terraform-test-pg"
-  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.dvs.id
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
@@ -398,25 +397,24 @@ func testAccResourceVSphereDistributedPortGroupConfigOverrideVLAN() string {
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 
-	vlan_range {
-		min_vlan = 1000
-		max_vlan = 1999
-	}
+  vlan_range {
+    min_vlan = 1000
+    max_vlan = 1999
+  }
 }
 
 resource "vsphere_distributed_port_group" "pg" {
   name                            = "terraform-test-pg"
-  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.dvs.id
 
-	vlan_range {
-		min_vlan = 3000
-		max_vlan = 3999
-	}
+  vlan_range {
+    min_vlan = 3000
+    max_vlan = 3999
+  }
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
@@ -435,21 +433,20 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_distributed_port_group" "pg" {
   name                            = "terraform-test-pg"
-  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
-  tags                            = ["${vsphere_tag.testacc-tag.id}"]
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.dvs.id
+  tags                            = [vsphere_tag.testacc-tag.id]
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
@@ -475,24 +472,24 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_tag" "testacc-tags-alt" {
-  count       = "${length(var.extra_tags)}"
-  name        = "${var.extra_tags[count.index]}"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  count       = length(var.extra_tags)
+  name        = var.extra_tags[count.index]
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_distributed_port_group" "pg" {
   name                            = "terraform-test-pg"
-  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
-  tags                            = "${vsphere_tag.testacc-tags-alt.*.id}"
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.dvs.id
+  tags                            = vsphere_tag.testacc-tags-alt.*.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -510,20 +507,20 @@ resource "vsphere_custom_attribute" "testacc-attribute" {
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 locals {
   pg_attrs = {
-    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
+    vsphere_custom_attribute.testacc-attribute.id = "value"
   }
 }
 
 resource "vsphere_distributed_port_group" "pg" {
   name                            = "terraform-test-pg"
-  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.dvs.id
 
-  custom_attributes = "${local.pg_attrs}"
+  custom_attributes = local.pg_attrs
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -547,30 +544,29 @@ resource "vsphere_custom_attribute" "testacc-attribute" {
 }
 
 resource "vsphere_custom_attribute" "testacc-attribute-alt" {
-  count               = "${length(var.custom_attrs)}"
-  name                = "${var.custom_attrs[count.index]}"
+  count               = length(var.custom_attrs)
+  name                = var.custom_attrs[count.index]
   managed_object_type = "DistributedVirtualPortgroup"
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
   name          = "testacc-dvs"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 locals {
   pg_attrs = {
-    "${vsphere_custom_attribute.testacc-attribute-alt.0.id}" = "value"
-    "${vsphere_custom_attribute.testacc-attribute-alt.1.id}" = "value-2"
+    vsphere_custom_attribute.testacc-attribute-alt.0.id = "value"
+    vsphere_custom_attribute.testacc-attribute-alt.1.id = "value-2"
   }
 }
 
 resource "vsphere_distributed_port_group" "pg" {
   name                            = "terraform-test-pg"
-  distributed_virtual_switch_uuid = "${vsphere_distributed_virtual_switch.dvs.id}"
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.dvs.id
 
-  custom_attributes = "${local.pg_attrs}"
+  custom_attributes = local.pg_attrs
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }

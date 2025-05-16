@@ -412,38 +412,38 @@ func testAccCheckVSphereFileExists(n string, df string, exists bool) resource.Te
 // testAccCheckVSphereFileConfig defines a configuration for creating or managing the resource.
 const testAccCheckVSphereFileConfig = `
 resource "vsphere_file" "%s" {
-	datacenter       = "%s"
-	datastore        = "%s"
-	source_file      = "%s"
-	destination_file = "%s"
+  datacenter       = "%s"
+  datastore        = "%s"
+  source_file      = "%s"
+  destination_file = "%s"
 }
 `
 
 // testAccCheckVSphereFileCopyConfig defines a configuration for uploading and copying the resource.
 const testAccCheckVSphereFileCopyConfig = `
 resource "vsphere_file" "%s" {
-	datacenter       = "%s"
-	datastore        = "%s"
-	source_file      = "%s"
-	destination_file = "%s"
+  datacenter       = "%s"
+  datastore        = "%s"
+  source_file      = "%s"
+  destination_file = "%s"
 }
 resource "vsphere_file" "%s" {
-	source_datacenter = "%s"
-	datacenter        = "%s"
-	source_datastore  = "%s"
-	datastore         = "%s"
-	source_file       = "%s"
-	destination_file  = "%s"
+  source_datacenter = "%s"
+  datacenter        = "%s"
+  source_datastore  = "%s"
+  datastore         = "%s"
+  source_file       = "%s"
+  destination_file  = "%s"
 }
 `
 
 // testAccCheckVSphereFileCreateFolderConfig defines a configuration for testing file uploads with directory creation.
 const testAccCheckVSphereFileCreateFolderConfig = `
 resource "vsphere_file" "%s" {
-	datacenter       = "%s"
-	datastore        = "%s"
-	source_file      = "%s"
-	destination_file = "%s"
-    create_directories = true
+  datacenter         = "%s"
+  datastore          = "%s"
+  source_file        = "%s"
+  destination_file   = "%s"
+  create_directories = true
 }
 `

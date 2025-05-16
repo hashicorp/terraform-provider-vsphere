@@ -83,7 +83,7 @@ func testAccDataSourceVSphereHostConfig() string {
 
 data "vsphere_host" "host" {
   name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 `, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }
@@ -93,6 +93,6 @@ func testAccDataSourceVSphereHostConfigDefault() string {
 %s
 
 data "vsphere_host" "host" {
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }`, testhelper.ConfigDataRootDC1())
 }

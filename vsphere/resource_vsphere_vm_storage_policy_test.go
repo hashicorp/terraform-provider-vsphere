@@ -63,44 +63,44 @@ func testAccResourceVMStoragePolicyCheckExists(expected bool) resource.TestCheck
 func testAccResourceVSphereVMStoragePolicyonfigBasic(policyName string) string {
 	return fmt.Sprintf(`
 resource "vsphere_tag_category" "category1" {
-  name = "cat1"
-  cardinality = "SINGLE"
+  name             = "cat1"
+  cardinality      = "SINGLE"
   associable_types = ["Datastore"]
 }
 
 resource "vsphere_tag_category" "category2" {
-  name = "cat2"
-  cardinality = "SINGLE"
+  name             = "cat2"
+  cardinality      = "SINGLE"
   associable_types = ["Datastore"]
 }
 
 resource "vsphere_tag" "tag1" {
   name        = "tag1"
-  category_id = "${vsphere_tag_category.category1.id}"
+  category_id = vsphere_tag_category.category1.id
 }
 
 resource "vsphere_tag" "tag2" {
   name        = "tag2"
-  category_id = "${vsphere_tag_category.category2.id}"
+  category_id = vsphere_tag_category.category2.id
 }
 
 resource "vsphere_tag" "tag3" {
   name        = "tag3"
-  category_id = "${vsphere_tag_category.category2.id}"
+  category_id = vsphere_tag_category.category2.id
 }
 
 resource "vsphere_vm_storage_policy" "%s" {
-  name = "%s"
+  name        = "%s"
   description = "description"
 
   tag_rules {
     tag_category = vsphere_tag_category.category1.name
-    tags = [vsphere_tag.tag1.name]
+    tags         = [vsphere_tag.tag1.name]
   }
 
- tag_rules {
+  tag_rules {
     tag_category = vsphere_tag_category.category2.name
-    tags = [vsphere_tag.tag2.name, vsphere_tag.tag3.name]
+    tags         = [vsphere_tag.tag2.name, vsphere_tag.tag3.name]
   }
 
 }
