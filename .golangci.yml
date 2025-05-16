@@ -52,9 +52,6 @@ linters:
           - gosec
         text: G505
       - linters:
-          - revive
-        text: var-naming
-      - linters:
           - staticcheck
         text: SA1019
       - linters:

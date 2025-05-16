@@ -1187,36 +1187,36 @@ func resourceVSphereComputeClusterApplyHostImage(
 	}
 
 	if len(componentsToRemove) > 0 {
-		for _, componentId := range componentsToRemove {
-			if err := m.RemoveSoftwareDraftComponents(d.Id(), draftID, componentId); err != nil {
+		for _, componentID := range componentsToRemove {
+			if err := m.RemoveSoftwareDraftComponents(d.Id(), draftID, componentID); err != nil {
 				return err
 			}
 		}
 	}
 
-	taskId, err := m.CommitSoftwareDraft(d.Id(), draftID, clusters.SettingsClustersSoftwareDraftsCommitSpec{})
+	taskID, err := m.CommitSoftwareDraft(d.Id(), draftID, clusters.SettingsClustersSoftwareDraftsCommitSpec{})
 	if err != nil {
 		return err
 	}
 
-	_, err = tasks.NewManager(client).WaitForCompletion(context.Background(), taskId)
+	_, err = tasks.NewManager(client).WaitForCompletion(context.Background(), taskID)
 	return err
 }
 
 func resourceVsphereComputeClusterEnableSoftwareManagement(d *schema.ResourceData, client *rest.Client) error {
 	m := clusters.NewManager(client)
 
-	if draftId, err := m.CreateSoftwareDraft(d.Id()); err != nil {
+	if draftID, err := m.CreateSoftwareDraft(d.Id()); err != nil {
 		return err
-	} else if err := m.SetSoftwareDraftBaseImage(d.Id(), draftId, d.Get("host_image.0.esx_version").(string)); err != nil {
+	} else if err := m.SetSoftwareDraftBaseImage(d.Id(), draftID, d.Get("host_image.0.esx_version").(string)); err != nil {
 		return err
-	} else if taskId, err := m.CommitSoftwareDraft(d.Id(), draftId, clusters.SettingsClustersSoftwareDraftsCommitSpec{}); err != nil {
+	} else if taskID, err := m.CommitSoftwareDraft(d.Id(), draftID, clusters.SettingsClustersSoftwareDraftsCommitSpec{}); err != nil {
 		return err
-	} else if _, err := tasks.NewManager(client).WaitForCompletion(context.Background(), taskId); err != nil {
+	} else if _, err := tasks.NewManager(client).WaitForCompletion(context.Background(), taskID); err != nil {
 		return err
-	} else if taskId, err := m.EnableSoftwareManagement(d.Id(), false); err != nil {
+	} else if taskID, err := m.EnableSoftwareManagement(d.Id(), false); err != nil {
 		return err
-	} else if _, err := tasks.NewManager(client).WaitForCompletion(context.Background(), taskId); err != nil {
+	} else if _, err := tasks.NewManager(client).WaitForCompletion(context.Background(), taskID); err != nil {
 		return err
 	}
 	return nil
@@ -1759,8 +1759,8 @@ func flattenClusterVsanHostConfigInfo(d *schema.ResourceData, obj []types.VsanHo
 	for _, vsanHost := range obj {
 		if vsanHost.FaultDomainInfo.Name != "" {
 			name := vsanHost.FaultDomainInfo.Name
-			if hostIds, ok := fdMap[name]; ok {
-				fdMap[name] = append(hostIds.([]string), vsanHost.HostSystem.Value)
+			if hostIDs, ok := fdMap[name]; ok {
+				fdMap[name] = append(hostIDs.([]string), vsanHost.HostSystem.Value)
 			} else {
 				fdMap[name] = []string{vsanHost.HostSystem.Value}
 			}
@@ -1768,10 +1768,10 @@ func flattenClusterVsanHostConfigInfo(d *schema.ResourceData, obj []types.VsanHo
 	}
 
 	var faultDomainList []interface{}
-	for fdName, hostIds := range fdMap {
+	for fdName, hostIDs := range fdMap {
 		faultDomainList = append(faultDomainList, map[string]interface{}{
 			"name":     fdName,
-			"host_ids": hostIds,
+			"host_ids": hostIDs,
 		})
 	}
 	if len(fdMap) > 0 {
@@ -2182,22 +2182,22 @@ func flattenVsanStretchedCluster(client *vsan.Client, d *schema.ResourceData, cl
 		for _, witnessHost := range res.Returnval {
 			preferredFaultDomainName := witnessHost.PreferredFdName
 			var secondaryFaultDomainName string
-			var preferredFaultDomainHostIds []string
-			var secondaryFaultDomainHostIds []string
+			var preferredFaultDomainHostIDs []string
+			var secondaryFaultDomainHostIDs []string
 			for _, hostConf := range obj.VsanHostConfig {
 				name := hostConf.FaultDomainInfo.Name
 				if name == preferredFaultDomainName {
-					preferredFaultDomainHostIds = append(preferredFaultDomainHostIds, hostConf.HostSystem.Value)
+					preferredFaultDomainHostIDs = append(preferredFaultDomainHostIDs, hostConf.HostSystem.Value)
 				} else {
 					if secondaryFaultDomainName == "" {
 						secondaryFaultDomainName = name
 					}
-					secondaryFaultDomainHostIds = append(secondaryFaultDomainHostIds, hostConf.HostSystem.Value)
+					secondaryFaultDomainHostIDs = append(secondaryFaultDomainHostIDs, hostConf.HostSystem.Value)
 				}
 			}
 			conf = append(conf, map[string]interface{}{
-				"preferred_fault_domain_host_ids": preferredFaultDomainHostIds,
-				"secondary_fault_domain_host_ids": secondaryFaultDomainHostIds,
+				"preferred_fault_domain_host_ids": preferredFaultDomainHostIDs,
+				"secondary_fault_domain_host_ids": secondaryFaultDomainHostIDs,
 				"witness_node":                    witnessHost.Host.Value,
 				"preferred_fault_domain_name":     preferredFaultDomainName,
 				"secondary_fault_domain_name":     secondaryFaultDomainName,

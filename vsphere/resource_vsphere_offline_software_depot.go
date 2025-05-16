@@ -70,12 +70,12 @@ func resourceVsphereOfflineSoftwareDepotCreate(d *schema.ResourceData, meta inte
 
 	m := depots.NewManager(client)
 
-	taskId, err := m.CreateOfflineDepot(spec)
+	taskID, err := m.CreateOfflineDepot(spec)
 	if err != nil {
 		return err
 	}
 
-	_, err = tasks.NewManager(client).WaitForCompletion(context.Background(), taskId)
+	_, err = tasks.NewManager(client).WaitForCompletion(context.Background(), taskID)
 	if err != nil {
 		return err
 	}
