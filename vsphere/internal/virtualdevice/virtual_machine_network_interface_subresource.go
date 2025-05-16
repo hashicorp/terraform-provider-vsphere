@@ -24,7 +24,6 @@ import (
 	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/nsx"
 	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/structure"
-	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
 
 const maxNetworkInterfaceCount = 10
@@ -833,10 +832,7 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 		card.MacAddress = r.Get("mac_address").(string)
 	}
 
-	version := viapi.ParseVersionFromClient(r.client)
-
-	// Minimum Supported Version: 6.0.0
-	if (version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) && r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov) {
+	if r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov {
 		bandwidthLimit := structure.Int64Ptr(-1)
 		bandwidthReservation := structure.Int64Ptr(0)
 		bandwidthShareLevel := types.SharesLevelNormal
@@ -944,25 +940,20 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
 	r.Set("use_static_mac", card.AddressType == string(types.VirtualEthernetCardMacTypeManual))
 	r.Set("mac_address", card.MacAddress)
 
-	version := viapi.ParseVersionFromClient(r.client)
-
-	// Minimum Supported Version: 6.0.0
-	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
-		if r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov {
-			if card.ResourceAllocation != nil {
-				r.Set("bandwidth_limit", card.ResourceAllocation.Limit)
-				r.Set("bandwidth_reservation", card.ResourceAllocation.Reservation)
-				r.Set("bandwidth_share_count", card.ResourceAllocation.Share.Shares)
-				r.Set("bandwidth_share_level", card.ResourceAllocation.Share.Level)
-			}
-		} else {
-			// SRIOV adapters don't support bandwidth properties. Set them to the defaults on the read resource
-			// to ensure that import and such work (as the schema has defaults for them). The bandwidth_share_count
-			// is computed and has no default, so doesn't need setting.
-			r.Set("bandwidth_limit", defaultBandwidthLimit)
-			r.Set("bandwidth_reservation", defaultBandwidthReservation)
-			r.Set("bandwidth_share_level", defaultBandwidthShareLevel)
+	if r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov {
+		if card.ResourceAllocation != nil {
+			r.Set("bandwidth_limit", card.ResourceAllocation.Limit)
+			r.Set("bandwidth_reservation", card.ResourceAllocation.Reservation)
+			r.Set("bandwidth_share_count", card.ResourceAllocation.Share.Shares)
+			r.Set("bandwidth_share_level", card.ResourceAllocation.Share.Level)
 		}
+	} else {
+		// SRIOV adapters don't support bandwidth properties. Set them to the defaults on the read resource
+		// to ensure that import and such work (as the schema has defaults for them). The bandwidth_share_count
+		// is computed and has no default, so doesn't need setting.
+		r.Set("bandwidth_limit", defaultBandwidthLimit)
+		r.Set("bandwidth_reservation", defaultBandwidthReservation)
+		r.Set("bandwidth_share_level", defaultBandwidthShareLevel)
 	}
 
 	// Save the device key and address data
@@ -1080,10 +1071,7 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 		}
 	}
 
-	version := viapi.ParseVersionFromClient(r.client)
-
-	// Minimum Supported Version: 6.0.0
-	if (version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) && r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov) {
+	if r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov {
 		bandwidthLimit := structure.Int64Ptr(-1)
 		bandwidthReservation := structure.Int64Ptr(0)
 		bandwidthShareLevel := types.SharesLevelNormal
@@ -1206,11 +1194,7 @@ func (r *NetworkInterfaceSubresource) blockBandwidthSettingsSriov() error {
 func (r *NetworkInterfaceSubresource) ValidateDiff() error {
 	log.Printf("[DEBUG] %s: Beginning diff validation", r)
 
-	version := viapi.ParseVersionFromClient(r.client)
-
-	// Minimum Supported Version: 6.0.0
-	if (version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6}) &&
-		r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov) {
+	if r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov {
 		if err := r.restrictResourceAllocationSettings(); err != nil {
 			return err
 		}
