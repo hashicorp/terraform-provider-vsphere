@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"strconv"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -23,9 +22,7 @@ import (
 )
 
 func TestAccResourceVSphereComputeClusterVMHostRule_basic(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -96,9 +93,7 @@ func TestAccResourceVSphereComputeClusterVMHostRule_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereComputeClusterVMHostRule_antiAffinity(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -127,9 +122,7 @@ func TestAccResourceVSphereComputeClusterVMHostRule_antiAffinity(t *testing.T) {
 }
 
 func TestAccResourceVSphereComputeClusterVMHostRule_updateEnabled(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -172,9 +165,7 @@ func TestAccResourceVSphereComputeClusterVMHostRule_updateEnabled(t *testing.T) 
 }
 
 func TestAccResourceVSphereComputeClusterVMHostRule_updateAffinity(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -217,9 +208,6 @@ func TestAccResourceVSphereComputeClusterVMHostRule_updateAffinity(t *testing.T)
 }
 
 func testAccResourceVSphereComputeClusterVMHostRulePreCheck(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_compute_cluster_vm_host_rule acceptance tests")
 	}

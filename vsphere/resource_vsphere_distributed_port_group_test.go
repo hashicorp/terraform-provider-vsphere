@@ -6,8 +6,6 @@ package vsphere
 
 import (
 	"fmt"
-	"os"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -18,9 +16,7 @@ import (
 )
 
 func TestAccResourceVSphereDistributedPortGroup_basic(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -58,9 +54,7 @@ func TestAccResourceVSphereDistributedPortGroup_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedPortGroup_inheritPolicyDiffCheck(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -81,9 +75,7 @@ func TestAccResourceVSphereDistributedPortGroup_inheritPolicyDiffCheck(t *testin
 }
 
 func TestAccResourceVSphereDistributedPortGroup_inheritPolicyDiffCheckVlanRangeTypeSetEdition(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -104,9 +96,7 @@ func TestAccResourceVSphereDistributedPortGroup_inheritPolicyDiffCheckVlanRangeT
 }
 
 func TestAccResourceVSphereDistributedPortGroup_overrideVlan(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -129,9 +119,7 @@ func TestAccResourceVSphereDistributedPortGroup_overrideVlan(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedPortGroup_singleTag(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -153,9 +141,7 @@ func TestAccResourceVSphereDistributedPortGroup_singleTag(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedPortGroup_multiTag(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -177,9 +163,7 @@ func TestAccResourceVSphereDistributedPortGroup_multiTag(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedPortGroup_singleCustomAttribute(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -201,9 +185,7 @@ func TestAccResourceVSphereDistributedPortGroup_singleCustomAttribute(t *testing
 }
 
 func TestAccResourceVSphereDistributedPortGroup_multiCustomAttribute(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

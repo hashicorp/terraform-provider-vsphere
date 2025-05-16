@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"strconv"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -24,9 +23,7 @@ import (
 )
 
 func TestAccResourceVSphereDRSVMOverride_drs(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -78,9 +75,7 @@ func TestAccResourceVSphereDRSVMOverride_drs(t *testing.T) {
 }
 
 func TestAccResourceVSphereDRSVMOverride_automationLevel(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -102,9 +97,7 @@ func TestAccResourceVSphereDRSVMOverride_automationLevel(t *testing.T) {
 }
 
 func TestAccResourceVSphereDRSVMOverride_update(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -133,9 +126,6 @@ func TestAccResourceVSphereDRSVMOverride_update(t *testing.T) {
 }
 
 func testAccResourceVSphereDRSVMOverridePreCheck(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_drs_vm_override acceptance tests")
 	}

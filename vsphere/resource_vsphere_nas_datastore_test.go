@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -20,9 +19,7 @@ import (
 )
 
 func TestAccResourceVSphereNasDatastore_basic(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -49,9 +46,7 @@ func TestAccResourceVSphereNasDatastore_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereNasDatastore_multiHost(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -73,9 +68,7 @@ func TestAccResourceVSphereNasDatastore_multiHost(t *testing.T) {
 }
 
 func TestAccResourceVSphereNasDatastore_basicToMultiHost(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -103,9 +96,7 @@ func TestAccResourceVSphereNasDatastore_basicToMultiHost(t *testing.T) {
 }
 
 func TestAccResourceVSphereNasDatastore_multiHostToBasic(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -133,9 +124,7 @@ func TestAccResourceVSphereNasDatastore_multiHostToBasic(t *testing.T) {
 }
 
 func TestAccResourceVSphereNasDatastore_renameDatastore(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -163,9 +152,7 @@ func TestAccResourceVSphereNasDatastore_renameDatastore(t *testing.T) {
 }
 
 func TestAccResourceVSphereNasDatastore_inFolder(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -193,9 +180,7 @@ func TestAccResourceVSphereNasDatastore_inFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereNasDatastore_moveToFolder(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -224,9 +209,7 @@ func TestAccResourceVSphereNasDatastore_moveToFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereNasDatastore_inDatastoreCluster(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -249,9 +232,7 @@ func TestAccResourceVSphereNasDatastore_inDatastoreCluster(t *testing.T) {
 }
 
 func TestAccResourceVSphereNasDatastore_moveToDatastoreCluster(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -279,9 +260,7 @@ func TestAccResourceVSphereNasDatastore_moveToDatastoreCluster(t *testing.T) {
 }
 
 func TestAccResourceVSphereNasDatastore_singleTag(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -303,9 +282,7 @@ func TestAccResourceVSphereNasDatastore_singleTag(t *testing.T) {
 }
 
 func TestAccResourceVSphereNasDatastore_modifyTags(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -334,9 +311,7 @@ func TestAccResourceVSphereNasDatastore_modifyTags(t *testing.T) {
 }
 
 func TestAccResourceVSphereNasDatastore_singleCustomAttribute(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -358,9 +333,7 @@ func TestAccResourceVSphereNasDatastore_singleCustomAttribute(t *testing.T) {
 }
 
 func TestAccResourceVSphereNasDatastore_multiCustomAttribute(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

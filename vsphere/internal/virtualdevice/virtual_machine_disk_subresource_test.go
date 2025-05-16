@@ -11,9 +11,6 @@ import (
 )
 
 func TestDiskCapacityInGiB(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	cases := []struct {
 		name     string
 		subject  *types.VirtualDisk

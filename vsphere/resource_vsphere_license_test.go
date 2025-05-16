@@ -26,9 +26,7 @@ resource "vsphere_license" "foo" {
 `
 
 func TestAccResourceVSphereLicense_basic(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -49,9 +47,7 @@ func TestAccResourceVSphereLicense_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereLicense_invalid(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -72,9 +68,7 @@ func TestAccResourceVSphereLicense_invalid(t *testing.T) {
 }
 
 func TestAccResourceVSphereLicense_withLabelsOnVCenter(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -97,9 +91,7 @@ func TestAccResourceVSphereLicense_withLabelsOnVCenter(t *testing.T) {
 }
 
 func TestAccResourceVSphereLicense_withLabelsOnESXiServer(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -119,9 +111,6 @@ func TestAccResourceVSphereLicense_withLabelsOnESXiServer(t *testing.T) {
 }
 
 func testAccVspherePreLicenseESXiServerIsNotSetCheck(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	key, err := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_TEST_ESXI"))
 	if err == nil && key {
 		t.Skip("TF_VAR_VSPHERE_TEST_ESXI must not be set for this acceptance test")
@@ -202,9 +191,6 @@ func testAccVSphereLicenseNotExists(name string) resource.TestCheckFunc {
 }
 
 func testAccVSpherePreLicenseBasicCheck(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	if key := os.Getenv("TF_VAR_VSPHERE_LICENSE"); key == "" {
 		t.Fatal("TF_VAR_VSPHERE_LICENSE must be set for acceptance test")
 	}

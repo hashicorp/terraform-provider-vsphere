@@ -12,9 +12,6 @@ import (
 )
 
 func TestDatastorePathFromString(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	cases := []struct {
 		name     string
 		subject  string
@@ -52,9 +49,6 @@ func TestDatastorePathFromString(t *testing.T) {
 }
 
 func TestIsVmdkDatastorePath(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	cases := []struct {
 		name     string
 		subject  string
@@ -91,9 +85,6 @@ func TestIsVmdkDatastorePath(t *testing.T) {
 }
 
 func TestDstDataStorePathFromLocalSrc(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	cases := []struct {
 		name     string
 		src      string

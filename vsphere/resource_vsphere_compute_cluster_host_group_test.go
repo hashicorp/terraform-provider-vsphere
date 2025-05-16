@@ -11,7 +11,6 @@ import (
 	"os"
 	"reflect"
 	"sort"
-	"strconv"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -24,9 +23,7 @@ import (
 )
 
 func TestAccResourceVSphereComputeClusterHostGroup_basic(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -83,9 +80,7 @@ func TestAccResourceVSphereComputeClusterHostGroup_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereComputeClusterHostGroup_update(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -114,9 +109,6 @@ func TestAccResourceVSphereComputeClusterHostGroup_update(t *testing.T) {
 }
 
 func testAccResourceVSphereComputeClusterHostGroupPreCheck(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_compute_cluster_host_group acceptance tests")
 	}

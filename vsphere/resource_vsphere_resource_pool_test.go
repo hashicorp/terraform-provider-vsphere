@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -70,9 +69,7 @@ func TestAccResourceVSphereResourcePool_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_updateRename(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -102,9 +99,7 @@ func TestAccResourceVSphereResourcePool_updateRename(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_updateToCustom(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -150,9 +145,7 @@ func TestAccResourceVSphereResourcePool_updateToCustom(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_updateToDefaults(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -197,9 +190,7 @@ func TestAccResourceVSphereResourcePool_updateToDefaults(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_esxiHost(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -220,9 +211,7 @@ func TestAccResourceVSphereResourcePool_esxiHost(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_updateParent(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -251,9 +240,7 @@ func TestAccResourceVSphereResourcePool_updateParent(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_tags(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

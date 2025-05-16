@@ -7,7 +7,6 @@ package vsphere
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -16,9 +15,7 @@ import (
 )
 
 func TestAccResourceVSphereOfflineSoftwareDepot_basic(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -55,9 +52,6 @@ func testAccResourceVSphereOfflineSoftwareDepotCheckFunc() resource.TestCheckFun
 }
 
 func testAccResourceVSphereOfflineSoftwareDepotPreCheck(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	if os.Getenv("TF_VAR_VSPHERE_SOFTWARE_DEPOT_LOCATION") == "" {
 		t.Skip("set TF_VAR_VSPHERE_SOFTWARE_DEPOT_LOCATION to run vsphere_offline_software_depot acceptance tests")
 	}

@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -41,11 +40,9 @@ func TestAccResourceVSphereVirtualDisk_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualDisk_extend(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	rString := acctest.RandString(5)
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -74,11 +71,9 @@ func TestAccResourceVSphereVirtualDisk_extend(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualDisk_multi(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	rString := acctest.RandString(5)
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -105,11 +100,9 @@ func TestAccResourceVSphereVirtualDisk_multi(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualDisk_multiWithParent(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	rString := acctest.RandString(5)
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -136,11 +129,9 @@ func TestAccResourceVSphereVirtualDisk_multiWithParent(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualDisk_withParent(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	rString := acctest.RandString(5)
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -16,9 +15,7 @@ import (
 )
 
 func TestAccDataSourceVSphereResourcePool_basic(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -39,9 +36,7 @@ func TestAccDataSourceVSphereResourcePool_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereResourcePool_noDatacenterAndAbsolutePath(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -62,9 +57,7 @@ func TestAccDataSourceVSphereResourcePool_noDatacenterAndAbsolutePath(t *testing
 }
 
 func TestAccDataSourceVSphereResourcePool_withParentId(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -90,9 +83,7 @@ func TestAccDataSourceVSphereResourcePool_withParentId(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereResourcePool_withParentIdAndNamePathError(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -112,9 +103,7 @@ func TestAccDataSourceVSphereResourcePool_withParentIdAndNamePathError(t *testin
 }
 
 func TestAccDataSourceVSphereResourcePool_withParentIdAndMissingNameError(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -134,9 +123,7 @@ func TestAccDataSourceVSphereResourcePool_withParentIdAndMissingNameError(t *tes
 }
 
 func TestAccDataSourceVSphereResourcePool_withInvalidParentIdError(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -155,9 +142,7 @@ func TestAccDataSourceVSphereResourcePool_withInvalidParentIdError(t *testing.T)
 }
 
 func TestAccDataSourceVSphereResourcePool_withParentIdAndNotFoundNameError(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -176,9 +161,7 @@ func TestAccDataSourceVSphereResourcePool_withParentIdAndNotFoundNameError(t *te
 }
 
 func TestAccDataSourceVSphereResourcePool_defaultResourcePoolForESXi(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -199,9 +182,7 @@ func TestAccDataSourceVSphereResourcePool_defaultResourcePoolForESXi(t *testing.
 }
 
 func TestAccDataSourceVSphereResourcePool_emptyNameOnVCenterShouldError(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -221,9 +202,6 @@ func TestAccDataSourceVSphereResourcePool_emptyNameOnVCenterShouldError(t *testi
 }
 
 func testAccDataSourceVSphereResourcePoolPreCheck(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
 		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_resource_pool data source acceptance tests")
 	}

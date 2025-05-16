@@ -48,9 +48,7 @@ func generateSteps(cfgFunc genTfConfig, netstack string) []resource.TestStep {
 }
 
 func TestAccResourceVSphereVNic_dvs_default(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -63,9 +61,7 @@ func TestAccResourceVSphereVNic_dvs_default(t *testing.T) {
 }
 
 func TestAccResourceVSphereVNic_dvs_vmotion(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -78,9 +74,7 @@ func TestAccResourceVSphereVNic_dvs_vmotion(t *testing.T) {
 }
 
 func TestAccResourceVSphereVNic_hvs_default(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -106,9 +100,7 @@ func TestAccResourceVSphereVNic_hvs_default(t *testing.T) {
 }
 
 func TestAccResourceVSphereVNic_hvs_vmotion(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -134,9 +126,7 @@ func TestAccResourceVSphereVNic_hvs_vmotion(t *testing.T) {
 }
 
 func TestAccResourceVSphereVNic_services_nonDefaultNetstack(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -162,9 +152,7 @@ func TestAccResourceVSphereVNic_services_nonDefaultNetstack(t *testing.T) {
 }
 
 func TestAccResourceVSphereVNic_services_invalid(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -191,9 +179,7 @@ func TestAccResourceVSphereVNic_services_invalid(t *testing.T) {
 }
 
 func TestAccResourceVSphereVNic_services_valid(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

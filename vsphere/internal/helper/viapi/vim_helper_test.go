@@ -31,9 +31,6 @@ type testParseVersion struct {
 }
 
 func (tc *testParseVersion) Test(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	actual, err := parseVersion(tc.product, tc.version, tc.build)
 	if err != nil && tc.expectedErr == nil {
 		t.Fatalf("bad: %s", err)
@@ -56,9 +53,6 @@ var testParseVersionExpected = VSphereVersion{
 }
 
 func TestParseVersion(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	cases := []testParseVersion{
 		{
 			Name:     "basic",
@@ -124,9 +118,6 @@ type testCompareVersion struct {
 }
 
 func (tc *testCompareVersion) Test(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	verA, err := parseVersion(tc.productA, tc.versionA, tc.buildA)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
@@ -161,9 +152,6 @@ func (tc *testCompareVersion) Test(t *testing.T) {
 }
 
 func TestCompareVersion(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	cases := []testCompareVersion{
 		{
 			Name:     "equal",
@@ -331,9 +319,6 @@ type testAtleastVersion struct {
 }
 
 func (tc *testAtleastVersion) Test(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	verA, err := parseVersion(tc.productA, tc.versionA, tc.buildA)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
@@ -363,9 +348,6 @@ func (tc *testAtleastVersion) Test(t *testing.T) {
 }
 
 func TestAtLeast(t *testing.T) {
-	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
-		t.Skip()
-	}
 	cases := []testAtleastVersion{
 		{
 			Name:     "atleast (newer)",
