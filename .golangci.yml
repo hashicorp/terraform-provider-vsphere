@@ -38,9 +38,6 @@ linters:
         text: G107
       - linters:
           - gosec
-        text: G109
-      - linters:
-          - gosec
         text: G115
       - linters:
           - gosec
