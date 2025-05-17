@@ -387,7 +387,7 @@ func GetNetworkMapping(client *govmomi.Client, m map[string]interface{}) ([]type
 func getClient(allowUnverifiedSSL bool) *http.Client {
 	if allowUnverifiedSSL {
 		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint (gosec G402)
 		}
 		return &http.Client{Transport: tr}
 	}

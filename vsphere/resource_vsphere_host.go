@@ -871,7 +871,9 @@ func buildHostConnectSpec(d *schema.ResourceData) (types.HostConnectSpec, error)
 }
 
 func getHostThumbprint(d *schema.ResourceData) (string, error) {
-	config := &tls.Config{}
+	config := &tls.Config{
+		MinVersion: tls.VersionTLS12, // Enforce TLS 1.2 or higher.
+	}
 
 	// Check the hostname.
 	address, ok := d.Get("hostname").(string)
