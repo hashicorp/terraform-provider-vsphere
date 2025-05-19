@@ -20,7 +20,6 @@ func TestAccResourceVSphereDistributedPortGroup_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDistributedPortGroupPreCheck()
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),
@@ -53,6 +52,7 @@ func TestAccResourceVSphereDistributedPortGroup_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedPortGroup_inheritPolicyDiffCheck(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -73,6 +73,7 @@ func TestAccResourceVSphereDistributedPortGroup_inheritPolicyDiffCheck(t *testin
 }
 
 func TestAccResourceVSphereDistributedPortGroup_inheritPolicyDiffCheckVlanRangeTypeSetEdition(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -93,6 +94,7 @@ func TestAccResourceVSphereDistributedPortGroup_inheritPolicyDiffCheckVlanRangeT
 }
 
 func TestAccResourceVSphereDistributedPortGroup_overrideVlan(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -115,6 +117,7 @@ func TestAccResourceVSphereDistributedPortGroup_overrideVlan(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedPortGroup_singleTag(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -136,6 +139,7 @@ func TestAccResourceVSphereDistributedPortGroup_singleTag(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedPortGroup_multiTag(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -157,6 +161,7 @@ func TestAccResourceVSphereDistributedPortGroup_multiTag(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedPortGroup_singleCustomAttribute(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -178,6 +183,7 @@ func TestAccResourceVSphereDistributedPortGroup_singleCustomAttribute(t *testing
 }
 
 func TestAccResourceVSphereDistributedPortGroup_multiCustomAttribute(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

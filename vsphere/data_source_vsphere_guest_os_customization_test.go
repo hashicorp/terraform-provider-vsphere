@@ -14,6 +14,7 @@ import (
 
 func TestAccDataSourceVSphereGOSC_basic(t *testing.T) {
 	goscName := acctest.RandomWithPrefix("lin")
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

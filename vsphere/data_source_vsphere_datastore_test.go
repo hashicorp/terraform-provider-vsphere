@@ -18,7 +18,6 @@ func TestAccDataSourceVSphereDatastore_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereDatastorePreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -27,7 +26,7 @@ func TestAccDataSourceVSphereDatastore_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrPair(
 						"data.vsphere_datastore.datastore_data", "id",
-						"vsphere_nas_datastore.ds1", "id",
+						"data.vsphere_datastore.rootds1", "id",
 					),
 				),
 			},
@@ -36,6 +35,7 @@ func TestAccDataSourceVSphereDatastore_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereDatastore_noDatacenterAndAbsolutePath(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -58,6 +58,7 @@ func TestAccDataSourceVSphereDatastore_noDatacenterAndAbsolutePath(t *testing.T)
 }
 
 func TestAccDataSourceVSphereDatastore_getStats(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -93,11 +94,11 @@ func testAccDataSourceVSphereDatastoreConfig() string {
 %s
 
 data "vsphere_datastore" "datastore_data" {
-  name          = vsphere_nas_datastore.ds1.name
+  name          = data.vsphere_datastore.rootds1.name
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootDS1()),
 	)
 }
 

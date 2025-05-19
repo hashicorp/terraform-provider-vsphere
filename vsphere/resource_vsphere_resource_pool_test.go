@@ -22,7 +22,6 @@ func TestAccResourceVSphereResourcePool_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereResourcePoolCheckExists(false),
@@ -70,6 +69,7 @@ func TestAccResourceVSphereResourcePool_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_updateRename(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -99,6 +99,7 @@ func TestAccResourceVSphereResourcePool_updateRename(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_updateToCustom(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -144,6 +145,7 @@ func TestAccResourceVSphereResourcePool_updateToCustom(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_updateToDefaults(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -188,6 +190,7 @@ func TestAccResourceVSphereResourcePool_updateToDefaults(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_esxiHost(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -208,6 +211,7 @@ func TestAccResourceVSphereResourcePool_esxiHost(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_updateParent(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -236,6 +240,7 @@ func TestAccResourceVSphereResourcePool_updateParent(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_tags(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

@@ -27,6 +27,7 @@ const (
 )
 
 func TestAccResourceVSphereDatastoreCluster_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -66,6 +67,7 @@ func TestAccResourceVSphereDatastoreCluster_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_sdrsEnabled(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -87,6 +89,7 @@ func TestAccResourceVSphereDatastoreCluster_sdrsEnabled(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_rename(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -115,6 +118,7 @@ func TestAccResourceVSphereDatastoreCluster_rename(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_inFolder(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -136,6 +140,7 @@ func TestAccResourceVSphereDatastoreCluster_inFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_moveToFolder(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -164,6 +169,7 @@ func TestAccResourceVSphereDatastoreCluster_moveToFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_sdrsOverrides(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -187,6 +193,7 @@ func TestAccResourceVSphereDatastoreCluster_sdrsOverrides(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_miscTweaks(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -214,6 +221,7 @@ func TestAccResourceVSphereDatastoreCluster_miscTweaks(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_reservableIops(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -250,6 +258,7 @@ func TestAccResourceVSphereDatastoreCluster_reservableIops(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_freeSpace(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -286,6 +295,7 @@ func TestAccResourceVSphereDatastoreCluster_freeSpace(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_singleTag(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -307,6 +317,7 @@ func TestAccResourceVSphereDatastoreCluster_singleTag(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_multipleTags(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -328,6 +339,7 @@ func TestAccResourceVSphereDatastoreCluster_multipleTags(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_switchTags(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -356,6 +368,7 @@ func TestAccResourceVSphereDatastoreCluster_switchTags(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_singleCustomAttribute(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -377,6 +390,7 @@ func TestAccResourceVSphereDatastoreCluster_singleCustomAttribute(t *testing.T) 
 }
 
 func TestAccResourceVSphereDatastoreCluster_multipleCustomAttribute(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -398,6 +412,7 @@ func TestAccResourceVSphereDatastoreCluster_multipleCustomAttribute(t *testing.T
 }
 
 func TestAccResourceVSphereDatastoreCluster_switchCustomAttribute(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

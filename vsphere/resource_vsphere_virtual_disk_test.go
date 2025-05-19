@@ -25,7 +25,6 @@ func TestAccResourceVSphereVirtualDisk_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualDiskPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", false),
@@ -43,6 +42,7 @@ func TestAccResourceVSphereVirtualDisk_basic(t *testing.T) {
 func TestAccResourceVSphereVirtualDisk_extend(t *testing.T) {
 	rString := acctest.RandString(5)
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -73,6 +73,7 @@ func TestAccResourceVSphereVirtualDisk_extend(t *testing.T) {
 func TestAccResourceVSphereVirtualDisk_multi(t *testing.T) {
 	rString := acctest.RandString(5)
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -101,6 +102,7 @@ func TestAccResourceVSphereVirtualDisk_multi(t *testing.T) {
 func TestAccResourceVSphereVirtualDisk_multiWithParent(t *testing.T) {
 	rString := acctest.RandString(5)
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -129,6 +131,7 @@ func TestAccResourceVSphereVirtualDisk_multiWithParent(t *testing.T) {
 func TestAccResourceVSphereVirtualDisk_withParent(t *testing.T) {
 	rString := acctest.RandString(5)
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -220,10 +223,14 @@ resource "vsphere_virtual_disk" "foo" {
   adapter_type = "lsiLogic"
   type         = "thin"
   datacenter   = data.vsphere_datacenter.rootdc1.name
-  datastore    = vsphere_nas_datastore.ds1.name
+  datastore    = data.vsphere_datastore.rootds1.name
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1()),
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootHost1(),
+			testhelper.ConfigDataRootHost2(),
+			testhelper.ConfigDataRootDS1()),
 		rName,
 	)
 }

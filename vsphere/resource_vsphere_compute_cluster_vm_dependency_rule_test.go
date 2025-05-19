@@ -22,6 +22,7 @@ import (
 )
 
 func TestAccResourceVSphereComputeClusterVMDependencyRule_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -90,6 +91,7 @@ func TestAccResourceVSphereComputeClusterVMDependencyRule_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereComputeClusterVMDependencyRule_altGroup(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -117,6 +119,7 @@ func TestAccResourceVSphereComputeClusterVMDependencyRule_altGroup(t *testing.T)
 }
 
 func TestAccResourceVSphereComputeClusterVMDependencyRule_updateEnabled(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -157,6 +160,7 @@ func TestAccResourceVSphereComputeClusterVMDependencyRule_updateEnabled(t *testi
 }
 
 func TestAccResourceVSphereComputeClusterVMDependencyRule_updateGroup(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

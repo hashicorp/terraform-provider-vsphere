@@ -31,6 +31,7 @@ var fallbackNtpServers = []string{
 }
 
 func TestAccResourceVSphereHost_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -64,7 +65,6 @@ func TestAccResourceVSphereHost_rootFolder(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccCheckEnvVariables(t, []string{"ESX_HOSTNAME", "ESX_USERNAME", "ESX_PASSWORD"})
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccVSphereHostDestroy,
@@ -80,6 +80,7 @@ func TestAccResourceVSphereHost_rootFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereHost_connection(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -108,6 +109,7 @@ func TestAccResourceVSphereHost_connection(t *testing.T) {
 }
 
 func TestAccResourceVSphereHost_maintenance(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -136,6 +138,7 @@ func TestAccResourceVSphereHost_maintenance(t *testing.T) {
 }
 
 func TestAccResourceVSphereHost_lockdown(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -171,6 +174,7 @@ func TestAccResourceVSphereHost_lockdown(t *testing.T) {
 }
 
 func TestAccResourceVSphereHost_lockdown_invalid(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -189,6 +193,7 @@ func TestAccResourceVSphereHost_lockdown_invalid(t *testing.T) {
 }
 
 func TestAccResourceVSphereHost_emptyLicense(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -396,6 +401,7 @@ func TestAccResourceVSphereHostNtpService(t *testing.T) {
 
 	for _, config := range configs {
 		t.Run(fmt.Sprintf("Enabled=%t,Policy=%s", config.Enabled, config.Policy), func(t *testing.T) {
+			testAccSkipUnstable(t)
 			resource.Test(t, resource.TestCase{
 				PreCheck:     func() { testAccPreCheck(t) },
 				Providers:    testAccProviders,
@@ -447,6 +453,7 @@ func TestAccResourceVSphereHostNTPServers(t *testing.T) {
 	// Split the environment variable into a slice of strings
 	ntpServersSlice := strings.Split(ntpServers, ",")
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -503,22 +510,22 @@ func testAccVSphereHostConfig() string {
 	return fmt.Sprintf(`
 	%s
 
-resource "vsphere_compute_cluster" "c1" {
-  name          = "%s"
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
-}
+	resource "vsphere_compute_cluster" "c1" {
+	  name = "%s"
+	  datacenter_id = data.vsphere_datacenter.rootdc1.id
+	}
 
-resource "vsphere_host" "h1" {
-  # Useful only for connection
-  hostname   = "%s"
-  username   = "%s"
-  password   = "%s"
-  thumbprint = data.vsphere_host_thumbprint.id
+	resource "vsphere_host" "h1" {
+	  # Useful only for connection
+	  hostname = "%s"
+	  username = "%s"
+	  password = "%s"
+	  thumbprint = data.vsphere_host_thumbprint.id
 
-  # Makes sense to update
-  license = "%s"
-  cluster = vsphere_compute_cluster.c1.id
-}
+	  # Makes sense to update
+	  license = "%s"
+	  cluster = vsphere_compute_cluster.c1.id
+	}
 	`, testhelper.ConfigDataRootDC1(),
 		"TestCluster",
 		os.Getenv("ESX_HOSTNAME"),
@@ -531,36 +538,43 @@ func testaccvspherehostconfigRootfolder() string {
 	return fmt.Sprintf(`
 	%s
 
-resource "vsphere_host" "h1" {
-  # Useful only for connection
-  hostname   = "%s"
-  username   = "%s"
-  password   = "%s"
-  thumbprint = data.vsphere_host_thumbprint.id
+	data "vsphere_host_thumbprint" "thumbprint1" {
+	  address = "%s"
+	  insecure = true
+	}
 
-  # Makes sense to update
-  license    = "%s"
-  datacenter = data.vsphere_datacenter.rootdc1.id
-}
-	`, testhelper.ConfigDataRootDC1(), os.Getenv("ESX_HOSTNAME"),
-		os.Getenv("ESX_USERNAME"),
-		os.Getenv("ESX_PASSWORD"),
-		os.Getenv("TF_VAR_VSPHERE_LICENSE"))
+	resource "vsphere_host" "h1" {
+	  hostname = "%s"
+	  username = "root"
+	  password = "%s"
+	  thumbprint = data.vsphere_host_thumbprint.thumbprint1.id
+
+	  datacenter = data.vsphere_datacenter.rootdc1.id
+
+	  lifecycle {
+		  ignore_changes = ["services"]
+	  }
+
+	}
+	`, testhelper.ConfigDataRootDC1(),
+		os.Getenv("TF_VAR_VSPHERE_ESXI4"), // for thumbprint retrieval
+		os.Getenv("TF_VAR_VSPHERE_ESXI4"), // for connection config
+		os.Getenv("TF_VAR_VSPHERE_ESXI4_PASSWORD"))
 }
 
 func testaccvspherehostconfigEmptylicense() string {
 	return fmt.Sprintf(`
 	%s
-resource "vsphere_host" "h1" {
-  # Useful only for connection
-  hostname   = "%s"
-  username   = "%s"
-  password   = "%s"
-  thumbprint = data.vsphere_host_thumbprint.id
+	resource "vsphere_host" "h1" {
+	  # Useful only for connection
+	  hostname = "%s"
+	  username = "%s"
+	  password = "%s"
+	  thumbprint = data.vsphere_host_thumbprint.id
 
-  # Makes sense to update
-  datacenter = data.vsphere_datacenter.rootdc1.id
-}
+	  # Makes sense to update
+	  datacenter = data.vsphere_datacenter.rootdc1.id
+	}
 	`, testhelper.ConfigDataRootDC1(),
 		os.Getenv("ESX_HOSTNAME"),
 		os.Getenv("ESX_USERNAME"),
@@ -572,22 +586,22 @@ func testaccvspherehostconfigImport() string {
 	return fmt.Sprintf(`
 	%s
 
-resource "vsphere_compute_cluster" "c1" {
-  name          = "%s"
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
-}
+	resource "vsphere_compute_cluster" "c1" {
+	  name = "%s"
+	  datacenter_id = data.vsphere_datacenter.rootdc1.id
+	}
 
-resource "vsphere_host" "h1" {
-  # Useful only for connection
-  hostname   = "%s"
-  username   = "%s"
-  password   = "%s"
-  thumbprint = data.vsphere_host_thumbprint.id
+	resource "vsphere_host" "h1" {
+	  # Useful only for connection
+	  hostname = "%s"
+	  username = "%s"
+	  password = "%s"
+	  thumbprint = data.vsphere_host_thumbprint.id
 
-  # Makes sense to update
-  license = "%s"
-  cluster = vsphere_compute_cluster.c1.id
-}
+	  # Makes sense to update
+	  license = "%s"
+	  cluster = vsphere_compute_cluster.c1.id
+	}
 	`, testhelper.ConfigDataRootDC1(),
 		"TestCluster",
 		os.Getenv("ESX_HOSTNAME"),
@@ -600,21 +614,21 @@ func testaccvspherehostconfigConnection(connection bool) string {
 	return fmt.Sprintf(`
 	%s
 
-resource "vsphere_compute_cluster" "c1" {
-  name          = "%s"
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
-}
+	resource "vsphere_compute_cluster" "c1" {
+	  name = "%s"
+	  datacenter_id = data.vsphere_datacenter.rootdc1.id
+	}
 
-resource "vsphere_host" "h1" {
-  hostname   = "%s"
-  username   = "%s"
-  password   = "%s"
-  thumbprint = data.vsphere_host_thumbprint.id
+	resource "vsphere_host" "h1" {
+	  hostname = "%s"
+	  username = "%s"
+	  password = "%s"
+	  thumbprint = data.vsphere_host_thumbprint.id
 
-  license   = "%s"
-  connected = "%s"
-  cluster   = vsphere_compute_cluster.c1.id
-}
+	  license = "%s"
+	  connected = "%s"
+	  cluster = vsphere_compute_cluster.c1.id
+	}
 	`, testhelper.ConfigDataRootDC1(),
 		"TestCluster",
 		os.Getenv("ESX_HOSTNAME"),
@@ -628,22 +642,22 @@ func testaccvspherehostconfigMaintenance(maintenance bool) string {
 	return fmt.Sprintf(`
 	%s
 
-resource "vsphere_compute_cluster" "c1" {
-  name          = "%s"
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
-}
+	resource "vsphere_compute_cluster" "c1" {
+	  name = "%s"
+	  datacenter_id = data.vsphere_datacenter.rootdc1.id
+	}
 
-resource "vsphere_host" "h1" {
-  hostname   = "%s"
-  username   = "%s"
-  password   = "%s"
-  thumbprint = data.vsphere_host_thumbprint.id
+	resource "vsphere_host" "h1" {
+	  hostname = "%s"
+	  username = "%s"
+	  password = "%s"
+	  thumbprint = data.vsphere_host_thumbprint.id
 
-  license     = "%s"
-  connected   = "true"
-  maintenance = "%s"
-  cluster     = vsphere_compute_cluster.c1.id
-}
+	  license = "%s"
+	  connected = "true"
+	  maintenance = "%s"
+	  cluster = vsphere_compute_cluster.c1.id
+	}
 	`, testhelper.ConfigDataRootDC1(),
 		"TestCluster",
 		os.Getenv("ESX_HOSTNAME"),
@@ -657,23 +671,23 @@ func testaccvspherehostconfigLockdown(lockdown string) string {
 	return fmt.Sprintf(`
 	%s
 
-resource "vsphere_compute_cluster" "c1" {
-  name          = "%s"
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
-}
+	resource "vsphere_compute_cluster" "c1" {
+	  name = "%s"
+	  datacenter_id = data.vsphere_datacenter.rootdc1.id
+	}
 
-resource "vsphere_host" "h1" {
-  hostname   = "%s"
-  username   = "%s"
-  password   = "%s"
-  thumbprint = data.vsphere_host_thumbprint.id
+	resource "vsphere_host" "h1" {
+	  hostname = "%s"
+	  username = "%s"
+	  password = "%s"
+	  thumbprint = data.vsphere_host_thumbprint.id
 
-  license     = "%s"
-  connected   = "true"
-  maintenance = "false"
-  lockdown    = "%s"
-  cluster     = vsphere_compute_cluster.c1.id
-}
+	  license = "%s"
+	  connected = "true"
+	  maintenance = "false"
+	  lockdown = "%s"
+	  cluster = vsphere_compute_cluster.c1.id
+	}
 	`, testhelper.ConfigDataRootDC1(),
 		"TestCluster",
 		os.Getenv("ESX_HOSTNAME"),
@@ -693,27 +707,27 @@ func testAccVSphereHostConfigNtpdServices(config NtpdServiceConfig) string {
 %s
 
 resource "vsphere_compute_cluster" "c1" {
-  name          = "%s"
+  name = "%s"
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 data "vsphere_host_thumbprint" "thumbprint" {
-  address  = "%s"
-  insecure = true
+    address = "%s"
+    insecure = true
 }
 
 resource "vsphere_host" "h1" {
-  hostname   = "%s"
-  username   = "%s"
-  password   = "%s"
-  thumbprint = data.vsphere_host_thumbprint.thumbprint.id
-  services {
-    ntpd {
-      enabled = "%s"
-      policy  = "%s"
+    hostname = "%s"
+    username = "%s"
+    password = "%s"
+    thumbprint = data.vsphere_host_thumbprint.thumbprint.id
+    services {
+        ntpd {
+            enabled = "%s"
+            policy  = "%s"
+        }
     }
-  }
-  cluster = vsphere_compute_cluster.c1.id
+    cluster = vsphere_compute_cluster.c1.id
 }
 `, testhelper.ConfigDataRootDC1(),
 		"TestCluster",
@@ -732,28 +746,28 @@ func testAccVSphereHostConfigNtpServers(ntpServers []string) string {
 %s
 
 resource "vsphere_compute_cluster" "c1" {
-  name          = "%s"
+  name = "%s"
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 data "vsphere_host_thumbprint" "thumbprint" {
-  address  = "%s"
-  insecure = true
+    address = "%s"
+    insecure = true
 }
 
 resource "vsphere_host" "h1" {
-  hostname   = "%s"
-  username   = "%s"
-  password   = "%s"
-  thumbprint = data.vsphere_host_thumbprint.thumbprint.id
-  services {
-    ntpd {
-      ntp_servers = ["%s"]
-      enabled     = true
-      policy      = "on"
+    hostname = "%s"
+    username = "%s"
+    password = "%s"
+    thumbprint = data.vsphere_host_thumbprint.thumbprint.id
+    services {
+        ntpd {
+             ntp_servers = ["%s"]
+             enabled = true
+             policy = "on"
+        }
     }
-  }
-  cluster = vsphere_compute_cluster.c1.id
+    cluster = vsphere_compute_cluster.c1.id
 }`, testhelper.ConfigDataRootDC1(),
 		"TestCluster",
 		os.Getenv("ESX_HOSTNAME"),

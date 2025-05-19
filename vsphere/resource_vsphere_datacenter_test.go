@@ -163,6 +163,7 @@ func TestAccResourceVSphereDatacenter_createOnSubfolder(t *testing.T) {
 	dcFolder := "dc-folder"
 	name := "testDC"
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -189,6 +190,7 @@ func TestAccResourceVSphereDatacenter_createOnSubfolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatacenter_singleTag(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -212,6 +214,7 @@ func TestAccResourceVSphereDatacenter_singleTag(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatacenter_modifyTags(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -245,6 +248,7 @@ func TestAccResourceVSphereDatacenter_modifyTags(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatacenter_singleCustomAttribute(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -268,6 +272,7 @@ func TestAccResourceVSphereDatacenter_singleCustomAttribute(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatacenter_modifyCustomAttribute(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

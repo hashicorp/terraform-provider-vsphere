@@ -20,6 +20,6 @@ Run `terraform apply` using the configuration provided in `main.tf` to prepare t
 
 ## Run Acceptance Tests
 
-Set the missing values in `setup_env_vars.sh` and source the file.
+Set the missing values in `setup_env_vars.sh`.
 
 Execute `run_tests.sh` to run the full test suite or add the `-run` parameter to the `go test` command to run a subset of tests.

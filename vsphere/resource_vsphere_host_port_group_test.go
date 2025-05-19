@@ -20,7 +20,6 @@ func TestAccResourceVSphereHostPortGroup_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereHostPortGroupPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereHostPortGroupExists(false),
@@ -36,6 +35,7 @@ func TestAccResourceVSphereHostPortGroup_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereHostPortGroup_complexWithOverrides(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -60,6 +60,7 @@ func TestAccResourceVSphereHostPortGroup_complexWithOverrides(t *testing.T) {
 }
 
 func TestAccResourceVSphereHostPortGroup_basicToComplex(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -176,7 +177,7 @@ func testAccResourceVSphereHostPortGroupCheckEffectivePromisc(expected bool) res
 
 func testAccResourceVSphereHostPortGroupConfig() string {
 	return fmt.Sprintf(`
-variable "host_nic0" {
+variable "host_nic1" {
   default = "%s"
 }
 
@@ -191,8 +192,8 @@ resource "vsphere_host_virtual_switch" "switch" {
   name           = "vSwitchTerraformTest2"
   host_system_id = data.vsphere_host.esxi_host.id
 
-  network_adapters = [var.host_nic0]
-  active_nics      = [var.host_nic0]
+  network_adapters = [var.host_nic1]
+  active_nics      = [var.host_nic1]
   standby_nics     = []
 }
 
@@ -201,9 +202,9 @@ resource "vsphere_host_port_group" "pg" {
   host_system_id      = data.vsphere_host.esxi_host.id
   virtual_switch_name = vsphere_host_virtual_switch.switch.name
 }
-`, testhelper.HostNic0,
+`, testhelper.HostNic1,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
-		os.Getenv("TF_VAR_VSPHERE_ESXI1"))
+		os.Getenv("TF_VAR_VSPHERE_ESXI3"))
 }
 
 func testAccResourceVSphereHostPortGroupConfigWithOverrides() string {

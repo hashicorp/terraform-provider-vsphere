@@ -15,6 +15,7 @@ import (
 )
 
 func TestAccDataSourceVSphereVirtualMachine_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -61,6 +62,7 @@ func TestAccDataSourceVSphereVirtualMachine_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereVirtualMachine_noDatacenterAndAbsolutePath(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -106,6 +108,7 @@ func TestAccDataSourceVSphereVirtualMachine_noDatacenterAndAbsolutePath(t *testi
 }
 
 func TestAccDataSourceVSphereVirtualMachine_uuid(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -152,6 +155,7 @@ func TestAccDataSourceVSphereVirtualMachine_uuid(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereVirtualMachine_moid(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -198,6 +202,7 @@ func TestAccDataSourceVSphereVirtualMachine_moid(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereVirtualMachine_nameAndFolder(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

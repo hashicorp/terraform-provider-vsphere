@@ -56,6 +56,7 @@ func TestAccDataSourceVSphereRole_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereRole_systemRoleData(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)

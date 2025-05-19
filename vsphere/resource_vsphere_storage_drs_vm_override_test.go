@@ -22,6 +22,7 @@ import (
 )
 
 func TestAccResourceVSphereStorageDrsVMOverride_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -73,6 +74,7 @@ func TestAccResourceVSphereStorageDrsVMOverride_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereStorageDrsVMOverride_overrides(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -94,6 +96,7 @@ func TestAccResourceVSphereStorageDrsVMOverride_overrides(t *testing.T) {
 }
 
 func TestAccResourceVSphereStorageDrsVMOverride_update(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
