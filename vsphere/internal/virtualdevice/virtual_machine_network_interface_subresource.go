@@ -1194,12 +1194,6 @@ func (r *NetworkInterfaceSubresource) blockBandwidthSettingsSriov() error {
 func (r *NetworkInterfaceSubresource) ValidateDiff() error {
 	log.Printf("[DEBUG] %s: Beginning diff validation", r)
 
-	if r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov {
-		if err := r.restrictResourceAllocationSettings(); err != nil {
-			return err
-		}
-	}
-
 	// Ensure physical adapter is set on all (and only on) SR-IOV NICs
 	if r.Get("adapter_type").(string) == networkInterfaceSubresourceTypeSriov {
 		if len(r.Get("physical_function").(string)) == 0 {
@@ -1218,26 +1212,6 @@ func (r *NetworkInterfaceSubresource) ValidateDiff() error {
 	}
 
 	log.Printf("[DEBUG] %s: Diff validation complete", r)
-	return nil
-}
-
-func (r *NetworkInterfaceSubresource) restrictResourceAllocationSettings() error {
-	rs := NetworkInterfaceSubresourceSchema()
-	keys := []string{
-		"bandwidth_limit",
-		"bandwidth_reservation",
-		"bandwidth_share_level",
-		"bandwidth_share_count",
-	}
-	for _, key := range keys {
-		expected := rs[key].Default
-		if expected == nil {
-			expected = rs[key].ZeroValue()
-		}
-		if r.Get(key) != expected {
-			return fmt.Errorf("%s requires vSphere 6.0 or higher", key)
-		}
-	}
 	return nil
 }
 
