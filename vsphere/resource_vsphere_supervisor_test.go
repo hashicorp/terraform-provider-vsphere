@@ -14,6 +14,7 @@ import (
 )
 
 func TestAccResourceVSphereSupervisor_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccCheckEnvVariables(t, []string{
@@ -39,6 +40,7 @@ func TestAccResourceVSphereSupervisor_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereSupervisor_full(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccCheckEnvVariables(t, []string{

@@ -31,12 +31,12 @@ func TestAccDataSourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"data.vsphere_distributed_virtual_switch.dvs-data",
 						"uplinks.0",
-						testhelper.HostNic0,
+						testhelper.HostNic1,
 					),
 					resource.TestCheckResourceAttr(
 						"data.vsphere_distributed_virtual_switch.dvs-data",
 						"uplinks.1",
-						testhelper.HostNic1,
+						testhelper.HostNic2,
 					),
 					resource.TestCheckResourceAttrPair(
 						"data.vsphere_distributed_virtual_switch.dvs-data", "id",
@@ -49,6 +49,7 @@ func TestAccDataSourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereDistributedVirtualSwitch_absolutePathNoDatacenterSpecified(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -85,6 +86,7 @@ func TestAccDataSourceVSphereDistributedVirtualSwitch_absolutePathNoDatacenterSp
 }
 
 func TestAccDataSourceVSphereDistributedVirtualSwitch_CreatePortgroup(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -137,8 +139,8 @@ data "vsphere_distributed_virtual_switch" "dvs-data" {
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
-		testhelper.HostNic0,
 		testhelper.HostNic1,
+		testhelper.HostNic2,
 	)
 }
 

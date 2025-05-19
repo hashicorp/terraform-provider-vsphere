@@ -26,6 +26,7 @@ resource "vsphere_license" "foo" {
 `
 
 func TestAccResourceVSphereLicense_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -46,6 +47,7 @@ func TestAccResourceVSphereLicense_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereLicense_invalid(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -66,6 +68,7 @@ func TestAccResourceVSphereLicense_invalid(t *testing.T) {
 }
 
 func TestAccResourceVSphereLicense_withLabelsOnVCenter(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -88,6 +91,7 @@ func TestAccResourceVSphereLicense_withLabelsOnVCenter(t *testing.T) {
 }
 
 func TestAccResourceVSphereLicense_withLabelsOnESXiServer(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

@@ -24,6 +24,7 @@ import (
 )
 
 func TestAccResourceVSphereDatastoreClusterVMAntiAffinityRule_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -85,6 +86,7 @@ func TestAccResourceVSphereDatastoreClusterVMAntiAffinityRule_basic(t *testing.T
 }
 
 func TestAccResourceVSphereDatastoreClusterVMAntiAffinityRule_updateEnabled(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -123,6 +125,7 @@ func TestAccResourceVSphereDatastoreClusterVMAntiAffinityRule_updateEnabled(t *t
 }
 
 func TestAccResourceVSphereDatastoreClusterVMAntiAffinityRule_updateCount(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

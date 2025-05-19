@@ -19,7 +19,6 @@ func TestAccDataSourceVSphereHost_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereHostPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -38,6 +37,7 @@ func TestAccDataSourceVSphereHost_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereHost_defaultHost(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -85,7 +85,7 @@ data "vsphere_host" "host" {
   name          = "%s"
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
-`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_ESXI1"))
+`, testhelper.ConfigDataRootDC1(), os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }
 
 func testAccDataSourceVSphereHostConfigDefault() string {

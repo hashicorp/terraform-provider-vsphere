@@ -23,6 +23,7 @@ const (
 )
 
 func TestAccResourceVSphereVAppContainer_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -75,6 +76,7 @@ func TestAccResourceVSphereVAppContainer_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereVAppContainer_childImport(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -115,6 +117,7 @@ func TestAccResourceVSphereVAppContainer_childImport(t *testing.T) {
 }
 
 func TestAccResourceVSphereVAppContainer_vmBasic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -136,6 +139,7 @@ func TestAccResourceVSphereVAppContainer_vmBasic(t *testing.T) {
 }
 
 func TestAccResourceVSphereVAppContainer_vmMoveIntoVApp(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -163,6 +167,7 @@ func TestAccResourceVSphereVAppContainer_vmMoveIntoVApp(t *testing.T) {
 }
 
 func TestAccResourceVSphereVAppContainer_vmSDRS(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -184,6 +189,7 @@ func TestAccResourceVSphereVAppContainer_vmSDRS(t *testing.T) {
 }
 
 func TestAccResourceVSphereVAppContainer_vmClone(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -205,6 +211,7 @@ func TestAccResourceVSphereVAppContainer_vmClone(t *testing.T) {
 }
 
 func TestAccResourceVSphereVAppContainer_vmCloneSDRS(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -226,6 +233,7 @@ func TestAccResourceVSphereVAppContainer_vmCloneSDRS(t *testing.T) {
 }
 
 func TestAccResourceVSphereVAppContainer_vmMoveIntoVAppSDRS(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

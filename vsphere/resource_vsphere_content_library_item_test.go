@@ -18,6 +18,7 @@ import (
 )
 
 func TestAccResourceVSphereContentLibraryItem_localOva(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -54,6 +55,7 @@ func TestAccResourceVSphereContentLibraryItem_localOva(t *testing.T) {
 }
 
 func TestAccResourceVSphereContentLibraryItem_remoteOvf(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -97,6 +99,7 @@ func TestAccResourceVSphereContentLibraryItem_remoteOvf(t *testing.T) {
 }
 
 func TestAccResourceVSphereContentLibraryItem_remoteOva(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

@@ -12,4 +12,5 @@ const (
 	ContentLibraryFiles = "http://storage.googleapis.com/vsphere-acctest/TinyVM/TinyVM.ovf"
 	HostNic0            = "vmnic0"
 	HostNic1            = "vmnic1"
+	HostNic2            = "vmnic2"
 )

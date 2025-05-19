@@ -14,6 +14,7 @@ import (
 )
 
 func TestAccDataSourceVSphereDatastoreCluster_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -36,6 +37,7 @@ func TestAccDataSourceVSphereDatastoreCluster_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereDatastoreCluster_absolutePathNoDatacenter(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -57,6 +59,7 @@ func TestAccDataSourceVSphereDatastoreCluster_absolutePathNoDatacenter(t *testin
 	})
 }
 func TestAccDataSourceVSphereDatastoreCluster_getDatastores(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

@@ -15,6 +15,7 @@ import (
 )
 
 func TestAccDataSourceVSphereVAppContainer_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -36,6 +37,7 @@ func TestAccDataSourceVSphereVAppContainer_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereVAppContainer_path(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

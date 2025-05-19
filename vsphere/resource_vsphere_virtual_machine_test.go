@@ -44,7 +44,6 @@ func TestAccResourceVSphereVirtualMachine_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
@@ -82,6 +81,7 @@ func TestAccResourceVSphereVirtualMachine_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_hardwareVersionBare(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -103,6 +103,7 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionBare(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_hardwareVersionUpgrade(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -131,6 +132,7 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionUpgrade(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_hardwareVersionInvalidVersion(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -153,6 +155,7 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionInvalidVersion(t *testi
 }
 
 func TestAccResourceVSphereVirtualMachine_hardwareVersionDowngrade(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -178,6 +181,7 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionDowngrade(t *testing.T)
 }
 
 func TestAccResourceVSphereVirtualMachine_hardwareVersionClone(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -199,6 +203,7 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionClone(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachineContentLibrary_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -220,6 +225,7 @@ func TestAccResourceVSphereVirtualMachineContentLibrary_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_ignoreValidationOnComputedValue(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -239,6 +245,7 @@ func TestAccResourceVSphereVirtualMachine_ignoreValidationOnComputedValue(t *tes
 }
 
 func TestAccResourceVSphereVirtualMachine_highLatencySensitivity(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -260,6 +267,7 @@ func TestAccResourceVSphereVirtualMachine_highLatencySensitivity(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_ESXiOnly(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -283,6 +291,7 @@ func TestAccResourceVSphereVirtualMachine_ESXiOnly(t *testing.T) {
 func TestAccResourceVSphereVirtualMachine_shutdownOK(t *testing.T) {
 	var state *terraform.State
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -315,6 +324,7 @@ func TestAccResourceVSphereVirtualMachine_shutdownOK(t *testing.T) {
 func TestAccResourceVSphereVirtualMachine_reCreateOnDeletion(t *testing.T) {
 	var state *terraform.State
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -351,6 +361,7 @@ func TestAccResourceVSphereVirtualMachine_reCreateOnDeletion(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_multiDevice(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -372,6 +383,7 @@ func TestAccResourceVSphereVirtualMachine_multiDevice(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_addDevices(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -400,6 +412,7 @@ func TestAccResourceVSphereVirtualMachine_addDevices(t *testing.T) {
 
 func TestAccResourceVSphereVirtualMachine_removeMiddleDevices(t *testing.T) {
 	var state *terraform.State
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -439,6 +452,7 @@ func TestAccResourceVSphereVirtualMachine_removeMiddleDevices(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_removeMiddleDevicesChangeDiskUnit(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -467,6 +481,7 @@ func TestAccResourceVSphereVirtualMachine_removeMiddleDevicesChangeDiskUnit(t *t
 }
 
 func TestAccResourceVSphereVirtualMachine_highDiskUnitNumbers(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -493,6 +508,7 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitNumbers(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_highDiskUnitInsufficientBus(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -511,6 +527,7 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitInsufficientBus(t *testing
 }
 
 func TestAccResourceVSphereVirtualMachine_highDiskUnitsToRegularSingleController(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -543,6 +560,7 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitsToRegularSingleController
 }
 
 func TestAccResourceVSphereVirtualMachine_scsiBusSharing(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -564,6 +582,7 @@ func TestAccResourceVSphereVirtualMachine_scsiBusSharing(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_scsiBusSharingUpdate(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -593,6 +612,7 @@ func TestAccResourceVSphereVirtualMachine_scsiBusSharingUpdate(t *testing.T) {
 
 func TestAccResourceVSphereVirtualMachine_disksKeepOnRemove(t *testing.T) {
 	var disks []map[string]string
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -621,6 +641,7 @@ func TestAccResourceVSphereVirtualMachine_disksKeepOnRemove(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cdromClientMapping(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -642,6 +663,7 @@ func TestAccResourceVSphereVirtualMachine_cdromClientMapping(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppIsoBasic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -663,6 +685,7 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoBasic(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppIsoNoVApp(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -686,6 +709,7 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoNoVApp(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppIsoNoCdrom(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -708,6 +732,7 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoNoCdrom(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppIsoConfigIsoIgnored(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -732,6 +757,7 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoConfigIsoIgnored(t *testing.T) 
 
 func TestAccResourceVSphereVirtualMachine_vAppIsoChangeCdromBacking(t *testing.T) {
 	var state *terraform.State
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -761,6 +787,7 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoChangeCdromBacking(t *testing.T
 
 func TestAccResourceVSphereVirtualMachine_vAppIsoPoweredOffCdromRead(t *testing.T) {
 	var state *terraform.State
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -793,6 +820,7 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoPoweredOffCdromRead(t *testing.
 }
 
 func TestAccResourceVSphereVirtualMachine_vvtdAndVbs(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -812,6 +840,7 @@ func TestAccResourceVSphereVirtualMachine_vvtdAndVbs(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cdromNoParameters(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -833,6 +862,7 @@ func TestAccResourceVSphereVirtualMachine_cdromNoParameters(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cdromIsoBacking(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -852,6 +882,7 @@ func TestAccResourceVSphereVirtualMachine_cdromIsoBacking(t *testing.T) {
 	})
 }
 func TestAccResourceVSphereVirtualMachine_cdromConflictingParameters(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -870,6 +901,7 @@ func TestAccResourceVSphereVirtualMachine_cdromConflictingParameters(t *testing.
 }
 
 func TestAccResourceVSphereVirtualMachine_maximumNumberOfNICs(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -891,6 +923,7 @@ func TestAccResourceVSphereVirtualMachine_maximumNumberOfNICs(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_upgradeCPUAndRam(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -922,6 +955,7 @@ func TestAccResourceVSphereVirtualMachine_upgradeCPUAndRam(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_modifyAnnotation(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -950,6 +984,7 @@ func TestAccResourceVSphereVirtualMachine_modifyAnnotation(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_growDisk(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -978,6 +1013,7 @@ func TestAccResourceVSphereVirtualMachine_growDisk(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_swapSCSIBus(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1006,6 +1042,7 @@ func TestAccResourceVSphereVirtualMachine_swapSCSIBus(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_extraConfig(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1035,6 +1072,7 @@ func TestAccResourceVSphereVirtualMachine_extraConfig(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_extraConfigSwapKeys(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1064,6 +1102,7 @@ func TestAccResourceVSphereVirtualMachine_extraConfigSwapKeys(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_attachExistingVmdk(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1085,6 +1124,7 @@ func TestAccResourceVSphereVirtualMachine_attachExistingVmdk(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_attachExistingVmdkTaint(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1114,6 +1154,7 @@ func TestAccResourceVSphereVirtualMachine_attachExistingVmdkTaint(t *testing.T) 
 }
 
 func TestAccResourceVSphereVirtualMachine_resourcePoolMove(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1142,6 +1183,7 @@ func TestAccResourceVSphereVirtualMachine_resourcePoolMove(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppContainerAndFolder(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1160,6 +1202,7 @@ func TestAccResourceVSphereVirtualMachine_vAppContainerAndFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppContainerMove(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1195,6 +1238,7 @@ func TestAccResourceVSphereVirtualMachine_vAppContainerMove(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_inFolder(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1216,6 +1260,7 @@ func TestAccResourceVSphereVirtualMachine_inFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_moveToFolder(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1243,6 +1288,7 @@ func TestAccResourceVSphereVirtualMachine_moveToFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_staticMAC(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1264,6 +1310,7 @@ func TestAccResourceVSphereVirtualMachine_staticMAC(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_singleTag(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1285,6 +1332,7 @@ func TestAccResourceVSphereVirtualMachine_singleTag(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_multipleTags(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1306,6 +1354,7 @@ func TestAccResourceVSphereVirtualMachine_multipleTags(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_switchTags(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1336,6 +1385,7 @@ func TestAccResourceVSphereVirtualMachine_switchTags(t *testing.T) {
 func TestAccResourceVSphereVirtualMachine_renamedDiskInPlaceOfExisting(t *testing.T) {
 	var state *terraform.State
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1386,6 +1436,7 @@ func TestAccResourceVSphereVirtualMachine_renamedDiskInPlaceOfExisting(t *testin
 }
 
 func TestAccResourceVSphereVirtualMachine_blockComputedDiskName(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1410,6 +1461,7 @@ func TestAccResourceVSphereVirtualMachine_blockComputedDiskName(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_blockVAppSettingsOnNonClones(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1428,6 +1480,7 @@ func TestAccResourceVSphereVirtualMachine_blockVAppSettingsOnNonClones(t *testin
 }
 
 func TestAccResourceVSphereVirtualMachine_blockVAppSettingsOnNonClonesAfterCreation(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1458,6 +1511,7 @@ func TestAccResourceVSphereVirtualMachine_blockVAppSettingsOnNonClonesAfterCreat
 }
 
 func TestAccResourceVSphereVirtualMachine_blockDiskLabelStartingWithOrphanedPrefix(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1477,6 +1531,7 @@ func TestAccResourceVSphereVirtualMachine_blockDiskLabelStartingWithOrphanedPref
 }
 
 func TestAccResourceVSphereVirtualMachine_createIntoEmptyClusterNoEnvironmentBrowser(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1495,6 +1550,7 @@ func TestAccResourceVSphereVirtualMachine_createIntoEmptyClusterNoEnvironmentBro
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneFromTemplate(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1515,6 +1571,7 @@ func TestAccResourceVSphereVirtualMachine_cloneFromTemplate(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_clonePoweredOn(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1535,6 +1592,7 @@ func TestAccResourceVSphereVirtualMachine_clonePoweredOn(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneCustomizeWithNewResourcePool(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1557,6 +1615,7 @@ func TestAccResourceVSphereVirtualMachine_cloneCustomizeWithNewResourcePool(t *t
 func TestAccResourceVSphereVirtualMachine_cloneCustomizeForceNewWithDatastore(t *testing.T) {
 	var state *terraform.State
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1608,6 +1667,7 @@ func TestAccResourceVSphereVirtualMachine_cloneCustomizeForceNewWithDatastore(t 
 func TestAccResourceVSphereVirtualMachine_cloneModifyDiskAndSCSITypeAtSameTime(t *testing.T) {
 	var state *terraform.State
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1646,8 +1706,8 @@ func TestAccResourceVSphereVirtualMachine_cloneModifyDiskAndSCSITypeAtSameTime(t
 func TestAccResourceVSphereVirtualMachine_cloneMultiNICWithSameGateway(t *testing.T) {
 	// This test is intentionally disabled by default.
 	// Requires a Windows virtual machine template to run this test.
-	t.Skip()
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1668,6 +1728,7 @@ func TestAccResourceVSphereVirtualMachine_cloneMultiNICWithSameGateway(t *testin
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneMultiNICFromSingleNICTemplate(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1688,6 +1749,7 @@ func TestAccResourceVSphereVirtualMachine_cloneMultiNICFromSingleNICTemplate(t *
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneMultiNICSRIOVFromVMXNET3Template(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1708,6 +1770,7 @@ func TestAccResourceVSphereVirtualMachine_cloneMultiNICSRIOVFromVMXNET3Template(
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneWithDifferentTimezone(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1728,6 +1791,7 @@ func TestAccResourceVSphereVirtualMachine_cloneWithDifferentTimezone(t *testing.
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneBlockESXi(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1752,6 +1816,7 @@ func TestAccResourceVSphereVirtualMachine_cloneBlockESXi(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneWithBadTimezone(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1794,6 +1859,7 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadTimezone(t *testing.T) {
 //}
 
 func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithLinkedClone(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1813,6 +1879,7 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithLinkedClone(t *tes
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithoutLinkedClone(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1832,6 +1899,7 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithoutLinkedClone(t *
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneIntoEmptyCluster(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -1852,6 +1920,7 @@ func TestAccResourceVSphereVirtualMachine_cloneIntoEmptyCluster(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneWithDifferentHostname(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1872,6 +1941,7 @@ func TestAccResourceVSphereVirtualMachine_cloneWithDifferentHostname(t *testing.
 	})
 }
 func TestAccResourceVSphereVirtualMachine_cloneWithDiskTypeChange(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1893,6 +1963,7 @@ func TestAccResourceVSphereVirtualMachine_cloneWithDiskTypeChange(t *testing.T) 
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneOnDsCuster(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1914,6 +1985,7 @@ func TestAccResourceVSphereVirtualMachine_cloneOnDsCuster(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cpuHotAdd(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1945,6 +2017,7 @@ func TestAccResourceVSphereVirtualMachine_cpuHotAdd(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_memoryHotAdd(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1976,6 +2049,7 @@ func TestAccResourceVSphereVirtualMachine_memoryHotAdd(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_dualStackIPv4AndIPv6(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1997,6 +2071,7 @@ func TestAccResourceVSphereVirtualMachine_dualStackIPv4AndIPv6(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_hostCheck(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2025,6 +2100,7 @@ func TestAccResourceVSphereVirtualMachine_hostCheck(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_hostVMotion(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2053,6 +2129,7 @@ func TestAccResourceVSphereVirtualMachine_hostVMotion(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_resourcePoolVMotion(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2081,6 +2158,7 @@ func TestAccResourceVSphereVirtualMachine_resourcePoolVMotion(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_storageVMotionGlobalSetting(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2117,6 +2195,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionGlobalSetting(t *testing
 }
 
 func TestAccResourceVSphereVirtualMachine_storageVMotionSingleDisk(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2152,6 +2231,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionSingleDisk(t *testing.T)
 }
 
 func TestAccResourceVSphereVirtualMachine_storageVMotionPinDatastore(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2187,6 +2267,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionPinDatastore(t *testing.
 }
 
 func TestAccResourceVSphereVirtualMachine_storageVMotionRenamedVirtualMachine(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2230,6 +2311,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionRenamedVirtualMachine(t 
 func TestAccResourceVSphereVirtualMachine_storageVMotionLinkedClones(t *testing.T) {
 	var state *terraform.State
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2269,6 +2351,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionLinkedClones(t *testing.
 }
 
 func TestAccResourceVSphereVirtualMachine_storageVMotionBlockExternallyAttachedDisks(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2300,6 +2383,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionBlockExternallyAttachedD
 }
 
 func TestAccResourceVSphereVirtualMachine_singleCustomAttribute(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2321,6 +2405,7 @@ func TestAccResourceVSphereVirtualMachine_singleCustomAttribute(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_multiCustomAttribute(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2342,6 +2427,7 @@ func TestAccResourceVSphereVirtualMachine_multiCustomAttribute(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_switchCustomAttribute(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2370,6 +2456,7 @@ func TestAccResourceVSphereVirtualMachine_switchCustomAttribute(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_multipleDisksAtDifferentSCSISlotsImport(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2411,6 +2498,7 @@ func TestAccResourceVSphereVirtualMachine_multipleDisksAtDifferentSCSISlotsImpor
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneImport(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2493,6 +2581,7 @@ func TestAccResourceVSphereVirtualMachine_cloneImport(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_interpolatedDisk(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2517,6 +2606,7 @@ func TestAccResourceVSphereVirtualMachine_interpolatedDisk(t *testing.T) {
 
 func TestAccResourceVSphereVirtualMachine_deployOvfFromUrl(t *testing.T) {
 	vmName := "terraform_test_vm_" + acctest.RandStringFromCharSet(4, acctest.CharSetAlphaNum)
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2539,6 +2629,7 @@ func TestAccResourceVSphereVirtualMachine_deployOvfFromUrl(t *testing.T) {
 
 func TestAccResourceVSphereVirtualMachine_deployOvaFromUrl(t *testing.T) {
 	vmName := "terraform_test_vm_" + acctest.RandStringFromCharSet(4, acctest.CharSetAlphaNum)
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -2563,6 +2654,7 @@ func TestAccResourceVSphereVirtualMachine_deployOvaFromUrl(t *testing.T) {
 
 func TestAccResourceVSphereVirtualMachine_cloneWithCustomizationSpec(t *testing.T) {
 	goscName := acctest.RandomWithPrefix("gosc")
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2583,6 +2675,7 @@ func TestAccResourceVSphereVirtualMachine_cloneWithCustomizationSpec(t *testing.
 }
 
 func TestAccResourceVSphereVirtualMachine_SRIOV(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2604,6 +2697,7 @@ func TestAccResourceVSphereVirtualMachine_SRIOV(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_createMemoryReservationLockedToMax(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2626,6 +2720,7 @@ func TestAccResourceVSphereVirtualMachine_createMemoryReservationLockedToMax(t *
 
 func TestAccResourceVSphereVirtualMachine_deployOvfFromUrlMultipleVmsSameName(t *testing.T) {
 	ovfNameTpl := "terraform_test_vm_" + acctest.RandStringFromCharSet(4, acctest.CharSetAlphaNum)
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -2652,6 +2747,7 @@ func TestAccResourceVSphereVirtualMachine_deployOvfFromUrlMultipleVmsSameName(t 
 }
 
 func TestAccResourceVSphereVirtualMachine_nvmeController(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -3632,7 +3728,6 @@ func testAccResourceVSphereVirtualMachineConfigBase() string {
 		testhelper.ConfigDataRootHost1(),
 		testhelper.ConfigDataRootHost2(),
 		testhelper.ConfigDataRootDS1(),
-		testhelper.ConfigResDS1(),
 		testhelper.ConfigDataRootComputeCluster1(),
 		testhelper.ConfigResResourcePool1(),
 		testhelper.ConfigDataRootPortGroup1())
@@ -3803,7 +3898,7 @@ func testAccResourceVSphereVirtualMachineConfigBasic() string {
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
   resource_pool_id = vsphere_resource_pool.pool1.id
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -3818,6 +3913,7 @@ resource "vsphere_virtual_machine" "vm" {
   disk {
     label = "disk0"
     size  = 20
+    io_reservation = 1
   }
 }
 `,

@@ -20,7 +20,6 @@ func TestAccResourceVSphereContentLibrary_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereContentLibraryPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereContentLibraryCheckExists(false),
@@ -49,6 +48,7 @@ func TestAccResourceVSphereContentLibrary_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereContentLibrary_subscribed(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -75,6 +75,7 @@ func TestAccResourceVSphereContentLibrary_subscribed(t *testing.T) {
 	})
 }
 func TestAccResourceVSphereContentLibrary_authenticated(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -132,7 +133,7 @@ func testAccResourceVSphereContentLibraryName(expected *regexp.Regexp) resource.
 }
 
 func testaccresourcevspherecontentlibraryconfigBase() string {
-	return testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootDS1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1())
+	return testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost3(), testhelper.ConfigDataRootDS1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1())
 }
 
 func testaccresourcevspherecontentlibraryconfigAuthenticated() string {

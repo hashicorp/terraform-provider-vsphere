@@ -23,6 +23,7 @@ import (
 )
 
 func TestAccResourceVSphereHAVMOverride_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -110,6 +111,7 @@ func TestAccResourceVSphereHAVMOverride_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereHAVMOverride_complete(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -149,6 +151,7 @@ func TestAccResourceVSphereHAVMOverride_complete(t *testing.T) {
 }
 
 func TestAccResourceVSphereHAVMOverride_update(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

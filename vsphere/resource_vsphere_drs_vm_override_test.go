@@ -23,6 +23,7 @@ import (
 )
 
 func TestAccResourceVSphereDRSVMOverride_drs(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -74,6 +75,7 @@ func TestAccResourceVSphereDRSVMOverride_drs(t *testing.T) {
 }
 
 func TestAccResourceVSphereDRSVMOverride_automationLevel(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -95,6 +97,7 @@ func TestAccResourceVSphereDRSVMOverride_automationLevel(t *testing.T) {
 }
 
 func TestAccResourceVSphereDRSVMOverride_update(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

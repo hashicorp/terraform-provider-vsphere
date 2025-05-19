@@ -61,6 +61,7 @@ resource "vsphere_compute_cluster" "cluster" {
   name          = "acc-test-cluster"
 
   ha_enabled = true
+  drs_enabled = true
 
   host_system_ids = [
     vsphere_host.host1.id,
