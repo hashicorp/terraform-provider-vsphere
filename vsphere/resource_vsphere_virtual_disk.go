@@ -13,6 +13,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/vmware/govmomi"
@@ -21,6 +22,8 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/virtualdisk"
 )
+
+var vsphereVirtualDiskMakeDirectoryMutex sync.Mutex
 
 type virtualDisk struct {
 	size              int
@@ -170,9 +173,14 @@ func resourceVSphereVirtualDiskCreate(d *schema.ResourceData, meta interface{}) 
 	if vDisk.createDirectories {
 		directoryPathIndex := strings.LastIndex(vDisk.vmdkPath, "/")
 		if directoryPathIndex > 0 {
+			// Only allow one MakeDirectory operation at a time in order to avoid
+			// overlapping attempts to create the same directory, which can result
+			// in some of the attempts failing.
+			vsphereVirtualDiskMakeDirectoryMutex.Lock()
 			vmdkPath := vDisk.vmdkPath[0:directoryPathIndex]
 			log.Printf("[DEBUG] Creating parent directories: %v", ds.Path(vmdkPath))
 			err = fm.MakeDirectory(context.TODO(), ds.Path(vmdkPath), dc, true)
+			vsphereVirtualDiskMakeDirectoryMutex.Unlock()
 			if err != nil && !isAlreadyExists(err) {
 				log.Printf("[DEBUG] Failed to create parent directories:  %v", err)
 				return err
