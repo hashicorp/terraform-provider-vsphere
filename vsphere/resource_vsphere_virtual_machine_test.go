@@ -4627,60 +4627,6 @@ resource "vsphere_virtual_machine" "vm" {
 	)
 }
 
-func testAccResourceVSphereVirtualMachineConfigBasicCdromIsoAndClientCdrom() string {
-	return fmt.Sprintf(`
-
-
-%s  // Mix and match config
-
-variable "iso_datastore" {
-  default = "%s"
-}
-
-variable "iso_path" {
-  default = "%s"
-}
-
-data "vsphere_datastore" "iso_datastore" {
-  name          = var.iso_datastore
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
-}
-
-resource "vsphere_virtual_machine" "vm" {
-  name             = "testacc-test"
-  resource_pool_id = vsphere_resource_pool.pool1.id
-  datastore_id     = vsphere_nas_datastore.ds1.id
-
-  num_cpus = 2
-  memory   = 2048
-  guest_id = "otherLinux64Guest"
-
-  wait_for_guest_net_timeout = -1
-
-  network_interface {
-    network_id = data.vsphere_network.network1.id
-  }
-
-  disk {
-    label = "disk0"
-    size  = 20
-  }
-  cdrom {
-    datastore_id = data.vsphere_datastore.iso_datastore.id
-    path         = var.iso_path
-  }
-  cdrom {
-    client_device = true
-  }
-}
-`,
-
-		testAccResourceVSphereVirtualMachineConfigBase(),
-		testAccResourceVSphereVirtualMachineIsoDatastore,
-		testAccResourceVSphereVirtualMachineIsoFile,
-	)
-}
-
 func testAccResourceVSphereVirtualMachineConfigConflictingCdromParameters() string {
 	return fmt.Sprintf(`
 
