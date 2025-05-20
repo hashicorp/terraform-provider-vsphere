@@ -142,6 +142,8 @@ use the cluster default automation level.
 The following options control I/O load balancing for Storage DRS on the
 datastore cluster.
 
+I/O load balancing for Storage DRS is not available on vSphere 9.0 and later.
+
 * `sdrs_io_load_balance_enabled` - (Optional) Enable I/O load balancing for
   this datastore cluster. Default: `true`.
 * `sdrs_io_latency_threshold` - (Optional) The I/O latency threshold, in

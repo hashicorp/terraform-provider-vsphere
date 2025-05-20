@@ -36,6 +36,6 @@ data "vsphere_host_thumbprint" "thumb" {
   address  = "%s"
   insecure = true
 }`,
-		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI4"),
 	)
 }

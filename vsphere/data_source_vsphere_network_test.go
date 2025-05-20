@@ -6,7 +6,6 @@ package vsphere
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -18,7 +17,6 @@ func TestAccDataSourceVSphereNetwork_dvsPortgroup(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereNetworkPreCheck(t)
 			testAccSkipIfEsxi(t)
 		},
 		Providers: testAccProviders,
@@ -38,12 +36,10 @@ func TestAccDataSourceVSphereNetwork_dvsPortgroup(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereNetwork_withTimeout(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereNetworkPreCheck(t)
 			testAccSkipIfEsxi(t)
 		},
 		Providers: testAccProviders,
@@ -63,12 +59,10 @@ func TestAccDataSourceVSphereNetwork_withTimeout(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereNetwork_absolutePathNoDatacenter(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereNetworkPreCheck(t)
 			testAccSkipIfEsxi(t)
 		},
 		Providers: testAccProviders,
@@ -88,12 +82,10 @@ func TestAccDataSourceVSphereNetwork_absolutePathNoDatacenter(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereNetwork_hostPortgroups(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereNetworkPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -105,12 +97,6 @@ func TestAccDataSourceVSphereNetwork_hostPortgroups(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccDataSourceVSphereNetworkPreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_PG_NAME") == "" {
-		t.Skip("set TF_VAR_VSPHERE_PG_NAME to run vsphere_network acceptance tests")
-	}
 }
 
 func testAccDataSourceVSphereNetworkConfigDVSPortgroup(withTimeout bool) string {

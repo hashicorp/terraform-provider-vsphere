@@ -6,7 +6,6 @@ package vsphere
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"testing"
 
@@ -15,12 +14,10 @@ import (
 )
 
 func TestAccDataSourceVSphereVAppContainer_basic(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereVAppContainerPreCheck(t)
 			testAccSkipIfEsxi(t)
 		},
 		Providers: testAccProviders,
@@ -37,12 +34,10 @@ func TestAccDataSourceVSphereVAppContainer_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereVAppContainer_path(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereVAppContainerPreCheck(t)
 			testAccSkipIfEsxi(t)
 		},
 		Providers: testAccProviders,
@@ -56,15 +51,6 @@ func TestAccDataSourceVSphereVAppContainer_path(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccDataSourceVSphereVAppContainerPreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_vapp_container acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_CLUSTER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_CLUSTER to run vsphere_vapp_container acceptance tests")
-	}
 }
 
 func testAccDataSourceVSphereVAppContainerConfig() string {

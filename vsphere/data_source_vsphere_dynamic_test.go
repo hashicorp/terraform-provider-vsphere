@@ -40,7 +40,6 @@ func TestAccDataSourceVSphereDynamic_regexAndTag(t *testing.T) {
 
 func TestAccDataSourceVSphereDynamic_multiTag(t *testing.T) {
 	t.Cleanup(RunSweepers)
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -64,7 +63,6 @@ func TestAccDataSourceVSphereDynamic_multiTag(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereDynamic_multiResult(t *testing.T) {
-	testAccSkipUnstable(t)
 	t.Cleanup(RunSweepers)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -85,7 +83,6 @@ func TestAccDataSourceVSphereDynamic_multiResult(t *testing.T) {
 
 func TestAccDataSourceVSphereDynamic_typeFilter(t *testing.T) {
 	t.Cleanup(RunSweepers)
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
