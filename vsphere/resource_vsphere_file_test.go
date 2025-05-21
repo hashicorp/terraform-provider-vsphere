@@ -365,7 +365,7 @@ func testAccCheckVSphereFileDestroy(s *terraform.State) error {
 				return err
 			}
 		} else {
-			return fmt.Errorf("File %s still exists", rs.Primary.Attributes["destination_file"])
+			return fmt.Errorf("file %s still exists", rs.Primary.Attributes["destination_file"])
 		}
 	}
 
@@ -377,11 +377,11 @@ func testAccCheckVSphereFileExists(n string, df string, exists bool) resource.Te
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			return fmt.Errorf("Resource not found: %s", n)
+			return fmt.Errorf("resource not found: %s", n)
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No ID is set")
+			return fmt.Errorf("no ID is set")
 		}
 
 		client := testAccProvider.Meta().(*Client).vimClient
@@ -403,7 +403,7 @@ func testAccCheckVSphereFileExists(n string, df string, exists bool) resource.Te
 			switch e := err.(type) {
 			case object.DatastoreNoSuchFileError:
 				if exists {
-					return fmt.Errorf("File does not exist: %s", e.Error())
+					return fmt.Errorf("file does not exist: %s", e.Error())
 				}
 				return nil
 			default:

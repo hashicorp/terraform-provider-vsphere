@@ -80,7 +80,7 @@ func snapshotExists(n string, s *terraform.State) (bool, error) {
 	}
 
 	if rs.Primary.ID == "" {
-		return false, fmt.Errorf("No Vm Snapshot ID is set")
+		return false, fmt.Errorf("no Vm Snapshot ID is set")
 	}
 	client := testAccProvider.Meta().(*Client).vimClient
 
@@ -92,7 +92,7 @@ func snapshotExists(n string, s *terraform.State) (bool, error) {
 	defer cancel()
 	snapshot, err := vm.FindSnapshot(ctx, rs.Primary.ID)
 	if err != nil {
-		return false, fmt.Errorf("Error while getting the snapshot %v", snapshot)
+		return false, fmt.Errorf("error while getting the snapshot %v", snapshot)
 	}
 
 	return true, nil
@@ -105,7 +105,7 @@ func testAccCheckVirtualMachineSnapshotExists(n string, exists bool) resource.Te
 			return err
 		}
 		if found != exists {
-			return fmt.Errorf("Snapshot exists error. expected state: %t, actual state: %t", exists, found)
+			return fmt.Errorf("snapshot exists error. expected state: %t, actual state: %t", exists, found)
 		}
 
 		return nil
@@ -117,11 +117,11 @@ func testAccCheckVirtualMachineHasNoSnapshots(n string) resource.TestCheckFunc {
 		rs, ok := s.RootModule().Resources[n]
 
 		if !ok {
-			return fmt.Errorf("Not found: %s", n)
+			return fmt.Errorf("not found: %s", n)
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No VM ID is set")
+			return fmt.Errorf("no VM ID is set")
 		}
 		client := testAccProvider.Meta().(*Client).vimClient
 

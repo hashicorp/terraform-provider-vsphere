@@ -113,7 +113,7 @@ func testAccResourceVSphereContentLibraryDescription(expected *regexp.Regexp) re
 			return err
 		}
 		if !expected.MatchString(*library.Description) {
-			return fmt.Errorf("Content Library description does not match. expected: %s, got %v", expected.String(), library.Description)
+			return fmt.Errorf("content Library description does not match. expected: %s, got %v", expected.String(), library.Description)
 		}
 		return nil
 	}
@@ -126,7 +126,7 @@ func testAccResourceVSphereContentLibraryName(expected *regexp.Regexp) resource.
 			return err
 		}
 		if !expected.MatchString(library.Name) {
-			return fmt.Errorf("Content Library name does not match. expected: %s, got %s", expected.String(), library.Name)
+			return fmt.Errorf("content Library name does not match. expected: %s, got %s", expected.String(), library.Name)
 		}
 		return nil
 	}

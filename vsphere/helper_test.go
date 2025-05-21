@@ -272,7 +272,7 @@ func testGetDatacenter(s *terraform.State, resourceName string) (*object.Datacen
 	}
 	dcName, ok := tVars.resourceAttributes["name"]
 	if !ok {
-		return nil, fmt.Errorf("Datacenter resource %q has no name", resourceName)
+		return nil, fmt.Errorf("datacenter resource %q has no name", resourceName)
 	}
 	return getDatacenter(tVars.client, dcName)
 }
