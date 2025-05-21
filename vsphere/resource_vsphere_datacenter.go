@@ -136,8 +136,9 @@ func resourceVSphereDatacenterStateRefreshFunc(d *schema.ResourceData, meta inte
 		log.Print("[DEBUG] Refreshing datacenter state")
 		dc, err := datacenterExists(d, meta)
 		if err != nil {
-			switch err.(type) {
-			case *find.NotFoundError:
+			var notFoundError *find.NotFoundError
+			switch {
+			case errors.As(err, &notFoundError):
 				log.Printf("[DEBUG] Refreshing state. Datacenter not found: %s", err)
 				return nil, "InProgress", nil
 			default:

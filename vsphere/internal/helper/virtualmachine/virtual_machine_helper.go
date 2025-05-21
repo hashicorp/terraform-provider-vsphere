@@ -81,7 +81,8 @@ func newUUIDNotFoundError(s string) *UUIDNotFoundError {
 
 // IsUUIDNotFoundError returns true if the error is a UUIDNotFoundError.
 func IsUUIDNotFoundError(err error) bool {
-	_, ok := err.(*UUIDNotFoundError)
+	var notFoundError *UUIDNotFoundError
+	ok := errors.As(err, &notFoundError)
 	return ok
 }
 

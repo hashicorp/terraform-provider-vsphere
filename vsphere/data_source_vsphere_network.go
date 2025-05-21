@@ -5,6 +5,7 @@
 package vsphere
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -111,7 +112,8 @@ func dataSourceVSphereNetworkRead(d *schema.ResourceData, meta interface{}) erro
 			// Handle distributed virtual switch port group
 			net, err = network.FromNameAndDVSUuid(client, name, dc, dvSwitchUUID)
 			if err != nil {
-				if _, ok := err.(network.NotFoundError); ok {
+				var notFoundError *network.NotFoundError
+				if errors.As(err, &notFoundError) {
 					return struct{}{}, waitForNetworkPending, nil
 				}
 
@@ -122,7 +124,8 @@ func dataSourceVSphereNetworkRead(d *schema.ResourceData, meta interface{}) erro
 		// Handle standard switch port group
 		net, err = network.FromName(vimClient, name, dc, filters) // Pass the *vim25.Client
 		if err != nil {
-			if _, ok := err.(network.NotFoundError); ok {
+			var notFoundError *network.NotFoundError
+			if errors.As(err, &notFoundError) {
 				return struct{}{}, waitForNetworkPending, nil
 			}
 			return struct{}{}, waitForNetworkError, err

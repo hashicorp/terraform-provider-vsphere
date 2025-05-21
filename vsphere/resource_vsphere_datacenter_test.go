@@ -6,6 +6,7 @@ package vsphere
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 	"testing"
@@ -320,8 +321,9 @@ func testAccCheckVSphereDatacenterDestroy(s *terraform.State) error {
 		}
 		_, err := finder.Datacenter(context.TODO(), path)
 		if err != nil {
-			switch err.(type) {
-			case *find.NotFoundError:
+			var notFoundError *find.NotFoundError
+			switch {
+			case errors.As(err, &notFoundError):
 				return nil
 			default:
 				return err
@@ -354,10 +356,11 @@ func testAccCheckVSphereDatacenterExists(n string, exists bool) resource.TestChe
 		}
 		_, err := finder.Datacenter(context.TODO(), path)
 		if err != nil {
-			switch e := err.(type) {
-			case *find.NotFoundError:
+			var notFoundError *find.NotFoundError
+			switch {
+			case errors.As(err, &notFoundError):
 				if exists {
-					return fmt.Errorf("datacenter does not exist: %s", e.Error())
+					return fmt.Errorf("datacenter does not exist: %s", notFoundError.Error())
 				}
 				return nil
 			default:
