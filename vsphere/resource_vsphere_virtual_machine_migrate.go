@@ -193,7 +193,7 @@ func migrateVSphereVirtualMachineStateV2(is *terraform.InstanceState, meta inter
 
 	d := resourceVSphereVirtualMachine().Data(&terraform.InstanceState{})
 	_ = d.Set("scsi_controller_count", maxBus+1)
-	if err := virtualdevice.DiskImportOperation(d, object.VirtualDeviceList(props.Config.Hardware.Device)); err != nil {
+	if err := virtualdevice.DiskImportOperation(d, props.Config.Hardware.Device); err != nil {
 		return err
 	}
 

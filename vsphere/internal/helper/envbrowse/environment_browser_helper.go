@@ -70,7 +70,7 @@ func (b *EnvironmentBrowser) DefaultDevices(ctx context.Context, key string, hos
 	if res.Returnval == nil {
 		return nil, errors.New("no config options were found for the supplied criteria")
 	}
-	return object.VirtualDeviceList(res.Returnval.DefaultDevice), nil
+	return res.Returnval.DefaultDevice, nil
 }
 
 // OSFamily fetches the operating system family for the supplied guest ID.

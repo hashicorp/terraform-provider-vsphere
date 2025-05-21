@@ -1225,7 +1225,7 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 	// Validate the disks in the VM to make sure that they will work with the
 	// resource. This is mainly ensuring that all disks are SCSI disks, but a
 	// Read operation is attempted as well to make sure it will survive that.
-	if err := virtualdevice.DiskImportOperation(d, object.VirtualDeviceList(props.Config.Hardware.Device)); err != nil {
+	if err := virtualdevice.DiskImportOperation(d, props.Config.Hardware.Device); err != nil {
 		return nil, err
 	}
 	// The VM should be ready for reading now
@@ -1693,7 +1693,7 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			fmt.Errorf("error in virtual machine configuration: %s", err),
 		)
 	}
-	devices = object.VirtualDeviceList(vprops.Config.Hardware.Device)
+	devices = vprops.Config.Hardware.Device
 
 	// Disks
 	devices, delta, err = virtualdevice.DiskPostCloneOperation(d, client, devices, postOvf)

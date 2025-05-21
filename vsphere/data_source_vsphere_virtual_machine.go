@@ -265,19 +265,19 @@ func dataSourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{
 	d.SetId(props.Config.Uuid)
 	_ = d.Set("guest_id", props.Config.GuestId)
 	_ = d.Set("alternate_guest_name", props.Config.AlternateGuestName)
-	_ = d.Set("scsi_type", virtualdevice.ReadSCSIBusType(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int)))
-	_ = d.Set("scsi_bus_sharing", virtualdevice.ReadSCSIBusSharing(object.VirtualDeviceList(props.Config.Hardware.Device), d.Get("scsi_controller_scan_count").(int)))
+	_ = d.Set("scsi_type", virtualdevice.ReadSCSIBusType(props.Config.Hardware.Device, d.Get("scsi_controller_scan_count").(int)))
+	_ = d.Set("scsi_bus_sharing", virtualdevice.ReadSCSIBusSharing(props.Config.Hardware.Device, d.Get("scsi_controller_scan_count").(int)))
 	_ = d.Set("firmware", props.Config.Firmware)
 	_ = d.Set("instance_uuid", props.Config.InstanceUuid)
-	disks, err := virtualdevice.ReadDiskAttrsForDataSource(object.VirtualDeviceList(props.Config.Hardware.Device), d)
+	disks, err := virtualdevice.ReadDiskAttrsForDataSource(props.Config.Hardware.Device, d)
 	if err != nil {
 		return fmt.Errorf("error reading disk sizes: %s", err)
 	}
-	nics, err := virtualdevice.ReadNetworkInterfaceTypes(object.VirtualDeviceList(props.Config.Hardware.Device))
+	nics, err := virtualdevice.ReadNetworkInterfaceTypes(props.Config.Hardware.Device)
 	if err != nil {
 		return fmt.Errorf("error reading network interface types: %s", err)
 	}
-	networkInterfaces, err := virtualdevice.ReadNetworkInterfaces(object.VirtualDeviceList(props.Config.Hardware.Device))
+	networkInterfaces, err := virtualdevice.ReadNetworkInterfaces(props.Config.Hardware.Device)
 	if err != nil {
 		return fmt.Errorf("error reading network interfaces: %s", err)
 	}

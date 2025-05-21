@@ -180,7 +180,7 @@ func testAccResourceVSphereComputeClusterHostGroupMatchMembership() resource.Tes
 
 		actualSort := structure.MoRefSorter(actual.Host)
 		sort.Sort(actualSort)
-		actual.Host = []types.ManagedObjectReference(actualSort)
+		actual.Host = actualSort
 
 		if !reflect.DeepEqual(expected, actual) {
 			return spew.Errorf("expected %#v got %#v", expected, actual)
