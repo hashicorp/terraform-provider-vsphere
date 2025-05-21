@@ -99,7 +99,7 @@ func Move(client *govmomi.Client, srcPath string, srcDC *object.Datacenter, dstP
 func QueryDiskType(client *govmomi.Client, name string, dc *object.Datacenter) (types.VirtualDiskType, error) {
 	di, err := FromPath(client, name, dc)
 	if err != nil {
-		return types.VirtualDiskType(""), err
+		return "", err
 	}
 	t := di.DiskType
 	log.Printf("[DEBUG] QueryDiskType: Disk %q is of type %q", name, t)

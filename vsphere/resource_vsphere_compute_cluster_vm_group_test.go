@@ -184,7 +184,7 @@ func testAccResourceVSphereComputeClusterVMGroupMatchMembership() resource.TestC
 
 		actualSort := structure.MoRefSorter(actual.Vm)
 		sort.Sort(actualSort)
-		actual.Vm = []types.ManagedObjectReference(actualSort)
+		actual.Vm = actualSort
 
 		if !reflect.DeepEqual(expected, actual) {
 			return spew.Errorf("expected %#v got %#v", expected, actual)

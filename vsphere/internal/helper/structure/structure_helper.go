@@ -483,7 +483,7 @@ func NormalizeValue(v interface{}) interface{} {
 	k := reflect.TypeOf(v).Kind()
 	switch {
 	case k >= reflect.Int8 && k <= reflect.Uint64:
-		v = reflect.ValueOf(v).Convert(reflect.TypeOf(int(0))).Interface()
+		v = reflect.ValueOf(v).Convert(reflect.TypeOf(0)).Interface()
 	case k == reflect.Float32:
 		v = reflect.ValueOf(v).Convert(reflect.TypeOf(float64(0))).Interface()
 	}

@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/datacenter"
 	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/virtualmachine"
@@ -105,7 +104,7 @@ func TestAccResourceVSphereVirtualMachine_migrateStateV3_fromV2(t *testing.T) {
 		t.Fatalf("error fetching virtual machine properties: %s", err)
 	}
 
-	disks := virtualdevice.SelectDisks(object.VirtualDeviceList(props.Config.Hardware.Device), 1, 0, 0, 0)
+	disks := virtualdevice.SelectDisks(props.Config.Hardware.Device, 1, 0, 0, 0)
 	disk := disks[0].(*types.VirtualDisk)
 	backing := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
 	is := &terraform.InstanceState{
