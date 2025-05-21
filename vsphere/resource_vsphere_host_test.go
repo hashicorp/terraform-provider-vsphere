@@ -228,7 +228,7 @@ func testAccVSphereHostExists(name string) resource.TestCheckFunc {
 		}
 
 		if !res {
-			return fmt.Errorf("Host with ID %s not found", hostID)
+			return fmt.Errorf("host with ID %s not found", hostID)
 		}
 
 		return nil
@@ -250,7 +250,7 @@ func testAccVSphereHostConnected(name string, shouldBeConnected bool) resource.T
 		}
 
 		if res != shouldBeConnected {
-			return fmt.Errorf("Host with ID %s connection: %t, expected %t", hostID, res, shouldBeConnected)
+			return fmt.Errorf("host with ID %s connection: %t, expected %t", hostID, res, shouldBeConnected)
 		}
 
 		return nil
@@ -272,7 +272,7 @@ func testAccVSphereHostMaintenanceState(name string, inMaintenance bool) resourc
 		}
 
 		if res != inMaintenance {
-			return fmt.Errorf("Host with ID %s in maintenance : %t, expected %t", hostID, res, inMaintenance)
+			return fmt.Errorf("host with ID %s in maintenance: %t, expected %t", hostID, res, inMaintenance)
 		}
 
 		return nil
@@ -294,7 +294,7 @@ func testAccVSphereHostLockdownState(name string, lockdown string) resource.Test
 		}
 
 		if !res {
-			return fmt.Errorf("Host with ID %s not in desired lockdown state. Current state: %s", hostID, lockdown)
+			return fmt.Errorf("host with ID %s not in desired lockdown state. current state: %s", hostID, lockdown)
 		}
 
 		return nil
@@ -383,7 +383,7 @@ func checkHostLockdown(client *govmomi.Client, hostID, lockdownMode string) (boo
 
 	modeString, ok := lockdownModes[hostProps.Config.LockdownMode]
 	if !ok {
-		return false, fmt.Errorf("Unknown lockdown mode found: %s", hostProps.Config.LockdownMode)
+		return false, fmt.Errorf("unknown lockdown mode found: %s", hostProps.Config.LockdownMode)
 	}
 
 	return modeString == lockdownMode, nil
@@ -423,7 +423,7 @@ func testAccCheckVSphereHostNTPServiceState(resourceName string, config NtpdServ
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
 		if !ok {
-			return fmt.Errorf("Not found: %s", resourceName)
+			return fmt.Errorf("not found: %s", resourceName)
 		}
 
 		actualEnabled := rs.Primary.Attributes["services.0.ntpd.0.enabled"]
@@ -433,10 +433,10 @@ func testAccCheckVSphereHostNTPServiceState(resourceName string, config NtpdServ
 		expectedPolicy := config.Policy
 
 		if actualEnabled != expectedEnabled {
-			return fmt.Errorf("Expected NTPD service enabled state: %s, got: %s", expectedEnabled, actualEnabled)
+			return fmt.Errorf("expected NTPD service enabled state: %s, got: %s", expectedEnabled, actualEnabled)
 		}
 		if actualPolicy != expectedPolicy {
-			return fmt.Errorf("Expected NTPD policy: %s, got: %s", expectedPolicy, actualPolicy)
+			return fmt.Errorf("expected NTPD policy: %s, got: %s", expectedPolicy, actualPolicy)
 		}
 
 		return nil
@@ -477,7 +477,7 @@ func testAccCheckVSphereHostNTPServers(resourceName string, expectedServers []st
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
 		if !ok {
-			return fmt.Errorf("Not found: %s", resourceName)
+			return fmt.Errorf("not found: %s", resourceName)
 		}
 
 		log.Printf("Resource attributes: %+v", rs.Primary.Attributes)
@@ -485,7 +485,7 @@ func testAccCheckVSphereHostNTPServers(resourceName string, expectedServers []st
 		// Retrieve the number of NTP servers
 		ntpServersCount, err := strconv.Atoi(rs.Primary.Attributes["services.0.ntpd.0.ntp_servers.#"])
 		if err != nil {
-			return fmt.Errorf("Error converting ntp_servers count: %s", err)
+			return fmt.Errorf("error converting ntp_servers count: %s", err)
 		}
 
 		// Collect actual NTP servers
@@ -499,7 +499,7 @@ func testAccCheckVSphereHostNTPServers(resourceName string, expectedServers []st
 		actualServersStr := strings.Join(actualServers, ",")
 
 		if actualServersStr != expectedServersStr {
-			return fmt.Errorf("Expected NTP servers: %s, got: %s", expectedServersStr, actualServersStr)
+			return fmt.Errorf("expected NTP servers: %s, got: %s", expectedServersStr, actualServersStr)
 		}
 
 		return nil

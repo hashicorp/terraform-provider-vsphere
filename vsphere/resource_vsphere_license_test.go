@@ -216,15 +216,15 @@ func testAccVSphereLicenseWithLabelExists(name string) resource.TestCheckFunc {
 
 		if info == nil {
 			maskedKey := helper.MaskLicenseKey(rs.Primary.ID)
-			return fmt.Errorf("License key %s not found", maskedKey)
+			return fmt.Errorf("license key %s not found", maskedKey)
 		}
 
 		if len(info.Labels) == 0 {
-			return fmt.Errorf("The labels were not set for the key %s", info.LicenseKey)
+			return fmt.Errorf("the labels were not set for the key %s", info.LicenseKey)
 		}
 
 		if len(info.Labels) != 2 {
-			return fmt.Errorf(`The number of labels on the server are incorrect. Expected 2 Got %d`,
+			return fmt.Errorf(`number of labels is incorrect. expected: 2, got %d`,
 				len(info.Labels))
 		}
 

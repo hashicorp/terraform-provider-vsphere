@@ -38,12 +38,12 @@ func testCheckOutputBool(name string, value string) resource.TestCheckFunc {
 		ms := s.RootModule()
 		rs, ok := ms.Outputs[name]
 		if !ok {
-			return fmt.Errorf("Not found: %s", name)
+			return fmt.Errorf("not found: %s", name)
 		}
 
 		if rs.Value.(string) != value {
 			return fmt.Errorf(
-				"Output '%s': expected %#v, got %#v",
+				"output '%s': expected %#v, got %#v",
 				name,
 				value,
 				rs)
