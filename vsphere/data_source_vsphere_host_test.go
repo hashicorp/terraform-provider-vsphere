@@ -37,12 +37,10 @@ func TestAccDataSourceVSphereHost_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereHost_defaultHost(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereHostPreCheck(t)
 			testAccSkipIfNotEsxi(t)
 		},
 		Providers: testAccProviders,
@@ -61,19 +59,7 @@ func TestAccDataSourceVSphereHost_defaultHost(t *testing.T) {
 	})
 }
 
-func testAccDataSourceVSphereHostPreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_host acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_ESXI1") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI1 to run vsphere_host acceptance tests")
-	}
-}
-
 func testAccDataSourceVSphereHostExpectedRegexp() *regexp.Regexp {
-	if os.Getenv("TF_VAR_VSPHERE_TEST_ESXI") != "" {
-		return regexp.MustCompile("^ha-host$")
-	}
 	return regexp.MustCompile("^host-")
 }
 

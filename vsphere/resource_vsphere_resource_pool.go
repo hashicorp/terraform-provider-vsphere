@@ -336,7 +336,7 @@ func expandResourcePoolConfigSpec(d *schema.ResourceData, version viapi.VSphereV
 
 func expandResourcePoolCPUAllocation(d *schema.ResourceData) types.ResourceAllocationInfo {
 	return types.ResourceAllocationInfo{
-		Reservation:           structure.GetInt64Ptr(d, "cpu_reservation"),
+		Reservation:           structure.GetInt64PtrEmptyZero(d, "cpu_reservation"),
 		ExpandableReservation: structure.GetBoolPtr(d, "cpu_expandable"),
 		Limit:                 structure.GetInt64Ptr(d, "cpu_limit"),
 		Shares: &types.SharesInfo{
@@ -348,7 +348,7 @@ func expandResourcePoolCPUAllocation(d *schema.ResourceData) types.ResourceAlloc
 
 func expandResourcePoolMemoryAllocation(d *schema.ResourceData) types.ResourceAllocationInfo {
 	return types.ResourceAllocationInfo{
-		Reservation:           structure.GetInt64Ptr(d, "memory_reservation"),
+		Reservation:           structure.GetInt64PtrEmptyZero(d, "memory_reservation"),
 		ExpandableReservation: structure.GetBoolPtr(d, "memory_expandable"),
 		Limit:                 structure.GetInt64Ptr(d, "memory_limit"),
 		Shares: &types.SharesInfo{

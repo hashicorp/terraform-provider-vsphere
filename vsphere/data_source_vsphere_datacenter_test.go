@@ -38,12 +38,10 @@ func TestAccDataSourceVSphereDatacenter_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereDatacenter_defaultDatacenter(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereDatacenterPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -61,19 +59,11 @@ func TestAccDataSourceVSphereDatacenter_defaultDatacenter(t *testing.T) {
 	})
 }
 
-func testAccDataSourceVSphereDatacenterPreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_datacenter acceptance tests")
-	}
-}
-
 func TestAccDataSourceVSphereDatacenter_getVirtualMachines(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereDatacenterPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{

@@ -15,12 +15,10 @@ import (
 )
 
 func TestAccDataSourceVSphereVmfsDisks_basic(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereVmfsDisksPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -32,12 +30,6 @@ func TestAccDataSourceVSphereVmfsDisks_basic(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccDataSourceVSphereVmfsDisksPreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_ESXI1") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI1 to run vsphere_vmfs_disks acceptance tests")
-	}
 }
 
 // testCheckOutputBool checks an output in the Terraform configuration
@@ -80,6 +72,6 @@ output "found" {
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
-		os.Getenv("TF_VAR_VSPHERE_ESXI1"),
+		os.Getenv("TF_VAR_VSPHERE_ESXI3"),
 	)
 }

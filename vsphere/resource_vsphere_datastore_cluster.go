@@ -689,7 +689,7 @@ func expandStorageDrsPodConfigSpec(d *schema.ResourceData, version viapi.VSphere
 		DefaultVmBehavior:      d.Get("sdrs_automation_level").(string),
 		Enabled:                structure.GetBool(d, "sdrs_enabled"),
 		IoLoadBalanceConfig:    expandStorageDrsIoLoadBalanceConfig(d, version),
-		IoLoadBalanceEnabled:   structure.GetBool(d, "sdrs_io_load_balance_enabled"),
+		IoLoadBalanceEnabled:   getStorageDrsIoLoadBalanceEnabled(d, version),
 		LoadBalanceInterval:    int32(d.Get("sdrs_load_balance_interval").(int)),
 		SpaceLoadBalanceConfig: expandStorageDrsSpaceLoadBalanceConfig(d, version),
 		Option:                 expandStorageDrsOptionSpec(d),
@@ -775,19 +775,30 @@ func flattenStorageDrsAutomationConfig(d *schema.ResourceData, obj *types.Storag
 // expandStorageDrsIoLoadBalanceConfig reads certain ResourceData keys and returns
 // a StorageDrsIoLoadBalanceConfig.
 func expandStorageDrsIoLoadBalanceConfig(d *schema.ResourceData, version viapi.VSphereVersion) *types.StorageDrsIoLoadBalanceConfig {
+	// Maximum Supported Version: 9.0.0
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 9}) {
+		return nil
+	}
+
 	obj := &types.StorageDrsIoLoadBalanceConfig{
 		IoLatencyThreshold:       int32(d.Get("sdrs_io_latency_threshold").(int)),
 		IoLoadImbalanceThreshold: int32(d.Get("sdrs_io_load_imbalance_threshold").(int)),
 	}
 
-	// Minimum Supported Version: 6.0.0
-	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
-		obj.ReservableIopsThreshold = int32(d.Get("sdrs_io_reservable_iops_threshold").(int))
-		obj.ReservablePercentThreshold = int32(d.Get("sdrs_io_reservable_percent_threshold").(int))
-		obj.ReservableThresholdMode = d.Get("sdrs_io_reservable_threshold_mode").(string)
-	}
+	obj.ReservableIopsThreshold = int32(d.Get("sdrs_io_reservable_iops_threshold").(int))
+	obj.ReservablePercentThreshold = int32(d.Get("sdrs_io_reservable_percent_threshold").(int))
+	obj.ReservableThresholdMode = d.Get("sdrs_io_reservable_threshold_mode").(string)
 
 	return obj
+}
+
+func getStorageDrsIoLoadBalanceEnabled(d *schema.ResourceData, version viapi.VSphereVersion) *bool {
+	// Maximum Supported Version: 9.0.0
+	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 9}) {
+		return nil
+	}
+
+	return structure.GetBool(d, "sdrs_io_load_balance_enabled")
 }
 
 // flattenStorageDrsIoLoadBalanceConfig saves a StorageDrsIoLoadBalanceConfig
@@ -797,24 +808,24 @@ func flattenStorageDrsIoLoadBalanceConfig(
 	obj *types.StorageDrsIoLoadBalanceConfig,
 	version viapi.VSphereVersion,
 ) error {
-	attrs := map[string]interface{}{
-		"sdrs_io_latency_threshold":        obj.IoLatencyThreshold,
-		"sdrs_io_load_imbalance_threshold": obj.IoLoadImbalanceThreshold,
-	}
+	// Maximum Supported Version: 9.0.0
+	if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 9}) {
+		attrs := map[string]interface{}{
+			"sdrs_io_latency_threshold":        obj.IoLatencyThreshold,
+			"sdrs_io_load_imbalance_threshold": obj.IoLoadImbalanceThreshold,
+		}
 
-	// Minimum Supported Version: 6.0.0
-	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
 		attrs["sdrs_io_reservable_threshold_mode"] = obj.ReservableThresholdMode
 		if obj.ReservableThresholdMode == string(types.StorageDrsPodConfigInfoBehaviorManual) {
 			attrs["sdrs_io_reservable_iops_threshold"] = obj.ReservableIopsThreshold
 		} else {
 			attrs["sdrs_io_reservable_percent_threshold"] = obj.ReservablePercentThreshold
 		}
-	}
 
-	for k, v := range attrs {
-		if err := d.Set(k, v); err != nil {
-			return fmt.Errorf("error setting attribute %q: %s", k, err)
+		for k, v := range attrs {
+			if err := d.Set(k, v); err != nil {
+				return fmt.Errorf("error setting attribute %q: %s", k, err)
+			}
 		}
 	}
 

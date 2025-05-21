@@ -6,7 +6,6 @@ package vsphere
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -14,12 +13,10 @@ import (
 )
 
 func TestAccDataSourceVSphereDatastoreCluster_basic(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -37,12 +34,10 @@ func TestAccDataSourceVSphereDatastoreCluster_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereDatastoreCluster_absolutePathNoDatacenter(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -59,12 +54,10 @@ func TestAccDataSourceVSphereDatastoreCluster_absolutePathNoDatacenter(t *testin
 	})
 }
 func TestAccDataSourceVSphereDatastoreCluster_getDatastores(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -88,6 +81,7 @@ func testAccDataSourceVSphereDatastoreClusterConfigBasic() string {
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
   datacenter_id = data.vsphere_datacenter.rootdc1.id
+  sdrs_io_load_balance_enabled = false
 }
 
 data "vsphere_datastore_cluster" "datastore_cluster_data" {
@@ -95,7 +89,7 @@ data "vsphere_datastore_cluster" "datastore_cluster_data" {
   datacenter_id = vsphere_datastore_cluster.datastore_cluster.datacenter_id
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1()),
 	)
 }
 
@@ -106,20 +100,24 @@ func testAccDataSourceVSphereDatastoreClusterConfigAbsolutePath() string {
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
   datacenter_id = data.vsphere_datacenter.rootdc1.id
+  sdrs_io_load_balance_enabled = false
 }
 
 data "vsphere_datastore_cluster" "datastore_cluster_data" {
   name = "/${data.vsphere_datacenter.rootdc1.name}/datastore/${vsphere_datastore_cluster.datastore_cluster.name}"
 }
-`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1()),
 	)
 }
 
 func testAccDataSourceVSphereDatastoreClusterGetDatastores() string {
 	return fmt.Sprintf(`
+%s
+
 resource "vsphere_datastore_cluster" "datastore_cluster" {
-  name          = "%s"
-  datacenter_id = "%s"
+  name          = "testacc-datastore-cluster"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+  sdrs_io_load_balance_enabled = false
 }
 
 data "vsphere_datastore_cluster" "datastore_cluster_data" {
@@ -130,6 +128,6 @@ data "vsphere_datastore_cluster" "datastore_cluster_data" {
 output "found_datastores" {
   value = length(data.vsphere_datastore_cluster.datastore_cluster_data.datastores) >= 1 ? "true" : "false"
 }
-`, os.Getenv("TF_VAR_VSPHERE_DATASTORE_CLUSTER_NAME"), os.Getenv("TF_VAR_VSPHERE_DATACENTER_ID"),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1()),
 	)
 }

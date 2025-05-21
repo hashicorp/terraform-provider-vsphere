@@ -34,12 +34,10 @@ func TestAccDataSourceVSphereResourcePool_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereResourcePool_noDatacenterAndAbsolutePath(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereResourcePoolPreCheck(t)
 			testAccSkipIfEsxi(t)
 		},
 		Providers: testAccProviders,
@@ -55,12 +53,10 @@ func TestAccDataSourceVSphereResourcePool_noDatacenterAndAbsolutePath(t *testing
 }
 
 func TestAccDataSourceVSphereResourcePool_withParentId(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereResourcePoolPreCheck(t)
 			testAccSkipIfEsxi(t)
 		},
 		Providers: testAccProviders,
@@ -72,7 +68,7 @@ func TestAccDataSourceVSphereResourcePool_withParentId(t *testing.T) {
 					resource.TestMatchResourceAttr("data.vsphere_resource_pool.pool_by_parent", "id", regexp.MustCompile("^resgroup-")),
 					resource.TestCheckResourceAttrPair(
 						"data.vsphere_resource_pool.pool_by_parent", "id",
-						"data.vsphere_resource_pool.parent_pool", "id",
+						"vsphere_resource_pool.child_pool", "id",
 					),
 				),
 			},
@@ -86,7 +82,6 @@ func TestAccDataSourceVSphereResourcePool_withParentIdAndNamePathError(t *testin
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereResourcePoolPreCheck(t)
 			testAccSkipIfEsxi(t)
 		},
 		Providers: testAccProviders,
@@ -106,7 +101,6 @@ func TestAccDataSourceVSphereResourcePool_withParentIdAndMissingNameError(t *tes
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereResourcePoolPreCheck(t)
 			testAccSkipIfEsxi(t)
 		},
 		Providers: testAccProviders,
@@ -126,7 +120,6 @@ func TestAccDataSourceVSphereResourcePool_withInvalidParentIdError(t *testing.T)
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereResourcePoolPreCheck(t)
 			testAccSkipIfEsxi(t)
 		},
 		Providers: testAccProviders,
@@ -145,7 +138,6 @@ func TestAccDataSourceVSphereResourcePool_withParentIdAndNotFoundNameError(t *te
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereResourcePoolPreCheck(t)
 			testAccSkipIfEsxi(t)
 		},
 		Providers: testAccProviders,
@@ -164,7 +156,6 @@ func TestAccDataSourceVSphereResourcePool_defaultResourcePoolForESXi(t *testing.
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereResourcePoolPreCheck(t)
 			testAccSkipIfNotEsxi(t)
 		},
 		Providers: testAccProviders,
@@ -185,7 +176,6 @@ func TestAccDataSourceVSphereResourcePool_emptyNameOnVCenterShouldError(t *testi
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereResourcePoolPreCheck(t)
 			testAccSkipIfEsxi(t)
 		},
 		Providers: testAccProviders,
@@ -197,18 +187,6 @@ func TestAccDataSourceVSphereResourcePool_emptyNameOnVCenterShouldError(t *testi
 			},
 		},
 	})
-}
-
-func testAccDataSourceVSphereResourcePoolPreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_resource_pool data source acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_CLUSTER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_CLUSTER to run vsphere_resource_pool data source acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL") == "" {
-		t.Skip("set TF_VAR_VSPHERE_RESOURCE_POOL to run vsphere_resource_pool data source acceptance tests (must be a child pool of the cluster's default pool)")
-	}
 }
 
 func testAccDataSourceVSphereResourcePoolConfig() string {
@@ -233,17 +211,16 @@ func testAccDataSourceVSphereResourcePoolConfigAbsolutePath() string {
 	return fmt.Sprintf(`
 %s
 
-variable "resource_pool_name" {
-  description = "The name of the child resource pool to find (relative to cluster Resources)"
-  default     = "%s"
+resource "vsphere_resource_pool" "resource_pool" {
+  name                    = "terraform-test-resource-pool"
+  parent_resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
 }
 
 data "vsphere_resource_pool" "pool" {
-  name = "/${data.vsphere_datacenter.rootdc1.name}/host/${data.vsphere_compute_cluster.rootcompute_cluster1.name}/Resources/${var.resource_pool_name}"
+  name = "/${data.vsphere_datacenter.rootdc1.name}/host/${data.vsphere_compute_cluster.rootcompute_cluster1.name}/Resources/${vsphere_resource_pool.resource_pool.name}"
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
-		os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL"),
 	)
 }
 
@@ -251,24 +228,26 @@ func testAccDataSourceVSphereResourcePoolConfigWithParent() string {
 	return fmt.Sprintf(`
 %s
 
-variable "resource_pool_name" {
-  description = "The name of the child resource pool to find (relative to cluster Resources)"
-  default     = "%s"
+resource "vsphere_resource_pool" "parent_pool" {
+  name                    = "terraform-test-resource-pool"
+  parent_resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
 }
 
-data "vsphere_resource_pool" "parent_pool" {
-  name          = data.vsphere_compute_cluster.rootcompute_cluster1.name + "/Resources"
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
+resource "vsphere_resource_pool" "child_pool" {
+  name                    = "terraform-test-resource-pool"
+  parent_resource_pool_id = vsphere_resource_pool.parent_pool.id
 }
 
 data "vsphere_resource_pool" "pool_by_parent" {
-  name                    = var.resource_pool_name
-  parent_resource_pool_id = data.vsphere_resource_pool.parent_pool.id
+  name                    = "terraform-test-resource-pool"
+  parent_resource_pool_id = vsphere_resource_pool.parent_pool.id
   datacenter_id           = data.vsphere_datacenter.rootdc1.id // Optional, but good practice
+  depends_on = [
+    vsphere_resource_pool.child_pool
+  ]
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
-		os.Getenv("TF_VAR_VSPHERE_RESOURCE_POOL"),
 	)
 }
 
@@ -276,15 +255,23 @@ func testAccDataSourceVSphereResourcePoolConfigWithParentAndNamePath() string {
 	return fmt.Sprintf(`
 %s
 
-data "vsphere_resource_pool" "parent_pool" {
-  name          = data.vsphere_compute_cluster.rootcompute_cluster1.name + "/Resources"
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
+resource "vsphere_resource_pool" "parent_pool" {
+  name                    = "terraform-test-resource-pool"
+  parent_resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+}
+
+resource "vsphere_resource_pool" "child_pool" {
+  name                    = "terraform-test-resource-pool"
+  parent_resource_pool_id = vsphere_resource_pool.parent_pool.id
 }
 
 data "vsphere_resource_pool" "pool_by_parent" {
   name                    = "${data.vsphere_compute_cluster.rootcompute_cluster1.name}/Resources/some_pool" // Path name
-  parent_resource_pool_id = data.vsphere_resource_pool.parent_pool.id
-  datacenter_id           = data.vsphere_datacenter.rootdc1.id
+  parent_resource_pool_id = vsphere_resource_pool.parent_pool.id
+  datacenter_id           = data.vsphere_datacenter.rootdc1.id // Optional, but good practice
+  depends_on = [
+    vsphere_resource_pool.child_pool
+  ]
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
