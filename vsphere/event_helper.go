@@ -112,7 +112,7 @@ func (w *virtualMachineCustomizationWaiter) wait(client *govmomi.Client, vm *obj
 	var err error
 	select {
 	case <-ctx.Done():
-		if ctx.Err() == context.DeadlineExceeded {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			err = fmt.Errorf("timeout waiting for customization to complete")
 		}
 	case err = <-mgrErr:

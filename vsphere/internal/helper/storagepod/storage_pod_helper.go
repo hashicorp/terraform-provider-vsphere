@@ -6,6 +6,7 @@ package storagepod
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -406,7 +407,7 @@ func applySDRS(client *govmomi.Client, placement *types.StoragePlacementResult, 
 	result, err := task.WaitForResultEx(ctx, nil)
 	if err != nil {
 		// Provide a friendly error message for timeouts
-		if ctx.Err() == context.DeadlineExceeded {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			return nil, fmt.Errorf("timeout waiting for Storage DRS operation to complete (type: %q)", placement.Recommendations[0].Type)
 		}
 		return nil, err
