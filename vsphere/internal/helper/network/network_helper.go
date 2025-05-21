@@ -19,7 +19,7 @@ import (
 	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/provider"
 )
 
-var NetworkType = []string{
+var Type = []string{
 	"Network",
 	"DistributedVirtualPortgroup",
 	"OpaqueNetwork",

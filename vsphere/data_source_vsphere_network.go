@@ -56,7 +56,7 @@ func dataSourceVSphereNetwork() *schema.Resource {
 							Type:         schema.TypeString,
 							Description:  "The type of the network (e.g., Network, DistributedVirtualPortgroup, OpaqueNetwork)",
 							Optional:     true,
-							ValidateFunc: validation.StringInSlice(network.NetworkType, false),
+							ValidateFunc: validation.StringInSlice(network.Type, false),
 						},
 					},
 				},
