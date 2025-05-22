@@ -6,6 +6,7 @@ package vsphere
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/url"
@@ -191,7 +192,8 @@ func resourceVSphereFileRead(d *schema.ResourceData, meta interface{}) error {
 		log.Printf("[DEBUG] resourceVSphereFileRead - stat failed on: %v", f.destinationFile)
 		d.SetId("")
 
-		_, ok := err.(object.DatastoreNoSuchFileError)
+		var notFoundError *object.DatastoreNoSuchFileError
+		ok := errors.As(err, &notFoundError)
 		if !ok {
 			return err
 		}

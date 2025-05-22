@@ -6,6 +6,7 @@ package vsphere
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -358,8 +359,9 @@ func testAccCheckVSphereFileDestroy(s *terraform.State) error {
 
 		_, err = ds.Stat(context.TODO(), rs.Primary.Attributes["destination_file"])
 		if err != nil {
-			switch err.(type) {
-			case object.DatastoreNoSuchFileError:
+			var notFoundError *object.DatastoreNoSuchFileError
+			switch {
+			case errors.As(err, &notFoundError):
 				return nil
 			default:
 				return err
@@ -400,10 +402,11 @@ func testAccCheckVSphereFileExists(n string, df string, exists bool) resource.Te
 
 		_, err = ds.Stat(context.TODO(), df)
 		if err != nil {
-			switch e := err.(type) {
-			case object.DatastoreNoSuchFileError:
+			var notFoundError *object.DatastoreNoSuchFileError
+			switch {
+			case errors.As(err, &notFoundError):
 				if exists {
-					return fmt.Errorf("file does not exist: %s", e.Error())
+					return fmt.Errorf("file does not exist: %s", notFoundError.Error())
 				}
 				return nil
 			default:
