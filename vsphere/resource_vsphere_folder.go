@@ -29,9 +29,7 @@ func resourceVSphereFolder() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: resourceVSphereFolderImport,
 		},
-
 		SchemaVersion: 1,
-		MigrateState:  resourceVSphereFolderMigrateState,
 		Schema: map[string]*schema.Schema{
 			"path": {
 				Type:         schema.TypeString,

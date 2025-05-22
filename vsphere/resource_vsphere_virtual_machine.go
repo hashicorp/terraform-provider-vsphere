@@ -325,7 +325,6 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			State: resourceVSphereVirtualMachineImport,
 		},
 		SchemaVersion: 3,
-		MigrateState:  resourceVSphereVirtualMachineMigrateState,
 		Schema:        s,
 	}
 }

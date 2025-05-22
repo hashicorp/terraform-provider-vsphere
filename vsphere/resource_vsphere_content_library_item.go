@@ -5,7 +5,6 @@
 package vsphere
 
 import (
-	"context"
 	"log"
 	"strings"
 
@@ -16,14 +15,9 @@ import (
 
 func resourceVSphereContentLibraryItem() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceVSphereContentLibraryItemCreate,
-		Delete: resourceVSphereContentLibraryItemDelete,
-		Read:   resourceVSphereContentLibraryItemRead,
-		StateUpgraders: []schema.StateUpgrader{{
-			Version: 0,
-			Type:    resourceVSphereContentLibraryItemResourceV0().CoreConfigSchema().ImpliedType(),
-			Upgrade: resourceVSphereContentLibraryItemUpgradeV0,
-		}},
+		Create:        resourceVSphereContentLibraryItemCreate,
+		Delete:        resourceVSphereContentLibraryItemDelete,
+		Read:          resourceVSphereContentLibraryItemRead,
 		SchemaVersion: 1,
 		Importer: &schema.ResourceImporter{
 			State: resourceVSphereContentLibraryItemImport,
@@ -70,23 +64,6 @@ func resourceVSphereContentLibraryItem() *schema.Resource {
 			},
 		},
 	}
-}
-
-func resourceVSphereContentLibraryItemUpgradeV0(_ context.Context, rawState map[string]interface{}, _ interface{}) (map[string]interface{}, error) {
-	if len(rawState["file_url"].([]interface{})) < 1 {
-		rawState["file_url"] = interface{}("")
-		return rawState, nil
-	}
-
-	for _, file := range rawState["file_url"].([]interface{}) {
-		if strings.HasSuffix(file.(string), "ova") || strings.HasSuffix(file.(string), "ovf") || strings.HasSuffix(file.(string), "iso") {
-			rawState["file_url"] = interface{}(file.(string))
-			return rawState, nil
-		}
-	}
-
-	rawState["file_url"] = rawState["file_url"].([]interface{})[0]
-	return rawState, nil
 }
 
 func resourceVSphereContentLibraryItemRead(d *schema.ResourceData, meta interface{}) error {
