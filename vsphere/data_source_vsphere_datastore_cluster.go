@@ -45,7 +45,7 @@ func dataSourceVSphereDatastoreClusterRead(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("error loading datastore cluster: %s", err)
 	}
 	d.SetId(pod.Reference().Value)
-	dsNames := []string{}
+	var dsNames []string
 	childDatastores, err := pod.Children(ctx)
 	if err != nil {
 		return fmt.Errorf("error retrieving datastores in datastore cluster: %s", err)

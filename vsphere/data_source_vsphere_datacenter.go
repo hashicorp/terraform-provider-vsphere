@@ -62,7 +62,7 @@ func dataSourceVSphereDatacenterRead(d *schema.ResourceData, meta interface{}) e
 	if err != nil {
 		return fmt.Errorf("error fetching virtual machines: %s", err)
 	}
-	vmNames := []string{}
+	var vmNames []string
 	for v := range vms {
 		vmNames = append(vmNames, vms[v].Name)
 	}
