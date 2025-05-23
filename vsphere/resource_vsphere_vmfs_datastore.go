@@ -151,15 +151,16 @@ func resourceVSphereVmfsDatastoreCreate(d *schema.ResourceData, meta interface{}
 			return fmt.Errorf("error fetching datastore extend spec for disk %q: %s", disk, err)
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
-		defer cancel()
-		if _, err = extendVmfsDatastore(ctx, dss, ds, *extendSpec); err != nil {
+		_, extendErr := extendVmfsDatastore(ctx, dss, ds, *extendSpec)
+		cancel()
+		if extendErr != nil {
 			if remErr := removeDatastore(dss, ds); remErr != nil {
 				// We could not destroy the created datastore and there is now a dangling
 				// resource. We need to instruct the user to remove the datastore
 				// manually.
-				return fmt.Errorf(formatVmfsDatastoreCreateRollbackErrorUpdate, disk, err, remErr)
+				return fmt.Errorf(formatVmfsDatastoreCreateRollbackErrorUpdate, disk, extendErr, remErr)
 			}
-			return fmt.Errorf("error extending datastore with disk %q: %s", disk, err)
+			return fmt.Errorf("error extending datastore with disk %q: %s", disk, extendErr)
 		}
 	}
 
@@ -330,9 +331,10 @@ func resourceVSphereVmfsDatastoreUpdate(d *schema.ResourceData, meta interface{}
 				return err
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
-			defer cancel()
-			if _, err := extendVmfsDatastore(ctx, dss, ds, *spec); err != nil {
-				return err
+			_, extendErr := extendVmfsDatastore(ctx, dss, ds, *spec)
+			cancel()
+			if extendErr != nil {
+				return extendErr
 			}
 		}
 	}

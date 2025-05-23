@@ -90,15 +90,19 @@ func FromParentAndName(client *govmomi.Client, parentID string, name string) (*o
 		var childMo mo.ResourcePool
 		childRP := object.NewResourcePool(client.Client, childRef)
 		err = childRP.Properties(ctx, childRef, []string{"name"}, &childMo)
-		defer cancel()
+
 		if err != nil {
+			cancel()
 			errorMessages = append(errorMessages, fmt.Sprintf("could not get properties for child resource pool %s: %s", childRef.Value, err))
 			continue
 		}
 
 		if childMo.Name == name {
+			cancel()
 			return childRP, nil
 		}
+
+		cancel()
 	}
 
 	if len(errorMessages) > 0 {

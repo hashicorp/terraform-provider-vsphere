@@ -54,16 +54,21 @@ func OpaqueNetworkFromNetworkID(client *govmomi.Client, id string) (*object.Opaq
 			ref := net.Reference()
 			finder := find.NewFinder(client.Client, false)
 			fctx, fcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
-			defer fcancel()
+
 			nref, err := finder.ObjectReference(fctx, ref)
 			if err != nil {
+				fcancel()
 				return nil, err
 			}
+
+			fcancel()
+
 			// Should be safe to return here, as we have already asserted that this type
 			// should be a OpaqueNetwork by using ContainerView, along with relying
 			// on several fields that only an opaque network would have.
 			return nref.(*object.OpaqueNetwork), nil
 		}
 	}
+
 	return nil, fmt.Errorf("could not find opaque network with ID %q", id)
 }

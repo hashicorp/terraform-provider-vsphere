@@ -471,15 +471,21 @@ func fileUpload(client *govmomi.Client, dc *object.Datacenter, ds *object.Datast
 			// If it does, rename the file to the original destination path.
 			fm := object.NewFileManager(client.Client)
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
-			defer cancel()
+
 			task, err := fm.MoveDatastoreFile(ctx, ds.Path(destination), dc, ds.Path(originalDestination), dc, false)
 			if err != nil {
+				cancel()
 				return err
 			}
+
 			_, err = task.WaitForResult(ctx, nil)
+			cancel()
+
 			if err != nil {
 				return err
 			}
+
+			break
 		}
 	}
 
