@@ -481,7 +481,7 @@ func virtualDiskFromDeviceConfigSpecForPlacement(spec types.BaseVirtualDeviceCon
 }
 
 func expandVMPodConfigForPlacement(dc []types.BaseVirtualDeviceConfigSpec, pod *object.StoragePod) []types.VmPodConfigForPlacement {
-	var initialVMConfig []types.VmPodConfigForPlacement
+	var diskLocators []types.PodDiskLocator
 
 	for _, deviceConfigSpec := range dc {
 		d, ok := virtualDiskFromDeviceConfigSpecForPlacement(deviceConfigSpec)
@@ -489,20 +489,25 @@ func expandVMPodConfigForPlacement(dc []types.BaseVirtualDeviceConfigSpec, pod *
 			continue
 		}
 
-		podConfigForPlacement := types.VmPodConfigForPlacement{
-			StoragePod: pod.Reference(),
-			Disk: []types.PodDiskLocator{
-				{
-					DiskId:          d.Key,
-					DiskBackingInfo: d.Backing,
-				},
-			},
+		diskLocator := types.PodDiskLocator{
+			DiskId:          d.Key,
+			DiskBackingInfo: d.Backing,
 		}
 
-		initialVMConfig = append(initialVMConfig, podConfigForPlacement)
+		diskLocators = append(diskLocators, diskLocator)
 	}
 
-	return initialVMConfig
+	// Only create a config if we have disks to place
+	if len(diskLocators) > 0 {
+		podConfigForPlacement := types.VmPodConfigForPlacement{
+			StoragePod: pod.Reference(),
+			Disk:       diskLocators,
+		}
+
+		return []types.VmPodConfigForPlacement{podConfigForPlacement}
+	}
+
+	return nil
 }
 
 // IsMember checks to see if a datastore is a member of the datastore cluster
