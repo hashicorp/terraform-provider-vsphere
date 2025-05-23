@@ -49,7 +49,8 @@ func ConvertToStretchedCluster(vsanClient *vsan.Client, client *govmomi.Client, 
 	return task.WaitEx(ctx)
 }
 
-// removing the witness host automatically disables stretched cluster.
+// RemoveWitnessHost removes a witness host for a stretched cluster and results in the cluster being converted
+// to a non-stretched cluster.
 func RemoveWitnessHost(vsanClient *vsan.Client, client *govmomi.Client, req vsantypes.VSANVcRemoveWitnessHost) error {
 	ctx, cancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
 	defer cancel()
