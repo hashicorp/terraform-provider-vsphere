@@ -99,7 +99,7 @@ func dataSourceVSphereHostPciDeviceRead(d *schema.ResourceData, meta interface{}
 
 func matchName(d *schema.ResourceData, devices []types.HostPciDevice) ([]types.HostPciDevice, error) {
 	log.Printf("[DEBUG] DataHostPCIDev: Selecting devices which match name regex")
-	matches := []types.HostPciDevice{}
+	var matches []types.HostPciDevice
 	re, err := regexp.Compile(d.Get("name_regex").(string))
 	if err != nil {
 		return nil, err

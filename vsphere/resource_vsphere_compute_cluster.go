@@ -1603,7 +1603,7 @@ func resourceVSphereComputeClusterFlattenData(
 	}
 
 	if !d.Get("host_managed").(bool) {
-		hostList := []string{}
+		var hostList []string
 		for _, host := range props.Host {
 			hostList = append(hostList, host.Value)
 		}
@@ -2134,7 +2134,7 @@ func addVsanDisks(host *object.HostSystem, list []interface{}, client *govmomi.C
 }
 
 func flattenVsanDisks(d *schema.ResourceData, cluster *object.ClusterComputeResource) error {
-	diskMap := []interface{}{}
+	var diskMap []interface{}
 
 	hosts, err := clustercomputeresource.Hosts(cluster)
 	if err != nil {

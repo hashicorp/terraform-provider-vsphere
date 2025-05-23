@@ -625,7 +625,7 @@ func (deployData *VCenterDeploy) deployOvf() (*types.ManagedObjectReference, err
 // converts them into a slice of vcenter.Properties to be used while deploying
 // content library items as VMs.
 func VAppProperties(propertyMap map[string]interface{}) []vcenter.Property {
-	properties := []vcenter.Property{}
+	var properties []vcenter.Property
 	for key, value := range propertyMap {
 		vcenterProperty := vcenter.Property{
 			ID:    key,
