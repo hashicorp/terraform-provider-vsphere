@@ -241,14 +241,14 @@ func (p *tagDiffProcessor) diff(a, b []string) []string {
 func (p *tagDiffProcessor) processAttachOperations() error {
 	tagIDs := p.diffNewOld()
 	if len(tagIDs) < 1 {
-		// Nothing to do
 		return nil
 	}
 	for _, tagID := range tagIDs {
 		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
-		defer cancel()
 		log.Printf("[DEBUG] Attaching tag %q for object %q", tagID, p.subject.Reference().Value)
-		if err := p.manager.AttachTag(ctx, tagID, p.subject); err != nil {
+		err := p.manager.AttachTag(ctx, tagID, p.subject)
+		cancel()
+		if err != nil {
 			return err
 		}
 	}
@@ -260,14 +260,14 @@ func (p *tagDiffProcessor) processAttachOperations() error {
 func (p *tagDiffProcessor) processDetachOperations() error {
 	tagIDs := p.diffOldNew()
 	if len(tagIDs) < 1 {
-		// Nothing to do
 		return nil
 	}
 	for _, tagID := range tagIDs {
 		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
-		defer cancel()
 		log.Printf("[DEBUG] Detaching tag %q for object %q", tagID, p.subject.Reference().Value)
-		if err := p.manager.DetachTag(ctx, tagID, p.subject); err != nil {
+		err := p.manager.DetachTag(ctx, tagID, p.subject)
+		cancel()
+		if err != nil {
 			return err
 		}
 	}

@@ -654,15 +654,20 @@ func testAccResourceVSphereFolderDeleteOOB(s *terraform.State) error {
 	for _, ref := range refs {
 		me := object.NewCommon(client.Client, ref.Reference())
 		dctx, dcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
-		defer dcancel()
-		task, err := me.Destroy(dctx)
-		if err != nil {
-			return err
+		task, destroyErr := me.Destroy(dctx)
+		if destroyErr != nil {
+			dcancel()
+			return destroyErr
 		}
+
 		tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
-		defer tcancel()
-		if err := task.WaitEx(tctx); err != nil {
-			return err
+		waitErr := task.WaitEx(tctx)
+
+		tcancel()
+		dcancel()
+
+		if waitErr != nil {
+			return waitErr
 		}
 	}
 	return nil
