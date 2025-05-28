@@ -17,12 +17,10 @@ import (
 )
 
 func TestAccResourceVSphereVAppEntity_basic(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVAppEntityPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVAppEntityCheckExists("vapp_entity", false),
@@ -348,17 +346,18 @@ resource "vsphere_vapp_entity" "vapp_entity" {
 resource "vsphere_virtual_machine" "vm" {
   name             = "terraform-virtual-machine-test"
   resource_pool_id = vsphere_vapp_container.vapp_container.id
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus                   = 2
   memory                     = 2048
   guest_id                   = "other3xLinuxGuest"
-  wait_for_guest_net_timeout = -1
+  wait_for_guest_net_timeout = 0
 
 
   disk {
     label = "disk0"
-    size  = "1"
+    size  = 1
+    io_reservation = 1
   }
 
   network_interface {
@@ -369,7 +368,7 @@ resource "vsphere_virtual_machine" "vm" {
 		testhelper.ConfigDataRootDC1(),
 		testhelper.ConfigDataRootHost1(),
 		testhelper.ConfigDataRootHost2(),
-		testhelper.ConfigResDS1(),
+		testhelper.ConfigDataRootDS1(),
 		testhelper.ConfigDataRootComputeCluster1(),
 		testhelper.ConfigResResourcePool1(),
 		testhelper.ConfigDataRootPortGroup1()),

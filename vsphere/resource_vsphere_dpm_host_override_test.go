@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"reflect"
 	"testing"
 
@@ -22,12 +21,10 @@ import (
 )
 
 func TestAccResourceVSphereDPMHostOverride_basic(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDPMHostOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDPMHostOverrideExists(false),
@@ -74,12 +71,10 @@ func TestAccResourceVSphereDPMHostOverride_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereDPMHostOverride_overrides(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDPMHostOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDPMHostOverrideExists(false),
@@ -96,12 +91,10 @@ func TestAccResourceVSphereDPMHostOverride_overrides(t *testing.T) {
 }
 
 func TestAccResourceVSphereDPMHostOverride_update(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDPMHostOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDPMHostOverrideExists(false),
@@ -122,18 +115,6 @@ func TestAccResourceVSphereDPMHostOverride_update(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccResourceVSphereDPMHostOverridePreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_compute_cluster acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_ESXI1") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI1 to run vsphere_compute_cluster acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_ESXI2") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI2 to run vsphere_compute_cluster acceptance tests")
-	}
 }
 
 func testAccResourceVSphereDPMHostOverrideExists(expected bool) resource.TestCheckFunc {

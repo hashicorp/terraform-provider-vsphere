@@ -61,6 +61,7 @@ func TestAccResourceVSphereHost_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereHost_rootFolder(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

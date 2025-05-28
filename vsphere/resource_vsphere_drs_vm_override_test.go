@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"reflect"
 	"testing"
 
@@ -23,12 +22,10 @@ import (
 )
 
 func TestAccResourceVSphereDRSVMOverride_drs(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDRSVMOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDRSVMOverrideExists(false),
@@ -75,12 +72,10 @@ func TestAccResourceVSphereDRSVMOverride_drs(t *testing.T) {
 }
 
 func TestAccResourceVSphereDRSVMOverride_automationLevel(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDRSVMOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDRSVMOverrideExists(false),
@@ -97,12 +92,10 @@ func TestAccResourceVSphereDRSVMOverride_automationLevel(t *testing.T) {
 }
 
 func TestAccResourceVSphereDRSVMOverride_update(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDRSVMOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDRSVMOverrideExists(false),
@@ -123,21 +116,6 @@ func TestAccResourceVSphereDRSVMOverride_update(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccResourceVSphereDRSVMOverridePreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_drs_vm_override acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
-		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_drs_vm_override acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_CLUSTER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_CLUSTER to run vsphere_drs_vm_override acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_PG_NAME") == "" {
-		t.Skip("set TF_VAR_VSPHERE_PG_NAME to run vsphere_drs_vm_override acceptance tests")
-	}
 }
 
 func testAccResourceVSphereDRSVMOverrideExists(expected bool) resource.TestCheckFunc {
@@ -206,13 +184,13 @@ func testAccResourceVSphereDRSVMOverrideConfigOverrideDRSEnabled() string {
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
   resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
   guest_id = "other3xLinuxGuest"
 
-  wait_for_guest_net_timeout = -1
+  wait_for_guest_net_timeout = 0
 
   network_interface {
     network_id = data.vsphere_network.network1.id
@@ -220,7 +198,8 @@ resource "vsphere_virtual_machine" "vm" {
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
+    io_reservation = 1
   }
 }
 
@@ -232,7 +211,7 @@ resource "vsphere_drs_vm_override" "drs_vm_override" {
 `, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
 		testhelper.ConfigDataRootHost1(),
 		testhelper.ConfigDataRootHost2(),
-		testhelper.ConfigResDS1(),
+		testhelper.ConfigDataRootDS1(),
 		testhelper.ConfigDataRootComputeCluster1(),
 		testhelper.ConfigResResourcePool1(),
 		testhelper.ConfigDataRootPortGroup1()),
@@ -246,13 +225,13 @@ func testAccResourceVSphereDRSVMOverrideConfigOverrideAutomationLevel() string {
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
   resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
   guest_id = "other3xLinuxGuest"
 
-  wait_for_guest_net_timeout = -1
+  wait_for_guest_net_timeout = 0
 
   network_interface {
     network_id = data.vsphere_network.network1.id
@@ -260,7 +239,8 @@ resource "vsphere_virtual_machine" "vm" {
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 2
+    io_reservation = 1
   }
 }
 
@@ -270,6 +250,6 @@ resource "vsphere_drs_vm_override" "drs_vm_override" {
   drs_enabled          = true
   drs_automation_level = "fullyAutomated"
 }
-`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigDataRootDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }

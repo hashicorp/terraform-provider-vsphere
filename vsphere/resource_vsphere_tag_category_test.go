@@ -18,7 +18,6 @@ import (
 )
 
 func TestAccResourceVSphereTagCategory_basic(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -59,7 +58,6 @@ func TestAccResourceVSphereTagCategory_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereTagCategory_addType(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

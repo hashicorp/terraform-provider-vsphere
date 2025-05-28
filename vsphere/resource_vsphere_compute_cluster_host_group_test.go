@@ -23,12 +23,10 @@ import (
 )
 
 func TestAccResourceVSphereComputeClusterHostGroup_basic(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterHostGroupPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereComputeClusterHostGroupExists(false),
@@ -80,12 +78,10 @@ func TestAccResourceVSphereComputeClusterHostGroup_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereComputeClusterHostGroup_update(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterHostGroupPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereComputeClusterHostGroupExists(false),
@@ -106,18 +102,6 @@ func TestAccResourceVSphereComputeClusterHostGroup_update(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccResourceVSphereComputeClusterHostGroupPreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_compute_cluster_host_group acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_ESXI1") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI1 to run vsphere_compute_cluster_host_group acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_ESXI2") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI2 to run vsphere_compute_cluster_host_group acceptance tests")
-	}
 }
 
 func testAccResourceVSphereComputeClusterHostGroupExists(expected bool) resource.TestCheckFunc {

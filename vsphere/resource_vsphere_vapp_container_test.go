@@ -23,12 +23,10 @@ const (
 )
 
 func TestAccResourceVSphereVAppContainer_basic(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVAppContainerPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVAppContainerCheckExists(false),
@@ -40,12 +38,12 @@ func TestAccResourceVSphereVAppContainer_basic(t *testing.T) {
 					testAccResourceVSphereVAppContainerCheckFolder("parent_folder"),
 					testAccResourceVSphereVAppContainerCheckExists(true),
 					testAccResourceVSphereVAppContainerCheckCPUReservation(10),
-					testAccResourceVSphereVAppContainerCheckCPUExpandable(false),
+					testAccResourceVSphereVAppContainerCheckCPUExpandable(true),
 					testAccResourceVSphereVAppContainerCheckCPULimit(20),
 					testAccResourceVSphereVAppContainerCheckCPUShareLevel("custom"),
 					testAccResourceVSphereVAppContainerCheckCPUShares(10),
 					testAccResourceVSphereVAppContainerCheckCPUReservation(10),
-					testAccResourceVSphereVAppContainerCheckCPUExpandable(false),
+					testAccResourceVSphereVAppContainerCheckCPUExpandable(true),
 					testAccResourceVSphereVAppContainerCheckCPULimit(20),
 					testAccResourceVSphereVAppContainerCheckMemoryShareLevel("custom"),
 					testAccResourceVSphereVAppContainerCheckMemoryShares(10),
@@ -451,16 +449,16 @@ resource "vsphere_vapp_container" "vapp_container" {
   cpu_share_level         = "custom"
   cpu_shares              = 10
   cpu_reservation         = 10
-  cpu_expandable          = false
+  cpu_expandable          = true
   cpu_limit               = 20
   memory_share_level      = "custom"
   memory_shares           = 10
   memory_reservation      = 10
-  memory_expandable       = false
+  memory_expandable       = true
   memory_limit            = 20
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigDataRootDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 

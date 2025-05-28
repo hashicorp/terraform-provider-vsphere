@@ -7,7 +7,6 @@ package vsphere
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 
@@ -47,7 +46,6 @@ func TestAccResourceVSphereVirtualDisk_extend(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualDiskPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", false),
@@ -78,7 +76,6 @@ func TestAccResourceVSphereVirtualDisk_multi(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualDiskPreCheck(t)
 		},
 		Providers: testAccProviders,
 		CheckDestroy: resource.ComposeTestCheckFunc(
@@ -107,7 +104,6 @@ func TestAccResourceVSphereVirtualDisk_multiWithParent(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualDiskPreCheck(t)
 		},
 		Providers: testAccProviders,
 		CheckDestroy: resource.ComposeTestCheckFunc(
@@ -136,7 +132,6 @@ func TestAccResourceVSphereVirtualDisk_withParent(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualDiskPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo", false),
@@ -149,15 +144,6 @@ func TestAccResourceVSphereVirtualDisk_withParent(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccResourceVSphereVirtualDiskPreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_virtual_disk acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
-		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_virtual_disk acceptance tests")
-	}
 }
 
 func testAccVSphereVirtualDiskExists(name string, expected bool) resource.TestCheckFunc {
