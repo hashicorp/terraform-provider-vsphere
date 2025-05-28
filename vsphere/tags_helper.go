@@ -107,7 +107,7 @@ func tagCategoryByName(tm *tags.Manager, name string) (string, error) {
 		return "", fmt.Errorf("could not get category for name %q: %s", name, err)
 	}
 
-	cats := []*tags.Category{}
+	var cats []*tags.Category
 	for i, cat := range allCats {
 		if cat.Name == name {
 			cats = append(cats, &allCats[i])
@@ -136,7 +136,7 @@ func tagByName(tm *tags.Manager, name, categoryID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
 	allTags, err := tm.GetTagsForCategory(ctx, categoryID)
-	tagList := []*tags.Tag{}
+	var tagList []*tags.Tag
 	if err != nil {
 		return "", fmt.Errorf("could not get tag for name %q: %s", name, err)
 	}
