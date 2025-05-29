@@ -24,7 +24,6 @@ const testAccResourceVSphereFolderConfigExpectedParentName = "terraform-test-par
 const testAccResourceVSphereFolderConfigOOBName = "terraform-test-oob"
 
 func TestAccResourceVSphereFolder_vmFolder(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -70,7 +69,6 @@ func TestAccResourceVSphereFolder_vmFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_datastoreFolder(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -95,7 +93,6 @@ func TestAccResourceVSphereFolder_datastoreFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_networkFolder(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -120,7 +117,6 @@ func TestAccResourceVSphereFolder_networkFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_hostFolder(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -205,7 +201,6 @@ func TestAccResourceVSphereFolder_rename(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_subfolder(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -231,7 +226,6 @@ func TestAccResourceVSphereFolder_subfolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_moveToSubfolder(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -720,7 +714,7 @@ resource "vsphere_folder" "parent" {
 }
 
 resource "vsphere_folder" "folder" {
-  path          = vsphere_folder.parent.path + "/" + var.folder_name
+  path          = "${vsphere_folder.parent.path}/${var.folder_name}"
   type          = var.folder_type
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }

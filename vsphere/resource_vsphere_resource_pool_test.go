@@ -211,12 +211,10 @@ func TestAccResourceVSphereResourcePool_esxiHost(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_updateParent(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereResourcePoolCheckExists(false),

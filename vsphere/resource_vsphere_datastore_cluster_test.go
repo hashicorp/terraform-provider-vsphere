@@ -27,12 +27,10 @@ const (
 )
 
 func TestAccResourceVSphereDatastoreCluster_basic(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -45,10 +43,17 @@ func TestAccResourceVSphereDatastoreCluster_basic(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:            "vsphere_datastore_cluster.datastore_cluster",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"datacenter_id", "sdrs_free_space_threshold"},
+				ResourceName:      "vsphere_datastore_cluster.datastore_cluster",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"datacenter_id",
+					"sdrs_free_space_threshold",
+					"sdrs_io_latency_threshold",
+					"sdrs_io_load_imbalance_threshold",
+					"sdrs_io_reservable_percent_threshold",
+					"sdrs_io_reservable_threshold_mode",
+				},
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					pod, err := testGetDatastoreCluster(s, "datastore_cluster")
 					if err != nil {
@@ -89,12 +94,10 @@ func TestAccResourceVSphereDatastoreCluster_sdrsEnabled(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_rename(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -118,12 +121,10 @@ func TestAccResourceVSphereDatastoreCluster_rename(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_inFolder(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -140,12 +141,10 @@ func TestAccResourceVSphereDatastoreCluster_inFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_moveToFolder(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDatastoreClusterPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDatastoreClusterCheckExists(false),
@@ -712,6 +711,7 @@ func testAccResourceVSphereDatastoreClusterConfigBasic() string {
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
   datacenter_id = data.vsphere_datacenter.rootdc1.id
+  sdrs_io_load_balance_enabled = false
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -739,6 +739,7 @@ func testAccResourceVSphereDatastoreClusterConfigWithName(name string) string {
 resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "%s"
   datacenter_id = data.vsphere_datacenter.rootdc1.id
+  sdrs_io_load_balance_enabled = false
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -764,6 +765,7 @@ resource "vsphere_datastore_cluster" "datastore_cluster" {
   name          = "testacc-datastore-cluster"
   datacenter_id = data.vsphere_datacenter.rootdc1.id
   folder        = vsphere_folder.datastore_cluster_folder.path
+  sdrs_io_load_balance_enabled = false
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),

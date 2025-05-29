@@ -23,12 +23,10 @@ import (
 )
 
 func TestAccResourceVSphereHAVMOverride_basic(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereHAVMOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereHAVMOverrideExists(false),
@@ -398,13 +396,13 @@ func testAccResourceVSphereHAVMOverrideConfigOverrideDefaults() string {
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
   resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
   guest_id = "other3xLinuxGuest"
 
-  wait_for_guest_net_timeout = -1
+  wait_for_guest_net_timeout = 0
 
   network_interface {
     network_id = data.vsphere_network.network1.id
@@ -412,7 +410,8 @@ resource "vsphere_virtual_machine" "vm" {
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 2
+    io_reservation = 1
   }
 }
 
@@ -424,7 +423,7 @@ resource "vsphere_ha_vm_override" "ha_vm_override" {
 		testhelper.ConfigDataRootDC1(),
 		testhelper.ConfigDataRootHost1(),
 		testhelper.ConfigDataRootHost2(),
-		testhelper.ConfigResDS1(),
+		testhelper.ConfigDataRootDS1(),
 		testhelper.ConfigDataRootComputeCluster1(),
 		testhelper.ConfigResResourcePool1(),
 		testhelper.ConfigDataRootPortGroup1()),

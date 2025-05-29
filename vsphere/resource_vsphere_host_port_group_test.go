@@ -35,12 +35,10 @@ func TestAccResourceVSphereHostPortGroup_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereHostPortGroup_complexWithOverrides(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereHostPortGroupPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereHostPortGroupExists(false),
@@ -50,8 +48,8 @@ func TestAccResourceVSphereHostPortGroup_complexWithOverrides(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereHostPortGroupExists(true),
 					testAccResourceVSphereHostPortGroupCheckVlan(1000),
-					testAccResourceVSphereHostPortGroupCheckEffectiveActive([]string{testhelper.HostNic0}),
-					testAccResourceVSphereHostPortGroupCheckEffectiveStandby([]string{testhelper.HostNic1}),
+					testAccResourceVSphereHostPortGroupCheckEffectiveActive([]string{testhelper.HostNic1}),
+					testAccResourceVSphereHostPortGroupCheckEffectiveStandby([]string{testhelper.HostNic2}),
 					testAccResourceVSphereHostPortGroupCheckEffectivePromisc(true),
 				),
 			},
@@ -60,12 +58,10 @@ func TestAccResourceVSphereHostPortGroup_complexWithOverrides(t *testing.T) {
 }
 
 func TestAccResourceVSphereHostPortGroup_basicToComplex(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereHostPortGroupPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereHostPortGroupExists(false),
@@ -81,19 +77,13 @@ func TestAccResourceVSphereHostPortGroup_basicToComplex(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereHostPortGroupExists(true),
 					testAccResourceVSphereHostPortGroupCheckVlan(1000),
-					testAccResourceVSphereHostPortGroupCheckEffectiveActive([]string{testhelper.HostNic0}),
-					testAccResourceVSphereHostPortGroupCheckEffectiveStandby([]string{testhelper.HostNic1}),
+					testAccResourceVSphereHostPortGroupCheckEffectiveActive([]string{testhelper.HostNic1}),
+					testAccResourceVSphereHostPortGroupCheckEffectiveStandby([]string{testhelper.HostNic2}),
 					testAccResourceVSphereHostPortGroupCheckEffectivePromisc(true),
 				),
 			},
 		},
 	})
-}
-
-func testAccResourceVSphereHostPortGroupPreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI_HOST to run vsphere_host_port_group acceptance tests")
-	}
 }
 
 func testAccResourceVSphereHostPortGroupExists(expected bool) resource.TestCheckFunc {
@@ -209,11 +199,11 @@ resource "vsphere_host_port_group" "pg" {
 
 func testAccResourceVSphereHostPortGroupConfigWithOverrides() string {
 	return fmt.Sprintf(`
-variable "host_nic0" {
+variable "host_nic1" {
   default = "%s"
 }
 
-variable "host_nic1" {
+variable "host_nic2" {
   default = "%s"
 }
 
@@ -228,9 +218,9 @@ resource "vsphere_host_virtual_switch" "switch" {
   name           = "vSwitchTerraformTest2"
   host_system_id = data.vsphere_host.esxi_host.id
 
-  network_adapters  = [var.host_nic0, var.host_nic1]
-  active_nics       = [var.host_nic0]
-  standby_nics      = [var.host_nic1]
+  network_adapters  = [var.host_nic1, var.host_nic2]
+  active_nics       = [var.host_nic1]
+  standby_nics      = [var.host_nic2]
   allow_promiscuous = false
 }
 
@@ -240,12 +230,12 @@ resource "vsphere_host_port_group" "pg" {
   virtual_switch_name = vsphere_host_virtual_switch.switch.name
 
   vlan_id           = 1000
-  active_nics       = [var.host_nic0]
-  standby_nics      = [var.host_nic1]
+  active_nics       = [var.host_nic1]
+  standby_nics      = [var.host_nic2]
   allow_promiscuous = true
 }
-`, testhelper.HostNic0,
-		testhelper.HostNic1,
+`, testhelper.HostNic1,
+		testhelper.HostNic2,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
-		os.Getenv("TF_VAR_VSPHERE_ESXI1"))
+		os.Getenv("TF_VAR_VSPHERE_ESXI3"))
 }

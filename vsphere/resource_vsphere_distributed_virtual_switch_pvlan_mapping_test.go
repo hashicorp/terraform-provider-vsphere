@@ -17,12 +17,10 @@ import (
 )
 
 func TestAccResourceVSphereDistributedVirtualSwitchPvlanMapping_basic(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchPvlanMappingExists(false),
@@ -60,7 +58,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   }
 }
 `, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost2()),
-		testhelper.HostNic0,
+		testhelper.HostNic1,
 	)
 }
 
@@ -81,19 +79,19 @@ func testAccResourceVSphereDistributedVirtualSwitchPvlanMappingExists(expected b
 			return fmt.Errorf("could not find pvlan mapping resource: %s", err)
 		}
 
-		primaryVlanIDInt64, err := strconv.ParseInt(mappingToSearchFor.resourceAttributes["primaryVlanID"], 10, 32)
+		primaryVlanIDInt64, err := strconv.ParseInt(mappingToSearchFor.resourceAttributes["primary_vlan_id"], 10, 32)
 		if err != nil {
 			return err
 		}
 		primaryVlanID := int32(primaryVlanIDInt64)
 
-		secondaryVlanIDInt64, err := strconv.ParseInt(mappingToSearchFor.resourceAttributes["secondaryVlanID"], 10, 32)
+		secondaryVlanIDInt64, err := strconv.ParseInt(mappingToSearchFor.resourceAttributes["secondary_vlan_id"], 10, 32)
 		if err != nil {
 			return err
 		}
 		secondaryVlanID := int32(secondaryVlanIDInt64)
 
-		pvlanType := mappingToSearchFor.resourceAttributes["pvlanType"]
+		pvlanType := mappingToSearchFor.resourceAttributes["pvlan_type"]
 
 		for _, mapping := range props.Config.(*types.VMwareDVSConfigInfo).PvlanConfig {
 			if mapping.PrimaryVlanId == primaryVlanID && mapping.SecondaryVlanId == secondaryVlanID && mapping.PvlanType == pvlanType {

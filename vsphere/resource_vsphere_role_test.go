@@ -51,7 +51,6 @@ func TestAccResourceVsphereRole_createRole(t *testing.T) {
 
 func TestAccResourceVsphereRole_addPrivileges(t *testing.T) {
 	roleName := "terraform_role" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -85,7 +84,6 @@ func TestAccResourceVsphereRole_addPrivileges(t *testing.T) {
 
 func TestAccResourceVsphereRole_removePrivileges(t *testing.T) {
 	roleName := "terraform_role" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)

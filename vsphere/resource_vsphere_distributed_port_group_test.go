@@ -94,12 +94,10 @@ func TestAccResourceVSphereDistributedPortGroup_inheritPolicyDiffCheckVlanRangeT
 }
 
 func TestAccResourceVSphereDistributedPortGroup_overrideVlan(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDistributedPortGroupPreCheck()
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDistributedPortGroupExists(false),

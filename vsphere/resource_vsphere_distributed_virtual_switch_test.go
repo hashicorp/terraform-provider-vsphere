@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	testAccResourceVSphereDistributedVirtualSwitchUpperVersion = "7.0.0"
-	testAccResourceVSphereDistributedVirtualSwitchLowerVersion = "6.6.0"
+	testAccResourceVSphereDistributedVirtualSwitchUpperVersion = "8.0.0"
+	testAccResourceVSphereDistributedVirtualSwitchLowerVersion = "7.0.0"
 )
 
 func TestAccResourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
@@ -62,12 +62,10 @@ func TestAccResourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_noHosts(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
@@ -83,12 +81,10 @@ func TestAccResourceVSphereDistributedVirtualSwitch_noHosts(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_removeNIC(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
@@ -164,12 +160,10 @@ func TestAccResourceVSphereDistributedVirtualSwitch_basicToStandbyWithFailover(t
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_upgradeVersion(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
@@ -193,12 +187,10 @@ func TestAccResourceVSphereDistributedVirtualSwitch_upgradeVersion(t *testing.T)
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_networkResourceControl(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
@@ -704,7 +696,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost1()),
-		testhelper.HostNic0,
+		testhelper.HostNic1,
 		version,
 	)
 }
@@ -740,7 +732,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 			testhelper.ConfigDataRootHost1(),
 			testhelper.ConfigDataRootHost2(),
 		),
-		testhelper.HostNic0,
+		testhelper.HostNic1,
 	)
 }
 
@@ -778,7 +770,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost1(),
 			testhelper.ConfigDataRootHost2()),
-		testhelper.HostNic0,
+		testhelper.HostNic1,
 	)
 }
 

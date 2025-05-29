@@ -14,7 +14,6 @@ import (
 )
 
 func TestAccResourceVSphereCustomAttribute_basic(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -54,7 +53,6 @@ func TestAccResourceVSphereCustomAttribute_basic(t *testing.T) {
 	})
 }
 func TestAccResourceVSphereCustomAttribute_withType(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -75,7 +73,6 @@ func TestAccResourceVSphereCustomAttribute_withType(t *testing.T) {
 	})
 }
 func TestAccResourceVSphereCustomAttribute_rename(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -102,7 +99,6 @@ func TestAccResourceVSphereCustomAttribute_rename(t *testing.T) {
 }
 
 func TestAccResourceVSphereCustomAttribute_changeType(t *testing.T) {
-	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

@@ -19,7 +19,6 @@ import (
 
 // TestAccResourceVSphereFile_basic verifies the basic functionality of the resource.
 func TestAccResourceVSphereFile_basic(t *testing.T) {
-	testAccSkipUnstable(t)
 	testFileData := []byte("test file data")
 	testFile := "/tmp/tf_test.txt"
 	err := os.WriteFile(testFile, testFileData, 0600)
@@ -39,7 +38,6 @@ func TestAccResourceVSphereFile_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccCheckEnvVariables(t, []string{"TF_VAR_VSPHERE_DATACENTER", "TF_VAR_VSPHERE_NFS_DS_NAME"})
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereFileDestroy,
@@ -66,7 +64,6 @@ func TestAccResourceVSphereFile_basic(t *testing.T) {
 // TestAccResourceVSphereFile_uploadWithCreateDirectories verifies uploading files with nested directories.
 // creation.
 func TestAccResourceVSphereFile_uploadWithCreateDirectories(t *testing.T) {
-	testAccSkipUnstable(t)
 	testFileData := []byte("test file data")
 	testFile := "/tmp/tf_test.txt"
 	err := os.WriteFile(testFile, testFileData, 0600)
@@ -89,7 +86,6 @@ func TestAccResourceVSphereFile_uploadWithCreateDirectories(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccCheckEnvVariables(t, []string{"TF_VAR_VSPHERE_DATACENTER", "TF_VAR_VSPHERE_NFS_DS_NAME"})
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereFileDestroy,
