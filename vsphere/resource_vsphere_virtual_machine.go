@@ -753,18 +753,6 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	if d.HasChange("vtpm") {
-
-		spec.DeviceChange = append(spec.DeviceChange, &types.VirtualDeviceConfigSpec{
-			Operation: types.VirtualDeviceConfigSpecOperationAdd,
-			Device: &types.VirtualTPM{
-				VirtualDevice: types.VirtualDevice{
-					Key: -1,
-				},
-			},
-		})
-	}
-
 	// Only carry out the reconfigure if we actually have a change to process.
 	cv := virtualmachine.GetHardwareVersionNumber(vprops.Config.Version)
 	tv := d.Get("hardware_version").(int)
@@ -1403,17 +1391,6 @@ func resourceVSphereVirtualMachineCreateBareStandard(
 		VmPathName: fmt.Sprintf("[%s]", ds.Name()),
 	}
 
-	if vtpms, ok := d.GetOk("vtpm"); ok && len(vtpms.([]interface{})) > 0 {
-		spec.DeviceChange = append(spec.DeviceChange, &types.VirtualDeviceConfigSpec{
-			Operation: types.VirtualDeviceConfigSpecOperationAdd,
-			Device: &types.VirtualTPM{
-				VirtualDevice: types.VirtualDevice{
-					Key: -1,
-				},
-			},
-		})
-	}
-
 	timeout := meta.(*Client).timeout
 	vm, err := virtualmachine.Create(client, fo, spec, pool, hs, timeout)
 	if err != nil {
@@ -1739,6 +1716,18 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 		)
 	}
 	cfgSpec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec.DeviceChange, delta...)
+
+	// VTPM
+	devices, delta, err = virtualdevice.VtpmApplyOperation(d, devices)
+	if err != nil {
+		return resourceVSphereVirtualMachineRollbackCreate(
+			d,
+			meta,
+			vm,
+			fmt.Errorf("error processing VTPM device changes post-clone: %s", err),
+		)
+	}
+	cfgSpec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec.DeviceChange, delta...)
 	log.Printf("[DEBUG] %s: Final device list: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceListString(devices))
 	log.Printf("[DEBUG] %s: Final device change cfgSpec: %s", resourceVSphereVirtualMachineIDString(d), virtualdevice.DeviceChangeString(cfgSpec.DeviceChange))
 
@@ -2039,6 +2028,13 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 	spec = virtualdevice.AppendDeviceChangeSpec(spec, delta...)
 	// PCI passthrough devices
 	l, delta, err = virtualdevice.PciPassthroughApplyOperation(d, c, l)
+	if err != nil {
+		return nil, err
+	}
+	spec = virtualdevice.AppendDeviceChangeSpec(spec, delta...)
+
+	// VTPM
+	l, delta, err = virtualdevice.VtpmApplyOperation(d, l)
 	if err != nil {
 		return nil, err
 	}
