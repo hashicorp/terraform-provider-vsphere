@@ -55,6 +55,7 @@ var virtualMachineLatencySensitivityAllowedValues = []string{
 	string(types.LatencySensitivitySensitivityLevelNormal),
 	string(types.LatencySensitivitySensitivityLevelMedium),
 	string(types.LatencySensitivitySensitivityLevelHigh),
+	"high-hyperthreading",
 }
 
 // getWithRestart fetches the resource data specified at key. If the value has
@@ -200,7 +201,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Type:         schema.TypeString,
 			Optional:     true,
 			Default:      types.LatencySensitivitySensitivityLevelNormal,
-			Description:  "Controls the scheduling delay of the virtual machine. Use a higher sensitivity for applications that require lower latency, such as VOIP, media player applications, or applications that require frequent access to mouse or keyboard devices. Can be one of low, normal, medium, or high.",
+			Description:  "Controls the scheduling delay of the virtual machine. Use a higher sensitivity for applications that require lower latency, such as VOIP, media player applications, or applications that require frequent access to mouse or keyboard devices. Can be one of low, normal, medium, high, or high-hyperthreading",
 			ValidateFunc: validation.StringInSlice(virtualMachineLatencySensitivityAllowedValues, false),
 		},
 
@@ -565,11 +566,24 @@ func expandVirtualMachineResourceAllocation(d *schema.ResourceData, key string) 
 
 // expandLatencySensitivity reads certain ResourceData keys and returns a
 // LatencySensitivity.
-func expandLatencySensitivity(d *schema.ResourceData) *types.LatencySensitivity {
-	obj := &types.LatencySensitivity{
-		Level: types.LatencySensitivitySensitivityLevel(d.Get("latency_sensitivity").(string)),
+func expandLatencySensitivity(d *schema.ResourceData) (*types.LatencySensitivity, *int32) {
+	val := d.Get("latency_sensitivity").(string)
+	switch val {
+	case "high-hyperthreading":
+		threads := int32(2)
+		return &types.LatencySensitivity{
+			Level: types.LatencySensitivitySensitivityLevelHigh,
+		}, &threads
+	case string(types.LatencySensitivitySensitivityLevelHigh):
+		threads := int32(1)
+		return &types.LatencySensitivity{
+			Level: types.LatencySensitivitySensitivityLevelHigh,
+		}, &threads
+	default:
+		return &types.LatencySensitivity{
+			Level: types.LatencySensitivitySensitivityLevel(val),
+		}, nil
 	}
-	return obj
 }
 
 // flattenLatencySensitivity reads various fields from a LatencySensitivity and
@@ -954,9 +968,15 @@ func expandVirtualMachineConfigSpec(d *schema.ResourceData, client *govmomi.Clie
 		Firmware:                     getWithRestart(d, "firmware").(string),
 		NestedHVEnabled:              getBoolWithRestart(d, "nested_hv_enabled"),
 		VPMCEnabled:                  getBoolWithRestart(d, "cpu_performance_counters_enabled"),
-		LatencySensitivity:           expandLatencySensitivity(d),
+		LatencySensitivity:           nil,
 		VmProfile:                    expandVirtualMachineProfileSpec(d),
 		Version:                      virtualmachine.GetHardwareVersionID(d.Get("hardware_version").(int)),
+	}
+
+	latencySensitivity, simultaneousThreads := expandLatencySensitivity(d)
+	obj.LatencySensitivity = latencySensitivity
+	if simultaneousThreads != nil {
+		obj.SimultaneousThreads = *simultaneousThreads
 	}
 
 	return obj, nil
