@@ -100,8 +100,35 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionBare(t *testing.T) {
 	})
 }
 
+func TestAccResourceVSphereVirtualMachine_fromSparseVmdk(t *testing.T) {
+	t.Skipf("requires an existing 2gbsparse vmdk")
+	// to run this test you need to create a vmdk on the target datastore
+	// 1. ssh to an ESXi host with connection to the datastore
+	// 2. create an empty folder on the datastore and `cd` inside (e.g. /vmfs/volumes/67fe111f-489f3741-b381-02007873e8d0/sparsedisks)
+	// 3. create a regular sparse vmdk - vmkfstools -c 2g -d sesparse sparse.vmdk
+	// 4. create a 2gbsparse vmdk from the regular one - vmkfstools -i sparse.vmdk sparse2.vmdk -d 2gbsparse
+	// the test is pre-configured to look for a disk at [acc-test-nfs] sparsedisks/sparse2.vmdk. change if necessary
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigFromSparseVmdk(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					resource.TestMatchResourceAttr("vsphere_virtual_machine.vm", "moid", regexp.MustCompile("^vm-")),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereVirtualMachine_vtpmCreate(t *testing.T) {
-	t.Skipf("Requires key management server to run")
+	t.Skipf("requires key management server to run")
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -122,7 +149,7 @@ func TestAccResourceVSphereVirtualMachine_vtpmCreate(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vtpmAdd(t *testing.T) {
-	t.Skipf("Requires key management server to run")
+	t.Skipf("requires key management server to run")
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -150,7 +177,7 @@ func TestAccResourceVSphereVirtualMachine_vtpmAdd(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vtpmRemove(t *testing.T) {
-	t.Skipf("Requires key management server to run")
+	t.Skipf("requires key management server to run")
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -178,7 +205,7 @@ func TestAccResourceVSphereVirtualMachine_vtpmRemove(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vtpmClone(t *testing.T) {
-	t.Skipf("Requires key management server to run")
+	t.Skipf("requires key management server to run")
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -4136,6 +4163,48 @@ resource "vsphere_virtual_machine" "vm" {
   disk {
     label = "disk0"
     size  = 1
+    io_reservation = 1
+  }
+}
+`,
+
+		testAccResourceVSphereVirtualMachineConfigBase(),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigFromSparseVmdk() string {
+	return fmt.Sprintf(`
+
+
+%s  // Mix and match config
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "testacc-test"
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinuxGuest"
+  firmware = "efi"
+
+  wait_for_guest_net_timeout = 0
+
+  cdrom {
+    client_device = true
+  }
+
+  network_interface {
+    network_id = data.vsphere_network.network1.id
+  }
+
+  disk {
+    label = "disk0"
+    attach = true
+    datastore_id = data.vsphere_datastore.rootds1.id
+    path = "[acc-test-nfs] sparsedisks/sparse2.vmdk"
+    controller_type = "ide"
+    unit_number     = 1
     io_reservation = 1
   }
 }
