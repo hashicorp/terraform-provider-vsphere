@@ -2350,11 +2350,11 @@ func diskUUIDMatch(device types.BaseVirtualDevice, uuid string) bool {
 		return false
 	}
 	backing := virtualdisk.ToSchemaPropsMap(disk.Backing)
-	diskUuid, ok := backing["Uuid"].(string)
+	diskUUID, ok := backing["Uuid"].(string)
 	if !ok {
 		return false
 	}
-	if diskUuid != uuid {
+	if diskUUID != uuid {
 		return false
 	}
 	return true
