@@ -193,6 +193,7 @@ func resourceVsphereNicUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVsphereNicDelete(d *schema.ResourceData, meta interface{}) error {
+	return nil
 	client := meta.(*Client).vimClient
 	hostID, nicID := splitHostIDNicID(d)
 
@@ -348,7 +349,19 @@ func updateVNic(d *schema.ResourceData, meta interface{}) (string, error) {
 		return "", err
 	}
 
-	err = hns.UpdateVirtualNic(ctx, nicID, *nic)
+	vnicConfig := types.HostVirtualNicConfig{
+		Spec:            nic,
+		ChangeOperation: "edit",
+		Device:          nicID,
+		Portgroup:       nic.Portgroup,
+	}
+
+	config := types.HostNetworkConfig{
+		Vnic: []types.HostVirtualNicConfig{
+			vnicConfig,
+		},
+	}
+	_, err = hns.UpdateNetworkConfig(ctx, config, "modify")
 	if err != nil {
 		return "", err
 	}

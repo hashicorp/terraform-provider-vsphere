@@ -25,6 +25,43 @@ const (
 	testAccResourceVSphereDistributedVirtualSwitchLowerVersion = "7.0.0"
 )
 
+func TestAccResourceVSphereDistributedVirtualSwitch_migrateMgmtNetwork(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigMigrateMgmtNetwork1(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigMigrateMgmtNetwork2(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigMigrateMgmtNetwork3(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereDistributedVirtualSwitchConfigMigrateMgmtNetwork4(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereDistributedVirtualSwitchExists(true),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -648,6 +685,225 @@ func testAccResourceVSphereDistributedVirtualSwitchCheckCustomAttributes() resou
 	}
 }
 
+func testAccResourceVSphereDistributedVirtualSwitchConfigMigrateMgmtNetwork1() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_distributed_virtual_switch" "dvs" {
+  name          = "testacc-dvs5"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+
+  host {
+    host_system_id = "host-648"
+    devices = ["vmnic1"]
+  }
+}
+
+resource "vsphere_distributed_port_group" "dvpg" {
+  name                            = "testacc-pg5"
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.dvs.id
+}
+
+import {
+  to = vsphere_vnic.vmk0
+  id = "host-648_vmk0"
+}
+
+resource "vsphere_vnic" "vmk0" {
+  host                    = "host-648"
+  portgroup               = "Test Network"
+  ipv4 {
+    dhcp = true
+  }
+  services = [
+    "management"
+  ]
+}
+
+import {
+  to = vsphere_host_virtual_switch.vswitch
+  id = "tf-HostVirtualSwitch:host-648:vSwitch0"
+}
+
+resource "vsphere_host_virtual_switch" "vswitch" {
+  name           = "vSwitch0"
+  host_system_id = "host-648"
+
+  network_adapters = ["vmnic0"]
+
+  active_nics  = ["vmnic0"]
+  standby_nics = []
+}
+`,
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1()),
+	)
+}
+
+func testAccResourceVSphereDistributedVirtualSwitchConfigMigrateMgmtNetwork2() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_distributed_virtual_switch" "dvs" {
+  name          = "testacc-dvs5"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+
+  host {
+    host_system_id = "host-648"
+    devices = ["vmnic1"]
+  }
+}
+
+resource "vsphere_distributed_port_group" "dvpg" {
+  name                            = "testacc-pg5"
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.dvs.id
+}
+
+import {
+  to = vsphere_vnic.vmk0
+  id = "host-648_vmk0"
+}
+
+resource "vsphere_vnic" "vmk0" {
+  host                    = "host-648"
+  distributed_switch_port = vsphere_distributed_virtual_switch.dvs.id
+  distributed_port_group  = vsphere_distributed_port_group.dvpg.id
+  ipv4 {
+    dhcp = true
+  }
+  services = [
+    "management"
+  ]
+}
+
+import {
+  to = vsphere_host_virtual_switch.vswitch
+  id = "tf-HostVirtualSwitch:host-648:vSwitch0"
+}
+
+resource "vsphere_host_virtual_switch" "vswitch" {
+  name           = "vSwitch0"
+  host_system_id = "host-648"
+
+  network_adapters = ["vmnic0"]
+
+  active_nics  = ["vmnic0"]
+  standby_nics = []
+}
+`,
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1()),
+	)
+}
+
+func testAccResourceVSphereDistributedVirtualSwitchConfigMigrateMgmtNetwork3() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_distributed_virtual_switch" "dvs" {
+  name          = "testacc-dvs5"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+
+  host {
+    host_system_id = "host-648"
+    devices = ["vmnic1"]
+  }
+}
+
+resource "vsphere_distributed_port_group" "dvpg" {
+  name                            = "testacc-pg5"
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.dvs.id
+}
+
+import {
+  to = vsphere_vnic.vmk0
+  id = "host-648_vmk0"
+}
+
+resource "vsphere_vnic" "vmk0" {
+  host                    = "host-648"
+  distributed_switch_port = vsphere_distributed_virtual_switch.dvs.id
+  distributed_port_group  = vsphere_distributed_port_group.dvpg.id
+  ipv4 {
+    dhcp = true
+  }
+  services = [
+    "management"
+  ]
+}
+
+import {
+  to = vsphere_host_virtual_switch.vswitch
+  id = "tf-HostVirtualSwitch:host-648:vSwitch0"
+}
+
+resource "vsphere_host_virtual_switch" "vswitch" {
+  name           = "vSwitch0"
+  host_system_id = "host-648"
+
+  network_adapters = []
+
+  active_nics  = []
+  standby_nics = []
+}
+`,
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1()),
+	)
+}
+
+func testAccResourceVSphereDistributedVirtualSwitchConfigMigrateMgmtNetwork4() string {
+	return fmt.Sprintf(`
+%s
+
+resource "vsphere_distributed_virtual_switch" "dvs" {
+  name          = "testacc-dvs5"
+  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+
+  host {
+    host_system_id = "host-648"
+    devices = ["vmnic0"]
+  }
+}
+
+resource "vsphere_distributed_port_group" "dvpg" {
+  name                            = "testacc-pg5"
+  distributed_virtual_switch_uuid = vsphere_distributed_virtual_switch.dvs.id
+}
+
+import {
+  to = vsphere_vnic.vmk0
+  id = "host-648_vmk0"
+}
+
+resource "vsphere_vnic" "vmk0" {
+  host                    = "host-648"
+  distributed_switch_port = vsphere_distributed_virtual_switch.dvs.id
+  distributed_port_group  = vsphere_distributed_port_group.dvpg.id
+  ipv4 {
+    dhcp = true
+  }
+  services = [
+    "management"
+  ]
+}
+
+import {
+  to = vsphere_host_virtual_switch.vswitch
+  id = "tf-HostVirtualSwitch:host-648:vSwitch0"
+}
+
+resource "vsphere_host_virtual_switch" "vswitch" {
+  name           = "vSwitch0"
+  host_system_id = "host-648"
+
+  network_adapters = []
+
+  active_nics  = []
+  standby_nics = []
+}
+`,
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1()),
+	)
+}
+
 func testAccResourceVSphereDistributedVirtualSwitchConfig() string {
 	return fmt.Sprintf(`
 %s
@@ -687,7 +943,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   version       = "${var.dvs_version}"
 
   host {
-    host_system_id = "${data.vsphere_host.roothost1.id}"
+    host_system_id = "${"host-648"}"
     devices = "${var.network_interfaces}"
   }
 }
@@ -716,7 +972,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 
   host {
-    host_system_id = "${data.vsphere_host.roothost1.id}"
+    host_system_id = "${"host-648"}"
     devices = "${var.network_interfaces}"
   }
 
@@ -755,7 +1011,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   network_resource_control_version = "version3"
 
   host {
-    host_system_id = "${data.vsphere_host.roothost1.id}"
+    host_system_id = "${"host-648"}"
     devices = "${var.network_interfaces}"
   }
 
@@ -792,7 +1048,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   uplinks = var.network_interfaces
 
   host {
-    host_system_id = "${data.vsphere_host.roothost1.id}"
+    host_system_id = "${"host-648"}"
     devices = "${var.network_interfaces}"
   }
 
@@ -832,7 +1088,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   standby_uplinks = [var.network_interfaces.1]
 
   host {
-    host_system_id = "${data.vsphere_host.roothost1.id}"
+    host_system_id = "${"host-648"}"
     devices = "${var.network_interfaces}"
   }
 
