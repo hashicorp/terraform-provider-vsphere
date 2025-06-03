@@ -126,8 +126,8 @@ func DeployOvfAndGetResult(client *govmomi.Client, ovfCreateImportSpecResult *ty
 	return nfcLease.Complete(context.Background())
 }
 
-func upload(ctx context.Context, client *govmomi.Client, item types.OvfFileItem, f io.Reader, rawUrl string, size int64, totalBytesRead *int64) error {
-	u, err := client.ParseURL(rawUrl)
+func upload(ctx context.Context, client *govmomi.Client, item types.OvfFileItem, f io.Reader, rawURL string, size int64, totalBytesRead *int64) error {
+	u, err := client.ParseURL(rawURL)
 	if err != nil {
 		return err
 	}
@@ -387,7 +387,7 @@ func GetNetworkMapping(client *govmomi.Client, m map[string]interface{}) ([]type
 func getClient(allowUnverifiedSSL bool) *http.Client {
 	if allowUnverifiedSSL {
 		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint (gosec G402)
 		}
 		return &http.Client{Transport: tr}
 	}

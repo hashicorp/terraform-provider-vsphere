@@ -978,10 +978,10 @@ func DiskCloneRelocateOperation(resourceData *schema.ResourceData, client *govmo
 Sets the value of the VM datastore
 */
 func addDiskDatastore(r *DiskSubresource, d *schema.ResourceData) *DiskSubresource {
-	diskDsId := r.Get("datastore_id")
-	dataDsId := d.Get("datastore_id")
-	if (diskDsId == "" || diskDsId == diskDatastoreComputedName) && dataDsId != "" {
-		r.Set("datastore_id", dataDsId)
+	diskDsID := r.Get("datastore_id")
+	dataDsID := d.Get("datastore_id")
+	if (diskDsID == "" || diskDsID == diskDatastoreComputedName) && dataDsID != "" {
+		r.Set("datastore_id", dataDsID)
 	}
 
 	return r
@@ -1020,8 +1020,8 @@ func shouldAddRelocateSpec(d *schema.ResourceData, disk *types.VirtualDisk, sche
 
 	// If the VM is cloned to a datastore cluster and no datastore is specified for the disk
 	// it should not be added to the relocate spec
-	diskDataStoreId, _ := dataProps["datastore_id"].(string)
-	diskDsIsEmpty := diskDataStoreId == "" || diskDataStoreId == diskDatastoreComputedName
+	diskDataStoreID, _ := dataProps["datastore_id"].(string)
+	diskDsIsEmpty := diskDataStoreID == "" || diskDataStoreID == diskDatastoreComputedName
 	if d.Get("datastore_id") == "" && d.Get("datastore_cluster_id") != "" && diskDsIsEmpty {
 		return false
 	}
@@ -1047,8 +1047,8 @@ func shouldAddRelocateSpec(d *schema.ResourceData, disk *types.VirtualDisk, sche
 func diskDataToSchemaProps(d *schema.ResourceData, deviceIndex int) map[string]interface{} {
 	m := make(map[string]interface{})
 	datastoreKey := fmt.Sprintf("disk.%d.datastore_id", deviceIndex)
-	if datastoreId, ok := d.GetOk(datastoreKey); ok {
-		m["datastore_id"] = datastoreId
+	if datastoreID, ok := d.GetOk(datastoreKey); ok {
+		m["datastore_id"] = datastoreID
 	}
 
 	diskModeKey := fmt.Sprintf("disk.%d.disk_mode", deviceIndex)
@@ -1415,11 +1415,6 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 		r.Set("controller_type", "nvme")
 	}
 
-	// Fetch disk attachment state in config
-	var attach bool
-	if r.Get("attach") != nil {
-		attach = r.Get("attach").(bool)
-	}
 	// Save disk backing settings
 	b := virtualdisk.ToSchemaPropsMap(disk.Backing)
 
@@ -1427,6 +1422,7 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	if !ok {
 		return fmt.Errorf("disk backing at %s is of an unsupported type (type %T)", r.Get("device_address").(string), disk.Backing)
 	}
+	// TODO Replace this part with dynamic key handling
 	r.Set("uuid", uuid)
 	r.Set("disk_mode", b["DiskMode"])
 	r.Set("write_through", b["WriteThrough"])
@@ -1439,15 +1435,18 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 		r.Set("disk_sharing", b["Sharing"])
 	}
 
-	if !attach {
-		r.Set("thin_provisioned", b["ThinProvisioned"])
-		r.Set("eagerly_scrub", b["EagerlyScrub"])
+	// Fetch disk attachment state in config
+	var attach bool
+	if r.Get("attach") != nil {
+		attach = r.Get("attach").(bool)
 	}
 	bInterface := disk.Backing.(*types.VirtualDeviceFileBackingInfo)
 	r.Set("datastore_id", bInterface.Datastore.Value)
 
 	// Disk settings
 	if !attach {
+		r.Set("thin_provisioned", b["ThinProvisioned"])
+		r.Set("eagerly_scrub", b["EagerlyScrub"])
 		dp := &object.DatastorePath{}
 		if ok := dp.FromString(bInterface.FileName); !ok {
 			return fmt.Errorf("could not parse path from filename: %s", bInterface.FileName)

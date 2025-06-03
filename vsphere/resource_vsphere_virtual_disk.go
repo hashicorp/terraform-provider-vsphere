@@ -13,6 +13,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/vmware/govmomi"
@@ -21,6 +22,8 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/virtualdisk"
 )
+
+var vsphereVirtualDiskMakeDirectoryMutex sync.Mutex
 
 type virtualDisk struct {
 	size              int
@@ -59,7 +62,7 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (warns []string, errors []error) {
+				ValidateFunc: func(v interface{}, _ string) (warns []string, errors []error) {
 					if !strings.HasSuffix(v.(string), ".vmdk") {
 						errors = append(errors, fmt.Errorf("vmdk_path must end with '.vmdk'"))
 					}
@@ -78,7 +81,7 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Default:  "eagerZeroedThick",
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+				ValidateFunc: func(v interface{}, _ string) (ws []string, errors []error) {
 					value := v.(string)
 					if value != "thin" && value != "eagerZeroedThick" && value != "lazy" {
 						errors = append(errors, fmt.Errorf(
@@ -95,7 +98,7 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 				Default:  "lsiLogic",
 				// TODO: Move this to removed after we remove the support to specify this in later versions
 				Deprecated: "this attribute has no effect on controller types - please use scsi_type in vsphere_virtual_machine instead",
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+				ValidateFunc: func(v interface{}, _ string) (ws []string, errors []error) {
 					value := v.(string)
 					if value != "ide" && value != "busLogic" && value != "lsiLogic" {
 						errors = append(errors, fmt.Errorf(
@@ -156,13 +159,13 @@ func resourceVSphereVirtualDiskCreate(d *schema.ResourceData, meta interface{}) 
 
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
-		return fmt.Errorf("Error finding Datacenter: %s: %s", vDisk.datacenter, err)
+		return fmt.Errorf("error finding datacenter: %s: %s", vDisk.datacenter, err)
 	}
 	finder = finder.SetDatacenter(dc)
 
 	ds, err := getDatastore(finder, vDisk.datastore)
 	if err != nil {
-		return fmt.Errorf("Error finding Datastore: %s: %s", vDisk.datastore, err)
+		return fmt.Errorf("error finding datastore: %s: %s", vDisk.datastore, err)
 	}
 
 	fm := object.NewFileManager(client.Client)
@@ -170,9 +173,14 @@ func resourceVSphereVirtualDiskCreate(d *schema.ResourceData, meta interface{}) 
 	if vDisk.createDirectories {
 		directoryPathIndex := strings.LastIndex(vDisk.vmdkPath, "/")
 		if directoryPathIndex > 0 {
+			// Only allow one MakeDirectory operation at a time in order to avoid
+			// overlapping attempts to create the same directory, which can result
+			// in some of the attempts failing.
+			vsphereVirtualDiskMakeDirectoryMutex.Lock()
 			vmdkPath := vDisk.vmdkPath[0:directoryPathIndex]
 			log.Printf("[DEBUG] Creating parent directories: %v", ds.Path(vmdkPath))
 			err = fm.MakeDirectory(context.TODO(), ds.Path(vmdkPath), dc, true)
+			vsphereVirtualDiskMakeDirectoryMutex.Unlock()
 			if err != nil && !isAlreadyExists(err) {
 				log.Printf("[DEBUG] Failed to create parent directories:  %v", err)
 				return err
@@ -292,7 +300,7 @@ func resourceVSphereVirtualDiskRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if len(res.File) != 1 {
-		return errors.New("Datastore search did not return exactly one result")
+		return errors.New("datastore search did not return exactly one result")
 	}
 
 	fileInfo := res.File[0]
@@ -315,7 +323,7 @@ func resourceVSphereVirtualDiskRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if err != nil {
-		return errors.New("Failed to query disk type")
+		return errors.New("failed to query disk type")
 	}
 
 	// adapter_type is deprecated, so just default.
@@ -499,13 +507,13 @@ func searchForDirectory(client *govmomi.Client, datacenter string, datastore str
 
 	dc, err := getDatacenter(client, datacenter)
 	if err != nil {
-		return fmt.Errorf("Error finding Datacenter: %s: %s", datacenter, err)
+		return fmt.Errorf("error finding datacenter: %s: %s", datacenter, err)
 	}
 	finder = finder.SetDatacenter(dc)
 
 	ds, err := finder.Datastore(context.TODO(), datastore)
 	if err != nil {
-		return fmt.Errorf("Error finding Datastore: %s: %s", datastore, err)
+		return fmt.Errorf("error finding datastore: %s: %s", datastore, err)
 	}
 
 	ctx := context.TODO()
@@ -555,7 +563,7 @@ func searchForDirectory(client *govmomi.Client, datacenter string, datastore str
 	}
 
 	if len(res.File) != 1 {
-		return errors.New("Datastore search did not return exactly one result")
+		return errors.New("datastore search did not return exactly one result")
 	}
 
 	fileInfo := res.File[0]
@@ -605,7 +613,7 @@ func resourceVSphereVirtualDiskImport(d *schema.ResourceData, meta interface{}) 
 
 	dp, success := virtualdisk.DatastorePathFromString(di.Name)
 	if !success {
-		return nil, fmt.Errorf("Invalid datastore path '%s'", di.Name)
+		return nil, fmt.Errorf("invalid datastore path '%s'", di.Name)
 	}
 
 	//addrParts[2] is in form: [<datastore>]path/to/vmdk

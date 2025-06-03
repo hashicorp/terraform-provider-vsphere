@@ -39,7 +39,7 @@ func testAccDataSourceVSphereContentLibraryConfig() string {
 
 resource "vsphere_content_library" "library" {
   name            = "ContentLibrary_test"
-  storage_backing = [ vsphere_nas_datastore.ds1.id ]
+  storage_backing = [ data.vsphere_datastore.rootds1.id ]
   description     = "Library Description"
 }
 
@@ -48,6 +48,6 @@ data "vsphere_content_library" "library" {
 }
 
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }

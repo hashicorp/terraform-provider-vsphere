@@ -21,7 +21,6 @@ func TestAccResourceVSphereHostVirtualSwitch_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereHostVirtualSwitchPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereHostVirtualSwitchExists(false),
@@ -53,6 +52,7 @@ func TestAccResourceVSphereHostVirtualSwitch_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereHostVirtualSwitch_removeNIC(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -79,6 +79,7 @@ func TestAccResourceVSphereHostVirtualSwitch_removeNIC(t *testing.T) {
 }
 
 func TestAccResourceVSphereHostVirtualSwitch_noNICs(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -100,6 +101,7 @@ func TestAccResourceVSphereHostVirtualSwitch_noNICs(t *testing.T) {
 }
 
 func TestAccResourceVSphereHostVirtualSwitch_badActiveNICList(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -119,6 +121,7 @@ func TestAccResourceVSphereHostVirtualSwitch_badActiveNICList(t *testing.T) {
 }
 
 func TestAccResourceVSphereHostVirtualSwitch_badStandbyNICList(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -138,6 +141,7 @@ func TestAccResourceVSphereHostVirtualSwitch_badStandbyNICList(t *testing.T) {
 }
 
 func TestAccResourceVSphereHostVirtualSwitch_removeAllNICs(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -233,11 +237,11 @@ func testAccResourceVSphereHostVirtualSwitchNoBridge() resource.TestCheckFunc {
 
 func testAccResourceVSphereHostVirtualSwitchConfig() string {
 	return fmt.Sprintf(`
-variable "host_nic0" {
+variable "host_nic1" {
   default = "%s"
 }
 
-variable "host_nic1" {
+variable "host_nic2" {
   default = "%s"
 }
 
@@ -245,22 +249,22 @@ variable "host_nic1" {
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
   name           = "vSwitchTerraformTest2"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  host_system_id = data.vsphere_host.esxi_host.id
 
-  network_adapters = [var.host_nic0, var.host_nic1]
+  network_adapters = [var.host_nic1, var.host_nic2]
 
-  active_nics  = [var.host_nic0]
-  standby_nics = [var.host_nic1]
+  active_nics  = [var.host_nic1]
+  standby_nics = [var.host_nic2]
 }
-`, testhelper.HostNic0,
-		testhelper.HostNic1,
+`, testhelper.HostNic1,
+		testhelper.HostNic2,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
-		os.Getenv("TF_VAR_VSPHERE_ESXI1"))
+		os.Getenv("TF_VAR_VSPHERE_ESXI3"))
 }
 
 func testAccResourceVSphereHostVirtualSwitchConfigSingleNIC() string {
@@ -273,16 +277,16 @@ variable "host_nic0" {
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
   name           = "vSwitchTerraformTest2"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  host_system_id = data.vsphere_host.esxi_host.id
 
-  network_adapters = ["${var.host_nic0}"]
+  network_adapters = [var.host_nic0]
 
-  active_nics  = ["${var.host_nic0}"]
+  active_nics = [var.host_nic0]
 }
 `, testhelper.HostNic0,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -299,12 +303,12 @@ variable "host_nic0" {
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
   name           = "vSwitchTerraformTest2"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  host_system_id = data.vsphere_host.esxi_host.id
 
   network_adapters = []
 
@@ -326,16 +330,16 @@ variable "host_nic0" {
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
   name           = "vSwitchTerraformTest2"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  host_system_id = data.vsphere_host.esxi_host.id
 
   network_adapters = []
 
-  active_nics  = ["${var.host_nic0}"]
+  active_nics  = [var.host_nic0]
   standby_nics = []
 }
 `, testhelper.HostNic1,
@@ -353,17 +357,17 @@ variable "host_nic0" {
 
 data "vsphere_host" "esxi_host" {
   name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_host_virtual_switch" "switch" {
   name           = "vSwitchTerraformTest2"
-  host_system_id = "${data.vsphere_host.esxi_host.id}"
+  host_system_id = data.vsphere_host.esxi_host.id
 
   network_adapters = []
 
   active_nics  = []
-  standby_nics = ["${var.host_nic0}"]
+  standby_nics = [var.host_nic0]
 }
 `, testhelper.HostNic1,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),

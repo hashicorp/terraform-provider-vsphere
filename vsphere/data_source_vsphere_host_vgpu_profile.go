@@ -84,7 +84,7 @@ func dataSourceVSphereHostVGpuProfileRead(d *schema.ResourceData, meta interface
 
 	// Create unique ID based on the host_id
 	idsum := sha256.New()
-	if _, err := idsum.Write([]byte(fmt.Sprintf("%#v", d.Get("host_id").(string)))); err != nil {
+	if _, err := fmt.Fprintf(idsum, "%#v", d.Get("host_id").(string)); err != nil {
 		return err
 	}
 

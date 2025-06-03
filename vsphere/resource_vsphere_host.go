@@ -7,7 +7,9 @@ package vsphere
 import (
 	"bytes"
 	"context"
-	"crypto/sha1"
+
+	// TODO: Transition to crypto/sha256 in next major release.
+	"crypto/sha1" //nolint
 	"crypto/tls"
 	"fmt"
 	"log"
@@ -869,7 +871,9 @@ func buildHostConnectSpec(d *schema.ResourceData) (types.HostConnectSpec, error)
 }
 
 func getHostThumbprint(d *schema.ResourceData) (string, error) {
-	config := &tls.Config{}
+	config := &tls.Config{
+		MinVersion: tls.VersionTLS12, // Enforce TLS 1.2 or higher.
+	}
 
 	// Check the hostname.
 	address, ok := d.Get("hostname").(string)
@@ -990,7 +994,7 @@ func (h HostAccessManager) ChangeLockdownMode(ctx context.Context, mode types.Ho
 	return err
 }
 
-func resourceVSphereHostUpdateServices(d *schema.ResourceData, meta interface{}, oldVal, newVal interface{}) error {
+func resourceVSphereHostUpdateServices(d *schema.ResourceData, meta interface{}, _, _ interface{}) error {
 	client := meta.(*Client).vimClient
 	hostID := d.Id()
 	hostObject, err := hostsystem.FromID(client, hostID)
@@ -1079,7 +1083,7 @@ func changeHostNtpServers(ctx context.Context, host *object.HostSystem, servers 
 	return s.UpdateConfig(ctx, dateTimeConfig)
 }
 
-func readHostNtpServerConfig(ctx context.Context, client *govmomi.Client, hostObject *object.HostSystem) ([]string, error) {
+func readHostNtpServerConfig(ctx context.Context, _ *govmomi.Client, hostObject *object.HostSystem) ([]string, error) {
 	// Retrieve the host's configuration
 	var hostSystem mo.HostSystem
 	err := hostObject.Properties(ctx, hostObject.Reference(), []string{"config.dateTimeInfo"}, &hostSystem)
@@ -1105,7 +1109,7 @@ func readHostNtpServerConfig(ctx context.Context, client *govmomi.Client, hostOb
 }
 
 // StartHostService starts a specified service on a host.
-func StartHostService(ctx context.Context, client *govmomi.Client, hostObject *object.HostSystem, serviceKey string) error {
+func StartHostService(ctx context.Context, _ *govmomi.Client, hostObject *object.HostSystem, serviceKey string) error {
 	// Retrieve the host's service system
 	serviceSystem, err := hostObject.ConfigManager().ServiceSystem(ctx)
 	if err != nil {
@@ -1122,7 +1126,7 @@ func StartHostService(ctx context.Context, client *govmomi.Client, hostObject *o
 }
 
 // UpdateHostServicePolicy updates the policy of a specified service on a host.
-func UpdateHostServicePolicy(ctx context.Context, client *govmomi.Client, hostObject *object.HostSystem, serviceKey, policy string) error {
+func UpdateHostServicePolicy(ctx context.Context, _ *govmomi.Client, hostObject *object.HostSystem, serviceKey, policy string) error {
 	// Retrieve the host's service system
 	serviceSystem, err := hostObject.ConfigManager().ServiceSystem(ctx)
 	if err != nil {
@@ -1138,7 +1142,7 @@ func UpdateHostServicePolicy(ctx context.Context, client *govmomi.Client, hostOb
 }
 
 // ReadHostServicePolicy reads the policy of a specified service on a host.
-func readHostServicePolicy(ctx context.Context, client *govmomi.Client, hostObject *object.HostSystem, serviceKey string) (string, error) {
+func readHostServicePolicy(ctx context.Context, _ *govmomi.Client, hostObject *object.HostSystem, serviceKey string) (string, error) {
 	// Retrieve the host's configuration
 	var hostSystem mo.HostSystem
 	err := hostObject.Properties(ctx, hostObject.Reference(), []string{"config.service"}, &hostSystem)
@@ -1163,7 +1167,7 @@ func readHostServicePolicy(ctx context.Context, client *govmomi.Client, hostObje
 	return "", fmt.Errorf("service %s not found on host", serviceKey)
 }
 
-func readHostServiceStatus(ctx context.Context, client *govmomi.Client, hostObject *object.HostSystem, serviceKey string) (bool, error) {
+func readHostServiceStatus(ctx context.Context, _ *govmomi.Client, hostObject *object.HostSystem, serviceKey string) (bool, error) {
 	// Retrieve the host's configuration
 	var hostSystem mo.HostSystem
 	err := hostObject.Properties(ctx, hostObject.Reference(), []string{"config.service"}, &hostSystem)

@@ -45,32 +45,6 @@ var vSphereTagTypes = []string{
 	vSphereTagTypeVirtualMachine,
 }
 
-// vSphereTagCategorySearchErrMultiple is an error message format for a tag
-// category search that returned multiple results. This is a bug and needs to
-// be reported so we can adjust the API.
-const vSphereTagCategorySearchErrMultiple = `
-Category name %q returned multiple results!
-
-This is a bug - please report it at:
-https://github.com/vmware/terraform-provider-vsphere/issues
-
-This version of the provider requires unique category names. To work around
-this issue, please use a category name unique within your vCenter system.
-`
-
-// vSphereTagSearchErrMultiple is an error message format for a tag search that
-// returned multiple results. This is a bug and needs to be reported so we can
-// adjust the API.
-const vSphereTagSearchErrMultiple = `
-Tag name %q returned multiple results!
-
-This is a bug - please report it at:
-https://github.com/vmware/terraform-provider-vsphere/issues
-
-This version of the provider requires unique tag names. To work around
-this issue, please use a tag name unique within your vCenter system.
-`
-
 // vSphereTagAttributeKey is the string key that should always be used as the
 // argument to pass tags in to. Various resource tag helpers will depend on
 // this value being consistent across resources.
@@ -133,7 +107,7 @@ func tagCategoryByName(tm *tags.Manager, name string) (string, error) {
 		return "", fmt.Errorf("could not get category for name %q: %s", name, err)
 	}
 
-	cats := []*tags.Category{}
+	var cats []*tags.Category
 	for i, cat := range allCats {
 		if cat.Name == name {
 			cats = append(cats, &allCats[i])
@@ -149,7 +123,7 @@ func tagCategoryByName(tm *tags.Manager, name string) (string, error) {
 		// are. If for some reason the returned results includes more than one ID,
 		// we give an error, indicating that this is a bug and the user should
 		// submit an issue.
-		return "", fmt.Errorf(vSphereTagCategorySearchErrMultiple, name)
+		return "", fmt.Errorf("tag category name %q returned multiple results; unique tag category names are required", name)
 	}
 
 	return cats[0].ID, nil
@@ -162,7 +136,7 @@ func tagByName(tm *tags.Manager, name, categoryID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
 	allTags, err := tm.GetTagsForCategory(ctx, categoryID)
-	tagList := []*tags.Tag{}
+	var tagList []*tags.Tag
 	if err != nil {
 		return "", fmt.Errorf("could not get tag for name %q: %s", name, err)
 	}
@@ -179,7 +153,7 @@ func tagByName(tm *tags.Manager, name, categoryID string) (string, error) {
 		// This situation is very similar to the one in tagCategoryByName. The API
 		// docs even say that tagList need to be unique in categories, yet
 		// GetTagByNameForCategory still returns multiple results.
-		return "", fmt.Errorf(vSphereTagSearchErrMultiple, name)
+		return "", fmt.Errorf("tag name %q returned multiple results; unique tag names are required", name)
 	}
 
 	return tagList[0].ID, nil
@@ -267,14 +241,14 @@ func (p *tagDiffProcessor) diff(a, b []string) []string {
 func (p *tagDiffProcessor) processAttachOperations() error {
 	tagIDs := p.diffNewOld()
 	if len(tagIDs) < 1 {
-		// Nothing to do
 		return nil
 	}
 	for _, tagID := range tagIDs {
 		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
-		defer cancel()
 		log.Printf("[DEBUG] Attaching tag %q for object %q", tagID, p.subject.Reference().Value)
-		if err := p.manager.AttachTag(ctx, tagID, p.subject); err != nil {
+		err := p.manager.AttachTag(ctx, tagID, p.subject)
+		cancel()
+		if err != nil {
 			return err
 		}
 	}
@@ -286,14 +260,14 @@ func (p *tagDiffProcessor) processAttachOperations() error {
 func (p *tagDiffProcessor) processDetachOperations() error {
 	tagIDs := p.diffOldNew()
 	if len(tagIDs) < 1 {
-		// Nothing to do
 		return nil
 	}
 	for _, tagID := range tagIDs {
 		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
-		defer cancel()
 		log.Printf("[DEBUG] Detaching tag %q for object %q", tagID, p.subject.Reference().Value)
-		if err := p.manager.DetachTag(ctx, tagID, p.subject); err != nil {
+		err := p.manager.DetachTag(ctx, tagID, p.subject)
+		cancel()
+		if err != nil {
 			return err
 		}
 	}

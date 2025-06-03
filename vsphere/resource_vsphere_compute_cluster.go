@@ -1144,7 +1144,7 @@ func resourceVSphereComputeClusterApplyCustomAttributes(
 func resourceVSphereComputeClusterApplyHostImage(
 	d *schema.ResourceData,
 	meta interface{},
-	cluster *object.ClusterComputeResource,
+	_ *object.ClusterComputeResource,
 ) error {
 	if !d.HasChange("host_image") {
 		return nil
@@ -1165,12 +1165,12 @@ func resourceVSphereComputeClusterApplyHostImage(
 		}
 	}
 
-	draftId, err := m.CreateSoftwareDraft(d.Id())
+	draftID, err := m.CreateSoftwareDraft(d.Id())
 	if err != nil {
 		return err
 	}
 
-	if err := m.SetSoftwareDraftBaseImage(d.Id(), draftId, d.Get("host_image.0.esx_version").(string)); err != nil {
+	if err := m.SetSoftwareDraftBaseImage(d.Id(), draftID, d.Get("host_image.0.esx_version").(string)); err != nil {
 		return err
 	}
 
@@ -1182,41 +1182,41 @@ func resourceVSphereComputeClusterApplyHostImage(
 	spec.ComponentsToSet = getComponentsToAdd(oldComponentsMap, newComponentsMap)
 	componentsToRemove := getComponentsToRemove(oldComponentsMap, newComponentsMap)
 
-	if err = m.UpdateSoftwareDraftComponents(d.Id(), draftId, spec); err != nil {
+	if err = m.UpdateSoftwareDraftComponents(d.Id(), draftID, spec); err != nil {
 		return err
 	}
 
 	if len(componentsToRemove) > 0 {
-		for _, componentId := range componentsToRemove {
-			if err := m.RemoveSoftwareDraftComponents(d.Id(), draftId, componentId); err != nil {
+		for _, componentID := range componentsToRemove {
+			if err := m.RemoveSoftwareDraftComponents(d.Id(), draftID, componentID); err != nil {
 				return err
 			}
 		}
 	}
 
-	taskId, err := m.CommitSoftwareDraft(d.Id(), draftId, clusters.SettingsClustersSoftwareDraftsCommitSpec{})
+	taskID, err := m.CommitSoftwareDraft(d.Id(), draftID, clusters.SettingsClustersSoftwareDraftsCommitSpec{})
 	if err != nil {
 		return err
 	}
 
-	_, err = tasks.NewManager(client).WaitForCompletion(context.Background(), taskId)
+	_, err = tasks.NewManager(client).WaitForCompletion(context.Background(), taskID)
 	return err
 }
 
 func resourceVsphereComputeClusterEnableSoftwareManagement(d *schema.ResourceData, client *rest.Client) error {
 	m := clusters.NewManager(client)
 
-	if draftId, err := m.CreateSoftwareDraft(d.Id()); err != nil {
+	if draftID, err := m.CreateSoftwareDraft(d.Id()); err != nil {
 		return err
-	} else if err := m.SetSoftwareDraftBaseImage(d.Id(), draftId, d.Get("host_image.0.esx_version").(string)); err != nil {
+	} else if err := m.SetSoftwareDraftBaseImage(d.Id(), draftID, d.Get("host_image.0.esx_version").(string)); err != nil {
 		return err
-	} else if taskId, err := m.CommitSoftwareDraft(d.Id(), draftId, clusters.SettingsClustersSoftwareDraftsCommitSpec{}); err != nil {
+	} else if taskID, err := m.CommitSoftwareDraft(d.Id(), draftID, clusters.SettingsClustersSoftwareDraftsCommitSpec{}); err != nil {
 		return err
-	} else if _, err := tasks.NewManager(client).WaitForCompletion(context.Background(), taskId); err != nil {
+	} else if _, err := tasks.NewManager(client).WaitForCompletion(context.Background(), taskID); err != nil {
 		return err
-	} else if taskId, err := m.EnableSoftwareManagement(d.Id(), false); err != nil {
+	} else if taskID, err := m.EnableSoftwareManagement(d.Id(), false); err != nil {
 		return err
-	} else if _, err := tasks.NewManager(client).WaitForCompletion(context.Background(), taskId); err != nil {
+	} else if _, err := tasks.NewManager(client).WaitForCompletion(context.Background(), taskID); err != nil {
 		return err
 	}
 	return nil
@@ -1519,7 +1519,7 @@ func resourceVSphereComputeClusterDeleteProcessForceRemoveFaultDomain(
 		return nil
 	}
 
-	if spec.VsanHostConfigSpec == nil || len(spec.VsanHostConfigSpec) == 0 {
+	if len(spec.VsanHostConfigSpec) == 0 {
 		return nil
 	}
 
@@ -1603,7 +1603,7 @@ func resourceVSphereComputeClusterFlattenData(
 	}
 
 	if !d.Get("host_managed").(bool) {
-		hostList := []string{}
+		var hostList []string
 		for _, host := range props.Host {
 			hostList = append(hostList, host.Value)
 		}
@@ -1625,39 +1625,39 @@ func resourceVSphereComputeClusterFlattenData(
 		return fmt.Errorf("error getting vsan information for cluster %s, response object was unexpectedly nil", d.Get("name").(string))
 	}
 
-	d.Set("vsan_enabled", structure.BoolNilFalse(vsanConfig.Enabled))
-	d.Set("vsan_esa_enabled", structure.BoolNilFalse(vsanConfig.VsanEsaEnabled))
+	_ = d.Set("vsan_enabled", structure.BoolNilFalse(vsanConfig.Enabled))
+	_ = d.Set("vsan_esa_enabled", structure.BoolNilFalse(vsanConfig.VsanEsaEnabled))
 
 	if vsanConfig.DataEfficiencyConfig != nil {
-		d.Set("vsan_dedup_enabled", vsanConfig.DataEfficiencyConfig.DedupEnabled)
-		d.Set("vsan_compression_enabled", structure.BoolNilFalse(vsanConfig.DataEfficiencyConfig.CompressionEnabled))
+		_ = d.Set("vsan_dedup_enabled", vsanConfig.DataEfficiencyConfig.DedupEnabled)
+		_ = d.Set("vsan_compression_enabled", structure.BoolNilFalse(vsanConfig.DataEfficiencyConfig.CompressionEnabled))
 	} else {
-		d.Set("vsan_dedup_enabled", false)
-		d.Set("vsan_compression_enabled", false)
+		_ = d.Set("vsan_dedup_enabled", false)
+		_ = d.Set("vsan_compression_enabled", false)
 	}
 
 	if vsanConfig.PerfsvcConfig != nil {
-		d.Set("vsan_performance_enabled", vsanConfig.PerfsvcConfig.Enabled)
-		d.Set("vsan_verbose_mode_enabled", structure.BoolNilFalse(vsanConfig.PerfsvcConfig.VerboseMode))
-		d.Set("vsan_network_diagnostic_mode_enabled", structure.BoolNilFalse(vsanConfig.PerfsvcConfig.DiagnosticMode))
+		_ = d.Set("vsan_performance_enabled", vsanConfig.PerfsvcConfig.Enabled)
+		_ = d.Set("vsan_verbose_mode_enabled", structure.BoolNilFalse(vsanConfig.PerfsvcConfig.VerboseMode))
+		_ = d.Set("vsan_network_diagnostic_mode_enabled", structure.BoolNilFalse(vsanConfig.PerfsvcConfig.DiagnosticMode))
 	} else {
-		d.Set("vsan_performance_enabled", false)
-		d.Set("vsan_verbose_mode_enabled", false)
-		d.Set("vsan_network_diagnostic_mode_enabled", false)
+		_ = d.Set("vsan_performance_enabled", false)
+		_ = d.Set("vsan_verbose_mode_enabled", false)
+		_ = d.Set("vsan_network_diagnostic_mode_enabled", false)
 	}
 
 	if vsanConfig.UnmapConfig != nil {
-		d.Set("vsan_unmap_enabled", vsanConfig.UnmapConfig.Enable)
+		_ = d.Set("vsan_unmap_enabled", vsanConfig.UnmapConfig.Enable)
 	} else {
-		d.Set("vsan_unmap_enabled", false)
+		_ = d.Set("vsan_unmap_enabled", false)
 	}
 
 	if vsanConfig.DataInTransitEncryptionConfig != nil {
-		d.Set("vsan_dit_encryption_enabled", structure.BoolNilFalse(vsanConfig.DataInTransitEncryptionConfig.Enabled))
-		d.Set("vsan_dit_rekey_interval", int(vsanConfig.DataInTransitEncryptionConfig.RekeyInterval))
+		_ = d.Set("vsan_dit_encryption_enabled", structure.BoolNilFalse(vsanConfig.DataInTransitEncryptionConfig.Enabled))
+		_ = d.Set("vsan_dit_rekey_interval", int(vsanConfig.DataInTransitEncryptionConfig.RekeyInterval))
 	} else {
-		d.Set("vsan_dit_encryption_enabled", false)
-		d.Set("vsan_dit_rekey_interval", 0)
+		_ = d.Set("vsan_dit_encryption_enabled", false)
+		_ = d.Set("vsan_dit_rekey_interval", 0)
 	}
 
 	var dsIDs []string
@@ -1759,8 +1759,8 @@ func flattenClusterVsanHostConfigInfo(d *schema.ResourceData, obj []types.VsanHo
 	for _, vsanHost := range obj {
 		if vsanHost.FaultDomainInfo.Name != "" {
 			name := vsanHost.FaultDomainInfo.Name
-			if hostIds, ok := fdMap[name]; ok {
-				fdMap[name] = append(hostIds.([]string), vsanHost.HostSystem.Value)
+			if hostIDs, ok := fdMap[name]; ok {
+				fdMap[name] = append(hostIDs.([]string), vsanHost.HostSystem.Value)
 			} else {
 				fdMap[name] = []string{vsanHost.HostSystem.Value}
 			}
@@ -1768,10 +1768,10 @@ func flattenClusterVsanHostConfigInfo(d *schema.ResourceData, obj []types.VsanHo
 	}
 
 	var faultDomainList []interface{}
-	for fdName, hostIds := range fdMap {
+	for fdName, hostIDs := range fdMap {
 		faultDomainList = append(faultDomainList, map[string]interface{}{
 			"name":     fdName,
-			"host_ids": hostIds,
+			"host_ids": hostIDs,
 		})
 	}
 	if len(fdMap) > 0 {
@@ -1858,7 +1858,7 @@ func buildVsanStretchedClusterReq(d *schema.ResourceData, cluster types.ManagedO
 	}, nil
 }
 
-func buildVsanRemoveWitnessHostReq(d *schema.ResourceData, cluster types.ManagedObjectReference, client *vsan.Client) (*vsantypes.VSANVcRemoveWitnessHost, error) {
+func buildVsanRemoveWitnessHostReq(_ *schema.ResourceData, cluster types.ManagedObjectReference, client *vsan.Client) (*vsantypes.VSANVcRemoveWitnessHost, error) {
 	log.Printf("[DEBUG] building vsan remove witness request...")
 
 	res, err := vsanclient.GetWitnessHosts(client, cluster.Reference())
@@ -2134,7 +2134,7 @@ func addVsanDisks(host *object.HostSystem, list []interface{}, client *govmomi.C
 }
 
 func flattenVsanDisks(d *schema.ResourceData, cluster *object.ClusterComputeResource) error {
-	diskMap := []interface{}{}
+	var diskMap []interface{}
 
 	hosts, err := clustercomputeresource.Hosts(cluster)
 	if err != nil {
@@ -2182,22 +2182,22 @@ func flattenVsanStretchedCluster(client *vsan.Client, d *schema.ResourceData, cl
 		for _, witnessHost := range res.Returnval {
 			preferredFaultDomainName := witnessHost.PreferredFdName
 			var secondaryFaultDomainName string
-			var preferredFaultDomainHostIds []string
-			var secondaryFaultDomainHostIds []string
+			var preferredFaultDomainHostIDs []string
+			var secondaryFaultDomainHostIDs []string
 			for _, hostConf := range obj.VsanHostConfig {
 				name := hostConf.FaultDomainInfo.Name
 				if name == preferredFaultDomainName {
-					preferredFaultDomainHostIds = append(preferredFaultDomainHostIds, hostConf.HostSystem.Value)
+					preferredFaultDomainHostIDs = append(preferredFaultDomainHostIDs, hostConf.HostSystem.Value)
 				} else {
 					if secondaryFaultDomainName == "" {
 						secondaryFaultDomainName = name
 					}
-					secondaryFaultDomainHostIds = append(secondaryFaultDomainHostIds, hostConf.HostSystem.Value)
+					secondaryFaultDomainHostIDs = append(secondaryFaultDomainHostIDs, hostConf.HostSystem.Value)
 				}
 			}
 			conf = append(conf, map[string]interface{}{
-				"preferred_fault_domain_host_ids": preferredFaultDomainHostIds,
-				"secondary_fault_domain_host_ids": secondaryFaultDomainHostIds,
+				"preferred_fault_domain_host_ids": preferredFaultDomainHostIDs,
+				"secondary_fault_domain_host_ids": secondaryFaultDomainHostIDs,
 				"witness_node":                    witnessHost.Host.Value,
 				"preferred_fault_domain_name":     preferredFaultDomainName,
 				"secondary_fault_domain_name":     secondaryFaultDomainName,
@@ -2716,9 +2716,9 @@ func flattenClusterDrsConfigInfo(d *schema.ResourceData, obj types.ClusterDrsCon
 
 	// Minimum Supported Version: 7.0.0
 	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 7, Minor: 0}) {
-		d.Set("drs_scale_descendants_shares", obj.ScaleDescendantsShares)
+		_ = d.Set("drs_scale_descendants_shares", obj.ScaleDescendantsShares)
 	} else {
-		d.Set("drs_scale_descendants_shares", string(types.ResourceConfigSpecScaleSharesBehaviorDisabled))
+		_ = d.Set("drs_scale_descendants_shares", string(types.ResourceConfigSpecScaleSharesBehaviorDisabled))
 	}
 
 	return flattenResourceVSphereComputeClusterDrsAdvancedOptions(d, obj.Option)

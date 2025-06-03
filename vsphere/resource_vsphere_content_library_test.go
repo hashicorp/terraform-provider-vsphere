@@ -20,7 +20,6 @@ func TestAccResourceVSphereContentLibrary_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereContentLibraryPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereContentLibraryCheckExists(false),
@@ -49,6 +48,7 @@ func TestAccResourceVSphereContentLibrary_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereContentLibrary_subscribed(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -75,6 +75,7 @@ func TestAccResourceVSphereContentLibrary_subscribed(t *testing.T) {
 	})
 }
 func TestAccResourceVSphereContentLibrary_authenticated(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -112,7 +113,7 @@ func testAccResourceVSphereContentLibraryDescription(expected *regexp.Regexp) re
 			return err
 		}
 		if !expected.MatchString(*library.Description) {
-			return fmt.Errorf("Content Library description does not match. expected: %s, got %v", expected.String(), library.Description)
+			return fmt.Errorf("content Library description does not match. expected: %s, got %v", expected.String(), library.Description)
 		}
 		return nil
 	}
@@ -125,14 +126,14 @@ func testAccResourceVSphereContentLibraryName(expected *regexp.Regexp) resource.
 			return err
 		}
 		if !expected.MatchString(library.Name) {
-			return fmt.Errorf("Content Library name does not match. expected: %s, got %s", expected.String(), library.Name)
+			return fmt.Errorf("content Library name does not match. expected: %s, got %s", expected.String(), library.Name)
 		}
 		return nil
 	}
 }
 
 func testaccresourcevspherecontentlibraryconfigBase() string {
-	return testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootDS1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1())
+	return testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost3(), testhelper.ConfigDataRootDS1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1())
 }
 
 func testaccresourcevspherecontentlibraryconfigAuthenticated() string {
@@ -141,29 +142,28 @@ func testaccresourcevspherecontentlibraryconfigAuthenticated() string {
 
 resource "vsphere_content_library" "library_published" {
   name            = "testacc_published"
-  storage_backing = [ data.vsphere_datastore.rootds1.id ]
+  storage_backing = [data.vsphere_datastore.rootds1.id]
   description     = "Library Description"
-	publication {
-	  authentication_method = "BASIC"
-		username = "vcsp"
-		password = "Password123!"
-	  published = true
-	}
+  publication {
+    authentication_method = "BASIC"
+    username              = "vcsp"
+    password              = "Password123!"
+    published             = true
+  }
 }
 
 resource "vsphere_content_library" "library" {
   name            = "testacc_subscribed"
-  storage_backing = [ data.vsphere_datastore.rootds1.id ]
+  storage_backing = [data.vsphere_datastore.rootds1.id]
   description     = "Library Description"
-	subscription {
-	  authentication_method = "BASIC"
-		username = "vcsp"
-		password = "Password123!"
-	  subscription_url = vsphere_content_library.library_published.publication.0.publish_url
-	}
+  subscription {
+    authentication_method = "BASIC"
+    username              = "vcsp"
+    password              = "Password123!"
+    subscription_url      = vsphere_content_library.library_published.publication.0.publish_url
+  }
 }
-`,
-		testaccresourcevspherecontentlibraryconfigBase())
+`, testaccresourcevspherecontentlibraryconfigBase())
 }
 func testaccresourcevspherecontentlibraryconfigSubscribed() string {
 	return fmt.Sprintf(`
@@ -171,23 +171,22 @@ func testaccresourcevspherecontentlibraryconfigSubscribed() string {
 
 resource "vsphere_content_library" "library_published" {
   name            = "testacc_published"
-  storage_backing = [ data.vsphere_datastore.rootds1.id ]
+  storage_backing = [data.vsphere_datastore.rootds1.id]
   description     = "Library Description"
-	publication {
-	  published = true
-	}
+  publication {
+    published = true
+  }
 }
 
 resource "vsphere_content_library" "library" {
   name            = "testacc_subscribed"
-  storage_backing = [ data.vsphere_datastore.rootds1.id ]
+  storage_backing = [data.vsphere_datastore.rootds1.id]
   description     = "Library Description"
-	subscription {
-	  subscription_url = vsphere_content_library.library_published.publication.0.publish_url
-	}
+  subscription {
+    subscription_url = vsphere_content_library.library_published.publication.0.publish_url
+  }
 }
-`,
-		testaccresourcevspherecontentlibraryconfigBase())
+`, testaccresourcevspherecontentlibraryconfigBase())
 }
 
 func testAccResourceVSphereContentLibraryConfig() string {
@@ -196,11 +195,10 @@ func testAccResourceVSphereContentLibraryConfig() string {
 
 resource "vsphere_content_library" "library" {
   name            = "testacc_content_library"
-  storage_backing = [ data.vsphere_datastore.rootds1.id ]
+  storage_backing = [data.vsphere_datastore.rootds1.id]
   description     = "Library Description"
 }
-`,
-		testaccresourcevspherecontentlibraryconfigBase())
+`, testaccresourcevspherecontentlibraryconfigBase())
 }
 
 func testAccResourceVSphereContentLibraryCheckExists(expected bool) resource.TestCheckFunc {

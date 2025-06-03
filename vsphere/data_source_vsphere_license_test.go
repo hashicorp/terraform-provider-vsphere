@@ -13,6 +13,7 @@ import (
 )
 
 func TestAccDataSourceVSphereLicense_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

@@ -41,37 +41,38 @@ import (
 
 // formatVirtualMachinePostCloneRollbackError defines the verbose error when
 // rollback fails on a post-clone virtual machine operation.
-const formatVirtualMachinePostCloneRollbackError = `
-WARNING:
-There was an error performing post-clone changes to virtual machine %q:
-%s
-Additionally, there was an error removing the cloned virtual machine:
-%s
+const formatVirtualMachinePostCloneRollbackError = `warning:
 
-The virtual machine may still exist in Terraform state. If it does, the
-resource will need to be tainted before trying again. For more information on
-how to do this, see the following page:
-https://www.terraform.io/docs/commands/taint.html
+There was an error performing post-clone changes to virtual machine %q: %s.
 
-If the virtual machine does not exist in state, manually delete it to try again.
-`
+Additionally, there was an error removing the cloned virtual machine: %s.
+
+The virtual machine may still exist in state.
+
+If it does, the resource will need to be tainted before trying again.
+
+If the virtual machine does not exist in state, manually delete it to try again
+
+Reference: https://developer.hashicorp.com/terraform/cli/commands/taint`
 
 // formatVirtualMachineCustomizationWaitError defines the verbose error that is
 // sent when the customization waiter returns an error. This can either be due
 // to timeout waiting for respective events or a guest-specific customization
 // error. The resource does not roll back in this case, to assist with
 // troubleshooting.
-const formatVirtualMachineCustomizationWaitError = `
-Virtual machine customization failed on %q:
+const formatVirtualMachineCustomizationWaitError = `warning:
+
+The virtual machine customization failed on %q:
 
 %s
 
-The virtual machine has not been deleted to assist with troubleshooting. If
-corrective steps are taken without modifying the "customize" block of the
+The virtual machine has not been deleted to assist with troubleshooting.
+
+If corrective steps are taken without modifying the "customize" block of the
 resource configuration, the resource will need to be tainted before trying
-again. For more information on how to do this, see the following page:
-https://www.terraform.io/docs/commands/taint.html
-`
+again.
+
+Reference: https://developer.hashicorp.com/terraform/cli/commands/taint`
 
 const questionCheckIntervalSecs = 5
 
@@ -324,7 +325,6 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			State: resourceVSphereVirtualMachineImport,
 		},
 		SchemaVersion: 3,
-		MigrateState:  resourceVSphereVirtualMachineMigrateState,
 		Schema:        s,
 	}
 }
@@ -438,7 +438,8 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	id := d.Id()
 	vm, err := virtualmachine.FromUUID(client, id)
 	if err != nil {
-		if _, ok := err.(*virtualmachine.UUIDNotFoundError); ok {
+		var notFoundError *virtualmachine.UUIDNotFoundError
+		if errors.As(err, &notFoundError) {
 			log.Printf("[DEBUG] %s: Virtual machine not found, marking resource as gone: %s", resourceVSphereVirtualMachineIDString(d), err)
 			d.SetId("")
 			return nil
@@ -536,7 +537,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 				return fmt.Errorf("could not read managed object reference (datastore cluster): %s", dsProps.Parent.Value)
 			}
 
-			d.Set("datastore_cluster_id", cluster.Reference().Value)
+			_ = d.Set("datastore_cluster_id", cluster.Reference().Value)
 		}
 
 	}
@@ -552,7 +553,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		if err != nil {
 			return err
 		}
-		d.Set("storage_policy_id", polID)
+		_ = d.Set("storage_policy_id", polID)
 	}
 
 	// Read the virtual machine PCI passthrough devices
@@ -560,8 +561,8 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	for _, dev := range vprops.Config.Hardware.Device {
 		if pci, ok := dev.(*types.VirtualPCIPassthrough); ok {
 			if pciBacking, ok := pci.Backing.(*types.VirtualPCIPassthroughDeviceBackingInfo); ok {
-				devId := pciBacking.Id
-				pciDevs = append(pciDevs, devId)
+				devID := pciBacking.Id
+				pciDevs = append(pciDevs, devID)
 			} else {
 				log.Printf("[DEBUG] %s: PCI passthrough device %q has no backing ID", resourceVSphereVirtualMachineIDString(d), pci.GetVirtualDevice().DeviceInfo.GetDescription())
 			}
@@ -614,11 +615,11 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	// Get the power state for the virtual machine.
 	switch vprops.Runtime.PowerState {
 	case types.VirtualMachinePowerStatePoweredOn:
-		d.Set("power_state", "on")
+		_ = d.Set("power_state", "on")
 	case types.VirtualMachinePowerStatePoweredOff:
-		d.Set("power_state", "off")
+		_ = d.Set("power_state", "off")
 	case types.VirtualMachinePowerStateSuspended:
-		d.Set("power_state", "suspended")
+		_ = d.Set("power_state", "suspended")
 	}
 
 	// Set the virtual Trusted Platform Module device for the virtual machine.
@@ -750,18 +751,6 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	devices := object.VirtualDeviceList(vprops.Config.Hardware.Device)
 	if spec.DeviceChange, err = applyVirtualDevices(d, client, devices); err != nil {
 		return err
-	}
-
-	if d.HasChange("vtpm") {
-
-		spec.DeviceChange = append(spec.DeviceChange, &types.VirtualDeviceConfigSpec{
-			Operation: types.VirtualDeviceConfigSpecOperationAdd,
-			Device: &types.VirtualTPM{
-				VirtualDevice: types.VirtualDevice{
-					Key: -1,
-				},
-			},
-		})
 	}
 
 	// Only carry out the reconfigure if we actually have a change to process.
@@ -982,29 +971,6 @@ func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.Res
 	log.Printf("[DEBUG] %s: Performing diff customization and validation", resourceVSphereVirtualMachineIDString(d))
 	client := meta.(*Client).vimClient
 
-	version := viapi.ParseVersionFromClient(client)
-
-	// Minimum Supported Version: 6.5.0
-	if d.Get("efi_secure_boot_enabled").(bool) {
-		if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 5}) {
-			return fmt.Errorf("efi_secure_boot_enabled is only supported on vSphere 6.5 and higher")
-		}
-	}
-
-	// Minimum Supported Version: 6.7.0
-	if d.Get("vbs_enabled").(bool) {
-		if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 7}) {
-			return fmt.Errorf("vbs_enabled is only supported on vSphere 6.7 and higher")
-		}
-	}
-
-	// Minimum Supported Version: 6.7.0
-	if d.Get("vvtd_enabled").(bool) {
-		if version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6, Minor: 7}) {
-			return fmt.Errorf("vvtd_enabled is only supported on vSphere 6.7 and higher")
-		}
-	}
-
 	if len(d.Get("ovf_deploy").([]interface{})) == 0 && len(d.Get("network_interface").([]interface{})) == 0 {
 		return fmt.Errorf("network_interface parameter is required when not deploying from ovf template")
 	}
@@ -1087,9 +1053,8 @@ func resourceVSphereVirtualMachineCustomizeDiff(_ context.Context, d *schema.Res
 			// For most cases (all non-imported workflows), any changed attribute in
 			// the clone configuration namespace is a ForceNew. Flag those now.
 			for _, k := range d.GetChangedKeysPrefix("clone.0") {
-				if strings.HasSuffix(k, ".#") {
-					k = strings.TrimSuffix(k, ".#")
-				}
+				k = strings.TrimSuffix(k, ".#")
+
 				// To maintain consistency with other timeout options, timeout does not
 				// need to ForceNew
 				if k == "clone.0.timeout" {
@@ -1248,7 +1213,7 @@ func resourceVSphereVirtualMachineImport(d *schema.ResourceData, meta interface{
 	// Validate the disks in the VM to make sure that they will work with the
 	// resource. This is mainly ensuring that all disks are SCSI disks, but a
 	// Read operation is attempted as well to make sure it will survive that.
-	if err := virtualdevice.DiskImportOperation(d, object.VirtualDeviceList(props.Config.Hardware.Device)); err != nil {
+	if err := virtualdevice.DiskImportOperation(d, props.Config.Hardware.Device); err != nil {
 		return nil, err
 	}
 	// The VM should be ready for reading now
@@ -1424,17 +1389,6 @@ func resourceVSphereVirtualMachineCreateBareStandard(
 	}
 	spec.Files = &types.VirtualMachineFileInfo{
 		VmPathName: fmt.Sprintf("[%s]", ds.Name()),
-	}
-
-	if vtpms, ok := d.GetOk("vtpm"); ok && len(vtpms.([]interface{})) > 0 {
-		spec.DeviceChange = append(spec.DeviceChange, &types.VirtualDeviceConfigSpec{
-			Operation: types.VirtualDeviceConfigSpecOperationAdd,
-			Device: &types.VirtualTPM{
-				VirtualDevice: types.VirtualDevice{
-					Key: -1,
-				},
-			},
-		})
 	}
 
 	timeout := meta.(*Client).timeout
@@ -1657,7 +1611,7 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			fmt.Errorf("error in virtual machine configuration: %s", err),
 		)
 	}
-	devices, delta, err = virtualdevice.NormalizeBus(devices, d) //nolint:ineffassign
+	devices, delta, err = virtualdevice.NormalizeBus(devices, d) //nolint
 	if err != nil {
 		return resourceVSphereVirtualMachineRollbackCreate(
 			d,
@@ -1716,7 +1670,7 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			fmt.Errorf("error in virtual machine configuration: %s", err),
 		)
 	}
-	devices = object.VirtualDeviceList(vprops.Config.Hardware.Device)
+	devices = vprops.Config.Hardware.Device
 
 	// Disks
 	devices, delta, err = virtualdevice.DiskPostCloneOperation(d, client, devices, postOvf)
@@ -1759,6 +1713,18 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 			meta,
 			vm,
 			fmt.Errorf("error processing PCI passthrough device changes post-clone: %s", err),
+		)
+	}
+	cfgSpec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec.DeviceChange, delta...)
+
+	// VTPM
+	devices, delta, err = virtualdevice.VtpmApplyOperation(d, devices)
+	if err != nil {
+		return resourceVSphereVirtualMachineRollbackCreate(
+			d,
+			meta,
+			vm,
+			fmt.Errorf("error processing VTPM device changes post-clone: %s", err),
 		)
 	}
 	cfgSpec.DeviceChange = virtualdevice.AppendDeviceChangeSpec(cfgSpec.DeviceChange, delta...)
@@ -1819,7 +1785,7 @@ func resourceVSphereVirtualMachinePostDeployChanges(d *schema.ResourceData, meta
 				return err
 			}
 
-			if !guestoscustomizations.IsSpecOsApplicableToVmOs(types.VirtualMachineGuestOsFamily(family), specItem.Info.Type) {
+			if !guestoscustomizations.IsSpecOsApplicableToVMOs(types.VirtualMachineGuestOsFamily(family), specItem.Info.Type) {
 				return fmt.Errorf("customization specification type %s is not applicable to OS family %s", specItem.Info.Type, family)
 			}
 
@@ -2062,6 +2028,13 @@ func applyVirtualDevices(d *schema.ResourceData, c *govmomi.Client, l object.Vir
 	spec = virtualdevice.AppendDeviceChangeSpec(spec, delta...)
 	// PCI passthrough devices
 	l, delta, err = virtualdevice.PciPassthroughApplyOperation(d, c, l)
+	if err != nil {
+		return nil, err
+	}
+	spec = virtualdevice.AppendDeviceChangeSpec(spec, delta...)
+
+	// VTPM
+	l, delta, err = virtualdevice.VtpmApplyOperation(d, l)
 	if err != nil {
 		return nil, err
 	}

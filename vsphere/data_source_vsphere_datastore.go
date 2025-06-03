@@ -58,6 +58,6 @@ func dataSourceVSphereDatastoreRead(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		return fmt.Errorf("error getting properties for datastore ID %q: %s", ds.Reference().Value, err)
 	}
-	d.Set("stats", map[string]string{"capacity": fmt.Sprintf("%v", props.Summary.Capacity), "free": fmt.Sprintf("%v", props.Summary.FreeSpace)})
+	_ = d.Set("stats", map[string]string{"capacity": fmt.Sprintf("%v", props.Summary.Capacity), "free": fmt.Sprintf("%v", props.Summary.FreeSpace)})
 	return nil
 }

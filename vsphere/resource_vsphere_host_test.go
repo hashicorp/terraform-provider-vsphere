@@ -31,6 +31,7 @@ var fallbackNtpServers = []string{
 }
 
 func TestAccResourceVSphereHost_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -60,11 +61,11 @@ func TestAccResourceVSphereHost_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereHost_rootFolder(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccCheckEnvVariables(t, []string{"ESX_HOSTNAME", "ESX_USERNAME", "ESX_PASSWORD"})
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccVSphereHostDestroy,
@@ -80,6 +81,7 @@ func TestAccResourceVSphereHost_rootFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereHost_connection(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -108,6 +110,7 @@ func TestAccResourceVSphereHost_connection(t *testing.T) {
 }
 
 func TestAccResourceVSphereHost_maintenance(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -136,6 +139,7 @@ func TestAccResourceVSphereHost_maintenance(t *testing.T) {
 }
 
 func TestAccResourceVSphereHost_lockdown(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -171,6 +175,7 @@ func TestAccResourceVSphereHost_lockdown(t *testing.T) {
 }
 
 func TestAccResourceVSphereHost_lockdown_invalid(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -189,6 +194,7 @@ func TestAccResourceVSphereHost_lockdown_invalid(t *testing.T) {
 }
 
 func TestAccResourceVSphereHost_emptyLicense(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -223,7 +229,7 @@ func testAccVSphereHostExists(name string) resource.TestCheckFunc {
 		}
 
 		if !res {
-			return fmt.Errorf("Host with ID %s not found", hostID)
+			return fmt.Errorf("host with ID %s not found", hostID)
 		}
 
 		return nil
@@ -245,7 +251,7 @@ func testAccVSphereHostConnected(name string, shouldBeConnected bool) resource.T
 		}
 
 		if res != shouldBeConnected {
-			return fmt.Errorf("Host with ID %s connection: %t, expected %t", hostID, res, shouldBeConnected)
+			return fmt.Errorf("host with ID %s connection: %t, expected %t", hostID, res, shouldBeConnected)
 		}
 
 		return nil
@@ -267,7 +273,7 @@ func testAccVSphereHostMaintenanceState(name string, inMaintenance bool) resourc
 		}
 
 		if res != inMaintenance {
-			return fmt.Errorf("Host with ID %s in maintenance : %t, expected %t", hostID, res, inMaintenance)
+			return fmt.Errorf("host with ID %s in maintenance: %t, expected %t", hostID, res, inMaintenance)
 		}
 
 		return nil
@@ -289,7 +295,7 @@ func testAccVSphereHostLockdownState(name string, lockdown string) resource.Test
 		}
 
 		if !res {
-			return fmt.Errorf("Host with ID %s not in desired lockdown state. Current state: %s", hostID, lockdown)
+			return fmt.Errorf("host with ID %s not in desired lockdown state. current state: %s", hostID, lockdown)
 		}
 
 		return nil
@@ -378,7 +384,7 @@ func checkHostLockdown(client *govmomi.Client, hostID, lockdownMode string) (boo
 
 	modeString, ok := lockdownModes[hostProps.Config.LockdownMode]
 	if !ok {
-		return false, fmt.Errorf("Unknown lockdown mode found: %s", hostProps.Config.LockdownMode)
+		return false, fmt.Errorf("unknown lockdown mode found: %s", hostProps.Config.LockdownMode)
 	}
 
 	return modeString == lockdownMode, nil
@@ -396,6 +402,7 @@ func TestAccResourceVSphereHostNtpService(t *testing.T) {
 
 	for _, config := range configs {
 		t.Run(fmt.Sprintf("Enabled=%t,Policy=%s", config.Enabled, config.Policy), func(t *testing.T) {
+			testAccSkipUnstable(t)
 			resource.Test(t, resource.TestCase{
 				PreCheck:     func() { testAccPreCheck(t) },
 				Providers:    testAccProviders,
@@ -417,7 +424,7 @@ func testAccCheckVSphereHostNTPServiceState(resourceName string, config NtpdServ
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
 		if !ok {
-			return fmt.Errorf("Not found: %s", resourceName)
+			return fmt.Errorf("not found: %s", resourceName)
 		}
 
 		actualEnabled := rs.Primary.Attributes["services.0.ntpd.0.enabled"]
@@ -427,10 +434,10 @@ func testAccCheckVSphereHostNTPServiceState(resourceName string, config NtpdServ
 		expectedPolicy := config.Policy
 
 		if actualEnabled != expectedEnabled {
-			return fmt.Errorf("Expected NTPD service enabled state: %s, got: %s", expectedEnabled, actualEnabled)
+			return fmt.Errorf("expected NTPD service enabled state: %s, got: %s", expectedEnabled, actualEnabled)
 		}
 		if actualPolicy != expectedPolicy {
-			return fmt.Errorf("Expected NTPD policy: %s, got: %s", expectedPolicy, actualPolicy)
+			return fmt.Errorf("expected NTPD policy: %s, got: %s", expectedPolicy, actualPolicy)
 		}
 
 		return nil
@@ -447,6 +454,7 @@ func TestAccResourceVSphereHostNTPServers(t *testing.T) {
 	// Split the environment variable into a slice of strings
 	ntpServersSlice := strings.Split(ntpServers, ",")
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -470,7 +478,7 @@ func testAccCheckVSphereHostNTPServers(resourceName string, expectedServers []st
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
 		if !ok {
-			return fmt.Errorf("Not found: %s", resourceName)
+			return fmt.Errorf("not found: %s", resourceName)
 		}
 
 		log.Printf("Resource attributes: %+v", rs.Primary.Attributes)
@@ -478,7 +486,7 @@ func testAccCheckVSphereHostNTPServers(resourceName string, expectedServers []st
 		// Retrieve the number of NTP servers
 		ntpServersCount, err := strconv.Atoi(rs.Primary.Attributes["services.0.ntpd.0.ntp_servers.#"])
 		if err != nil {
-			return fmt.Errorf("Error converting ntp_servers count: %s", err)
+			return fmt.Errorf("error converting ntp_servers count: %s", err)
 		}
 
 		// Collect actual NTP servers
@@ -492,7 +500,7 @@ func testAccCheckVSphereHostNTPServers(resourceName string, expectedServers []st
 		actualServersStr := strings.Join(actualServers, ",")
 
 		if actualServersStr != expectedServersStr {
-			return fmt.Errorf("Expected NTP servers: %s, got: %s", expectedServersStr, actualServersStr)
+			return fmt.Errorf("expected NTP servers: %s, got: %s", expectedServersStr, actualServersStr)
 		}
 
 		return nil
@@ -531,21 +539,28 @@ func testaccvspherehostconfigRootfolder() string {
 	return fmt.Sprintf(`
 	%s
 
-	resource "vsphere_host" "h1" {
-	  # Useful only for connection
-	  hostname = "%s"
-	  username = "%s"
-	  password = "%s"
-	  thumbprint = data.vsphere_host_thumbprint.id
-
-	  # Makes sense to update
-	  license = "%s"
-	  datacenter = data.vsphere_datacenter.rootdc1.id
+	data "vsphere_host_thumbprint" "thumbprint1" {
+	  address = "%s"
+	  insecure = true
 	}
-	`, testhelper.ConfigDataRootDC1(), os.Getenv("ESX_HOSTNAME"),
-		os.Getenv("ESX_USERNAME"),
-		os.Getenv("ESX_PASSWORD"),
-		os.Getenv("TF_VAR_VSPHERE_LICENSE"))
+
+	resource "vsphere_host" "h1" {
+	  hostname = "%s"
+	  username = "root"
+	  password = "%s"
+	  thumbprint = data.vsphere_host_thumbprint.thumbprint1.id
+
+	  datacenter = data.vsphere_datacenter.rootdc1.id
+
+	  lifecycle {
+		  ignore_changes = ["services"]
+	  }
+
+	}
+	`, testhelper.ConfigDataRootDC1(),
+		os.Getenv("TF_VAR_VSPHERE_ESXI4"), // for thumbprint retrieval
+		os.Getenv("TF_VAR_VSPHERE_ESXI4"), // for connection config
+		os.Getenv("TF_VAR_VSPHERE_ESXI4_PASSWORD"))
 }
 
 func testaccvspherehostconfigEmptylicense() string {

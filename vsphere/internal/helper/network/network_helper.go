@@ -19,7 +19,7 @@ import (
 	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/provider"
 )
 
-var NetworkType = []string{
+var Type = []string{
 	"Network",
 	"DistributedVirtualPortgroup",
 	"OpaqueNetwork",
@@ -173,16 +173,21 @@ func FromID(client *govmomi.Client, id string) (object.NetworkReference, error) 
 		if ref.Value == id {
 			finder := find.NewFinder(client.Client, false)
 			fctx, fcancel := context.WithTimeout(context.Background(), provider.DefaultAPITimeout)
-			defer fcancel()
+
 			nref, err := finder.ObjectReference(fctx, ref)
 			if err != nil {
+				fcancel()
 				return nil, err
 			}
+
+			fcancel()
+
 			// Should be safe to return here, as we have already asserted that this type
 			// should be a NetworkReference by using ContainerView.
 			return nref.(object.NetworkReference), nil
 		}
 	}
+
 	return nil, NotFoundError{ID: id}
 }
 

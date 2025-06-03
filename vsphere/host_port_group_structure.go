@@ -10,7 +10,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/vmware/govmomi/vim25/types"
 	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/structure"
 )
@@ -76,7 +75,7 @@ func flattenHostPortGroupSpec(d *schema.ResourceData, obj *types.HostPortGroupSp
 // of helper/schema, so it may need to change in the future.
 func calculateComputedPolicy(policy types.HostNetworkPolicy) (map[string]string, error) {
 	cpr := &schema.Resource{Schema: schemaHostNetworkPolicy()}
-	cpd := cpr.Data(&terraform.InstanceState{})
+	cpd := cpr.Data(nil)
 	cpd.SetId("effectivepolicy")
 	if err := flattenHostNetworkPolicy(cpd, &policy); err != nil {
 		return nil, fmt.Errorf("error setting effective policy data: %s", err)

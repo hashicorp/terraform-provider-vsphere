@@ -110,9 +110,11 @@ func schemaHostNetworkPolicy() map[string]*schema.Schema {
 // expandHostNicFailureCriteria reads certain ResourceData keys and returns a
 // HostNicFailureCriteria.
 func expandHostNicFailureCriteria(d *schema.ResourceData) *types.HostNicFailureCriteria {
-	obj := &types.HostNicFailureCriteria{}
+	obj := &types.HostNicFailureCriteria{
+		CheckBeacon: structure.BoolPtr(false),
+	}
 
-	if v, ok := d.GetOkExists("check_beacon"); ok {
+	if v, ok := d.GetOk("check_beacon"); ok {
 		obj.CheckBeacon = structure.BoolPtr(v.(bool))
 	}
 
@@ -141,8 +143,8 @@ func flattenHostNicFailureCriteria(d *schema.ResourceData, obj *types.HostNicFai
 // HostNicOrderPolicy.
 func expandHostNicOrderPolicy(d *schema.ResourceData) *types.HostNicOrderPolicy {
 	obj := &types.HostNicOrderPolicy{}
-	activeNics, activeOk := d.GetOkExists("active_nics")
-	standbyNics, standbyOk := d.GetOkExists("standby_nics")
+	activeNics, activeOk := d.GetOk("active_nics")
+	standbyNics, standbyOk := d.GetOk("standby_nics")
 	if !activeOk && !standbyOk {
 		return nil
 	}
@@ -166,12 +168,14 @@ func flattenHostNicOrderPolicy(d *schema.ResourceData, obj *types.HostNicOrderPo
 // HostNicTeamingPolicy.
 func expandHostNicTeamingPolicy(d *schema.ResourceData) *types.HostNicTeamingPolicy {
 	obj := &types.HostNicTeamingPolicy{
-		Policy: d.Get("teaming_policy").(string),
+		Policy:         d.Get("teaming_policy").(string),
+		RollingOrder:   structure.BoolPtr(false),
+		NotifySwitches: structure.BoolPtr(false),
 	}
-	if v, ok := d.GetOkExists("failback"); ok {
+	if v, ok := d.GetOk("failback"); ok {
 		obj.RollingOrder = structure.BoolPtr(!v.(bool))
 	}
-	if v, ok := d.GetOkExists("notify_switches"); ok {
+	if v, ok := d.GetOk("notify_switches"); ok {
 		obj.NotifySwitches = structure.BoolPtr(v.(bool))
 	}
 	obj.FailureCriteria = expandHostNicFailureCriteria(d)
@@ -189,7 +193,7 @@ func expandHostNicTeamingPolicy(d *schema.ResourceData) *types.HostNicTeamingPol
 func flattenHostNicTeamingPolicy(d *schema.ResourceData, obj *types.HostNicTeamingPolicy) error {
 	if obj.RollingOrder != nil {
 		v := *obj.RollingOrder
-		_ = d.Set("failback", !v)
+		_ = d.Set("failback", v)
 	}
 	if obj.NotifySwitches != nil {
 		_ = d.Set("notify_switches", obj.NotifySwitches)
@@ -205,14 +209,18 @@ func flattenHostNicTeamingPolicy(d *schema.ResourceData, obj *types.HostNicTeami
 // expandHostNetworkSecurityPolicy reads certain ResourceData keys and returns
 // a HostNetworkSecurityPolicy.
 func expandHostNetworkSecurityPolicy(d *schema.ResourceData) *types.HostNetworkSecurityPolicy {
-	obj := &types.HostNetworkSecurityPolicy{}
-	if v, ok := d.GetOkExists("allow_promiscuous"); ok {
+	obj := &types.HostNetworkSecurityPolicy{
+		AllowPromiscuous: structure.BoolPtr(false),
+		ForgedTransmits:  structure.BoolPtr(false),
+		MacChanges:       structure.BoolPtr(false),
+	}
+	if v, ok := d.GetOk("allow_promiscuous"); ok {
 		obj.AllowPromiscuous = structure.BoolPtr(v.(bool))
 	}
-	if v, ok := d.GetOkExists("allow_forged_transmits"); ok {
+	if v, ok := d.GetOk("allow_forged_transmits"); ok {
 		obj.ForgedTransmits = structure.BoolPtr(v.(bool))
 	}
-	if v, ok := d.GetOkExists("allow_mac_changes"); ok {
+	if v, ok := d.GetOk("allow_mac_changes"); ok {
 		obj.MacChanges = structure.BoolPtr(v.(bool))
 	}
 	return obj
@@ -240,8 +248,9 @@ func expandHostNetworkTrafficShapingPolicy(d *schema.ResourceData) *types.HostNe
 		AverageBandwidth: int64(d.Get("shaping_average_bandwidth").(int)),
 		BurstSize:        int64(d.Get("shaping_burst_size").(int)),
 		PeakBandwidth:    int64(d.Get("shaping_peak_bandwidth").(int)),
+		Enabled:          structure.BoolPtr(false),
 	}
-	if v, ok := d.GetOkExists("shaping_enabled"); ok {
+	if v, ok := d.GetOk("shaping_enabled"); ok {
 		obj.Enabled = structure.BoolPtr(v.(bool))
 	}
 	return obj

@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/mitchellh/copystructure"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/vim25/types"
@@ -142,7 +141,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "Enable logging on this virtual machine.",
-			DiffSuppressFunc: func(k, oldSetting, newSetting string, d *schema.ResourceData) bool {
+			DiffSuppressFunc: func(_, _, _ string, d *schema.ResourceData) bool {
 				return len(d.Get("ovf_deploy").([]interface{})) > 0
 			},
 		},
@@ -280,7 +279,7 @@ func schemaVirtualMachineConfigSpec() map[string]*schema.Schema {
 			Optional:    true,
 			Computed:    true,
 			Description: "The guest ID for the operating system.",
-			DiffSuppressFunc: func(k, oldSetting, newSetting string, d *schema.ResourceData) bool {
+			DiffSuppressFunc: func(_, _, newSetting string, d *schema.ResourceData) bool {
 				ovf, ok := d.GetOk("ovf_deploy")
 				if !ok {
 					return false
@@ -1029,7 +1028,7 @@ func flattenVirtualMachineConfigInfo(d *schema.ResourceData, obj *types.VirtualM
 // instances and comparing the resultant ConfigSpecs.
 func expandVirtualMachineConfigSpecChanged(d *schema.ResourceData, client *govmomi.Client, info *types.VirtualMachineConfigInfo) (types.VirtualMachineConfigSpec, bool, error) {
 	// Create the fake ResourceData from the VM resource
-	oldData := resourceVSphereVirtualMachine().Data(&terraform.InstanceState{})
+	oldData := resourceVSphereVirtualMachine().Data(nil)
 	oldData.SetId(d.Id())
 	// Flatten the old config info into it
 	err := flattenVirtualMachineConfigInfo(oldData, info, client)

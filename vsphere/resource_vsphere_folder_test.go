@@ -165,6 +165,7 @@ func TestAccResourceVSphereFolder_datacenterFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_rename(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -262,6 +263,7 @@ func TestAccResourceVSphereFolder_moveToSubfolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_tags(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -284,6 +286,7 @@ func TestAccResourceVSphereFolder_tags(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_modifyTags(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -315,6 +318,7 @@ func TestAccResourceVSphereFolder_modifyTags(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_modifyTagsMultiStage(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -352,6 +356,7 @@ func TestAccResourceVSphereFolder_modifyTagsMultiStage(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_customAttributes(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -374,6 +379,7 @@ func TestAccResourceVSphereFolder_customAttributes(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_modifyCustomAttributes(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -405,6 +411,7 @@ func TestAccResourceVSphereFolder_modifyCustomAttributes(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_removeAllCustomAttributes(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -438,6 +445,7 @@ func TestAccResourceVSphereFolder_removeAllCustomAttributes(t *testing.T) {
 func TestAccResourceVSphereFolder_preventDeleteIfNotEmpty(t *testing.T) {
 	var s *terraform.State
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -640,15 +648,20 @@ func testAccResourceVSphereFolderDeleteOOB(s *terraform.State) error {
 	for _, ref := range refs {
 		me := object.NewCommon(client.Client, ref.Reference())
 		dctx, dcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
-		defer dcancel()
-		task, err := me.Destroy(dctx)
-		if err != nil {
-			return err
+		task, destroyErr := me.Destroy(dctx)
+		if destroyErr != nil {
+			dcancel()
+			return destroyErr
 		}
+
 		tctx, tcancel := context.WithTimeout(context.Background(), defaultAPITimeout)
-		defer tcancel()
-		if err := task.WaitEx(tctx); err != nil {
-			return err
+		waitErr := task.WaitEx(tctx)
+
+		tcancel()
+		dcancel()
+
+		if waitErr != nil {
+			return waitErr
 		}
 	}
 	return nil
@@ -667,9 +680,9 @@ variable "folder_type" {
 }
 
 resource "vsphere_folder" "folder" {
-  path          = "${var.folder_name}"
-  type          = "${var.folder_type}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  path          = var.folder_name
+  type          = var.folder_type
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -695,15 +708,15 @@ variable "parent_name" {
 }
 
 resource "vsphere_folder" "parent" {
-  path          = "${var.parent_name}"
-  type          = "${var.folder_type}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  path          = var.parent_name
+  type          = var.folder_type
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_folder" "folder" {
   path          = "${vsphere_folder.parent.path}/${var.folder_name}"
-  type          = "${var.folder_type}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  type          = var.folder_type
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -736,17 +749,16 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_folder" "folder" {
-  path          = "${var.folder_name}"
-  type          = "${var.folder_type}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-  tags          = ["${vsphere_tag.testacc-tag.id}"]
+  path          = var.folder_name
+  type          = var.folder_type
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+  tags          = [vsphere_tag.testacc-tag.id]
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		testAccResourceVSphereFolderConfigExpectedName,
 		folder.VSphereFolderTypeVM,
 	)
@@ -782,20 +794,20 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_tag" "testacc-tags-alt" {
-  count       = "${length(var.extra_tags)}"
-  name        = "${var.extra_tags[count.index]}"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  count       = length(var.extra_tags)
+  name        = var.extra_tags[count.index]
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_folder" "folder" {
-  path          = "${var.folder_name}"
-  type          = "${var.folder_type}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-  tags          = ["${vsphere_tag.testacc-tag.id}", "${vsphere_tag.testacc-tags-alt.0.id}", "${vsphere_tag.testacc-tags-alt.1.id}"]
+  path          = var.folder_name
+  type          = var.folder_type
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+  tags          = [vsphere_tag.testacc-tag.id, vsphere_tag.testacc-tags-alt.0.id, vsphere_tag.testacc-tags-alt.1.id]
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -834,20 +846,20 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_tag" "testacc-tags-alt" {
-  count       = "${length(var.extra_tags)}"
-  name        = "${var.extra_tags[count.index]}"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  count       = length(var.extra_tags)
+  name        = var.extra_tags[count.index]
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_folder" "folder" {
-  path          = "${var.folder_name}"
-  type          = "${var.folder_type}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-  tags          = "${vsphere_tag.testacc-tags-alt.*.id}"
+  path          = var.folder_name
+  type          = var.folder_type
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+  tags          = vsphere_tag.testacc-tags-alt.*.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -875,18 +887,17 @@ resource "vsphere_custom_attribute" "testacc-attribute" {
 
 locals {
   folder_attrs = {
-    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
+    vsphere_custom_attribute.testacc-attribute.id = "value"
   }
 }
 
 resource "vsphere_folder" "folder" {
-  path          = "${var.folder_name}"
-  type          = "${var.folder_type}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-  custom_attributes = "${local.folder_attrs}"
+  path              = var.folder_name
+  type              = var.folder_type
+  datacenter_id     = data.vsphere_datacenter.rootdc1.id
+  custom_attributes = local.folder_attrs
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		testAccResourceVSphereFolderConfigExpectedName,
 		folder.VSphereFolderTypeVM,
 	)
@@ -916,19 +927,18 @@ resource "vsphere_custom_attribute" "testacc-attribute-2" {
 
 locals {
   folder_attrs = {
-    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
-    "${vsphere_custom_attribute.testacc-attribute-2.id}" = "value-2"
+    vsphere_custom_attribute.testacc-attribute.id   = "value"
+    vsphere_custom_attribute.testacc-attribute-2.id = "value-2"
   }
 }
 
 resource "vsphere_folder" "folder" {
-  path          = "${var.folder_name}"
-  type          = "${var.folder_type}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-  custom_attributes = "${local.folder_attrs}"
+  path              = var.folder_name
+  type              = var.folder_type
+  datacenter_id     = data.vsphere_datacenter.rootdc1.id
+  custom_attributes = local.folder_attrs
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
 		testAccResourceVSphereFolderConfigExpectedName,
 		folder.VSphereFolderTypeVM,
 	)
@@ -957,9 +967,9 @@ resource "vsphere_custom_attribute" "testacc-attribute-2" {
 }
 
 resource "vsphere_folder" "folder" {
-  path          = "${var.folder_name}"
-  type          = "${var.folder_type}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  path          = var.folder_name
+  type          = var.folder_type
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),

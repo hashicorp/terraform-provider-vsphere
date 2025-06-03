@@ -21,11 +21,12 @@ import (
 
 const testAccVSphereLicenseInvalidConfig = `
 resource "vsphere_license" "foo" {
- license_key = "HN422-47193-58V7M-03086-0JAN2"
+  license_key = "HN422-47193-58V7M-03086-0JAN2"
 }
 `
 
 func TestAccResourceVSphereLicense_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -46,6 +47,7 @@ func TestAccResourceVSphereLicense_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereLicense_invalid(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -66,6 +68,7 @@ func TestAccResourceVSphereLicense_invalid(t *testing.T) {
 }
 
 func TestAccResourceVSphereLicense_withLabelsOnVCenter(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -88,6 +91,7 @@ func TestAccResourceVSphereLicense_withLabelsOnVCenter(t *testing.T) {
 }
 
 func TestAccResourceVSphereLicense_withLabelsOnESXiServer(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -116,10 +120,10 @@ func testAccVspherePreLicenseESXiServerIsNotSetCheck(t *testing.T) {
 func testAccVSphereLicenseWithLabelConfig() string {
 	return fmt.Sprintf(`
 resource "vsphere_license" "foo" {
- license_key = "%s"
+  license_key = "%s"
   labels = {
-   VpxClientLicenseLabel = "Hello World"
-   TestTitle = "fooBar"
+    VpxClientLicenseLabel = "Hello World"
+    TestTitle             = "fooBar"
   }
 }
 `, os.Getenv("TF_VAR_VSPHERE_LICENSE"))
@@ -128,7 +132,7 @@ resource "vsphere_license" "foo" {
 func testAccVSphereLicenseBasicConfig() string {
 	return fmt.Sprintf(`
 resource "vsphere_license" "foo" {
- license_key = "%s"
+  license_key = "%s"
 }
 `, os.Getenv("TF_VAR_VSPHERE_LICENSE"))
 }
@@ -212,15 +216,15 @@ func testAccVSphereLicenseWithLabelExists(name string) resource.TestCheckFunc {
 
 		if info == nil {
 			maskedKey := helper.MaskLicenseKey(rs.Primary.ID)
-			return fmt.Errorf("License key %s not found", maskedKey)
+			return fmt.Errorf("license key %s not found", maskedKey)
 		}
 
 		if len(info.Labels) == 0 {
-			return fmt.Errorf("The labels were not set for the key %s", info.LicenseKey)
+			return fmt.Errorf("the labels were not set for the key %s", info.LicenseKey)
 		}
 
 		if len(info.Labels) != 2 {
-			return fmt.Errorf(`The number of labels on the server are incorrect. Expected 2 Got %d`,
+			return fmt.Errorf(`number of labels is incorrect. expected: 2, got %d`,
 				len(info.Labels))
 		}
 

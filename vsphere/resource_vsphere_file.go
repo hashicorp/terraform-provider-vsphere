@@ -6,6 +6,7 @@ package vsphere
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/url"
@@ -191,7 +192,8 @@ func resourceVSphereFileRead(d *schema.ResourceData, meta interface{}) error {
 		log.Printf("[DEBUG] resourceVSphereFileRead - stat failed on: %v", f.destinationFile)
 		d.SetId("")
 
-		_, ok := err.(object.DatastoreNoSuchFileError)
+		var notFoundError *object.DatastoreNoSuchFileError
+		ok := errors.As(err, &notFoundError)
 		if !ok {
 			return err
 		}
@@ -458,7 +460,7 @@ func fileUpload(client *govmomi.Client, dc *object.Datacenter, ds *object.Datast
 	dsurl := ds.NewURL(destination)
 
 	p := soap.DefaultUpload
-	err = client.Client.UploadFile(context.TODO(), source, dsurl, &p)
+	err = client.UploadFile(context.TODO(), source, dsurl, &p)
 	if err != nil {
 		return err
 	}
@@ -469,15 +471,21 @@ func fileUpload(client *govmomi.Client, dc *object.Datacenter, ds *object.Datast
 			// If it does, rename the file to the original destination path.
 			fm := object.NewFileManager(client.Client)
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
-			defer cancel()
+
 			task, err := fm.MoveDatastoreFile(ctx, ds.Path(destination), dc, ds.Path(originalDestination), dc, false)
 			if err != nil {
+				cancel()
 				return err
 			}
+
 			_, err = task.WaitForResult(ctx, nil)
+			cancel()
+
 			if err != nil {
 				return err
 			}
+
+			break
 		}
 	}
 

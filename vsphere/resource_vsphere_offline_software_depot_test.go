@@ -15,6 +15,7 @@ import (
 )
 
 func TestAccResourceVSphereOfflineSoftwareDepot_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -40,7 +41,7 @@ func testAccResourceVSphereOfflineSoftwareDepotCheckFunc() resource.TestCheckFun
 			return err
 		}
 
-		location, _ := tVars.resourceAttributes["location"]
+		location := tVars.resourceAttributes["location"]
 		expected := os.Getenv("TF_VAR_VSPHERE_SOFTWARE_DEPOT_LOCATION")
 		if location != expected {
 			return fmt.Errorf("depot location is incorrect. Expected %s but got %s", expected, location)

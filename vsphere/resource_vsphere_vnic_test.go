@@ -60,6 +60,7 @@ func TestAccResourceVSphereVNic_dvs_default(t *testing.T) {
 }
 
 func TestAccResourceVSphereVNic_dvs_vmotion(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -72,6 +73,7 @@ func TestAccResourceVSphereVNic_dvs_vmotion(t *testing.T) {
 }
 
 func TestAccResourceVSphereVNic_hvs_default(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -97,6 +99,7 @@ func TestAccResourceVSphereVNic_hvs_default(t *testing.T) {
 }
 
 func TestAccResourceVSphereVNic_hvs_vmotion(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -122,6 +125,7 @@ func TestAccResourceVSphereVNic_hvs_vmotion(t *testing.T) {
 }
 
 func TestAccResourceVSphereVNic_services_nonDefaultNetstack(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -147,6 +151,7 @@ func TestAccResourceVSphereVNic_services_nonDefaultNetstack(t *testing.T) {
 }
 
 func TestAccResourceVSphereVNic_services_invalid(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -173,6 +178,7 @@ func TestAccResourceVSphereVNic_services_invalid(t *testing.T) {
 }
 
 func TestAccResourceVSphereVNic_services_valid(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -411,7 +417,7 @@ func testaccvspherevnicconfigDvs(netConfig string) string {
 	  name          = "hashi-dc_DVPG0"
 	  datacenter_id = data.vsphere_datacenter.rootdc1.id
 	  host {
-		host_system_id = data.vsphere_host.roothost2.id
+		host_system_id = data.vsphere_host.roothost3.id
 		devices        = ["%s"]
 	  }
 	}
@@ -423,14 +429,14 @@ func testaccvspherevnicconfigDvs(netConfig string) string {
 	}
 
 	resource "vsphere_vnic" "v1" {
-	  host                    = data.vsphere_host.roothost2.id
+	  host                    = data.vsphere_host.roothost3.id
 	  distributed_switch_port = vsphere_distributed_virtual_switch.d1.id
 	  distributed_port_group  = vsphere_distributed_port_group.p1.id
 	  %s
 	}
 	`, testhelper.CombineConfigs(
 		testhelper.ConfigDataRootDC1(),
-		testhelper.ConfigDataRootHost2(),
+		testhelper.ConfigDataRootHost3(),
 	),
 		testhelper.HostNic1,
 		netConfig)

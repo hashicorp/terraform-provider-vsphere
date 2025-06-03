@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	testAccResourceVSphereDistributedVirtualSwitchUpperVersion = "7.0.0"
-	testAccResourceVSphereDistributedVirtualSwitchLowerVersion = "6.6.0"
+	testAccResourceVSphereDistributedVirtualSwitchUpperVersion = "8.0.0"
+	testAccResourceVSphereDistributedVirtualSwitchLowerVersion = "7.0.0"
 )
 
 func TestAccResourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
@@ -30,7 +30,6 @@ func TestAccResourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
@@ -67,7 +66,6 @@ func TestAccResourceVSphereDistributedVirtualSwitch_noHosts(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
@@ -87,7 +85,6 @@ func TestAccResourceVSphereDistributedVirtualSwitch_removeNIC(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
@@ -109,6 +106,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_removeNIC(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_standbyWithExplicitFailoverOrder(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -132,6 +130,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_standbyWithExplicitFailoverO
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_basicToStandbyWithFailover(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -165,7 +164,6 @@ func TestAccResourceVSphereDistributedVirtualSwitch_upgradeVersion(t *testing.T)
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
@@ -193,7 +191,6 @@ func TestAccResourceVSphereDistributedVirtualSwitch_networkResourceControl(t *te
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchExists(false),
@@ -213,6 +210,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_networkResourceControl(t *te
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_explicitUplinks(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -234,6 +232,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_explicitUplinks(t *testing.T
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_modifyUplinks(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -274,6 +273,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_modifyUplinks(t *testing.T) 
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_inFolder(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -295,6 +295,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_inFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_singleTag(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -316,6 +317,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_singleTag(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_modifyTags(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -344,6 +346,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_modifyTags(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_netflow(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -365,6 +368,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_netflow(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_vlanRanges(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -387,6 +391,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_vlanRanges(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_singleCustomAttribute(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -408,6 +413,7 @@ func TestAccResourceVSphereDistributedVirtualSwitch_singleCustomAttribute(t *tes
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_multiCustomAttribute(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -651,13 +657,13 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
   datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
 
   host {
-    host_system_id = data.vsphere_host.roothost2.id
+    host_system_id = data.vsphere_host.roothost3.id
     devices = ["%s"]
   }
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost2()),
-		testhelper.HostNic0,
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost3()),
+		testhelper.HostNic1,
 	)
 }
 
@@ -690,7 +696,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 			testhelper.ConfigDataRootDC1(),
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost1()),
-		testhelper.HostNic0,
+		testhelper.HostNic1,
 		version,
 	)
 }
@@ -726,7 +732,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 			testhelper.ConfigDataRootHost1(),
 			testhelper.ConfigDataRootHost2(),
 		),
-		testhelper.HostNic0,
+		testhelper.HostNic1,
 	)
 }
 
@@ -764,7 +770,7 @@ resource "vsphere_distributed_virtual_switch" "dvs" {
 			testhelper.ConfigDataRootPortGroup1(),
 			testhelper.ConfigDataRootHost1(),
 			testhelper.ConfigDataRootHost2()),
-		testhelper.HostNic0,
+		testhelper.HostNic1,
 	)
 }
 

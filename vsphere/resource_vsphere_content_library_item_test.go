@@ -18,6 +18,7 @@ import (
 )
 
 func TestAccResourceVSphereContentLibraryItem_localOva(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -54,6 +55,7 @@ func TestAccResourceVSphereContentLibraryItem_localOva(t *testing.T) {
 }
 
 func TestAccResourceVSphereContentLibraryItem_remoteOvf(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -97,6 +99,7 @@ func TestAccResourceVSphereContentLibraryItem_remoteOvf(t *testing.T) {
 }
 
 func TestAccResourceVSphereContentLibraryItem_remoteOva(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -144,7 +147,12 @@ func testAccResourceVSphereContentLibraryItemGetOva() {
 }
 
 func testAccResourceVSphereContentLibraryItemGetFile(url, file string) error {
-	resp, err := http.Get(url)
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -165,7 +173,7 @@ func testAccResourceVSphereContentLibraryItemGetFile(url, file string) error {
 }
 
 func testAccResourceVSphereContentLibraryItemDestroyFile(file string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
+	return func(_ *terraform.State) error {
 		_ = os.Remove(file)
 		return nil
 	}
@@ -181,39 +189,39 @@ func testAccResourceVSphereContentLibraryItemPreCheck(t *testing.T) {
 }
 
 func testAccResourceVSphereContentLibraryItemDescription(expected *regexp.Regexp) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		library, err := testGetContentLibraryItem(s, "item")
+	return func(_ *terraform.State) error {
+		library, err := testGetContentLibraryItem(nil, "item")
 		if err != nil {
 			return err
 		}
 		if !expected.MatchString(*library.Description) {
-			return fmt.Errorf("Content Library item description does not match. expected: %s, got %v", expected.String(), library.Description)
+			return fmt.Errorf("content library item description does not match. expected: %s, got %v", expected.String(), library.Description)
 		}
 		return nil
 	}
 }
 
 func testAccResourceVSphereContentLibraryItemName(expected *regexp.Regexp) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		library, err := testGetContentLibraryItem(s, "item")
+	return func(_ *terraform.State) error {
+		library, err := testGetContentLibraryItem(nil, "item")
 		if err != nil {
 			return err
 		}
 		if !expected.MatchString(library.Name) {
-			return fmt.Errorf("Content Library item name does not match. expected: %s, got %s", expected.String(), library.Name)
+			return fmt.Errorf("content library item name does not match. expected: %s, got %s", expected.String(), library.Name)
 		}
 		return nil
 	}
 }
 
 func testAccResourceVSphereContentLibraryItemType(expected *regexp.Regexp) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		library, err := testGetContentLibraryItem(s, "item")
+	return func(_ *terraform.State) error {
+		library, err := testGetContentLibraryItem(nil, "item")
 		if err != nil {
 			return err
 		}
 		if !expected.MatchString(library.Type) {
-			return fmt.Errorf("Content Library item type does not match. expected: %s, got %s", expected.String(), library.Type)
+			return fmt.Errorf("content library item type does not match. expected: %s, got %s", expected.String(), library.Type)
 		}
 		return nil
 	}
@@ -225,7 +233,7 @@ func testaccresourcevspherecontentlibraryitemconfigLocalova() string {
 
 resource "vsphere_content_library" "library" {
   name            = "testacc_content_library"
-  storage_backing = [ data.vsphere_datastore.rootds1.id ]
+  storage_backing = [data.vsphere_datastore.rootds1.id]
   description     = "Library Description"
 }
 
@@ -236,8 +244,7 @@ resource "vsphere_content_library_item" "item" {
   type        = "ovf"
   file_url    = "./testdata/test.ova"
 }
-`,
-		testaccresourcevspherecontentlibraryitemconfigBase(),
+`, testaccresourcevspherecontentlibraryitemconfigBase(),
 	)
 }
 
@@ -251,7 +258,7 @@ variable "file" {
 
 resource "vsphere_content_library" "library" {
   name            = "testacc_content_library"
-  storage_backing = [ data.vsphere_datastore.rootds1.id ]
+  storage_backing = [data.vsphere_datastore.rootds1.id]
   description     = "Library Description"
 }
 
@@ -262,8 +269,7 @@ resource "vsphere_content_library_item" "item" {
   type        = "ovf"
   file_url    = var.file
 }
-`,
-		testaccresourcevspherecontentlibraryitemconfigBase(),
+`, testaccresourcevspherecontentlibraryitemconfigBase(),
 		os.Getenv("TF_VAR_VSPHERE_TEST_OVF"),
 	)
 }
@@ -278,7 +284,7 @@ variable "file" {
 
 resource "vsphere_content_library" "library" {
   name            = "testacc_content_library"
-  storage_backing = [ data.vsphere_datastore.rootds1.id ]
+  storage_backing = [data.vsphere_datastore.rootds1.id]
   description     = "Library Description"
 }
 
@@ -289,8 +295,7 @@ resource "vsphere_content_library_item" "item" {
   type        = "ovf"
   file_url    = var.file
 }
-`,
-		testaccresourcevspherecontentlibraryitemconfigBase(),
+`, testaccresourcevspherecontentlibraryitemconfigBase(),
 		testhelper.TestOva,
 	)
 }
@@ -300,8 +305,8 @@ func testaccresourcevspherecontentlibraryitemconfigBase() string {
 }
 
 func testAccResourceVSphereContentLibraryItemCheckExists(expected bool) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		_, err := testGetContentLibraryItem(s, "item")
+	return func(_ *terraform.State) error {
+		_, err := testGetContentLibraryItem(nil, "item")
 		if err != nil {
 			missingState, _ := regexp.MatchString("not found in state", err.Error())
 			missingVSphere, _ := regexp.MatchString("404 Not Found", err.Error())

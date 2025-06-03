@@ -56,12 +56,12 @@ variable "attribute_type" {
 }
 
 resource "vsphere_custom_attribute" "testacc-attribute" {
-  name                = "${var.attribute_name}"
-  managed_object_type = "${var.attribute_type}"
+  name                = var.attribute_name
+  managed_object_type = var.attribute_type
 }
 
 data "vsphere_custom_attribute" "testacc-attribute-data" {
-  name = "${vsphere_custom_attribute.testacc-attribute.name}"
+  name = vsphere_custom_attribute.testacc-attribute.name
 }
 `,
 		testAccDataSourceVSphereCustomAttributeConfigName,

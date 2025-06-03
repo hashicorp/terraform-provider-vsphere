@@ -6,6 +6,7 @@ package vsphere
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 	"testing"
@@ -51,12 +52,12 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_datacenter" "testDC" {
   name = "testDC"
-  tags = ["${vsphere_tag.testacc-tag.id}"]
+  tags = [vsphere_tag.testacc-tag.id]
 }
 `
 
@@ -79,18 +80,18 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_tag" "testacc-tags-alt" {
-  count       = "${length(var.extra_tags)}"
-  name        = "${var.extra_tags[count.index]}"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  count       = length(var.extra_tags)
+  name        = var.extra_tags[count.index]
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_datacenter" "testDC" {
   name = "testDC"
-  tags = "${vsphere_tag.testacc-tags-alt.*.id}"
+  tags = vsphere_tag.testacc-tags-alt.*.id
 }
 `
 
@@ -102,13 +103,13 @@ resource "vsphere_custom_attribute" "testacc-attribute" {
 
 locals {
   dc_attrs = {
-    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
+    vsphere_custom_attribute.testacc-attribute.id = "value"
   }
 }
 
 resource "vsphere_datacenter" "testDC" {
-  name = "testDC"
-  custom_attributes = "${local.dc_attrs}"
+  name              = "testDC"
+  custom_attributes = local.dc_attrs
 }
 `
 const testAccCheckVSphereDatacenterConfigMultiCustomAttributes = `
@@ -124,14 +125,14 @@ resource "vsphere_custom_attribute" "testacc-attribute-2" {
 
 locals {
   dc_attrs = {
-    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
-    "${vsphere_custom_attribute.testacc-attribute-2.id}" = "value-2"
+    vsphere_custom_attribute.testacc-attribute.id   = "value"
+    vsphere_custom_attribute.testacc-attribute-2.id = "value-2"
   }
 }
 
 resource "vsphere_datacenter" "testDC" {
-  name = "testDC"
-  custom_attributes = "${local.dc_attrs}"
+  name              = "testDC"
+  custom_attributes = local.dc_attrs
 }
 `
 
@@ -245,6 +246,7 @@ func TestAccResourceVSphereDatacenter_modifyTags(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatacenter_singleCustomAttribute(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -268,6 +270,7 @@ func TestAccResourceVSphereDatacenter_singleCustomAttribute(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatacenter_modifyCustomAttribute(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -315,8 +318,9 @@ func testAccCheckVSphereDatacenterDestroy(s *terraform.State) error {
 		}
 		_, err := finder.Datacenter(context.TODO(), path)
 		if err != nil {
-			switch err.(type) {
-			case *find.NotFoundError:
+			var notFoundError *find.NotFoundError
+			switch {
+			case errors.As(err, &notFoundError):
 				return nil
 			default:
 				return err
@@ -349,10 +353,11 @@ func testAccCheckVSphereDatacenterExists(n string, exists bool) resource.TestChe
 		}
 		_, err := finder.Datacenter(context.TODO(), path)
 		if err != nil {
-			switch e := err.(type) {
-			case *find.NotFoundError:
+			var notFoundError *find.NotFoundError
+			switch {
+			case errors.As(err, &notFoundError):
 				if exists {
-					return fmt.Errorf("datacenter does not exist: %s", e.Error())
+					return fmt.Errorf("datacenter does not exist: %s", notFoundError.Error())
 				}
 				return nil
 			default:

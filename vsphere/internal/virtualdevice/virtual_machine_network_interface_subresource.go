@@ -24,7 +24,6 @@ import (
 	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/nsx"
 	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/provider"
 	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/structure"
-	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
 
 const maxNetworkInterfaceCount = 10
@@ -404,8 +403,8 @@ loopInterfaces:
 
 	// Explicitly check for too many interfaces, as the schema MaxItems doesn't differentiate between non-SRIOV and SRIOV
 	if countSriov > maxNetworkInterfaceCount || countNonSriov > maxNetworkInterfaceCount {
-		return fmt.Errorf("network_interface list exceeded max items of %d non-sriov adapter_types and %d sriov adapter_types."+
-			" Config has %d and %d declared.", maxNetworkInterfaceCount, maxNetworkInterfaceCount, countNonSriov, countSriov)
+		return fmt.Errorf("network_interface list exceeded max items of %d non-sriov adapter_types and %d sriov adapter_types"+
+			" Config has %d and %d declared", maxNetworkInterfaceCount, maxNetworkInterfaceCount, countNonSriov, countSriov)
 	}
 
 	if countSriov > 0 {
@@ -414,7 +413,7 @@ loopInterfaces:
 			log.Printf("[DEBUG] network_interfaces out of order. First SRIOV index %d, Last non-SRIOV index %d", minSriovIndex, maxNonSriovIndex)
 			return fmt.Errorf("network_interfaces out of order.\n" +
 				"network_interfaces with adapter_type 'sriov' must be declared after all network_interfaces with " +
-				"other adapter_types. Please reorder the network_interface sections.")
+				"other adapter_types. Please reorder the network_interface sections")
 		}
 
 		// First check that the host system is known
@@ -806,6 +805,9 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 	// Add SRIOV physical function if this network interface resource has it defined
 	if len(r.Get("physical_function").(string)) > 0 {
 		device, err = r.addPhysicalFunction(device)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// SRIOV device creation requires a restart
@@ -830,29 +832,26 @@ func (r *NetworkInterfaceSubresource) Create(l object.VirtualDeviceList) ([]type
 		card.MacAddress = r.Get("mac_address").(string)
 	}
 
-	version := viapi.ParseVersionFromClient(r.client)
-
-	// Minimum Supported Version: 6.0.0
-	if (version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) && r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov) {
-		bandwidth_limit := structure.Int64Ptr(-1)
-		bandwidth_reservation := structure.Int64Ptr(0)
-		bandwidth_share_level := types.SharesLevelNormal
+	if r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov {
+		bandwidthLimit := structure.Int64Ptr(-1)
+		bandwidthReservation := structure.Int64Ptr(0)
+		bandwidthShareLevel := types.SharesLevelNormal
 		if r.Get("bandwidth_limit") != nil {
-			bandwidth_limit = structure.Int64Ptr(int64(r.Get("bandwidth_limit").(int)))
+			bandwidthLimit = structure.Int64Ptr(int64(r.Get("bandwidth_limit").(int)))
 		}
 		if r.Get("bandwidth_reservation") != nil {
-			bandwidth_reservation = structure.Int64Ptr(int64(r.Get("bandwidth_reservation").(int)))
+			bandwidthReservation = structure.Int64Ptr(int64(r.Get("bandwidth_reservation").(int)))
 		}
 		if r.Get("bandwidth_share_level") != nil {
-			bandwidth_share_level = types.SharesLevel(r.Get("bandwidth_share_level").(string))
+			bandwidthShareLevel = types.SharesLevel(r.Get("bandwidth_share_level").(string))
 		}
 
 		alloc := &types.VirtualEthernetCardResourceAllocation{
-			Limit:       bandwidth_limit,
-			Reservation: bandwidth_reservation,
+			Limit:       bandwidthLimit,
+			Reservation: bandwidthReservation,
 			Share: types.SharesInfo{
 				Shares: int32(r.Get("bandwidth_share_count").(int)),
-				Level:  bandwidth_share_level,
+				Level:  bandwidthShareLevel,
 			},
 		}
 		card.ResourceAllocation = alloc
@@ -941,25 +940,20 @@ func (r *NetworkInterfaceSubresource) Read(l object.VirtualDeviceList) error {
 	r.Set("use_static_mac", card.AddressType == string(types.VirtualEthernetCardMacTypeManual))
 	r.Set("mac_address", card.MacAddress)
 
-	version := viapi.ParseVersionFromClient(r.client)
-
-	// Minimum Supported Version: 6.0.0
-	if version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) {
-		if r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov {
-			if card.ResourceAllocation != nil {
-				r.Set("bandwidth_limit", card.ResourceAllocation.Limit)
-				r.Set("bandwidth_reservation", card.ResourceAllocation.Reservation)
-				r.Set("bandwidth_share_count", card.ResourceAllocation.Share.Shares)
-				r.Set("bandwidth_share_level", card.ResourceAllocation.Share.Level)
-			}
-		} else {
-			// SRIOV adapters don't support bandwidth properties. Set them to the defaults on the read resource
-			// to ensure that import and such work (as the schema has defaults for them). The bandwidth_share_count
-			// is computed and has no default, so doesn't need setting.
-			r.Set("bandwidth_limit", defaultBandwidthLimit)
-			r.Set("bandwidth_reservation", defaultBandwidthReservation)
-			r.Set("bandwidth_share_level", defaultBandwidthShareLevel)
+	if r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov {
+		if card.ResourceAllocation != nil {
+			r.Set("bandwidth_limit", card.ResourceAllocation.Limit)
+			r.Set("bandwidth_reservation", card.ResourceAllocation.Reservation)
+			r.Set("bandwidth_share_count", card.ResourceAllocation.Share.Shares)
+			r.Set("bandwidth_share_level", card.ResourceAllocation.Share.Level)
 		}
+	} else {
+		// SRIOV adapters don't support bandwidth properties. Set them to the defaults on the read resource
+		// to ensure that import and such work (as the schema has defaults for them). The bandwidth_share_count
+		// is computed and has no default, so doesn't need setting.
+		r.Set("bandwidth_limit", defaultBandwidthLimit)
+		r.Set("bandwidth_reservation", defaultBandwidthReservation)
+		r.Set("bandwidth_share_level", defaultBandwidthShareLevel)
 	}
 
 	// Save the device key and address data
@@ -1077,29 +1071,26 @@ func (r *NetworkInterfaceSubresource) Update(l object.VirtualDeviceList) ([]type
 		}
 	}
 
-	version := viapi.ParseVersionFromClient(r.client)
-
-	// Minimum Supported Version: 6.0.0
-	if (version.Newer(viapi.VSphereVersion{Product: version.Product, Major: 6}) && r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov) {
-		bandwidth_limit := structure.Int64Ptr(-1)
-		bandwidth_reservation := structure.Int64Ptr(0)
-		bandwidth_share_level := types.SharesLevelNormal
+	if r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov {
+		bandwidthLimit := structure.Int64Ptr(-1)
+		bandwidthReservation := structure.Int64Ptr(0)
+		bandwidthShareLevel := types.SharesLevelNormal
 		if r.Get("bandwidth_limit") != nil {
-			bandwidth_limit = structure.Int64Ptr(int64(r.Get("bandwidth_limit").(int)))
+			bandwidthLimit = structure.Int64Ptr(int64(r.Get("bandwidth_limit").(int)))
 		}
 		if r.Get("bandwidth_reservation") != nil {
-			bandwidth_reservation = structure.Int64Ptr(int64(r.Get("bandwidth_reservation").(int)))
+			bandwidthReservation = structure.Int64Ptr(int64(r.Get("bandwidth_reservation").(int)))
 		}
 		if r.Get("bandwidth_share_level") != nil {
-			bandwidth_share_level = types.SharesLevel(r.Get("bandwidth_share_level").(string))
+			bandwidthShareLevel = types.SharesLevel(r.Get("bandwidth_share_level").(string))
 		}
 
 		alloc := &types.VirtualEthernetCardResourceAllocation{
-			Limit:       bandwidth_limit,
-			Reservation: bandwidth_reservation,
+			Limit:       bandwidthLimit,
+			Reservation: bandwidthReservation,
 			Share: types.SharesInfo{
 				Shares: int32(r.Get("bandwidth_share_count").(int)),
-				Level:  bandwidth_share_level,
+				Level:  bandwidthShareLevel,
 			},
 		}
 		card.ResourceAllocation = alloc
@@ -1132,19 +1123,19 @@ func (r *NetworkInterfaceSubresource) addPhysicalFunction(device types.BaseVirtu
 
 	// These seem to be the correct DeviceId, SystemId and VendorId settings if you
 	// investigate a manually created vSphere SRIOV network interface
-	physical_function_conf := &types.VirtualPCIPassthroughDeviceBackingInfo{
+	physicalFunctionConf := &types.VirtualPCIPassthroughDeviceBackingInfo{
 		Id:       r.Get("physical_function").(string),
 		DeviceId: "0",
 		SystemId: "BYPASS",
 		VendorId: 0,
 	}
-	sriov_conf := &types.VirtualSriovEthernetCardSriovBackingInfo{
-		PhysicalFunctionBacking: physical_function_conf,
+	sriovConf := &types.VirtualSriovEthernetCardSriovBackingInfo{
+		PhysicalFunctionBacking: physicalFunctionConf,
 	}
 
 	device = &types.VirtualSriovEthernetCard{
 		VirtualEthernetCard: *d2.(types.BaseVirtualEthernetCard).GetVirtualEthernetCard(),
-		SriovBacking:        sriov_conf,
+		SriovBacking:        sriovConf,
 	}
 
 	return device, nil
@@ -1203,16 +1194,6 @@ func (r *NetworkInterfaceSubresource) blockBandwidthSettingsSriov() error {
 func (r *NetworkInterfaceSubresource) ValidateDiff() error {
 	log.Printf("[DEBUG] %s: Beginning diff validation", r)
 
-	version := viapi.ParseVersionFromClient(r.client)
-
-	// Minimum Supported Version: 6.0.0
-	if (version.Older(viapi.VSphereVersion{Product: version.Product, Major: 6}) &&
-		r.Get("adapter_type") != networkInterfaceSubresourceTypeSriov) {
-		if err := r.restrictResourceAllocationSettings(); err != nil {
-			return err
-		}
-	}
-
 	// Ensure physical adapter is set on all (and only on) SR-IOV NICs
 	if r.Get("adapter_type").(string) == networkInterfaceSubresourceTypeSriov {
 		if len(r.Get("physical_function").(string)) == 0 {
@@ -1231,26 +1212,6 @@ func (r *NetworkInterfaceSubresource) ValidateDiff() error {
 	}
 
 	log.Printf("[DEBUG] %s: Diff validation complete", r)
-	return nil
-}
-
-func (r *NetworkInterfaceSubresource) restrictResourceAllocationSettings() error {
-	rs := NetworkInterfaceSubresourceSchema()
-	keys := []string{
-		"bandwidth_limit",
-		"bandwidth_reservation",
-		"bandwidth_share_level",
-		"bandwidth_share_count",
-	}
-	for _, key := range keys {
-		expected := rs[key].Default
-		if expected == nil {
-			expected = rs[key].ZeroValue()
-		}
-		if r.Get(key) != expected {
-			return fmt.Errorf("%s requires vSphere 6.0 or higher", key)
-		}
-	}
 	return nil
 }
 

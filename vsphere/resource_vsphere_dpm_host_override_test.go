@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"reflect"
 	"testing"
 
@@ -26,7 +25,6 @@ func TestAccResourceVSphereDPMHostOverride_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDPMHostOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDPMHostOverrideExists(false),
@@ -77,7 +75,6 @@ func TestAccResourceVSphereDPMHostOverride_overrides(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDPMHostOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDPMHostOverrideExists(false),
@@ -98,7 +95,6 @@ func TestAccResourceVSphereDPMHostOverride_update(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDPMHostOverridePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDPMHostOverrideExists(false),
@@ -119,18 +115,6 @@ func TestAccResourceVSphereDPMHostOverride_update(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccResourceVSphereDPMHostOverridePreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_compute_cluster acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_ESXI1") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI1 to run vsphere_compute_cluster acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_ESXI2") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI2 to run vsphere_compute_cluster acceptance tests")
-	}
 }
 
 func testAccResourceVSphereDPMHostOverrideExists(expected bool) resource.TestCheckFunc {
@@ -195,14 +179,13 @@ func testAccResourceVSphereDPMHostOverrideConfigDefaults() string {
 %s
 
 resource "vsphere_dpm_host_override" "dpm_host_override" {
-  compute_cluster_id   = "${data.vsphere_compute_cluster.rootcompute_cluster1.id}"
-  host_system_id       = "${data.vsphere_host.roothost1.id}"
+  compute_cluster_id = data.vsphere_compute_cluster.rootcompute_cluster1.id
+  host_system_id     = data.vsphere_host.roothost1.id
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootComputeCluster1(),
-		),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootComputeCluster1(),
+	),
 	)
 }
 
@@ -212,7 +195,7 @@ func testAccResourceVSphereDPMHostOverrideConfigOverrides() string {
 
 
 resource "vsphere_dpm_host_override" "dpm_host_override" {
-  compute_cluster_id   = "${data.vsphere_compute_cluster.rootcompute_cluster1.id}"
+  compute_cluster_id   = data.vsphere_compute_cluster.rootcompute_cluster1.id
   host_system_id       = data.vsphere_host.roothost1.id
   dpm_enabled          = true
   dpm_automation_level = "automated"

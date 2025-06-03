@@ -6,7 +6,6 @@ package vsphere
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"testing"
 
@@ -19,7 +18,6 @@ func TestAccDataSourceVSphereVirtualMachine_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -27,33 +25,33 @@ func TestAccDataSourceVSphereVirtualMachine_basic(t *testing.T) {
 				Config: testAccDataSourceVSphereVirtualMachineConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestMatchResourceAttr(
-						"data.vsphere_virtual_machine.template",
+						"data.vsphere_virtual_machine.vm",
 						"id",
 						regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$")),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "guest_id"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "scsi_type"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "memory"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "memory_reservation_locked_to_max"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "num_cpus"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "num_cores_per_socket"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "firmware"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "hardware_version"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.#"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.size"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.eagerly_scrub"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.thin_provisioned"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.unit_number"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.label"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interface_types.#"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.#"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.adapter_type"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.bandwidth_limit"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.bandwidth_reservation"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.bandwidth_share_level"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.bandwidth_share_count"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.mac_address"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.network_id"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "instance_uuid"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "guest_id"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "scsi_type"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "memory"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "memory_reservation_locked_to_max"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "num_cpus"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "num_cores_per_socket"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "firmware"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "hardware_version"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.#"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.size"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.eagerly_scrub"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.thin_provisioned"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.unit_number"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.label"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interface_types.#"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.#"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.adapter_type"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_limit"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_reservation"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_share_level"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_share_count"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.mac_address"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.network_id"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "instance_uuid"),
 				),
 			},
 		},
@@ -65,7 +63,6 @@ func TestAccDataSourceVSphereVirtualMachine_noDatacenterAndAbsolutePath(t *testi
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -73,32 +70,32 @@ func TestAccDataSourceVSphereVirtualMachine_noDatacenterAndAbsolutePath(t *testi
 				Config: testAccDataSourceVSphereVirtualMachineConfigAbsolutePath(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestMatchResourceAttr(
-						"data.vsphere_virtual_machine.template",
+						"data.vsphere_virtual_machine.vm",
 						"id",
 						regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$")),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "guest_id"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "scsi_type"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "memory"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "num_cpus"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "num_cores_per_socket"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "firmware"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "hardware_version"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.#"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.size"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.eagerly_scrub"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.thin_provisioned"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.unit_number"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "disks.0.label"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interface_types.#"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.#"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.adapter_type"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.bandwidth_limit"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.bandwidth_reservation"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.bandwidth_share_level"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.bandwidth_share_count"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.mac_address"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "network_interfaces.0.network_id"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.template", "instance_uuid"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "guest_id"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "scsi_type"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "memory"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "num_cpus"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "num_cores_per_socket"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "firmware"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "hardware_version"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.#"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.size"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.eagerly_scrub"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.thin_provisioned"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.unit_number"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.label"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interface_types.#"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.#"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.adapter_type"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_limit"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_reservation"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_share_level"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_share_count"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.mac_address"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.network_id"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "instance_uuid"),
 				),
 			},
 		},
@@ -110,7 +107,6 @@ func TestAccDataSourceVSphereVirtualMachine_uuid(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -118,33 +114,33 @@ func TestAccDataSourceVSphereVirtualMachine_uuid(t *testing.T) {
 				Config: testAccDataSourceVSphereVirtualMachineConfigUUID(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestMatchResourceAttr(
-						"data.vsphere_virtual_machine.uuid",
+						"data.vsphere_virtual_machine.vm",
 						"id",
 						regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$")),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "guest_id"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "scsi_type"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "memory"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "num_cpus"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "num_cores_per_socket"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "firmware"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "hardware_version"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "disks.#"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "disks.0.size"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "disks.0.eagerly_scrub"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "disks.0.thin_provisioned"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "disks.0.unit_number"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "disks.0.label"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "network_interface_types.#"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "network_interfaces.#"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "network_interfaces.0.adapter_type"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "network_interfaces.0.bandwidth_limit"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "network_interfaces.0.bandwidth_reservation"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "network_interfaces.0.bandwidth_share_level"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "network_interfaces.0.bandwidth_share_count"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "network_interfaces.0.mac_address"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "network_interfaces.0.network_id"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "uuid"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.uuid", "instance_uuid"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "guest_id"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "scsi_type"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "memory"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "num_cpus"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "num_cores_per_socket"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "firmware"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "hardware_version"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.#"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.size"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.eagerly_scrub"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.thin_provisioned"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.unit_number"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.label"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interface_types.#"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.#"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.adapter_type"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_limit"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_reservation"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_share_level"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_share_count"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.mac_address"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.network_id"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "uuid"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "instance_uuid"),
 				),
 			},
 		},
@@ -156,7 +152,6 @@ func TestAccDataSourceVSphereVirtualMachine_moid(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -164,33 +159,33 @@ func TestAccDataSourceVSphereVirtualMachine_moid(t *testing.T) {
 				Config: testAccDataSourceVSphereVirtualMachineConfigMOID(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestMatchResourceAttr(
-						"data.vsphere_virtual_machine.moid",
+						"data.vsphere_virtual_machine.vm",
 						"id",
 						regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$")),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "guest_id"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "scsi_type"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "memory"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "num_cpus"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "num_cores_per_socket"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "firmware"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "hardware_version"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "disks.#"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "disks.0.size"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "disks.0.eagerly_scrub"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "disks.0.thin_provisioned"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "disks.0.unit_number"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "disks.0.label"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "network_interface_types.#"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "network_interfaces.#"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "network_interfaces.0.adapter_type"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "network_interfaces.0.bandwidth_limit"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "network_interfaces.0.bandwidth_reservation"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "network_interfaces.0.bandwidth_share_level"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "network_interfaces.0.bandwidth_share_count"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "network_interfaces.0.mac_address"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "network_interfaces.0.network_id"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "instance_uuid"),
-					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.moid", "moid"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "guest_id"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "scsi_type"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "memory"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "num_cpus"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "num_cores_per_socket"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "firmware"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "hardware_version"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.#"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.size"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.eagerly_scrub"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.thin_provisioned"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.unit_number"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.label"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interface_types.#"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.#"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.adapter_type"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_limit"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_reservation"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_share_level"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_share_count"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.mac_address"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.network_id"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "instance_uuid"),
+					resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "moid"),
 				),
 			},
 		},
@@ -202,71 +197,51 @@ func TestAccDataSourceVSphereVirtualMachine_nameAndFolder(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{{
 			Config: testAccDataSourceVirtualMachineFolder(),
 			Check: resource.ComposeTestCheckFunc(
 				resource.TestMatchResourceAttr(
-					"data.vsphere_virtual_machine.vm1",
+					"data.vsphere_virtual_machine.vm",
 					"id",
 					regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$")),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "guest_id"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "scsi_type"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "memory"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "num_cpus"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "num_cores_per_socket"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "firmware"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "hardware_version"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "disks.#"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "disks.0.size"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "disks.0.eagerly_scrub"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "disks.0.thin_provisioned"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "disks.0.unit_number"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "disks.0.label"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "network_interface_types.#"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "network_interfaces.#"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "network_interfaces.0.adapter_type"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "network_interfaces.0.bandwidth_limit"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "network_interfaces.0.bandwidth_reservation"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "network_interfaces.0.bandwidth_share_level"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "network_interfaces.0.bandwidth_share_count"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "network_interfaces.0.mac_address"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "network_interfaces.0.network_id"),
-				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm1", "instance_uuid")),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "guest_id"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "scsi_type"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "memory"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "num_cpus"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "num_cores_per_socket"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "firmware"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "hardware_version"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.#"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.size"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.eagerly_scrub"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.thin_provisioned"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.unit_number"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "disks.0.label"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interface_types.#"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.#"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.adapter_type"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_limit"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_reservation"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_share_level"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.bandwidth_share_count"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.mac_address"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "network_interfaces.0.network_id"),
+				resource.TestCheckResourceAttrSet("data.vsphere_virtual_machine.vm", "instance_uuid")),
 		}},
 	})
-}
-
-func testAccDataSourceVSphereVirtualMachinePreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_virtual_machine data source acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_TEMPLATE") == "" {
-		t.Skip("set TF_VAR_VSPHERE_TEMPLATE to run vsphere_virtual_machine data source acceptance tests")
-	}
 }
 
 func testAccDataSourceVSphereVirtualMachineConfigUUID() string {
 	return fmt.Sprintf(`
 %s
 
-variable "template" {
-  default = "%s"
-}
-
-data "vsphere_virtual_machine" "template" {
-  name          = var.template
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
-}
-
-data "vsphere_virtual_machine" "uuid" {
-  uuid = data.vsphere_virtual_machine.template.uuid
+data "vsphere_virtual_machine" "vm" {
+  uuid = vsphere_virtual_machine.srcvm.uuid
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
-		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
+		testAccDataSourceVSphereVirtualMachineConfigBase(),
 	)
 }
 
@@ -274,21 +249,11 @@ func testAccDataSourceVSphereVirtualMachineConfigMOID() string {
 	return fmt.Sprintf(`
 %s
 
-variable "template" {
-  default = "%s"
-}
-
-data "vsphere_virtual_machine" "template" {
-  name          = var.template
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
-}
-
-data "vsphere_virtual_machine" "moid" {
-  moid = data.vsphere_virtual_machine.template.moid
+data "vsphere_virtual_machine" "vm" {
+  moid = vsphere_virtual_machine.srcvm.moid
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
-		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
+		testAccDataSourceVSphereVirtualMachineConfigBase(),
 	)
 }
 
@@ -296,17 +261,12 @@ func testAccDataSourceVSphereVirtualMachineConfig() string {
 	return fmt.Sprintf(`
 %s
 
-variable "template" {
-  default = "%s"
-}
-
-data "vsphere_virtual_machine" "template" {
-  name          = "${var.template}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+data "vsphere_virtual_machine" "vm" {
+  name          = vsphere_virtual_machine.srcvm.name
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
-		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
+		testAccDataSourceVSphereVirtualMachineConfigBase(),
 	)
 }
 
@@ -314,61 +274,85 @@ func testAccDataSourceVSphereVirtualMachineConfigAbsolutePath() string {
 	return fmt.Sprintf(`
 %s
 
-variable "template" {
-  default = "%s"
-}
-
-data "vsphere_virtual_machine" "template" {
-  name = "/${data.vsphere_datacenter.rootdc1.name}/vm/${var.template}"
+data "vsphere_virtual_machine" "vm" {
+  name = "/${data.vsphere_datacenter.rootdc1.name}/vm/${vsphere_virtual_machine.srcvm.name}"
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
-		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
+		testAccDataSourceVSphereVirtualMachineConfigBase(),
 	)
 }
 
 func testAccDataSourceVirtualMachineFolder() string {
 	return fmt.Sprintf(`
-	%s
+%s
 
-	resource "vsphere_folder" "new_vm_folder" {
-		path		  = "new-vm-folder"
-		datacenter_id = data.vsphere_datacenter.rootdc1.id
-		type		  = "vm"
+resource "vsphere_folder" "new_vm_folder" {
+  path          = "new-vm-folder"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+  type          = "vm"
+}
 
-	}
+resource "vsphere_virtual_machine" "srcvm" {
+  name             = "acc-test-vm"
+  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+  folder           = vsphere_folder.new_vm_folder.path
+  num_cpus         = 1
+  memory           = 1024
+  guest_id         = "otherLinux64Guest"
+  network_interface {
+    network_id = data.vsphere_network.network1.id
+  }
+  disk {
+    label = "disk0"
+    size  = 1
+    io_reservation = 1
+  }
+  wait_for_guest_ip_timeout  = 0
+  wait_for_guest_net_timeout = 0
+}
 
-	resource "vsphere_virtual_machine" "vm" {
-	  name             = "foo"
-	  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
-	  folder 		   = vsphere_folder.new_vm_folder.path
-	  datastore_id     = data.vsphere_datastore.rootds1.id
-	  num_cpus         = 1
-	  memory           = 1024
-	  guest_id         = "otherLinux64Guest"
-	  network_interface {
-		network_id = data.vsphere_network.network1.id
-	  }
-	  disk {
-		label = "disk0"
-		size  = 10
-	  }
-	 wait_for_guest_ip_timeout = 0
-	 wait_for_guest_net_timeout  = 0
-	}
+data vsphere_virtual_machine "vm" {
+  name          = vsphere_virtual_machine.srcvm.name
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
+  folder        = vsphere_folder.new_vm_folder.path
+}
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootPortGroup1()),
+	)
+}
 
-	data vsphere_virtual_machine "vm1" {
-		name 		  = vsphere_virtual_machine.vm.name
-		datacenter_id = data.vsphere_datacenter.rootdc1.id
-		folder 		  = vsphere_folder.new_vm_folder.path
-	}
+func testAccDataSourceVSphereVirtualMachineConfigBase() string {
+	return fmt.Sprintf(`
+%s
 
-
-`, testhelper.CombineConfigs(
-		testhelper.ConfigDataRootDC1(),
-		testhelper.ConfigDataRootPortGroup1(),
-		testhelper.ConfigDataRootComputeCluster1(),
-		testhelper.ConfigDataRootDS1(),
-	))
-
+resource "vsphere_virtual_machine" "srcvm" {
+  name             = "acc-test-vm"
+  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+  num_cpus         = 1
+  memory           = 1024
+  guest_id         = "otherLinux64Guest"
+  network_interface {
+    network_id = data.vsphere_network.network1.id
+  }
+  disk {
+    label = "disk0"
+    size  = 1
+    io_reservation = 1
+  }
+  wait_for_guest_ip_timeout  = 0
+  wait_for_guest_net_timeout = 0
+}
+`,
+		testhelper.CombineConfigs(
+			testhelper.ConfigDataRootDC1(),
+			testhelper.ConfigDataRootDS1(),
+			testhelper.ConfigDataRootComputeCluster1(),
+			testhelper.ConfigDataRootPortGroup1()),
+	)
 }

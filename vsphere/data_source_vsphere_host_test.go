@@ -19,7 +19,6 @@ func TestAccDataSourceVSphereHost_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereHostPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -42,7 +41,6 @@ func TestAccDataSourceVSphereHost_defaultHost(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereHostPreCheck(t)
 			testAccSkipIfNotEsxi(t)
 		},
 		Providers: testAccProviders,
@@ -61,19 +59,7 @@ func TestAccDataSourceVSphereHost_defaultHost(t *testing.T) {
 	})
 }
 
-func testAccDataSourceVSphereHostPreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_host acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_ESXI1") == "" {
-		t.Skip("set TF_VAR_VSPHERE_ESXI1 to run vsphere_host acceptance tests")
-	}
-}
-
 func testAccDataSourceVSphereHostExpectedRegexp() *regexp.Regexp {
-	if os.Getenv("TF_VAR_VSPHERE_TEST_ESXI") != "" {
-		return regexp.MustCompile("^ha-host$")
-	}
 	return regexp.MustCompile("^host-")
 }
 
@@ -83,9 +69,9 @@ func testAccDataSourceVSphereHostConfig() string {
 
 data "vsphere_host" "host" {
   name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
-`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()), os.Getenv("TF_VAR_VSPHERE_ESXI1"))
+`, testhelper.ConfigDataRootDC1(), os.Getenv("TF_VAR_VSPHERE_ESXI1"))
 }
 
 func testAccDataSourceVSphereHostConfigDefault() string {
@@ -93,6 +79,6 @@ func testAccDataSourceVSphereHostConfigDefault() string {
 %s
 
 data "vsphere_host" "host" {
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }`, testhelper.ConfigDataRootDC1())
 }

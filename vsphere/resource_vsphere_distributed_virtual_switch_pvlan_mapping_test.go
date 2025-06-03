@@ -21,7 +21,6 @@ func TestAccResourceVSphereDistributedVirtualSwitchPvlanMapping_basic(t *testing
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereDistributedVirtualSwitchPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereDistributedVirtualSwitchPvlanMappingExists(false),
@@ -43,24 +42,23 @@ func testAccResourceVSphereDistributedVirtualSwitchPvlanMappingConfig() string {
 resource "vsphere_distributed_virtual_switch_pvlan_mapping" "mapping" {
   distributed_virtual_switch_id = vsphere_distributed_virtual_switch.dvs.id
 
-  primary_vlan_id = 1005
+  primary_vlan_id   = 1005
   secondary_vlan_id = 1005
-  pvlan_type = "promiscuous"
+  pvlan_type        = "promiscuous"
 }
 
 resource "vsphere_distributed_virtual_switch" "dvs" {
-  name          = "testacc-dvs2"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  name                        = "testacc-dvs2"
+  datacenter_id               = data.vsphere_datacenter.rootdc1.id
   ignore_other_pvlan_mappings = true
 
   host {
     host_system_id = data.vsphere_host.roothost2.id
-    devices = ["%s"]
+    devices        = ["%s"]
   }
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost2()),
-		testhelper.HostNic0,
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost2()),
+		testhelper.HostNic1,
 	)
 }
 
@@ -81,18 +79,22 @@ func testAccResourceVSphereDistributedVirtualSwitchPvlanMappingExists(expected b
 			return fmt.Errorf("could not find pvlan mapping resource: %s", err)
 		}
 
-		primary_vlan_id, err := strconv.Atoi(mappingToSearchFor.resourceAttributes["primary_vlan_id"])
+		primaryVlanIDInt64, err := strconv.ParseInt(mappingToSearchFor.resourceAttributes["primary_vlan_id"], 10, 32)
 		if err != nil {
 			return err
 		}
-		secondary_vlan_id, err := strconv.Atoi(mappingToSearchFor.resourceAttributes["secondary_vlan_id"])
+		primaryVlanID := int32(primaryVlanIDInt64)
+
+		secondaryVlanIDInt64, err := strconv.ParseInt(mappingToSearchFor.resourceAttributes["secondary_vlan_id"], 10, 32)
 		if err != nil {
 			return err
 		}
-		pvlan_type := mappingToSearchFor.resourceAttributes["pvlan_type"]
+		secondaryVlanID := int32(secondaryVlanIDInt64)
+
+		pvlanType := mappingToSearchFor.resourceAttributes["pvlan_type"]
 
 		for _, mapping := range props.Config.(*types.VMwareDVSConfigInfo).PvlanConfig {
-			if mapping.PrimaryVlanId == int32(primary_vlan_id) && mapping.SecondaryVlanId == int32(secondary_vlan_id) && mapping.PvlanType == pvlan_type {
+			if mapping.PrimaryVlanId == primaryVlanID && mapping.SecondaryVlanId == secondaryVlanID && mapping.PvlanType == pvlanType {
 				if !expected {
 					return fmt.Errorf("found PVLAN mapping when not expecting to")
 				}

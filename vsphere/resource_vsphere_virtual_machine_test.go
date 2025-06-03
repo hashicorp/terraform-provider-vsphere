@@ -44,7 +44,6 @@ func TestAccResourceVSphereVirtualMachine_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
@@ -86,16 +85,143 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionBare(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigBareHardwareVersion(15),
+				Config: testAccResourceVSphereVirtualMachineConfigBareHardwareVersion(20),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					resource.TestMatchResourceAttr("vsphere_virtual_machine.vm", "hardware_version", regexp.MustCompile("^15$")),
+					resource.TestMatchResourceAttr("vsphere_virtual_machine.vm", "hardware_version", regexp.MustCompile("^20$")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_fromSparseVmdk(t *testing.T) {
+	t.Skipf("requires an existing 2gbsparse vmdk")
+	// to run this test you need to create a vmdk on the target datastore
+	// 1. ssh to an ESXi host with connection to the datastore
+	// 2. create an empty folder on the datastore and `cd` inside (e.g. /vmfs/volumes/67fe111f-489f3741-b381-02007873e8d0/sparsedisks)
+	// 3. create a regular sparse vmdk - vmkfstools -c 2g -d sesparse sparse.vmdk
+	// 4. create a 2gbsparse vmdk from the regular one - vmkfstools -i sparse.vmdk sparse2.vmdk -d 2gbsparse
+	// the test is pre-configured to look for a disk at [acc-test-nfs] sparsedisks/sparse2.vmdk. change if necessary
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigFromSparseVmdk(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					resource.TestMatchResourceAttr("vsphere_virtual_machine.vm", "moid", regexp.MustCompile("^vm-")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_vtpmCreate(t *testing.T) {
+	t.Skipf("requires key management server to run")
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigVtpm(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineVtpm("vm", true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_vtpmAdd(t *testing.T) {
+	t.Skipf("requires key management server to run")
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineVtpm("vm", false),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigVtpm(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineVtpm("vm", true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_vtpmRemove(t *testing.T) {
+	t.Skipf("requires key management server to run")
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigVtpm(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineVtpm("vm", true),
+				),
+			},
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigBasic(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					testAccResourceVSphereVirtualMachineVtpm("vm", false),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceVSphereVirtualMachine_vtpmClone(t *testing.T) {
+	t.Skipf("requires key management server to run")
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			RunSweepers()
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceVSphereVirtualMachineConfigVtpmClone(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccResourceVSphereVirtualMachineCheckExists(true),
+					resource.TestMatchResourceAttr("vsphere_virtual_machine.vm", "moid", regexp.MustCompile("^vm-")),
+					resource.TestMatchResourceAttr("vsphere_virtual_machine.vm2", "moid", regexp.MustCompile("^vm-")),
+					testAccResourceVSphereVirtualMachineVtpm("vm", true),
+					testAccResourceVSphereVirtualMachineVtpm("vm2", false),
 				),
 			},
 		},
@@ -107,23 +233,22 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionUpgrade(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigBareHardwareVersion(14),
+				Config: testAccResourceVSphereVirtualMachineConfigBareHardwareVersion(20),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					resource.TestMatchResourceAttr("vsphere_virtual_machine.vm", "hardware_version", regexp.MustCompile("^14$")),
+					resource.TestMatchResourceAttr("vsphere_virtual_machine.vm", "hardware_version", regexp.MustCompile("^20$")),
 				),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigBareHardwareVersion(15),
+				Config: testAccResourceVSphereVirtualMachineConfigBareHardwareVersion(21),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					resource.TestMatchResourceAttr("vsphere_virtual_machine.vm", "hardware_version", regexp.MustCompile("^15$")),
+					resource.TestMatchResourceAttr("vsphere_virtual_machine.vm", "hardware_version", regexp.MustCompile("^21$")),
 				),
 			},
 		},
@@ -131,6 +256,7 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionUpgrade(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_hardwareVersionInvalidVersion(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -153,6 +279,7 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionInvalidVersion(t *testi
 }
 
 func TestAccResourceVSphereVirtualMachine_hardwareVersionDowngrade(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -182,16 +309,15 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionClone(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigHardwareVersionClone(15),
+				Config: testAccResourceVSphereVirtualMachineConfigHardwareVersionClone(20),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					resource.TestMatchResourceAttr("vsphere_virtual_machine.vm", "hardware_version", regexp.MustCompile("^15$")),
+					resource.TestMatchResourceAttr("vsphere_virtual_machine.vm", "hardware_version", regexp.MustCompile("^20$")),
 				),
 			},
 		},
@@ -199,6 +325,7 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionClone(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachineContentLibrary_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -224,7 +351,6 @@ func TestAccResourceVSphereVirtualMachine_ignoreValidationOnComputedValue(t *tes
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
@@ -239,11 +365,11 @@ func TestAccResourceVSphereVirtualMachine_ignoreValidationOnComputedValue(t *tes
 }
 
 func TestAccResourceVSphereVirtualMachine_highLatencySensitivity(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
@@ -260,6 +386,7 @@ func TestAccResourceVSphereVirtualMachine_highLatencySensitivity(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_ESXiOnly(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -287,7 +414,6 @@ func TestAccResourceVSphereVirtualMachine_shutdownOK(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
@@ -319,7 +445,6 @@ func TestAccResourceVSphereVirtualMachine_reCreateOnDeletion(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
@@ -355,7 +480,6 @@ func TestAccResourceVSphereVirtualMachine_multiDevice(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
@@ -364,7 +488,7 @@ func TestAccResourceVSphereVirtualMachine_multiDevice(t *testing.T) {
 				Config: testAccResourceVSphereVirtualMachineConfigMultiDevice(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, true, true}, []bool{true, true, true}),
+					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, true, true}),
 				),
 			},
 		},
@@ -376,7 +500,6 @@ func TestAccResourceVSphereVirtualMachine_addDevices(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
@@ -391,7 +514,7 @@ func TestAccResourceVSphereVirtualMachine_addDevices(t *testing.T) {
 				Config: testAccResourceVSphereVirtualMachineConfigMultiDevice(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, true, true}, []bool{true, true, true}),
+					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, true, true}),
 				),
 			},
 		},
@@ -404,7 +527,6 @@ func TestAccResourceVSphereVirtualMachine_removeMiddleDevices(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
@@ -414,7 +536,7 @@ func TestAccResourceVSphereVirtualMachine_removeMiddleDevices(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					copyStatePtr(&state),
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, true, true}, []bool{true, true, true}),
+					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, true, true}),
 				),
 			},
 			{
@@ -431,7 +553,7 @@ func TestAccResourceVSphereVirtualMachine_removeMiddleDevices(t *testing.T) {
 				Config: testAccResourceVSphereVirtualMachineConfigRemoveMiddle(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, false, true}, []bool{true, false, true}),
+					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, false, true}),
 				),
 			},
 		},
@@ -443,7 +565,6 @@ func TestAccResourceVSphereVirtualMachine_removeMiddleDevicesChangeDiskUnit(t *t
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
@@ -452,14 +573,14 @@ func TestAccResourceVSphereVirtualMachine_removeMiddleDevicesChangeDiskUnit(t *t
 				Config: testAccResourceVSphereVirtualMachineConfigMultiDevice(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, true, true}, []bool{true, true, true}),
+					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, true, true}),
 				),
 			},
 			{
 				Config: testAccResourceVSphereVirtualMachineConfigRemoveMiddleChangeUnit(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
-					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, false, true}, []bool{true, false, true}),
+					testAccResourceVSphereVirtualMachineCheckMultiDevice([]bool{true, false, true}),
 				),
 			},
 		},
@@ -471,7 +592,6 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitNumbers(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
@@ -493,6 +613,7 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitNumbers(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_highDiskUnitInsufficientBus(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -515,7 +636,6 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitsToRegularSingleController
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
@@ -547,7 +667,6 @@ func TestAccResourceVSphereVirtualMachine_scsiBusSharing(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
@@ -568,7 +687,6 @@ func TestAccResourceVSphereVirtualMachine_scsiBusSharingUpdate(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
@@ -593,6 +711,7 @@ func TestAccResourceVSphereVirtualMachine_scsiBusSharingUpdate(t *testing.T) {
 
 func TestAccResourceVSphereVirtualMachine_disksKeepOnRemove(t *testing.T) {
 	var disks []map[string]string
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -621,6 +740,7 @@ func TestAccResourceVSphereVirtualMachine_disksKeepOnRemove(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cdromClientMapping(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -642,6 +762,7 @@ func TestAccResourceVSphereVirtualMachine_cdromClientMapping(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppIsoBasic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -663,6 +784,7 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoBasic(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppIsoNoVApp(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -686,6 +808,7 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoNoVApp(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppIsoNoCdrom(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -708,6 +831,7 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoNoCdrom(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppIsoConfigIsoIgnored(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -732,6 +856,7 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoConfigIsoIgnored(t *testing.T) 
 
 func TestAccResourceVSphereVirtualMachine_vAppIsoChangeCdromBacking(t *testing.T) {
 	var state *terraform.State
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -761,6 +886,7 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoChangeCdromBacking(t *testing.T
 
 func TestAccResourceVSphereVirtualMachine_vAppIsoPoweredOffCdromRead(t *testing.T) {
 	var state *terraform.State
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -793,6 +919,7 @@ func TestAccResourceVSphereVirtualMachine_vAppIsoPoweredOffCdromRead(t *testing.
 }
 
 func TestAccResourceVSphereVirtualMachine_vvtdAndVbs(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -812,6 +939,7 @@ func TestAccResourceVSphereVirtualMachine_vvtdAndVbs(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cdromNoParameters(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -833,6 +961,7 @@ func TestAccResourceVSphereVirtualMachine_cdromNoParameters(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cdromIsoBacking(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -852,6 +981,7 @@ func TestAccResourceVSphereVirtualMachine_cdromIsoBacking(t *testing.T) {
 	})
 }
 func TestAccResourceVSphereVirtualMachine_cdromConflictingParameters(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -870,11 +1000,11 @@ func TestAccResourceVSphereVirtualMachine_cdromConflictingParameters(t *testing.
 }
 
 func TestAccResourceVSphereVirtualMachine_maximumNumberOfNICs(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
@@ -891,6 +1021,7 @@ func TestAccResourceVSphereVirtualMachine_maximumNumberOfNICs(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_upgradeCPUAndRam(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -922,6 +1053,7 @@ func TestAccResourceVSphereVirtualMachine_upgradeCPUAndRam(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_modifyAnnotation(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -950,6 +1082,7 @@ func TestAccResourceVSphereVirtualMachine_modifyAnnotation(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_growDisk(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -978,6 +1111,7 @@ func TestAccResourceVSphereVirtualMachine_growDisk(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_swapSCSIBus(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1006,6 +1140,7 @@ func TestAccResourceVSphereVirtualMachine_swapSCSIBus(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_extraConfig(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1035,6 +1170,7 @@ func TestAccResourceVSphereVirtualMachine_extraConfig(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_extraConfigSwapKeys(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1064,6 +1200,7 @@ func TestAccResourceVSphereVirtualMachine_extraConfigSwapKeys(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_attachExistingVmdk(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1085,6 +1222,7 @@ func TestAccResourceVSphereVirtualMachine_attachExistingVmdk(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_attachExistingVmdkTaint(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1114,6 +1252,7 @@ func TestAccResourceVSphereVirtualMachine_attachExistingVmdkTaint(t *testing.T) 
 }
 
 func TestAccResourceVSphereVirtualMachine_resourcePoolMove(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1142,6 +1281,7 @@ func TestAccResourceVSphereVirtualMachine_resourcePoolMove(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppContainerAndFolder(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1160,6 +1300,7 @@ func TestAccResourceVSphereVirtualMachine_vAppContainerAndFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_vAppContainerMove(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1195,6 +1336,7 @@ func TestAccResourceVSphereVirtualMachine_vAppContainerMove(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_inFolder(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1220,7 +1362,6 @@ func TestAccResourceVSphereVirtualMachine_moveToFolder(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereVirtualMachinePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereVirtualMachineCheckExists(false),
@@ -1243,6 +1384,7 @@ func TestAccResourceVSphereVirtualMachine_moveToFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_staticMAC(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1264,6 +1406,7 @@ func TestAccResourceVSphereVirtualMachine_staticMAC(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_singleTag(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1285,6 +1428,7 @@ func TestAccResourceVSphereVirtualMachine_singleTag(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_multipleTags(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1306,6 +1450,7 @@ func TestAccResourceVSphereVirtualMachine_multipleTags(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_switchTags(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1336,6 +1481,7 @@ func TestAccResourceVSphereVirtualMachine_switchTags(t *testing.T) {
 func TestAccResourceVSphereVirtualMachine_renamedDiskInPlaceOfExisting(t *testing.T) {
 	var state *terraform.State
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1386,6 +1532,7 @@ func TestAccResourceVSphereVirtualMachine_renamedDiskInPlaceOfExisting(t *testin
 }
 
 func TestAccResourceVSphereVirtualMachine_blockComputedDiskName(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1410,6 +1557,7 @@ func TestAccResourceVSphereVirtualMachine_blockComputedDiskName(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_blockVAppSettingsOnNonClones(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1428,6 +1576,7 @@ func TestAccResourceVSphereVirtualMachine_blockVAppSettingsOnNonClones(t *testin
 }
 
 func TestAccResourceVSphereVirtualMachine_blockVAppSettingsOnNonClonesAfterCreation(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1458,6 +1607,7 @@ func TestAccResourceVSphereVirtualMachine_blockVAppSettingsOnNonClonesAfterCreat
 }
 
 func TestAccResourceVSphereVirtualMachine_blockDiskLabelStartingWithOrphanedPrefix(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1477,6 +1627,7 @@ func TestAccResourceVSphereVirtualMachine_blockDiskLabelStartingWithOrphanedPref
 }
 
 func TestAccResourceVSphereVirtualMachine_createIntoEmptyClusterNoEnvironmentBrowser(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1488,13 +1639,14 @@ func TestAccResourceVSphereVirtualMachine_createIntoEmptyClusterNoEnvironmentBro
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigBasicEmptyCluster(),
-				ExpectError: regexp.MustCompile("compute resource .* is missing an Environment Browser\\. Check host, cluster, and vSphere license health of all associated resources and try again"),
+				ExpectError: regexp.MustCompile(`compute resource .* is missing an Environment Browser\. Check host, cluster, and vSphere license health of all associated resources and try again`),
 			},
 		},
 	})
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneFromTemplate(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1515,6 +1667,7 @@ func TestAccResourceVSphereVirtualMachine_cloneFromTemplate(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_clonePoweredOn(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1535,6 +1688,7 @@ func TestAccResourceVSphereVirtualMachine_clonePoweredOn(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneCustomizeWithNewResourcePool(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1557,6 +1711,7 @@ func TestAccResourceVSphereVirtualMachine_cloneCustomizeWithNewResourcePool(t *t
 func TestAccResourceVSphereVirtualMachine_cloneCustomizeForceNewWithDatastore(t *testing.T) {
 	var state *terraform.State
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1608,6 +1763,7 @@ func TestAccResourceVSphereVirtualMachine_cloneCustomizeForceNewWithDatastore(t 
 func TestAccResourceVSphereVirtualMachine_cloneModifyDiskAndSCSITypeAtSameTime(t *testing.T) {
 	var state *terraform.State
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1646,8 +1802,8 @@ func TestAccResourceVSphereVirtualMachine_cloneModifyDiskAndSCSITypeAtSameTime(t
 func TestAccResourceVSphereVirtualMachine_cloneMultiNICWithSameGateway(t *testing.T) {
 	// This test is intentionally disabled by default.
 	// Requires a Windows virtual machine template to run this test.
-	t.Skip()
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1668,6 +1824,7 @@ func TestAccResourceVSphereVirtualMachine_cloneMultiNICWithSameGateway(t *testin
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneMultiNICFromSingleNICTemplate(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1688,6 +1845,7 @@ func TestAccResourceVSphereVirtualMachine_cloneMultiNICFromSingleNICTemplate(t *
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneMultiNICSRIOVFromVMXNET3Template(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1708,6 +1866,7 @@ func TestAccResourceVSphereVirtualMachine_cloneMultiNICSRIOVFromVMXNET3Template(
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneWithDifferentTimezone(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1728,6 +1887,7 @@ func TestAccResourceVSphereVirtualMachine_cloneWithDifferentTimezone(t *testing.
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneBlockESXi(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1752,6 +1912,7 @@ func TestAccResourceVSphereVirtualMachine_cloneBlockESXi(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneWithBadTimezone(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1794,6 +1955,7 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadTimezone(t *testing.T) {
 //}
 
 func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithLinkedClone(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1813,6 +1975,7 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithLinkedClone(t *tes
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithoutLinkedClone(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1832,6 +1995,7 @@ func TestAccResourceVSphereVirtualMachine_cloneWithBadSizeWithoutLinkedClone(t *
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneIntoEmptyCluster(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -1845,14 +2009,14 @@ func TestAccResourceVSphereVirtualMachine_cloneIntoEmptyCluster(t *testing.T) {
 			},
 			{
 				Config:      testAccResourceVSphereVirtualMachineConfigCloneEmptyCluster(),
-				ExpectError: regexp.MustCompile("compute resource .* is missing an Environment Browser\\. Check host, cluster, and vSphere license health of all associated resources and try again"),
-				//PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`compute resource .* is missing an Environment Browser\. Check host, cluster, and vSphere license health of all associated resources and try again`),
 			},
 		},
 	})
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneWithDifferentHostname(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1873,6 +2037,7 @@ func TestAccResourceVSphereVirtualMachine_cloneWithDifferentHostname(t *testing.
 	})
 }
 func TestAccResourceVSphereVirtualMachine_cloneWithDiskTypeChange(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1894,6 +2059,7 @@ func TestAccResourceVSphereVirtualMachine_cloneWithDiskTypeChange(t *testing.T) 
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneOnDsCuster(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1915,6 +2081,7 @@ func TestAccResourceVSphereVirtualMachine_cloneOnDsCuster(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_cpuHotAdd(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1946,6 +2113,7 @@ func TestAccResourceVSphereVirtualMachine_cpuHotAdd(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_memoryHotAdd(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1977,6 +2145,7 @@ func TestAccResourceVSphereVirtualMachine_memoryHotAdd(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_dualStackIPv4AndIPv6(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1998,6 +2167,7 @@ func TestAccResourceVSphereVirtualMachine_dualStackIPv4AndIPv6(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_hostCheck(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2026,6 +2196,7 @@ func TestAccResourceVSphereVirtualMachine_hostCheck(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_hostVMotion(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2054,6 +2225,7 @@ func TestAccResourceVSphereVirtualMachine_hostVMotion(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_resourcePoolVMotion(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2082,6 +2254,7 @@ func TestAccResourceVSphereVirtualMachine_resourcePoolVMotion(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_storageVMotionGlobalSetting(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2118,6 +2291,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionGlobalSetting(t *testing
 }
 
 func TestAccResourceVSphereVirtualMachine_storageVMotionSingleDisk(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2153,6 +2327,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionSingleDisk(t *testing.T)
 }
 
 func TestAccResourceVSphereVirtualMachine_storageVMotionPinDatastore(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2166,7 +2341,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionPinDatastore(t *testing.
 				Config: testAccResourceVSphereVirtualMachineConfigBase(),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionPinDatastore("vsphere_nas_datastore.ds1.id"),
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionPinDatastore("data.vsphere_datastore.rootds1.id"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceVSphereVirtualMachineCheckExists(true),
 					testAccResourceVSphereVirtualMachineCheckVmxDatastore(testhelper.NfsDsName2),
@@ -2188,6 +2363,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionPinDatastore(t *testing.
 }
 
 func TestAccResourceVSphereVirtualMachine_storageVMotionRenamedVirtualMachine(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2231,6 +2407,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionRenamedVirtualMachine(t 
 func TestAccResourceVSphereVirtualMachine_storageVMotionLinkedClones(t *testing.T) {
 	var state *terraform.State
 
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2252,7 +2429,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionLinkedClones(t *testing.
 				),
 			},
 			{
-				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionLinkedClone("vsphere_nas_datastore.ds1.id"),
+				Config: testAccResourceVSphereVirtualMachineConfigStorageVMotionLinkedClone("data.vsphere_datastore.rootds1.id"),
 				Check: resource.ComposeTestCheckFunc(
 					copyStatePtr(&state),
 					testAccResourceVSphereVirtualMachineCheckExists(true),
@@ -2270,6 +2447,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionLinkedClones(t *testing.
 }
 
 func TestAccResourceVSphereVirtualMachine_storageVMotionBlockExternallyAttachedDisks(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2301,6 +2479,7 @@ func TestAccResourceVSphereVirtualMachine_storageVMotionBlockExternallyAttachedD
 }
 
 func TestAccResourceVSphereVirtualMachine_singleCustomAttribute(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2322,6 +2501,7 @@ func TestAccResourceVSphereVirtualMachine_singleCustomAttribute(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_multiCustomAttribute(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2343,6 +2523,7 @@ func TestAccResourceVSphereVirtualMachine_multiCustomAttribute(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_switchCustomAttribute(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2371,6 +2552,7 @@ func TestAccResourceVSphereVirtualMachine_switchCustomAttribute(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_multipleDisksAtDifferentSCSISlotsImport(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2412,6 +2594,7 @@ func TestAccResourceVSphereVirtualMachine_multipleDisksAtDifferentSCSISlotsImpor
 }
 
 func TestAccResourceVSphereVirtualMachine_cloneImport(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2494,6 +2677,7 @@ func TestAccResourceVSphereVirtualMachine_cloneImport(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_interpolatedDisk(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2518,6 +2702,7 @@ func TestAccResourceVSphereVirtualMachine_interpolatedDisk(t *testing.T) {
 
 func TestAccResourceVSphereVirtualMachine_deployOvfFromUrl(t *testing.T) {
 	vmName := "terraform_test_vm_" + acctest.RandStringFromCharSet(4, acctest.CharSetAlphaNum)
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2540,6 +2725,7 @@ func TestAccResourceVSphereVirtualMachine_deployOvfFromUrl(t *testing.T) {
 
 func TestAccResourceVSphereVirtualMachine_deployOvaFromUrl(t *testing.T) {
 	vmName := "terraform_test_vm_" + acctest.RandStringFromCharSet(4, acctest.CharSetAlphaNum)
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -2564,6 +2750,7 @@ func TestAccResourceVSphereVirtualMachine_deployOvaFromUrl(t *testing.T) {
 
 func TestAccResourceVSphereVirtualMachine_cloneWithCustomizationSpec(t *testing.T) {
 	goscName := acctest.RandomWithPrefix("gosc")
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2584,6 +2771,7 @@ func TestAccResourceVSphereVirtualMachine_cloneWithCustomizationSpec(t *testing.
 }
 
 func TestAccResourceVSphereVirtualMachine_SRIOV(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2605,6 +2793,7 @@ func TestAccResourceVSphereVirtualMachine_SRIOV(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_createMemoryReservationLockedToMax(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -2627,6 +2816,7 @@ func TestAccResourceVSphereVirtualMachine_createMemoryReservationLockedToMax(t *
 
 func TestAccResourceVSphereVirtualMachine_deployOvfFromUrlMultipleVmsSameName(t *testing.T) {
 	ovfNameTpl := "terraform_test_vm_" + acctest.RandStringFromCharSet(4, acctest.CharSetAlphaNum)
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -2653,6 +2843,7 @@ func TestAccResourceVSphereVirtualMachine_deployOvfFromUrlMultipleVmsSameName(t 
 }
 
 func TestAccResourceVSphereVirtualMachine_nvmeController(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -3090,10 +3281,10 @@ func testAccResourceVSphereVirtualMachineCheckTags(tagResName string) resource.T
 
 // testAccResourceVSphereVirtualMachineCheckMultiDevice is a check for proper
 // parameters on the vsphere_virtual_machine multi-device test. This is a very
-// specific check that checks for the specific disk and network devices. The
+// specific check that checks for the specific disk devices. The
 // configuration that this test asserts should be in the
 // testAccResourceVSphereVirtualMachineConfigMultiDevice resource.
-func testAccResourceVSphereVirtualMachineCheckMultiDevice(expectedD, expectedN []bool) resource.TestCheckFunc {
+func testAccResourceVSphereVirtualMachineCheckMultiDevice(expectedD []bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		props, err := testGetVirtualMachineProperties(s, "vm")
 		if err != nil {
@@ -3101,13 +3292,9 @@ func testAccResourceVSphereVirtualMachineCheckMultiDevice(expectedD, expectedN [
 		}
 
 		actualD := make([]bool, 3)
-		actualN := make([]bool, 3)
-		expectedDisk0Size := structure.GiBToByte(20)
-		expectedDisk1Size := structure.GiBToByte(10)
-		expectedDisk2Size := structure.GiBToByte(5)
-		expectedNet0Level := types.SharesLevelNormal
-		expectedNet1Level := types.SharesLevelHigh
-		expectedNet2Level := types.SharesLevelLow
+		expectedDisk0Size := structure.GiBToByte(1)
+		expectedDisk1Size := structure.GiBToByte(2)
+		expectedDisk2Size := structure.GiBToByte(3)
 
 		for _, dev := range props.Config.Hardware.Device {
 			if disk, ok := dev.(*types.VirtualDisk); ok {
@@ -3120,27 +3307,11 @@ func testAccResourceVSphereVirtualMachineCheckMultiDevice(expectedD, expectedN [
 					actualD[2] = true
 				}
 			}
-			if bvec, ok := dev.(types.BaseVirtualEthernetCard); ok {
-				card := bvec.GetVirtualEthernetCard()
-				switch card.ResourceAllocation.Share.Level {
-				case expectedNet0Level:
-					actualN[0] = true
-				case expectedNet1Level:
-					actualN[1] = true
-				case expectedNet2Level:
-					actualN[2] = true
-				}
-			}
 		}
 
 		for n, actual := range actualD {
 			if actual != expectedD[n] {
 				return fmt.Errorf("expected disk at index %d to be %t, got %t", n, expectedD[n], actual)
-			}
-		}
-		for n, actual := range actualN {
-			if actual != expectedN[n] {
-				return fmt.Errorf("expected network interface at index %d to be %t, got %t", n, expectedN[n], actual)
 			}
 		}
 
@@ -3243,10 +3414,10 @@ func testAccResourceVSphereVirtualMachinePersistentDiskInfo(disks *[]map[string]
 // the disks will also be deleted. If the folder is not empty, all remaining
 // files will be deleted.
 func testAccResourceVSphereVirtualMachineDeletePersistentDisks(disks *[]map[string]string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
+	return func(_ *terraform.State) error {
 		client := testAccProvider.Meta().(*Client).vimClient
-		reFlat := regexp.MustCompile("\\.vmdk$")
-		reVM := regexp.MustCompile("\\/.*?\\.vmdk$")
+		reFlat := regexp.MustCompile(`\.vmdk$`)
+		reVM := regexp.MustCompile(`/.*?\.vmdk$`)
 		var vmFolder string
 		var dsID string
 		for _, disk := range *disks {
@@ -3479,8 +3650,8 @@ func testAccResourceVSphereVirtualMachineCheckVmdkDatastore(diskIndex int, expec
 		for _, dev := range props.Config.Hardware.Device {
 			if disk, ok := dev.(*types.VirtualDisk); ok {
 				if info, ok := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo); ok {
-					currentDiskUuid := info.Uuid
-					if currentDiskUuid == uuidToLookFor {
+					currentDiskUUID := info.Uuid
+					if currentDiskUUID == uuidToLookFor {
 						var dsPath object.DatastorePath
 						if ok := dsPath.FromString(info.FileName); !ok {
 							return fmt.Errorf("could not parse datastore path %q", info.FileName)
@@ -3627,13 +3798,38 @@ func testAccResourceVSphereVirtualMachineCheckLatencySensitivity(
 	}
 }
 
+func testAccResourceVSphereVirtualMachineVtpm(
+	resourceName string,
+	expected bool,
+) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		props, err := testGetVirtualMachineProperties(s, resourceName)
+		if err != nil {
+			return err
+		}
+
+		found := false
+		for _, device := range props.Config.Hardware.Device {
+			if _, ok := device.(*types.VirtualTPM); ok {
+				found = true
+				break
+			}
+		}
+
+		if found == expected {
+			return nil
+		}
+
+		return fmt.Errorf("expected device to be present in state: %v, got %v", expected, found)
+	}
+}
+
 func testAccResourceVSphereVirtualMachineConfigBase() string {
 	return testhelper.CombineConfigs(
 		testhelper.ConfigDataRootDC1(),
 		testhelper.ConfigDataRootHost1(),
 		testhelper.ConfigDataRootHost2(),
 		testhelper.ConfigDataRootDS1(),
-		testhelper.ConfigResDS1(),
 		testhelper.ConfigDataRootComputeCluster1(),
 		testhelper.ConfigResResourcePool1(),
 		testhelper.ConfigDataRootPortGroup1())
@@ -3647,20 +3843,22 @@ func testAccResourceVSphereVirtualMachineConfigComputedValue() string {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = "${vsphere_nas_datastore.ds1.id}"
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
   guest_id = "other3xLinuxGuest"
+  firmware = "efi"
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
+    io_reservation = 1
   }
 }
 `,
@@ -3672,56 +3870,71 @@ resource "vsphere_virtual_machine" "vm" {
 func testAccResourceVSphereVirtualMachineConfigHardwareVersionClone(hw int) string {
 	return fmt.Sprintf(`
 
-
 %s  // Mix and match config
-
-data "vsphere_virtual_machine" "template" {
-  name          = "%s"
-  datacenter_id = data.vsphere_datacenter.rootdc1.id
-}
 
 variable "linked_clone" {
   default = "%s"
 }
 
-resource "vsphere_virtual_machine" "vm" {
-  name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+resource "vsphere_virtual_machine" "template" {
+  name             = "testacc-test-template"
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus         = 2
   memory           = 2048
-  guest_id         = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id         = "other3xLinuxGuest"
   hardware_version = %d
+  firmware         = "efi"
 
-  wait_for_guest_net_timeout = -1
+  wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size             = 1
+    io_reservation   = 1
+  }
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "testacc-test"
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+
+  num_cpus         = 2
+  memory           = 2048
+  guest_id         = vsphere_virtual_machine.template.guest_id
+  hardware_version = %d
+  firmware         = "efi"
+
+  wait_for_guest_net_timeout = 0
+
+  network_interface {
+    network_id = data.vsphere_network.network1.id
+  }
+
+  disk {
+    label            = "disk0"
+    size             = vsphere_virtual_machine.template.disk.0.size
+    io_reservation   = 1
+    eagerly_scrub    = vsphere_virtual_machine.template.disk.0.eagerly_scrub
+    thin_provisioned = vsphere_virtual_machine.template.disk.0.thin_provisioned
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
-    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
-  }
-
-  cdrom {
-    client_device = true
+    template_uuid = vsphere_virtual_machine.template.id
+    linked_clone  = var.linked_clone != "" ? "true" : "false"
   }
 }
 `,
 
 		testAccResourceVSphereVirtualMachineConfigBase(),
-		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 		os.Getenv("TF_VAR_VSPHERE_USE_LINKED_CLONE"),
+		hw,
 		hw,
 	)
 }
@@ -3734,29 +3947,159 @@ func testAccResourceVSphereVirtualMachineConfigBareHardwareVersion(hw int) strin
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus         = 2
   memory           = 2048
   guest_id         = "other3xLinuxGuest"
   hardware_version = %d
+  firmware         = "efi"
 
-  wait_for_guest_net_timeout = -1
+  wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
+    io_reservation = 1
   }
 }
 `,
 
 		testAccResourceVSphereVirtualMachineConfigBase(),
 		hw,
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigVtpm() string {
+	return fmt.Sprintf(`
+
+%s  // Mix and match config
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "testacc-test"
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+
+  num_cpus         = 2
+  memory           = 2048
+  guest_id         = "other3xLinuxGuest"
+  firmware         = "efi"
+
+  wait_for_guest_net_timeout = 0
+
+  network_interface {
+    network_id = data.vsphere_network.network1.id
+  }
+
+  disk {
+    label = "disk0"
+    size  = 1
+    io_reservation = 1
+  }
+
+  vtpm {
+    version = "2.0"
+  }
+}
+`,
+
+		testAccResourceVSphereVirtualMachineConfigBase(),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigVtpmClone() string {
+	return fmt.Sprintf(`
+
+%s  // Mix and match config
+
+resource "vsphere_virtual_machine" "srcvm" {
+  name             = "testacc-test-template"
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+
+  num_cpus         = 2
+  memory           = 2048
+  guest_id         = "other3xLinuxGuest"
+  firmware         = "efi"
+
+  wait_for_guest_net_timeout = 0
+
+  network_interface {
+    network_id = data.vsphere_network.network1.id
+  }
+
+  disk {
+    label = "disk0"
+    size  = 1
+    io_reservation = 1
+  }
+}
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "testacc-test"
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+
+  num_cpus         = 2
+  memory           = 2048
+  guest_id         = "other3xLinuxGuest"
+  firmware         = "efi"
+
+  wait_for_guest_net_timeout = 0
+
+  network_interface {
+    network_id = data.vsphere_network.network1.id
+  }
+
+  disk {
+    label = "disk0"
+    size  = 1
+    io_reservation = 1
+  }
+
+  clone {
+    template_uuid = vsphere_virtual_machine.srcvm.id
+  }
+
+  vtpm {
+    version = "2.0"
+  }
+}
+
+resource "vsphere_virtual_machine" "vm2" {
+  name             = "testacc-test-2"
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+
+  num_cpus         = 2
+  memory           = 2048
+  guest_id         = "other3xLinuxGuest"
+  firmware         = "efi"
+
+  wait_for_guest_net_timeout = 0
+
+  network_interface {
+    network_id = data.vsphere_network.network1.id
+  }
+
+  disk {
+    label = "disk0"
+    size  = 1
+    io_reservation = 1
+  }
+
+  clone {
+    template_uuid = vsphere_virtual_machine.vm.id
+  }
+}
+`,
+
+		testAccResourceVSphereVirtualMachineConfigBase(),
 	)
 }
 
@@ -3769,12 +4112,12 @@ func testAccResourceVSphereVirtualMachineConfigNvme() string {
 	 resource_pool_id = vsphere_resource_pool.pool1.id
 	 datastore_id     = data.vsphere_datastore.rootds1.id
 
-	 num_cpus = 1
-	 memory   = 512
+	 num_cpus                   = 1
+	 memory                     = 512
 	 // NVMe controllers are not supported on other3xLinuxGuest
-	 guest_id = "sles16_64Guest"
-	 firmware                = "efi"
-	 enable_disk_uuid = true
+	 guest_id                   = "sles16_64Guest"
+	 firmware                   = "efi"
+	 enable_disk_uuid           = true
 	 wait_for_guest_net_timeout = 0
 
 	 nvme_controller_count = 2
@@ -3784,10 +4127,10 @@ func testAccResourceVSphereVirtualMachineConfigNvme() string {
 	 }
 
 	 disk {
-	   label = "disk0"
-	   size  = 1
-	   io_reservation = 1
-	   unit_number = 0
+	   label           = "disk0"
+	   size            = 1
+	   io_reservation  = 1
+	   unit_number     = 0
 	   controller_type = "nvme"
 	 }
 	}
@@ -3804,11 +4147,12 @@ func testAccResourceVSphereVirtualMachineConfigBasic() string {
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
   resource_pool_id = vsphere_resource_pool.pool1.id
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
   guest_id = "other3xLinuxGuest"
+  firmware = "efi"
 
   wait_for_guest_net_timeout = 0
 
@@ -3818,7 +4162,50 @@ resource "vsphere_virtual_machine" "vm" {
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
+    io_reservation = 1
+  }
+}
+`,
+
+		testAccResourceVSphereVirtualMachineConfigBase(),
+	)
+}
+
+func testAccResourceVSphereVirtualMachineConfigFromSparseVmdk() string {
+	return fmt.Sprintf(`
+
+
+%s  // Mix and match config
+
+resource "vsphere_virtual_machine" "vm" {
+  name             = "testacc-test"
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+
+  num_cpus = 2
+  memory   = 2048
+  guest_id = "other3xLinuxGuest"
+  firmware = "efi"
+
+  wait_for_guest_net_timeout = 0
+
+  cdrom {
+    client_device = true
+  }
+
+  network_interface {
+    network_id = data.vsphere_network.network1.id
+  }
+
+  disk {
+    label = "disk0"
+    attach = true
+    datastore_id = data.vsphere_datastore.rootds1.id
+    path = "[acc-test-nfs] sparsedisks/sparse2.vmdk"
+    controller_type = "ide"
+    unit_number     = 1
+    io_reservation = 1
   }
 }
 `,
@@ -3835,23 +4222,25 @@ func testAccResourceVSphereVirtualMachineConfigSharedSCSIBus() string {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus                   = 2
   memory                     = 2048
   guest_id                   = "other3xLinuxGuest"
-  wait_for_guest_net_timeout = -1
+  wait_for_guest_net_timeout = 0
+  firmware                   = "efi"
 
   scsi_bus_sharing = "physicalSharing"
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
+    io_reservation = 1
   }
 }
 `,
@@ -3877,16 +4266,16 @@ variable "linked_clone" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   wait_for_guest_net_timeout = -1
@@ -3894,9 +4283,9 @@ resource "vsphere_virtual_machine" "vm" {
   disk {
     label            = "disk0"
     unit_number      = 0
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size             = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub    = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   disk {
@@ -3916,8 +4305,8 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
-    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+    template_uuid = data.vsphere_virtual_machine.template.id
+    linked_clone  = var.linked_clone != "" ? "true" : "false"
   }
 
   cdrom {
@@ -3943,20 +4332,20 @@ data "vsphere_resource_pool" "pool" {}
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
   guest_id = "other3xLinuxGuest"
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 }
 `,
@@ -3973,45 +4362,38 @@ func testAccResourceVSphereVirtualMachineConfigMultiDevice() string {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
   guest_id = "other3xLinuxGuest"
+  firmware = "efi"
 
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id            = "${data.vsphere_network.network1.id}"
-    bandwidth_share_level = "normal"
-  }
-
-  network_interface {
-    network_id            = "${data.vsphere_network.network1.id}"
-    bandwidth_share_level = "high"
-  }
-
-  network_interface {
-    network_id            = "${data.vsphere_network.network1.id}"
-    bandwidth_share_level = "low"
+    network_id            = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
+    io_reservation = 1
   }
 
   disk {
     label       = "disk1"
     unit_number = 1
-    size        = 10
+    size        = 2
+    io_reservation = 1
   }
 
   disk {
     label       = "disk2"
     unit_number = 2
-    size        = 5
+    size        = 3
+    io_reservation = 1
   }
 }
 `,
@@ -4028,8 +4410,8 @@ func testAccResourceVSphereVirtualMachineConfigMultiHighBusInsufficientBus() str
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   scsi_controller_count = 1
 
@@ -4038,23 +4420,23 @@ resource "vsphere_virtual_machine" "vm" {
   guest_id = "other3xLinuxGuest"
 
   network_interface {
-    network_id            = "${data.vsphere_network.network1.id}"
+    network_id            = data.vsphere_network.network1.id
     bandwidth_share_level = "normal"
   }
 
   network_interface {
-    network_id            = "${data.vsphere_network.network1.id}"
+    network_id            = data.vsphere_network.network1.id
     bandwidth_share_level = "high"
   }
 
   network_interface {
-    network_id            = "${data.vsphere_network.network1.id}"
+    network_id            = data.vsphere_network.network1.id
     bandwidth_share_level = "low"
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 
   disk {
@@ -4083,8 +4465,8 @@ func testAccResourceVSphereVirtualMachineConfigMultiHighBus() string {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   scsi_controller_count = 3
 
@@ -4095,53 +4477,48 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id            = "${data.vsphere_network.network1.id}"
-    bandwidth_share_level = "normal"
-  }
-
-  network_interface {
-    network_id            = "${data.vsphere_network.network1.id}"
-    bandwidth_share_level = "high"
-  }
-
-  network_interface {
-    network_id            = "${data.vsphere_network.network1.id}"
-    bandwidth_share_level = "low"
+    network_id            = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
+    io_reservation = 1
   }
 
   disk {
     label       = "disk1"
     unit_number = 1
-    size        = 10
+    size        = 2
+    io_reservation = 1
   }
 
   disk {
     label       = "disk2"
     unit_number = 15
-    size        = 5
+    size        = 3
+    io_reservation = 1
   }
 
   disk {
     label       = "disk3"
     unit_number = 16
     size        = 5
+    io_reservation = 1
   }
 
   disk {
     label       = "disk4"
     unit_number = 30
     size        = 5
+    io_reservation = 1
   }
 
   disk {
     label       = "disk5"
     unit_number = 31
     size        = 5
+    io_reservation = 1
   }
 }
 `,
@@ -4158,34 +4535,31 @@ func testAccResourceVSphereVirtualMachineConfigRemoveMiddle() string {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
   guest_id = "other3xLinuxGuest"
+  firmware = "efi"
 
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id            = "${data.vsphere_network.network1.id}"
-    bandwidth_share_level = "normal"
-  }
-
-  network_interface {
-    network_id            = "${data.vsphere_network.network1.id}"
-    bandwidth_share_level = "low"
+    network_id            = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
+    io_reservation = 1
   }
 
   disk {
     label       = "disk2"
     unit_number = 2
-    size        = 5
+    size        = 3
+    io_reservation = 1
   }
 }
 `,
@@ -4202,34 +4576,30 @@ func testAccResourceVSphereVirtualMachineConfigRemoveMiddleChangeUnit() string {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
   guest_id = "other3xLinuxGuest"
+  firmware = "efi"
 
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id            = "${data.vsphere_network.network1.id}"
-    bandwidth_share_level = "normal"
+    network_id            = data.vsphere_network.network1.id
   }
-
-  network_interface {
-    network_id            = "${data.vsphere_network.network1.id}"
-    bandwidth_share_level = "low"
-  }
-
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
+    io_reservation = 1
   }
 
   disk {
     label       = "disk2"
     unit_number = 1
-    size        = 5
+    size        = 3
+    io_reservation = 1
   }
 }
 `,
@@ -4255,36 +4625,36 @@ variable "linked_clone" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
 
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size             = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub    = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   vapp {
     properties = {
-      hostname  = "custom-hostname"
+      hostname = "custom-hostname"
     }
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
-    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+    template_uuid = data.vsphere_virtual_machine.template.id
+    linked_clone  = var.linked_clone != "" ? "true" : "false"
   }
 }
 `,
@@ -4312,25 +4682,25 @@ variable "linked_clone" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
 
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size             = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub    = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   cdrom {
@@ -4339,13 +4709,13 @@ resource "vsphere_virtual_machine" "vm" {
 
   vapp {
     properties = {
-      hostname  = "custom-hostname"
+      hostname = "custom-hostname"
     }
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
-    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+    template_uuid = data.vsphere_virtual_machine.template.id
+    linked_clone  = var.linked_clone != "" ? "true" : "false"
   }
 }
 `,
@@ -4373,25 +4743,25 @@ variable "linked_clone" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
 
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size             = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub    = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   cdrom {
@@ -4418,8 +4788,8 @@ func testAccResourceVSphereVirtualMachineConfigClientCdrom() string {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -4428,12 +4798,12 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 
   cdrom {
@@ -4454,8 +4824,8 @@ func testAccResourceVSphereVirtualMachineConfigNoCdromParameters() string {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -4464,12 +4834,12 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 
   cdrom {}
@@ -4495,14 +4865,14 @@ variable "iso_path" {
 }
 
 data "vsphere_datastore" "iso_datastore" {
-  name          = "${var.iso_datastore}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  name          = var.iso_datastore
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -4511,71 +4881,17 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 
   cdrom {
-    datastore_id  = "${data.vsphere_datastore.iso_datastore.id}"
-    path          = "${var.iso_path}"
-  }
-}
-`,
-
-		testAccResourceVSphereVirtualMachineConfigBase(),
-		testAccResourceVSphereVirtualMachineIsoDatastore,
-		testAccResourceVSphereVirtualMachineIsoFile,
-	)
-}
-
-func testAccResourceVSphereVirtualMachineConfigBasicCdromIsoAndClientCdrom() string {
-	return fmt.Sprintf(`
-
-
-%s  // Mix and match config
-
-variable "iso_datastore" {
-  default = "%s"
-}
-
-variable "iso_path" {
-  default = "%s"
-}
-
-data "vsphere_datastore" "iso_datastore" {
-  name          = "${var.iso_datastore}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-}
-
-resource "vsphere_virtual_machine" "vm" {
-  name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
-
-  num_cpus = 2
-  memory   = 2048
-  guest_id = "otherLinux64Guest"
-
-  wait_for_guest_net_timeout = -1
-
-  network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
-  }
-
-  disk {
-    label = "disk0"
-    size  = 20
-  }
-  cdrom {
-    datastore_id  = "${data.vsphere_datastore.iso_datastore.id}"
-    path          = "${var.iso_path}"
-  }
-  cdrom {
-    client_device = true
+    datastore_id = data.vsphere_datastore.iso_datastore.id
+    path         = var.iso_path
   }
 }
 `,
@@ -4601,14 +4917,14 @@ variable "iso_path" {
 }
 
 data "vsphere_datastore" "iso_datastore" {
-  name          = "${var.iso_datastore}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  name          = var.iso_datastore
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -4617,17 +4933,17 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 
   cdrom {
-    datastore_id  = "${data.vsphere_datastore.iso_datastore.id}"
-    path          = "${var.iso_path}"
+    datastore_id  = data.vsphere_datastore.iso_datastore.id
+    path          = var.iso_path
     client_device = true
   }
 }
@@ -4647,8 +4963,8 @@ func testAccResourceVSphereVirtualMachineConfigBeefy() string {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 4
   memory   = 8192
@@ -4657,12 +4973,12 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 }
 `,
@@ -4679,8 +4995,8 @@ func testAccResourceVSphereVirtualMachineConfigMaxNIC() string {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -4689,55 +5005,49 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
-  }
-
-  lifecycle {
-    ignore_changes = [
-      ept_rvi_mode,
-      hv_mode
-    ]
+    size  = 1
+    io_reservation = 1
   }
 }
 `,
@@ -4758,21 +5068,21 @@ variable "annotation" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus   = 2
   memory     = 2048
   guest_id   = "other3xLinuxGuest"
-  annotation = "${var.annotation}"
+  annotation = var.annotation
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 }
 `,
@@ -4790,8 +5100,8 @@ func testAccResourceVSphereVirtualMachineConfigGrowDisk(size int) string {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -4800,7 +5110,7 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
@@ -4823,8 +5133,8 @@ func testAccResourceVSphereVirtualMachineConfigLsiLogicSAS() string {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -4835,12 +5145,12 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 }
 `,
@@ -4857,8 +5167,8 @@ func testAccResourceVSphereVirtualMachineConfigExtraConfig(k, v string) string {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -4872,12 +5182,12 @@ resource "vsphere_virtual_machine" "vm" {
   extra_config_reboot_required = false
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 }
 `,
@@ -4899,7 +5209,7 @@ variable "extra_vmdk_name" {
 
 resource "vsphere_virtual_disk" "disk" {
   size         = 1
-  vmdk_path    = "${var.extra_vmdk_name}"
+  vmdk_path    = var.extra_vmdk_name
   datacenter   = data.vsphere_datacenter.rootdc1.name
   datastore    = data.vsphere_datastore.rootds1.name
   type         = "thin"
@@ -4908,8 +5218,8 @@ resource "vsphere_virtual_disk" "disk" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -4918,18 +5228,18 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 
   disk {
     label        = "disk1"
     datastore_id = data.vsphere_datastore.rootds1.id
-    path         = "${vsphere_virtual_disk.disk.vmdk_path}"
+    path         = vsphere_virtual_disk.disk.vmdk_path
     disk_mode    = "independent_persistent"
     attach       = true
     unit_number  = 1
@@ -4951,28 +5261,30 @@ func testAccResourceVSphereVirtualMachineConfigInFolder() string {
 resource "vsphere_folder" "folder" {
   path          = "terraform-test-vms"
   type          = "vm"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
-  folder           = "${vsphere_folder.folder.path}"
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+  folder           = vsphere_folder.folder.path
 
   num_cpus = 2
   memory   = 2048
   guest_id = "other3xLinuxGuest"
+  firmware = "efi"
 
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
+    io_reservation = 1
   }
 }
 `,
@@ -4990,20 +5302,20 @@ func testAccResourceVSphereVirtualMachineConfigInVAppContainer() string {
 resource "vsphere_folder" "folder" {
   path          = "terraform-test-vms"
   type          = "vm"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_vapp_container" "vapp-container" {
   name = "terraform-vapp-test"
 
-  parent_resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  parent_folder_id        = "${vsphere_folder.folder.id}"
+  parent_resource_pool_id = vsphere_resource_pool.pool1.id
+  parent_folder_id        = vsphere_folder.folder.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_vapp_container.vapp-container.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_vapp_container.vapp-container.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus                   = 2
   memory                     = 2048
@@ -5011,12 +5323,12 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 }
 `,
@@ -5033,20 +5345,20 @@ func testAccResourceVSphereVirtualMachineConfigNewResourcePool() string {
 
 resource "vsphere_resource_pool" "pool" {
   name                    = "terraform-test-new-resource-pool"
-  parent_resource_pool_id = "${vsphere_resource_pool.pool1.id}"
+  parent_resource_pool_id = vsphere_resource_pool.pool1.id
 }
 
 resource "vsphere_folder" "folder" {
   path          = "terraform-test-vms"
   type          = "vm"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
-  folder           = "${vsphere_folder.folder.path}"
+  resource_pool_id = vsphere_resource_pool.pool.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+  folder           = vsphere_folder.folder.path
 
   num_cpus                   = 2
   memory                     = 2048
@@ -5054,12 +5366,12 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 }
 `,
@@ -5077,21 +5389,21 @@ func testAccResourceVSphereVirtualMachineConfigVAppAndFolder() string {
 resource "vsphere_folder" "folder" {
   path          = "terraform-test-vms"
   type          = "vm"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_vapp_container" "vapp-container" {
   name = "terraform-vapp-test"
 
-  parent_resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  parent_folder_id        = "${vsphere_folder.folder.id}"
+  parent_resource_pool_id = vsphere_resource_pool.pool1.id
+  parent_folder_id        = vsphere_folder.folder.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_vapp_container.vapp-container.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
-  folder           = "${vsphere_folder.folder.path}"
+  resource_pool_id = vsphere_vapp_container.vapp-container.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+  folder           = vsphere_folder.folder.path
 
   num_cpus                   = 2
   memory                     = 2048
@@ -5099,12 +5411,12 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 }
 `,
@@ -5121,8 +5433,8 @@ func testAccResourceVSphereVirtualMachineConfigVbsEnabledAndVvtdEnabled() string
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -5137,12 +5449,12 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 }
 `,
@@ -5159,21 +5471,21 @@ func testAccResourceVSphereVirtualMachineConfigOutOfVAppContainer() string {
 resource "vsphere_folder" "folder" {
   path          = "terraform-test-vms"
   type          = "vm"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_vapp_container" "vapp-container" {
   name = "terraform-vapp-test"
 
-  parent_resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  parent_folder_id        = "${vsphere_folder.folder.id}"
+  parent_resource_pool_id = vsphere_resource_pool.pool1.id
+  parent_folder_id        = vsphere_folder.folder.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
-  folder           = "${vsphere_folder.folder.path}"
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+  folder           = vsphere_folder.folder.path
 
   num_cpus                   = 2
   memory                     = 2048
@@ -5181,12 +5493,12 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 }
 `,
@@ -5203,8 +5515,8 @@ func testAccResourceVSphereVirtualMachineConfigStaticMAC() string {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -5213,14 +5525,14 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id     = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
     use_static_mac = true
     mac_address    = "%s"
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 }
 `,
@@ -5247,13 +5559,13 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -5262,16 +5574,16 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 
   tags = [
-    "${vsphere_tag.testacc-tag.id}",
+    vsphere_tag.testacc-tag.id,
   ]
 }
 `,
@@ -5304,19 +5616,19 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_tag" "testacc-tags-alt" {
-  count       = "${length(var.extra_tags)}"
-  name        = "${var.extra_tags[count.index]}"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  count       = length(var.extra_tags)
+  name        = var.extra_tags[count.index]
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -5325,15 +5637,15 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 
-  tags = "${vsphere_tag.testacc-tags-alt.*.id}"
+  tags = vsphere_tag.testacc-tags-alt.*.id
 }
 `,
 
@@ -5351,20 +5663,20 @@ resource "random_pet" "pet" {}
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "terraform-test-${random_pet.pet.id}"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
   guest_id = "other3xLinuxGuest"
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "terraform-test-${random_pet.pet.id}.vmdk"
-    size  = 20
+    size  = 1
   }
 }
 `,
@@ -5381,8 +5693,8 @@ func testAccResourceVSphereVirtualMachineVAppPropertiesNonClone() string {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -5391,12 +5703,12 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 
   vapp {
@@ -5419,20 +5731,20 @@ func testAccResourceVSphereVirtualMachineConfigBadOrphanedLabel() string {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
   guest_id = "other3xLinuxGuest"
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "orphaned_disk_0"
-    size  = 20
+    size  = 1
   }
 }
 `,
@@ -5458,35 +5770,35 @@ variable "linked_clone" {
 
 resource "vsphere_resource_pool" "pool" {
   name                    = "terraform-test-resource-pool"
-  parent_resource_pool_id = "${vsphere_resource_pool.pool1.id}"
+  parent_resource_pool_id = vsphere_resource_pool.pool1.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
 
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   clone {
     template_uuid = data.vsphere_virtual_machine.template.id
-    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+    linked_clone = var.linked_clone != "" ? "true" : "false"
 
 	customize {
       linux_options {
@@ -5526,30 +5838,30 @@ variable "linked_clone" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
 
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
-    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+    template_uuid = data.vsphere_virtual_machine.template.id
+    linked_clone = var.linked_clone != "" ? "true" : "false"
   }
 
   cdrom {
@@ -5581,29 +5893,29 @@ variable "linked_clone" {
 
 resource "vsphere_virtual_machine" "vm_source" {
   name             = "terraform-test1"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus                   = 2
   memory                     = 2048
-  guest_id                   = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id                   = data.vsphere_virtual_machine.template.guest_id
 	wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
-    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+    template_uuid = data.vsphere_virtual_machine.template.id
+    linked_clone = var.linked_clone != "" ? "true" : "false"
   }
 
   cdrom {
@@ -5613,28 +5925,28 @@ resource "vsphere_virtual_machine" "vm_source" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "terraform-test2"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus                   = 2
   memory                     = 2048
-  guest_id                   = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id                   = data.vsphere_virtual_machine.template.guest_id
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   clone {
-    template_uuid = "${vsphere_virtual_machine.vm_source.id}"
+    template_uuid = vsphere_virtual_machine.vm_source.id
     linked_clone  = "false"
   }
 
@@ -5667,27 +5979,27 @@ variable "linked_clone" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
     size             = 999
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    template_uuid = data.vsphere_virtual_machine.template.id
     linked_clone  = true
   }
 
@@ -5720,27 +6032,27 @@ variable "linked_clone" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
     size             = 1
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    template_uuid = data.vsphere_virtual_machine.template.id
   }
 
   cdrom {
@@ -5769,7 +6081,7 @@ data "vsphere_virtual_machine" "template" {
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
   resource_pool_id = vsphere_resource_pool.pool1.id
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 4
   memory   = 4096
@@ -5847,35 +6159,35 @@ variable "linked_clone" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
   // ACPI motherboard layout requires EFI. Only required for hardware version 20+ (vSphere 8)
   firmware = "efi"
 
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
-    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+    template_uuid = data.vsphere_virtual_machine.template.id
+    linked_clone = var.linked_clone != "" ? "true" : "false"
   }
 
   cdrom {
@@ -5903,7 +6215,7 @@ func testAccResourceVSphereVirtualMachineConfigCloneMultiNICVMXNET3() string {
 
 data "vsphere_virtual_machine" "template" {
   name          = "%s"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 variable "host" {
@@ -5911,62 +6223,62 @@ variable "host" {
 }
 
 data "vsphere_host" "host" {
-  name          = "${var.host}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  name          = var.host
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
   resource_pool_id = vsphere_resource_pool.pool1.id
-  datastore_id     = "${data.vsphere_datastore.rootds1.id}"
+  datastore_id     = data.vsphere_datastore.rootds1.id
   // ACPI motherboard layout requires EFI. Only required for hardware version 20+ (vSphere 8)
   firmware = "efi"
 
   num_cpus = 2
   memory   = 2048
   memory_reservation = 2048
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
 
   wait_for_guest_net_timeout = 0
 
   host_system_id   = data.vsphere_host.host.id
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
     adapter_type = "vmxnet3"
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
     adapter_type = "vmxnet3"
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
     adapter_type = "vmxnet3"
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
     adapter_type = "sriov"
     physical_function = "%s"
   }
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
     adapter_type = "sriov"
     physical_function = "%s"
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    template_uuid = data.vsphere_virtual_machine.template.id
   }
 
   lifecycle {
@@ -6006,36 +6318,36 @@ variable "time_zone" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
 
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
-    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+    template_uuid = data.vsphere_virtual_machine.template.id
+    linked_clone = var.linked_clone != "" ? "true" : "false"
 
     customize {
       linux_options {
         host_name = "testacc-test"
         domain    = "test.internal"
-        time_zone = "${var.time_zone}"
+        time_zone = var.time_zone
       }
       network_interface {}
     }
@@ -6071,28 +6383,28 @@ variable "linked_clone" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
-    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+    template_uuid = data.vsphere_virtual_machine.template.id
+    linked_clone = var.linked_clone != "" ? "true" : "false"
 
     customize {
       linux_options {
@@ -6125,7 +6437,7 @@ data "vsphere_network" "network" {
 }
 
 resource "vsphere_virtual_machine" "template" {
-  name          = "vm-1-template"
+  name             = "vm-1-template"
   resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
   datastore_id     = data.vsphere_datastore.rootds1.id
 
@@ -6134,11 +6446,11 @@ resource "vsphere_virtual_machine" "template" {
   guest_id = "other3xLinuxGuest"
 
   network_interface {
-    network_id   = data.vsphere_network.network.id
+    network_id = data.vsphere_network.network.id
   }
 
 
-  wait_for_guest_ip_timeout = 0
+  wait_for_guest_ip_timeout  = 0
   wait_for_guest_net_timeout = 0
 
   disk {
@@ -6146,10 +6458,10 @@ resource "vsphere_virtual_machine" "template" {
     size             = 4
     eagerly_scrub    = false
     thin_provisioned = false
-    }
- lifecycle {
-	ignore_changes = [disk]
-	}
+  }
+  lifecycle {
+    ignore_changes = [disk]
+  }
 }
 
 
@@ -6159,15 +6471,15 @@ resource "vsphere_virtual_machine" "vm" {
   resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
   guest_id         = vsphere_virtual_machine.template.guest_id
   network_interface {
-    network_id   = data.vsphere_network.network.id
+    network_id = data.vsphere_network.network.id
   }
-  datastore_id     = data.vsphere_datastore.rootds1.id
+  datastore_id = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
 
-  scsi_type =vsphere_virtual_machine.template.scsi_type
-  wait_for_guest_ip_timeout = 0
+  scsi_type                  = vsphere_virtual_machine.template.scsi_type
+  wait_for_guest_ip_timeout  = 0
   wait_for_guest_net_timeout = 0
 
   disk {
@@ -6175,19 +6487,19 @@ resource "vsphere_virtual_machine" "vm" {
     size             = vsphere_virtual_machine.template.disk.0.size
     eagerly_scrub    = true
     thin_provisioned = false
-    }
+  }
 
   clone {
     template_uuid = vsphere_virtual_machine.template.id
   }
 }
 
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootComputeCluster1(),
-			testhelper.ConfigDataRootDS1(),
-		),
+
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootComputeCluster1(),
+		testhelper.ConfigDataRootDS1(),
+	),
 	)
 }
 
@@ -6201,7 +6513,7 @@ data "vsphere_network" "network" {
 }
 
 resource "vsphere_virtual_machine" "template" {
-  name          = "vm-1-template"
+  name             = "vm-1-template"
   resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
   datastore_id     = data.vsphere_datastore.rootds1.id
 
@@ -6210,17 +6522,17 @@ resource "vsphere_virtual_machine" "template" {
   guest_id = "other3xLinuxGuest"
 
   network_interface {
-    network_id   = data.vsphere_network.network.id
+    network_id = data.vsphere_network.network.id
   }
 
 
-  wait_for_guest_ip_timeout = 0
+  wait_for_guest_ip_timeout  = 0
   wait_for_guest_net_timeout = 0
 
   disk {
-    label            = "disk0"
-    size             = 4
-    }
+    label = "disk0"
+    size  = 4
+  }
 }
 
 
@@ -6230,34 +6542,34 @@ resource "vsphere_virtual_machine" "vm" {
   resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
   guest_id         = vsphere_virtual_machine.template.guest_id
   network_interface {
-    network_id   = data.vsphere_network.network.id
+    network_id = data.vsphere_network.network.id
   }
-  datastore_cluster_id     = data.vsphere_datastore_cluster.ds_cluster1.id
+  datastore_cluster_id = data.vsphere_datastore_cluster.ds_cluster1.id
 
   num_cpus = 2
   memory   = 2048
 
-  scsi_type =vsphere_virtual_machine.template.scsi_type
-  wait_for_guest_ip_timeout = 0
+  scsi_type                  = vsphere_virtual_machine.template.scsi_type
+  wait_for_guest_ip_timeout  = 0
   wait_for_guest_net_timeout = 0
 
   disk {
-    label            = "disk0"
-    size             = vsphere_virtual_machine.template.disk.0.size
-    }
+    label = "disk0"
+    size  = vsphere_virtual_machine.template.disk.0.size
+  }
 
   clone {
     template_uuid = vsphere_virtual_machine.template.id
   }
 }
 
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootComputeCluster1(),
-			testhelper.ConfigDataRootDS1(),
-			testhelper.ConfigDSClusterData(),
-		),
+
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootComputeCluster1(),
+		testhelper.ConfigDataRootDS1(),
+		testhelper.ConfigDSClusterData(),
+	),
 	)
 }
 
@@ -6278,33 +6590,33 @@ variable "linked_clone" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus                  = %d
   memory                    = %d
   cpu_hot_add_enabled       = %t
   cpu_hot_remove_enabled    = %t
   memory_hot_add_enabled    = %t
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
 
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
-    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+    template_uuid = data.vsphere_virtual_machine.template.id
+    linked_clone = var.linked_clone != "" ? "true" : "false"
   }
 
   cdrom {
@@ -6341,30 +6653,30 @@ variable "linked_clone" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
 
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
-    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+    template_uuid = data.vsphere_virtual_machine.template.id
+    linked_clone = var.linked_clone != "" ? "true" : "false"
     customize {
       linux_options {
         host_name = "ipv6test"
@@ -6405,15 +6717,15 @@ variable "host" {
 }
 
 data "vsphere_host" "host" {
-  name          = "${var.host}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  name          = var.host
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
+  resource_pool_id = vsphere_resource_pool.pool1.id
   host_system_id   = data.vsphere_host.host.id
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus                   = 2
   memory                     = 2048
@@ -6421,7 +6733,7 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
@@ -6459,15 +6771,15 @@ variable "host" {
 }
 
 data "vsphere_host" "host" {
-  name          = "${var.host}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  name          = var.host
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
+  resource_pool_id = vsphere_resource_pool.pool1.id
   host_system_id   = data.vsphere_host.host.id
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -6476,20 +6788,20 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
-    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+    template_uuid = data.vsphere_virtual_machine.template.id
+    linked_clone = var.linked_clone != "" ? "true" : "false"
   }
 
   cdrom {
@@ -6541,20 +6853,20 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id   = "${data.vsphere_network.vmnet.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.vmnet.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
-    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+    template_uuid = data.vsphere_virtual_machine.template.id
+    linked_clone = var.linked_clone != "" ? "true" : "false"
   }
 
   cdrom {
@@ -6594,7 +6906,7 @@ data "vsphere_datastore" "ds" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
+  resource_pool_id = vsphere_resource_pool.pool1.id
   datastore_id     = data.vsphere_datastore.ds.id
 
   num_cpus = 2
@@ -6604,19 +6916,19 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    template_uuid = data.vsphere_virtual_machine.template.id
   }
 
   cdrom {
@@ -6652,13 +6964,13 @@ variable "disk_datastore" {
 }
 
 data "vsphere_datastore" "disk_datastore" {
-  name          = "${var.disk_datastore}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  name          = var.disk_datastore
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
+  resource_pool_id = vsphere_resource_pool.pool1.id
   datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
@@ -6668,26 +6980,26 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   disk {
     label        = "disk1"
-    datastore_id = "${data.vsphere_datastore.disk_datastore.id}"
+    datastore_id = data.vsphere_datastore.disk_datastore.id
     size         = 1
     unit_number  = 1
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    template_uuid = data.vsphere_virtual_machine.template.id
   }
 
   cdrom {
@@ -6720,7 +7032,7 @@ variable "ds_id" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
+  resource_pool_id = vsphere_resource_pool.pool1.id
   datastore_id     = var.ds_id
 
   num_cpus = 2
@@ -6729,15 +7041,15 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
     datastore_id     = var.ds_id
   }
 
@@ -6749,7 +7061,7 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    template_uuid = data.vsphere_virtual_machine.template.id
     linked_clone  = true
   }
 
@@ -6788,8 +7100,8 @@ data "vsphere_datastore" "ds" {
 }
 
 resource "vsphere_virtual_machine" "vm" {
-  name             = "${var.vm_name}"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
+  name             = var.vm_name
+  resource_pool_id = vsphere_resource_pool.pool1.id
   datastore_id     = data.vsphere_datastore.ds.id
 
   num_cpus = 2
@@ -6799,20 +7111,20 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
 	datastore_id     = data.vsphere_datastore.ds.id
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    template_uuid = data.vsphere_virtual_machine.template.id
   }
 
   cdrom {
@@ -6850,7 +7162,7 @@ variable "ds" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
+  resource_pool_id = vsphere_resource_pool.pool1.id
   datastore_id     = var.ds
 
   num_cpus = 2
@@ -6860,20 +7172,20 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
     datastore_id     = var.ds
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    template_uuid = data.vsphere_virtual_machine.template.id
     linked_clone  = true
   }
 
@@ -6919,7 +7231,7 @@ data "vsphere_datastore" "ds" {
 
 resource "vsphere_virtual_disk" "disk" {
   size         = 1
-  vmdk_path    = "${var.extra_vmdk_name}"
+  vmdk_path    = var.extra_vmdk_name
   datacenter   = data.vsphere_datacenter.rootdc1.name
   datastore    = data.vsphere_datastore.ds.name
   type         = "thin"
@@ -6928,7 +7240,7 @@ resource "vsphere_virtual_disk" "disk" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
+  resource_pool_id = vsphere_resource_pool.pool1.id
   datastore_id     = data.vsphere_datastore.ds.id
 
   num_cpus = 2
@@ -6938,28 +7250,28 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   disk {
     label        = "disk1"
     datastore_id = data.vsphere_datastore.ds.id
-    path         = "${vsphere_virtual_disk.disk.vmdk_path}"
+    path         = vsphere_virtual_disk.disk.vmdk_path
     disk_mode    = "independent_persistent"
     attach       = true
     unit_number  = 1
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    template_uuid = data.vsphere_virtual_machine.template.id
   }
 
   cdrom {
@@ -6997,41 +7309,41 @@ resource "vsphere_custom_attribute" "testacc-attribute" {
 
 locals {
   vm_attrs = {
-    "${vsphere_custom_attribute.testacc-attribute.id}" = "value"
+    vsphere_custom_attribute.testacc-attribute.id = "value"
   }
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
   num_cpus         = 2
   memory           = 2048
-  guest_id         = "${data.vsphere_virtual_machine.template.guest_id}"
-  scsi_type        = "${data.vsphere_virtual_machine.template.scsi_type}"
+  guest_id         = data.vsphere_virtual_machine.template.guest_id
+  scsi_type        = data.vsphere_virtual_machine.template.scsi_type
 
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label = "disk0"
-    size  = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
-    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+    template_uuid = data.vsphere_virtual_machine.template.id
+    linked_clone = var.linked_clone != "" ? "true" : "false"
   }
 
   cdrom {
     client_device = true
   }
 
-  custom_attributes = "${local.vm_attrs}"
+  custom_attributes = local.vm_attrs
 }
 `,
 
@@ -7069,49 +7381,49 @@ resource "vsphere_custom_attribute" "testacc-attribute" {
 }
 
 resource "vsphere_custom_attribute" "testacc-attribute-alt" {
-  count               = "${length(var.custom_attrs)}"
-  name                = "${var.custom_attrs[count.index]}"
+  count               = length(var.custom_attrs)
+  name                = var.custom_attrs[count.index]
   managed_object_type = "VirtualMachine"
 }
 
 locals {
   vm_attrs = {
-    "${vsphere_custom_attribute.testacc-attribute-alt.0.id}" = "value"
-    "${vsphere_custom_attribute.testacc-attribute-alt.1.id}" = "value-2"
+    vsphere_custom_attribute.testacc-attribute-alt.0.id = "value"
+    vsphere_custom_attribute.testacc-attribute-alt.1.id = "value-2"
   }
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
   num_cpus         = 2
   memory           = 2048
-  guest_id         = "${data.vsphere_virtual_machine.template.guest_id}"
-  scsi_type        = "${data.vsphere_virtual_machine.template.scsi_type}"
+  guest_id         = data.vsphere_virtual_machine.template.guest_id
+  scsi_type        = data.vsphere_virtual_machine.template.scsi_type
 
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label = "disk0"
-    size  = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
-    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+    template_uuid = data.vsphere_virtual_machine.template.id
+    linked_clone = var.linked_clone != "" ? "true" : "false"
   }
 
   cdrom {
     client_device = true
   }
 
-  custom_attributes = "${local.vm_attrs}"
+  custom_attributes = local.vm_attrs
 }
 `,
 
@@ -7134,29 +7446,29 @@ data "vsphere_virtual_machine" "template" {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
 
-  scsi_type = "${data.vsphere_virtual_machine.template.scsi_type == "pvscsi" ? "lsilogic-sas" : "pvscsi"}"
+  scsi_type = data.vsphere_virtual_machine.template.scsi_type == "pvscsi" ? "lsilogic-sas" : "pvscsi"
 
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label = "disk0"
-    size  = "${data.vsphere_virtual_machine.template.disks.0.size * 2}"
+    size = data.vsphere_virtual_machine.template.disks.0.size * 2
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    template_uuid = data.vsphere_virtual_machine.template.id
   }
 
   cdrom {
@@ -7190,7 +7502,7 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
   resource_pool_id = vsphere_compute_cluster.compute_cluster.resource_pool_id
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
@@ -7199,12 +7511,12 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 }
 `,
@@ -7271,22 +7583,22 @@ resource "vsphere_compute_cluster" "compute_cluster" {
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
   resource_pool_id = vsphere_compute_cluster.compute_cluster.resource_pool_id
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label            = "disk0"
-    size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
-    eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
-    thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
+    size = data.vsphere_virtual_machine.template.disks.0.size
+    eagerly_scrub = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
 
   cdrom {
@@ -7333,7 +7645,7 @@ resource "vsphere_virtual_machine" "vm" {
   guest_id = data.vsphere_virtual_machine.template.guest_id
 
   network_interface {
-    network_id   = data.vsphere_network.network1.id
+    network_id = data.vsphere_network.network1.id
     adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
@@ -7346,21 +7658,22 @@ resource "vsphere_virtual_machine" "vm" {
 
   clone {
     template_uuid = data.vsphere_virtual_machine.template.id
-    linked_clone  = "${var.linked_clone != "" ? "true" : "false" }"
+    linked_clone  = var.linked_clone != "" ? "true" : "false"
 
     customize {
       linux_options {
         host_name = var.hostname
         domain    = "test.internal"
       }
-    network_interface {}
+      network_interface {}
     }
   }
 
   cdrom {
     client_device = true
   }
-  depends_on = ["vsphere_nas_datastore.ds1"]
+
+  depends_on = [data.vsphere_datastore.rootds1]
 }
 `,
 		testAccResourceVSphereVirtualMachineConfigBase(),
@@ -7379,8 +7692,8 @@ func testAccResourceVSphereVirtualMachineConfigHighSensitivity() string {
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus            = 2
   cpu_reservation     = 6192
@@ -7390,12 +7703,12 @@ resource "vsphere_virtual_machine" "vm" {
   guest_id            = "other3xLinuxGuest"
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 }
 `,
@@ -7415,14 +7728,14 @@ resource "vsphere_virtual_disk" "d" {
   count      = 2
   size       = 1
   vmdk_path  = "disk-${count.index}.vmdk"
-  datastore  = vsphere_nas_datastore.ds1.name
+  datastore  = data.vsphere_datastore.rootds1.name
   datacenter = data.vsphere_datacenter.rootdc1.name
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name                       = "testacc-test"
   resource_pool_id           = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
-  datastore_id               = vsphere_nas_datastore.ds1.id
+  datastore_id               = data.vsphere_datastore.rootds1.id
   guest_id                   = "other3xLinuxGuest"
 	wait_for_guest_net_timeout = -1
 
@@ -7434,7 +7747,7 @@ resource "vsphere_virtual_machine" "vm" {
       label        = "disk0"
       path         = vsphere_virtual_disk.d[0].vmdk_path
       unit_number  = 0
-      datastore_id = vsphere_nas_datastore.ds1.id
+      datastore_id = data.vsphere_datastore.rootds1.id
     }
 
     disk {
@@ -7442,7 +7755,7 @@ resource "vsphere_virtual_machine" "vm" {
       label        = "disk1"
       path         = vsphere_virtual_disk.d[1].vmdk_path
       unit_number  = 1
-      datastore_id = vsphere_nas_datastore.ds1.id
+      datastore_id = data.vsphere_datastore.rootds1.id
    }
 }`,
 
@@ -7456,15 +7769,15 @@ func testaccresourcevspherevirtualmachineconfigcontentlibraryBasic() string {
 
 resource "vsphere_content_library" "library" {
   name            = "ContentLibrary_test"
-  storage_backing = [ data.vsphere_datastore.rootds1.id ]
+  storage_backing = [data.vsphere_datastore.rootds1.id]
   description     = "Library Description"
 }
 
 resource "vsphere_content_library_item" "item" {
-  name = "ubuntu"
+  name        = "ubuntu"
   description = "Ubuntu Description"
-  library_id = vsphere_content_library.library.id
-  file_url = "%s"
+  library_id  = vsphere_content_library.library.id
+  file_url    = "%s"
 }
 
 resource "vsphere_virtual_machine" "vm" {
@@ -7476,7 +7789,7 @@ resource "vsphere_virtual_machine" "vm" {
   num_cpus = 1
   memory   = 2048
 
-  wait_for_guest_net_timeout = -1
+  wait_for_guest_net_timeout = 0
   guest_id                   = "other3xLinuxGuest"
 
   network_interface {
@@ -7495,11 +7808,12 @@ resource "vsphere_virtual_machine" "vm" {
     label            = "disk0"
     thin_provisioned = true
     size             = 20
+    io_reservation = 1
   }
 }
 
-`,
-		testAccResourceVSphereVirtualMachineConfigBase(),
+
+`, testAccResourceVSphereVirtualMachineConfigBase(),
 		testhelper.ContentLibraryFiles,
 	)
 }
@@ -7509,24 +7823,24 @@ func testAccResourceVSphereVirtualMachineDeployOvfFromURL(vmName string) string 
 %s
 
 variable "ovf_url" {
-	default = "%s"
+  default = "%s"
 }
 
 data "vsphere_ovf_vm_template" "ovf" {
-  name              = "%s"
-  resource_pool_id  = vsphere_resource_pool.pool1.id
-  datastore_id      = vsphere_nas_datastore.ds1.id
-  host_system_id    = data.vsphere_host.roothost1.id
-  remote_ovf_url    = var.ovf_url
+  name             = "%s"
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+  host_system_id   = data.vsphere_host.roothost1.id
+  remote_ovf_url   = var.ovf_url
 
-  ovf_network_map   = {
-    "Production_DVS - Mgmt": data.vsphere_network.network1.id
+  ovf_network_map = {
+    "Production_DVS - Mgmt" : data.vsphere_network.network1.id
   }
 }
 
 
 resource "vsphere_virtual_machine" "vm" {
-  datacenter_id    = data.vsphere_datacenter.rootdc1.id
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 
   annotation       = data.vsphere_ovf_vm_template.ovf.annotation
   name             = data.vsphere_ovf_vm_template.ovf.name
@@ -7540,20 +7854,20 @@ resource "vsphere_virtual_machine" "vm" {
   dynamic "network_interface" {
     for_each = data.vsphere_ovf_vm_template.ovf.ovf_network_map
     content {
-        network_id = network_interface.value
+      network_id = network_interface.value
     }
   }
 
   wait_for_guest_net_timeout = 0
 
   ovf_deploy {
-	  remote_ovf_url  = var.ovf_url
-	  ovf_network_map = data.vsphere_ovf_vm_template.ovf.ovf_network_map
+    remote_ovf_url  = var.ovf_url
+    ovf_network_map = data.vsphere_ovf_vm_template.ovf.ovf_network_map
   }
 }
 
-`,
-		testAccResourceVSphereVirtualMachineConfigBase(),
+
+`, testAccResourceVSphereVirtualMachineConfigBase(),
 		os.Getenv("TF_VAR_VSPHERE_TEST_OVF"),
 		vmName,
 	)
@@ -7570,7 +7884,7 @@ variable "ova_url" {
 data "vsphere_ovf_vm_template" "ovf" {
   name              = "%s"
   resource_pool_id  = vsphere_resource_pool.pool1.id
-  datastore_id      = vsphere_nas_datastore.ds1.id
+  datastore_id      = data.vsphere_datastore.rootds1.id
   host_system_id    = data.vsphere_host.roothost1.id
   remote_ovf_url    = var.ova_url
 
@@ -7579,18 +7893,16 @@ data "vsphere_ovf_vm_template" "ovf" {
   }
 }
 
-
 resource "vsphere_virtual_machine" "vm" {
   datacenter_id    = data.vsphere_datacenter.rootdc1.id
-
-  annotation            = data.vsphere_ovf_vm_template.ovf.annotation
-  name                  = data.vsphere_ovf_vm_template.ovf.name
-  num_cpus              = data.vsphere_ovf_vm_template.ovf.num_cpus
-  memory                = data.vsphere_ovf_vm_template.ovf.memory
-  guest_id              = data.vsphere_ovf_vm_template.ovf.guest_id
-  resource_pool_id      = vsphere_resource_pool.pool1.id
-  datastore_id          = vsphere_nas_datastore.ds1.id
-  host_system_id        = data.vsphere_ovf_vm_template.ovf.host_system_id
+  annotation       = data.vsphere_ovf_vm_template.ovf.annotation
+  name             = data.vsphere_ovf_vm_template.ovf.name
+  num_cpus         = data.vsphere_ovf_vm_template.ovf.num_cpus
+  memory           = data.vsphere_ovf_vm_template.ovf.memory
+  guest_id         = data.vsphere_ovf_vm_template.ovf.guest_id
+  resource_pool_id = vsphere_resource_pool.pool1.id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+  host_system_id   = data.vsphere_ovf_vm_template.ovf.host_system_id
 
   wait_for_guest_net_timeout = 0
 
@@ -7623,15 +7935,15 @@ data "vsphere_network" "network" {
 }
 
 resource "vsphere_guest_os_customization" "gosc_spec" {
-	name = %q
-	type = "Linux"
-	spec {
-		linux_options {
-			domain = "example.com"
-			host_name = "linux"
-		}
-		network_interface {}
-	}
+  name = %q
+  type = "Linux"
+  spec {
+    linux_options {
+      domain    = "example.com"
+      host_name = "linux"
+    }
+    network_interface {}
+  }
 
 }
 
@@ -7640,42 +7952,41 @@ data "vsphere_virtual_machine" "template" {
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
-
 resource "vsphere_virtual_machine" "vm" {
   name             = "vm-1-template-clone"
   resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
   guest_id         = data.vsphere_virtual_machine.template.guest_id
+
   network_interface {
-    network_id   = data.vsphere_network.network.id
+    network_id = data.vsphere_network.network.id
   }
-  datastore_id     = data.vsphere_datastore.rootds1.id
+
+  datastore_id = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
 
-  scsi_type = data.vsphere_virtual_machine.template.scsi_type
-  wait_for_guest_ip_timeout = 0
+  scsi_type                  = data.vsphere_virtual_machine.template.scsi_type
+  wait_for_guest_ip_timeout  = 0
   wait_for_guest_net_timeout = 0
 
- disk {
-    label            = "disk0"
-    size             = data.vsphere_virtual_machine.template.disks.0.size
-    }
+  disk {
+    label = "disk0"
+    size  = data.vsphere_virtual_machine.template.disks.0.size
+  }
 
   clone {
     template_uuid = data.vsphere_virtual_machine.template.id
-	customization_spec {
-		id = vsphere_guest_os_customization.gosc_spec.id
-	}
+    customization_spec {
+      id = vsphere_guest_os_customization.gosc_spec.id
+    }
   }
 }
-
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootComputeCluster1(),
-			testhelper.ConfigDataRootDS1(),
-		),
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootComputeCluster1(),
+		testhelper.ConfigDataRootDS1(),
+	),
 		goscName,
 		os.Getenv("TF_VAR_VSPHERE_TEMPLATE"),
 	)
@@ -7686,35 +7997,37 @@ func testAccResourceVSphereVirtualMachineSriov() string {
 	%s
 
 data "vsphere_host" "sriov_host" {
-  name =%q
+  name          = %q
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 data "vsphere_datastore" "sriov_vmfs" {
-  name = %q
+  name          = %q
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "test-acc-sriov"
   resource_pool_id = data.vsphere_host.sriov_host.resource_pool_id
-  host_system_id = data.vsphere_host.sriov_host.id
+  host_system_id   = data.vsphere_host.sriov_host.id
   guest_id         = "other3xLinuxGuest"
+
   network_interface {
-    network_id   = data.vsphere_network.network1.id
-    adapter_type = "sriov"
+    network_id        = data.vsphere_network.network1.id
+    adapter_type      = "sriov"
     physical_function = %q
   }
-  datastore_id     = data.vsphere_datastore.sriov_vmfs.id
-  num_cpus = 2
-  memory   = 4096
-  memory_reservation = 4096
-  wait_for_guest_ip_timeout = 0
+
+  datastore_id               = data.vsphere_datastore.sriov_vmfs.id
+  num_cpus                   = 2
+  memory                     = 4096
+  memory_reservation         = 4096
+  wait_for_guest_ip_timeout  = 0
   wait_for_guest_net_timeout = 0
 
   disk {
-    label            = "disk0"
-    size             = 1
+    label = "disk0"
+    size  = 1
   }
 
   lifecycle {
@@ -7724,11 +8037,10 @@ resource "vsphere_virtual_machine" "vm" {
     ]
   }
 }
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootPortGroup1(),
-		),
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootPortGroup1(),
+	),
 		os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST"),
 		os.Getenv("TF_VAR_VSPHERE_SRIOV_HOST_VMFS"),
 		os.Getenv("TF_VAR_VSPHERE_SRIOV_PHYSICAL_FUNCTION"),
@@ -7738,28 +8050,27 @@ resource "vsphere_virtual_machine" "vm" {
 func testAccResourceVSphereVirtualMachineCreateMemoryLockToMax() string {
 	return fmt.Sprintf(`
 
-
 %s  // Mix and match config
 
 resource "vsphere_virtual_machine" "vm" {
-  name             = "testacc-test"
-  resource_pool_id = data.vsphere_host.roothost1.resource_pool_id
-  datastore_id     = data.vsphere_datastore.rootds1.id
-  host_system_id = data.vsphere_host.roothost1.id
-
-  num_cpus            = 2
-  memory              = 2048
-  memory_reservation  = 2048
+  name                             = "testacc-test"
+  resource_pool_id                 = data.vsphere_host.roothost1.resource_pool_id
+  datastore_id                     = data.vsphere_datastore.rootds1.id
+  host_system_id                   = data.vsphere_host.roothost1.id
+  num_cpus                         = 2
+  memory                           = 2048
+  memory_reservation               = 2048
   memory_reservation_locked_to_max = true
-  guest_id            = "other3xLinuxGuest"
-  wait_for_guest_net_timeout = 0
+  guest_id                         = "other3xLinuxGuest"
+  wait_for_guest_net_timeout       = 0
+
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
   }
 }
 `,
@@ -7773,18 +8084,18 @@ func testAccResourceVSphereVirtualMachineDeployOvfFromURLMultipleVMsSameName(vmN
 %s
 
 variable "ovf_url" {
-	default = "%s"
+  default = "%s"
 }
 
 data "vsphere_ovf_vm_template" "ovf" {
-  name              = "%s"
-  resource_pool_id  = data.vsphere_host.roothost1.resource_pool_id
-  datastore_id      = vsphere_nas_datastore.ds1.id
-  host_system_id    = data.vsphere_host.roothost1.id
-  remote_ovf_url    = var.ovf_url
+  name             = "%s"
+  resource_pool_id = data.vsphere_host.roothost1.resource_pool_id
+  datastore_id     = data.vsphere_datastore.rootds1.id
+  host_system_id   = data.vsphere_host.roothost1.id
+  remote_ovf_url   = var.ovf_url
 
-  ovf_network_map   = {
-    "Production_DVS - Mgmt": data.vsphere_network.network1.id
+  ovf_network_map = {
+    "Production_DVS - Mgmt" : data.vsphere_network.network1.id
   }
 }
 
@@ -7800,11 +8111,9 @@ resource "vsphere_folder" "vm_folder_2" {
   datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
-
-
 resource "vsphere_virtual_machine" "vm1" {
   datacenter_id    = data.vsphere_datacenter.rootdc1.id
-  folder = vsphere_folder.vm_folder_1.path
+  folder           = vsphere_folder.vm_folder_1.path
   annotation       = data.vsphere_ovf_vm_template.ovf.annotation
   name             = "ovf-multiple-name-1"
   num_cpus         = data.vsphere_ovf_vm_template.ovf.num_cpus
@@ -7817,18 +8126,18 @@ resource "vsphere_virtual_machine" "vm1" {
   dynamic "network_interface" {
     for_each = data.vsphere_ovf_vm_template.ovf.ovf_network_map
     content {
-        network_id = network_interface.value
+      network_id = network_interface.value
     }
   }
 
   wait_for_guest_net_timeout = 0
 
   ovf_deploy {
-	  remote_ovf_url  = var.ovf_url
-	  ovf_network_map = data.vsphere_ovf_vm_template.ovf.ovf_network_map
+    remote_ovf_url  = var.ovf_url
+    ovf_network_map = data.vsphere_ovf_vm_template.ovf.ovf_network_map
   }
 
-lifecycle {
+  lifecycle {
     ignore_changes = [
       ept_rvi_mode,
       hv_mode
@@ -7838,7 +8147,7 @@ lifecycle {
 
 resource "vsphere_virtual_machine" "vm2" {
   datacenter_id    = data.vsphere_datacenter.rootdc1.id
-  folder = vsphere_folder.vm_folder_2.path
+  folder           = vsphere_folder.vm_folder_2.path
   annotation       = data.vsphere_ovf_vm_template.ovf.annotation
   name             = "ovf-multiple-name-2"
   num_cpus         = data.vsphere_ovf_vm_template.ovf.num_cpus
@@ -7851,27 +8160,25 @@ resource "vsphere_virtual_machine" "vm2" {
   dynamic "network_interface" {
     for_each = data.vsphere_ovf_vm_template.ovf.ovf_network_map
     content {
-        network_id = network_interface.value
+      network_id = network_interface.value
     }
   }
 
   wait_for_guest_net_timeout = 0
 
   ovf_deploy {
-	  remote_ovf_url  = var.ovf_url
-	  ovf_network_map = data.vsphere_ovf_vm_template.ovf.ovf_network_map
+    remote_ovf_url  = var.ovf_url
+    ovf_network_map = data.vsphere_ovf_vm_template.ovf.ovf_network_map
   }
 
-lifecycle {
+  lifecycle {
     ignore_changes = [
       ept_rvi_mode,
       hv_mode
     ]
   }
 }
-
-`,
-		testAccResourceVSphereVirtualMachineConfigBase(),
+`, testAccResourceVSphereVirtualMachineConfigBase(),
 		os.Getenv("TF_VAR_VSPHERE_TEST_OVF"),
 		vmName,
 	)

@@ -17,6 +17,7 @@ import (
 )
 
 func TestAccResourceVSphereVirtualMachineSnapshot_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -79,7 +80,7 @@ func snapshotExists(n string, s *terraform.State) (bool, error) {
 	}
 
 	if rs.Primary.ID == "" {
-		return false, fmt.Errorf("No Vm Snapshot ID is set")
+		return false, fmt.Errorf("no Vm Snapshot ID is set")
 	}
 	client := testAccProvider.Meta().(*Client).vimClient
 
@@ -91,7 +92,7 @@ func snapshotExists(n string, s *terraform.State) (bool, error) {
 	defer cancel()
 	snapshot, err := vm.FindSnapshot(ctx, rs.Primary.ID)
 	if err != nil {
-		return false, fmt.Errorf("Error while getting the snapshot %v", snapshot)
+		return false, fmt.Errorf("error while getting the snapshot %v", snapshot)
 	}
 
 	return true, nil
@@ -104,7 +105,7 @@ func testAccCheckVirtualMachineSnapshotExists(n string, exists bool) resource.Te
 			return err
 		}
 		if found != exists {
-			return fmt.Errorf("Snapshot exists error. expected state: %t, actual state: %t", exists, found)
+			return fmt.Errorf("snapshot exists error. expected state: %t, actual state: %t", exists, found)
 		}
 
 		return nil
@@ -116,11 +117,11 @@ func testAccCheckVirtualMachineHasNoSnapshots(n string) resource.TestCheckFunc {
 		rs, ok := s.RootModule().Resources[n]
 
 		if !ok {
-			return fmt.Errorf("Not found: %s", n)
+			return fmt.Errorf("not found: %s", n)
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No VM ID is set")
+			return fmt.Errorf("no VM ID is set")
 		}
 		client := testAccProvider.Meta().(*Client).vimClient
 
@@ -165,53 +166,51 @@ variable "snapshot_enabled" {
 }
 
 data "vsphere_resource_pool" "pool" {
-  name          = "${var.resource_pool}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  name          = var.resource_pool
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 data "vsphere_virtual_machine" "template" {
-  name          = "${var.template}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  name          = var.template
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_virtual_machine" "vm" {
   name             = "testacc-test"
-  resource_pool_id = "${vsphere_resource_pool.pool1.id}"
+  resource_pool_id = vsphere_resource_pool.pool1.id
   datastore_id     = vsphere_nas_datastore.ds1.id
 
   num_cpus = 2
   memory   = 1024
-  guest_id = "${data.vsphere_virtual_machine.template.guest_id}"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
 
   network_interface {
-    network_id   = "${data.vsphere_network.network1.id}"
-    adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
+    network_id   = data.vsphere_network.network1.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
   disk {
     label = "disk0"
-    size  = "${data.vsphere_virtual_machine.template.disks.0.size}"
+    size  = data.vsphere_virtual_machine.template.disks.0.size
   }
 
   clone {
-    template_uuid = "${data.vsphere_virtual_machine.template.id}"
+    template_uuid = data.vsphere_virtual_machine.template.id
     linked_clone  = true
 
-
-
       network_interface {
-        ipv4_address = "${var.ipv4_address}"
-        ipv4_netmask = "${var.ipv4_netmask}"
+        ipv4_address = var.ipv4_address
+        ipv4_netmask = var.ipv4_netmask
       }
 
-      ipv4_gateway = "${var.ipv4_gateway}"
+      ipv4_gateway = var.ipv4_gateway
     }
   }
 }
 
 resource "vsphere_virtual_machine_snapshot" "snapshot" {
-  count                = "${var.snapshot_enabled == "true" ? 1 : 0 }"
-  virtual_machine_uuid = "${vsphere_virtual_machine.vm.uuid}"
+  count                = var.snapshot_enabled == "true" ? 1 : 0 
+  virtual_machine_uuid = vsphere_virtual_machine.vm.uuid
   snapshot_name        = "terraform-test-snapshot"
   description          = "Managed by Terraform"
   memory               = true

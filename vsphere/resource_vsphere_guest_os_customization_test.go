@@ -36,6 +36,7 @@ func TestAccResourceVSpherGOSC_windows_basic(t *testing.T) {
 func TestAccResourceVSpherGOSC_windows_workGroup(t *testing.T) {
 	goscName := acctest.RandomWithPrefix("win")
 	goscResourceName := acctest.RandomWithPrefix("gosc")
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

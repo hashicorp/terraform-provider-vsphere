@@ -6,6 +6,7 @@ package vsphere
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -17,7 +18,6 @@ func TestAccDataSourceVSphereComputeCluster_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -26,11 +26,11 @@ func TestAccDataSourceVSphereComputeCluster_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrPair(
 						"data.vsphere_compute_cluster.compute_cluster_data", "id",
-						"vsphere_compute_cluster.compute_cluster", "id",
+						"data.vsphere_compute_cluster.rootcompute_cluster1", "id",
 					),
 					resource.TestCheckResourceAttrPair(
 						"data.vsphere_compute_cluster.compute_cluster_data", "resource_pool_id",
-						"vsphere_compute_cluster.compute_cluster", "resource_pool_id",
+						"data.vsphere_compute_cluster.rootcompute_cluster1", "resource_pool_id",
 					),
 				),
 			},
@@ -43,7 +43,6 @@ func TestAccDataSourceVSphereComputeCluster_absolutePathNoDatacenter(t *testing.
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -68,17 +67,13 @@ func testAccDataSourceVSphereComputeClusterConfigBasic() string {
 	return fmt.Sprintf(`
 %s
 
-resource "vsphere_compute_cluster" "compute_cluster" {
-  name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
-}
-
 data "vsphere_compute_cluster" "compute_cluster_data" {
-  name          = "${vsphere_compute_cluster.compute_cluster.name}"
-  datacenter_id = "${vsphere_compute_cluster.compute_cluster.datacenter_id}"
+  name          = "%s"
+  datacenter_id = data.vsphere_compute_cluster.rootcompute_cluster1.datacenter_id
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
+		os.Getenv("TF_VAR_VSPHERE_CLUSTER"),
 	)
 }
 
@@ -88,13 +83,13 @@ func testAccDataSourceVSphereComputeClusterConfigAbsolutePath() string {
 
 resource "vsphere_compute_cluster" "compute_cluster" {
   name          = "testacc-datastore-cluster"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 data "vsphere_compute_cluster" "compute_cluster_data" {
   name          = "/${data.vsphere_datacenter.rootdc1.name}/host/${vsphere_compute_cluster.compute_cluster.name}"
 }
 `,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
+		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
 	)
 }

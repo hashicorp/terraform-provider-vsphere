@@ -108,7 +108,7 @@ func BoolPtr(v bool) *bool {
 // GetBoolPtr reads a ResourceData and returns an appropriate *bool for the
 // state of the definition. nil is returned if it does not exist.
 func GetBoolPtr(d *schema.ResourceData, key string) *bool {
-	v, e := d.GetOkExists(key)
+	v, e := d.GetOk(key)
 	if e {
 		return BoolPtr(v.(bool))
 	}
@@ -197,7 +197,7 @@ func BoolStringPtrState(v interface{}) string {
 // systemic issue that affects reading, writing, and diffing of these values.
 // These issues will eventually be addressed in HCL2.
 func ValidateBoolStringPtr() schema.SchemaValidateFunc {
-	return func(i interface{}, k string) (s []string, es []error) {
+	return func(i interface{}, _ string) (s []string, es []error) {
 		v := i.(string)
 		if v == "" {
 			return
@@ -222,7 +222,7 @@ func Int32Ptr(v int32) *int32 {
 // GetInt64Ptr reads a ResourceData and returns an appropriate *int64 for the
 // state of the definition. nil is returned if it does not exist.
 func GetInt64Ptr(d *schema.ResourceData, key string) *int64 {
-	v, e := d.GetOkExists(key)
+	v, e := d.GetOk(key)
 	if e {
 		return Int64Ptr(int64(v.(int)))
 	}
@@ -271,7 +271,7 @@ func ByteToMB(n interface{}) interface{} {
 func ByteToGiB(n interface{}) int {
 	switch n.(type) {
 	case int, int32, int64:
-		return int(math.Ceil(float64(n.(int64)) / math.Pow(1024, 3)))
+		return int(math.Ceil(float64(n.(int64)) / float64(1024*1024*1024)))
 	}
 	panic(fmt.Errorf("non-integer type %T for value", n))
 }
@@ -283,11 +283,11 @@ func ByteToGiB(n interface{}) int {
 func GiBToByte(n interface{}) int64 {
 	switch v := n.(type) {
 	case int:
-		return int64(v * int(math.Pow(1024, 3)))
+		return int64(v * int(float64(1024*1024*1024)))
 	case int32:
-		return int64(v * int32(math.Pow(1024, 3)))
+		return int64(v * int32(float64(1024*1024*1024)))
 	case int64:
-		return v * int64(math.Pow(1024, 3))
+		return v * int64(float64(1024*1024*1024))
 	}
 	panic(fmt.Errorf("non-integer type %T for value", n))
 }
@@ -303,7 +303,7 @@ func BoolPolicy(b bool) *types.BoolPolicy {
 // GetBoolPolicy reads a ResourceData and returns an appropriate BoolPolicy for
 // the state of the definition. nil is returned if it does not exist.
 func GetBoolPolicy(d *schema.ResourceData, key string) *types.BoolPolicy {
-	v, e := d.GetOkExists(key)
+	v, e := d.GetOk(key)
 	if e {
 		return BoolPolicy(v.(bool))
 	}
@@ -322,7 +322,7 @@ func SetBoolPolicy(d *schema.ResourceData, key string, val *types.BoolPolicy) er
 
 // GetBoolPolicyReverse acts like GetBoolPolicy, but the value is inverted.
 func GetBoolPolicyReverse(d *schema.ResourceData, key string) *types.BoolPolicy {
-	v, e := d.GetOkExists(key)
+	v, e := d.GetOk(key)
 	if e {
 		return BoolPolicy(!v.(bool))
 	}
@@ -349,7 +349,7 @@ func StringPolicy(s string) *types.StringPolicy {
 // GetStringPolicy reads a ResourceData and returns an appropriate StringPolicy
 // for the state of the definition. nil is returned if it does not exist.
 func GetStringPolicy(d *schema.ResourceData, key string) *types.StringPolicy {
-	v, e := d.GetOkExists(key)
+	v, e := d.GetOk(key)
 	if e {
 		return StringPolicy(v.(string))
 	}
@@ -398,7 +398,7 @@ func LongPolicy(n interface{}) *types.LongPolicy {
 // GetLongPolicy reads a ResourceData and returns an appropriate LongPolicy
 // for the state of the definition. nil is returned if it does not exist.
 func GetLongPolicy(d *schema.ResourceData, key string) *types.LongPolicy {
-	v, e := d.GetOkExists(key)
+	v, e := d.GetOk(key)
 	if e {
 		return LongPolicy(v)
 	}
@@ -483,7 +483,7 @@ func NormalizeValue(v interface{}) interface{} {
 	k := reflect.TypeOf(v).Kind()
 	switch {
 	case k >= reflect.Int8 && k <= reflect.Uint64:
-		v = reflect.ValueOf(v).Convert(reflect.TypeOf(int(0))).Interface()
+		v = reflect.ValueOf(v).Convert(reflect.TypeOf(0)).Interface()
 	case k == reflect.Float32:
 		v = reflect.ValueOf(v).Convert(reflect.TypeOf(float64(0))).Interface()
 	}

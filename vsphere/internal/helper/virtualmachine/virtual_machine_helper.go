@@ -81,7 +81,8 @@ func newUUIDNotFoundError(s string) *UUIDNotFoundError {
 
 // IsUUIDNotFoundError returns true if the error is a UUIDNotFoundError.
 func IsUUIDNotFoundError(err error) bool {
-	_, ok := err.(*UUIDNotFoundError)
+	var notFoundError *UUIDNotFoundError
+	ok := errors.As(err, &notFoundError)
 	return ok
 }
 
@@ -334,7 +335,7 @@ func WaitForGuestIP(client *govmomi.Client, vm *object.VirtualMachine, timeout i
 
 	if err != nil {
 		// Provide a friendly error message if we timed out waiting for a routable IP.
-		if ctx.Err() == context.DeadlineExceeded {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			return errors.New("timeout waiting for an available IP address")
 		}
 		return err
@@ -422,7 +423,7 @@ func WaitForGuestNet(client *govmomi.Client, vm *object.VirtualMachine, routable
 
 	if err != nil {
 		// Provide a friendly error message if we timed out waiting for a routable IP.
-		if ctx.Err() == context.DeadlineExceeded {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			return errors.New("timeout waiting for an available IP address")
 		}
 		return err
@@ -530,14 +531,14 @@ func Clone(c *govmomi.Client, src *object.VirtualMachine, f *object.Folder, name
 	defer cancel()
 	task, err := src.Clone(ctx, f, name, spec)
 	if err != nil {
-		if ctx.Err() == context.DeadlineExceeded {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			err = errors.New("timeout waiting for clone to complete")
 		}
 		return nil, err
 	}
 	result, err := task.WaitForResultEx(ctx, nil)
 	if err != nil {
-		if ctx.Err() == context.DeadlineExceeded {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			err = errors.New("timeout waiting for clone to complete")
 		}
 		return nil, err
@@ -624,7 +625,7 @@ func (deployData *VCenterDeploy) deployOvf() (*types.ManagedObjectReference, err
 // converts them into a slice of vcenter.Properties to be used while deploying
 // content library items as VMs.
 func VAppProperties(propertyMap map[string]interface{}) []vcenter.Property {
-	properties := []vcenter.Property{}
+	var properties []vcenter.Property
 	for key, value := range propertyMap {
 		vcenterProperty := vcenter.Property{
 			ID:    key,
@@ -780,7 +781,7 @@ func ShutdownGuest(client *govmomi.Client, vm *object.VirtualMachine, timeout in
 
 	if err != nil {
 		// Provide a friendly error message if we timed out waiting for a shutdown.
-		if pctx.Err() == context.DeadlineExceeded {
+		if errors.Is(pctx.Err(), context.DeadlineExceeded) {
 			return errGuestShutdownTimeout
 		}
 		return err
@@ -802,7 +803,7 @@ func GracefulPowerOff(client *govmomi.Client, vm *object.VirtualMachine, timeout
 	// complete on a suspended VM, so there's really no point in trying).
 	if vprops.Runtime.PowerState == types.VirtualMachinePowerStatePoweredOn && vprops.Guest != nil && vprops.Guest.ToolsRunningStatus == string(types.VirtualMachineToolsRunningStatusGuestToolsRunning) {
 		if err := ShutdownGuest(client, vm, timeout); err != nil {
-			if err == errGuestShutdownTimeout && !force {
+			if errors.Is(err, errGuestShutdownTimeout) && !force {
 				return err
 			}
 		} else {
@@ -852,7 +853,7 @@ func Relocate(vm *object.VirtualMachine, spec types.VirtualMachineRelocateSpec, 
 	}
 	if err := task.WaitEx(ctx); err != nil {
 		// Provide a friendly error message if we timed out waiting for the migration.
-		if ctx.Err() == context.DeadlineExceeded {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			return errors.New("timeout waiting for migration to complete")
 		}
 	}

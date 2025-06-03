@@ -80,7 +80,7 @@ func (w *virtualMachineCustomizationWaiter) wait(client *govmomi.Client, vm *obj
 
 	// Our listener loop callback.
 	cbErr := make(chan error, 1)
-	cb := func(obj types.ManagedObjectReference, page []types.BaseEvent) error {
+	cb := func(_ types.ManagedObjectReference, page []types.BaseEvent) error {
 		for _, be := range page {
 			switch e := be.(type) {
 			case types.BaseCustomizationFailed:
@@ -112,7 +112,7 @@ func (w *virtualMachineCustomizationWaiter) wait(client *govmomi.Client, vm *obj
 	var err error
 	select {
 	case <-ctx.Done():
-		if ctx.Err() == context.DeadlineExceeded {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			err = fmt.Errorf("timeout waiting for customization to complete")
 		}
 	case err = <-mgrErr:

@@ -20,7 +20,6 @@ func TestAccDataSourceVSphereDatacenter_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereDatacenterPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -43,7 +42,6 @@ func TestAccDataSourceVSphereDatacenter_defaultDatacenter(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereDatacenterPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -61,18 +59,11 @@ func TestAccDataSourceVSphereDatacenter_defaultDatacenter(t *testing.T) {
 	})
 }
 
-func testAccDataSourceVSphereDatacenterPreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_datacenter acceptance tests")
-	}
-}
-
 func TestAccDataSourceVSphereDatacenter_getVirtualMachines(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereDatacenterPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -109,7 +100,7 @@ data "vsphere_datacenter" "dc" {
   name = "%s"
 }
 output "found_virtual_machines" {
-	value = "${length(data.vsphere_datacenter.dc.virtual_machines) >= 1 ? "true" : "false" }"
+  value = length(data.vsphere_datacenter.dc.virtual_machines) >= 1 ? "true" : "false"
 }
 `, os.Getenv("TF_VAR_VSPHERE_DATACENTER"),
 	)

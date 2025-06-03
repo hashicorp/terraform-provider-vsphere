@@ -18,7 +18,6 @@ func TestAccDataSourceVSphereComputeClusterHostGroup_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterHostGroupPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -56,7 +55,7 @@ resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
 }
 
 data "vsphere_compute_cluster_host_group" "test" {
-  name = "terraform-test-cluster-group"
+  name               = "terraform-test-cluster-group"
   compute_cluster_id = data.vsphere_compute_cluster.rootcompute_cluster1.id
 }
 `,

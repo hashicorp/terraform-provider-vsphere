@@ -13,7 +13,7 @@ import (
 
 const NoAccessRoleDescription = "No access"
 const NoAccessRoleName = "NoAccess"
-const NoAccessRoleId = "-5"
+const NoAccessRoleID = "-5"
 
 func TestAccDataSourceVSphereRole_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -66,7 +66,7 @@ func TestAccDataSourceVSphereRole_systemRoleData(t *testing.T) {
 				Config: testAccDataSourceVSphereRoleSystemRoleConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.vsphere_role.role1", "name", NoAccessRoleName),
-					resource.TestCheckResourceAttr("data.vsphere_role.role1", "id", NoAccessRoleId),
+					resource.TestCheckResourceAttr("data.vsphere_role.role1", "id", NoAccessRoleID),
 					resource.TestCheckResourceAttr("data.vsphere_role.role1", "role_privileges.#", "0")),
 			},
 		},
@@ -76,15 +76,14 @@ func TestAccDataSourceVSphereRole_systemRoleData(t *testing.T) {
 func testAccDataSourceVSphereRoleConfig() string {
 	return fmt.Sprintf(`
 resource "vsphere_role" test-role {
-  name = "terraform-test-role1"
-  role_privileges = ["%s", "%s","%s","%s"]
+  name            = "terraform-test-role1"
+  role_privileges = ["%s", "%s", "%s", "%s"]
 }
 
 data "vsphere_role" "role1" {
   label = vsphere_role.test-role.label
 }
-`,
-		Privilege1,
+`, Privilege1,
 		Privilege2,
 		Privilege3,
 		Privilege4,

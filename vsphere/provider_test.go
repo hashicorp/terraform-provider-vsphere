@@ -6,6 +6,7 @@ package vsphere
 
 import (
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -38,6 +39,12 @@ func testAccPreCheck(t *testing.T) {
 
 	if v := os.Getenv("VSPHERE_SERVER"); v == "" {
 		t.Fatal("VSPHERE_SERVER must be set for acceptance tests")
+	}
+}
+
+func testAccSkipUnstable(t *testing.T) {
+	if skip, _ := strconv.ParseBool(os.Getenv("TF_VAR_VSPHERE_SKIP_UNSTABLE_TESTS")); skip {
+		t.Skip()
 	}
 }
 

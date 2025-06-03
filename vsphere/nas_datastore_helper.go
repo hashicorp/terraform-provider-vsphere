@@ -87,16 +87,22 @@ func (p *nasDatastoreMountProcessor) processMountOperations() (*object.Datastore
 		if err != nil {
 			return p.ds, fmt.Errorf("host %q: %s", hostsystem.NameOrID(p.client, hsID), err)
 		}
+
 		ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
-		defer cancel()
+
 		ds, err := dss.CreateNasDatastore(ctx, *p.volSpec)
 		if err != nil {
+			cancel()
 			return p.ds, fmt.Errorf("host %q: %s", hostsystem.NameOrID(p.client, hsID), err)
 		}
+
+		cancel()
+
 		if err := p.validateDatastore(ds); err != nil {
 			return p.ds, fmt.Errorf("datastore validation error on host %q: %s", hostsystem.NameOrID(p.client, hsID), err)
 		}
 	}
+
 	return p.ds, nil
 }
 

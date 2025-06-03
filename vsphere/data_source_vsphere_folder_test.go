@@ -20,7 +20,6 @@ func TestAccDataSourceVSphereFolder_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccDataSourceVSphereFolderPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
@@ -36,12 +35,6 @@ func TestAccDataSourceVSphereFolder_basic(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccDataSourceVSphereFolderPreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_folder acceptance tests")
-	}
 }
 
 func testAccDataSourceVSphereFolderConfig() string {

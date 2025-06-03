@@ -22,7 +22,6 @@ func TestAccResourceVSphereResourcePool_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereResourcePoolCheckExists(false),
@@ -70,6 +69,7 @@ func TestAccResourceVSphereResourcePool_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_updateRename(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -99,6 +99,7 @@ func TestAccResourceVSphereResourcePool_updateRename(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_updateToCustom(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -144,6 +145,7 @@ func TestAccResourceVSphereResourcePool_updateToCustom(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_updateToDefaults(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -188,6 +190,7 @@ func TestAccResourceVSphereResourcePool_updateToDefaults(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_esxiHost(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -212,7 +215,6 @@ func TestAccResourceVSphereResourcePool_updateParent(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereResourcePoolPreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereResourcePoolCheckExists(false),
@@ -236,6 +238,7 @@ func TestAccResourceVSphereResourcePool_updateParent(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_tags(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -429,17 +432,17 @@ func testAccResourceVSphereResourcePoolConfigAltParent() string {
 
 resource "vsphere_resource_pool" "parent_resource_pool" {
   name                    = "terraform-resource-pool-test-parent"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
+  parent_resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
 }
 
 resource "vsphere_resource_pool" "alt_parent_resource_pool" {
   name                    = "alt-terraform-resource-pool-test-paren"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
+  parent_resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
 }
 
 resource "vsphere_resource_pool" "resource_pool" {
   name                    = "terraform-resource-pool-test"
-  parent_resource_pool_id = "${vsphere_resource_pool.alt_parent_resource_pool.id}"
+  parent_resource_pool_id = vsphere_resource_pool.alt_parent_resource_pool.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
@@ -452,26 +455,25 @@ func testAccResourceVSphereResourcePoolConfigNonDefault() string {
 
 resource "vsphere_resource_pool" "parent_resource_pool" {
   name                    = "terraform-resource-pool-test-parent"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
+  parent_resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
 }
 
 resource "vsphere_resource_pool" "resource_pool" {
-  name                    = "terraform-resource-pool-test"
-  parent_resource_pool_id = "${vsphere_resource_pool.parent_resource_pool.id}"
-  cpu_share_level         = "custom"
-  cpu_shares              = 10
-  cpu_reservation         = 10
-  cpu_expandable          = false
-  cpu_limit               = 20
-  memory_share_level      = "custom"
-  memory_shares           = 10
-  memory_reservation      = 10
-  memory_expandable       = false
-  memory_limit            = 20
+  name                     = "terraform-resource-pool-test"
+  parent_resource_pool_id  = vsphere_resource_pool.parent_resource_pool.id
+  cpu_share_level          = "custom"
+  cpu_shares               = 10
+  cpu_reservation          = 10
+  cpu_expandable           = false
+  cpu_limit                = 20
+  memory_share_level       = "custom"
+  memory_shares            = 10
+  memory_reservation       = 10
+  memory_expandable        = false
+  memory_limit             = 20
   scale_descendants_shares = "scaleCpuAndMemoryShares"
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
 	)
 }
 
@@ -484,13 +486,13 @@ variable "host" {
 }
 
 data "vsphere_host" "host" {
-  name          = "${var.host}"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  name          = var.host
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 
 resource "vsphere_resource_pool" "resource_pool" {
   name                    = "terraform-resource-pool-test"
-  parent_resource_pool_id = "${data.vsphere_host.host.resource_pool_id}"
+  parent_resource_pool_id = data.vsphere_host.host.resource_pool_id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
@@ -513,16 +515,15 @@ resource "vsphere_tag_category" "testacc-category" {
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_resource_pool" "resource_pool" {
   name                    = "terraform-resource-pool-test"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
-  tags                    = ["${vsphere_tag.testacc-tag.id}"]
+  parent_resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+  tags                    = [vsphere_tag.testacc-tag.id]
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
 	)
 }
 
@@ -532,12 +533,12 @@ func testAccResourceVSphereResourcePoolConfigRename() string {
 
 resource "vsphere_resource_pool" "parent_resource_pool" {
   name                    = "terraform-resource-pool-test-parent"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
+  parent_resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
 }
 
 resource "vsphere_resource_pool" "resource_pool" {
   name                    = "terraform-resource-pool-test-rename"
-  parent_resource_pool_id = "${vsphere_resource_pool.parent_resource_pool.id}"
+  parent_resource_pool_id = vsphere_resource_pool.parent_resource_pool.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),
@@ -550,12 +551,12 @@ func testAccResourceVSphereResourcePoolConfigBasic() string {
 
 resource "vsphere_resource_pool" "parent_resource_pool" {
   name                    = "terraform-resource-pool-test-parent"
-  parent_resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
+  parent_resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
 }
 
 resource "vsphere_resource_pool" "resource_pool" {
   name                    = "terraform-resource-pool-test"
-  parent_resource_pool_id = "${vsphere_resource_pool.parent_resource_pool.id}"
+  parent_resource_pool_id = vsphere_resource_pool.parent_resource_pool.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootComputeCluster1()),

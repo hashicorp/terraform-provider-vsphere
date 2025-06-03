@@ -768,9 +768,9 @@ func ReadSCSIBusSharing(l object.VirtualDeviceList, count int) string {
 	if len(ctlrs) == 0 || ctlrs[0] == nil {
 		return subresourceControllerSharingUnknown
 	}
-	last := ctlrs[0].(types.BaseVirtualSCSIController).GetVirtualSCSIController().SharedBus
+	last := ctlrs[0].GetVirtualSCSIController().SharedBus
 	for _, ctlr := range ctlrs[1:] {
-		if ctlr == nil || ctlr.(types.BaseVirtualSCSIController).GetVirtualSCSIController().SharedBus != last {
+		if ctlr == nil || ctlr.GetVirtualSCSIController().SharedBus != last {
 			return subresourceControllerSharingMixed
 		}
 	}
@@ -1001,7 +1001,7 @@ func (c *pciApplyConfig) getHostPciDevice(id string) (*types.HostPciDevice, erro
 			return &hostPci, nil
 		}
 	}
-	return nil, fmt.Errorf("Unable to locate PCI device: %s", id)
+	return nil, fmt.Errorf("unable to locate PCI device: %s", id)
 }
 
 // getPciSysId fetchs the PCI SystemId of a host. The SystemId is required for
@@ -1078,11 +1078,11 @@ func (c *pciApplyConfig) modifyVirtualPciDevices(devList *schema.Set, op types.V
 // virtual machine.
 func PciPassthroughApplyOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	old, newValue := d.GetChange("pci_device_id")
-	oldDevIds := old.(*schema.Set)
-	newDevIds := newValue.(*schema.Set)
+	oldDevIDs := old.(*schema.Set)
+	newDevIDs := newValue.(*schema.Set)
 
-	delDevs := oldDevIds.Difference(newDevIds)
-	addDevs := newDevIds.Difference(oldDevIds)
+	delDevs := oldDevIDs.Difference(newDevIDs)
+	addDevs := newDevIDs.Difference(oldDevIDs)
 	applyConfig := &pciApplyConfig{
 		Client:        c,
 		ResourceData:  d,
@@ -1118,11 +1118,11 @@ func PciPassthroughApplyOperation(d *schema.ResourceData, c *govmomi.Client, l o
 // operations. It also sets the state in advance of the post-create read.
 func PciPassthroughPostCloneOperation(d *schema.ResourceData, c *govmomi.Client, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
 	old, newValue := d.GetChange("pci_device_id")
-	oldDevIds := old.(*schema.Set)
-	newDevIds := newValue.(*schema.Set)
+	oldDevIDs := old.(*schema.Set)
+	newDevIDs := newValue.(*schema.Set)
 
-	delDevs := oldDevIds.Difference(newDevIds)
-	addDevs := newDevIds.Difference(oldDevIds)
+	delDevs := oldDevIDs.Difference(newDevIDs)
+	addDevs := newDevIDs.Difference(oldDevIDs)
 	applyConfig := &pciApplyConfig{
 		Client:        c,
 		ResourceData:  d,
@@ -1150,4 +1150,55 @@ func PciPassthroughPostCloneOperation(d *schema.ResourceData, c *govmomi.Client,
 		return nil, nil, err
 	}
 	return applyConfig.VirtualDevice, applyConfig.Spec, nil
+}
+
+func VtpmApplyOperation(d *schema.ResourceData, l object.VirtualDeviceList) (object.VirtualDeviceList, []types.BaseVirtualDeviceConfigSpec, error) {
+	vtpmConfigRaw := d.Get("vtpm")
+	vtpmConfig := vtpmConfigRaw.([]interface{})
+
+	// There can only be one TPM module per virtual machine
+	// so we only expect 1 element in this slice at the most
+	vtpmDevices := l.Select(func(device types.BaseVirtualDevice) bool {
+		if _, ok := device.(*types.VirtualTPM); ok {
+			return true
+		}
+		return false
+	})
+
+	var specs []types.BaseVirtualDeviceConfigSpec
+
+	if len(vtpmDevices) > len(vtpmConfig) {
+		// delete device
+		spec := &types.VirtualDeviceConfigSpec{
+			Operation: types.VirtualDeviceConfigSpecOperationRemove,
+			Device: &types.VirtualTPM{
+				VirtualDevice: types.VirtualDevice{
+					Key: vtpmDevices[0].GetVirtualDevice().Key,
+				},
+			},
+		}
+
+		specs = append(specs, spec)
+	}
+
+	if len(vtpmConfig) > len(vtpmDevices) {
+		// create device
+		spec := &types.VirtualDeviceConfigSpec{
+			Operation: types.VirtualDeviceConfigSpecOperationAdd,
+			Device: &types.VirtualTPM{
+				VirtualDevice: types.VirtualDevice{
+					Key: -1,
+				},
+			},
+		}
+
+		specs = append(specs, spec)
+	}
+
+	if len(specs) > 0 {
+		_ = d.Set("reboot_required", true)
+	}
+
+	l = applyDeviceChange(l, specs)
+	return l, specs, nil
 }

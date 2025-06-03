@@ -78,22 +78,22 @@ variable "tag_description" {
 }
 
 resource "vsphere_tag_category" "testacc-category" {
-  name        = "${var.tag_category_name}"
-  description = "${var.tag_category_description}"
-  cardinality = "${var.tag_category_cardinality}"
+  name        = var.tag_category_name
+  description = var.tag_category_description
+  cardinality = var.tag_category_cardinality
 
-  associable_types = "${var.tag_category_associable_types}"
+  associable_types = var.tag_category_associable_types
 }
 
 resource "vsphere_tag" "testacc-tag" {
-  name        = "${var.tag_name}"
-  description = "${var.tag_description}"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  name        = var.tag_name
+  description = var.tag_description
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 data "vsphere_tag" "testacc-tag-data" {
-  name        = "${vsphere_tag.testacc-tag.name}"
-  category_id = "${vsphere_tag.testacc-tag.category_id}"
+  name        = vsphere_tag.testacc-tag.name
+  category_id = vsphere_tag.testacc-tag.category_id
 }
 `,
 		testAccDataSourceVSphereTagCategoryConfigName,

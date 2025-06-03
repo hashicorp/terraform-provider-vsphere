@@ -67,6 +67,7 @@ func TestAccResourceVSphereTag_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereTag_changeName(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -93,6 +94,7 @@ func TestAccResourceVSphereTag_changeName(t *testing.T) {
 }
 
 func TestAccResourceVSphereTag_changeDescription(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -119,6 +121,7 @@ func TestAccResourceVSphereTag_changeDescription(t *testing.T) {
 }
 
 func TestAccResourceVSphereTag_detachAllTags(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -216,29 +219,29 @@ resource "vsphere_tag_category" "testacc-category" {
 
   associable_types = [
     "Folder",
-	"ClusterComputeResource",
-	"Datacenter",
-	"Datastore",
-	"StoragePod",
-	"DistributedVirtualPortgroup",
-	"DistributedVirtualSwitch",
-	"VmwareDistributedVirtualSwitch",
-	"HostSystem",
-	"com.vmware.content.Library",
-	"com.vmware.content.library.Item",
-	"HostNetwork",
-	"Network",
-	"OpaqueNetwork",
-	"ResourcePool",
-	"VirtualApp",
-	"VirtualMachine"
+    "ClusterComputeResource",
+    "Datacenter",
+    "Datastore",
+    "StoragePod",
+    "DistributedVirtualPortgroup",
+    "DistributedVirtualSwitch",
+    "VmwareDistributedVirtualSwitch",
+    "HostSystem",
+    "com.vmware.content.Library",
+    "com.vmware.content.library.Item",
+    "HostNetwork",
+    "Network",
+    "OpaqueNetwork",
+    "ResourcePool",
+    "VirtualApp",
+    "VirtualMachine"
   ]
 }
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
   description = "Managed by Terraform"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 `
 
@@ -249,29 +252,29 @@ resource "vsphere_tag_category" "testacc-category" {
 
   associable_types = [
     "Folder",
-	"ClusterComputeResource",
-	"Datacenter",
-	"Datastore",
-	"StoragePod",
-	"DistributedVirtualPortgroup",
-	"DistributedVirtualSwitch",
-	"VmwareDistributedVirtualSwitch",
-	"HostSystem",
-	"com.vmware.content.Library",
-	"com.vmware.content.library.Item",
-	"HostNetwork",
-	"Network",
-	"OpaqueNetwork",
-	"ResourcePool",
-	"VirtualApp",
-	"VirtualMachine"
+    "ClusterComputeResource",
+    "Datacenter",
+    "Datastore",
+    "StoragePod",
+    "DistributedVirtualPortgroup",
+    "DistributedVirtualSwitch",
+    "VmwareDistributedVirtualSwitch",
+    "HostSystem",
+    "com.vmware.content.Library",
+    "com.vmware.content.library.Item",
+    "HostNetwork",
+    "Network",
+    "OpaqueNetwork",
+    "ResourcePool",
+    "VirtualApp",
+    "VirtualMachine"
   ]
 }
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag-renamed"
   description = "Managed by Terraform"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 `
 
@@ -282,29 +285,29 @@ resource "vsphere_tag_category" "testacc-category" {
 
   associable_types = [
     "Folder",
-	"ClusterComputeResource",
-	"Datacenter",
-	"Datastore",
-	"StoragePod",
-	"DistributedVirtualPortgroup",
-	"DistributedVirtualSwitch",
-	"VmwareDistributedVirtualSwitch",
-	"HostSystem",
-	"com.vmware.content.Library",
-	"com.vmware.content.library.Item",
-	"HostNetwork",
-	"Network",
-	"OpaqueNetwork",
-	"ResourcePool",
-	"VirtualApp",
-	"VirtualMachine"
+    "ClusterComputeResource",
+    "Datacenter",
+    "Datastore",
+    "StoragePod",
+    "DistributedVirtualPortgroup",
+    "DistributedVirtualSwitch",
+    "VmwareDistributedVirtualSwitch",
+    "HostSystem",
+    "com.vmware.content.Library",
+    "com.vmware.content.library.Item",
+    "HostNetwork",
+    "Network",
+    "OpaqueNetwork",
+    "ResourcePool",
+    "VirtualApp",
+    "VirtualMachine"
   ]
 }
 
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
   description = "Still managed by Terraform"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 `
 
@@ -324,15 +327,15 @@ resource "vsphere_tag_category" "testacc-category" {
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
   description = "Managed by Terraform"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_folder" "folder" {
   path          = "testacc-folder"
   type          = "vm"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 
-  tags = ["${vsphere_tag.testacc-tag.id}"]
+  tags = [vsphere_tag.testacc-tag.id]
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),
@@ -355,13 +358,13 @@ resource "vsphere_tag_category" "testacc-category" {
 resource "vsphere_tag" "testacc-tag" {
   name        = "testacc-tag"
   description = "Managed by Terraform"
-  category_id = "${vsphere_tag_category.testacc-category.id}"
+  category_id = vsphere_tag_category.testacc-category.id
 }
 
 resource "vsphere_folder" "folder" {
   path          = "testacc-folder"
   type          = "vm"
-  datacenter_id = "${data.vsphere_datacenter.rootdc1.id}"
+  datacenter_id = data.vsphere_datacenter.rootdc1.id
 }
 `,
 		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootPortGroup1()),

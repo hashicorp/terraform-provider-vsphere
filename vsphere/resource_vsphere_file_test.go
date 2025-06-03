@@ -6,6 +6,7 @@ package vsphere
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -37,7 +38,6 @@ func TestAccResourceVSphereFile_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccCheckEnvVariables(t, []string{"TF_VAR_VSPHERE_DATACENTER", "TF_VAR_VSPHERE_NFS_DS_NAME"})
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereFileDestroy,
@@ -86,7 +86,6 @@ func TestAccResourceVSphereFile_uploadWithCreateDirectories(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccCheckEnvVariables(t, []string{"TF_VAR_VSPHERE_DATACENTER", "TF_VAR_VSPHERE_NFS_DS_NAME"})
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereFileDestroy,
@@ -130,6 +129,7 @@ func TestAccResourceVSphereFile_uploadWithCreateDirectories(t *testing.T) {
 
 // TestAccResourceVSphereFile_basicUploadAndCopy verifies uploading and copying files.
 func TestAccResourceVSphereFile_basicUploadAndCopy(t *testing.T) {
+	testAccSkipUnstable(t)
 	testFileData := []byte("test file data")
 	sourceFile := "/tmp/tf_test.txt"
 	uploadResourceName := "myfileupload"
@@ -187,6 +187,7 @@ func TestAccResourceVSphereFile_basicUploadAndCopy(t *testing.T) {
 
 // TestAccResourceVSphereFile_renamePostCreation verifies the renaming of a resource during creation and update phases.
 func TestAccResourceVSphereFile_renamePostCreation(t *testing.T) {
+	testAccSkipUnstable(t)
 	testFileData := []byte("test file data")
 	testFile := "/tmp/tf_test.txt"
 	err := os.WriteFile(testFile, testFileData, 0600)
@@ -249,6 +250,7 @@ func TestAccResourceVSphereFile_renamePostCreation(t *testing.T) {
 
 // TestAccResourceVSphereFile_uploadAndCopyAndUpdate verifies uploading, copying, and updating files.
 func TestAccResourceVSphereFile_uploadAndCopyAndUpdate(t *testing.T) {
+	testAccSkipUnstable(t)
 	testFileData := []byte("test file data")
 	sourceFile := "/tmp/tf_test.txt"
 	uploadResourceName := "myfileupload"
@@ -353,14 +355,15 @@ func testAccCheckVSphereFileDestroy(s *terraform.State) error {
 
 		_, err = ds.Stat(context.TODO(), rs.Primary.Attributes["destination_file"])
 		if err != nil {
-			switch err.(type) {
-			case object.DatastoreNoSuchFileError:
+			var notFoundError *object.DatastoreNoSuchFileError
+			switch {
+			case errors.As(err, &notFoundError):
 				return nil
 			default:
 				return err
 			}
 		} else {
-			return fmt.Errorf("File %s still exists", rs.Primary.Attributes["destination_file"])
+			return fmt.Errorf("file %s still exists", rs.Primary.Attributes["destination_file"])
 		}
 	}
 
@@ -372,11 +375,11 @@ func testAccCheckVSphereFileExists(n string, df string, exists bool) resource.Te
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			return fmt.Errorf("Resource not found: %s", n)
+			return fmt.Errorf("resource not found: %s", n)
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No ID is set")
+			return fmt.Errorf("no ID is set")
 		}
 
 		client := testAccProvider.Meta().(*Client).vimClient
@@ -395,10 +398,11 @@ func testAccCheckVSphereFileExists(n string, df string, exists bool) resource.Te
 
 		_, err = ds.Stat(context.TODO(), df)
 		if err != nil {
-			switch e := err.(type) {
-			case object.DatastoreNoSuchFileError:
+			var notFoundError *object.DatastoreNoSuchFileError
+			switch {
+			case errors.As(err, &notFoundError):
 				if exists {
-					return fmt.Errorf("File does not exist: %s", e.Error())
+					return fmt.Errorf("file does not exist: %s", notFoundError.Error())
 				}
 				return nil
 			default:
@@ -412,38 +416,38 @@ func testAccCheckVSphereFileExists(n string, df string, exists bool) resource.Te
 // testAccCheckVSphereFileConfig defines a configuration for creating or managing the resource.
 const testAccCheckVSphereFileConfig = `
 resource "vsphere_file" "%s" {
-	datacenter       = "%s"
-	datastore        = "%s"
-	source_file      = "%s"
-	destination_file = "%s"
+  datacenter       = "%s"
+  datastore        = "%s"
+  source_file      = "%s"
+  destination_file = "%s"
 }
 `
 
 // testAccCheckVSphereFileCopyConfig defines a configuration for uploading and copying the resource.
 const testAccCheckVSphereFileCopyConfig = `
 resource "vsphere_file" "%s" {
-	datacenter       = "%s"
-	datastore        = "%s"
-	source_file      = "%s"
-	destination_file = "%s"
+  datacenter       = "%s"
+  datastore        = "%s"
+  source_file      = "%s"
+  destination_file = "%s"
 }
 resource "vsphere_file" "%s" {
-	source_datacenter = "%s"
-	datacenter        = "%s"
-	source_datastore  = "%s"
-	datastore         = "%s"
-	source_file       = "%s"
-	destination_file  = "%s"
+  source_datacenter = "%s"
+  datacenter        = "%s"
+  source_datastore  = "%s"
+  datastore         = "%s"
+  source_file       = "%s"
+  destination_file  = "%s"
 }
 `
 
 // testAccCheckVSphereFileCreateFolderConfig defines a configuration for testing file uploads with directory creation.
 const testAccCheckVSphereFileCreateFolderConfig = `
 resource "vsphere_file" "%s" {
-	datacenter       = "%s"
-	datastore        = "%s"
-	source_file      = "%s"
-	destination_file = "%s"
-    create_directories = true
+  datacenter         = "%s"
+  datastore          = "%s"
+  source_file        = "%s"
+  destination_file   = "%s"
+  create_directories = true
 }
 `

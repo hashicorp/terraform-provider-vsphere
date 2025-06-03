@@ -310,10 +310,10 @@ func FromName(client *govmomi.Client, name string) (*types.CustomizationSpecItem
 }
 
 func FlattenGuestOsCustomizationSpec(d *schema.ResourceData, specItem *types.CustomizationSpecItem, client *govmomi.Client) error {
-	d.Set("type", specItem.Info.Type)
-	d.Set("description", specItem.Info.Description)
-	d.Set("last_update_time", specItem.Info.LastUpdateTime.String())
-	d.Set("change_version", specItem.Info.ChangeVersion)
+	_ = d.Set("type", specItem.Info.Type)
+	_ = d.Set("description", specItem.Info.Description)
+	_ = d.Set("last_update_time", specItem.Info.LastUpdateTime.String())
+	_ = d.Set("change_version", specItem.Info.ChangeVersion)
 
 	specData := make(map[string]interface{})
 	specData["dns_server_list"] = specItem.Spec.GlobalIPSettings.DnsServerList
@@ -375,12 +375,12 @@ func FlattenGuestOsCustomizationSpec(d *schema.ResourceData, specItem *types.Cus
 	}
 	specData["network_interface"] = networkInterfaces
 	spec := []map[string]interface{}{specData}
-	d.Set("spec", spec)
+	_ = d.Set("spec", spec)
 
 	return nil
 }
 
-func IsSpecOsApplicableToVmOs(vmOsFamily types.VirtualMachineGuestOsFamily, specType string) bool {
+func IsSpecOsApplicableToVMOs(vmOsFamily types.VirtualMachineGuestOsFamily, specType string) bool {
 	if specType == GuestOsCustomizationTypeWindows && vmOsFamily == types.VirtualMachineGuestOsFamilyWindowsGuest {
 		return true
 	}

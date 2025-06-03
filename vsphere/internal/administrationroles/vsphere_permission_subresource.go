@@ -16,7 +16,7 @@ func VspherePermissionSchema() map[string]*schema.Schema {
 			Type:        schema.TypeString,
 			Required:    true,
 			Description: "User or group receiving access.",
-			DiffSuppressFunc: func(k, old, newValue string, d *schema.ResourceData) bool {
+			DiffSuppressFunc: func(_, old, newValue string, _ *schema.ResourceData) bool {
 				return strings.EqualFold(old, newValue)
 			},
 		},

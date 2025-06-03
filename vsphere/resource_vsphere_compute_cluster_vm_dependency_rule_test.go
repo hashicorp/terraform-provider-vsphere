@@ -22,6 +22,7 @@ import (
 )
 
 func TestAccResourceVSphereComputeClusterVMDependencyRule_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -90,6 +91,7 @@ func TestAccResourceVSphereComputeClusterVMDependencyRule_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereComputeClusterVMDependencyRule_altGroup(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -117,6 +119,7 @@ func TestAccResourceVSphereComputeClusterVMDependencyRule_altGroup(t *testing.T)
 }
 
 func TestAccResourceVSphereComputeClusterVMDependencyRule_updateEnabled(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -157,6 +160,7 @@ func TestAccResourceVSphereComputeClusterVMDependencyRule_updateEnabled(t *testi
 }
 
 func TestAccResourceVSphereComputeClusterVMDependencyRule_updateGroup(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -301,7 +305,7 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
@@ -322,7 +326,7 @@ resource "vsphere_virtual_machine" "dependent_vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
@@ -334,32 +338,31 @@ resource "vsphere_virtual_machine" "dependent_vm" {
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
   name                = "terraform-test-cluster-vm-group"
   compute_cluster_id  = data.vsphere_compute_cluster.rootcompute_cluster1.id
-  virtual_machine_ids = ["${vsphere_virtual_machine.vm.id}"]
+  virtual_machine_ids = [vsphere_virtual_machine.vm.id]
 }
 
 resource "vsphere_compute_cluster_vm_group" "dependent_vm_group" {
   name                = "terraform-test-cluster-dependent-vm-group"
   compute_cluster_id  = data.vsphere_compute_cluster.rootcompute_cluster1.id
-  virtual_machine_ids = ["${vsphere_virtual_machine.dependent_vm.id}"]
+  virtual_machine_ids = [vsphere_virtual_machine.dependent_vm.id]
 }
 
 resource "vsphere_compute_cluster_vm_dependency_rule" "cluster_vm_dependency_rule" {
   compute_cluster_id       = data.vsphere_compute_cluster.rootcompute_cluster1.id
   name                     = "terraform-test-cluster-vm-dependency-rule"
-  dependency_vm_group_name = "${vsphere_compute_cluster_vm_group.dependent_vm_group.name}"
-  vm_group_name            = "${vsphere_compute_cluster_vm_group.cluster_vm_group.name}"
+  dependency_vm_group_name = vsphere_compute_cluster_vm_group.dependent_vm_group.name
+  vm_group_name            = vsphere_compute_cluster_vm_group.cluster_vm_group.name
 }
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2(),
-			testhelper.ConfigDataRootComputeCluster1(),
-			testhelper.ConfigResResourcePool1(),
-			testhelper.ConfigDataRootPortGroup1(),
-			testhelper.ConfigDataRootDS1(),
-			testhelper.ConfigDataRootVMNet(),
-			testhelper.ConfigResDS1()),
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootHost2(),
+		testhelper.ConfigDataRootComputeCluster1(),
+		testhelper.ConfigResResourcePool1(),
+		testhelper.ConfigDataRootPortGroup1(),
+		testhelper.ConfigDataRootDS1(),
+		testhelper.ConfigDataRootVMNet(),
+		testhelper.ConfigResDS1()),
 	)
 }
 
@@ -379,7 +382,7 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
@@ -400,7 +403,7 @@ resource "vsphere_virtual_machine" "dependent_vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
@@ -421,7 +424,7 @@ resource "vsphere_virtual_machine" "second_dependent_vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
@@ -433,29 +436,28 @@ resource "vsphere_virtual_machine" "second_dependent_vm" {
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
   name                = "terraform-test-cluster-vm-group"
   compute_cluster_id  = data.vsphere_compute_cluster.rootcompute_cluster1.id
-  virtual_machine_ids = ["${vsphere_virtual_machine.vm.id}"]
+  virtual_machine_ids = [vsphere_virtual_machine.vm.id]
 }
 
 resource "vsphere_compute_cluster_vm_group" "dependent_vm_group" {
   name                = "terraform-test-cluster-dependent-vm-group"
   compute_cluster_id  = data.vsphere_compute_cluster.rootcompute_cluster1.id
-  virtual_machine_ids = ["${vsphere_virtual_machine.dependent_vm.id}"]
+  virtual_machine_ids = [vsphere_virtual_machine.dependent_vm.id]
 }
 
 resource "vsphere_compute_cluster_vm_group" "second_dependent_vm_group" {
   name                = "terraform-test-cluster-dependent-vm-group2"
   compute_cluster_id  = data.vsphere_compute_cluster.rootcompute_cluster1.id
-  virtual_machine_ids = ["${vsphere_virtual_machine.second_dependent_vm.id}"]
+  virtual_machine_ids = [vsphere_virtual_machine.second_dependent_vm.id]
 }
 
 resource "vsphere_compute_cluster_vm_dependency_rule" "cluster_vm_dependency_rule" {
   compute_cluster_id       = data.vsphere_compute_cluster.rootcompute_cluster1.id
   name                     = "terraform-test-cluster-vm-dependency-rule"
-  dependency_vm_group_name = "${vsphere_compute_cluster_vm_group.second_dependent_vm_group.name}"
-  vm_group_name            = "${vsphere_compute_cluster_vm_group.cluster_vm_group.name}"
+  dependency_vm_group_name = vsphere_compute_cluster_vm_group.second_dependent_vm_group.name
+  vm_group_name            = vsphere_compute_cluster_vm_group.cluster_vm_group.name
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(), testhelper.ConfigDataRootHost1(), testhelper.ConfigDataRootHost2(), testhelper.ConfigResDS1(), testhelper.ConfigDataRootComputeCluster1(), testhelper.ConfigResResourcePool1(), testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
@@ -475,7 +477,7 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
@@ -496,7 +498,7 @@ resource "vsphere_virtual_machine" "dependent_vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
@@ -508,29 +510,28 @@ resource "vsphere_virtual_machine" "dependent_vm" {
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
   name                = "terraform-test-cluster-vm-group"
   compute_cluster_id  = data.vsphere_compute_cluster.rootcompute_cluster1.id
-  virtual_machine_ids = ["${vsphere_virtual_machine.vm.id}"]
+  virtual_machine_ids = [vsphere_virtual_machine.vm.id]
 }
 
 resource "vsphere_compute_cluster_vm_group" "dependent_vm_group" {
   name                = "terraform-test-cluster-dependent-vm-group"
   compute_cluster_id  = data.vsphere_compute_cluster.rootcompute_cluster1.id
-  virtual_machine_ids = ["${vsphere_virtual_machine.dependent_vm.id}"]
+  virtual_machine_ids = [vsphere_virtual_machine.dependent_vm.id]
 }
 
 resource "vsphere_compute_cluster_vm_dependency_rule" "cluster_vm_dependency_rule" {
   compute_cluster_id       = data.vsphere_compute_cluster.rootcompute_cluster1.id
   name                     = "terraform-test-cluster-vm-dependency-rule"
-  dependency_vm_group_name = "${vsphere_compute_cluster_vm_group.dependent_vm_group.name}"
-  vm_group_name            = "${vsphere_compute_cluster_vm_group.cluster_vm_group.name}"
+  dependency_vm_group_name = vsphere_compute_cluster_vm_group.dependent_vm_group.name
+  vm_group_name            = vsphere_compute_cluster_vm_group.cluster_vm_group.name
   enabled                  = false
 }
-`,
-		testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2(),
-			testhelper.ConfigResDS1(),
-			testhelper.ConfigDataRootComputeCluster1(),
-			testhelper.ConfigResResourcePool1(),
-			testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootHost2(),
+		testhelper.ConfigResDS1(),
+		testhelper.ConfigDataRootComputeCluster1(),
+		testhelper.ConfigResResourcePool1(),
+		testhelper.ConfigDataRootPortGroup1()),
 	)
 }

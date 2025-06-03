@@ -5,6 +5,8 @@ description: |-
   A Terraform provider to work with VMware vSphere, allowing management of virtual machines and other vSphere and vSAN resources.
 ---
 
+<img src="https://raw.githubusercontent.com/vmware/terraform-provider-vsphere/main/docs/images/icon-color.svg" alt="VMware vSphere" width="150">
+
 # Terraform Provider for VMware vSphere
 
 This provider gives Terraform the ability to work with VMware vSphere. This
@@ -14,6 +16,19 @@ libraries, and more.
 
 Use the navigation to read about the resources and data sources supported by
 this provider.
+
+This release is supported with:
+
+- VMware vSphere 8.x
+- VMware vSphere 7.x
+
+Refer to the [Broadcom Product Lifecycle][product-lifecycle].
+
+[product-lifecycle]: https://support.broadcom.com/group/ecx/productlifecycle
+
+~> **NOTE:** This provider requires API write access and is therefore not
+compatible with VMware vSphere Hypervisor version 8, the free entry-level
+hypervisor.
 
 ## Example Usage
 
@@ -136,8 +151,6 @@ The session format used to save VIM SOAP sessions is the same used
 with [`vmware/govc`][docs-govc]. If you use `govc` as part of your provisioning
 process, Terraform will use the saved session if present and if
 `persist_session` is enabled.
-
-~> **NOTE:** If using v2.11.1 or later of the provider, use `vmware/govc` v0.48.0 or later.
 
 ### Debugging Options
 

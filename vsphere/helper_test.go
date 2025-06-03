@@ -272,7 +272,7 @@ func testGetDatacenter(s *terraform.State, resourceName string) (*object.Datacen
 	}
 	dcName, ok := tVars.resourceAttributes["name"]
 	if !ok {
-		return nil, fmt.Errorf("Datacenter resource %q has no name", resourceName)
+		return nil, fmt.Errorf("datacenter resource %q has no name", resourceName)
 	}
 	return getDatacenter(tVars.client, dcName)
 }
@@ -696,7 +696,7 @@ func testCheckResourceNotAttr(name, key, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		err := resource.TestCheckResourceAttr(name, key, value)(s)
 		if err != nil {
-			if regexp.MustCompile("[-_.a-zA-Z0-9]\\: Attribute '.*' expected .*, got .*").MatchString(err.Error()) {
+			if regexp.MustCompile(`[-_.a-zA-Z0-9]\: Attribute '.*' expected .*, got .*`).MatchString(err.Error()) {
 				return nil
 			}
 			return err
@@ -1173,7 +1173,7 @@ func RunSweepers() {
 	_ = folderSweep("")
 }
 
-func tagSweep(string) error {
+func tagSweep(_ string) error {
 	ctx := context.TODO()
 	client, err := sweepVSphereClient()
 	if err != nil {
@@ -1195,7 +1195,7 @@ func tagSweep(string) error {
 	return nil
 }
 
-func dcSweep(string) error {
+func dcSweep(_ string) error {
 	client, err := sweepVSphereClient()
 	if err != nil {
 		return err
@@ -1215,7 +1215,7 @@ func dcSweep(string) error {
 	return nil
 }
 
-func vmSweep(string) error {
+func vmSweep(_ string) error {
 	client, err := sweepVSphereClient()
 	if err != nil {
 		return err
@@ -1233,7 +1233,7 @@ func vmSweep(string) error {
 	return nil
 }
 
-func rpSweep(string) error {
+func rpSweep(_ string) error {
 	client, err := sweepVSphereClient()
 	if err != nil {
 		return err
@@ -1250,7 +1250,7 @@ func rpSweep(string) error {
 	return nil
 }
 
-func dsSweep(string) error {
+func dsSweep(_ string) error {
 	client, err := sweepVSphereClient()
 	if err != nil {
 		return err
@@ -1274,7 +1274,7 @@ func dsSweep(string) error {
 	return nil
 }
 
-func dspSweep(string) error {
+func dspSweep(_ string) error {
 	client, err := sweepVSphereClient()
 	if err != nil {
 		return err
@@ -1291,7 +1291,7 @@ func dspSweep(string) error {
 	return nil
 }
 
-func ccSweep(string) error {
+func ccSweep(_ string) error {
 	client, err := sweepVSphereClient()
 	if err != nil {
 		return err
@@ -1308,7 +1308,7 @@ func ccSweep(string) error {
 	return nil
 }
 
-func netSweep(string) error {
+func netSweep(_ string) error {
 	client, err := sweepVSphereClient()
 	if err != nil {
 		return err
@@ -1328,7 +1328,7 @@ func netSweep(string) error {
 	return nil
 }
 
-func folderSweep(string) error {
+func folderSweep(_ string) error {
 	client, err := sweepVSphereClient()
 	if err != nil {
 		return err

@@ -153,7 +153,7 @@ func resourceVsphereNicRead(d *schema.ResourceData, meta interface{}) error {
 	var services []string
 	for _, netConfig := range hostVnicMgrInfo.NetConfig {
 		for _, vnic := range netConfig.SelectedVnic {
-			if isNicIdContained := strings.Contains(vnic, nicID); isNicIdContained {
+			if isNicIDContained := strings.Contains(vnic, nicID); isNicIDContained {
 				services = append(services, netConfig.NicType)
 			}
 		}
@@ -282,7 +282,7 @@ func BaseVMKernelSchema() map[string]*schema.Schema {
 					Elem: &schema.Schema{
 						Type: schema.TypeString,
 					},
-					DiffSuppressFunc: func(k, old, newValue string, d *schema.ResourceData) bool {
+					DiffSuppressFunc: func(_, old, newValue string, _ *schema.ResourceData) bool {
 						return strings.EqualFold(old, newValue)
 					},
 				},
@@ -290,7 +290,7 @@ func BaseVMKernelSchema() map[string]*schema.Schema {
 					Type:        schema.TypeString,
 					Optional:    true,
 					Description: "IP address of the default gateway, if DHCP or autoconfig is not set.",
-					DiffSuppressFunc: func(k, old, newValue string, d *schema.ResourceData) bool {
+					DiffSuppressFunc: func(_, old, newValue string, _ *schema.ResourceData) bool {
 						return strings.EqualFold(old, newValue)
 					},
 				},

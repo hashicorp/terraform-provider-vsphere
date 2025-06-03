@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"reflect"
 	"sort"
 	"testing"
@@ -28,7 +27,6 @@ func TestAccResourceVSphereComputeClusterVMAffinityRule_basic(t *testing.T) {
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterVMAffinityRulePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereComputeClusterVMAffinityRuleExists(false),
@@ -89,7 +87,6 @@ func TestAccResourceVSphereComputeClusterVMAffinityRule_updateEnabled(t *testing
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterVMAffinityRulePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereComputeClusterVMAffinityRuleExists(false),
@@ -127,7 +124,6 @@ func TestAccResourceVSphereComputeClusterVMAffinityRule_updateCount(t *testing.T
 		PreCheck: func() {
 			RunSweepers()
 			testAccPreCheck(t)
-			testAccResourceVSphereComputeClusterVMAffinityRulePreCheck(t)
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccResourceVSphereComputeClusterVMAffinityRuleExists(false),
@@ -158,21 +154,6 @@ func TestAccResourceVSphereComputeClusterVMAffinityRule_updateCount(t *testing.T
 			},
 		},
 	})
-}
-
-func testAccResourceVSphereComputeClusterVMAffinityRulePreCheck(t *testing.T) {
-	if os.Getenv("TF_VAR_VSPHERE_DATACENTER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_DATACENTER to run vsphere_compute_cluster_vm_affinity_rule acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_NFS_DS_NAME") == "" {
-		t.Skip("set TF_VAR_VSPHERE_NFS_DS_NAME to run vsphere_compute_cluster_vm_affinity_rule acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_CLUSTER") == "" {
-		t.Skip("set TF_VAR_VSPHERE_CLUSTER to run vsphere_compute_cluster_vm_affinity_rule acceptance tests")
-	}
-	if os.Getenv("TF_VAR_VSPHERE_PG_NAME") == "" {
-		t.Skip("set TF_VAR_VSPHERE_PG_NAME to run vsphere_compute_cluster_vm_affinity_rule acceptance tests")
-	}
 }
 
 func testAccResourceVSphereComputeClusterVMAffinityRuleExists(expected bool) resource.TestCheckFunc {
@@ -269,7 +250,7 @@ func testAccResourceVSphereComputeClusterVMAffinityRuleMatchMembership() resourc
 
 		actualSort := structure.MoRefSorter(actual.Vm)
 		sort.Sort(actualSort)
-		actual.Vm = []types.ManagedObjectReference(actualSort)
+		actual.Vm = actualSort
 
 		if !reflect.DeepEqual(expected, actual) {
 			return spew.Errorf("expected %#v got %#v", expected, actual)
@@ -317,42 +298,42 @@ variable "vm_count" {
 }
 
 resource "vsphere_virtual_machine" "vm" {
-  count            = "${var.vm_count}"
+  count            = var.vm_count
   name             = "terraform-test-${count.index}"
-  resource_pool_id = "${data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id}"
-  datastore_id     = vsphere_nas_datastore.ds1.id
+  resource_pool_id = data.vsphere_compute_cluster.rootcompute_cluster1.resource_pool_id
+  datastore_id     = data.vsphere_datastore.rootds1.id
 
   num_cpus = 2
   memory   = 2048
   guest_id = "other3xLinuxGuest"
 
-  wait_for_guest_net_timeout = -1
+  wait_for_guest_net_timeout = 0
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
     label = "disk0"
-    size  = 20
+    size  = 1
+    io_reservation = 1
   }
 }
 
 resource "vsphere_compute_cluster_vm_affinity_rule" "cluster_vm_affinity_rule" {
   name                = "terraform-test-cluster-affinity-rule"
-  compute_cluster_id  = "${data.vsphere_compute_cluster.rootcompute_cluster1.id}"
-  virtual_machine_ids = "${vsphere_virtual_machine.vm.*.id}"
-	enabled             = %t
+  compute_cluster_id  = data.vsphere_compute_cluster.rootcompute_cluster1.id
+  virtual_machine_ids = vsphere_virtual_machine.vm.*.id
+  enabled             = %t
 }
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2(),
-			testhelper.ConfigResDS1(),
-			testhelper.ConfigDataRootComputeCluster1(),
-			testhelper.ConfigResResourcePool1(),
-			testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootHost2(),
+		testhelper.ConfigDataRootDS1(),
+		testhelper.ConfigDataRootComputeCluster1(),
+		testhelper.ConfigResResourcePool1(),
+		testhelper.ConfigDataRootPortGroup1()),
 		count,
 		enabled,
 	)

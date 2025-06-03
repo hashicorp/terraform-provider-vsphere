@@ -22,6 +22,7 @@ import (
 )
 
 func TestAccResourceVSphereComputeClusterVMHostRule_basic(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -92,6 +93,7 @@ func TestAccResourceVSphereComputeClusterVMHostRule_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereComputeClusterVMHostRule_antiAffinity(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -120,6 +122,7 @@ func TestAccResourceVSphereComputeClusterVMHostRule_antiAffinity(t *testing.T) {
 }
 
 func TestAccResourceVSphereComputeClusterVMHostRule_updateEnabled(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -162,6 +165,7 @@ func TestAccResourceVSphereComputeClusterVMHostRule_updateEnabled(t *testing.T) 
 }
 
 func TestAccResourceVSphereComputeClusterVMHostRule_updateAffinity(t *testing.T) {
+	testAccSkipUnstable(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -310,7 +314,7 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
@@ -328,24 +332,23 @@ resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
   name                = "terraform-test-cluster-vm-group"
   compute_cluster_id  = data.vsphere_compute_cluster.rootcompute_cluster1.id
-  virtual_machine_ids = "${vsphere_virtual_machine.vm.*.id}"
+  virtual_machine_ids = vsphere_virtual_machine.vm.*.id
 }
 
 resource "vsphere_compute_cluster_vm_host_rule" "cluster_vm_host_rule" {
   compute_cluster_id       = data.vsphere_compute_cluster.rootcompute_cluster1.id
   name                     = "terraform-test-cluster-vm-host-rule"
-  vm_group_name            = "${vsphere_compute_cluster_vm_group.cluster_vm_group.name}"
-  affinity_host_group_name = "${vsphere_compute_cluster_host_group.cluster_host_group.name}"
+  vm_group_name            = vsphere_compute_cluster_vm_group.cluster_vm_group.name
+  affinity_host_group_name = vsphere_compute_cluster_host_group.cluster_host_group.name
 }
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2(),
-			testhelper.ConfigResDS1(),
-			testhelper.ConfigDataRootComputeCluster1(),
-			testhelper.ConfigResResourcePool1(),
-			testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootHost2(),
+		testhelper.ConfigResDS1(),
+		testhelper.ConfigDataRootComputeCluster1(),
+		testhelper.ConfigResResourcePool1(),
+		testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
@@ -365,7 +368,7 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
@@ -383,24 +386,23 @@ resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
   name                = "terraform-test-cluster-vm-group"
   compute_cluster_id  = data.vsphere_compute_cluster.rootcompute_cluster1.id
-  virtual_machine_ids = "${vsphere_virtual_machine.vm.*.id}"
+  virtual_machine_ids = vsphere_virtual_machine.vm.*.id
 }
 
 resource "vsphere_compute_cluster_vm_host_rule" "cluster_vm_host_rule" {
   compute_cluster_id            = data.vsphere_compute_cluster.rootcompute_cluster1.id
   name                          = "terraform-test-cluster-vm-host-rule"
-  vm_group_name                 = "${vsphere_compute_cluster_vm_group.cluster_vm_group.name}"
-  anti_affinity_host_group_name = "${vsphere_compute_cluster_host_group.cluster_host_group.name}"
+  vm_group_name                 = vsphere_compute_cluster_vm_group.cluster_vm_group.name
+  anti_affinity_host_group_name = vsphere_compute_cluster_host_group.cluster_host_group.name
 }
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2(),
-			testhelper.ConfigResDS1(),
-			testhelper.ConfigDataRootComputeCluster1(),
-			testhelper.ConfigResResourcePool1(),
-			testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootHost2(),
+		testhelper.ConfigResDS1(),
+		testhelper.ConfigDataRootComputeCluster1(),
+		testhelper.ConfigResResourcePool1(),
+		testhelper.ConfigDataRootPortGroup1()),
 	)
 }
 
@@ -420,7 +422,7 @@ resource "vsphere_virtual_machine" "vm" {
   wait_for_guest_net_timeout = -1
 
   network_interface {
-    network_id = "${data.vsphere_network.network1.id}"
+    network_id = data.vsphere_network.network1.id
   }
 
   disk {
@@ -438,24 +440,23 @@ resource "vsphere_compute_cluster_host_group" "cluster_host_group" {
 resource "vsphere_compute_cluster_vm_group" "cluster_vm_group" {
   name                = "terraform-test-cluster-vm-group"
   compute_cluster_id  = data.vsphere_compute_cluster.rootcompute_cluster1.id
-  virtual_machine_ids = "${vsphere_virtual_machine.vm.*.id}"
+  virtual_machine_ids = vsphere_virtual_machine.vm.*.id
 }
 
 resource "vsphere_compute_cluster_vm_host_rule" "cluster_vm_host_rule" {
   compute_cluster_id       = data.vsphere_compute_cluster.rootcompute_cluster1.id
   name                     = "terraform-test-cluster-vm-host-rule"
-  vm_group_name            = "${vsphere_compute_cluster_vm_group.cluster_vm_group.name}"
-  affinity_host_group_name = "${vsphere_compute_cluster_host_group.cluster_host_group.name}"
+  vm_group_name            = vsphere_compute_cluster_vm_group.cluster_vm_group.name
+  affinity_host_group_name = vsphere_compute_cluster_host_group.cluster_host_group.name
   enabled                  = false
 }
-`,
-		testhelper.CombineConfigs(
-			testhelper.ConfigDataRootDC1(),
-			testhelper.ConfigDataRootHost1(),
-			testhelper.ConfigDataRootHost2(),
-			testhelper.ConfigResDS1(),
-			testhelper.ConfigDataRootComputeCluster1(),
-			testhelper.ConfigResResourcePool1(),
-			testhelper.ConfigDataRootPortGroup1()),
+`, testhelper.CombineConfigs(
+		testhelper.ConfigDataRootDC1(),
+		testhelper.ConfigDataRootHost1(),
+		testhelper.ConfigDataRootHost2(),
+		testhelper.ConfigResDS1(),
+		testhelper.ConfigDataRootComputeCluster1(),
+		testhelper.ConfigResResourcePool1(),
+		testhelper.ConfigDataRootPortGroup1()),
 	)
 }
