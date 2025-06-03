@@ -1422,7 +1422,6 @@ func (r *DiskSubresource) Read(l object.VirtualDeviceList) error {
 	if !ok {
 		return fmt.Errorf("disk backing at %s is of an unsupported type (type %T)", r.Get("device_address").(string), disk.Backing)
 	}
-	// TODO Replace this part with dynamic key handling
 	r.Set("uuid", uuid)
 	r.Set("disk_mode", b["DiskMode"])
 	r.Set("write_through", b["WriteThrough"])
