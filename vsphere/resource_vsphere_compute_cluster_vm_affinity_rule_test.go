@@ -23,6 +23,8 @@ import (
 )
 
 func TestAccResourceVSphereComputeClusterVMAffinityRule_basic(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -83,6 +85,8 @@ func TestAccResourceVSphereComputeClusterVMAffinityRule_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereComputeClusterVMAffinityRule_updateEnabled(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -120,6 +124,8 @@ func TestAccResourceVSphereComputeClusterVMAffinityRule_updateEnabled(t *testing
 }
 
 func TestAccResourceVSphereComputeClusterVMAffinityRule_updateCount(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

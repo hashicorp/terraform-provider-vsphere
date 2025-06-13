@@ -13,6 +13,8 @@ import (
 )
 
 func TestAccDataSourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -49,6 +51,8 @@ func TestAccDataSourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereDistributedVirtualSwitch_absolutePathNoDatacenterSpecified(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -85,6 +89,8 @@ func TestAccDataSourceVSphereDistributedVirtualSwitch_absolutePathNoDatacenterSp
 }
 
 func TestAccDataSourceVSphereDistributedVirtualSwitch_CreatePortgroup(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

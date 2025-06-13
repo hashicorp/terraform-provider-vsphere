@@ -190,6 +190,8 @@ func TestAccResourceVSphereDatacenter_createOnSubfolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatacenter_singleTag(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -213,6 +215,8 @@ func TestAccResourceVSphereDatacenter_singleTag(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatacenter_modifyTags(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

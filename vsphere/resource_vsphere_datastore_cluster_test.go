@@ -27,6 +27,8 @@ const (
 )
 
 func TestAccResourceVSphereDatastoreCluster_basic(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -94,6 +96,8 @@ func TestAccResourceVSphereDatastoreCluster_sdrsEnabled(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_rename(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -121,6 +125,8 @@ func TestAccResourceVSphereDatastoreCluster_rename(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_inFolder(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -141,6 +147,8 @@ func TestAccResourceVSphereDatastoreCluster_inFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereDatastoreCluster_moveToFolder(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

@@ -15,6 +15,8 @@ import (
 )
 
 func TestAccDataSourceVSphereHost_basic(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -37,6 +39,8 @@ func TestAccDataSourceVSphereHost_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereHost_defaultHost(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

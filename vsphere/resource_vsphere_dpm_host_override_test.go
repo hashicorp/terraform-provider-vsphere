@@ -21,6 +21,8 @@ import (
 )
 
 func TestAccResourceVSphereDPMHostOverride_basic(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -71,6 +73,8 @@ func TestAccResourceVSphereDPMHostOverride_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereDPMHostOverride_overrides(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -91,6 +95,8 @@ func TestAccResourceVSphereDPMHostOverride_overrides(t *testing.T) {
 }
 
 func TestAccResourceVSphereDPMHostOverride_update(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

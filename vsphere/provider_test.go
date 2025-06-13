@@ -7,6 +7,7 @@ package vsphere
 import (
 	"os"
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -40,6 +41,16 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("VSPHERE_SERVER"); v == "" {
 		t.Fatal("VSPHERE_SERVER must be set for acceptance tests")
 	}
+}
+
+var m sync.Mutex
+
+func LockExecution() {
+	m.Lock()
+}
+
+func UnlockExecution() {
+	m.Unlock()
 }
 
 func testAccSkipUnstable(t *testing.T) {

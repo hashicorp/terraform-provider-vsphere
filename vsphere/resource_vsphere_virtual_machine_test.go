@@ -40,6 +40,8 @@ const (
 )
 
 func TestAccResourceVSphereVirtualMachine_basic(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -81,6 +83,8 @@ func TestAccResourceVSphereVirtualMachine_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_hardwareVersionBare(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -229,6 +233,8 @@ func TestAccResourceVSphereVirtualMachine_vtpmClone(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_hardwareVersionUpgrade(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -305,6 +311,8 @@ func TestAccResourceVSphereVirtualMachine_hardwareVersionDowngrade(t *testing.T)
 }
 
 func TestAccResourceVSphereVirtualMachine_hardwareVersionClone(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -347,6 +355,8 @@ func TestAccResourceVSphereVirtualMachineContentLibrary_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_ignoreValidationOnComputedValue(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -476,6 +486,8 @@ func TestAccResourceVSphereVirtualMachine_reCreateOnDeletion(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_multiDevice(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -496,6 +508,8 @@ func TestAccResourceVSphereVirtualMachine_multiDevice(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_addDevices(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -561,6 +575,8 @@ func TestAccResourceVSphereVirtualMachine_removeMiddleDevices(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_removeMiddleDevicesChangeDiskUnit(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -588,6 +604,8 @@ func TestAccResourceVSphereVirtualMachine_removeMiddleDevicesChangeDiskUnit(t *t
 }
 
 func TestAccResourceVSphereVirtualMachine_highDiskUnitNumbers(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -632,6 +650,8 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitInsufficientBus(t *testing
 }
 
 func TestAccResourceVSphereVirtualMachine_highDiskUnitsToRegularSingleController(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -663,6 +683,8 @@ func TestAccResourceVSphereVirtualMachine_highDiskUnitsToRegularSingleController
 }
 
 func TestAccResourceVSphereVirtualMachine_scsiBusSharing(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -683,6 +705,8 @@ func TestAccResourceVSphereVirtualMachine_scsiBusSharing(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_scsiBusSharingUpdate(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -1358,6 +1382,8 @@ func TestAccResourceVSphereVirtualMachine_inFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereVirtualMachine_moveToFolder(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

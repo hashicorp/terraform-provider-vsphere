@@ -17,6 +17,8 @@ import (
 )
 
 func TestAccResourceVSphereHostVirtualSwitch_basic(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

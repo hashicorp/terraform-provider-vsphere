@@ -18,6 +18,8 @@ import (
 )
 
 func TestAccResourceVSphereResourcePool_basic(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -211,6 +213,8 @@ func TestAccResourceVSphereResourcePool_esxiHost(t *testing.T) {
 }
 
 func TestAccResourceVSphereResourcePool_updateParent(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

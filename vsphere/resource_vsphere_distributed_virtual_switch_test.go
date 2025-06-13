@@ -26,6 +26,8 @@ const (
 )
 
 func TestAccResourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -62,6 +64,8 @@ func TestAccResourceVSphereDistributedVirtualSwitch_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_noHosts(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -81,6 +85,8 @@ func TestAccResourceVSphereDistributedVirtualSwitch_noHosts(t *testing.T) {
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_removeNIC(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -160,6 +166,8 @@ func TestAccResourceVSphereDistributedVirtualSwitch_basicToStandbyWithFailover(t
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_upgradeVersion(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -187,6 +195,8 @@ func TestAccResourceVSphereDistributedVirtualSwitch_upgradeVersion(t *testing.T)
 }
 
 func TestAccResourceVSphereDistributedVirtualSwitch_networkResourceControl(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

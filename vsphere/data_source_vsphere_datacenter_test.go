@@ -16,6 +16,8 @@ import (
 var testAccDataSourceVSphereDatacenterExpectedRegexp = regexp.MustCompile("^datacenter-")
 
 func TestAccDataSourceVSphereDatacenter_basic(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -38,6 +40,8 @@ func TestAccDataSourceVSphereDatacenter_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereDatacenter_defaultDatacenter(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -60,6 +64,8 @@ func TestAccDataSourceVSphereDatacenter_defaultDatacenter(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereDatacenter_getVirtualMachines(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

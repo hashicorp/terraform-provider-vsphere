@@ -15,6 +15,8 @@ import (
 )
 
 func TestAccDataSourceVSphereResourcePool_basic(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -34,6 +36,8 @@ func TestAccDataSourceVSphereResourcePool_basic(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereResourcePool_noDatacenterAndAbsolutePath(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -53,6 +57,8 @@ func TestAccDataSourceVSphereResourcePool_noDatacenterAndAbsolutePath(t *testing
 }
 
 func TestAccDataSourceVSphereResourcePool_withParentId(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

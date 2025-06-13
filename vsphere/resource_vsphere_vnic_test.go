@@ -48,6 +48,8 @@ func generateSteps(cfgFunc genTfConfig, netstack string) []resource.TestStep {
 }
 
 func TestAccResourceVSphereVNic_dvs_default(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

@@ -16,6 +16,8 @@ import (
 )
 
 func TestAccResourceVSphereDistributedPortGroup_basic(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -94,6 +96,8 @@ func TestAccResourceVSphereDistributedPortGroup_inheritPolicyDiffCheckVlanRangeT
 }
 
 func TestAccResourceVSphereDistributedPortGroup_overrideVlan(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

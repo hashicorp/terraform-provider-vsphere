@@ -24,6 +24,8 @@ const testAccResourceVSphereFolderConfigExpectedParentName = "terraform-test-par
 const testAccResourceVSphereFolderConfigOOBName = "terraform-test-oob"
 
 func TestAccResourceVSphereFolder_vmFolder(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -69,6 +71,8 @@ func TestAccResourceVSphereFolder_vmFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_datastoreFolder(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -93,6 +97,8 @@ func TestAccResourceVSphereFolder_datastoreFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_networkFolder(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -117,6 +123,8 @@ func TestAccResourceVSphereFolder_networkFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_hostFolder(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -141,6 +149,8 @@ func TestAccResourceVSphereFolder_hostFolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_datacenterFolder(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -201,6 +211,8 @@ func TestAccResourceVSphereFolder_rename(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_subfolder(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -226,6 +238,8 @@ func TestAccResourceVSphereFolder_subfolder(t *testing.T) {
 }
 
 func TestAccResourceVSphereFolder_moveToSubfolder(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

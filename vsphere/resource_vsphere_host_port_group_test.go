@@ -16,6 +16,8 @@ import (
 )
 
 func TestAccResourceVSphereHostPortGroup_basic(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -35,6 +37,8 @@ func TestAccResourceVSphereHostPortGroup_basic(t *testing.T) {
 }
 
 func TestAccResourceVSphereHostPortGroup_complexWithOverrides(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -58,6 +62,8 @@ func TestAccResourceVSphereHostPortGroup_complexWithOverrides(t *testing.T) {
 }
 
 func TestAccResourceVSphereHostPortGroup_basicToComplex(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()

@@ -13,6 +13,8 @@ import (
 )
 
 func TestAccDataSourceVSphereNetwork_dvsPortgroup(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -36,6 +38,8 @@ func TestAccDataSourceVSphereNetwork_dvsPortgroup(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereNetwork_withTimeout(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -59,6 +63,8 @@ func TestAccDataSourceVSphereNetwork_withTimeout(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereNetwork_absolutePathNoDatacenter(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
@@ -82,6 +88,8 @@ func TestAccDataSourceVSphereNetwork_absolutePathNoDatacenter(t *testing.T) {
 }
 
 func TestAccDataSourceVSphereNetwork_hostPortgroups(t *testing.T) {
+	LockExecution()
+	defer UnlockExecution()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			RunSweepers()
