@@ -1,22 +1,30 @@
 ---
 subcategory: "Workload Management"
-page_title: "VMware vSphere: namespace"
+page_title: "VMware vSphere: vsphere_namespace"
 sidebar_current: "docs-vsphere-data-source-vsphere-namespace"
 description: |-
-  Provides a vSphere Namespace resource.
+  Provides a data source to read the properties of a vSphere Namespace.
 ---
 
 # vsphere_namespace
 
-This data source can be used to read the properties of a vSphere Namespace.
+This data source can be used to read the properties of a vSphere Namespace. It requires vCenter 8.0.0.1 or later.
 
 ## Example Usages
 
-### Create a Namespace
+### Read a Namespace
 
 ```hcl
-data vsphere_namespace "example" {
+data "vsphere_namespace" "example" {
   name = "example-namespace"
+}
+```
+
+### Read the storage policies of a Namespace
+
+```hcl
+output "storage_policies" {
+  value = [for s in data.vsphere_namespace.example.storage : s.policy]
 }
 ```
 
@@ -24,14 +32,43 @@ data vsphere_namespace "example" {
 
 The following arguments are supported:
 
-* `name` - The name of the vSphere namespace.
+* `name` - (Required) The name of the vSphere Namespace.
 
 ## Attribute Reference
 
 The following attributes are exported:
 
+* `config_status` - The configuration status of the vSphere Namespace.
 * `supervisor` - The identifier of the vSphere Supervisor managing the namespace.
+* `cpu_usage` - The CPU usage of the vSphere Namespace.
+* `memory_usage` - The memory usage of the vSphere Namespace.
+* `storage_usage` - The storage usage of the vSphere Namespace.
 * `vm_service` - The configuration for VM Service in the vSphere Namespace.
   * `content_libraries` - The list of content libraries associated with the VM Service.
-  * `vm_classes` -  The list of VM Classes associated with the VM Service.
-* `storage_policies` - The list of storage policies that are available in the vSphere Namespace.
+  * `vm_classes` - The list of VM Classes associated with the VM Service.
+* `storage` - The storage policies that are available in the vSphere Namespace. This replaces `storage_policies`.
+  * `policy` - The identifier of the storage policy.
+  * `limit` - The maximum storage, in mebibytes (MiB), that the vSphere Namespace can use for the storage policy. `0` means no limit.
+* `access` - The users and groups with access to the vSphere Namespace.
+  * `subject_type` - The type of the subject, `USER` or `GROUP`.
+  * `subject` - The name of the user or group, without the domain.
+  * `domain` - The domain of the identity source that owns the subject.
+  * `role` - The role of the subject in the vSphere Namespace.
+  * `identity_provider` - The identifier of the identity provider.
+* `zone` - The vSphere Zones of the vSphere Namespace. Requires vCenter 9.0.0 or later. Limits and reservations are not returned by vCenter, so they are not exported.
+  * `name` - The identifier of the vSphere Zone.
+  * `type` - The type of the vSphere Zone.
+* `vpc_network` - The NSX VPC network configuration. Requires vCenter 9.0.0 or later.
+  * `vpc` - The NSX path of the VPC.
+  * `default_subnet_size` - The default size of the subnets created for the vSphere Namespace.
+  * `vpc_config` - The configuration of the VPC created for the vSphere Namespace.
+    * `private_cidrs` - The private CIDRs of the VPC, each with an `address` and a `prefix`.
+  * `shared_subnet` - The NSX subnets created outside the Supervisor that are associated with the vSphere Namespace.
+    * `path` - The NSX path of the subnet.
+    * `pod_default` - Whether the subnet is the default network for vSphere Pods.
+    * `vm_default` - Whether the subnet is the default network for VMs.
+    * `name` - The name of the subnet in the vSphere Namespace.
+
+## Upgrading from `storage_policies`
+
+The `storage_policies` attribute was replaced by `storage`. Replace references to `data.vsphere_namespace.x.storage_policies` with `[for s in data.vsphere_namespace.x.storage : s.policy]`.
