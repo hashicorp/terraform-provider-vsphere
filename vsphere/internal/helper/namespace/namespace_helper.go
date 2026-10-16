@@ -267,9 +267,12 @@ func ExpandNetworkSpecUpdate(d *schema.ResourceData) *namespace.NetworkConfigUpd
 	}
 
 	// TODO: select VSPHERE_NETWORK when vsphere_network is added
-	vpc := &namespace.VpcNetworkUpdateSpec{
-		DefaultSubnetSize: ptrIfNonZero(int64(vpcNetwork["default_subnet_size"].(int))),
-		PrivateCidrs:      expandPrivateCidrs(vpcNetwork["vpc_config"]),
+	vpc := &namespace.VpcNetworkUpdateSpec{}
+	if d.HasChange("vpc_network.0.default_subnet_size") {
+		vpc.DefaultSubnetSize = ptrIfNonZero(int64(vpcNetwork["default_subnet_size"].(int)))
+	}
+	if d.HasChange("vpc_network.0.vpc_config") {
+		vpc.PrivateCidrs = expandPrivateCidrs(vpcNetwork["vpc_config"])
 	}
 	subnets := expandSharedSubnets(vpcNetwork["shared_subnet"])
 	if len(subnets) > 0 || d.HasChange("vpc_network.0.shared_subnet") {
