@@ -6,6 +6,7 @@ package vsphere
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"time"
 
@@ -300,8 +301,16 @@ func resourceVSphereNamespaceCreate(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 
-	if err := waitForNamespaceCreation(ctx, d, meta); err != nil {
-		return err
+	if diags := waitForNamespaceCreation(ctx, d, meta); diags != nil {
+		log.Printf("[DEBUG] Namespace %q did not reach status 'Running'", spec.Namespace)
+		// set ID to reuse cleanup
+		d.SetId(spec.Namespace)
+		if deleteDiag := resourceVSphereNamespaceDelete(ctx, d, meta); deleteDiag != nil {
+			diags = append(diags, deleteDiag...)
+		}
+		// reset ID after cleanup
+		d.SetId("")
+		return diags
 	}
 
 	return resourceVSphereNamespaceRead(ctx, d, meta)
@@ -424,7 +433,12 @@ func waitForNamespaceCreation(ctx context.Context, d *schema.ResourceData, meta 
 	for {
 		select {
 		case <-tickerCtx.Done():
-			return diag.Errorf("failed to create namespace: %s", name)
+			// timeout exceeded, try to collect diagnostics
+			data, err := m.GetNamespaceV2(ctx, name)
+			if err != nil {
+				return diag.Errorf("failed to create namespace: %s", name)
+			}
+			return collectNamespaceDiagnostics(data)
 		case <-ticker.C:
 			data, err := m.GetNamespaceV2(ctx, name)
 			if err != nil {
@@ -435,8 +449,20 @@ func waitForNamespaceCreation(ctx context.Context, d *schema.ResourceData, meta 
 			case namespace.NamespaceInstanceConfigStatusRunning:
 				return nil
 			case namespace.NamespaceInstanceConfigStatusError:
-				return diag.Errorf("namespace %s entered ERROR state", name)
+				diags := collectNamespaceDiagnostics(data)
+				return append(diag.Errorf("namespace %s entered ERROR state", name), diags...)
 			}
 		}
 	}
+}
+
+func collectNamespaceDiagnostics(n namespace.NamespaceInstanceInfoV2) diag.Diagnostics {
+	var d diag.Diagnostics
+	if len(n.Messages) > 0 {
+		for _, m := range n.Messages {
+			d = append(d, diag.Errorf("%s", m.Details.DefaultMessage)...)
+		}
+	}
+
+	return d
 }
