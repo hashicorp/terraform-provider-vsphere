@@ -36,16 +36,17 @@ func resourceVSphereNamespace() *schema.Resource {
 			"vm_service": {
 				Type:     schema.TypeList,
 				Optional: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"content_libraries": {
-							Type:        schema.TypeList,
+							Type:        schema.TypeSet,
 							Description: "The content libraries associated with the vSphere Namespace",
 							Optional:    true,
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 						"vm_classes": {
-							Type:        schema.TypeList,
+							Type:        schema.TypeSet,
 							Description: "The VM classes associated with the vSphere Namespace",
 							Optional:    true,
 							Elem:        &schema.Schema{Type: schema.TypeString},
@@ -54,7 +55,7 @@ func resourceVSphereNamespace() *schema.Resource {
 				},
 			},
 			"storage_policies": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Description: "The storage policies associated with the vSphere Namespace",
 				Optional:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
@@ -68,25 +69,10 @@ func resourceVSphereNamespaceCreate(ctx context.Context, d *schema.ResourceData,
 	m := namespace.NewManager(c)
 
 	spec := namespace.NamespaceInstanceCreateSpecV2{
-		Namespace:  d.Get("name").(string),
-		Supervisor: d.Get("supervisor").(string),
-	}
-
-	if storagePolicies := d.Get("storage_policies").([]interface{}); len(storagePolicies) > 0 {
-		storageSpecs := make([]namespace.StorageSpec, len(storagePolicies))
-		for i, storagePolicy := range storagePolicies {
-			storageSpecs[i] = namespace.StorageSpec{Policy: storagePolicy.(string)}
-		}
-
-		spec.StorageSpecs = &storageSpecs
-	}
-
-	if vmService := d.Get("vm_service").([]interface{}); len(vmService) > 0 {
-		vmServiceData := vmService[0].(map[string]interface{})
-		spec.VmServiceSpec = &namespace.VmServiceSpec{
-			VmClasses:        structure.SliceInterfacesToStrings(vmServiceData["vm_classes"].([]interface{})),
-			ContentLibraries: structure.SliceInterfacesToStrings(vmServiceData["content_libraries"].([]interface{})),
-		}
+		Namespace:     d.Get("name").(string),
+		Supervisor:    d.Get("supervisor").(string),
+		StorageSpecs:  getStorageSpecs(d),
+		VmServiceSpec: getVMServiceSpec(d),
 	}
 
 	if err := m.CreateNamespaceV2(ctx, spec); err != nil {
@@ -137,21 +123,12 @@ func resourceVSphereNamespaceUpdate(ctx context.Context, d *schema.ResourceData,
 	name := d.Get("name").(string)
 	spec := namespace.NamespacesInstanceUpdateSpec{}
 
-	if storagePolicies := d.Get("storage_policies").([]interface{}); len(storagePolicies) > 0 {
-		storageSpecs := make([]namespace.StorageSpec, len(storagePolicies))
-		for i, storagePolicy := range storagePolicies {
-			storageSpecs[i] = namespace.StorageSpec{Policy: storagePolicy.(string)}
-		}
-
-		spec.StorageSpecs = storageSpecs
+	if storageSpecs := getStorageSpecs(d); storageSpecs != nil {
+		spec.StorageSpecs = *storageSpecs
 	}
 
-	if vmService := d.Get("vm_service").([]interface{}); len(vmService) > 0 {
-		vmServiceData := vmService[0].(map[string]interface{})
-		spec.VmServiceSpec = namespace.VmServiceSpec{
-			VmClasses:        structure.SliceInterfacesToStrings(vmServiceData["vm_classes"].([]interface{})),
-			ContentLibraries: structure.SliceInterfacesToStrings(vmServiceData["content_libraries"].([]interface{})),
-		}
+	if vmServiceSpec := getVMServiceSpec(d); vmServiceSpec != nil {
+		spec.VmServiceSpec = *vmServiceSpec
 	}
 
 	return diag.FromErr(m.UpdateNamespace(ctx, name, spec))
@@ -219,5 +196,32 @@ func waitForNamespaceCreation(ctx context.Context, d *schema.ResourceData, meta 
 				return nil
 			}
 		}
+	}
+}
+
+func getStorageSpecs(d *schema.ResourceData) *[]namespace.StorageSpec {
+	storagePolicies := d.Get("storage_policies").(*schema.Set).List()
+	if len(storagePolicies) == 0 {
+		return nil
+	}
+
+	storageSpecs := make([]namespace.StorageSpec, len(storagePolicies))
+	for i, storagePolicy := range storagePolicies {
+		storageSpecs[i] = namespace.StorageSpec{Policy: storagePolicy.(string)}
+	}
+
+	return &storageSpecs
+}
+
+func getVMServiceSpec(d *schema.ResourceData) *namespace.VmServiceSpec {
+	vmService := d.Get("vm_service").([]interface{})
+	if len(vmService) == 0 || vmService[0] == nil {
+		return nil
+	}
+
+	vmServiceData := vmService[0].(map[string]interface{})
+	return &namespace.VmServiceSpec{
+		VmClasses:        structure.SliceInterfacesToStrings(vmServiceData["vm_classes"].(*schema.Set).List()),
+		ContentLibraries: structure.SliceInterfacesToStrings(vmServiceData["content_libraries"].(*schema.Set).List()),
 	}
 }
