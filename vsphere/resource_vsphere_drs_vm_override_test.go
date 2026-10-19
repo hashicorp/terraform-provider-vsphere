@@ -11,7 +11,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/vmware/govmomi/vim25/types"
@@ -170,7 +169,7 @@ func testAccResourceVSphereDRSVMOverrideMatch(behavior types.DrsBehavior, enable
 		}
 
 		if !reflect.DeepEqual(expected, actual) {
-			return spew.Errorf("expected %#v got %#v", expected, actual)
+			return errors.New("DRS VM override does not match expected")
 		}
 
 		return nil
