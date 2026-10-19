@@ -12,7 +12,7 @@ This data source can be used to read the properties of a vSphere Supervisor.
 
 ## Example Usages
 
-### Look up a Supervisor by name
+### Look up a Supervisor by Name
 
 ```hcl
 data "vsphere_supervisor" "example" {
@@ -20,7 +20,7 @@ data "vsphere_supervisor" "example" {
 }
 ```
 
-### Look up a Supervisor by compute cluster
+### Look up a Supervisor by Compute Cluster
 
 ```hcl
 data "vsphere_supervisor" "example" {
