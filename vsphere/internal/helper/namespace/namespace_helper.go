@@ -10,25 +10,14 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/vmware/govmomi/vapi/namespace"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/structure"
 	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/viapi"
 )
 
-const networkProviderNsxVpc = "NSX_VPC"
-
-func ptrIfNonZero[T comparable](v T) *T {
-	var zero T
-	if v == zero {
-		return nil
-	}
-	return &v
-}
-
-func truePtrOrNil(v bool) *bool {
-	if !v {
-		return nil
-	}
-	return &v
-}
+const (
+	networkProviderNsxVpc  = "NSX_VPC"
+	networkProviderVsphere = "VSPHERE_NETWORK"
+)
 
 func ValidateVersionRequirements(version viapi.VSphereVersion, d *schema.ResourceDiff) error {
 	var errs []error
@@ -52,7 +41,7 @@ func ValidateVersionRequirements(version viapi.VSphereVersion, d *schema.Resourc
 			if subnet["path"].(string) != "" {
 				usesSharedSubnetPath = true
 			}
-			if subnet["pod_default"].(bool) || subnet["vm_default"].(bool) || subnet["name"].(string) != "" {
+			if subnet["pod_default"].(bool) || subnet["vm_default"].(bool) {
 				usesSharedSubnetDefaults = true
 			}
 		}
@@ -60,18 +49,39 @@ func ValidateVersionRequirements(version viapi.VSphereVersion, d *schema.Resourc
 			require("vpc_network.shared_subnet.path", 9, 1, 0)
 		}
 		if usesSharedSubnetDefaults {
-			require("vpc_network.shared_subnet pod_default, vm_default and name", 9, 1, 1)
+			require("vpc_network.shared_subnet pod_default and vm_default", 9, 1, 1)
+		}
+	}
+
+	if vsphereNetworks := d.Get("vsphere_network").([]interface{}); len(vsphereNetworks) > 0 {
+		require("vsphere_network", 9, 1, 0)
+		if len(errs) == 0 {
+			if err := validateDefaultWorkloadNetwork(d); err != nil {
+				errs = append(errs, err)
+			}
 		}
 	}
 
 	return errors.Join(errs...)
 }
 
-func sharedSubnetsFromVpcNetworks(vpcNetworks []interface{}) []map[string]interface{} {
-	vpcNetwork := firstVpcNetwork(vpcNetworks)
-	if vpcNetwork == nil {
+func validateDefaultWorkloadNetwork(d *schema.ResourceDiff) error {
+	if !d.NewValueKnown("vsphere_network.0.networks") || !d.NewValueKnown("vsphere_network.0.default_workload_network") {
 		return nil
 	}
+	defaultNetwork := d.Get("vsphere_network.0.default_workload_network").(string)
+	networks, _ := d.Get("vsphere_network.0.networks").(*schema.Set)
+	if networks == nil || !networks.Contains(defaultNetwork) {
+		return fmt.Errorf("vsphere_network.networks must contain the default_workload_network %q", defaultNetwork)
+	}
+	return nil
+}
+
+func sharedSubnetsFromVpcNetworks(vpcNetworks []interface{}) []map[string]interface{} {
+	if len(vpcNetworks) == 0 {
+		return nil
+	}
+	vpcNetwork, _ := vpcNetworks[0].(map[string]interface{})
 	subnets, _ := vpcNetwork["shared_subnet"].(*schema.Set)
 	if subnets == nil {
 		return nil
@@ -83,22 +93,16 @@ func sharedSubnetsFromVpcNetworks(vpcNetworks []interface{}) []map[string]interf
 	return result
 }
 
-func firstVpcNetwork(vpcNetworks []interface{}) map[string]interface{} {
-	if len(vpcNetworks) == 0 || vpcNetworks[0] == nil {
-		return nil
-	}
-	return vpcNetworks[0].(map[string]interface{})
-}
-
 func ExpandStorageSpecs(d *schema.ResourceData) []namespace.StorageSpec {
 	storage := d.Get("storage").([]interface{})
 	specs := make([]namespace.StorageSpec, 0, len(storage))
 	for _, item := range storage {
 		entry := item.(map[string]interface{})
-		specs = append(specs, namespace.StorageSpec{
-			Policy: entry["policy"].(string),
-			Limit:  ptrIfNonZero(int64(entry["limit"].(int))),
-		})
+		spec := namespace.StorageSpec{Policy: entry["policy"].(string)}
+		if limit := int64(entry["limit"].(int)); limit != 0 {
+			spec.Limit = &limit
+		}
+		specs = append(specs, spec)
 	}
 	return specs
 }
@@ -123,13 +127,16 @@ func ExpandAccessList(d *schema.ResourceData) []namespace.Access {
 	accessList := make([]namespace.Access, 0, len(entries))
 	for _, item := range entries {
 		entry := item.(map[string]interface{})
-		accessList = append(accessList, namespace.Access{
-			SubjectType:      namespace.AccessSubjectType(entry["subject_type"].(string)),
-			Subject:          entry["subject"].(string),
-			Domain:           entry["domain"].(string),
-			Role:             namespace.AccessRole(entry["role"].(string)),
-			IdentityProvider: ptrIfNonZero(entry["identity_provider"].(string)),
-		})
+		access := namespace.Access{
+			SubjectType: namespace.AccessSubjectType(entry["subject_type"].(string)),
+			Subject:     entry["subject"].(string),
+			Domain:      entry["domain"].(string),
+			Role:        namespace.AccessRole(entry["role"].(string)),
+		}
+		if identityProvider := entry["identity_provider"].(string); identityProvider != "" {
+			access.IdentityProvider = &identityProvider
+		}
+		accessList = append(accessList, access)
 	}
 	return accessList
 }
@@ -157,44 +164,28 @@ func ExpandZones(d *schema.ResourceData) []namespace.ZoneSpec {
 	zones := make([]namespace.ZoneSpec, 0, len(entries))
 	for _, item := range entries {
 		entry := item.(map[string]interface{})
-		zone := namespace.ZoneSpec{
-			Name:                 entry["name"].(string),
-			CpuLimitMHz:          ptrIfNonZero(int64(entry["cpu_limit"].(int))),
-			CpuReservationMHz:    ptrIfNonZero(int64(entry["cpu_reservation"].(int))),
-			MemoryLimitMiB:       ptrIfNonZero(int64(entry["memory_limit"].(int))),
-			MemoryReservationMiB: ptrIfNonZero(int64(entry["memory_reservation"].(int))),
+		zone := namespace.ZoneSpec{Name: entry["name"].(string)}
+		if cpuLimit := int64(entry["cpu_limit"].(int)); cpuLimit != 0 {
+			zone.CpuLimitMHz = &cpuLimit
 		}
-		zone.DisallowUnreservedDirectPathUsage = truePtrOrNil(entry["disallow_unreserved_direct_path_usage"].(bool))
+		if cpuReservation := int64(entry["cpu_reservation"].(int)); cpuReservation != 0 {
+			zone.CpuReservationMHz = &cpuReservation
+		}
+		if memoryLimit := int64(entry["memory_limit"].(int)); memoryLimit != 0 {
+			zone.MemoryLimitMiB = &memoryLimit
+		}
+		if memoryReservation := int64(entry["memory_reservation"].(int)); memoryReservation != 0 {
+			zone.MemoryReservationMiB = &memoryReservation
+		}
+		if disallow := entry["disallow_unreserved_direct_path_usage"].(bool); disallow {
+			zone.DisallowUnreservedDirectPathUsage = &disallow
+		}
 		if reservations := expandVmReservations(entry["vm_reservation"]); len(reservations) > 0 {
 			zone.VmReservations = &reservations
 		}
 		zones = append(zones, zone)
 	}
 	return zones
-}
-
-func expandVmReservations(value interface{}) []namespace.VirtualMachineClassAllocationSpec {
-	set, _ := value.(*schema.Set)
-	if set == nil {
-		return nil
-	}
-	reservations := make([]namespace.VirtualMachineClassAllocationSpec, 0, set.Len())
-	for _, item := range set.List() {
-		entry := item.(map[string]interface{})
-		reservations = append(reservations, namespace.VirtualMachineClassAllocationSpec{
-			ReservedVmClass: entry["reserved_vm_class"].(string),
-			Count:           int64(entry["count"].(int)),
-		})
-	}
-	return reservations
-}
-
-var zoneSettingKeys = []string{
-	"cpu_limit",
-	"cpu_reservation",
-	"memory_limit",
-	"memory_reservation",
-	"disallow_unreserved_direct_path_usage",
 }
 
 func FlattenZones(d *schema.ResourceData, zones []namespace.ZoneInfo) []interface{} {
@@ -204,6 +195,14 @@ func FlattenZones(d *schema.ResourceData, zones []namespace.ZoneInfo) []interfac
 			entry := item.(map[string]interface{})
 			priorByName[entry["name"].(string)] = entry
 		}
+	}
+
+	var zoneSettingKeys = []string{
+		"cpu_limit",
+		"cpu_reservation",
+		"memory_limit",
+		"memory_reservation",
+		"disallow_unreserved_direct_path_usage",
 	}
 
 	result := make([]interface{}, 0, len(zones))
@@ -225,6 +224,22 @@ func FlattenZones(d *schema.ResourceData, zones []namespace.ZoneInfo) []interfac
 	return result
 }
 
+func expandVmReservations(value interface{}) []namespace.VirtualMachineClassAllocationSpec {
+	set, _ := value.(*schema.Set)
+	if set == nil {
+		return nil
+	}
+	reservations := make([]namespace.VirtualMachineClassAllocationSpec, 0, set.Len())
+	for _, item := range set.List() {
+		entry := item.(map[string]interface{})
+		reservations = append(reservations, namespace.VirtualMachineClassAllocationSpec{
+			ReservedVmClass: entry["reserved_vm_class"].(string),
+			Count:           int64(entry["count"].(int)),
+		})
+	}
+	return reservations
+}
+
 func FlattenZoneInfos(zones []namespace.ZoneInfo) []interface{} {
 	result := make([]interface{}, 0, len(zones))
 	for _, zone := range zones {
@@ -237,15 +252,34 @@ func FlattenZoneInfos(zones []namespace.ZoneInfo) []interface{} {
 }
 
 func ExpandNetworkSpecCreate(d *schema.ResourceData) *namespace.NetworkConfigCreateSpec {
-	vpcNetwork := firstVpcNetwork(d.Get("vpc_network").([]interface{}))
-	if vpcNetwork == nil {
-		return nil
+	if len(d.Get("vsphere_network").([]interface{})) > 0 {
+		return expandVsphereNetworkCreate(d)
 	}
+	if vpcNetworks := d.Get("vpc_network").([]interface{}); len(vpcNetworks) > 0 {
+		if vpcNetwork, ok := vpcNetworks[0].(map[string]interface{}); ok {
+			return expandVpcNetworkCreate(vpcNetwork)
+		}
+	}
+	return nil
+}
 
-	// TODO: select VSPHERE_NETWORK when vsphere_network is added
-	vpc := &namespace.VpcNetworkCreateSpec{
-		Vpc:               ptrIfNonZero(vpcNetwork["vpc"].(string)),
-		DefaultSubnetSize: ptrIfNonZero(int64(vpcNetwork["default_subnet_size"].(int))),
+func expandVsphereNetworkCreate(d *schema.ResourceData) *namespace.NetworkConfigCreateSpec {
+	defaultNetwork := d.Get("vsphere_network.0.default_workload_network").(string)
+	return &namespace.NetworkConfigCreateSpec{
+		NetworkProvider: networkProviderVsphere,
+		VsphereNetwork: &namespace.VsphereNetworkConfigCreateSpec{
+			DefaultWorkloadNetwork: &defaultNetwork,
+		},
+	}
+}
+
+func expandVpcNetworkCreate(vpcNetwork map[string]interface{}) *namespace.NetworkConfigCreateSpec {
+	vpc := &namespace.VpcNetworkCreateSpec{}
+	if vpcPath := vpcNetwork["vpc"].(string); vpcPath != "" {
+		vpc.Vpc = &vpcPath
+	}
+	if subnetSize := int64(vpcNetwork["default_subnet_size"].(int)); subnetSize != 0 {
+		vpc.DefaultSubnetSize = &subnetSize
 	}
 	if cidrs := expandPrivateCidrs(vpcNetwork["vpc_config"]); len(cidrs) > 0 {
 		vpc.VpcConfig = &namespace.VpcConfig{PrivateCidrs: cidrs}
@@ -260,16 +294,36 @@ func ExpandNetworkSpecCreate(d *schema.ResourceData) *namespace.NetworkConfigCre
 	}
 }
 
+func ExpandNetworks(d *schema.ResourceData) []string {
+	if len(d.Get("vsphere_network").([]interface{})) == 0 {
+		return nil
+	}
+	defaultNetwork := d.Get("vsphere_network.0.default_workload_network").(string)
+	networks := []string{defaultNetwork}
+	for _, network := range d.Get("vsphere_network.0.networks").(*schema.Set).List() {
+		if network.(string) != defaultNetwork {
+			networks = append(networks, network.(string))
+		}
+	}
+	return networks
+}
+
 func ExpandNetworkSpecUpdate(d *schema.ResourceData) *namespace.NetworkConfigUpdateSpec {
-	vpcNetwork := firstVpcNetwork(d.Get("vpc_network").([]interface{}))
-	if vpcNetwork == nil {
+	if d.HasChange("vsphere_network.0.networks") && len(d.Get("vsphere_network").([]interface{})) > 0 {
+		return expandVsphereNetworkUpdate(d)
+	}
+	vpcNetworks := d.Get("vpc_network").([]interface{})
+	if len(vpcNetworks) == 0 || !d.HasChange("vpc_network") {
+		return nil
+	}
+	vpcNetwork, ok := vpcNetworks[0].(map[string]interface{})
+	if !ok {
 		return nil
 	}
 
-	// TODO: select VSPHERE_NETWORK when vsphere_network is added
 	vpc := &namespace.VpcNetworkUpdateSpec{}
-	if d.HasChange("vpc_network.0.default_subnet_size") {
-		vpc.DefaultSubnetSize = ptrIfNonZero(int64(vpcNetwork["default_subnet_size"].(int)))
+	if subnetSize := int64(vpcNetwork["default_subnet_size"].(int)); subnetSize != 0 && d.HasChange("vpc_network.0.default_subnet_size") {
+		vpc.DefaultSubnetSize = &subnetSize
 	}
 	if d.HasChange("vpc_network.0.vpc_config") {
 		vpc.PrivateCidrs = expandPrivateCidrs(vpcNetwork["vpc_config"])
@@ -282,6 +336,26 @@ func ExpandNetworkSpecUpdate(d *schema.ResourceData) *namespace.NetworkConfigUpd
 	return &namespace.NetworkConfigUpdateSpec{
 		NetworkProvider: networkProviderNsxVpc,
 		VpcConfig:       vpc,
+	}
+}
+
+func expandVsphereNetworkUpdate(d *schema.ResourceData) *namespace.NetworkConfigUpdateSpec {
+	oldValue, newValue := d.GetChange("vsphere_network.0.networks")
+	oldNetworks, _ := oldValue.(*schema.Set)
+	newNetworks, _ := newValue.(*schema.Set)
+	if oldNetworks == nil {
+		oldNetworks = &schema.Set{F: schema.HashString}
+	}
+	if newNetworks == nil {
+		newNetworks = &schema.Set{F: schema.HashString}
+	}
+
+	return &namespace.NetworkConfigUpdateSpec{
+		NetworkProvider: networkProviderVsphere,
+		VsphereNetworkConfig: &namespace.VsphereNetworkConfigUpdateSpec{
+			NetworksToAdd:    structure.SliceInterfacesToStrings(newNetworks.Difference(oldNetworks).List()),
+			NetworksToRemove: structure.SliceInterfacesToStrings(oldNetworks.Difference(newNetworks).List()),
+		},
 	}
 }
 
@@ -310,18 +384,19 @@ func expandSharedSubnets(value interface{}) []namespace.SharedSubnet {
 	subnets := make([]namespace.SharedSubnet, 0, set.Len())
 	for _, item := range set.List() {
 		entry := item.(map[string]interface{})
-		subnets = append(subnets, namespace.SharedSubnet{
-			Path:       entry["path"].(string),
-			PodDefault: truePtrOrNil(entry["pod_default"].(bool)),
-			VmDefault:  truePtrOrNil(entry["vm_default"].(bool)),
-			Name:       ptrIfNonZero(entry["name"].(string)),
-		})
+		subnet := namespace.SharedSubnet{Path: entry["path"].(string)}
+		if podDefault := entry["pod_default"].(bool); podDefault {
+			subnet.PodDefault = &podDefault
+		}
+		if vmDefault := entry["vm_default"].(bool); vmDefault {
+			subnet.VmDefault = &vmDefault
+		}
+		subnets = append(subnets, subnet)
 	}
 	return subnets
 }
 
-func FlattenNetworkSpec(info *namespace.NetworkConfigInfo) []interface{} {
-	// TODO: flatten vsphere_network when it is added
+func FlattenVpcNetwork(info *namespace.NetworkConfigInfo) []interface{} {
 	if info == nil || info.VpcNetwork == nil {
 		return nil
 	}
@@ -359,20 +434,21 @@ func FlattenNetworkSpec(info *namespace.NetworkConfigInfo) []interface{} {
 	return []interface{}{vpcNetwork}
 }
 
-func FlattenNetworkSpecTrackingNames(d *schema.ResourceData, info *namespace.NetworkConfigInfo) []interface{} {
-	vpcNetworks := FlattenNetworkSpec(info)
-	vpcNetwork := firstVpcNetwork(vpcNetworks)
-	if vpcNetwork == nil {
-		return vpcNetworks
+func FlattenVsphereNetwork(info *namespace.NetworkConfigInfo) []interface{} {
+	if info == nil || info.VsphereNetwork == nil {
+		return nil
 	}
 
-	configuredNames := make(map[string]string)
-	for _, subnet := range sharedSubnetsFromVpcNetworks(d.Get("vpc_network").([]interface{})) {
-		configuredNames[subnet["path"].(string)] = subnet["name"].(string)
+	networks := make([]interface{}, 0, len(info.VsphereNetwork.Networks))
+	for _, network := range info.VsphereNetwork.Networks {
+		if network.ConfigStatus == namespace.NetworkConfigStatusRemoving {
+			continue
+		}
+		networks = append(networks, network.Network)
 	}
-	for _, item := range vpcNetwork["shared_subnet"].([]interface{}) {
-		subnet := item.(map[string]interface{})
-		subnet["name"] = configuredNames[subnet["path"].(string)]
-	}
-	return vpcNetworks
+
+	return []interface{}{map[string]interface{}{
+		"default_workload_network": info.VsphereNetwork.DefaultWorkloadNetwork,
+		"networks":                 networks,
+	}}
 }

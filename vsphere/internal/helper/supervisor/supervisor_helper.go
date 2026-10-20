@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/vmware/govmomi/vapi/namespace"
@@ -178,6 +179,39 @@ func FlattenSupervisorTopology(d *schema.ResourceData, topology []namespace.Supe
 		}
 	}
 	_ = d.Set("zones", zones)
+}
+
+func GetClusterID(ctx context.Context, topology []namespace.SupervisorTopologyInfo) string {
+	if len(topology) == 0 {
+		tflog.Debug(ctx, "supervisor topology is empty")
+	}
+
+	for _, t := range topology {
+		for _, cluster := range t.Clusters {
+			return cluster
+		}
+	}
+
+	return ""
+}
+
+func FlattenClusterNetworks(d *schema.ResourceData, networks []namespace.NetworkInfo) {
+	result := make([]interface{}, 0, len(networks))
+	for _, network := range networks {
+		flattened := map[string]interface{}{
+			"network":          network.Network,
+			"network_provider": network.NetworkProvider.String(),
+			"namespaces":       network.Namespaces,
+		}
+		if vsphere := network.VsphereNetwork; vsphere != nil {
+			flattened["portgroup"] = vsphere.Portgroup
+			flattened["ip_assignment_mode"] = string(vsphere.IPAssignmentMode)
+			flattened["gateway"] = vsphere.Gateway
+			flattened["subnet_mask"] = vsphere.SubnetMask
+		}
+		result = append(result, flattened)
+	}
+	_ = d.Set("workload_network", result)
 }
 
 func isClusterInSupervisor(topologies []namespace.SupervisorTopologyInfo, clusterID string) bool {

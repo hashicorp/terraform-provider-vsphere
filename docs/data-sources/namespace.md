@@ -68,6 +68,9 @@ The following attributes are exported:
     * `pod_default` - Whether the subnet is the default network for vSphere Pods.
     * `vm_default` - Whether the subnet is the default network for VMs.
     * `name` - The name of the subnet in the vSphere Namespace.
+* `vsphere_network` - The vSphere networking configuration. Requires vCenter 9.1.0 or later.
+  * `default_workload_network` - The name of the Supervisor network used by workloads that do not specify a network.
+  * `networks` - The names of the Supervisor networks associated with the vSphere Namespace. Networks that are being removed are not exported.
 
 ## Upgrading from `storage_policies`
 
