@@ -11,7 +11,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/vmware/govmomi/vim25/types"
@@ -167,7 +166,7 @@ func testAccResourceVSphereDPMHostOverrideMatch(behavior types.DpmBehavior, enab
 		}
 
 		if !reflect.DeepEqual(expected, actual) {
-			return spew.Errorf("expected %#v got %#v", expected, actual)
+			return errors.New("DPM host override does not match expected")
 		}
 
 		return nil
