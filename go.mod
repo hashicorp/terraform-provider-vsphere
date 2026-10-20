@@ -7,7 +7,7 @@ require (
 	github.com/hashicorp/terraform-plugin-log v0.10.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.40.1
 	github.com/hashicorp/terraform-plugin-testing v1.16.0
-	github.com/vmware/govmomi v0.56.0
+	github.com/vmware/govmomi v0.57.0-alpha.0.0.20261020081358-54a831c57c27
 )
 
 require (
