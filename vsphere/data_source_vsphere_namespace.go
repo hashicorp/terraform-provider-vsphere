@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/vmware/govmomi/vapi/namespace"
-	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/supervisor"
+	"github.com/vmware/terraform-provider-vsphere/vsphere/internal/helper/namespace"
 )
 
 func dataSourceVSphereNamespace() *schema.Resource {
@@ -67,11 +67,173 @@ func dataSourceVSphereNamespace() *schema.Resource {
 					},
 				},
 			},
-			"storage_policies": {
+			"storage": {
 				Type:        schema.TypeList,
-				Description: "The storage policies associated with the vSphere Namespace",
+				Description: "The storage policies available in the vSphere Namespace, with their storage limits",
 				Computed:    true,
-				Elem:        &schema.Schema{Type: schema.TypeString},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"policy": {
+							Type:        schema.TypeString,
+							Description: "The identifier of the storage policy",
+							Computed:    true,
+						},
+						"limit": {
+							Type:        schema.TypeInt,
+							Description: "The maximum storage, in mebibytes (MiB), the vSphere Namespace can use for this policy. 0 means no limit",
+							Computed:    true,
+						},
+					},
+				},
+			},
+			"access": {
+				Type:        schema.TypeSet,
+				Description: "The users and groups with access to the vSphere Namespace",
+				Computed:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"subject_type": {
+							Type:        schema.TypeString,
+							Description: "The type of the subject: USER or GROUP",
+							Computed:    true,
+						},
+						"subject": {
+							Type:        schema.TypeString,
+							Description: "The name of the user or group, without the domain",
+							Computed:    true,
+						},
+						"domain": {
+							Type:        schema.TypeString,
+							Description: "The domain of the identity source that owns the subject",
+							Computed:    true,
+						},
+						"role": {
+							Type:        schema.TypeString,
+							Description: "The role of the subject in the vSphere Namespace",
+							Computed:    true,
+						},
+						"identity_provider": {
+							Type:        schema.TypeString,
+							Description: "The identifier of the identity provider",
+							Computed:    true,
+						},
+					},
+				},
+			},
+			"zone": {
+				Type:        schema.TypeSet,
+				Description: "The vSphere Zones of the vSphere Namespace",
+				Computed:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:        schema.TypeString,
+							Description: "The identifier of the vSphere Zone",
+							Computed:    true,
+						},
+						"type": {
+							Type:        schema.TypeString,
+							Description: "The type of the vSphere Zone",
+							Computed:    true,
+						},
+					},
+				},
+			},
+			"vpc_network": {
+				Type:        schema.TypeList,
+				Description: "The NSX VPC network configuration",
+				Computed:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"vpc": {
+							Type:        schema.TypeString,
+							Description: "The NSX path of the VPC",
+							Computed:    true,
+						},
+						"default_subnet_size": {
+							Type:        schema.TypeInt,
+							Description: "The default size of the subnets created for the vSphere Namespace",
+							Computed:    true,
+						},
+						"vpc_config": {
+							Type:        schema.TypeList,
+							Description: "The configuration of the VPC created for the vSphere Namespace",
+							Computed:    true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"private_cidrs": {
+										Type:        schema.TypeList,
+										Description: "The private CIDRs of the VPC",
+										Computed:    true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"address": {
+													Type:        schema.TypeString,
+													Description: "The IPv4 address of the CIDR",
+													Computed:    true,
+												},
+												"prefix": {
+													Type:        schema.TypeInt,
+													Description: "The prefix length of the CIDR",
+													Computed:    true,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+						"shared_subnet": {
+							Type:        schema.TypeSet,
+							Description: "The NSX subnets created outside the Supervisor that are associated with the vSphere Namespace",
+							Computed:    true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"path": {
+										Type:        schema.TypeString,
+										Description: "The NSX path of the subnet",
+										Computed:    true,
+									},
+									"pod_default": {
+										Type:        schema.TypeBool,
+										Description: "Whether the subnet is the default network for vSphere Pods",
+										Computed:    true,
+									},
+									"vm_default": {
+										Type:        schema.TypeBool,
+										Description: "Whether the subnet is the default network for VMs",
+										Computed:    true,
+									},
+									"name": {
+										Type:        schema.TypeString,
+										Description: "The name of the subnet in the vSphere Namespace",
+										Computed:    true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"vsphere_network": {
+				Type:        schema.TypeList,
+				Description: "The vSphere networking configuration. Requires vCenter 9.1.0 or later",
+				Computed:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"default_workload_network": {
+							Type:        schema.TypeString,
+							Description: "The Supervisor network used by workloads that do not specify a network",
+							Computed:    true,
+						},
+						"networks": {
+							Type:        schema.TypeSet,
+							Description: "The Supervisor networks associated with the vSphere Namespace",
+							Computed:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -82,39 +244,29 @@ func dataSourceVSphereNamespaceRead(ctx context.Context, d *schema.ResourceData,
 	m := namespace.NewManager(c)
 
 	name := d.Get("name").(string)
-	data, err := m.GetNamespace(ctx, name)
+	data, err := m.GetNamespaceV2(ctx, name)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	_ = d.Set("config_status", data.ConfigStatus)
+	_ = d.Set("config_status", string(data.ConfigStatus))
+	_ = d.Set("supervisor", data.Supervisor)
+	_ = d.Set("cpu_usage", data.Stats.CPUUsed)
+	_ = d.Set("memory_usage", data.Stats.MemoryUsed)
+	_ = d.Set("storage_usage", data.Stats.StorageUsed)
 
-	supervisorID, err := supervisor.GetSupervisorIDByClusterID(ctx, m, data.ClusterId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	_ = d.Set("supervisor", supervisorID)
+	vmService := make(map[string]interface{})
+	vmService["content_libraries"] = data.VmServiceSpec.ContentLibraries
+	vmService["vm_classes"] = data.VmServiceSpec.VmClasses
+	_ = d.Set("vm_service", []map[string]interface{}{vmService})
 
-	flattenNamespaceInfo(d, data)
+	_ = d.Set("storage", namespaceinstance.FlattenStorageSpecs(data.StorageSpecs))
+	_ = d.Set("access", namespaceinstance.FlattenAccessList(data.AccessList))
+	_ = d.Set("zone", namespaceinstance.FlattenZoneInfos(data.Zones))
+	_ = d.Set("vpc_network", namespaceinstance.FlattenVpcNetwork(data.NetworkSpec))
+	_ = d.Set("vsphere_network", namespaceinstance.FlattenVsphereNetwork(data.NetworkSpec))
 
 	d.SetId(name)
 
 	return nil
-}
-
-func flattenNamespaceInfo(d *schema.ResourceData, info namespace.NamespacesInstanceInfo) {
-	_ = d.Set("cpu_usage", info.Stats.CpuUsed)
-	_ = d.Set("memory_usage", info.Stats.MemoryUsed)
-	_ = d.Set("storage_usage", info.Stats.StorageUsed)
-
-	vmService := make(map[string]interface{})
-	vmService["content_libraries"] = info.VmServiceSpec.ContentLibraries
-	vmService["vm_classes"] = info.VmServiceSpec.VmClasses
-	_ = d.Set("vm_service", []map[string]interface{}{vmService})
-
-	storagePolicies := make([]string, len(info.StorageSpecs))
-	for i, storageSpec := range info.StorageSpecs {
-		storagePolicies[i] = storageSpec.Policy
-	}
-	_ = d.Set("storage_policies", storagePolicies)
 }
