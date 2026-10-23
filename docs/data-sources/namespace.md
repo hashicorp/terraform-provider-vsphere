@@ -32,9 +32,9 @@ The following attributes are exported:
 
 * `config_status` - The configuration status of the vSphere Namespace.
 * `supervisor` - The identifier of the vSphere Supervisor managing the namespace.
-* `cpu_usage` - The CPU usage of the vSphere Namespace.
-* `memory_usage` - The memory usage of the vSphere Namespace.
-* `storage_usage` - The storage usage of the vSphere Namespace.
+* `cpu_usage` - The CPU usage of the vSphere Namespace in MHz.
+* `memory_usage` - The memory usage of the vSphere Namespace in MiB.
+* `storage_usage` - The storage usage of the vSphere Namespace in MiB.
 * `vm_service` - The configuration for VM Service in the vSphere Namespace.
   * `content_libraries` - The list of content libraries associated with the VM Service.
   * `vm_classes` - The list of VM Classes associated with the VM Service.

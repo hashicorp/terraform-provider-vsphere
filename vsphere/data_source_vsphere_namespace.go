@@ -33,17 +33,17 @@ func dataSourceVSphereNamespace() *schema.Resource {
 			},
 			"cpu_usage": {
 				Type:        schema.TypeInt,
-				Description: "The CPU usage of the vSphere Namespace in megabytes",
+				Description: "The CPU usage of the vSphere Namespace in MHz",
 				Computed:    true,
 			},
 			"memory_usage": {
 				Type:        schema.TypeInt,
-				Description: "The memory usage of the vSphere Namespace in megabytes",
+				Description: "The memory usage of the vSphere Namespace in MiB",
 				Computed:    true,
 			},
 			"storage_usage": {
 				Type:        schema.TypeInt,
-				Description: "The storage usage of the vSphere Namespace in megabytes",
+				Description: "The storage usage of the vSphere Namespace in MiB",
 				Computed:    true,
 			},
 			"vm_service": {

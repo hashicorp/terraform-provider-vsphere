@@ -97,6 +97,11 @@ func resourceVSphereNamespaceRead(ctx context.Context, d *schema.ResourceData, m
 	name := d.Get("name").(string)
 	data, err := m.GetNamespaceV2(ctx, name)
 	if err != nil {
+		if rest.IsStatusError(err, http.StatusNotFound) {
+			log.Printf("[DEBUG] Namespace %s was not found", name)
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -181,12 +186,12 @@ func waitForNamespaceCreation(ctx context.Context, m *namespace.Manager, name st
 	for {
 		select {
 		case <-tickerCtx.Done():
-			// timeout exceeded, try to collect diagnostics
+			timeoutDiags := diag.Errorf("timed out waiting for namespace %s to reach RUNNING state", name)
 			data, err := m.GetNamespaceV2(ctx, name)
 			if err != nil {
-				return diag.Errorf("failed to create namespace: %s", name)
+				return timeoutDiags
 			}
-			return collectNamespaceDiagnostics(data)
+			return append(timeoutDiags, collectNamespaceDiagnostics(data)...)
 		case <-ticker.C:
 			data, err := m.GetNamespaceV2(ctx, name)
 			if err != nil {
